@@ -1,95 +1,273 @@
 # Agent-Runtime Integration Guide
 
-This document explains how to integrate `@agent-society/protocol` with `agent-runtime` to enable Nostr-based peer discovery for ILP connectors.
+This document explains how to integrate `@agent-society/protocol` with `agent-runtime` to create an ILP-gated Nostr relay.
 
 ## Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              @agent-society/protocol                         │
-│                                                             │
-│  NostrPeerDiscoveryService    SocialTrustManager            │
-│  NostrSpspClient/Server       Event Builders/Parsers        │
-│                                                             │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        │ Discovers peers, computes trust
-                        │ Calls Admin API or direct methods
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    agent-runtime                             │
-│                                                             │
-│  ConnectorNode                                              │
-│    ├── BTPClientManager  ← Add peers here                   │
-│    ├── RoutingTable      ← Add routes here                  │
-│    ├── AdminServer       ← REST API for dynamic config      │
-│    └── PacketHandler     ← Routes ILP packets               │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+The integration has two main components:
 
-## Integration Options
-
-### Option A: Admin API (Recommended)
-
-The cleanest integration uses agent-runtime's Admin API. No code changes required to agent-runtime.
+1. **Business Logic Server (BLS)**: Handles incoming payments, stores Nostr events
+2. **Peer Discovery**: Discovers ILP peers from Nostr social graph
 
 ```
-┌─────────────────────────┐        REST API        ┌─────────────────────────┐
-│  Nostr Discovery        │ ───────────────────────► │  agent-runtime          │
-│  (separate process)     │  POST /admin/peers      │  AdminServer :8081      │
-│                         │  POST /admin/routes     │                         │
-└─────────────────────────┘                         └─────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        BUSINESS LOGIC SERVER                                 │
+│                    (@agent-society/protocol + relay)                         │
+│                                                                             │
+│  Endpoints:                                                                 │
+│    POST /handle-payment  ← Connector calls this on incoming payment         │
+│    GET  /health          ← Health check                                     │
+│                                                                             │
+│  Responsibilities:                                                          │
+│    - Decode TOON → Nostr event                                              │
+│    - Verify event signature                                                 │
+│    - Check payment amount ≥ price                                           │
+│    - Store event in relay database                                          │
+│    - Return accept/reject to connector                                      │
+│                                                                             │
+│  Also runs:                                                                 │
+│    - NostrPeerDiscoveryService (populates connector routing)                │
+│    - SocialTrustManager (derives credit limits)                             │
+│    - WebSocket relay server (NIP-01 reads)                                  │
+│                                                                             │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │
+          ┌─────────────────────┼─────────────────────────┐
+          │                     │                         │
+          ▼                     ▼                         ▼
+   POST /handle-payment    Admin API calls         WebSocket :4000
+   (payment notifications) (peer/route updates)    (NIP-01 relay)
+          │                     │                         │
+          ▼                     ▼                         │
+┌─────────────────────────────────────────────────────────┴───────────────────┐
+│                           agent-runtime                                      │
+│                                                                             │
+│  ConnectorNode                                                              │
+│    ├── BTPClientManager  ← Peers added via Admin API                        │
+│    ├── RoutingTable      ← Routes added via Admin API                       │
+│    ├── AdminServer       ← REST API for dynamic config (:8081)              │
+│    ├── PacketHandler     ← Routes ILP packets                               │
+│    └── BLS Integration   ← Calls POST /handle-payment on incoming packets   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Advantages:**
-- Decoupled deployment
-- No connector code changes
-- Can be any language/runtime
-- Independent upgrade cycles
+## Business Logic Server
 
-### Option B: Embedded Integration
+The BLS is the core of the ILP-gated relay. It receives payment notifications from the connector and decides whether to accept (store event) or reject.
 
-For tighter integration, embed discovery logic directly in the connector startup.
+### Required Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/handle-payment` | POST | Called by connector when payment arrives |
+| `/health` | GET | Health check for connector to verify BLS is up |
+
+### Payment Flow
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  ConnectorNode                                              │
-│    │                                                        │
-│    ├── NostrDiscoveryIntegration (new)                      │
-│    │     └── Calls BTPClientManager.addPeer()               │
-│    │     └── Calls RoutingTable.addRoute()                  │
-│    │                                                        │
-│    ├── BTPClientManager                                     │
-│    ├── RoutingTable                                         │
-│    └── ...                                                  │
-└─────────────────────────────────────────────────────────────┘
+ILP Prepare arrives at connector
+        │
+        ▼
+Connector extracts: amount, destination, data (TOON event)
+        │
+        ▼
+POST /handle-payment to BLS
+{
+  "amount": "50000",
+  "destination": "g.agent.alice",
+  "data": "<base64 TOON-encoded Nostr event>",
+  "sourceAccount": "g.agent.bob"
+}
+        │
+        ▼
+BLS processes:
+  1. Decode TOON → Nostr event
+  2. Verify event signature (NIP-01)
+  3. Look up price for this event
+  4. Check: amount ≥ price?
+        │
+        ├─── YES ───► Store event, notify subscribers
+        │             Return: { "accept": true, "fulfillment": "..." }
+        │
+        └─── NO ────► Return: { "accept": false, "code": "F06", "message": "Insufficient payment" }
+        │
+        ▼
+Connector returns ILP Fulfill or Reject to sender
 ```
 
-**Advantages:**
-- Single process
-- Direct access to internal APIs
-- Lower latency
+### BLS Implementation
 
-## Admin API Integration (Option A)
+```typescript
+import express from 'express';
+import { decodeToon } from 'toon';
+import { verifyEvent } from 'nostr-tools';
+import { NostrRelay } from './relay';
+import { PricingService } from './pricing';
 
-### Enable Admin API in agent-runtime
+const app = express();
+app.use(express.json());
+
+const relay = new NostrRelay();       // Your Nostr relay implementation
+const pricing = new PricingService(); // Price lookup from kind:10032
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    relay: relay.isReady(),
+    timestamp: Date.now(),
+  });
+});
+
+// Handle incoming ILP payments
+app.post('/handle-payment', async (req, res) => {
+  const { amount, destination, data, sourceAccount } = req.body;
+
+  try {
+    // 1. Decode TOON → Nostr event
+    const toonBytes = Buffer.from(data, 'base64');
+    const event = decodeToon(toonBytes);
+
+    // 2. Verify Nostr event signature
+    if (!verifyEvent(event)) {
+      return res.json({
+        accept: false,
+        code: 'F00',  // Bad request
+        message: 'Invalid event signature',
+      });
+    }
+
+    // 3. Calculate price for this event
+    const price = pricing.getPrice(event);
+
+    // 4. Check payment amount
+    if (BigInt(amount) < price) {
+      return res.json({
+        accept: false,
+        code: 'F06',  // Insufficient payment
+        message: `Insufficient payment: got ${amount}, need ${price}`,
+        metadata: {
+          required: price.toString(),
+          received: amount,
+        },
+      });
+    }
+
+    // 5. Store event in relay
+    await relay.storeEvent(event);
+
+    // 6. Notify WebSocket subscribers
+    relay.notifySubscribers(event);
+
+    // 7. Return success with fulfillment
+    const fulfillment = generateFulfillment(event.id);
+
+    return res.json({
+      accept: true,
+      fulfillment: fulfillment,
+      metadata: {
+        eventId: event.id,
+        storedAt: Date.now(),
+      },
+    });
+
+  } catch (error) {
+    console.error('Payment handling error:', error);
+    return res.json({
+      accept: false,
+      code: 'F00',
+      message: error.message,
+    });
+  }
+});
+
+function generateFulfillment(eventId: string): string {
+  // Generate ILP fulfillment (32 bytes)
+  // Could be derived from event ID or use pre-agreed condition
+  const hash = crypto.createHash('sha256').update(eventId).digest();
+  return hash.toString('base64');
+}
+
+app.listen(3001, () => {
+  console.log('BLS listening on :3001');
+});
+```
+
+### Pricing Service
+
+```typescript
+import { NostrEvent } from 'nostr-tools';
+
+interface PricingConfig {
+  pricePerByte: bigint;
+  kindPrices: Map<number, bigint>;
+}
+
+export class PricingService {
+  constructor(private config: PricingConfig = {
+    pricePerByte: 10n,
+    kindPrices: new Map([
+      [0, 10000n],   // Profile metadata
+      [1, 5000n],    // Short text note
+      [3, 20000n],   // Follow list
+      [7, 1000n],    // Reaction
+    ]),
+  }) {}
+
+  getPrice(event: NostrEvent): bigint {
+    // Check for kind-specific price
+    const kindPrice = this.config.kindPrices.get(event.kind);
+    if (kindPrice !== undefined) {
+      return kindPrice;
+    }
+
+    // Default: price per byte
+    const eventBytes = JSON.stringify(event).length;
+    return BigInt(eventBytes) * this.config.pricePerByte;
+  }
+
+  // Load pricing from kind:10032 event
+  loadFromPeerInfo(peerInfoEvent: NostrEvent): void {
+    for (const tag of peerInfoEvent.tags) {
+      if (tag[0] === 'price_per_byte') {
+        this.config.pricePerByte = BigInt(tag[1]);
+      } else if (tag[0].startsWith('price_kind_')) {
+        const kind = parseInt(tag[0].replace('price_kind_', ''));
+        this.config.kindPrices.set(kind, BigInt(tag[1]));
+      }
+    }
+  }
+}
+```
+
+### Configure agent-runtime for BLS
 
 ```yaml
 # agent-runtime config.yaml
-nodeId: my-connector
+nodeId: my-agent
 btpServerPort: 3000
 healthCheckPort: 8080
+
+# Business Logic Server configuration
+bls:
+  enabled: true
+  url: http://localhost:3001        # BLS base URL
+  handlePaymentPath: /handle-payment
+  healthPath: /health
+  timeout: 5000                      # ms
 
 adminApi:
   enabled: true
   port: 8081
-  apiKey: your-secret-api-key  # Optional but recommended
+  apiKey: your-secret-api-key
 ```
 
-### Nostr Discovery Service
+## Peer Discovery Integration
 
-Create a service that bridges Nostr discovery to the Admin API:
+In addition to handling payments, the BLS also manages peer discovery via Nostr.
+
+### Combined BLS + Discovery Service
 
 ```typescript
 import {
@@ -99,30 +277,23 @@ import {
 } from '@agent-society/protocol';
 import { SimplePool } from 'nostr-tools';
 
-interface AgentRuntimeAdminClient {
-  adminUrl: string;
-  apiKey?: string;
-}
-
-export class NostrToAgentRuntimeBridge {
+export class AgentBLS {
   private discovery: NostrPeerDiscoveryService;
   private trustManager: SocialTrustManager;
-  private adminClient: AgentRuntimeAdminClient;
   private pool: SimplePool;
+  private relay: NostrRelay;
+  private pricing: PricingService;
 
-  constructor(config: {
+  constructor(private config: {
     relays: string[];
     pubkey: string;
     secretKey: Uint8Array;
     adminUrl: string;
     adminApiKey?: string;
-    trustConfig?: {
-      baseCreditForFollowed?: bigint;
-      mutualFollowerBonus?: bigint;
-      maxCreditLimit?: bigint;
-    };
   }) {
     this.pool = new SimplePool();
+    this.relay = new NostrRelay();
+    this.pricing = new PricingService();
 
     this.discovery = new NostrPeerDiscoveryService({
       relays: config.relays,
@@ -134,135 +305,119 @@ export class NostrToAgentRuntimeBridge {
       this.pool,
       config.relays,
       config.pubkey,
-      config.trustConfig ?? {
+      {
         baseCreditForFollowed: 10000n,
         mutualFollowerBonus: 1000n,
         maxCreditLimit: 100000n,
       }
     );
-
-    this.adminClient = {
-      adminUrl: config.adminUrl,
-      apiKey: config.adminApiKey,
-    };
   }
 
   async start(): Promise<void> {
-    // Initialize trust manager (fetches social graph)
+    // Start HTTP server for BLS endpoints
+    await this.startHttpServer();
+
+    // Start WebSocket server for NIP-01 relay
+    await this.relay.start();
+
+    // Initialize trust and discovery
     await this.trustManager.initialize();
 
-    // Discover initial peers
+    // Discover and register peers with connector
     const peers = await this.discovery.discoverPeers();
-
     for (const peer of peers) {
-      await this.addPeerToConnector(peer);
+      await this.registerPeerWithConnector(peer);
     }
 
     // Subscribe to peer updates
     this.discovery.subscribeToPeerUpdates(async (event) => {
       const peerInfo = parseIlpPeerInfoEvent(event);
       if (peerInfo) {
-        await this.addPeerToConnector(peerInfo);
+        await this.registerPeerWithConnector(peerInfo);
       }
     });
   }
 
-  private async addPeerToConnector(peer: {
+  private async registerPeerWithConnector(peer: {
     pubkey: string;
     ilpAddress: string;
     btpEndpoint: string;
   }): Promise<void> {
-    // Compute trust-based priority
     const trust = await this.trustManager.computeTrust(peer.pubkey);
-    const priority = this.trustScoreToPriority(trust.score);
 
-    // Derive auth token (could use NIP-44 encrypted exchange)
-    const authToken = await this.deriveAuthToken(peer.pubkey);
-
-    // Call Admin API
-    const response = await fetch(`${this.adminClient.adminUrl}/admin/peers`, {
+    await fetch(`${this.config.adminUrl}/admin/peers`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.adminClient.apiKey && {
-          'X-Api-Key': this.adminClient.apiKey,
+        ...(this.config.adminApiKey && {
+          'X-Api-Key': this.config.adminApiKey,
         }),
       },
       body: JSON.stringify({
-        id: peer.pubkey.slice(0, 16), // Use pubkey prefix as peer ID
+        id: peer.pubkey.slice(0, 16),
         url: peer.btpEndpoint,
-        authToken: authToken,
-        routes: [
-          {
-            prefix: peer.ilpAddress,
-            priority: priority,
-          },
-        ],
+        authToken: await this.deriveAuthToken(peer.pubkey),
+        routes: [{
+          prefix: peer.ilpAddress,
+          priority: Math.floor(trust.score),
+        }],
       }),
     });
-
-    if (!response.ok) {
-      console.error(`Failed to add peer ${peer.pubkey}:`, await response.text());
-      return;
-    }
-
-    const result = await response.json();
-    console.log(`Added peer ${result.peer.id}, connected: ${result.peer.connected}`);
-  }
-
-  private trustScoreToPriority(score: number): number {
-    // Higher trust = higher priority (0-100 → 0-100)
-    return Math.floor(score);
   }
 
   private async deriveAuthToken(peerPubkey: string): Promise<string> {
-    // Option 1: Use SPSP shared secret
-    // Option 2: Derive from NIP-44 key exchange
-    // Option 3: Use static token from peer's kind:10032 event
-
-    // Placeholder - implement based on your auth strategy
+    // Derive from NIP-44 conversation key
     return `nostr-${peerPubkey.slice(0, 8)}`;
   }
 
-  async stop(): Promise<void> {
-    this.pool.close([]);
-  }
+  // ... BLS endpoint handlers (handle-payment, health) ...
 }
 ```
 
-### Usage
+## Architecture Options
 
-```typescript
-import { NostrToAgentRuntimeBridge } from './nostr-bridge';
-import { generateSecretKey, getPublicKey } from 'nostr-tools';
+### Option A: Separate Processes (Recommended)
 
-const secretKey = generateSecretKey();
-const pubkey = getPublicKey(secretKey);
-
-const bridge = new NostrToAgentRuntimeBridge({
-  relays: ['wss://relay.damus.io', 'wss://nos.lol'],
-  pubkey: pubkey,
-  secretKey: secretKey,
-  adminUrl: 'http://localhost:8081',
-  adminApiKey: process.env.ADMIN_API_KEY,
-  trustConfig: {
-    baseCreditForFollowed: 50000n,
-    mutualFollowerBonus: 10000n,
-    maxCreditLimit: 500000n,
-  },
-});
-
-await bridge.start();
-console.log('Nostr discovery bridge running...');
-
-// Keep running, will update connector as peers change
-process.on('SIGINT', async () => {
-  await bridge.stop();
-  process.exit(0);
-});
+```
+┌─────────────────────┐     ┌─────────────────────┐     ┌─────────────────────┐
+│  agent-runtime      │     │  Agent BLS          │     │  Nostr Relays       │
+│  (ILP Connector)    │     │  (This library)     │     │  (External)         │
+│                     │     │                     │     │                     │
+│  :3000 BTP          │◄───►│  :3001 BLS API      │◄───►│  wss://relay.io     │
+│  :8080 Health       │     │  :4000 NIP-01 WS    │     │                     │
+│  :8081 Admin API    │     │                     │     │                     │
+└─────────────────────┘     └─────────────────────┘     └─────────────────────┘
 ```
 
+**Advantages:**
+- Decoupled deployment and scaling
+- Independent upgrades
+- Clear separation of concerns
+- Can run BLS as multiple replicas
+
+### Option B: Single Process
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Combined Agent Process                                      │
+│                                                             │
+│  ┌─────────────────────┐  ┌─────────────────────┐          │
+│  │  ConnectorNode      │  │  AgentBLS           │          │
+│  │  (agent-runtime)    │◄─┤  (embedded)         │          │
+│  └─────────────────────┘  └─────────────────────┘          │
+│                                                             │
+│  :3000 BTP, :4000 NIP-01 WS, :8080 Health                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Advantages:**
+- Simpler deployment
+- Lower latency (no HTTP calls)
+- Single configuration
+
 ## Admin API Reference
+
+The BLS uses agent-runtime's Admin API to register discovered peers. See the `AgentBLS.registerPeerWithConnector()` method above for usage.
 
 ### Add Peer
 
@@ -528,12 +683,15 @@ nostrDiscovery:
 
 | agent-society | agent-runtime | Notes |
 |---------------|---------------|-------|
+| `AgentBLS` | Business Logic Server | Handles `/handle-payment`, `/health` |
+| `NostrRelay.storeEvent()` | BLS accept response | Payment → event storage |
+| `PricingService.getPrice()` | BLS accept/reject decision | Amount vs price check |
 | `NostrPeerDiscoveryService.discoverPeers()` | `BTPClientManager.addPeer()` | Discovered peers become BTP connections |
 | `SocialTrustManager.computeTrust()` | `RoutingTable.addRoute(priority)` | Trust score → route priority |
 | `IlpPeerInfo.btpEndpoint` | `Peer.url` | WebSocket URL for BTP |
 | `IlpPeerInfo.ilpAddress` | Route prefix | e.g., `g.alice` |
 | Follow list (NIP-02) | Peer list | Social graph = network graph |
-| `kind:10032` event | Peer configuration | Connector metadata |
+| `kind:10032` event | Peer configuration | Connector metadata + pricing |
 
 ## Authentication Strategies
 
@@ -616,7 +774,10 @@ See [examples/nostr-discovery-bridge/](../examples/nostr-discovery-bridge/) for 
 
 ## Next Steps
 
-1. **NIP Proposal**: Formalize event kinds 10032, 10047, 23194, 23195
-2. **Auth Token Standard**: Define canonical BTP auth derivation from Nostr keys
-3. **Credit Limit Integration**: Wire trust scores to actual credit limits in settlement
-4. **Route Propagation**: Implement kind:10033 for multi-hop route announcements
+1. **BLS Implementation**: Build complete BLS with `/handle-payment` and `/health` endpoints
+2. **TOON Integration**: Add TOON encoding/decoding for Nostr events in ILP packets
+3. **NIP Proposal**: Formalize event kinds 10032, 10047, 23194, 23195
+4. **Auth Token Standard**: Define canonical BTP auth derivation from Nostr keys
+5. **Credit Limit Integration**: Wire trust scores to actual credit limits in settlement
+6. **Route Propagation**: Implement kind:10033 for multi-hop route announcements
+7. **Relay Implementation**: Build NIP-01 compliant relay with WebSocket subscriptions
