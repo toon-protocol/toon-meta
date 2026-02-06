@@ -46,8 +46,11 @@ agent-society/
 │   │   │   │   └── BusinessLogicServer.test.ts
 │   │   │   ├── pricing/
 │   │   │   │   ├── index.ts
+│   │   │   │   ├── types.ts                # PricingConfig, PricingError
 │   │   │   │   ├── PricingService.ts
-│   │   │   │   └── PricingService.test.ts
+│   │   │   │   ├── PricingService.test.ts
+│   │   │   │   ├── config.ts               # Env/file config loading
+│   │   │   │   └── config.test.ts
 │   │   │   ├── storage/
 │   │   │   │   ├── index.ts
 │   │   │   │   ├── EventStore.ts
@@ -67,7 +70,8 @@ agent-society/
 │       │   └── ilp-gated-relay-demo/
 │       │       ├── README.md
 │       │       ├── agent.ts
-│       │       └── relay.ts
+│       │       ├── relay.ts
+│       │       └── mock-connector.ts
 │       ├── package.json
 │       └── tsconfig.json
 │

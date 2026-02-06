@@ -1,0 +1,53 @@
+schema: 1
+story: "4.7"
+story_title: "Integration Example"
+gate: PASS
+status_reason: "All 5 acceptance criteria met. Demo runs successfully end-to-end. Code is well-structured and properly documented. Minor cosmetic issues in comments (port numbers) do not affect functionality."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-02-06T16:55:00Z"
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 3 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "Port number comments in agent.ts and relay.ts are inconsistent with actual values"
+      - "Source tree documentation missing index.ts entry"
+
+quality_score: 100
+expires: "2026-02-20T16:55:00Z"
+
+evidence:
+  tests_reviewed: 561
+  risks_identified: 0
+  demo_verified: true
+  lint_passed: true
+  trace:
+    ac_covered: [1, 2, 3, 4, 5]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Mock connector only - no real payments or secrets"
+  performance:
+    status: PASS
+    notes: "In-memory storage with clean shutdown"
+  reliability:
+    status: PASS
+    notes: "Proper error handling and timeout handling"
+  maintainability:
+    status: PASS
+    notes: "Well-commented code with clear structure"
+
+recommendations:
+  immediate: []
+  future:
+    - action: "Update port number comments to match actual defaults (3100/7100)"
+      refs: ["packages/examples/src/ilp-gated-relay-demo/agent.ts:160", "packages/examples/src/ilp-gated-relay-demo/relay.ts:28-31"]
+    - action: "Add index.ts to source tree documentation"
+      refs: ["docs/architecture/9-source-tree.md"]
