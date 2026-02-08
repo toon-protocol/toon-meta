@@ -1,0 +1,46 @@
+schema: 1
+story: '5.1'
+story_title: 'Extract BLS into Standalone Package'
+gate: PASS
+status_reason: 'All 8 ACs met. All 3 issues from initial review resolved: health endpoint routing fixed, createBlsServer().start() implemented properly, BLS-prefixed env vars added. 734 tests pass, clean build, zero lint errors.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-02-07T16:45:00Z'
+
+waiver: { active: false }
+
+top_issues: []
+
+quality_score: 100
+
+evidence:
+  tests_reviewed: 173  # 166 original BLS + 7 new fix tests
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'Event signatures verified, no secrets logged, prepared SQL statements, proper input validation'
+  performance:
+    status: PASS
+    notes: 'Prepared statements for SQLite, transactional replaceable events, appropriate for event sizes'
+  reliability:
+    status: PASS
+    notes: 'Graceful shutdown handlers, proper error propagation, fail-fast on invalid config, proper HTTP server lifecycle'
+  maintainability:
+    status: PASS
+    notes: 'Factory function start()/stop() properly implemented with server tracking; pricing config supports both BLS_ and RELAY_ env var prefixes with clear precedence'
+
+recommendations:
+  immediate: []
+  future: []
+
+history:
+  - at: '2026-02-07T16:30:00Z'
+    gate: CONCERNS
+    note: 'Initial review - 3 issues found: health endpoint routing bug (medium), start() no-op (low), RELAY_ env var prefix (low)'
+  - at: '2026-02-07T16:45:00Z'
+    gate: PASS
+    note: 'Re-review - All 3 issues resolved with proper fixes and test coverage. 734 tests pass.'

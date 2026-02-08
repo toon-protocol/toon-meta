@@ -1,0 +1,42 @@
+schema: 1
+story: '5.2'
+story_title: 'BLS Docker Image Build Configuration'
+gate: PASS
+status_reason: 'All 9 ACs met. Clean multi-stage Dockerfile with proper layer caching, pnpm deploy --prod for production deps, better-sqlite3 artifact stripping (147MB < 150MB target), non-root user, health check, and correct .dockerignore.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-02-07T18:00:00Z'
+
+waiver: { active: false }
+
+top_issues: []
+
+quality_score: 100
+
+evidence:
+  tests_reviewed: 0  # Infrastructure config — manual Docker CLI verification
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'Non-root user, no build tools in production stage, no source code in final image, NODE_ENV=production'
+  performance:
+    status: PASS
+    notes: 'Image size 147MB (under 150MB target), optimized layer caching, lightweight wget health check'
+  reliability:
+    status: PASS
+    notes: 'Health check with sensible defaults (30s interval, 5s timeout, 10s start-period, 3 retries), graceful shutdown via entrypoint SIGTERM handler'
+  maintainability:
+    status: PASS
+    notes: 'Well-commented Dockerfile with clear stage separation, follows existing project conventions'
+
+recommendations:
+  immediate: []
+  future:
+    - action: 'Pin pnpm version instead of @latest for fully reproducible builds'
+      refs: ['packages/bls/Dockerfile:11']
+    - action: 'Add docker/src/ to .dockerignore to reduce build context transfer size'
+      refs: ['.dockerignore']

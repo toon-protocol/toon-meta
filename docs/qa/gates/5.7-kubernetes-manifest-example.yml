@@ -1,0 +1,47 @@
+schema: 1
+story: "5.7"
+story_title: "Kubernetes Manifest Example"
+gate: PASS
+status_reason: "All 6 K8s manifests are valid, well-structured, and meet all acceptance criteria. No application code was modified. Full test suite (771 tests) passes with no regressions."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-02-07T21:10:00Z"
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 0 }
+  recommendations:
+    must_fix: []
+    monitor: []
+
+quality_score: 100
+expires: "2026-02-21T21:10:00Z"
+
+evidence:
+  tests_reviewed: 0
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Secret template properly warns against committing real secrets; references external secret managers for production"
+  performance:
+    status: PASS
+    notes: "Resource limits are reasonable (CPU 100m-500m, Memory 128Mi-256Mi); probe intervals appropriate"
+  reliability:
+    status: PASS
+    notes: "Liveness and readiness probes configured; SQLite single-writer constraint documented with replicas=1"
+  maintainability:
+    status: PASS
+    notes: "Kustomize base enables easy overlay customization; manifest comments explain rationale; README provides clear instructions"
+
+recommendations:
+  immediate: []
+  future:
+    - action: "Consider adding a Helm chart as an alternative deployment option for teams preferring Helm over Kustomize"
+      refs: ["packages/bls/examples/k8s/"]
