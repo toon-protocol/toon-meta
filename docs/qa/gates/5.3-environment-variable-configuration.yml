@@ -1,0 +1,51 @@
+schema: 1
+story: "5.3"
+story_title: "Environment Variable Configuration"
+gate: PASS
+status_reason: "All 4 acceptance criteria met. Config module cleanly extracts env var parsing into testable pure function. 27 unit tests cover all validation paths. README provides complete operator reference. 761 tests passing."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-02-07T17:30:00Z"
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 2 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "ILP_ADDRESS regex allows trailing/consecutive dots (cosmetic, non-blocking)"
+      - "parsePort() accepts float strings via parseInt truncation (edge case)"
+
+quality_score: 100
+expires: "2026-02-21T17:30:00Z"
+
+evidence:
+  tests_reviewed: 27
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Secret key never logged, validated for format, normalized to lowercase. Public key derived and displayed instead."
+  performance:
+    status: PASS
+    notes: "Config loading is one-time startup operation. No performance concerns."
+  reliability:
+    status: PASS
+    notes: "Fail-fast on invalid config with descriptive error messages. Catches both ConfigError and PricingError in entrypoint."
+  maintainability:
+    status: PASS
+    notes: "Clean separation: config.ts for parsing, entrypoint.ts for orchestration. Reuses existing pricing config module. Well-typed BlsEnvConfig interface."
+
+recommendations:
+  immediate: []
+  future:
+    - action: "Tighten ILP_ADDRESS regex to disallow trailing/consecutive dots"
+      refs: ["packages/bls/src/config.ts:31"]
+    - action: "Add float detection in port parsing (parseInt silently truncates 3100.5)"
+      refs: ["packages/bls/src/config.ts:135"]

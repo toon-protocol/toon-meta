@@ -1,0 +1,69 @@
+schema: 1
+story: "5.5"
+story_title: "Docker Hub Publishing"
+gate: PASS
+status_reason: "All 8 ACs met. Clean GitHub Actions workflow with correct tag logic for all 3 trigger scenarios (verified including edge cases), multi-arch build, Trivy vulnerability scan, SBOM generation, and updated README. 771 tests passing across 32 test files, no regressions. Three non-blocking findings documented for future improvement."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-02-07T19:20:00Z"
+
+waiver: { active: false }
+
+top_issues:
+  - id: "CI-001"
+    severity: medium
+    finding: "SBOM generation and upload steps are skipped when Trivy scan fails (exit-code 1 halts the job before Steps 8-9)"
+    suggested_action: "Add `if: always()` to SBOM generation and upload steps"
+    suggested_owner: dev
+  - id: "CI-002"
+    severity: low
+    finding: "Trivy scans only the amd64 variant of the multi-arch manifest; arm64 is not scanned"
+    suggested_action: "Known limitation of multi-arch CI pipelines — acceptable at current maturity level"
+    suggested_owner: dev
+  - id: "CI-003"
+    severity: low
+    finding: "Tag extraction pattern `bls-v(.*)` is permissive; would match non-semver strings"
+    suggested_action: "Consider stricter pattern `bls-v(\\d+\\.\\d+\\.\\d+)` for semver enforcement"
+    suggested_owner: dev
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 1, low: 2 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "SBOM generation resilience (CI-001)"
+
+quality_score: 80
+expires: "2026-02-21T19:20:00Z"
+
+evidence:
+  tests_reviewed: 771
+  risks_identified: 3
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Credentials via GitHub secrets only, least-privilege permissions (contents: read), Trivy scan blocks CRITICAL/HIGH CVEs. Post-push scan is a known limitation."
+  performance:
+    status: PASS
+    notes: "GHA build cache (type=gha,mode=max) configured, concurrency group cancels redundant builds"
+  reliability:
+    status: PASS
+    notes: "Concurrency prevents race conditions, exit-code 1 on Trivy ensures workflow fails on vulnerable images"
+  maintainability:
+    status: PASS
+    notes: "Well-commented workflow with tag-mapping documentation in header, clear 8-step separation, README accurately documents available tags"
+
+recommendations:
+  immediate: []
+  future:
+    - action: "Add `if: always()` to SBOM generation and upload steps to ensure SBOM is produced even when vulnerability scan fails"
+      refs: [".github/workflows/publish-bls.yml:99-110"]
+    - action: "Consider stricter semver pattern `bls-v(\\d+\\.\\d+\\.\\d+)` in metadata-action tag extraction"
+      refs: [".github/workflows/publish-bls.yml:71"]
+    - action: "Consider adding --ignore-unfixed to Trivy to reduce noise from unpatchable CVEs"
+      refs: [".github/workflows/publish-bls.yml:91"]
+    - action: "Consider a PR-triggered dry-run workflow for syntax validation"
+      refs: [".github/workflows/publish-bls.yml"]
