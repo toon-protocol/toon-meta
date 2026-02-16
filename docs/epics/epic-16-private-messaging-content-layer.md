@@ -1,10 +1,10 @@
-# Epic 15: Private Messaging & Content Layer
+# Epic 16: Private Messaging & Content Layer
 
 **Phase:** 3 (Communication & Content)
 **NIPs:** NIP-17 (Private DMs), NIP-10 (Text Notes & Threads), NIP-18 (Reposts), NIP-23 (Long-form Content), NIP-72 (Moderated Communities)
 **Estimated Stories:** 5
-**Dependencies:** Epic 11 (Social Fabric — identity + relay lists), Epic 12 (DVMs — content to discuss and repost), Epic 13 (Zaps — content monetization)
-**Blocks:** Epic 16 (Swarms — group communication patterns used in swarm coordination)
+**Dependencies:** Epic 12 (Social Fabric — identity + relay lists), Epic 13 (DVMs — content to discuss and repost), Epic 14 (Zaps — content monetization)
+**Blocks:** Epic 17 (Swarms — group communication patterns used in swarm coordination)
 
 ---
 
@@ -152,9 +152,9 @@ Enable agents to communicate privately (NIP-17 DMs), participate in threaded pub
 ```
 13.1 (Private DMs) ── standalone (builds on NIP-44 from Epic 2)
 13.2 (Threading) ── standalone (kind:1 note creation)
-13.3 (Reposts) ── depends on 13.2 (notes to repost) or Epic 10 (DVM results to repost)
+14.3 (Reposts) ── depends on 14.2 (notes to repost) or Epic 13 (DVM results to repost)
 13.4 (Long-form Content) ── standalone (kind:30023 already priced in BLS)
-13.5 (Communities) ── depends on 13.2 (threading for community posts); optionally on Epic 12 (badges for moderation)
+14.5 (Communities) ── depends on 14.2 (threading for community posts); optionally on Epic 15 (badges for moderation)
 ```
 
 ## Definition of Done
