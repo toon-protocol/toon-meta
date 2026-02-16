@@ -3,7 +3,7 @@
 **Phase:** Infrastructure
 **Estimated Stories:** 6
 **Dependencies:** Epics 1–8 (all core library, SPSP, trust, relay, BLS, bootstrap complete)
-**Blocks:** Epic 10 (connector library refactoring), Epic 11 (ElizaOS plugin)
+**Blocks:** Epic 10 (embedded connector integration), Epic 11 (ElizaOS plugin)
 
 ---
 

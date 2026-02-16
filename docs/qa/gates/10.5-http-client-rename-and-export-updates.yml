@@ -1,0 +1,47 @@
+schema: 1
+story: '10.5'
+story_title: 'HTTP client rename and export updates'
+gate: PASS
+status_reason: 'All 8 acceptance criteria met. Clean rename with backward-compatible alias, complete Epic 10 re-exports, and optional peer dependency correctly declared. No regressions.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-02-16T11:30:00Z'
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 0 }
+  recommendations:
+    must_fix: []
+    monitor: []
+
+quality_score: 100
+expires: '2026-03-02T11:30:00Z'
+
+evidence:
+  tests_reviewed: 14
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'No new I/O, auth, or data handling. Rename and re-export only.'
+  performance:
+    status: PASS
+    notes: 'Alias is direct reference assignment — zero overhead.'
+  reliability:
+    status: PASS
+    notes: 'Backward-compatible alias preserves existing consumer behavior.'
+  maintainability:
+    status: PASS
+    notes: 'Clear JSDoc @deprecated tag guides migration. All Epic 10 types accessible from single import.'
+
+recommendations:
+  immediate: []
+  future:
+    - action: 'Migrate docker/src/entrypoint.ts from deprecated createAgentRuntimeClient to createHttpRuntimeClient'
+      refs: ['docker/src/entrypoint.ts:38']

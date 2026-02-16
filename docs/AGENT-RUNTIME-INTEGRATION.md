@@ -15,7 +15,7 @@ The integration has two main components:
 │                    (@agent-society/protocol + relay)                         │
 │                                                                             │
 │  Endpoints:                                                                 │
-│    POST /handle-payment  ← Connector calls this on incoming payment         │
+│    POST /handle-packet  ← Connector calls this on incoming payment         │
 │    GET  /health          ← Health check                                     │
 │                                                                             │
 │  Responsibilities:                                                          │
@@ -35,7 +35,7 @@ The integration has two main components:
           ┌─────────────────────┼─────────────────────────┐
           │                     │                         │
           ▼                     ▼                         ▼
-   POST /handle-payment    Admin API calls         WebSocket :4000
+   POST /handle-packet    Admin API calls         WebSocket :4000
    (payment notifications) (peer/route updates)    (NIP-01 relay)
           │                     │                         │
           ▼                     ▼                         │
@@ -47,7 +47,7 @@ The integration has two main components:
 │    ├── RoutingTable      ← Routes added via Admin API                       │
 │    ├── AdminServer       ← REST API for dynamic config (:8081)              │
 │    ├── PacketHandler     ← Routes ILP packets                               │
-│    └── BLS Integration   ← Calls POST /handle-payment on incoming packets   │
+│    └── BLS Integration   ← Calls POST /handle-packet on incoming packets   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -60,7 +60,7 @@ The BLS is the core of the ILP-gated relay. It receives payment notifications fr
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/handle-payment` | POST | Called by connector when payment arrives |
+| `/handle-packet` | POST | Called by connector when payment arrives |
 | `/health` | GET | Health check for connector to verify BLS is up |
 
 ### Payment Flow
@@ -72,7 +72,7 @@ ILP Prepare arrives at connector
 Connector extracts: amount, destination, data (TOON event)
         │
         ▼
-POST /handle-payment to BLS
+POST /handle-packet to BLS
 {
   "amount": "50000",
   "destination": "g.agent.alice",
@@ -121,7 +121,7 @@ app.get('/health', (req, res) => {
 });
 
 // Handle incoming ILP payments
-app.post('/handle-payment', async (req, res) => {
+app.post('/handle-packet', async (req, res) => {
   const { amount, destination, data, sourceAccount } = req.body;
 
   try {
@@ -253,7 +253,7 @@ healthCheckPort: 8080
 bls:
   enabled: true
   url: http://localhost:3001        # BLS base URL
-  handlePaymentPath: /handle-payment
+  handlePacketPath: /handle-packet
   healthPath: /health
   timeout: 5000                      # ms
 
@@ -370,7 +370,7 @@ export class AgentBLS {
     return `nostr-${peerPubkey.slice(0, 8)}`;
   }
 
-  // ... BLS endpoint handlers (handle-payment, health) ...
+  // ... BLS endpoint handlers (handle-packet, health) ...
 }
 ```
 
@@ -683,7 +683,7 @@ nostrDiscovery:
 
 | agent-society | agent-runtime | Notes |
 |---------------|---------------|-------|
-| `AgentBLS` | Business Logic Server | Handles `/handle-payment`, `/health` |
+| `AgentBLS` | Business Logic Server | Handles `/handle-packet`, `/health` |
 | `NostrRelay.storeEvent()` | BLS accept response | Payment → event storage |
 | `PricingService.getPrice()` | BLS accept/reject decision | Amount vs price check |
 | `NostrPeerDiscoveryService.discoverPeers()` | `BTPClientManager.addPeer()` | Discovered peers become BTP connections |
@@ -774,7 +774,7 @@ See [examples/nostr-discovery-bridge/](../examples/nostr-discovery-bridge/) for 
 
 ## Next Steps
 
-1. **BLS Implementation**: Build complete BLS with `/handle-payment` and `/health` endpoints
+1. **BLS Implementation**: Build complete BLS with `/handle-packet` and `/health` endpoints
 2. **TOON Integration**: Add TOON encoding/decoding for Nostr events in ILP packets
 3. **NIP Proposal**: Formalize event kinds 10032, 10047, 23194, 23195
 4. **Auth Token Standard**: Define canonical BTP auth derivation from Nostr keys

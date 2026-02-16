@@ -1,17 +1,17 @@
-# Epic 14: Agent Capability Labels & Verifiable Credentials
+# Epic 15: Agent Capability Labels & Verifiable Credentials
 
 **Phase:** 2b (Trust Infrastructure)
 **NIPs:** NIP-32 (Labeling), NIP-58 (Badges)
 **Signal Score:** 4/5 (strong when composed with DVMs and Zaps)
 **Estimated Stories:** 5
-**Dependencies:** Epic 12 (DVMs — quality labels on DVM results), Epic 13 (Zaps — multi-signal trust model)
-**Blocks:** Epic 16 (Swarms — badge-gated membership)
+**Dependencies:** Epic 13 (DVMs — quality labels on DVM results), Epic 14 (Zaps — multi-signal trust model)
+**Blocks:** Epic 17 (Swarms — badge-gated membership)
 
 ---
 
 ## Epic Goal
 
-Implement NIP-32 labeling for agent capability taxonomy and post-service quality ratings, plus NIP-58 badges as heavyweight verifiable credentials for settlement reliability, throughput benchmarks, and operational milestones. Together with zaps (Epic 11) and reactions (Epic 9), these create a multi-signal trust model where agents build economic reputation through observable, verifiable behavior.
+Implement NIP-32 labeling for agent capability taxonomy and post-service quality ratings, plus NIP-58 badges as heavyweight verifiable credentials for settlement reliability, throughput benchmarks, and operational milestones. Together with zaps (Epic 14) and reactions (Epic 12), these create a multi-signal trust model where agents build economic reputation through observable, verifiable behavior.
 
 ## Epic Description
 
@@ -155,7 +155,7 @@ Implement NIP-32 labeling for agent capability taxonomy and post-service quality
 
 ```
 12.1 (Capability Labels) ── standalone (extends kind:0 profiles)
-12.2 (Quality Labels) ── depends on Epic 10 (DVM results to label)
+13.2 (Quality Labels) ── depends on Epic 13 (DVM results to label)
 12.3 (Badge Definitions) ── standalone (badge infrastructure)
 12.4 (Profile Badges) ── depends on 12.3 (needs badge definitions and awards)
 12.5 (Multi-Signal Trust) ── depends on 12.2 + 12.4 + Epics 9/11 (all signals available)

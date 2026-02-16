@@ -1,10 +1,10 @@
-# Epic 10: ElizaOS Plugin
+# Epic 11: ElizaOS Plugin
 
 **Phase:** Integration
-**Estimated Stories:** 10
-**Dependencies:** Epic 9 (agent-society published to npm)
+**Estimated Stories:** 6
+**Dependencies:** Epic 9 (agent-society published to npm), Epic 10 (embedded connector integration — provides `createAgentSocietyNode()`)
 **External Dependency:** `@agent-runtime/connector` published as npm library (work tracked in agent-runtime repo — see `ELIZAOS-INTEGRATION-HANDOFF.md`)
-**Blocks:** Epics 11–16 (future NIP/feature epics benefit from ElizaOS runtime)
+**Blocks:** Epics 12–17 (future NIP/feature epics benefit from ElizaOS runtime)
 
 ---
 
@@ -60,23 +60,14 @@ ElizaOS Agent Process
 
 ### What's Being Built
 
-**Part A — Integration Refactoring (in @agent-society/core)**
+> **Note:** Integration refactoring (`createDirectRuntimeClient`, `createAgentSocietyNode`, BLS visibility, `handlePacket` rename) was moved to Epic 10. This epic assumes those are complete.
 
-Before building the plugin, core needs to compose the connector directly:
-
-1. **createDirectRuntimeClient()** — in-process alternative to HTTP client, wraps ConnectorNode
-2. **Make BLS handlePayment() public** — so connector can call it directly
-3. **createAgentSocietyNode()** — single composition function that wires connector ↔ BLS ↔ bootstrap ↔ SPSP ↔ trust ↔ relay into one object with `start()`/`stop()` lifecycle
-4. **Add @agent-runtime/connector as dependency** of @agent-society/core
-
-**Part B — ElizaOS Plugin Package**
-
-5. **Package scaffolding** — new `packages/elizaos-plugin/` with package.json, tsconfig, tsup
-6. **AgentSocietyService** — ElizaOS Service wrapping `createAgentSocietyNode()`, reads config from character settings/secrets
-7. **PAY Action** — end-to-end payment: resolve recipient → check trust → SPSP negotiate → send ILP packet → record outcome
-8. **Discovery & Trust Actions** — DISCOVER_PEERS, CHECK_TRUST, BOOTSTRAP_NETWORK, PUBLISH_PEER_INFO, REQUEST_PAYMENT
-9. **Providers** — trustScore, peerStatus, ilpBalance, networkStatus, paymentHistory
-10. **Evaluators, Events, Routes** — paymentOutcome, trustEvolution evaluators; custom event types; REST routes
+1. **Package scaffolding** — new `packages/elizaos-plugin/` with package.json, tsconfig, tsup
+2. **AgentSocietyService** — ElizaOS Service wrapping `createAgentSocietyNode()`, reads config from character settings/secrets
+3. **PAY Action** — end-to-end payment: resolve recipient → check trust → SPSP negotiate → send ILP packet → record outcome
+4. **Discovery & Trust Actions** — DISCOVER_PEERS, CHECK_TRUST, BOOTSTRAP_NETWORK, PUBLISH_PEER_INFO, REQUEST_PAYMENT
+5. **Providers** — trustScore, peerStatus, ilpBalance, networkStatus, paymentHistory
+6. **Evaluators, Events, Routes** — paymentOutcome, trustEvolution evaluators; custom event types; REST routes
 
 ### Character Configuration
 
@@ -118,15 +109,11 @@ With the plugin installed, an agent needs only a character file:
 
 | # | Story | Description | Size |
 |---|-------|-------------|------|
-| 10.1 | Create createDirectRuntimeClient() | In-process AgentRuntimeClient that wraps ConnectorNode.sendPacket() directly | M |
-| 10.2 | Make BLS handlePayment() public | Change from private to public method on BusinessLogicServer | S |
-| 10.3 | Create createAgentSocietyNode() composition function | Single function that wires connector ↔ BLS ↔ bootstrap ↔ SPSP ↔ trust with start()/stop() lifecycle | L |
-| 10.4 | Add @agent-runtime/connector dependency to core | Add dependency, update exports to re-export connector types | S |
-| 10.5 | Create ElizaOS plugin package scaffolding | New packages/elizaos-plugin/ with package.json, tsconfig, tsup, README | S |
-| 10.6 | Implement AgentSocietyService | ElizaOS Service wrapping createAgentSocietyNode(), config from character settings | L |
-| 10.7 | Implement PAY action | End-to-end payment flow: resolve recipient, trust check, SPSP, ILP send, record outcome | L |
-| 10.8 | Implement discovery and trust actions | DISCOVER_PEERS, CHECK_TRUST, BOOTSTRAP_NETWORK, PUBLISH_PEER_INFO, REQUEST_PAYMENT | L |
-| 10.9 | Implement providers | trustScore, peerStatus, ilpBalance, networkStatus, paymentHistory providers | L |
-| 10.10 | Implement evaluators, events, and routes | paymentOutcome + trustEvolution evaluators, custom event types, REST routes, publish to npm | M |
+| 11.1 | Create ElizaOS plugin package scaffolding | New packages/elizaos-plugin/ with package.json, tsconfig, tsup, README | S |
+| 11.2 | Implement AgentSocietyService | ElizaOS Service wrapping createAgentSocietyNode(), config from character settings | L |
+| 11.3 | Implement PAY action | End-to-end payment flow: resolve recipient, trust check, SPSP, ILP send, record outcome | L |
+| 11.4 | Implement discovery and trust actions | DISCOVER_PEERS, CHECK_TRUST, BOOTSTRAP_NETWORK, PUBLISH_PEER_INFO, REQUEST_PAYMENT | L |
+| 11.5 | Implement providers | trustScore, peerStatus, ilpBalance, networkStatus, paymentHistory providers | L |
+| 11.6 | Implement evaluators, events, and routes | paymentOutcome + trustEvolution evaluators, custom event types, REST routes, publish to npm | M |
 
 ---
