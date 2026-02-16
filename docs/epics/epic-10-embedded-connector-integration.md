@@ -3,7 +3,7 @@
 **Phase:** Integration
 **Estimated Stories:** 5
 **Dependencies:** Epic 9 (npm packages published), agent-runtime `@agent-runtime/connector` published as npm library
-**Blocks:** Epic 11 (ElizaOS Plugin — consumes `createAgentSocietyNode()`)
+**Blocks:** Epic 11 (NIP Handler Agent Runtime — consumes `createAgentSocietyNode()`)
 
 ---
 
