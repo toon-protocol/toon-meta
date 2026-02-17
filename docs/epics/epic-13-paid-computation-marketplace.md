@@ -1,25 +1,24 @@
-# Epic 13: Paid Computation Marketplace — Agent DVMs
+# Epic 13: Paid Computation Marketplace
 
-**Phase:** 1 (Computation Marketplace)
-**NIPs:** NIP-90 (Data Vending Machines), NIP-89 (Recommended Application Handlers / Service Discovery)
-**Signal Score:** 5/5
+**Phase:** 2 (Computation Marketplace)
+**NIPs:** NIP-90 (Data Vending Machines), NIP-89 (Service Discovery)
 **Estimated Stories:** 5
-**Dependencies:** Epic 12 (Social Fabric Foundation — NIP-05 identity, NIP-65 relay lists)
-**Blocks:** Epic 15 (Labels/Badges — quality ratings on DVM results)
+**Dependencies:** Epic 12 (Cross-Town Communication Foundation — NIP-05 identity, NIP-65 relay lists, NIP-17 DMs for negotiation)
+**Blocks:** Epic 14 (Trust Infrastructure — quality ratings on DVM results), Epic 15 (Git Collaboration — ConflictDetectionDvm)
 
 ---
 
 ## Epic Goal
 
-Enable agents to offer and consume paid computation services using the NIP-90 Data Vending Machine pattern, with ILP micropayments replacing Lightning. Agents advertise capabilities via NIP-89, discover service providers through their social graph, and pay for computation in a single ILP PREPARE/FULFILL round-trip. This creates a decentralized, multi-chain paid computation marketplace that doesn't exist anywhere else.
+Enable agents to offer and consume paid computation services using the NIP-90 Data Vending Machine pattern, with ILP micropayments replacing Lightning. Agents advertise capabilities via NIP-89, discover service providers through their social graph, and pay for computation in a single ILP PREPARE/FULFILL round-trip. A peering gate enforces that only NIP-02 peers with completed SPSP handshakes can submit or claim DVM jobs — preventing spam from unknown agents.
 
 ## Epic Description
 
 ### Existing System Context
 
-- **Current functionality:** BLS handles per-kind pricing and ILP payment verification. TOON encoding embeds any Nostr event in ILP packets. Connector routes packets between peers. SocialPeerDiscovery queries kind:10032 for peer info.
-- **Technology stack:** TypeScript, nostr-tools, Hono (BLS HTTP), TOON codec, ILP PREPARE/FULFILL
-- **Integration points:** BLS pricing table (add DVM kinds), BLS payment handler (process DVM jobs), SocialPeerDiscovery (extend for kind:31990 queries), agent-runtime PacketHandler (no changes needed)
+- **Current functionality:** BLS handles per-kind pricing and ILP payment verification. TOON encoding embeds any Nostr event in ILP packets. Connector routes packets between peers. SocialPeerDiscovery queries kind:10032 for peer info. NIP Handler Agent Runtime (Epic 11) processes events autonomously.
+- **Technology stack:** TypeScript, nostr-tools, Hono (BLS HTTP), TOON codec, ILP PREPARE/FULFILL, Vercel AI SDK (v6)
+- **Integration points:** BLS pricing table (add DVM kinds), BLS payment handler (process DVM jobs), SocialPeerDiscovery (extend for kind:31990 queries), NIP Handler kind registry (register DVM handlers), `createAgentSocietyNode()` (embedded stack)
 
 ### Enhancement Details
 
@@ -29,20 +28,23 @@ Enable agents to offer and consume paid computation services using the NIP-90 Da
   3. **DVM Service Discovery** — SocialPeerDiscovery extended to query kind:31990 events, enabling agents to find service providers through their social graph
   4. **DVM Pricing** — BLS pricing table extended with kind:5000-5999 (job requests), kind:6000-6999 (job results), kind:7000 (feedback)
   5. **Job Chaining** — Output of one DVM job feeds as input to another via NIP-90's `"job"` input type, enabling multi-agent computation pipelines across ILP routes
+  6. **Peering Gate** — DVM job requests rejected from non-peered pubkeys (must have NIP-02 follow + completed SPSP handshake)
 
 - **How it integrates:**
-  - Customer agent sends ILP PREPARE with TOON-encoded kind:5xxx event → BLS receives → dispatches to capability handler → returns TOON-encoded kind:6xxx in FULFILL
+  - Customer agent sends ILP PREPARE with TOON-encoded kind:5xxx event -> BLS receives -> dispatches to capability handler -> returns TOON-encoded kind:6xxx in FULFILL
   - If price is insufficient: BLS returns ILP REJECT with kind:7000 (payment-required status) in data, including the actual required price
   - NIP-89 kind:31990 events published alongside kind:10032 during bootstrap
   - SocialPeerDiscovery filters kind:31990 by social graph (follows' providers prioritized)
   - Job chaining: Agent A sends result to Agent B as input — routed through connector like any ILP payment
+  - DVM bid amounts use peering-channel denomination (agreed during SPSP handshake)
 
 - **Success criteria:**
   - Agents can publish their DVM capabilities via kind:31990
   - Agents can discover DVM service providers through social graph + relay queries
   - Agents can submit DVM job requests as ILP PREPARE packets and receive results in FULFILL
-  - Price negotiation works via REJECT → higher-amount PREPARE flow
+  - Price negotiation works via REJECT -> higher-amount PREPARE flow
   - Job chaining works across multiple agents via standard ILP routing
+  - Non-peered agents are rejected with clear error feedback
 
 ### Payment Flow
 
@@ -53,6 +55,7 @@ Customer Agent                     Service Provider Agent
      |    (amount=bid, data=TOON(kind:5xxx job request))
      |                                    |
      |    BLS decodes TOON, extracts job  |
+     |    BLS checks: peered pubkey?      |
      |    BLS evaluates: can I do this?   |
      |    BLS checks: amount >= my price? |
      |                                    |
@@ -70,11 +73,15 @@ Customer Agent                     Service Provider Agent
      |<-- ILP FULFILL -------------------|
 ```
 
+### Gastown Integration
+
+**Phase 1-2** — DVM jobs are the work dispatch mechanism for cross-Town requests. Gas Town Mayors publish NIP-90 job requests; peer Towns claim and execute via local Polecats. The peering gate enforces that only NIP-02 peers can submit/claim DVM jobs. This maps directly to Gas Town's MEOW Formula -> DVM Job, with the Polecat's work product returned as a DVM result.
+
 ---
 
 ## Stories
 
-### Story 10.1: DVM Kind Ranges in BLS Pricing Table
+### Story 13.1: DVM Kind Ranges in BLS Pricing Table
 
 **As a** relay/BLS operator,
 **I want** the BLS pricing table to recognize NIP-90 event kind ranges (5000-5999, 6000-6999, 7000),
@@ -88,7 +95,7 @@ Customer Agent                     Service Provider Agent
 5. TOON encoding verified with complex DVM tag structures (`i`, `bid`, `param`, `relays`, `encrypted` tags)
 6. Unit tests verify pricing for DVM kind ranges, overrides, and TOON round-trip with DVM events
 
-### Story 10.2: DVM Job Handler in BLS
+### Story 13.2: DVM Job Handler in BLS
 
 **As a** service provider agent,
 **I want** the BLS to process incoming DVM job requests (kind:5xxx) from ILP PREPARE packets and dispatch them to my capability handlers,
@@ -98,13 +105,14 @@ Customer Agent                     Service Provider Agent
 1. `DvmJobHandler` class created in `@agent-society/bls` with registration pattern: `handler.register(jobKind: number, handler: DvmCapabilityHandler)`
 2. `DvmCapabilityHandler` interface: `processJob(request: DvmJobRequest): Promise<DvmJobResult | DvmJobRejection>`
 3. BLS `handlePayment` extended: if incoming TOON event is kind:5000-5999, delegate to DvmJobHandler
-4. On successful job: return ILP FULFILL with TOON-encoded kind:6xxx result event (result kind = request kind + 1000)
-5. On price-insufficient: return ILP REJECT with TOON-encoded kind:7000 feedback (status: `payment-required`, `amount` tag with required price)
-6. On job failure: return ILP REJECT with kind:7000 feedback (status: `error`, content = error message)
-7. NIP-90 `bid` tag in request maps to ILP PREPARE amount field; `amount` tag in response/feedback maps to BLS pricing
-8. Unit tests verify: job dispatch, success/fulfill flow, price negotiation flow, error handling, and kind mapping
+4. **Peering gate:** Validate that the job request's pubkey has an active peering relationship (NIP-02 follow + SPSP handshake completed); reject non-peered requests with kind:7000 feedback (status: `error`, content: "peering required")
+5. On successful job: return ILP FULFILL with TOON-encoded kind:6xxx result event (result kind = request kind + 1000)
+6. On price-insufficient: return ILP REJECT with TOON-encoded kind:7000 feedback (status: `payment-required`, `amount` tag with required price)
+7. On job failure: return ILP REJECT with kind:7000 feedback (status: `error`, content = error message)
+8. NIP-90 `bid` tag in request maps to ILP PREPARE amount field; `amount` tag in response/feedback maps to BLS pricing
+9. Unit tests verify: job dispatch, peering gate, success/fulfill flow, price negotiation flow, error handling, and kind mapping
 
-### Story 10.3: NIP-89 Capability Announcements
+### Story 13.3: NIP-89 Capability Announcements
 
 **As a** service provider agent,
 **I want** to publish kind:31990 events advertising which DVM job kinds I support,
@@ -116,10 +124,10 @@ Customer Agent                     Service Provider Agent
 3. Optional tags: `web` (URL), `picture` (icon), and custom `nip90Params` tag for parameter documentation
 4. `publishDvmCapabilities(capabilities: DvmCapability[], secretKey): Promise<void>` publishes to configured relays
 5. Built on top of kind:0 profile — agent's kind:0 links to kind:31990 announcements
-6. Bootstrap service extended: publish kind:31990 alongside kind:10032 during Phase 3 (announcement phase)
+6. Bootstrap service extended: publish kind:31990 alongside kind:10032 during announcement phase
 7. Unit tests verify kind:31990 event structure, tag formatting, and bootstrap integration
 
-### Story 10.4: DVM Service Discovery via Social Graph
+### Story 13.4: DVM Service Discovery via Social Graph
 
 **As a** customer agent,
 **I want** to discover DVM service providers by querying kind:31990 events filtered by my social graph,
@@ -129,12 +137,12 @@ Customer Agent                     Service Provider Agent
 1. `DvmDiscovery` class created (or `SocialPeerDiscovery` extended) with `discoverProviders(jobKind: number): Promise<DvmProvider[]>`
 2. Discovery prioritizes providers within social graph: follows first, then follows-of-follows, then global
 3. `DvmProvider` type includes: pubkey, supported kinds, ILP address (from kind:10032), trust score, pricing hints
-4. Optionally filters by NIP-05 verified identity (requires Epic 9, Story 9.1)
+4. Optionally filters by NIP-05 verified identity (requires Epic 12, Story 12.1)
 5. Results sorted by trust score (using SocialTrustManager)
 6. Caching: kind:31990 results cached with configurable TTL (default 5 minutes)
 7. Unit tests verify social-graph-weighted discovery, sorting, caching, and filter-by-kind
 
-### Story 10.5: DVM Job Chaining Support
+### Story 13.5: DVM Job Chaining Support
 
 **As a** customer agent,
 **I want** to chain DVM jobs across multiple service providers (output of one job becomes input to the next),
@@ -143,7 +151,7 @@ Customer Agent                     Service Provider Agent
 **Acceptance Criteria:**
 1. `DvmJobChain` utility created for constructing multi-step pipelines: `chain.add(jobKind, providerPubkey, params)`
 2. Uses NIP-90's `i` tag with type `"job"` to reference output from a previous job as input
-3. Chain execution sends ILP PREPARE packets sequentially: Job A → wait for FULFILL → extract result → use as input for Job B
+3. Chain execution sends ILP PREPARE packets sequentially: Job A -> wait for FULFILL -> extract result -> use as input for Job B
 4. Each step in the chain is an independent ILP payment to the respective provider
 5. Chain supports error handling: if any step fails (REJECT), the chain halts and returns partial results + failure point
 6. `DvmJobChainResult` type includes: completed steps, failed step (if any), intermediate results, total cost
@@ -157,32 +165,35 @@ Customer Agent                     Service Provider Agent
 - [x] Existing kind:10032 publication unaffected — kind:31990 is an additional publication
 - [x] SocialPeerDiscovery existing kind:10032 queries unchanged — kind:31990 queries are additive
 - [x] TOON encoding unchanged — already handles arbitrary Nostr events
-- [x] agent-runtime PacketHandler unchanged — already forwards to BLS and uses SHA256 fulfillment
+- [x] NIP Handler kind registry extended with DVM handler references
 
 ## Risk Mitigation
 
 - **Primary Risk:** NIP-90 uses NIP-04 encryption (deprecated). Our implementation uses NIP-44 instead, which may cause interoperability issues with existing DVM ecosystem (DVMDash, nostrdvm)
-- **Mitigation:** Document the NIP-44 choice clearly; propose NIP-ILP-04 formal extension specifying ILP-backed DVMs with NIP-44 encryption. The agent-to-agent use case doesn't require existing client compatibility.
+- **Mitigation:** Document the NIP-44 choice clearly. The agent-to-agent use case doesn't require existing client compatibility. Future NIP-ILP proposal can formalize ILP-backed DVMs with NIP-44.
 - **Secondary Risk:** TOON encoding with complex DVM `i` tag arrays (URLs, event references, job references) hasn't been validated
-- **Mitigation:** Story 10.1 explicitly validates TOON round-trip with complex DVM tag structures before building the handler
+- **Mitigation:** Story 13.1 explicitly validates TOON round-trip with complex DVM tag structures before building the handler
 - **Rollback Plan:** DVM functionality is a new code path in BLS — disable by removing kind:5xxx from pricing table and not registering capability handlers
 
 ## Dependencies Between Stories
 
 ```
-10.1 (DVM Pricing) ── prerequisite for all others
-10.2 (Job Handler) ── depends on 10.1; core execution engine
-10.3 (NIP-89 Announcements) ── standalone (publishing only)
-10.4 (Service Discovery) ── depends on 10.3 (needs kind:31990 events to discover)
-10.5 (Job Chaining) ── depends on 10.2 (needs working job execution) + 10.4 (needs provider discovery)
+13.1 (DVM Pricing) ── prerequisite for all others
+13.2 (Job Handler) ── depends on 13.1; core execution engine
+13.3 (NIP-89 Announcements) ── standalone (publishing only)
+13.4 (Service Discovery) ── depends on 13.3 (needs kind:31990 events to discover)
+13.5 (Job Chaining) ── depends on 13.2 (needs working job execution) + 13.4 (needs provider discovery)
 ```
+
+Stories 13.1 and 13.3 can be built in parallel. Story 13.5 requires both 13.2 and 13.4.
 
 ## Definition of Done
 
 - [ ] All 5 stories completed with acceptance criteria met
 - [ ] DVM job requests (kind:5xxx) processed and results returned (kind:6xxx) via ILP PREPARE/FULFILL
+- [ ] Peering gate rejects DVM requests from non-peered pubkeys
 - [ ] Price negotiation works via kind:7000 feedback in ILP REJECT data
 - [ ] Agents advertise capabilities via kind:31990 and discover providers through social graph
 - [ ] Job chaining works across multiple providers via sequential ILP payments
 - [ ] Existing BLS, relay, and peer discovery functionality passes regression tests
-- [ ] No regression in Epics 1-8 functionality
+- [ ] No regression in Epics 1–12 functionality
