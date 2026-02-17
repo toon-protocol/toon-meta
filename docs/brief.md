@@ -1,8 +1,8 @@
-# Project Brief: Agent Society Protocol
+# Project Brief: Crosstown Protocol
 
 ## Executive Summary
 
-**Agent Society Protocol** is a TypeScript library that bridges Nostr (a decentralized social protocol) with the Interledger Protocol (ILP), enabling autonomous agents to discover payment peers, exchange SPSP parameters, and derive trust-based credit limits from social relationships. The core insight is simple: **your Nostr follows become your ILP peers, and social distance informs financial trust.**
+**Crosstown Protocol** is a TypeScript library that bridges Nostr (a decentralized social protocol) with the Interledger Protocol (ILP), enabling autonomous agents to discover payment peers, exchange SPSP parameters, and derive trust-based credit limits from social relationships. The core insight is simple: **your Nostr follows become your ILP peers, and social distance informs financial trust.**
 
 This library solves the peer discovery and trust bootstrapping problems in decentralized payment networks by leveraging existing social graph infrastructure rather than building new registries.
 
@@ -83,7 +83,7 @@ Operators who want to:
 ### Business Objectives
 
 - Enable the first production AI agent-to-agent payment using social graph routing
-- Establish Agent Society Protocol as the reference implementation for Nostr+ILP integration
+- Establish Crosstown Protocol as the reference implementation for Nostr+ILP integration
 - Achieve adoption by 3+ agent framework projects within 6 months of stable release
 - Submit formal NIP proposals for event kinds 10032, 10047, 23194, 23195
 
@@ -143,7 +143,7 @@ The MVP is successful when:
 
 ### Long-term Vision
 
-In 1-2 years, Agent Society Protocol becomes the standard for how autonomous agents discover and trust each other for financial transactions. The Nostr social graph serves as a decentralized trust layer, enabling:
+In 1-2 years, Crosstown Protocol becomes the standard for how autonomous agents discover and trust each other for financial transactions. The Nostr social graph serves as a decentralized trust layer, enabling:
 - Agents to form ad-hoc payment networks based on social relationships
 - Spam-resistant, self-sustaining relay infrastructure
 - A new category of "social payments" where your network is your credit
@@ -259,4 +259,4 @@ In 1-2 years, Agent Society Protocol becomes the standard for how autonomous age
 
 ### PM Handoff
 
-This Project Brief provides the full context for **Agent Society Protocol**. Please start in 'PRD Generation Mode', review the brief thoroughly to work with the user to create the PRD section by section as the template indicates, asking for any necessary clarification or suggesting improvements.
+This Project Brief provides the full context for **Crosstown Protocol**. Please start in 'PRD Generation Mode', review the brief thoroughly to work with the user to create the PRD section by section as the template indicates, asking for any necessary clarification or suggesting improvements.

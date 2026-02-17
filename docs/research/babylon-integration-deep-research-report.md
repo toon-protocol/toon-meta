@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-10
 **Status:** Complete
-**Scope:** Integration architecture for Babylon Social + Agent Society + Agent-Runtime
+**Scope:** Integration architecture for Babylon Social + Crosstown + Agent-Runtime
 
 ---
 
@@ -10,25 +10,25 @@
 
 ### Recommended Integration Architecture
 
-Agent-runtime should be an **ElizaOS-embedded hybrid** that runs both `@elizaos/plugin-babylon` and a new `@elizaos/plugin-agent-society` within the same runtime. This gives each agent both Babylon trading capabilities and ILP payment routing, unified through ElizaOS's event system and shared wallet services. The two plugins communicate via ElizaOS events rather than custom coupling.
+Agent-runtime should be an **ElizaOS-embedded hybrid** that runs both `@elizaos/plugin-babylon` and a new `@elizaos/plugin-crosstown` within the same runtime. This gives each agent both Babylon trading capabilities and ILP payment routing, unified through ElizaOS's event system and shared wallet services. The two plugins communicate via ElizaOS events rather than custom coupling.
 
 ### Top 3 Highest-Value Integration Points
 
 1. **ILP Micropayments for A2A Agent Services** (Effort: Medium, 4-6 weeks)
-   Replace or supplement Babylon's x402 payment protocol with ILP streaming micropayments for agent-to-agent service requests. This enables pay-per-inference, pay-per-analysis, and pay-per-signal pricing that x402's per-transaction model cannot efficiently support. Compound value: Babylon agents get cheaper, more granular payments; Agent Society gets a high-value application layer with real economic activity.
+   Replace or supplement Babylon's x402 payment protocol with ILP streaming micropayments for agent-to-agent service requests. This enables pay-per-inference, pay-per-analysis, and pay-per-signal pricing that x402's per-transaction model cannot efficiently support. Compound value: Babylon agents get cheaper, more granular payments; Crosstown gets a high-value application layer with real economic activity.
 
 2. **Trust Unification: Social Graph + Trading Performance** (Effort: Medium, 3-4 weeks)
-   Feed Babylon's on-chain reputation (ERC-8004 trading P&L, accuracy scores) into Agent Society's credit limit computation alongside social trust (NIP-02 follows, mutual connections). Compound value: Credit limits for ILP routing become informed by both social trust AND economic performance — a signal no competing system offers.
+   Feed Babylon's on-chain reputation (ERC-8004 trading P&L, accuracy scores) into Crosstown's credit limit computation alongside social trust (NIP-02 follows, mutual connections). Compound value: Credit limits for ILP routing become informed by both social trust AND economic performance — a signal no competing system offers.
 
 3. **NIP-90 DVMs as Babylon Compute Marketplace** (Effort: Medium-High, 6-8 weeks)
-   Babylon agents offer DVM services (market analysis, sentiment scoring, narrative summarization) that Agent Society agents pay for via ILP micropayments. This bridges Agent Society Epic 10 with Babylon's game engine. Compound value: Babylon's AI capabilities become monetizable services discoverable on Nostr; Agent Society agents gain access to specialized market intelligence.
+   Babylon agents offer DVM services (market analysis, sentiment scoring, narrative summarization) that Crosstown agents pay for via ILP micropayments. This bridges Crosstown Epic 10 with Babylon's game engine. Compound value: Babylon's AI capabilities become monetizable services discoverable on Nostr; Crosstown agents gain access to specialized market intelligence.
 
 ### Critical Risks and Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Agent Society integration gaps (P0 bugs) block ILP routing | High | Fix Gaps 1-2 (BLS settlement negotiation, ConnectorChannelClient) before integration work |
-| ElizaOS plugin conflicts between babylon and agent-society | Medium | Namespace all actions with prefixes, use separate services, share only wallet provider |
+| Crosstown integration gaps (P0 bugs) block ILP routing | High | Fix Gaps 1-2 (BLS settlement negotiation, ConnectorChannelClient) before integration work |
+| ElizaOS plugin conflicts between babylon and crosstown | Medium | Namespace all actions with prefixes, use separate services, share only wallet provider |
 | ERC-8004 ↔ Nostr identity linkage has no standard | Medium | Use dual-attestation pattern (Nostr kind:0 references ERC-8004 tokenId; ERC-8004 metadata stores npub) |
 | ILP settlement latency too high for real-time trading | Medium | Use ILP for service payments only; Babylon's on-chain settlement handles market positions |
 
@@ -42,9 +42,9 @@ Agent-runtime should be an **ElizaOS-embedded hybrid** that runs both `@elizaos/
 
 ### 1.1 System Pair Matrix
 
-#### Babylon ↔ Agent Society
+#### Babylon ↔ Crosstown
 
-| Dimension | Babylon | Agent Society | Translation Required |
+| Dimension | Babylon | Crosstown | Translation Required |
 |-----------|---------|---------------|---------------------|
 | **Identity** | ERC-8004 NFT (Ethereum address + tokenId) | Nostr keypair (npub/nsec, secp256k1) | Dual-attestation: cross-reference in metadata |
 | **Reputation** | On-chain: totalBets, winningBets, accuracyScore, trustScore (0-10000) | Social: distance (hops), mutual followers, zaps (0.0-1.0) | Normalization function: Babylon 0-10000 → 0.0-1.0 weight |
@@ -63,13 +63,13 @@ Agent-runtime should be an **ElizaOS-embedded hybrid** that runs both `@elizaos/
 | **Settlement** | Base L2 smart contracts (EIP-2535 Diamond) | ILP settlement engines (Base, XRP, Aptos) | Base L2 is the shared settlement layer |
 | **State** | PostgreSQL + Redis | In-memory routing table + channel state | Admin API bridges state queries |
 
-#### Agent Society ↔ Agent-Runtime
+#### Crosstown ↔ Agent-Runtime
 
-| Dimension | Agent Society | Agent-Runtime | Translation Required |
+| Dimension | Crosstown | Agent-Runtime | Translation Required |
 |-----------|---------------|---------------|---------------------|
 | **Interface** | `AgentRuntimeClient.sendIlpPacket()` | POST /ilp/send endpoint | Already defined; fix field mismatch (accepted vs fulfilled) |
 | **Configuration** | `POST /admin/peers` + `POST /admin/channels` | Admin API endpoints | ConnectorChannelClient HTTP implementation needed (Gap 2) |
-| **Trust → Limits** | SocialTrustManager computes trust (0-1) → creditLimit | Connector enforces credit limits per peer | Trust score flows one-way: Agent Society → Agent-Runtime |
+| **Trust → Limits** | SocialTrustManager computes trust (0-1) → creditLimit | Connector enforces credit limits per peer | Trust score flows one-way: Crosstown → Agent-Runtime |
 | **Events** | Nostr events (TOON-encoded in ILP data field) | Opaque data payload (base64 bytes) | TOON encode/decode at boundaries |
 
 ### 1.2 Identity Mapping Architecture
@@ -139,11 +139,11 @@ ILP FULFILL                             A2A JSON-RPC Response
 3. Agent registers on ERC-8004 (stores npub in metadata)
 4. Agent publishes Nostr kind:0 with ERC-8004 tokenId
 5. Agent registers on Babylon via A2A handshake (signs with EVM key)
-6. Agent bootstraps into Agent Society network (kind:10032 + SPSP)
+6. Agent bootstraps into Crosstown network (kind:10032 + SPSP)
 
 Cross-system operation verification:
-- Babylon → Agent Society: Verify Nostr signature matches npub in ERC-8004 metadata
-- Agent Society → Babylon: Verify EVM address matches addr in Nostr kind:0 metadata
+- Babylon → Crosstown: Verify Nostr signature matches npub in ERC-8004 metadata
+- Crosstown → Babylon: Verify EVM address matches addr in Nostr kind:0 metadata
 - Either → Agent-Runtime: BTP token-based auth (issued during bootstrap)
 ```
 
@@ -176,7 +176,7 @@ Cross-system operation verification:
 │                       ElizaOS Runtime                                │
 │                                                                     │
 │  ┌─────────────────────────┐    ┌──────────────────────────────┐   │
-│  │  plugin-babylon          │    │  plugin-agent-society         │   │
+│  │  plugin-babylon          │    │  plugin-crosstown         │   │
 │  │                         │    │                              │   │
 │  │  Actions:               │    │  Actions:                    │   │
 │  │  - buy/sell shares      │    │  - send_ilp_payment          │   │
@@ -208,7 +208,7 @@ Cross-system operation verification:
 │  │                    Shared Infrastructure                      │   │
 │  │                                                               │   │
 │  │  - EVM Wallet (shared between plugins)                        │   │
-│  │  - Nostr Keypair (managed by plugin-agent-society)            │   │
+│  │  - Nostr Keypair (managed by plugin-crosstown)            │   │
 │  │  - Character Settings (agent personality, risk tolerance)     │   │
 │  │  - Memory System (conversation history, learned patterns)     │   │
 │  └───────────────────────────────────────────────────────────────┘   │
@@ -227,7 +227,7 @@ Cross-system operation verification:
 
 ### 2.3 Interface Definitions
 
-#### IlpRouterService (plugin-agent-society)
+#### IlpRouterService (plugin-crosstown)
 
 ```typescript
 interface IlpRouterService extends Service {
@@ -256,7 +256,7 @@ interface IlpRouterService extends Service {
 }
 ```
 
-#### NostrRelayService (plugin-agent-society)
+#### NostrRelayService (plugin-crosstown)
 
 ```typescript
 interface NostrRelayService extends Service {
@@ -277,7 +277,7 @@ interface NostrRelayService extends Service {
 }
 ```
 
-#### SocialTrustService (plugin-agent-society)
+#### SocialTrustService (plugin-crosstown)
 
 ```typescript
 interface SocialTrustService extends Service {
@@ -311,7 +311,7 @@ interface SocialTrustService extends Service {
 
 ### 3.1 Trust Signal Sources
 
-**Agent Society signals (social-relational):**
+**Crosstown signals (social-relational):**
 - Social distance: hop count in NIP-02 follow graph (weight: 0.5)
 - Mutual followers: shared connections between two agents (weight: 0.3)
 - Reputation/zaps: NIP-57 zap amounts received (weight: 0.2)
@@ -327,7 +327,7 @@ interface SocialTrustService extends Service {
 
 ```typescript
 interface UnifiedTrustConfig {
-  // Agent Society weights (social signals)
+  // Crosstown weights (social signals)
   socialDistanceWeight: number;     // default: 0.30 (reduced from 0.50)
   mutualFollowersWeight: number;    // default: 0.20 (reduced from 0.30)
   nostrReputationWeight: number;    // default: 0.10 (reduced from 0.20)
@@ -385,12 +385,12 @@ function computeUnifiedTrust(
 ### 3.3 Bidirectional Trust Flow
 
 ```
-Agent Society → Babylon:
+Crosstown → Babylon:
   Social trust score published to ERC-8004 ReputationSystem
   via submitFeedback(tokenId, rating=trust*10-5, comment="social-trust")
   (maps 0.0-1.0 → -5 to +5 rating scale)
 
-Babylon → Agent Society:
+Babylon → Crosstown:
   Trading reputation queried via A2A: a2a.getReputation(agentId)
   Normalized and fed into unified trust computation
   Result used for ILP credit limit: calculateCreditLimit(unifiedScore, config)
@@ -416,7 +416,7 @@ With unified trust, credit limits become more accurate:
 #### Use Case 1: A2A Agent Service Payments (replaces x402)
 
 ```
-Agent A (Babylon)                    Agent B (Babylon + Agent Society)
+Agent A (Babylon)                    Agent B (Babylon + Crosstown)
 │                                    │
 │  "Analyze market for prediction X" │
 ├─ A2A: a2a.paymentRequest ─────────>│
@@ -425,7 +425,7 @@ Agent A (Babylon)                    Agent B (Babylon + Agent Society)
 │<─ A2A: paymentRequired ────────────┤
 │  (amount: 500 units, ILP address)  │
 │                                    │
-│  plugin-agent-society:             │
+│  plugin-crosstown:             │
 │  IlpRouterService.sendPayment({   │
 │    destination: "g.agentB.services",│
 │    amount: "500",                  │
@@ -466,12 +466,12 @@ Agent wants to join Alpha Group:
 7. Group messages routed via ILP as paid TOON-encoded events
 ```
 
-This maps directly to Agent Society Epic 14 (Payment-Gated Swarms → NIP-29 groups).
+This maps directly to Crosstown Epic 14 (Payment-Gated Swarms → NIP-29 groups).
 
 #### Use Case 3: DVM Compute Jobs (Epic 10 ↔ Babylon Engine)
 
 ```
-Agent Society Agent                  Babylon DVM Provider
+Crosstown Agent                  Babylon DVM Provider
 │                                    │
 │  NIP-90 kind:5003 job request     │
 │  "Summarize narrative for org X"   │
@@ -520,17 +520,17 @@ Agent Society Agent                  Babylon DVM Provider
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Base L2 is the natural common settlement layer** — both Babylon and Agent Society already support it. Agent Society's multi-chain support (XRP Ledger, Aptos) remains available for non-Babylon peers.
+**Base L2 is the natural common settlement layer** — both Babylon and Crosstown already support it. Crosstown's multi-chain support (XRP Ledger, Aptos) remains available for non-Babylon peers.
 
 ---
 
 ## Section 5: ElizaOS Plugin Strategy
 
-### 5.1 Architecture for `@elizaos/plugin-agent-society`
+### 5.1 Architecture for `@elizaos/plugin-crosstown`
 
 ```typescript
-const pluginAgentSociety: Plugin = {
-  name: '@elizaos/plugin-agent-society',
+const pluginCrosstown: Plugin = {
+  name: '@elizaos/plugin-crosstown',
 
   // Services (long-running background processes)
   services: [
@@ -578,9 +578,9 @@ const pluginAgentSociety: Plugin = {
 - ElizaOS memory system (learned patterns inform both trading and routing)
 
 **Separate resources:**
-- Nostr keypair (owned by plugin-agent-society only)
+- Nostr keypair (owned by plugin-crosstown only)
 - Babylon API client (owned by plugin-babylon only)
-- ILP connector connection (owned by plugin-agent-society only)
+- ILP connector connection (owned by plugin-crosstown only)
 
 **Cross-plugin communication via events:**
 
@@ -594,7 +594,7 @@ runtime.emit('BABYLON_TRADE_EXECUTED', {
   accuracy: true
 });
 
-// plugin-agent-society listens and updates trust:
+// plugin-crosstown listens and updates trust:
 async function updateTrustAfterTrade(event: TradeEvent) {
   const babylonRep = await babylonA2AService.getReputation(event.agentId);
   const newTrust = await socialTrustService.computeUnifiedTrust({
@@ -610,7 +610,7 @@ async function updateTrustAfterTrade(event: TradeEvent) {
 
 ### 5.3 Patterns Adopted from plugin-babylon
 
-| Pattern | In plugin-babylon | Adapted for plugin-agent-society |
+| Pattern | In plugin-babylon | Adapted for plugin-crosstown |
 |---------|------------------|--------------------------------|
 | **Two-Phase Batch Pipeline** | Routes posts → social + trading decisions | Routes Nostr events → ILP routing + trust update decisions |
 | **Spartan Trader** | Set exit conditions at entry, NO-LLM monitoring | Set credit limits at channel open, NO-LLM balance monitoring |
@@ -631,12 +631,12 @@ async function updateTrustAfterTrade(event: TradeEvent) {
 | Fix Gap 1: BLS settlement negotiation in /handle-payment | 1 week | None | Unblocks ILP routing |
 | Fix Gap 2: ConnectorChannelClient HTTP implementation | 1 week | None | Unblocks channel opening |
 | Fix Gap 6: IlpSendResult field normalization | 2 days | None | Fixes bootstrap Phase 2 |
-| Create plugin-agent-society skeleton (services, types) | 1 week | ElizaOS setup | Plugin framework |
+| Create plugin-crosstown skeleton (services, types) | 1 week | ElizaOS setup | Plugin framework |
 | Implement IlpRouterService wrapping agent-runtime client | 1 week | Gap 1, 2 fixes | ILP send capability |
 | Implement NostrRelayService (connect, subscribe, publish) | 1 week | None | Nostr integration |
 | Dual-identity attestation (kind:0 ↔ ERC-8004 metadata) | 3 days | Both services | Cross-system identity |
 
-**Phase 1 Deliverable:** An ElizaOS agent that can bootstrap into the Agent Society ILP network and has both plugin-babylon and plugin-agent-society loaded. Can send/receive ILP payments and trade on Babylon, but no cross-system intelligence yet.
+**Phase 1 Deliverable:** An ElizaOS agent that can bootstrap into the Crosstown ILP network and has both plugin-babylon and plugin-crosstown loaded. Can send/receive ILP payments and trade on Babylon, but no cross-system intelligence yet.
 
 ### Phase 2: Enhancement (6-8 weeks)
 
@@ -659,7 +659,7 @@ async function updateTrustAfterTrade(event: TradeEvent) {
 
 | Task | Effort | Dependencies | Value |
 |------|--------|-------------|-------|
-| NIP-90 DVM provider in plugin-agent-society | 3 weeks | NostrRelayService | Compute marketplace |
+| NIP-90 DVM provider in plugin-crosstown | 3 weeks | NostrRelayService | Compute marketplace |
 | DVM client with ILP payment integration | 2 weeks | IlpRouterService | Pay for compute |
 | Payment-gated Alpha Groups (NIP-29 + ILP channels) | 3 weeks | Channel management | Premium content |
 | Composite MCP server (ILP + Nostr + Babylon tools) | 2 weeks | All services | Universal AI access |
@@ -690,14 +690,14 @@ async function updateTrustAfterTrade(event: TradeEvent) {
 | **Autonolas (Olas)** | OLAS token | NFT registry | Staking/slashing | No | Yes |
 | **SingularityNET** | ASI token | Platform registry | Marketplace ratings | No | Partial |
 | **Nostr DVMs** | Lightning (sats) | Nostr keypairs | Social graph | Yes (msats) | Yes |
-| **ILP (Agent Society)** | Any (settlement-agnostic) | Nostr keypairs + ILP addr | Social graph + economic | Yes (streaming) | Yes |
+| **ILP (Crosstown)** | Any (settlement-agnostic) | Nostr keypairs + ILP addr | Social graph + economic | Yes (streaming) | Yes |
 
-### Agent Society's Unique Position
+### Crosstown's Unique Position
 
 No other system combines all three:
 1. **Social-graph-informed trust** (only Nostr DVMs come close, but lack structured trust computation)
 2. **Settlement-agnostic micropayments** (ILP can settle on any chain; others are chain-locked)
-3. **A2A interoperability** (publishing agent cards makes Agent Society agents discoverable by any A2A ecosystem)
+3. **A2A interoperability** (publishing agent cards makes Crosstown agents discoverable by any A2A ecosystem)
 
 The integration with Babylon adds a fourth dimension no competitor has: **economic performance as a trust signal**. An agent that is socially trusted AND profitable on prediction markets gets higher credit limits — a compounding advantage.
 
@@ -707,14 +707,14 @@ The integration with Babylon adds a fourth dimension no competitor has: **econom
 
 | # | Risk | Probability | Impact | Mitigation |
 |---|------|------------|--------|------------|
-| 1 | Agent Society P0 gaps (1, 2, 6) block all ILP routing | High | Critical | Fix before Phase 1 integration work; already documented with clear fixes |
+| 1 | Crosstown P0 gaps (1, 2, 6) block all ILP routing | High | Critical | Fix before Phase 1 integration work; already documented with clear fixes |
 | 2 | ElizaOS plugin API breaks between versions | Medium | High | Pin ElizaOS version; use stable interfaces only; maintain compatibility tests |
 | 3 | TOON encoding breaks NIP-44 encrypted payloads | Low | High | Add round-trip integration tests (Gap 9); byte-for-byte validation |
 | 4 | Babylon API changes break plugin-babylon | Medium | Medium | Babylon is pre-launch (staging); expect churn. Pin API version in client |
 | 5 | ILP settlement latency too slow for trading | Low | Medium | ILP for service payments only; Babylon contracts for market settlement |
 | 6 | ERC-8004 spec changes (currently EIP, not finalized) | Medium | Low | Use metadata-based linking (survives spec changes); avoid hard dependencies |
 | 7 | ElizaOS runtime overhead for pure routing nodes | Low | Low | Offer lightweight "router-only" mode that skips LLM initialization |
-| 8 | Cross-plugin event naming collisions | Low | Low | Prefix custom events: `BABYLON_*`, `AGENT_SOCIETY_*` |
+| 8 | Cross-plugin event naming collisions | Low | Low | Prefix custom events: `BABYLON_*`, `CROSSTOWN_*` |
 | 9 | Dual-identity attestation can be spoofed | Medium | Medium | Require both attestations (Nostr kind:0 AND ERC-8004 metadata); verify signatures |
 | 10 | Babylon agent archetypes don't map to ILP routing behavior | Low | Low | Create new archetype: "network-operator" focused on routing + trust |
 
@@ -732,10 +732,10 @@ Agent's BatchResponseService polls Babylon feed
 → Post mentions insider information about upcoming event
 → Router assigns HIGH relevance to agent's strategy profile
 
-Step 2: DVM Analysis Request (plugin-agent-society)
+Step 2: DVM Analysis Request (plugin-crosstown)
 ────────────────────────────────────────────────────
 Agent emits BABYLON_MARKET_SIGNAL event
-→ plugin-agent-society handler queries NIP-89 for DVM providers
+→ plugin-crosstown handler queries NIP-89 for DVM providers
 → Finds "narrative-analyst" DVM with 0.85 trust score
 → Publishes NIP-90 kind:5003 job request to relay
 → DVM responds with kind:7000 "payment-required" (2000 units)
@@ -753,11 +753,11 @@ Agent receives DVM analysis via event bridge
   - Stop loss: 60% probability
   - Sentiment exit: negative keywords for Organization X
 
-Step 4: Thesis Sharing (plugin-agent-society)
+Step 4: Thesis Sharing (plugin-crosstown)
 ─────────────────────────────────────────────
 Agent publishes Nostr kind:1 note with analysis summary
 → Event published to ILP-gated relay (paid via ILP micropayment)
-→ Other Agent Society peers read the thesis on relay
+→ Other Crosstown peers read the thesis on relay
 → Also shared to Babylon via: BabylonA2AService.createPost(thesis)
 
 Step 5: Social Feedback Loop
@@ -781,7 +781,7 @@ If prediction wrong:
 
 ## Appendix A: Prerequisites from Each Project
 
-### Agent Society Prerequisites (before integration)
+### Crosstown Prerequisites (before integration)
 - [x] Epics 1-6 complete
 - [x] Epic 7-8 mostly complete
 - [ ] **Fix Gap 1:** BLS settlement negotiation (CRITICAL)
@@ -813,12 +813,12 @@ If prediction wrong:
 
 | Kind | Name | Used By | Purpose |
 |------|------|---------|---------|
-| 0 | Metadata | Agent Society | Agent profile with cross-system identity refs |
-| 1 | Short Text Note | Agent Society | Thesis sharing, social posts |
-| 3 | Follow List (NIP-02) | Agent Society | Peer discovery, social graph |
-| 10032 | ILP Peer Info | Agent Society | Connector address, BTP endpoint, settlement |
-| 23194 | SPSP Request | Agent Society | Encrypted payment setup request |
-| 23195 | SPSP Response | Agent Society | Encrypted payment setup response |
+| 0 | Metadata | Crosstown | Agent profile with cross-system identity refs |
+| 1 | Short Text Note | Crosstown | Thesis sharing, social posts |
+| 3 | Follow List (NIP-02) | Crosstown | Peer discovery, social graph |
+| 10032 | ILP Peer Info | Crosstown | Connector address, BTP endpoint, settlement |
+| 23194 | SPSP Request | Crosstown | Encrypted payment setup request |
+| 23195 | SPSP Response | Crosstown | Encrypted payment setup response |
 | 5000-5999 | DVM Job Request (NIP-90) | Integration | Paid compute requests |
 | 6000-6999 | DVM Job Result (NIP-90) | Integration | Compute results |
 | 7000 | DVM Job Feedback (NIP-90) | Integration | Status, payment-required |

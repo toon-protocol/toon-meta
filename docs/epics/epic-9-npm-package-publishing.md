@@ -9,7 +9,7 @@
 
 ## Epic Goal
 
-Publish `@agent-society/core`, `@agent-society/bls`, and `@agent-society/relay` as public npm packages so they can be consumed as dependencies by downstream projects — specifically the ElizaOS plugin and any other agent framework integration.
+Publish `@crosstown/core`, `@crosstown/bls`, and `@crosstown/relay` as public npm packages so they can be consumed as dependencies by downstream projects — specifically the ElizaOS plugin and any other agent framework integration.
 
 ## Epic Description
 
@@ -30,18 +30,18 @@ Publish `@agent-society/core`, `@agent-society/bls`, and `@agent-society/relay` 
 
 ### What's NOT Changing
 
-- Package names (`@agent-society/core`, `@agent-society/bls`, `@agent-society/relay`)
+- Package names (`@crosstown/core`, `@crosstown/bls`, `@crosstown/relay`)
 - Public API surface — no exports added or removed
 - Build system (tsup)
 - Test suites
-- `@agent-society/examples` stays private
+- `@crosstown/examples` stays private
 
 ## Acceptance Criteria
 
 - [ ] All three packages published to npm registry with `access: public`
-- [ ] `npm install @agent-society/core` works in a fresh project
-- [ ] `npm install @agent-society/relay` pulls in core and bls as transitive dependencies
-- [ ] TypeScript types resolve correctly when imported (`import { BootstrapService } from '@agent-society/core'`)
+- [ ] `npm install @crosstown/core` works in a fresh project
+- [ ] `npm install @crosstown/relay` pulls in core and bls as transitive dependencies
+- [ ] TypeScript types resolve correctly when imported (`import { BootstrapService } from '@crosstown/core'`)
 - [ ] Package contents contain only `dist/`, `README.md`, `LICENSE` (no source, no tests)
 - [ ] Packages are at version `1.0.0`
 

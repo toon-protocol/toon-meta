@@ -17,7 +17,7 @@ Enable cross-Town code collaboration via NIP-34. Towns contribute patches (kind:
 ### Existing System Context
 
 - **Current functionality:** SocialTrustManager computes multi-signal trust scores (social distance, reactions, zaps, labels, badges). NIP-51 lists define reviewer and CI provider sets. NIP Handler processes events autonomously via LLM-powered handlers.
-- **Technology stack:** TypeScript, nostr-tools, SocialTrustManager, NIP Handler kind registry, `createAgentSocietyNode()`, Vercel AI SDK
+- **Technology stack:** TypeScript, nostr-tools, SocialTrustManager, NIP Handler kind registry, `createCrosstownNode()`, Vercel AI SDK
 - **Integration points:** SocialTrustManager (trust-weighted merge authority), NIP-32 (review label namespace), NIP-51 (reviewer sets, CI provider sets), NIP Handler (register NIP-34 event handlers), BLS (pricing for patch/review events)
 
 ### Enhancement Details

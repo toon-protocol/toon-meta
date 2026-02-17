@@ -1,14 +1,14 @@
-# Deep Research Prompt: Human-Facing UI for Agent Society Protocol
+# Deep Research Prompt: Human-Facing UI for Crosstown Protocol
 
 ## Research Objective
 
-Investigate and recommend the optimal UI paradigm and social-media-inspired visualization approach for **non-agent human users** to observe, understand, and interact with the **Nostr social layer** of Agent Society — a protocol where autonomous agents use Nostr social graphs for ILP peer discovery, trust derivation, and payment routing. The UI must make agent-to-agent social activity (follows, peer discovery, zaps, trust scores, DVMs, communities) legible and engaging for humans. **ILP connector internals (packet routing, balances, settlement mechanics) are out of scope** — those belong to the separate agent-runtime project.
+Investigate and recommend the optimal UI paradigm and social-media-inspired visualization approach for **non-agent human users** to observe, understand, and interact with the **Nostr social layer** of Crosstown — a protocol where autonomous agents use Nostr social graphs for ILP peer discovery, trust derivation, and payment routing. The UI must make agent-to-agent social activity (follows, peer discovery, zaps, trust scores, DVMs, communities) legible and engaging for humans. **ILP connector internals (packet routing, balances, settlement mechanics) are out of scope** — those belong to the separate agent-runtime project.
 
 ## Background Context
 
-### What Agent Society Is
+### What Crosstown Is
 
-Agent Society is the Nostr integration layer that bridges social relationships to Interledger Protocol. It does NOT route payments itself — it populates a separate ILP connector (agent-runtime) with peers, trust-derived credit limits, and route priorities discovered from the Nostr social graph.
+Crosstown is the Nostr integration layer that bridges social relationships to Interledger Protocol. It does NOT route payments itself — it populates a separate ILP connector (agent-runtime) with peers, trust-derived credit limits, and route priorities discovered from the Nostr social graph.
 
 ### Architecture (Critical for Scoping the UI)
 
@@ -16,7 +16,7 @@ Agent Society is the Nostr integration layer that bridges social relationships t
 Human Users  ←──── THIS UI (what we're researching)
     │
     ▼
-@agent-society/protocol (Nostr social layer)
+@crosstown/protocol (Nostr social layer)
   - Peer discovery via NIP-02 follow lists
   - SPSP handshakes via encrypted Nostr events
   - Trust scores from social graph + zaps + reputation
@@ -72,9 +72,9 @@ Default weights: 0.25, 0.15, 0.1, 0.15, 0.1, 0.15, 0.1
 
 ### Nostr Ecosystem Context
 
-Nostr clients already provide diverse social experiences: microblogging (Damus, Primal), long-form (Habla), marketplace (Plebeian Market), chat (0xchat), streaming (Zap.stream), communities (NIP-72). The Agent Society UI should feel native to this ecosystem while adding a unique lens on agent activity.
+Nostr clients already provide diverse social experiences: microblogging (Damus, Primal), long-form (Habla), marketplace (Plebeian Market), chat (0xchat), streaming (Zap.stream), communities (NIP-72). The Crosstown UI should feel native to this ecosystem while adding a unique lens on agent activity.
 
-### Nostr Event Kinds Used by Agent Society
+### Nostr Event Kinds Used by Crosstown
 
 | Kind | Name | Purpose |
 |------|------|---------|
@@ -192,7 +192,7 @@ Nostr clients already provide diverse social experiences: microblogging (Damus, 
 
 **Section 1: UI Paradigm Comparison**
 - Comparison matrix of 5-8 paradigms rated across criteria
-- For each: description, analogous products, pros/cons for Agent Society, mockup/wireframe concept
+- For each: description, analogous products, pros/cons for Crosstown, mockup/wireframe concept
 - Explicit consideration of how each paradigm scales from Epic 9 through Epic 14
 
 **Section 2: Nostr-Native Design Considerations**

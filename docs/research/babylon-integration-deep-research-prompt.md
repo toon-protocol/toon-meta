@@ -1,8 +1,8 @@
-# Deep Research Prompt: Babylon Social Integration with Agent Society & Agent-Runtime
+# Deep Research Prompt: Babylon Social Integration with Crosstown & Agent-Runtime
 
 ## Research Objective
 
-Investigate and recommend the optimal technical architecture for integrating **Babylon Social** (a multiplayer prediction market game with autonomous AI agents), **Agent Society** (a Nostr+ILP protocol for social-graph-driven peer discovery, trust derivation, and payment routing), and a planned **agent-runtime** (ILP connector/packet router). The research must identify where these three systems create compound value — specifically: how Babylon's social prediction markets, A2A protocol, and agent framework can be enhanced by Agent Society's decentralized trust engine and ILP micropayment infrastructure, and how Agent Society's protocol gains a high-value application layer through Babylon. The agent-runtime serves as the ILP packet routing bridge between them.
+Investigate and recommend the optimal technical architecture for integrating **Babylon Social** (a multiplayer prediction market game with autonomous AI agents), **Crosstown** (a Nostr+ILP protocol for social-graph-driven peer discovery, trust derivation, and payment routing), and a planned **agent-runtime** (ILP connector/packet router). The research must identify where these three systems create compound value — specifically: how Babylon's social prediction markets, A2A protocol, and agent framework can be enhanced by Crosstown's decentralized trust engine and ILP micropayment infrastructure, and how Crosstown's protocol gains a high-value application layer through Babylon. The agent-runtime serves as the ILP packet routing bridge between them.
 
 The research should produce actionable integration architectures, protocol interoperability maps, and a prioritized implementation roadmap that maximizes value across all three projects without creating unnecessary coupling.
 
@@ -71,13 +71,13 @@ The research should produce actionable integration architectures, protocol inter
 - Regex market detection
 - Smart deduplication
 
-### Project 3: Agent Society Protocol
+### Project 3: Crosstown Protocol
 
 **Repository:** The current project (this codebase)
 **Nature:** Nostr+ILP protocol library — social graphs become payment peer networks
 
 **Core Architecture:**
-- Monorepo: `@agent-society/core` (protocol library), `@agent-society/relay` (ILP-gated relay), `@agent-society/bls` (standalone Business Logic Server), `ui-prototypes` (React 19 + Tailwind v4), `examples`
+- Monorepo: `@crosstown/core` (protocol library), `@crosstown/relay` (ILP-gated relay), `@crosstown/bls` (standalone Business Logic Server), `ui-prototypes` (React 19 + Tailwind v4), `examples`
 - Nostr event kinds: 10032 (ILP Peer Info), 23194/23195 (encrypted SPSP request/response)
 - NIP-44 encryption for SPSP parameter exchange
 - TOON binary encoding for Nostr events in ILP packets
@@ -112,15 +112,15 @@ The research should produce actionable integration architectures, protocol inter
 ### Project 4 (Planned): Agent-Runtime
 
 **Nature:** ILP connector / packet router — the bridge between social discovery and payment execution
-**Current State:** Interface exists in Agent Society (`AgentRuntimeClient` with `sendIlpPacket()` via `POST /ilp/send`). No standalone runtime implementation yet.
+**Current State:** Interface exists in Crosstown (`AgentRuntimeClient` with `sendIlpPacket()` via `POST /ilp/send`). No standalone runtime implementation yet.
 
 **Intended Role:**
 - Routes ILP packets between peers
 - Manages BTP connections
 - Handles settlement channels (Base L2, XRP Ledger, Aptos)
-- Manages balances and credit limits (populated by Agent Society's trust engine)
+- Manages balances and credit limits (populated by Crosstown's trust engine)
 - Exposes Admin API for peer/route/channel management
-- Has NO Nostr knowledge — Agent Society populates it
+- Has NO Nostr knowledge — Crosstown populates it
 
 **Key Interface:**
 ```typescript
@@ -138,54 +138,54 @@ interface AgentRuntimeClient {
 
 ### Primary Questions (Must Answer)
 
-1. **Protocol Bridge Architecture:** How should agent-runtime bridge Babylon's A2A protocol (JSON-RPC 2.0 over HTTP/WebSocket) with Agent Society's ILP packet routing (PREPARE/FULFILL/REJECT with TOON-encoded Nostr events)? What translation layer is needed? Should A2A tasks map to ILP payment flows, or should they remain separate communication channels?
+1. **Protocol Bridge Architecture:** How should agent-runtime bridge Babylon's A2A protocol (JSON-RPC 2.0 over HTTP/WebSocket) with Crosstown's ILP packet routing (PREPARE/FULFILL/REJECT with TOON-encoded Nostr events)? What translation layer is needed? Should A2A tasks map to ILP payment flows, or should they remain separate communication channels?
 
-2. **Trust Model Unification:** Agent Society computes trust from Nostr social graphs (distance, mutuals, zaps). Babylon has its own reputation system (ERC-8004 on-chain reputation, points economy, leaderboard ranking, trading P&L history). How should these trust signals be unified? Should Babylon's trading performance feed into Agent Society's credit limits? Should Agent Society's social trust influence Babylon's agent reputation scores?
+2. **Trust Model Unification:** Crosstown computes trust from Nostr social graphs (distance, mutuals, zaps). Babylon has its own reputation system (ERC-8004 on-chain reputation, points economy, leaderboard ranking, trading P&L history). How should these trust signals be unified? Should Babylon's trading performance feed into Crosstown's credit limits? Should Crosstown's social trust influence Babylon's agent reputation scores?
 
-3. **Payment Layer for Babylon:** Babylon currently uses virtual points and on-chain Base L2 contracts for market settlement. How could ILP micropayments via Agent Society add real economic value? Specific scenarios to evaluate:
+3. **Payment Layer for Babylon:** Babylon currently uses virtual points and on-chain Base L2 contracts for market settlement. How could ILP micropayments via Crosstown add real economic value? Specific scenarios to evaluate:
    - ILP payments for A2A agent-to-agent service requests (replacing or supplementing X402)
    - ILP settlement for prediction market positions (parallel to or replacing on-chain settlement)
    - ILP micropayments for Alpha Group access or premium feed content
-   - ILP-funded DVM compute jobs (Agent Society Epic 10) triggered by Babylon market events
+   - ILP-funded DVM compute jobs (Crosstown Epic 10) triggered by Babylon market events
 
-4. **Agent Identity Convergence:** Babylon uses ERC-8004 NFTs on Base Sepolia for agent identity. Agent Society uses Nostr keypairs (npub/nsec) as agent identity. How should these identities be linked? Options include:
+4. **Agent Identity Convergence:** Babylon uses ERC-8004 NFTs on Base Sepolia for agent identity. Crosstown uses Nostr keypairs (npub/nsec) as agent identity. How should these identities be linked? Options include:
    - NIP-05 verification pointing to ERC-8004 registry
    - Dual-identity with cross-reference (Nostr pubkey stored in ERC-8004 metadata, ERC-8004 token ID stored in kind:0 profile)
    - Agent-runtime as identity bridge (maps Nostr pubkeys to EVM addresses)
    - Shared keypair derivation (e.g., Nostr key → EVM key via deterministic path)
 
-5. **Agent-Runtime as Integration Hub:** What should agent-runtime's architecture look like to serve BOTH as an ILP connector for Agent Society AND as a capable agent on Babylon? Should it:
-   - Be a standalone service that Agent Society populates (current design) AND that Babylon agents connect to?
+5. **Agent-Runtime as Integration Hub:** What should agent-runtime's architecture look like to serve BOTH as an ILP connector for Crosstown AND as a capable agent on Babylon? Should it:
+   - Be a standalone service that Crosstown populates (current design) AND that Babylon agents connect to?
    - Embed an ElizaOS runtime with plugin-babylon for Babylon participation?
    - Expose both ILP packet routing AND A2A protocol endpoints?
    - Run Babylon's AutonomousCoordinator alongside ILP routing?
 
-6. **ElizaOS as Integration Framework:** Should ElizaOS (via plugin-babylon) serve as the agent-runtime framework? ElizaOS already provides: plugin architecture, action/provider/service abstractions, background tasks, multi-model LLM support. Could an `@elizaos/plugin-agent-society` be built alongside plugin-babylon to give agents both Babylon trading AND ILP payment capabilities?
+6. **ElizaOS as Integration Framework:** Should ElizaOS (via plugin-babylon) serve as the agent-runtime framework? ElizaOS already provides: plugin architecture, action/provider/service abstractions, background tasks, multi-model LLM support. Could an `@elizaos/plugin-crosstown` be built alongside plugin-babylon to give agents both Babylon trading AND ILP payment capabilities?
 
 7. **Data Flow Architecture:** Map the complete data flow for a realistic cross-system scenario:
    - Agent discovers a market-moving signal on Babylon's social feed
-   - Agent uses ILP micropayment to request DVM analysis from a trusted peer (Agent Society Epic 10)
+   - Agent uses ILP micropayment to request DVM analysis from a trusted peer (Crosstown Epic 10)
    - Agent opens a prediction market position on Babylon based on the analysis
-   - Agent shares the thesis on the Nostr social layer (Agent Society)
+   - Agent shares the thesis on the Nostr social layer (Crosstown)
    - Social engagement (zaps) on the thesis adjusts trust scores for the analyst peer
 
 ### Secondary Questions (Nice to Have)
 
-8. **Babylon's Training Pipeline + Agent Society:** Could Agent Society's trust scores serve as additional reward signals in Babylon's GRPO training? Higher-trust agents get higher reward weights? Could RL-trained Babylon agents be deployed as Agent Society peers?
+8. **Babylon's Training Pipeline + Crosstown:** Could Crosstown's trust scores serve as additional reward signals in Babylon's GRPO training? Higher-trust agents get higher reward weights? Could RL-trained Babylon agents be deployed as Crosstown peers?
 
-9. **Settlement Chain Alignment:** Babylon uses Base L2. Agent Society supports Base, XRP Ledger, and Aptos for settlement. Is Base the natural common settlement layer? Should agent-runtime's channel management unify Babylon contract interactions with ILP settlement channels?
+9. **Settlement Chain Alignment:** Babylon uses Base L2. Crosstown supports Base, XRP Ledger, and Aptos for settlement. Is Base the natural common settlement layer? Should agent-runtime's channel management unify Babylon contract interactions with ILP settlement channels?
 
-10. **NIP-90 DVMs on Babylon:** Agent Society's Epic 10 defines paid computation via NIP-90 DVM pattern. Babylon's game engine generates narrative content via LLM. Could Babylon agents offer DVM services (market analysis, sentiment scoring, narrative summarization) that Agent Society agents pay for via ILP?
+10. **NIP-90 DVMs on Babylon:** Crosstown's Epic 10 defines paid computation via NIP-90 DVM pattern. Babylon's game engine generates narrative content via LLM. Could Babylon agents offer DVM services (market analysis, sentiment scoring, narrative summarization) that Crosstown agents pay for via ILP?
 
-11. **Payment-Gated Swarms in Babylon:** Agent Society's Epic 14 defines NIP-29 payment-gated agent swarms. Babylon has Alpha Groups (invitation-only intelligence channels). Could Alpha Groups become payment-gated swarms where membership requires ILP channel deposits?
+11. **Payment-Gated Swarms in Babylon:** Crosstown's Epic 14 defines NIP-29 payment-gated agent swarms. Babylon has Alpha Groups (invitation-only intelligence channels). Could Alpha Groups become payment-gated swarms where membership requires ILP channel deposits?
 
-12. **Nostr Relay as Babylon Feed Alternative:** Agent Society's ILP-gated relay could host a parallel social layer to Babylon's centralized PostgreSQL-backed feed. Would a Nostr-native feed layer add censorship resistance or decentralization value to Babylon?
+12. **Nostr Relay as Babylon Feed Alternative:** Crosstown's ILP-gated relay could host a parallel social layer to Babylon's centralized PostgreSQL-backed feed. Would a Nostr-native feed layer add censorship resistance or decentralization value to Babylon?
 
-13. **MCP Convergence:** Babylon has an MCP server exposing game functionality. Agent Society could expose trust queries, peer discovery, and ILP operations as MCP tools. Should there be a unified MCP surface that combines both?
+13. **MCP Convergence:** Babylon has an MCP server exposing game functionality. Crosstown could expose trust queries, peer discovery, and ILP operations as MCP tools. Should there be a unified MCP surface that combines both?
 
 14. **Competitive Landscape:** How does this three-way integration compare to other agent-to-agent payment systems? Specifically: NEAR AI agent payments, Fetch.ai ASI Alliance, Autonolas/Olas, SingularityNET marketplace, and any Nostr-native agent payment experiments.
 
-15. **plugin-babylon Architecture Patterns for Agent Society:** The plugin-babylon codebase contains several innovative patterns (two-phase batch pipeline, Spartan trader, multi-resolution providers, CSV token optimization). Which of these patterns should be adopted or adapted for an `@elizaos/plugin-agent-society` or for agent-runtime design?
+15. **plugin-babylon Architecture Patterns for Crosstown:** The plugin-babylon codebase contains several innovative patterns (two-phase batch pipeline, Spartan trader, multi-resolution providers, CSV token optimization). Which of these patterns should be adopted or adapted for an `@elizaos/plugin-crosstown` or for agent-runtime design?
 
 ## Research Methodology
 
@@ -194,7 +194,7 @@ interface AgentRuntimeClient {
 **Primary Sources (Direct Analysis Required):**
 - Babylon Social codebase: https://github.com/babylonSocial/babylon/ (staging branch)
 - plugin-babylon codebase: https://github.com/elizaos-plugins/plugin-babylon/tree/odi-dev
-- Agent Society codebase: this repository (all packages, docs/epics, docs/stories, INTEGRATION-GAPS.md)
+- Crosstown codebase: this repository (all packages, docs/epics, docs/stories, INTEGRATION-GAPS.md)
 - Babylon documentation: https://docs.babylon.market/
 - ElizaOS documentation and plugin architecture: https://elizaos.github.io/eliza/
 
@@ -216,7 +216,7 @@ interface AgentRuntimeClient {
 
 ### Analysis Frameworks
 
-1. **Protocol Interoperability Matrix** — For each pair of systems (Babylon↔Agent Society, Babylon↔agent-runtime, Agent Society↔agent-runtime), map: shared concepts, translation requirements, data format mismatches, authentication/identity gaps.
+1. **Protocol Interoperability Matrix** — For each pair of systems (Babylon↔Crosstown, Babylon↔agent-runtime, Crosstown↔agent-runtime), map: shared concepts, translation requirements, data format mismatches, authentication/identity gaps.
 
 2. **Value Flow Analysis** — Trace how value (economic, informational, reputational) flows between systems. Identify where integration creates compound value (1+1=3) vs. where it creates friction.
 
@@ -257,19 +257,19 @@ interface AgentRuntimeClient {
 - Interface definitions for each integration surface
 
 #### Section 3: Trust Unification Model
-- How Babylon reputation signals (trading P&L, social engagement, points) map to Agent Society trust scores
-- How Agent Society trust scores (social distance, mutuals, zaps) map to Babylon agent reputation
+- How Babylon reputation signals (trading P&L, social engagement, points) map to Crosstown trust scores
+- How Crosstown trust scores (social distance, mutuals, zaps) map to Babylon agent reputation
 - Unified trust computation formula or mapping function
 - Credit limit implications for cross-system trust
 
 #### Section 4: Payment Integration Architecture
 - ILP payment flows for Babylon use cases (A2A payments, market settlement, content access)
 - Integration with Babylon's existing smart contract settlement
-- DVM compute marketplace bridging (Agent Society Epic 10 ↔ Babylon game engine)
-- Payment-gated swarm mapping to Alpha Groups (Agent Society Epic 14 ↔ Babylon groups)
+- DVM compute marketplace bridging (Crosstown Epic 10 ↔ Babylon game engine)
+- Payment-gated swarm mapping to Alpha Groups (Crosstown Epic 14 ↔ Babylon groups)
 
 #### Section 5: ElizaOS Plugin Strategy
-- Architecture for `@elizaos/plugin-agent-society` (if recommended)
+- Architecture for `@elizaos/plugin-crosstown` (if recommended)
 - How it coexists with plugin-babylon in the same ElizaOS runtime
 - Shared vs. separate services, providers, and actions
 - Patterns to adopt from plugin-babylon (batch pipeline, Spartan trader, CSV optimization)
@@ -296,24 +296,24 @@ The research achieves its objectives if:
 4. **Value is quantified** — Each integration point has a clear statement of what new capability it enables that none of the three projects could achieve alone
 5. **Roadmap is sequenced** — Dependencies between integration steps are mapped; no step requires work that hasn't been planned
 6. **Risks are identified** — Technical risks (protocol mismatches, performance bottlenecks, identity conflicts) are catalogued with mitigations
-7. **All three projects benefit** — The integration creates value for Babylon (stronger agent ecosystem, real economic incentives), Agent Society (high-value application layer, agent-runtime design clarity), and plugin-babylon/ElizaOS (expanded capabilities, new revenue streams for agents)
+7. **All three projects benefit** — The integration creates value for Babylon (stronger agent ecosystem, real economic incentives), Crosstown (high-value application layer, agent-runtime design clarity), and plugin-babylon/ElizaOS (expanded capabilities, new revenue streams for agents)
 
 ## Constraints and Boundaries
 
 ### In Scope
 - Technical integration architecture between all three systems
-- agent-runtime design recommendations that serve both Agent Society and Babylon
+- agent-runtime design recommendations that serve both Crosstown and Babylon
 - Protocol interoperability (Nostr ↔ A2A ↔ ILP ↔ MCP ↔ EVM)
 - Identity and trust model unification
-- ElizaOS plugin strategy for Agent Society
-- Patterns and lessons from plugin-babylon applicable to Agent Society
+- ElizaOS plugin strategy for Crosstown
+- Patterns and lessons from plugin-babylon applicable to Crosstown
 
 ### Out of Scope
 - Babylon's internal game balance or narrative design changes
-- Agent Society's internal NIP proposals or Nostr protocol extensions (beyond what's in the 14-epic roadmap)
+- Crosstown's internal NIP proposals or Nostr protocol extensions (beyond what's in the 14-epic roadmap)
 - Smart contract modifications to Babylon's Diamond proxy
 - RL training pipeline changes (beyond noting where trust scores could be reward signals)
-- UI/UX design for the integration (Agent Society Epic 9 handles this separately)
+- UI/UX design for the integration (Crosstown Epic 9 handles this separately)
 - Business model or go-to-market strategy (this is technology research, not strategic planning)
 
 ## Timeline and Priority

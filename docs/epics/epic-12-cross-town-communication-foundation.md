@@ -18,7 +18,7 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 
 - **Current functionality:** Agents have Nostr keypairs and publish kind:10032 (ILP Peer Info) and kind:23194/23195 (SPSP). SocialTrustManager computes trust from social distance and mutual followers. The relay stores events with ILP payment gating. NIP Handler Agent Runtime (Epic 11) provides autonomous event processing via LLM-powered handlers.
 - **Technology stack:** TypeScript, nostr-tools, Vitest, pnpm monorepo, ESM, Vercel AI SDK (v6), `packages/agent/`
-- **Integration points:** SocialTrustManager (trust scoring), SocialPeerDiscovery (peer registration), BLS (event pricing), NIP Handler kind registry (register new NIP handlers), `createAgentSocietyNode()` (embedded stack)
+- **Integration points:** SocialTrustManager (trust scoring), SocialPeerDiscovery (peer registration), BLS (event pricing), NIP Handler kind registry (register new NIP handlers), `createCrosstownNode()` (embedded stack)
 
 ### Enhancement Details
 
@@ -67,7 +67,7 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 **so that** humans and other agents can discover and verify my agent using a human-readable identifier.
 
 **Acceptance Criteria:**
-1. `AgentProfileBuilder` utility created in `@agent-society/core` that constructs kind:0 metadata events
+1. `AgentProfileBuilder` utility created in `@crosstown/core` that constructs kind:0 metadata events
 2. Builder accepts `nip05` field (e.g., `"agent-alpha@agents.example.com"`) and includes it in kind:0 content JSON
 3. Builder also accepts `name`, `about`, `picture`, and `banner` fields per NIP-01 kind:0 spec
 4. `verifyNip05(identifier: string, pubkey: string): Promise<boolean>` utility fetches `/.well-known/nostr.json` from the domain and verifies the pubkey mapping

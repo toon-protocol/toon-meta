@@ -57,11 +57,11 @@ These layers feed into the **connector admin API** (`POST /admin/peers`, `POST /
 
 **Acceptance Criteria:**
 1. Create `packages/core/src/discovery/ArDrivePeerRegistry.ts`
-2. **Read path** (free, no wallet): Query Arweave GraphQL gateway (`https://arweave.net/graphql`) by tags: `App-Name: "agent-society"`, `type: "ilp-peer-info"`
+2. **Read path** (free, no wallet): Query Arweave GraphQL gateway (`https://arweave.net/graphql`) by tags: `App-Name: "crosstown"`, `type: "ilp-peer-info"`
 3. Fetch transaction data, parse as `IlpPeerInfo` JSON
 4. Return `Map<string, IlpPeerInfo>` keyed by pubkey
 5. **Write path**: Use `@ardrive/turbo-sdk` to upload peer info JSON (~500 bytes, within free 500 KB limit)
-6. Tags on upload: `App-Name: "agent-society"`, `type: "ilp-peer-info"`, `pubkey: "{hex}"`, `version: "1"`, `Content-Type: "application/json"`
+6. Tags on upload: `App-Name: "crosstown"`, `type: "ilp-peer-info"`, `pubkey: "{hex}"`, `version: "1"`, `Content-Type: "application/json"`
 7. Handle gateway unavailability gracefully (log warning, continue without ArDrive peers)
 8. Add `@ardrive/turbo-sdk` and `arweave` to `packages/core/package.json` dependencies
 9. Unit tests with mocked GraphQL responses verify read/write/error paths
@@ -116,7 +116,7 @@ These layers feed into the **connector admin API** (`POST /admin/peers`, `POST /
 
 ## Story 6.5: Docker Entrypoint Integration
 
-**As a** node operator running the full agent-society container,
+**As a** node operator running the full crosstown container,
 **I want** the Docker entrypoint to use the new layered discovery system,
 **so that** the container bootstraps from genesis/ArDrive and expands via social graph.
 

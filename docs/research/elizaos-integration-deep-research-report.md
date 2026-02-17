@@ -1,24 +1,24 @@
-# Deep Research Report: ElizaOS Plugin Integration with Agent Society Protocol
+# Deep Research Report: ElizaOS Plugin Integration with Crosstown Protocol
 
 ## Executive Summary
 
 ### Key Findings on Architectural Fit
 
-Agent Society and ElizaOS are architecturally complementary. Agent Society provides a protocol layer (Nostr-based ILP peer discovery, SPSP handshakes, social trust derivation) while ElizaOS provides an agent runtime (LLM-driven decision making, persistent memory, plugin extensibility). The integration maps naturally:
+Crosstown and ElizaOS are architecturally complementary. Crosstown provides a protocol layer (Nostr-based ILP peer discovery, SPSP handshakes, social trust derivation) while ElizaOS provides an agent runtime (LLM-driven decision making, persistent memory, plugin extensibility). The integration maps naturally:
 
-- Agent Society's **BootstrapService** → ElizaOS **Service** (long-running lifecycle process)
-- Agent Society's **SocialTrustManager** + **NostrPeerDiscovery** → ElizaOS **Providers** (contextual data for agent decisions)
-- Agent Society's **NostrSpspClient** payment operations → ElizaOS **Actions** (agent-triggered tasks)
-- Agent Society's event system → ElizaOS **Events** (inter-component communication)
+- Crosstown's **BootstrapService** → ElizaOS **Service** (long-running lifecycle process)
+- Crosstown's **SocialTrustManager** + **NostrPeerDiscovery** → ElizaOS **Providers** (contextual data for agent decisions)
+- Crosstown's **NostrSpspClient** payment operations → ElizaOS **Actions** (agent-triggered tasks)
+- Crosstown's event system → ElizaOS **Events** (inter-component communication)
 - ILP connector admin API → ElizaOS **Routes** (external system integration)
 
 ### Critical Integration Challenges
 
 1. **Nostr Identity Bridging**: Each ElizaOS agent needs a Nostr keypair. The keypair must be stored securely and persistently linked to the agent's ElizaOS identity. Character `secrets` is the natural home.
 
-2. **NIP-47 Kind Number Overlap**: Agent Society intentionally reuses NIP-47's kind:23194/23195 for SPSP. The encrypted payload content distinguishes them, but co-existence with Nostr Wallet Connect requires careful message routing.
+2. **NIP-47 Kind Number Overlap**: Crosstown intentionally reuses NIP-47's kind:23194/23195 for SPSP. The encrypted payload content distinguishes them, but co-existence with Nostr Wallet Connect requires careful message routing.
 
-3. **Settlement Incompleteness**: Agent Society's settlement flow is 60-75% complete. The plugin must be designed with clear abstraction boundaries so settlement backends can be swapped as they mature.
+3. **Settlement Incompleteness**: Crosstown's settlement flow is 60-75% complete. The plugin must be designed with clear abstraction boundaries so settlement backends can be swapped as they mature.
 
 4. **Async Bootstrap vs. Sync Actions**: BootstrapService is a multi-phase state machine that may take minutes. ElizaOS Actions are request-response. The Service must manage bootstrap state while Actions report on and interact with it.
 
@@ -45,12 +45,12 @@ Five iterative phases, each delivering standalone value. Phase 1 establishes the
 ```typescript
 import type { Plugin } from '@elizaos/core';
 
-const agentSocietyPlugin: Plugin = {
-  name: '@agent-society/elizaos-plugin',
+const crosstownPlugin: Plugin = {
+  name: '@crosstown/elizaos-plugin',
   dependencies: [],  // No ElizaOS plugin dependencies
   priority: 10,
 
-  init: async (config: AgentSocietyConfig, runtime: IAgentRuntime) => {
+  init: async (config: CrosstownConfig, runtime: IAgentRuntime) => {
     // Validate Nostr keypair exists in character secrets
     // Initialize nostr-tools SimplePool
     // Prepare configuration from character settings
@@ -74,7 +74,7 @@ const agentSocietyPlugin: Plugin = {
   ],
 
   services: [
-    AgentSocietyService,        // Core lifecycle + bootstrap
+    CrosstownService,        // Core lifecycle + bootstrap
     NostrRelayService,          // Relay connection management
     PaymentChannelService,      // Settlement channel monitoring
   ],
@@ -103,7 +103,7 @@ const agentSocietyPlugin: Plugin = {
 
 ##### Actions (6)
 
-| Action | Description | Agent Society Classes | Trigger |
+| Action | Description | Crosstown Classes | Trigger |
 |--------|-------------|----------------------|---------|
 | `PAY` | Send ILP payment to a peer | `NostrSpspClient`, `SocialTrustManager`, `NostrPeerDiscovery` | "Pay Alice 5 USD" |
 | `REQUEST_PAYMENT` | Request payment from a peer via SPSP | `NostrSpspServer` | "Request 10 USD from Bob" |
@@ -126,8 +126,8 @@ const agentSocietyPlugin: Plugin = {
 
 | Service | serviceType | Description | Lifecycle |
 |---------|-------------|-------------|-----------|
-| `AgentSocietyService` | `'agent_society'` | Core service managing Nostr identity, bootstrap state machine, SPSP server | Starts on agent init, runs bootstrap phases, listens for SPSP requests |
-| `NostrRelayService` | `'nostr_relay'` | Manages SimplePool connections, subscription lifecycle, reconnection | Starts after AgentSocietyService, maintains relay connections |
+| `CrosstownService` | `'crosstown'` | Core service managing Nostr identity, bootstrap state machine, SPSP server | Starts on agent init, runs bootstrap phases, listens for SPSP requests |
+| `NostrRelayService` | `'nostr_relay'` | Manages SimplePool connections, subscription lifecycle, reconnection | Starts after CrosstownService, maintains relay connections |
 | `PaymentChannelService` | `'payment_channel'` | Monitors settlement channels, manages open/close lifecycle | Starts after bootstrap reaches `ready` phase |
 
 ##### Evaluators (2)
@@ -170,7 +170,7 @@ declare module '@elizaos/core' {
 #### 1.3 Configuration Schema
 
 ```typescript
-interface AgentSocietyConfig {
+interface CrosstownConfig {
   // Nostr Configuration
   nostrRelays: string[];                    // Relay URLs for peer discovery
   nostrPrivateKey?: string;                 // Override: usually from character.secrets
@@ -214,23 +214,23 @@ interface AgentSocietyConfig {
 ```json
 {
   "name": "PaymentAgent",
-  "plugins": ["@agent-society/elizaos-plugin"],
+  "plugins": ["@crosstown/elizaos-plugin"],
   "settings": {
-    "AGENT_SOCIETY_ILP_ADDRESS": "g.agent.payment-agent",
-    "AGENT_SOCIETY_BTP_ENDPOINT": "ws://localhost:7768",
-    "AGENT_SOCIETY_CONNECTOR_ADMIN_URL": "http://localhost:7769",
-    "AGENT_SOCIETY_ASSET_CODE": "USD",
-    "AGENT_SOCIETY_ASSET_SCALE": "9",
-    "AGENT_SOCIETY_RELAYS": "wss://relay.damus.io,wss://relay.nostr.band",
-    "AGENT_SOCIETY_SUPPORTED_CHAINS": "evm:base:8453",
-    "AGENT_SOCIETY_AUTO_BOOTSTRAP": "true",
-    "AGENT_SOCIETY_AUTONOMOUS_MODE": "false",
-    "AGENT_SOCIETY_MAX_PAYMENT": "100",
-    "AGENT_SOCIETY_TRUST_THRESHOLD": "0.5"
+    "CROSSTOWN_ILP_ADDRESS": "g.agent.payment-agent",
+    "CROSSTOWN_BTP_ENDPOINT": "ws://localhost:7768",
+    "CROSSTOWN_CONNECTOR_ADMIN_URL": "http://localhost:7769",
+    "CROSSTOWN_ASSET_CODE": "USD",
+    "CROSSTOWN_ASSET_SCALE": "9",
+    "CROSSTOWN_RELAYS": "wss://relay.damus.io,wss://relay.nostr.band",
+    "CROSSTOWN_SUPPORTED_CHAINS": "evm:base:8453",
+    "CROSSTOWN_AUTO_BOOTSTRAP": "true",
+    "CROSSTOWN_AUTONOMOUS_MODE": "false",
+    "CROSSTOWN_MAX_PAYMENT": "100",
+    "CROSSTOWN_TRUST_THRESHOLD": "0.5"
   },
   "secrets": {
-    "AGENT_SOCIETY_NOSTR_PRIVATE_KEY": "<hex-encoded-nostr-private-key>",
-    "AGENT_SOCIETY_SETTLEMENT_KEY": "<settlement-chain-private-key>"
+    "CROSSTOWN_NOSTR_PRIVATE_KEY": "<hex-encoded-nostr-private-key>",
+    "CROSSTOWN_SETTLEMENT_KEY": "<settlement-chain-private-key>"
   }
 }
 ```
@@ -238,7 +238,7 @@ interface AgentSocietyConfig {
 #### 1.4 Component Dependency Graph
 
 ```
-AgentSocietyService (core)
+CrosstownService (core)
     ├── NostrRelayService (relay connections)
     │       └── used by: trustScoreProvider, peerStatusProvider, discoverPeersAction
     ├── PaymentChannelService (settlement)
@@ -263,12 +263,12 @@ Agent Startup
     ▼
 ElizaOS runtime.initialize()
     │
-    ├── registerPlugin(@agent-society/elizaos-plugin)
+    ├── registerPlugin(@crosstown/elizaos-plugin)
     │       ├── plugin.init() → validate config, create SimplePool
     │       ├── register Actions, Providers, Evaluators, Routes
     │       └── register Services
     │
-    ├── AgentSocietyService.start(runtime)
+    ├── CrosstownService.start(runtime)
     │       ├── Load Nostr keypair from character.secrets
     │       ├── Derive Nostr pubkey from private key
     │       ├── Store Nostr identity as Entity Component
@@ -374,7 +374,7 @@ NostrRelayService detects new kind:10032 event from followed pubkey
     ▼
 Emit PEER_DISCOVERED event
     │
-    ├── AgentSocietyService handles event:
+    ├── CrosstownService handles event:
     │   ├── Parse IlpPeerInfo from event
     │   ├── Compute trust score via SocialTrustManager
     │   ├── Compute credit limit from trust score
@@ -396,7 +396,7 @@ Emit PEER_DISCOVERED event
 kind:23194 SPSP Request arrives via Nostr relay
     │
     ▼
-NostrRelayService routes to AgentSocietyService
+NostrRelayService routes to CrosstownService
     │
     ├── Decrypt NIP-44 payload
     ├── Validate sender is in follow graph
@@ -417,7 +417,7 @@ NostrRelayService routes to AgentSocietyService
 
 #### 2.5 State Management Design
 
-| Data | ElizaOS Location | Agent Society Location | Sync Strategy |
+| Data | ElizaOS Location | Crosstown Location | Sync Strategy |
 |------|-----------------|----------------------|---------------|
 | Nostr keypair | `character.secrets` | N/A (derived at init) | Character is source of truth |
 | Peer list | Entity Components (`type: 'ilp-peer'`) | `NostrPeerDiscovery` cache | Sync on discovery events |
@@ -432,17 +432,17 @@ NostrRelayService routes to AgentSocietyService
 
 ### 3. Detailed Component Designs
 
-#### 3.1 AgentSocietyService (Core Service)
+#### 3.1 CrosstownService (Core Service)
 
 ```typescript
 import { Service, type IAgentRuntime } from '@elizaos/core';
 import {
   BootstrapService, NostrPeerDiscovery, NostrSpspClient,
   NostrSpspServer, SocialTrustManager
-} from '@agent-society/core';
+} from '@crosstown/core';
 
-export class AgentSocietyService extends Service {
-  static serviceType = 'agent_society' as const;
+export class CrosstownService extends Service {
+  static serviceType = 'crosstown' as const;
   capabilityDescription = 'Manages Nostr identity and ILP network participation';
 
   private bootstrapService!: BootstrapService;
@@ -452,12 +452,12 @@ export class AgentSocietyService extends Service {
   private trustManager!: SocialTrustManager;
   private nostrKeypair!: { privateKey: Uint8Array; publicKey: string };
 
-  static async start(runtime: IAgentRuntime): Promise<AgentSocietyService> {
-    const service = new AgentSocietyService(runtime);
+  static async start(runtime: IAgentRuntime): Promise<CrosstownService> {
+    const service = new CrosstownService(runtime);
 
     // 1. Load Nostr identity from character secrets
-    const nsec = runtime.getSetting('AGENT_SOCIETY_NOSTR_PRIVATE_KEY');
-    if (!nsec) throw new Error('AGENT_SOCIETY_NOSTR_PRIVATE_KEY required');
+    const nsec = runtime.getSetting('CROSSTOWN_NOSTR_PRIVATE_KEY');
+    if (!nsec) throw new Error('CROSSTOWN_NOSTR_PRIVATE_KEY required');
     service.nostrKeypair = deriveKeypair(nsec as string);
 
     // 2. Store Nostr pubkey as Entity Component for other plugins
@@ -468,31 +468,31 @@ export class AgentSocietyService extends Service {
       metadata: { nostrPubkey: service.nostrKeypair.publicKey },
     });
 
-    // 3. Initialize Agent Society subsystems
-    const relays = (runtime.getSetting('AGENT_SOCIETY_RELAYS') as string)?.split(',') || [];
+    // 3. Initialize Crosstown subsystems
+    const relays = (runtime.getSetting('CROSSTOWN_RELAYS') as string)?.split(',') || [];
 
     service.peerDiscovery = new NostrPeerDiscovery(relays);
     service.trustManager = new SocialTrustManager(relays, {
-      maxSocialDistance: Number(runtime.getSetting('AGENT_SOCIETY_MAX_SOCIAL_DISTANCE') || 3),
+      maxSocialDistance: Number(runtime.getSetting('CROSSTOWN_MAX_SOCIAL_DISTANCE') || 3),
     });
     service.spspClient = new NostrSpspClient(relays, service.nostrKeypair.privateKey);
     service.spspServer = new NostrSpspServer(relays, service.nostrKeypair.privateKey, {
-      ilpAddress: runtime.getSetting('AGENT_SOCIETY_ILP_ADDRESS') as string,
+      ilpAddress: runtime.getSetting('CROSSTOWN_ILP_ADDRESS') as string,
     });
 
     // 4. Auto-bootstrap if configured
-    if (runtime.getSetting('AGENT_SOCIETY_AUTO_BOOTSTRAP') !== 'false') {
+    if (runtime.getSetting('CROSSTOWN_AUTO_BOOTSTRAP') !== 'false') {
       service.bootstrapService = new BootstrapService(/* config */);
 
       service.bootstrapService.on('bootstrap:phase', (phase) => {
         runtime.emitEvent('BOOTSTRAP_PHASE_CHANGED' as any, {
-          runtime, source: 'agent-society', phase,
+          runtime, source: 'crosstown', phase,
         });
       });
 
       service.bootstrapService.on('bootstrap:peer-registered', (peer) => {
         runtime.emitEvent('PEER_DISCOVERED' as any, {
-          runtime, source: 'agent-society', peer,
+          runtime, source: 'crosstown', peer,
         });
         // Persist peer as memory
         runtime.createMemory({
@@ -548,8 +548,8 @@ export const payAction: Action = {
   ],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    // Check that AgentSocietyService is running and bootstrap is ready
-    const service = runtime.getService<AgentSocietyService>('agent_society');
+    // Check that CrosstownService is running and bootstrap is ready
+    const service = runtime.getService<CrosstownService>('crosstown');
     if (!service) return false;
 
     const phase = service.getBootstrapPhase();
@@ -567,9 +567,9 @@ export const payAction: Action = {
     options: Record<string, unknown>,
     callback: HandlerCallback,
   ): Promise<void> => {
-    const service = runtime.getService<AgentSocietyService>('agent_society');
+    const service = runtime.getService<CrosstownService>('crosstown');
     if (!service) {
-      await callback({ text: 'Agent Society service is not available.' });
+      await callback({ text: 'Crosstown service is not available.' });
       return;
     }
 
@@ -592,7 +592,7 @@ export const payAction: Action = {
       service.getNostrPubkey(), pubkey
     );
 
-    const threshold = Number(runtime.getSetting('AGENT_SOCIETY_TRUST_THRESHOLD') || 0.5);
+    const threshold = Number(runtime.getSetting('CROSSTOWN_TRUST_THRESHOLD') || 0.5);
     if (trustScore.score < threshold) {
       await callback({
         text: `Trust score for ${recipient} is ${trustScore.score.toFixed(2)} (below threshold ${threshold}). ` +
@@ -623,7 +623,7 @@ export const payAction: Action = {
         roomId: message.roomId,
         content: {
           text: `Payment sent: ${amount} ${currency} to ${recipient}`,
-          source: 'agent-society',
+          source: 'crosstown',
           payment: {
             recipient, pubkey, amount, currency,
             destination: spspInfo.destinationAccount,
@@ -643,7 +643,7 @@ export const payAction: Action = {
 
       // 8. Emit event for evaluators
       await runtime.emitEvent('PAYMENT_SENT' as any, {
-        runtime, source: 'agent-society',
+        runtime, source: 'crosstown',
         recipient: pubkey, amount, currency, success: result.success,
       });
 
@@ -665,7 +665,7 @@ export const trustScoreProvider: Provider = {
   position: 10,  // Run early — trust informs all payment decisions
 
   get: async (runtime: IAgentRuntime, message: Memory, state: State): Promise<ProviderResult> => {
-    const service = runtime.getService<AgentSocietyService>('agent_society');
+    const service = runtime.getService<CrosstownService>('crosstown');
     if (!service || service.getBootstrapPhase() !== 'ready') {
       return { text: '', values: {}, data: {} };
     }
@@ -715,9 +715,9 @@ export const trustScoreProvider: Provider = {
 
 ### 4. Bootstrap Lifecycle Integration
 
-#### 4.1 Mapping Agent Society Phases to ElizaOS Lifecycle
+#### 4.1 Mapping Crosstown Phases to ElizaOS Lifecycle
 
-| Agent Society Phase | ElizaOS Stage | Integration Point |
+| Crosstown Phase | ElizaOS Stage | Integration Point |
 |---------------------|---------------|-------------------|
 | (pre-bootstrap) | `plugin.init()` | Validate config, create SimplePool |
 | (pre-bootstrap) | `Service.start()` | Load keypair, initialize subsystems |
@@ -729,7 +729,7 @@ export const trustScoreProvider: Provider = {
 
 #### 4.2 Bootstrap as Service (Recommended Approach)
 
-Bootstrap should run as part of the `AgentSocietyService` lifecycle, not as a standalone Action. Rationale:
+Bootstrap should run as part of the `CrosstownService` lifecycle, not as a standalone Action. Rationale:
 
 1. **Automatic**: Agents should participate in the ILP network by default, not require manual triggering.
 2. **Idempotent**: Service restart re-runs bootstrap from the last successful phase.
@@ -741,7 +741,7 @@ Bootstrap should run as part of the `AgentSocietyService` lifecycle, not as a st
 ```
 Phase fails → BootstrapService emits error event
     │
-    ├── AgentSocietyService catches error
+    ├── CrosstownService catches error
     │   ├── Log error in Memory (tags: ['bootstrap', 'error'])
     │   ├── Emit BOOTSTRAP_PHASE_CHANGED with error details
     │   └── Set service state to 'bootstrap-failed'
@@ -768,7 +768,7 @@ Phase fails → BootstrapService emits error event
 ```json
 {
   "secrets": {
-    "AGENT_SOCIETY_NOSTR_PRIVATE_KEY": "nsec1..."
+    "CROSSTOWN_NOSTR_PRIVATE_KEY": "nsec1..."
   }
 }
 ```
@@ -791,9 +791,9 @@ Each ElizaOS agent MUST have its own Nostr identity (1:1 mapping). Rationale:
 #### 5.3 Identity Initialization Flow
 
 ```
-AgentSocietyService.start()
+CrosstownService.start()
     │
-    ├── Read AGENT_SOCIETY_NOSTR_PRIVATE_KEY from character.secrets
+    ├── Read CROSSTOWN_NOSTR_PRIVATE_KEY from character.secrets
     │
     ├── If not found:
     │   ├── Generate new keypair: generateSecretKey() from nostr-tools
@@ -805,7 +805,7 @@ AgentSocietyService.start()
     ├── Store as Entity Component: {type: 'nostr-identity', data: {pubkey, npub}}
     │
     └── Optional: NIP-05 verification
-        ├── If AGENT_SOCIETY_NIP05 is set (e.g., "agent@colony.example.com"):
+        ├── If CROSSTOWN_NIP05 is set (e.g., "agent@colony.example.com"):
         │   ├── Verify DNS record matches derived pubkey
         │   └── Store NIP-05 identifier for human-readable reference
         └── Publish kind:0 metadata event with NIP-05 field
@@ -1010,7 +1010,7 @@ Agent A (ElizaOS instance 1): "I need to pay Agent C"
 #### 10.1 Periodic Trust Recalculation
 
 ```typescript
-// In AgentSocietyService, schedule periodic trust updates
+// In CrosstownService, schedule periodic trust updates
 if (config.autonomousMode) {
   setInterval(async () => {
     const peers = await this.peerDiscovery.discoverPeers(this.nostrKeypair.publicKey);
@@ -1024,7 +1024,7 @@ if (config.autonomousMode) {
       if (oldScore && Math.abs(newScore.score - oldScore.score) > 0.1) {
         // Significant trust change — emit event
         await runtime.emitEvent('TRUST_SCORE_UPDATED' as any, {
-          runtime, source: 'agent-society',
+          runtime, source: 'crosstown',
           pubkey, oldScore: oldScore.score, newScore: newScore.score,
         });
 
@@ -1050,7 +1050,7 @@ if (config.autonomousMode) {
       if (channel.lastActivity < Date.now() - 7 * 24 * 60 * 60 * 1000) {
         await this.channelClient.closeChannel(channel.id);
         await runtime.emitEvent('CHANNEL_CLOSED' as any, {
-          runtime, source: 'agent-society',
+          runtime, source: 'crosstown',
           channelId: channel.id, reason: 'idle',
         });
       }
@@ -1129,7 +1129,7 @@ if (config.autonomousMode) {
 
 #### 11.2 Error Code Mapping
 
-| Agent Society Error | ElizaOS Handling |
+| Crosstown Error | ElizaOS Handling |
 |--------------------|-----------------|
 | `PeerDiscoveryError` | Log in Memory, surface via networkStatusProvider |
 | `SpspTimeoutError` | Retry action, surface in callback message |
@@ -1150,12 +1150,12 @@ if (config.autonomousMode) {
   "name": "Prudent Pete",
   "bio": "A careful ILP agent that prioritizes security and only transacts with highly trusted peers.",
   "system": "You are a conservative payment agent. Always verify trust scores before payments. Prefer peers with high mutual follower counts. Never auto-approve payments to peers with trust scores below 0.7. Ask for confirmation on any payment above 10 USD.",
-  "plugins": ["@agent-society/elizaos-plugin"],
+  "plugins": ["@crosstown/elizaos-plugin"],
   "settings": {
-    "AGENT_SOCIETY_TRUST_THRESHOLD": "0.7",
-    "AGENT_SOCIETY_MAX_PAYMENT": "50",
-    "AGENT_SOCIETY_AUTONOMOUS_MODE": "false",
-    "AGENT_SOCIETY_MAX_SOCIAL_DISTANCE": "2"
+    "CROSSTOWN_TRUST_THRESHOLD": "0.7",
+    "CROSSTOWN_MAX_PAYMENT": "50",
+    "CROSSTOWN_AUTONOMOUS_MODE": "false",
+    "CROSSTOWN_MAX_SOCIAL_DISTANCE": "2"
   },
   "knowledge": [
     "ILP payments are irreversible once fulfilled. Always verify the recipient.",
@@ -1179,12 +1179,12 @@ if (config.autonomousMode) {
   "name": "Router Riley",
   "bio": "An active ILP routing agent that eagerly connects new peers and routes payments across the network.",
   "system": "You are a payment routing agent. Your goal is to maximize network connectivity. Accept peering requests from any peer with trust > 0.3. Proactively discover and connect to new peers. Open settlement channels aggressively. Offer routing services to peers.",
-  "plugins": ["@agent-society/elizaos-plugin"],
+  "plugins": ["@crosstown/elizaos-plugin"],
   "settings": {
-    "AGENT_SOCIETY_TRUST_THRESHOLD": "0.3",
-    "AGENT_SOCIETY_MAX_PAYMENT": "1000",
-    "AGENT_SOCIETY_AUTONOMOUS_MODE": "true",
-    "AGENT_SOCIETY_MAX_SOCIAL_DISTANCE": "4"
+    "CROSSTOWN_TRUST_THRESHOLD": "0.3",
+    "CROSSTOWN_MAX_PAYMENT": "1000",
+    "CROSSTOWN_AUTONOMOUS_MODE": "true",
+    "CROSSTOWN_MAX_SOCIAL_DISTANCE": "4"
   },
   "knowledge": [
     "More peers means better routing options and redundancy.",
@@ -1208,12 +1208,12 @@ if (config.autonomousMode) {
   "name": "Trust Tara",
   "bio": "An agent focused on building deep trust relationships through consistent, reliable payment behavior.",
   "system": "You are a trust-focused agent. Prioritize building strong relationships with a small set of highly-trusted peers. Track payment success rates meticulously. Reward reliable peers with higher credit limits. Gradually reduce trust for peers with failed payments.",
-  "plugins": ["@agent-society/elizaos-plugin"],
+  "plugins": ["@crosstown/elizaos-plugin"],
   "settings": {
-    "AGENT_SOCIETY_TRUST_THRESHOLD": "0.5",
-    "AGENT_SOCIETY_MAX_PAYMENT": "200",
-    "AGENT_SOCIETY_AUTONOMOUS_MODE": "true",
-    "AGENT_SOCIETY_MAX_SOCIAL_DISTANCE": "3"
+    "CROSSTOWN_TRUST_THRESHOLD": "0.5",
+    "CROSSTOWN_MAX_PAYMENT": "200",
+    "CROSSTOWN_AUTONOMOUS_MODE": "true",
+    "CROSSTOWN_MAX_SOCIAL_DISTANCE": "3"
   },
   "knowledge": [
     "Trust is earned through consistent successful interactions.",
@@ -1240,7 +1240,7 @@ if (config.autonomousMode) {
 **Goal**: Agent has a Nostr identity, connects to relays, and bootstraps into the ILP network.
 
 **Components**:
-- `AgentSocietyService` — Nostr keypair management, bootstrap lifecycle
+- `CrosstownService` — Nostr keypair management, bootstrap lifecycle
 - `NostrRelayService` — SimplePool management, subscription lifecycle
 - `networkStatusProvider` — Bootstrap phase and relay status
 - `BOOTSTRAP_NETWORK` Action — Manual bootstrap trigger
@@ -1253,7 +1253,7 @@ if (config.autonomousMode) {
 - networkStatusProvider surfaces bootstrap progress to conversations
 - REST route `/status` exposes network health
 
-**Dependencies**: Agent Society `@agent-society/core` package, `nostr-tools`, running ILP connector
+**Dependencies**: Crosstown `@crosstown/core` package, `nostr-tools`, running ILP connector
 
 ---
 
@@ -1300,7 +1300,7 @@ if (config.autonomousMode) {
 - Payment history searchable via natural language
 - POST `/connector/webhook` handles payment notifications
 
-**Dependencies**: Phase 2 complete, Agent Society SPSP flow functional
+**Dependencies**: Phase 2 complete, Crosstown SPSP flow functional
 
 ---
 
@@ -1350,7 +1350,7 @@ if (config.autonomousMode) {
 
 | Risk | Severity | Likelihood | Mitigation |
 |------|----------|------------|------------|
-| Agent Society settlement flow incomplete (60-75%) | High | Confirmed | Design plugin with abstracted settlement interface; mock settlement for testing; prioritize non-settlement features first |
+| Crosstown settlement flow incomplete (60-75%) | High | Confirmed | Design plugin with abstracted settlement interface; mock settlement for testing; prioritize non-settlement features first |
 | NIP-47 kind number collision | Medium | Medium | Use payload content (not kind number) for message routing; document disambiguation strategy |
 | nostr-tools API instability | Medium | Low | Pin version, wrap in adapter layer, maintain compatibility tests |
 | ILP connector unavailability | High | Medium | Graceful degradation — agent operates in "Nostr-only" mode without ILP features |
@@ -1360,9 +1360,9 @@ if (config.autonomousMode) {
 
 | Risk | Severity | Likelihood | Mitigation |
 |------|----------|------------|------------|
-| Tight coupling between plugin and Agent Society internals | High | Medium | Use only public API surface; wrap Agent Society classes in adapter layer |
+| Tight coupling between plugin and Crosstown internals | High | Medium | Use only public API surface; wrap Crosstown classes in adapter layer |
 | ElizaOS breaking changes in Plugin interface | Medium | Medium | Pin ElizaOS version; follow semver; maintain integration tests |
-| State synchronization between ElizaOS Memory and Agent Society caches | Medium | High | Designate single source of truth per data type (see section 2.5) |
+| State synchronization between ElizaOS Memory and Crosstown caches | Medium | High | Designate single source of truth per data type (see section 2.5) |
 | Plugin bloat from trying to wrap everything | Medium | Medium | Phase implementation; only build what's needed for each milestone |
 
 #### 14.3 Operational Risks
@@ -1381,27 +1381,27 @@ if (config.autonomousMode) {
 
 #### 15.1 Component Mapping Matrix
 
-| Agent Society Class | ElizaOS Component | Type | Notes |
+| Crosstown Class | ElizaOS Component | Type | Notes |
 |--------------------|-------------------|------|-------|
-| `BootstrapService` | `AgentSocietyService` | Service | Wrapped in service lifecycle |
-| `NostrPeerDiscovery` | `AgentSocietyService` (internal) + `peerStatusProvider` | Service + Provider | Discovery runs in service, results surfaced via provider |
-| `SocialTrustManager` | `AgentSocietyService` (internal) + `trustScoreProvider` | Service + Provider | Computation in service, context injection via provider |
+| `BootstrapService` | `CrosstownService` | Service | Wrapped in service lifecycle |
+| `NostrPeerDiscovery` | `CrosstownService` (internal) + `peerStatusProvider` | Service + Provider | Discovery runs in service, results surfaced via provider |
+| `SocialTrustManager` | `CrosstownService` (internal) + `trustScoreProvider` | Service + Provider | Computation in service, context injection via provider |
 | `NostrSpspClient` | `PAY` Action | Action | Triggered by user intent |
-| `NostrSpspServer` | `AgentSocietyService` (internal) + event handler | Service + Event | Listens for incoming SPSP requests |
+| `NostrSpspServer` | `CrosstownService` (internal) + event handler | Service + Event | Listens for incoming SPSP requests |
 | `buildIlpPeerInfoEvent` | `PUBLISH_PEER_INFO` Action | Action | Triggered by user or bootstrap |
-| `parseIlpPeerInfo` | `AgentSocietyService` (internal) | Service | Used during peer discovery |
-| `ConnectorAdminClient` | `AgentSocietyService` (internal) | Service | Peer registration |
+| `parseIlpPeerInfo` | `CrosstownService` (internal) | Service | Used during peer discovery |
+| `ConnectorAdminClient` | `CrosstownService` (internal) | Service | Peer registration |
 | `AgentRuntimeClient` | `PAY` Action (internal) | Action | ILP packet sending |
 | `ConnectorChannelClient` | `PaymentChannelService` | Service | Settlement channel lifecycle |
-| `GenesisPeerLoader` | `AgentSocietyService` (bootstrap) | Service | Phase 1 of bootstrap |
-| `ArDrivePeerRegistry` | `AgentSocietyService` (bootstrap) | Service | Phase 1 of bootstrap |
+| `GenesisPeerLoader` | `CrosstownService` (bootstrap) | Service | Phase 1 of bootstrap |
+| `ArDrivePeerRegistry` | `CrosstownService` (bootstrap) | Service | Phase 1 of bootstrap |
 | `PricingService` | N/A (BLS-side only) | N/A | Used by relay, not by agent plugin |
 | `BusinessLogicServer` | N/A (BLS-side only) | N/A | Server-side component |
 | `NostrRelayServer` | N/A (relay-side only) | N/A | Server-side component |
 
 #### 15.2 Glossary of Cross-Project Terminology
 
-| Agent Society Term | ElizaOS Equivalent | Description |
+| Crosstown Term | ElizaOS Equivalent | Description |
 |-------------------|-------------------|-------------|
 | Nostr pubkey | Entity ID / Agent ID | Unique identifier for a network participant |
 | Follow list (NIP-02) | Relationship records | Social graph edges representing trust/peering |
@@ -1416,9 +1416,9 @@ if (config.autonomousMode) {
 
 #### 15.3 NIP-47 Relationship Analysis
 
-Agent Society's SPSP protocol intentionally mirrors NIP-47 (Nostr Wallet Connect):
+Crosstown's SPSP protocol intentionally mirrors NIP-47 (Nostr Wallet Connect):
 
-| Aspect | NIP-47 (NWC) | Agent Society SPSP |
+| Aspect | NIP-47 (NWC) | Crosstown SPSP |
 |--------|-------------|-------------------|
 | Request kind | 23194 | 23194 (same) |
 | Response kind | 23195 | 23195 (same) |
@@ -1434,11 +1434,11 @@ Agent Society's SPSP protocol intentionally mirrors NIP-47 (Nostr Wallet Connect
 
 ## Conclusion
 
-The ElizaOS plugin architecture provides an excellent fit for wrapping the Agent Society protocol. The key architectural insight is that Agent Society's long-running processes (bootstrap, relay connections, channel management) map to ElizaOS Services, while user-facing operations (pay, discover, check trust) map to Actions, and contextual data (trust scores, peer status, balances) map to Providers.
+The ElizaOS plugin architecture provides an excellent fit for wrapping the Crosstown protocol. The key architectural insight is that Crosstown's long-running processes (bootstrap, relay connections, channel management) map to ElizaOS Services, while user-facing operations (pay, discover, check trust) map to Actions, and contextual data (trust scores, peer status, balances) map to Providers.
 
 The five-phase implementation roadmap allows iterative delivery of value, starting with core infrastructure (Phase 1) and building up to a full multi-agent ILP mesh (Phase 5). Each phase is independently testable and delivers standalone capabilities.
 
-The primary risk is Agent Society's incomplete settlement flow (60-75%), which can be mitigated by designing clean abstraction boundaries around settlement operations and focusing early phases on the complete subsystems (peer discovery, trust computation, SPSP negotiation).
+The primary risk is Crosstown's incomplete settlement flow (60-75%), which can be mitigated by designing clean abstraction boundaries around settlement operations and focusing early phases on the complete subsystems (peer discovery, trust computation, SPSP negotiation).
 
 The plugin architecture draws heavily from the plugin-babylon reference, particularly its patterns for:
 - Service lifecycle management (autonomous coordinator)

@@ -1,23 +1,23 @@
-# Deep Research Prompt: ElizaOS Plugin Integration with Agent Society Protocol
+# Deep Research Prompt: ElizaOS Plugin Integration with Crosstown Protocol
 
 ## Research Objective
 
-Investigate and recommend the optimal technical architecture for building an **ElizaOS plugin** (`@elizaos/plugin-agent-society` or `@agent-society/elizaos-plugin`) that wraps the **Agent Society protocol** — enabling any ElizaOS-powered AI agent to participate in Nostr-based ILP payment networks with social-graph-driven peer discovery, trust derivation, and micropayment routing.
+Investigate and recommend the optimal technical architecture for building an **ElizaOS plugin** (`@elizaos/plugin-crosstown` or `@crosstown/elizaos-plugin`) that wraps the **Crosstown protocol** — enabling any ElizaOS-powered AI agent to participate in Nostr-based ILP payment networks with social-graph-driven peer discovery, trust derivation, and micropayment routing.
 
 The research must produce:
-1. A detailed plugin architecture mapping Agent Society's capabilities to ElizaOS's component model (Actions, Providers, Services, Evaluators, Events, Routes)
+1. A detailed plugin architecture mapping Crosstown's capabilities to ElizaOS's component model (Actions, Providers, Services, Evaluators, Events, Routes)
 2. A concrete implementation plan showing how ElizaOS agents gain Nostr identity, discover ILP peers, negotiate SPSP handshakes, compute trust scores, and route payments — all through natural agent conversation and autonomous decision-making
-3. Analysis of how Agent Society's 5-phase bootstrap process maps to ElizaOS's agent lifecycle
+3. Analysis of how Crosstown's 5-phase bootstrap process maps to ElizaOS's agent lifecycle
 4. Recommendations for agent Character configuration patterns that leverage social trust for payment decisions
 5. A prioritized implementation roadmap with clear milestones
 
-The goal is to make the Interledger Protocol accessible to any ElizaOS agent through the Agent Society bridge — an agent says "pay Alice 5 USD" and the plugin handles peer discovery, SPSP negotiation, trust verification, and ILP packet routing automatically.
+The goal is to make the Interledger Protocol accessible to any ElizaOS agent through the Crosstown bridge — an agent says "pay Alice 5 USD" and the plugin handles peer discovery, SPSP negotiation, trust verification, and ILP packet routing automatically.
 
 ## Background Context
 
-### Project 1: Agent Society Protocol
+### Project 1: Crosstown Protocol
 
-**Repository:** https://github.com/ALLiDoizCode/agent-society
+**Repository:** https://github.com/ALLiDoizCode/crosstown
 **Nature:** TypeScript monorepo library bridging Nostr and Interledger Protocol (ILP)
 
 **Core Architecture:**
@@ -170,14 +170,14 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 
 ### Primary Questions (Must Answer)
 
-1. **Plugin Architecture Design**: What is the optimal mapping of Agent Society's capabilities to ElizaOS plugin components? Specifically:
-   - Which Agent Society operations become **Actions** (user/agent-triggered) vs **Services** (background processes)?
+1. **Plugin Architecture Design**: What is the optimal mapping of Crosstown's capabilities to ElizaOS plugin components? Specifically:
+   - Which Crosstown operations become **Actions** (user/agent-triggered) vs **Services** (background processes)?
    - What **Providers** should surface trust scores, peer status, payment channel state, and balance information into agent context?
    - How should **Evaluators** assess payment outcomes and trust evolution over time?
    - What **Routes** should expose for external ILP connector integration and webhook callbacks?
    - What custom **Events** enable inter-agent payment coordination?
 
-2. **Bootstrap Lifecycle Integration**: How should Agent Society's 5-phase BootstrapService map to ElizaOS's agent lifecycle? Should bootstrap run as:
+2. **Bootstrap Lifecycle Integration**: How should Crosstown's 5-phase BootstrapService map to ElizaOS's agent lifecycle? Should bootstrap run as:
    - A Service that starts when the agent initializes?
    - An Action that the agent can trigger conversationally ("bootstrap my ILP network")?
    - An automatic background process tied to agent startup?
@@ -214,7 +214,7 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
    - How do agents discover other ElizaOS agents on the Nostr network?
    - What's the model for agent-to-agent payment negotiation?
 
-8. **ILP-Gated Relay as Agent Infrastructure**: Can ElizaOS agents use the Agent Society relay for persistent communication?
+8. **ILP-Gated Relay as Agent Infrastructure**: Can ElizaOS agents use the Crosstown relay for persistent communication?
    - Should agents pay to write to the relay as part of normal operation?
    - Can the relay serve as an agent's "public memory" or "bulletin board"?
    - How does the pay-per-write model interact with agent economy?
@@ -252,7 +252,7 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 - ElizaOS official documentation: https://docs.elizaos.ai/
 - ElizaOS full documentation for LLMs: https://docs.elizaos.ai/llms-full.txt
 - ElizaOS GitHub repository: https://github.com/elizaOS/eliza
-- Agent Society source code (provided in context above)
+- Crosstown source code (provided in context above)
 - Existing ElizaOS plugins (plugin-babylon as reference architecture)
 
 **Secondary Sources:**
@@ -270,24 +270,24 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 
 ### Analysis Frameworks
 
-1. **Component Mapping Matrix** — Map every Agent Society class/function to an ElizaOS plugin component type with rationale
-2. **Lifecycle Alignment** — Side-by-side comparison of Agent Society bootstrap phases and ElizaOS agent lifecycle stages
+1. **Component Mapping Matrix** — Map every Crosstown class/function to an ElizaOS plugin component type with rationale
+2. **Lifecycle Alignment** — Side-by-side comparison of Crosstown bootstrap phases and ElizaOS agent lifecycle stages
 3. **Data Flow Diagrams** — Trace complete flows: discovery, payment, trust computation, settlement
-4. **Interface Adapter Pattern Analysis** — Identify where Agent Society interfaces need wrapping for ElizaOS compatibility
+4. **Interface Adapter Pattern Analysis** — Identify where Crosstown interfaces need wrapping for ElizaOS compatibility
 5. **Failure Mode Analysis** — Enumerate failure scenarios and recovery strategies for each integration point
 
 ### Data Requirements
 
 - Complete ElizaOS plugin API surface (all interfaces, types, lifecycle hooks)
 - Existing ElizaOS plugin examples demonstrating Services, Actions, Providers patterns
-- Agent Society public API surface (all exported classes, interfaces, functions)
+- Crosstown public API surface (all exported classes, interfaces, functions)
 - Nostr event kind specifications for all custom events (10032, 23194, 23195)
 - ILP connector Admin API specification
 
 ## Expected Deliverables
 
 ### Executive Summary
-- Key findings on architectural fit between Agent Society and ElizaOS
+- Key findings on architectural fit between Crosstown and ElizaOS
 - Critical integration challenges and recommended solutions
 - Top 3 highest-value capabilities the plugin would unlock
 - Recommended implementation approach (iterative phases)
@@ -296,7 +296,7 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 
 #### 1. Plugin Architecture Specification
 - Complete component inventory (Actions, Providers, Services, Evaluators, Events, Routes)
-- For each component: name, description, inputs/outputs, Agent Society classes used, ElizaOS interfaces implemented
+- For each component: name, description, inputs/outputs, Crosstown classes used, ElizaOS interfaces implemented
 - Dependency graph between components
 - Configuration schema (Character settings, environment variables, secrets)
 
@@ -308,7 +308,7 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
   - Agent receives a payment request
   - Agent updates trust based on payment outcome
 - Sequence diagrams for SPSP negotiation through ElizaOS pipeline
-- State management design (what lives in ElizaOS memory vs Agent Society state)
+- State management design (what lives in ElizaOS memory vs Crosstown state)
 
 #### 3. Implementation Roadmap
 - Phase 1: Core infrastructure (Service + identity + bootstrap)
@@ -332,17 +332,17 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 - Mitigation strategies for each identified risk
 
 ### Supporting Materials
-- Component mapping matrix (Agent Society → ElizaOS)
+- Component mapping matrix (Crosstown → ElizaOS)
 - Interface adapter specifications
 - Configuration reference table
-- Error code mapping (Agent Society errors → ElizaOS error handling)
+- Error code mapping (Crosstown errors → ElizaOS error handling)
 - Glossary of cross-project terminology
 
 ## Success Criteria
 
-1. **Architectural Clarity**: A reader should understand exactly which ElizaOS components to build and how they interact with Agent Society classes
+1. **Architectural Clarity**: A reader should understand exactly which ElizaOS components to build and how they interact with Crosstown classes
 2. **Implementation Readiness**: The roadmap should be detailed enough that a developer could start coding Phase 1 immediately
-3. **Complete Coverage**: Every Agent Society capability should have a clear path to ElizaOS integration (even if deferred to later phases)
+3. **Complete Coverage**: Every Crosstown capability should have a clear path to ElizaOS integration (even if deferred to later phases)
 4. **Practical Examples**: Include concrete code sketches or pseudocode for at least the core Action (pay), Service (bootstrap), and Provider (trust score)
 5. **Risk Awareness**: All significant integration challenges are identified with mitigation strategies
 
@@ -365,8 +365,8 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 
 ## Notes
 
-- Agent Society is at 60-75% completion on settlement/ILP flow — the research should account for both current capabilities and planned completion
-- The plugin should be designed to work with Agent Society's existing API surface without requiring changes to the core protocol library
+- Crosstown is at 60-75% completion on settlement/ILP flow — the research should account for both current capabilities and planned completion
+- The plugin should be designed to work with Crosstown's existing API surface without requiring changes to the core protocol library
 - ElizaOS plugin-babylon serves as the strongest reference architecture for a complex integration plugin
 - Consider that agents may operate in both conversational mode (human-directed payments) and autonomous mode (self-directed peer management and routing)
-- The Nostr identity layer is critical — it's the bridge between ElizaOS agent identity and the Agent Society network identity
+- The Nostr identity layer is critical — it's the bridge between ElizaOS agent identity and the Crosstown network identity

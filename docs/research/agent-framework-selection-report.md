@@ -1,7 +1,7 @@
 # Agent Framework Selection Report: NIP Handler Runtime
 
 **Date**: February 2026
-**Project**: agent-society (Nostr + ILP TypeScript monorepo)
+**Project**: crosstown (Nostr + ILP TypeScript monorepo)
 **Scope**: Select an agent framework for the autonomous NIP Handler runtime
 
 ---
@@ -513,7 +513,7 @@ This pattern is worth studying as architectural inspiration.
 
 #### Problems
 
-ElizaOS has fundamental integration conflicts with the agent-society project:
+ElizaOS has fundamental integration conflicts with the crosstown project:
 
 1. **Heavy dependencies**: `@langchain/core`, pdfjs-dist, handlebars, crypto-browserify (12 direct in core). `@elizaos/plugin-node` adds 54 more including Playwright and Puppeteer.
 2. **Infrastructure assumptions**: PostgreSQL/PGLite, Socket.IO, Express.js. The project uses better-sqlite3 and Hono.

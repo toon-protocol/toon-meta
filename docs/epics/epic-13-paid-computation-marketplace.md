@@ -18,7 +18,7 @@ Enable agents to offer and consume paid computation services using the NIP-90 Da
 
 - **Current functionality:** BLS handles per-kind pricing and ILP payment verification. TOON encoding embeds any Nostr event in ILP packets. Connector routes packets between peers. SocialPeerDiscovery queries kind:10032 for peer info. NIP Handler Agent Runtime (Epic 11) processes events autonomously.
 - **Technology stack:** TypeScript, nostr-tools, Hono (BLS HTTP), TOON codec, ILP PREPARE/FULFILL, Vercel AI SDK (v6)
-- **Integration points:** BLS pricing table (add DVM kinds), BLS payment handler (process DVM jobs), SocialPeerDiscovery (extend for kind:31990 queries), NIP Handler kind registry (register DVM handlers), `createAgentSocietyNode()` (embedded stack)
+- **Integration points:** BLS pricing table (add DVM kinds), BLS payment handler (process DVM jobs), SocialPeerDiscovery (extend for kind:31990 queries), NIP Handler kind registry (register DVM handlers), `createCrosstownNode()` (embedded stack)
 
 ### Enhancement Details
 
@@ -102,7 +102,7 @@ Customer Agent                     Service Provider Agent
 **so that** I can offer paid computation services via the ILP network.
 
 **Acceptance Criteria:**
-1. `DvmJobHandler` class created in `@agent-society/bls` with registration pattern: `handler.register(jobKind: number, handler: DvmCapabilityHandler)`
+1. `DvmJobHandler` class created in `@crosstown/bls` with registration pattern: `handler.register(jobKind: number, handler: DvmCapabilityHandler)`
 2. `DvmCapabilityHandler` interface: `processJob(request: DvmJobRequest): Promise<DvmJobResult | DvmJobRejection>`
 3. BLS `handlePayment` extended: if incoming TOON event is kind:5000-5999, delegate to DvmJobHandler
 4. **Peering gate:** Validate that the job request's pubkey has an active peering relationship (NIP-02 follow + SPSP handshake completed); reject non-peered requests with kind:7000 feedback (status: `error`, content: "peering required")

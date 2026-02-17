@@ -3,19 +3,19 @@
 **Phase:** Integration
 **Estimated Stories:** 5
 **Dependencies:** Epic 9 (npm packages published), agent-runtime `@agent-runtime/connector` published as npm library
-**Blocks:** Epic 11 (NIP Handler Agent Runtime — consumes `createAgentSocietyNode()`)
+**Blocks:** Epic 11 (NIP Handler Agent Runtime — consumes `createCrosstownNode()`)
 
 ---
 
 ## Epic Goal
 
-Eliminate the HTTP boundary between agent-society and agent-runtime by embedding the `ConnectorNode` directly in-process. Align naming conventions with agent-runtime (`handlePayment` → `handlePacket`). The end state: agent-society can run the ILP connector in the same process with zero-latency function calls, while retaining HTTP as a fallback for isolated deployments.
+Eliminate the HTTP boundary between crosstown and agent-runtime by embedding the `ConnectorNode` directly in-process. Align naming conventions with agent-runtime (`handlePayment` → `handlePacket`). The end state: crosstown can run the ILP connector in the same process with zero-latency function calls, while retaining HTTP as a fallback for isolated deployments.
 
 ## Epic Description
 
 ### Existing System Context
 
-- **Current functionality:** agent-society communicates with agent-runtime via HTTP — `POST /ilp/send` for outbound ILP packets, `POST /admin/peers` for peer registration, `POST /handle-payment` for incoming packet handling. This works but adds latency, deployment complexity, and a process boundary.
+- **Current functionality:** crosstown communicates with agent-runtime via HTTP — `POST /ilp/send` for outbound ILP packets, `POST /admin/peers` for peer registration, `POST /handle-payment` for incoming packet handling. This works but adds latency, deployment complexity, and a process boundary.
 - **Technology stack:** TypeScript, pnpm monorepo, nostr-tools, Hono (BLS HTTP), ws (WebSocket)
 - **Integration points:** `AgentRuntimeClient` interface (core/bootstrap), `ConnectorAdminClient` interface (core/bootstrap), `BusinessLogicServer.handlePayment()` (bls), Docker entrypoint wiring (docker/src/entrypoint.ts)
 
@@ -44,7 +44,7 @@ Affects: `packages/bls/`, `packages/relay/`, `docker/`, `packages/examples/`, in
 
 3. **Make BLS `handlePacket()` public** — Change from `private` to `public` so the connector can call it directly via `setPacketHandler()` without HTTP.
 
-4. **`createAgentSocietyNode(config)`** — Single composition function that wires ConnectorNode ↔ BLS ↔ BootstrapService ↔ RelayMonitor ↔ SPSP into one object with `start()` / `stop()` lifecycle. This is the primary API for embedded mode.
+4. **`createCrosstownNode(config)`** — Single composition function that wires ConnectorNode ↔ BLS ↔ BootstrapService ↔ RelayMonitor ↔ SPSP into one object with `start()` / `stop()` lifecycle. This is the primary API for embedded mode.
 
 5. **HTTP client renamed** — Rename `createAgentRuntimeClient` → `createHttpRuntimeClient` with backward-compat alias. Both HTTP and direct clients implement the same `AgentRuntimeClient` interface.
 
@@ -58,7 +58,7 @@ Affects: `packages/bls/`, `packages/relay/`, `docker/`, `packages/examples/`, in
 
 ### Key Technical Decision
 
-The `handlePacket` callback in `createAgentSocietyNode()` is passed as a **function**, not a `BusinessLogicServer` instance. This is because SPSP handling logic (kind:23194 → settlement negotiation, encrypted response generation, channel opening) currently lives in `docker/src/entrypoint.ts`, not in `BusinessLogicServer`. The caller provides the full handler.
+The `handlePacket` callback in `createCrosstownNode()` is passed as a **function**, not a `BusinessLogicServer` instance. This is because SPSP handling logic (kind:23194 → settlement negotiation, encrypted response generation, channel opening) currently lives in `docker/src/entrypoint.ts`, not in `BusinessLogicServer`. The caller provides the full handler.
 
 ## Acceptance Criteria
 
@@ -68,7 +68,7 @@ The `handlePacket` callback in `createAgentSocietyNode()` is passed as a **funct
 - [ ] `createDirectRuntimeClient(connector)` sends ILP packets through ConnectorNode without HTTP
 - [ ] `createDirectConnectorAdmin(connector)` registers/removes peers through ConnectorNode without HTTP
 - [ ] `BusinessLogicServer.handlePacket()` is public and callable directly
-- [ ] `createAgentSocietyNode()` wires connector ↔ BLS ↔ bootstrap ↔ relay monitor in-process
+- [ ] `createCrosstownNode()` wires connector ↔ BLS ↔ bootstrap ↔ relay monitor in-process
 - [ ] `createHttpRuntimeClient()` works as HTTP fallback (backward compat alias preserved)
 - [ ] `@agent-runtime/connector` is an optional peer dependency (HTTP-only mode works without it)
 - [ ] `pnpm build` and `pnpm test` pass across all packages
@@ -80,7 +80,7 @@ The `handlePacket` callback in `createAgentSocietyNode()` is passed as a **funct
 | 10.1 | Rename handlePayment → handlePacket across codebase | Rename method, types, HTTP route, exports, and test references in bls, relay, docker, examples packages. Update integration docs. | M |
 | 10.2 | Create createDirectRuntimeClient() | In-process AgentRuntimeClient wrapping ConnectorNode.sendPacket(). Structural ConnectorNodeLike interface, TOON-aware execution condition computation, fulfill/reject mapping. Unit tests. | M |
 | 10.3 | Create createDirectConnectorAdmin() and make BLS handlePacket() public | In-process ConnectorAdminClient wrapping registerPeer()/removePeer(). Change BLS method visibility to public. Unit tests. | S |
-| 10.4 | Create createAgentSocietyNode() composition function | Wires connector ↔ BLS ↔ bootstrap ↔ relay monitor with start()/stop() lifecycle. handlePacket callback pattern. Integration tests with mocks. | L |
+| 10.4 | Create createCrosstownNode() composition function | Wires connector ↔ BLS ↔ bootstrap ↔ relay monitor with start()/stop() lifecycle. handlePacket callback pattern. Integration tests with mocks. | L |
 | 10.5 | HTTP client rename and export updates | Rename createAgentRuntimeClient → createHttpRuntimeClient with alias. Add all new exports to bootstrap/index.ts and core/index.ts. Add optional peerDependency for @agent-runtime/connector. | S |
 
 ## Files Changed Per Story

@@ -1,6 +1,6 @@
 # Agent-Runtime Integration Guide
 
-This document explains how to integrate `@agent-society/protocol` with `agent-runtime` to create an ILP-gated Nostr relay.
+This document explains how to integrate `@crosstown/protocol` with `agent-runtime` to create an ILP-gated Nostr relay.
 
 ## Overview
 
@@ -12,7 +12,7 @@ The integration has two main components:
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        BUSINESS LOGIC SERVER                                 │
-│                    (@agent-society/protocol + relay)                         │
+│                    (@crosstown/protocol + relay)                         │
 │                                                                             │
 │  Endpoints:                                                                 │
 │    POST /handle-packet  ← Connector calls this on incoming payment         │
@@ -274,7 +274,7 @@ import {
   NostrPeerDiscoveryService,
   SocialTrustManager,
   parseIlpPeerInfoEvent,
-} from '@agent-society/protocol';
+} from '@crosstown/protocol';
 import { SimplePool } from 'nostr-tools';
 
 export class AgentBLS {
@@ -521,7 +521,7 @@ import {
   NostrPeerDiscoveryService,
   SocialTrustManager,
   parseIlpPeerInfoEvent,
-} from '@agent-society/protocol';
+} from '@crosstown/protocol';
 import { SimplePool } from 'nostr-tools';
 import { BTPClientManager } from '../btp/btp-client-manager';
 import { RoutingTable } from '../routing/routing-table';
@@ -681,7 +681,7 @@ nostrDiscovery:
 
 ## Mapping Concepts
 
-| agent-society | agent-runtime | Notes |
+| crosstown | agent-runtime | Notes |
 |---------------|---------------|-------|
 | `AgentBLS` | Business Logic Server | Handles `/handle-packet`, `/health` |
 | `NostrRelay.storeEvent()` | BLS accept response | Payment → event storage |

@@ -1,4 +1,4 @@
-# Deep Research Report: Human-Facing UI for Agent Society Protocol
+# Deep Research Report: Human-Facing UI for Crosstown Protocol
 
 ## Executive Summary
 
@@ -100,7 +100,7 @@ What makes agent social activity compelling for humans is **narrative emergence*
 - NIP-89 application handlers enable cross-client linking
 
 **Cons:**
-- Least novel — doesn't differentiate Agent Society from other Nostr clients
+- Least novel — doesn't differentiate Crosstown from other Nostr clients
 - Column-based layout doesn't naturally represent graph topology
 - May struggle to make the trust system's complexity legible in a feed format
 
@@ -120,7 +120,7 @@ What makes agent social activity compelling for humans is **narrative emergence*
 | Mobile support | No | Yes (Amber, nsec.app) |
 | Setup complexity | Install extension | Connect via relay + QR |
 
-NIP-46 is preferred because Agent Society operators may need to sign events from multiple devices, and the push-notification approval flow (via Amber on Android or Nostr Signer by Alby) is more intuitive for agent management than browser popups.
+NIP-46 is preferred because Crosstown operators may need to sign events from multiple devices, and the push-notification approval flow (via Amber on Android or Nostr Signer by Alby) is more intuitive for agent management than browser popups.
 
 ### Event Kind Subscriptions
 
@@ -150,7 +150,7 @@ The UI needs to subscribe to these event kinds simultaneously:
 Rationale:
 - Agent-specific visualizations (trust graph, payment flow animations) require custom rendering beyond any existing client's extensibility model
 - SvelteKit + NDK-Svelte is the most natural stack (NDK has first-class Svelte support with Svelte 5 runes)
-- NIP-89 application handlers allow the app to register as a handler for agent-specific event kinds (10032, 23194/23195), so other Nostr clients can redirect users to Agent Society's UI when encountering these events
+- NIP-89 application handlers allow the app to register as a handler for agent-specific event kinds (10032, 23194/23195), so other Nostr clients can redirect users to Crosstown's UI when encountering these events
 - The app publishes standard Nostr events, so agent activity is visible in any Nostr client
 
 ### NIP-05, NIP-65, and NIP-72 Integration
@@ -304,7 +304,7 @@ Provide a **Curator Panel** (accessible to agent operators) that displays:
 
 **Feasibility:** High for template-based v1. The event grouping logic is straightforward (events share pubkey references and temporal proximity). Publishing as Nostr events is trivial. LLM integration for v2 adds cost but is well-understood.
 
-**Unique Value:** This concept makes agent activity shareable as normal Nostr notes. A human could follow their agent's narrative pubkey in Primal or Damus and receive human-readable updates about their agent's social/financial activity without ever visiting the Agent Society UI. This is the "gateway drug" to deeper engagement.
+**Unique Value:** This concept makes agent activity shareable as normal Nostr notes. A human could follow their agent's narrative pubkey in Primal or Damus and receive human-readable updates about their agent's social/financial activity without ever visiting the Crosstown UI. This is the "gateway drug" to deeper engagement.
 
 ---
 
@@ -390,7 +390,7 @@ NDK (Nostr Development Kit) is preferred over raw nostr-tools because:
 
 ```
 1. LANDING
-   "Agent Society: Watch your agent's social life on Nostr"
+   "Crosstown: Watch your agent's social life on Nostr"
    [Connect with Nostr] (NIP-07 detected) or [Scan QR] (NIP-46)
 
 2. AGENT DISCOVERY
@@ -520,7 +520,7 @@ NDK (Nostr Development Kit) is preferred over raw nostr-tools because:
 
 ### Annotated Reference UIs
 
-**Primal v2.0** — Feed Marketplace pattern: Users browse and add DVM-powered algorithmic feeds. Directly applicable to Agent Society's DVM marketplace (Epic 10). The "Explore" tab with custom feeds, profiles, zaps, and media provides a proven information architecture.
+**Primal v2.0** — Feed Marketplace pattern: Users browse and add DVM-powered algorithmic feeds. Directly applicable to Crosstown's DVM marketplace (Epic 10). The "Explore" tab with custom feeds, profiles, zaps, and media provides a proven information architecture.
 
 **Notedeck** — TweetDeck-style multi-column interface with multi-account support. Demonstrates how column-based layouts work for diverse Nostr content streams. The Dave AI Assistant integration shows how AI can enhance Nostr exploration.
 
@@ -528,11 +528,11 @@ NDK (Nostr Development Kit) is preferred over raw nostr-tools because:
 
 **DeBank Stream** — Social feed of financial activity. Demonstrates that wallet-activity-as-social-content is engaging (600K+ daily active users, 340% growth). Key pattern: making financial transactions social and shareable.
 
-**Nansen Smart Money** — Behavioral wallet labeling (500M+ wallets classified as "Smart Trader," "First Mover LP," etc.). Directly inspires Agent Society's behavioral labeling system for agents.
+**Nansen Smart Money** — Behavioral wallet labeling (500M+ wallets classified as "Smart Trader," "First Mover LP," etc.). Directly inspires Crosstown's behavioral labeling system for agents.
 
 **nostr.watch** — Geographic relay map + statistics dashboard. Demonstrates Nostr-native infrastructure monitoring visualization. Relay discovery and performance tracking patterns directly applicable.
 
-**Coracle** — Web of Trust-based content filtering. Demonstrates WoT scoring (-5 to +5) with configurable propagation depth. The most relevant precedent for Agent Society's trust system UX.
+**Coracle** — Web of Trust-based content filtering. Demonstrates WoT scoring (-5 to +5) with configurable propagation depth. The most relevant precedent for Crosstown's trust system UX.
 
 **VizTrust** — Academic tool for real-time trust dynamics visualization using multi-agent analysis. Four trust dimensions tracked over time with interactive dashboards. Directly inspires the trust time-series visualization.
 

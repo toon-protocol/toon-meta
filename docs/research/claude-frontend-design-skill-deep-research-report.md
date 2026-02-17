@@ -6,7 +6,7 @@
 
 **React (Next.js or Vite) + shadcn/ui + Tailwind CSS v4 + Reagraph/Sigma.js for graph visualization**
 
-This is the optimal stack when Claude Code is the primary builder. While the previous research correctly identified SvelteKit as the best *technical* choice for the Agent Society UI, the calculus changes fundamentally when the builder is an AI model rather than a human developer. The React + shadcn/ui + Tailwind combination has emerged as the **de facto standard for AI code generation** across every major AI-first builder (v0, Lovable, Bolt.new), and Claude's training data density for React dwarfs all alternatives by an order of magnitude.
+This is the optimal stack when Claude Code is the primary builder. While the previous research correctly identified SvelteKit as the best *technical* choice for the Crosstown UI, the calculus changes fundamentally when the builder is an AI model rather than a human developer. The React + shadcn/ui + Tailwind combination has emerged as the **de facto standard for AI code generation** across every major AI-first builder (v0, Lovable, Bolt.new), and Claude's training data density for React dwarfs all alternatives by an order of magnitude.
 
 ### Decision Matrix
 
@@ -144,20 +144,20 @@ shadcn/ui has become the standard component library for AI-generated frontend co
 
 **shadcn-svelte assessment**: While it mirrors shadcn/ui's code-ownership model for Svelte, it has far fewer examples in training data. Claude frequently generates React shadcn/ui patterns when asked for shadcn-svelte, or confuses Bits UI (the underlying headless layer) with Melt UI (the older builder API).
 
-### Design System Strategy for Agent Society
+### Design System Strategy for Crosstown
 
-**Recommendation**: Use shadcn/ui as the foundation, then build Agent Society-specific components on top:
+**Recommendation**: Use shadcn/ui as the foundation, then build Crosstown-specific components on top:
 
 ```
 shadcn/ui primitives (Button, Card, Dialog, Tabs, etc.)
-    └── Agent Society design tokens (CSS variables)
+    └── Crosstown design tokens (CSS variables)
         └── Domain components (TrustBadge, AgentNode, ZapFlow, PeerCard)
             └── Page layouts (Observatory, Marketplace, Community)
 ```
 
 **Design Token System:**
 ```css
-/* Agent Society design tokens */
+/* Crosstown design tokens */
 :root {
   --trust-high: oklch(0.7 0.15 200);      /* Blue — high trust */
   --trust-medium: oklch(0.7 0.12 80);     /* Amber — moderate */
@@ -175,7 +175,7 @@ shadcn/ui primitives (Button, Card, Dialog, Tabs, etc.)
 
 ### Graph Visualization: Tiered Recommendation
 
-Agent Society's graph visualization needs span from small subgraphs (agent detail: ~20 nodes) to massive network overviews (10,000+ agents). No single library handles all scales optimally.
+Crosstown's graph visualization needs span from small subgraphs (agent detail: ~20 nodes) to massive network overviews (10,000+ agents). No single library handles all scales optimally.
 
 | Scale | Library | Rendering | React Support | Claude Proficiency | Use Case |
 |-------|---------|-----------|:---:|:---:|----------|
@@ -256,12 +256,12 @@ Anthropic published an official **frontend-design skill** for Claude Code that p
 - **Addresses "distributional convergence"**: Claude's tendency to default to Inter fonts, purple gradients, and cookie-cutter layouts
 - **Key design areas**: Typography (avoid Inter/Roboto, use distinctive pairings), color (bold palettes with CSS variables), motion (Framer Motion for React), backgrounds (layered gradients, textures, depth)
 
-**This skill should be installed in the Agent Society project.** It directly improves Claude's design output quality without consuming permanent context.
+**This skill should be installed in the Crosstown project.** It directly improves Claude's design output quality without consuming permanent context.
 
 ### Recommended Project Structure
 
 ```
-agent-society-ui/
+crosstown-ui/
 ├── CLAUDE.md                          # Project context for Claude Code
 ├── .claude/
 │   └── skills/
@@ -328,14 +328,14 @@ agent-society-ui/
 │   │   ├── ndk.ts                     # NDK configuration
 │   │   ├── graph.ts                   # Graphology instance + helpers
 │   │   ├── trust.ts                   # Trust formula computation
-│   │   ├── event-kinds.ts             # Agent Society event kind constants
+│   │   ├── event-kinds.ts             # Crosstown event kind constants
 │   │   └── utils.ts                   # General utilities (cn(), etc.)
 │   │
 │   ├── types/                         # TypeScript interfaces
 │   │   ├── agent.ts                   # Agent profile types
 │   │   ├── trust.ts                   # Trust score types (7 components)
 │   │   ├── graph.ts                   # Graph node/edge types
-│   │   ├── events.ts                  # Nostr event types for Agent Society
+│   │   ├── events.ts                  # Nostr event types for Crosstown
 │   │   └── marketplace.ts             # DVM types (Epic 10)
 │   │
 │   └── styles/
@@ -388,7 +388,7 @@ Every component in this project follows this pattern:
 ### CLAUDE.md Configuration
 
 ```markdown
-# Agent Society UI
+# Crosstown UI
 
 ## Tech Stack
 - React 19 + TypeScript (strict mode)
@@ -477,7 +477,7 @@ While NDK's Svelte integration (`ndk-svelte`) is more elegant (reactive Svelte s
 ### Event Subscription Architecture
 
 ```tsx
-// Custom hook: subscribe to Agent Society events
+// Custom hook: subscribe to Crosstown events
 function useAgentEvents(agentPubkey: string) {
   const { ndk } = useNDK();
   const [events, setEvents] = useState<NDKEvent[]>([]);
@@ -614,7 +614,7 @@ Rationale:
 
 **Recommendation: Start with Vite + React Router.**
 
-The Agent Society UI is primarily a client-side application (real-time WebSocket connections to Nostr relays, WebGL graph rendering). SSR provides minimal benefit and adds complexity. Next.js's React Server Components add a client/server boundary that complicates real-time state management. Vite is simpler, faster to build, and Claude produces cleaner Vite code because there's no RSC complexity to navigate.
+The Crosstown UI is primarily a client-side application (real-time WebSocket connections to Nostr relays, WebGL graph rendering). SSR provides minimal benefit and adds complexity. Next.js's React Server Components add a client/server boundary that complicates real-time state management. Vite is simpler, faster to build, and Claude produces cleaner Vite code because there's no RSC complexity to navigate.
 
 If SEO becomes important later (public agent profiles, shareable narratives), migrate to Next.js. The component code is portable.
 

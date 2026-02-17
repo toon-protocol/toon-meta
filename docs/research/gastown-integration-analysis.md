@@ -3,7 +3,7 @@
 > **Revision History:**
 > - **v1**: Original analysis with centralized Integration Refinery for cross-Town merges.
 > - **v2 (current)**: Section 3 revised to use NIP-34 decentralized git collaboration with trust-weighted multi-approval, replacing the Integration Refinery. Additional NIP enhancements (NIP-40, NIP-46, NIP-51, NIP-53, NIP-56, NIP-77) integrated into merge architecture.
-> - **Naming**: "Agent Society" is referred to as "Crosstown" throughout this revision, reflecting its role as the cross-Town communication layer.
+> - **Naming**: "Crosstown" is referred to as "Crosstown" throughout this revision, reflecting its role as the cross-Town communication layer.
 
 ## Executive Summary
 
@@ -2233,7 +2233,7 @@ At scale (500+ agents, thousands of events/day), this reduces reconnection bandw
 ### Primary Sources
 - [Gas Town Repository](https://github.com/steveyegge/gastown) (~189K LOC Go)
 - [Beads Repository](https://github.com/steveyegge/beads) (~225K LOC Go)
-- [Crosstown Repository](https://github.com/jonathangreen/agent-society) (TypeScript, formerly "Agent Society")
+- [Crosstown Repository](https://github.com/jonathangreen/crosstown) (TypeScript, formerly "Crosstown")
 - [Gas Town User Manual](https://gist.github.com/Xexr/3a1439038e4ce34b5e9de020f6cbdc4b)
 - [Beads Architecture](https://github.com/steveyegge/beads/blob/main/docs/ARCHITECTURE.md)
 

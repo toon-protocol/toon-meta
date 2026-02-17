@@ -2,7 +2,7 @@
 
 **Phase:** Integration
 **Estimated Stories:** 6
-**Dependencies:** Epic 10 (embedded connector integration — provides `createAgentSocietyNode()`), existing NIP Handler skill (`.claude/skills/nip-handler/`)
+**Dependencies:** Epic 10 (embedded connector integration — provides `createCrosstownNode()`), existing NIP Handler skill (`.claude/skills/nip-handler/`)
 **Blocks:** Epics 12–17 (NIP-based epics benefit from autonomous event processing)
 
 ---
@@ -22,7 +22,7 @@ Create `packages/agent/` — an autonomous TypeScript runtime that subscribes to
   - `RelayMonitor` (`packages/core/`) — relay subscription patterns
   - Event builders/parsers (`packages/core/src/events/`) — construct and parse Nostr events
   - NIP Handler skill — 3 handler files (kind:1, kind:1059, kind:5000-5999), action schema, security patterns, kind registry
-  - `createAgentSocietyNode()` from Epic 10 — full embedded ILP+Nostr stack
+  - `createCrosstownNode()` from Epic 10 — full embedded ILP+Nostr stack
 
 ### Framework Selection
 
@@ -158,7 +158,7 @@ packages/agent/ (new)
 | 11.1 | Create agent package scaffolding and provider registry | New `packages/agent/` with package.json (ai, @ai-sdk/anthropic, zod, nostr-tools), tsconfig, tsup. Implement `createProviderRegistry()` with Anthropic + OpenAI + Ollama. Verify build and type checks pass. | S |
 | 11.2 | Implement Kind Registry, Handler Loader, and Zod action schemas | Port kind-registry.md to `KindRegistry` class (kind→handler file path). Implement `HandlerLoader` that reads markdown handlers as system prompts. Port action-schema.md to Zod discriminated union schemas with per-kind allowlist subsets. Unit tests for registry lookup, handler loading, and schema validation. | L |
 | 11.3 | Implement core handler function with structured output | Implement `handleNostrEvent()` using Vercel AI SDK `generateText()` + `Output.object()`. Accepts a Nostr event, loads kind-specific handler reference as system prompt, calls LLM with Zod-validated output. Handle `NoObjectGeneratedError` with retry and escalation fallback. Integration tests using `MockLanguageModelV3`. | L |
-| 11.4 | Implement security defense stack and content isolation | Port security.md patterns to runtime code: content isolation with `<untrusted-content>` tags and `^` datamarkers, allowlist enforcement (reject actions not in kind's allowed set), input sanitization. Implement rate limiter (per-pubkey, per-kind, configurable thresholds in SQLite). Implement audit logger (all actions recorded to SQLite with event ID, kind, pubkey, action, timestamp, token usage). | L |
+| 11.4 | Implement runtime security defense stack — rate limiter, content sanitizer, audit logger | Implement defense layers 8–10 from security.md as standalone runtime components (layers 1–7 completed in Stories 11.2–11.3). Rate limiter: per-pubkey, per-kind sliding window in SQLite. Content sanitizer: strip control characters, enforce max lengths on outgoing action fields. Audit logger: record every action decision to SQLite with event ID, kind, pubkey, action, timestamp, token usage. | L |
 | 11.5 | Implement Action Executor | Takes validated action JSON and executes it: publish reply events (kind:1), publish reactions (kind:7), publish reposts (kind:6), publish DVM results (kind:6000-6999), publish DVM feedback (kind:7000). Uses existing event builders from `packages/core/src/events/`. Handles NIP-59 unwrap → re-dispatch loop. Signs and publishes events to relay pool. | L |
 | 11.6 | Implement event processing loop and end-to-end integration | Wire everything together: subscribe to Nostr relays via nostr-tools `SimplePool`, route incoming events through `handleNostrEvent()`, execute actions via `ActionExecutor`. Implement `createNipHandlerAgent(config)` as the public API with start/stop lifecycle. Add configurable model selection per kind (cheaper models for simple events, stronger for DVM/trust). OpenTelemetry tracing via `experimental_telemetry`. End-to-end integration tests. | L |
 

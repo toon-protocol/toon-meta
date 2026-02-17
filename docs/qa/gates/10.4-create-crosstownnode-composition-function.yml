@@ -1,6 +1,6 @@
 schema: 1
 story: "10.4"
-story_title: "Create createAgentSocietyNode() composition function"
+story_title: "Create createCrosstownNode() composition function"
 gate: PASS
 status_reason: "All 9 acceptance criteria met. Three TypeScript-level bugs fixed (wrong import path, missing type import, incorrect namespace type). Three weak tests strengthened. 15 tests passing, 0 regressions."
 reviewer: "Quinn (Test Architect)"

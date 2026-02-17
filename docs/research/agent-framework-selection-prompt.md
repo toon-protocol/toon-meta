@@ -8,7 +8,7 @@ Evaluate and recommend an agent framework for building the autonomous NIP Handle
 
 ### What exists today
 
-The agent-society project is a TypeScript monorepo (`packages/core`, `packages/bls`, `packages/relay`, `packages/ui-prototypes`) that bridges Nostr and Interledger Protocol (ILP). The NIP Handler is currently implemented as a **Claude Code skill** (`.claude/skills/nip-handler/`) — a set of markdown reference files that guide an LLM through deterministic kind-based event dispatch:
+The crosstown project is a TypeScript monorepo (`packages/core`, `packages/bls`, `packages/relay`, `packages/ui-prototypes`) that bridges Nostr and Interledger Protocol (ILP). The NIP Handler is currently implemented as a **Claude Code skill** (`.claude/skills/nip-handler/`) — a set of markdown reference files that guide an LLM through deterministic kind-based event dispatch:
 
 ```
 TOON Input → Extract Kind → Registry Lookup → Load Handler Reference → Security Sandbox → LLM Decides Action → Structured JSON Output
@@ -135,7 +135,7 @@ For each framework evaluated:
 3. **Structured output** — How it handles JSON/Zod, tool-use patterns, error recovery
 4. **Composability** — Plugin/skill system, context management, modularity
 5. **Event-driven fit** — Agent loop, streaming, state management
-6. **Integration assessment** — How it would integrate with agent-society's existing code
+6. **Integration assessment** — How it would integrate with crosstown's existing code
 7. **Code sketch** — Pseudocode or short example showing how a NIP handler event would flow through the framework
 
 ### Comparison Matrix

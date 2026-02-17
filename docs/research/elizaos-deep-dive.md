@@ -1,7 +1,7 @@
 # ElizaOS Deep Dive: Agent Framework Evaluation
 
 **Date**: February 2026
-**Context**: Evaluation for use in agent-society TypeScript Nostr event processing runtime
+**Context**: Evaluation for use in crosstown TypeScript Nostr event processing runtime
 **Repository**: [elizaOS/eliza](https://github.com/elizaOS/eliza)
 
 ---
@@ -310,7 +310,7 @@ The `@elizaos/plugin-node` package adds 54 more dependencies including Playwrigh
 
 **Monorepo integration**: ElizaOS itself is a monorepo using Turbo + Bun. Integrating `@elizaos/core` into an existing monorepo using npm workspaces and tsup would require careful dependency management, particularly around the LangChain transitive dependencies.
 
-**Assessment**: Using ElizaOS as a library in the agent-society monorepo would be a **heavy integration**. The core package pulls in LangChain, PDF processing, and template engines. The runtime expects a specific infrastructure (database, Socket.IO). The Bun requirement conflicts with the existing npm-based monorepo. This is not a lightweight SDK — it is a full platform designed to be used as the primary application framework.
+**Assessment**: Using ElizaOS as a library in the crosstown monorepo would be a **heavy integration**. The core package pulls in LangChain, PDF processing, and template engines. The runtime expects a specific infrastructure (database, Socket.IO). The Bun requirement conflicts with the existing npm-based monorepo. This is not a lightweight SDK — it is a full platform designed to be used as the primary application framework.
 
 ---
 
@@ -513,7 +513,7 @@ const rateLimitEvaluator: Evaluator = {
 // --- Plugin Assembly ---
 export const nostrAgentPlugin: Plugin = {
   name: 'nostr-agent',
-  description: 'Nostr event processing for agent-society',
+  description: 'Nostr event processing for crosstown',
   actions: [handleTextNote, handleGiftWrap, handleDVM],
   providers: [trustContextProvider],
   evaluators: [rateLimitEvaluator],
@@ -652,7 +652,7 @@ pool.subscribeMany(relays, filters, {
 
 2. **Web3 coupling**: ElizaOS's development roadmap is driven by crypto/DeFi use cases (token migration, Chainlink CCIP, multi-chain wallets). Its evolution may diverge from general-purpose agent needs.
 
-3. **Infrastructure assumptions**: The runtime expects a database adapter (PostgreSQL/PGLite), Socket.IO messaging, Express.js server, and Bun as package manager. These conflict with agent-society's existing stack (Hono, better-sqlite3, npm workspaces, tsup).
+3. **Infrastructure assumptions**: The runtime expects a database adapter (PostgreSQL/PGLite), Socket.IO messaging, Express.js server, and Bun as package manager. These conflict with crosstown's existing stack (Hono, better-sqlite3, npm workspaces, tsup).
 
 4. **Overhead for event processing**: ElizaOS's conversational model (World/Room/Entity, memory retrieval, state composition) adds latency and complexity that a kind-based event dispatcher does not need.
 
@@ -682,7 +682,7 @@ pool.subscribeMany(relays, filters, {
 
 The plugin architecture, validate->handle flow, Provider/Evaluator patterns, and ActionResult interface are all worth adopting. However, these patterns can be implemented in ~200-300 lines of TypeScript without pulling in ElizaOS's dependency tree, infrastructure assumptions, or Web3 coupling.
 
-The Option B code sketch above demonstrates that the core architectural value of ElizaOS can be extracted into a lightweight, purpose-built runtime that integrates cleanly with the existing agent-society stack. This approach gives you:
+The Option B code sketch above demonstrates that the core architectural value of ElizaOS can be extracted into a lightweight, purpose-built runtime that integrates cleanly with the existing crosstown stack. This approach gives you:
 
 - ElizaOS's compositional plugin model
 - Zero additional dependencies

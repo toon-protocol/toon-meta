@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-10
 **Scope:** Google A2A, x402, ERC-8004, Competitive Landscape, MCP Composition, NIP-90 DVMs
-**Relevance:** Informing the Agent Society Protocol's architecture decisions for ILP-Nostr bridge integration
+**Relevance:** Informing the Crosstown Protocol's architecture decisions for ILP-Nostr bridge integration
 
 ---
 
@@ -14,7 +14,7 @@
 4. [Competitive Landscape - Agent Payment Systems](#4-competitive-landscape---agent-payment-systems)
 5. [Model Context Protocol (MCP) Composition](#5-model-context-protocol-mcp-composition)
 6. [NIP-90 Data Vending Machines](#6-nip-90-data-vending-machines)
-7. [Synthesis: Implications for Agent Society Protocol](#7-synthesis-implications-for-agent-society-protocol)
+7. [Synthesis: Implications for Crosstown Protocol](#7-synthesis-implications-for-crosstown-protocol)
 
 ---
 
@@ -175,7 +175,7 @@ The **facilitator** is a server that handles verification and settlement so sell
 | **Currency** | Stablecoins (USDC) | Any currency via connectors |
 | **Trust model** | On-chain verification | Bilateral trust between peers |
 
-**Key insight**: x402 is HTTP-native and optimized for the AI agent use case. ILP is more general and protocol-agnostic but lacks the HTTP-native integration and agent-specific tooling. However, ILP's settlement-engine architecture could theoretically settle via stablecoins just as x402 does, and ILP's social-graph-informed routing (as proposed by Agent Society) has no equivalent in x402.
+**Key insight**: x402 is HTTP-native and optimized for the AI agent use case. ILP is more general and protocol-agnostic but lacks the HTTP-native integration and agent-specific tooling. However, ILP's settlement-engine architecture could theoretically settle via stablecoins just as x402 does, and ILP's social-graph-informed routing (as proposed by Crosstown) has no equivalent in x402.
 
 ### Sources
 
@@ -499,7 +499,7 @@ Open protocol with 60+ partners. Mandate-based authorization with cryptographic 
 | **Olas** | OLAS token | NFT registry | Staking/slashing | No | Yes | Yes |
 | **SingularityNET** | ASI token | Platform registry | Marketplace ratings | No | Partial | No |
 | **Nostr DVMs** | Lightning (sats) | Nostr keypairs | Social graph | Yes (msats) | Yes (NIP-90) | Partial |
-| **ILP (Agent Society)** | Any (settlement agnostic) | Nostr keypairs + ILP address | Social graph trust | Yes (streaming) | Yes (RFC) | Designed for it |
+| **ILP (Crosstown)** | Any (settlement agnostic) | Nostr keypairs + ILP address | Social graph trust | Yes (streaming) | Yes (RFC) | Designed for it |
 | **Visa TAP** | Card networks | Visa credentials | Framework verification | No | Partial | Partial |
 | **Stripe ACP** | Stripe rails | Stripe accounts | Stripe trust | Yes | No | Partial |
 
@@ -581,7 +581,7 @@ This mirrors A2A's task lifecycle and enables MCP servers to manage stateful wor
 
 ### MCP + Nostr Integration Opportunities
 
-The DVMCP bridge already demonstrates MCP-to-DVM connectivity. For Agent Society:
+The DVMCP bridge already demonstrates MCP-to-DVM connectivity. For Crosstown:
 - ILP connector operations could be exposed as MCP tools
 - Social trust queries could be MCP resources
 - SPSP handshake flows could be MCP tool sequences
@@ -736,11 +736,11 @@ Some standardized kinds from the data-vending-machines registry:
 
 ---
 
-## 7. Synthesis: Implications for Agent Society Protocol
+## 7. Synthesis: Implications for Crosstown Protocol
 
-### Where Agent Society Fits in the Landscape
+### Where Crosstown Fits in the Landscape
 
-The Agent Society Protocol occupies a unique position at the intersection of three ecosystems that are converging but not yet connected:
+The Crosstown Protocol occupies a unique position at the intersection of three ecosystems that are converging but not yet connected:
 
 1. **Nostr social graph** (NIP-02 follows, NIP-90 DVMs, NWC payments)
 2. **ILP routing** (settlement-agnostic micropayments, connector mesh)
@@ -755,13 +755,13 @@ No other project bridges all three. The closest competitors address subsets:
 ### Strategic Integration Opportunities
 
 #### 1. A2A Compatibility Layer
-Agent Society agents could publish A2A-compatible Agent Cards (at `/.well-known/agent.json`) that reference their Nostr pubkey and ILP address. This would make Agent Society agents discoverable by the broader A2A ecosystem while maintaining Nostr-native operation.
+Crosstown agents could publish A2A-compatible Agent Cards (at `/.well-known/agent.json`) that reference their Nostr pubkey and ILP address. This would make Crosstown agents discoverable by the broader A2A ecosystem while maintaining Nostr-native operation.
 
 #### 2. x402 as Settlement Rail
-The x402 facilitator architecture maps naturally to ILP settlement engines. An x402-based settlement engine would allow ILP connectors to settle via stablecoins on Base/Solana, connecting Agent Society to the 140M+ x402 transaction ecosystem.
+The x402 facilitator architecture maps naturally to ILP settlement engines. An x402-based settlement engine would allow ILP connectors to settle via stablecoins on Base/Solana, connecting Crosstown to the 140M+ x402 transaction ecosystem.
 
 #### 3. ERC-8004 Reputation Bridge
-Agent Society's social-graph-based trust (NIP-02 follows, mutual connections, zap history) could be published to ERC-8004's Reputation Registry, creating a cross-ecosystem reputation that's legible to the broader agent economy. The Identity Registry's metadata system could store Nostr pubkeys for bidirectional linking.
+Crosstown's social-graph-based trust (NIP-02 follows, mutual connections, zap history) could be published to ERC-8004's Reputation Registry, creating a cross-ecosystem reputation that's legible to the broader agent economy. The Identity Registry's metadata system could store Nostr pubkeys for bidirectional linking.
 
 #### 4. NIP-90 DVMs as Service Layer
 ILP-peered agents could expose their capabilities as NIP-90 DVMs, enabling Nostr users to pay for agent services via Lightning while the agent-to-agent backbone uses ILP for routing. The DVMCP bridge already demonstrates MCP-to-DVM connectivity.
@@ -773,7 +773,7 @@ A composite MCP server could unify:
 - SPSP handshake tools (request/respond to payment setup)
 - DVM job management (submit, monitor, pay for compute)
 
-This would make Agent Society capabilities available to any MCP-compatible AI system (Claude, GPT, etc.).
+This would make Crosstown capabilities available to any MCP-compatible AI system (Claude, GPT, etc.).
 
 #### 6. AP2 Mandate Integration
 For human-agent commerce, AP2 mandates could authorize ILP-based agent payments with cryptographic user approval, combining AP2's trust model with ILP's micropayment efficiency.
@@ -782,7 +782,7 @@ For human-agent commerce, AP2 mandates could authorize ILP-based agent payments 
 
 1. **Agent Cards are the lingua franca**: Publishing A2A-compatible agent cards is low-cost and high-value for interoperability
 2. **x402 is not a competitor to ILP -- it's a complementary settlement rail**: They operate at different layers (HTTP payment negotiation vs. packet-level routing)
-3. **Social graph trust is Agent Society's moat**: No other system derives trust from social relationships. ERC-8004's reputation is transactional; NIP-02-based trust is relational
+3. **Social graph trust is Crosstown's moat**: No other system derives trust from social relationships. ERC-8004's reputation is transactional; NIP-02-based trust is relational
 4. **MCP composition is the right integration surface**: Rather than building custom integrations, exposing capabilities as MCP tools enables broad compatibility
 5. **NIP-90 DVMs provide the service marketplace**: ILP provides the routing/settlement backbone; DVMs provide the service discovery and job management layer
 6. **Lightning and ILP can coexist**: Lightning for Nostr-native payments (zaps, DVM jobs), ILP for cross-network routing and settlement
