@@ -1,6 +1,6 @@
 # 8. Database Schema
 
-The relay uses SQLite for event persistence. Schema follows NIP-01 event structure.
+The BLS and relay packages use SQLite for event persistence. Schema follows NIP-01 event structure.
 
 ```sql
 -- Events table
@@ -30,5 +30,6 @@ CREATE INDEX idx_events_pubkey_kind ON events(pubkey, kind);
 - `received_at` tracks when relay received event (for debugging/auditing)
 - Replaceable events handled in application layer (delete old, insert new)
 - No foreign keys; events are self-contained
+- InMemoryEventStore available for testing (same interface)
 
 ---

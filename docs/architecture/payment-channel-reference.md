@@ -360,7 +360,7 @@ For Base Sepolia testnet:
 
 ## What Agent-Society Needs to Do
 
-During an SPSP handshake (kind:23194 → kind:23195), agent-society's BLS:
+During an SPSP handshake (kind:23194 → kind:23195), crosstown's BLS:
 
 1. **Receives** SPSP request with peer's settlement preferences (supported chains, addresses, preferred tokens)
 2. **Negotiates** chain by intersecting both peers' supported chains

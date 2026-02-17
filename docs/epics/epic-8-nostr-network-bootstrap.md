@@ -239,7 +239,7 @@ The key economic design: **the bootstrap node (peer1) earns routing fees** from 
   ```
 - Update startup sequence: wait for agent-runtime health before starting bootstrap
 - Update agent-runtime docker-compose-unified.yml in agent-runtime repo:
-  - Add settlement env vars to agent-society services
+  - Add settlement env vars to crosstown services
   - Add EVM addresses to .env.peers
   - Add contract addresses as shared env vars
 - Update `scripts/deploy-5-peer-multihop.sh` in agent-runtime repo:

@@ -2,13 +2,13 @@
 
 ## Research Objective
 
-Investigate and recommend the **best frontend design methodology, framework choices, and project structuring approach** that maximizes Claude Code's (and Claude AI's) effectiveness at building production-quality frontend interfaces. The target application is the Agent Society **Social Graph Observatory** — a real-time Nostr social graph visualization with trust scores, ILP zap flows, DVM marketplace, and community features (see Background Context). The research should determine: which frontend frameworks, component libraries, design systems, and development patterns allow Claude to produce the highest-quality UI code with the fewest iterations.
+Investigate and recommend the **best frontend design methodology, framework choices, and project structuring approach** that maximizes Claude Code's (and Claude AI's) effectiveness at building production-quality frontend interfaces. The target application is the Crosstown **Social Graph Observatory** — a real-time Nostr social graph visualization with trust scores, ILP zap flows, DVM marketplace, and community features (see Background Context). The research should determine: which frontend frameworks, component libraries, design systems, and development patterns allow Claude to produce the highest-quality UI code with the fewest iterations.
 
 ## Background Context
 
 ### The Application Being Built
 
-Agent Society needs a **standalone web app** (see `docs/research/human-ui-deep-research-report.md`) with these visualization requirements:
+Crosstown needs a **standalone web app** (see `docs/research/human-ui-deep-research-report.md`) with these visualization requirements:
 
 1. **Social Graph Observatory** — Force-directed graph visualization with interactive nodes (agents) and edges (trust/payment relationships). Nodes encode 7-component trust scores via size, color, glow. Edges animate with payment particles.
 2. **Activity Feed** — Real-time Nostr event stream filtered to agent social/financial activity
@@ -91,7 +91,7 @@ The previous research recommended SvelteKit based on technical merits (NDK-Svelt
 7. **Does the "v0 by Vercel" or similar AI-first UI generation approach offer lessons?**
    - v0 uses shadcn/ui + React + Tailwind as its generation target — is this combination optimal for AI code generation generally?
    - Are there other AI-first frontend tools (Bolt.new, Lovable, Cursor-specific patterns) whose design choices reveal what works best for AI builders?
-   - Should Agent Society adopt the same stack that AI-first tools have converged on, even if it's not the "best" stack technically?
+   - Should Crosstown adopt the same stack that AI-first tools have converged on, even if it's not the "best" stack technically?
 
 8. **How do different frameworks handle the "AI iteration cycle"?**
    - When Claude needs to modify existing components, which frameworks produce the fewest regressions?
@@ -128,7 +128,7 @@ The previous research recommended SvelteKit based on technical merits (NDK-Svelt
 - **AI Code Quality Matrix**: Rate each framework combination on: Claude output correctness, idiomatic quality, visual consistency, iteration speed, self-correction ability
 - **Training Data Density**: Estimate relative representation of each framework in Claude's training data (using npm downloads, GitHub repos, Stack Overflow questions, tutorial volume as proxies)
 - **Promptability Score**: Rate how well each framework's patterns translate to natural language instructions (declarative > imperative, composable > monolithic, convention > configuration)
-- **Technical Fit**: Rate each option against Agent Society's specific requirements (real-time events, WebGL graphs, Nostr integration, progressive disclosure)
+- **Technical Fit**: Rate each option against Crosstown's specific requirements (real-time events, WebGL graphs, Nostr integration, progressive disclosure)
 - **Risk Assessment**: For each recommendation, assess: maturity risk, ecosystem risk, "Claude drift" risk (Claude generating outdated patterns), lock-in risk
 
 ---
@@ -153,14 +153,14 @@ The previous research recommended SvelteKit based on technical merits (NDK-Svelt
 **Section 2: Component Library & Design System Evaluation**
 - Comparison matrix of component libraries rated for AI code generation
 - Analysis of why shadcn/ui has become the de facto AI generation target
-- Recommendations for Agent Society's specific component needs (graph panels, data tables, forms, modals)
+- Recommendations for Crosstown's specific component needs (graph panels, data tables, forms, modals)
 - Design token strategy for maintaining visual consistency across Claude-generated components
 
 **Section 3: Visualization Stack for AI-Assisted Development**
 - Graph visualization library comparison specifically for Claude's capability to generate and modify graph code
 - Animation library comparison for real-time payment flow visualization
 - Integration patterns between visualization layer and UI framework
-- Performance considerations at Agent Society's expected scale (100-10,000 agent nodes)
+- Performance considerations at Crosstown's expected scale (100-10,000 agent nodes)
 
 **Section 4: Project Structure & Development Workflow**
 - Recommended file/folder structure optimized for Claude's code generation
@@ -173,7 +173,7 @@ The previous research recommended SvelteKit based on technical merits (NDK-Svelt
 - NDK usage patterns in the recommended framework
 - Event subscription management for real-time UI updates
 - Authentication flow implementation (NIP-07/NIP-46)
-- How the recommended stack handles Agent Society's custom event kinds
+- How the recommended stack handles Crosstown's custom event kinds
 
 **Section 6: Risk Mitigation**
 - How to handle Claude generating outdated framework patterns
@@ -195,7 +195,7 @@ The previous research recommended SvelteKit based on technical merits (NDK-Svelt
 1. Produces a **definitive stack recommendation** with clear rationale — not "it depends"
 2. Addresses the **Svelte 5 question directly** — is it ready for Claude or should the project use React despite the NDK-Svelte advantage?
 3. Provides **evidence-based assessment** of Claude's framework capabilities, not just general impressions
-4. Considers **Agent Society's specific requirements** (real-time Nostr events, WebGL graph viz, trust visualization) — not just generic frontend advice
+4. Considers **Crosstown's specific requirements** (real-time Nostr events, WebGL graph viz, trust visualization) — not just generic frontend advice
 5. Includes **actionable project structure** recommendations that a developer (or Claude) could scaffold immediately
 6. Accounts for the **full Epic 9-14 roadmap** — the stack must handle current needs AND scale to marketplace, messaging, and swarm views
 7. Addresses the **hybrid possibility** — can you mix frameworks to get the best of both worlds?

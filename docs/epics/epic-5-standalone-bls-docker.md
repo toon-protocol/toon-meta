@@ -7,7 +7,7 @@
 | Setting | Value | Notes |
 |---------|-------|-------|
 | Docker Hub Organization | `di3twater` | |
-| Image Name | `agent-society-bls` | |
+| Image Name | `crosstown-bls` | |
 | Default Port | `3100` | BLS HTTP API |
 | Data Volume | `/data` | SQLite database storage |
 
@@ -37,7 +37,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
   "status": "healthy",
   "nodeId": "string",
   "pubkey": "string (hex, 64 chars)",
-  "ilpAddress": "string (e.g., g.agent-society.node1)",
+  "ilpAddress": "string (e.g., g.crosstown.node1)",
   "timestamp": 1234567890
 }
 ```
@@ -100,7 +100,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 3. BLS package has minimal dependencies (Hono, crypto, TOON decoder)
 4. BLS package exports `createBlsServer(config: BlsConfig): Server`
 5. Package includes standalone entrypoint (`src/entrypoint.ts`) for Docker
-6. Existing `packages/relay` can optionally depend on `@agent-society/bls`
+6. Existing `packages/relay` can optionally depend on `@crosstown/bls`
 7. Unit tests pass in the new package location
 8. Package builds independently with `pnpm build`
 
@@ -135,7 +135,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 1. Environment variables documented in README:
    - `NODE_ID` (required): Unique node identifier
    - `NOSTR_SECRET_KEY` (required): 64-char hex Nostr secret key
-   - `ILP_ADDRESS` (required): Node's ILP address (e.g., `g.agent-society.node1`)
+   - `ILP_ADDRESS` (required): Node's ILP address (e.g., `g.crosstown.node1`)
    - `BLS_PORT` (optional): HTTP port, default `3100`
    - `BASE_PRICE_PER_BYTE` (optional): Pricing rate, default `10`
    - `OWNER_PUBKEY` (optional): Pubkey for self-write bypass
@@ -176,7 +176,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
    - Push to `main` with changes in `packages/bls/`
    - Manual dispatch with version input
    - Git tags matching `bls-v*`
-3. Image published to Docker Hub: `di3twater/agent-society-bls`
+3. Image published to Docker Hub: `di3twater/crosstown-bls`
 4. Docker Hub credentials stored as GitHub secrets (`DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`)
 5. Image tagged with:
    - `latest` (main branch)
@@ -184,7 +184,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
    - Git SHA for traceability
 6. Multi-architecture build: `linux/amd64`, `linux/arm64`
 7. Workflow includes vulnerability scan (e.g., Trivy)
-8. README includes pull command: `docker pull di3twater/agent-society-bls:latest`
+8. README includes pull command: `docker pull di3twater/crosstown-bls:latest`
 
 ---
 
@@ -207,7 +207,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 ```yaml
 services:
   bls:
-    image: di3twater/agent-society-bls:latest
+    image: di3twater/crosstown-bls:latest
     ports:
       - "3100:3100"
     volumes:
@@ -215,7 +215,7 @@ services:
     environment:
       NODE_ID: my-node
       NOSTR_SECRET_KEY: ${NOSTR_SECRET_KEY}
-      ILP_ADDRESS: g.agent-society.my-node
+      ILP_ADDRESS: g.crosstown.my-node
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3100/health"]
       interval: 30s
@@ -281,7 +281,7 @@ volumes:
 ## Dependencies
 
 - Epic 4 (ILP-Gated Relay) must be complete - provides existing BLS implementation
-- TOON encoding utilities from `@agent-society/relay`
+- TOON encoding utilities from `@crosstown/relay`
 - Nostr signature verification from `nostr-tools`
 
 ## Success Metrics

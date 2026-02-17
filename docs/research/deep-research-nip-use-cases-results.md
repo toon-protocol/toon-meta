@@ -89,10 +89,10 @@ Customer Agent                    Service Provider Agent
 
 **Files changed:**
 
-1. **agent-society: BLS pricing table** — Add kind:5000-5999, 6000-6999, 7000 to `kindPricing` map
-2. **agent-society: DVM handler** — New module that processes incoming DVM job requests, dispatches to local capability handlers, returns results
-3. **agent-society: NIP-89 announcer** — Publish kind:31990 events advertising supported job kinds on startup
-4. **agent-society: SocialPeerDiscovery** — Extend to query kind:31990 events for service discovery (in addition to kind:10032)
+1. **crosstown: BLS pricing table** — Add kind:5000-5999, 6000-6999, 7000 to `kindPricing` map
+2. **crosstown: DVM handler** — New module that processes incoming DVM job requests, dispatches to local capability handlers, returns results
+3. **crosstown: NIP-89 announcer** — Publish kind:31990 events advertising supported job kinds on startup
+4. **crosstown: SocialPeerDiscovery** — Extend to query kind:31990 events for service discovery (in addition to kind:10032)
 5. **agent-runtime: TOON encoding** — No changes needed (TOON already encodes any Nostr event)
 6. **agent-runtime: PacketHandler** — No changes needed (already forwards to BLS, already uses SHA256 fulfillment)
 
@@ -205,7 +205,7 @@ trustScore(agent) =
 
 #### Implementation Sketch
 
-**Files changed (agent-society):**
+**Files changed (crosstown):**
 
 1. **SocialTrustManager** — Wire up the TODO for zap-based reputation. Add `zapVolumeReceived()` and `zapDiversity()` methods that query kind:9735 receipts from relay.
 2. **BLS zap handler** — New module that recognizes kind:9734 requests in ILP PREPARE data, validates structure, accepts payment, publishes kind:9735 receipt to specified relays.
@@ -310,9 +310,9 @@ Labels themselves are free to publish. The economic value comes from composition
 
 #### Implementation Sketch
 
-1. **agent-society: kind:0 profile builder** — Add `L`/`l` tags for agent capabilities during bootstrap
-2. **agent-society: Quality labeler** — After DVM job completion, publish kind:1985 rating label
-3. **agent-society: SocialTrustManager** — Query kind:1985 labels for `agent-quality` and `agent-warning` namespaces, factor into trust score
+1. **crosstown: kind:0 profile builder** — Add `L`/`l` tags for agent capabilities during bootstrap
+2. **crosstown: Quality labeler** — After DVM job completion, publish kind:1985 rating label
+3. **crosstown: SocialTrustManager** — Query kind:1985 labels for `agent-quality` and `agent-warning` namespaces, factor into trust score
 4. **No agent-runtime changes needed**
 
 #### Composability Map
@@ -384,10 +384,10 @@ Badges themselves are free. Economic impact:
 
 #### Implementation Sketch
 
-1. **agent-society: Badge issuer service** — Monitor connector Admin API (`GET /admin/channels`, `GET /admin/settlement/states`) for settlement metrics. Auto-publish kind:8 awards when thresholds are crossed.
-2. **agent-society: Badge definitions** — Define standard badge set on bootstrap (settlement-99, throughput-1m, early-adopter, etc.)
-3. **agent-society: SocialTrustManager** — Query kind:30008 profile badges for trusted issuer pubkeys, factor into trust score
-4. **agent-society: Bootstrap service** — Include badge definitions in the 3-phase discovery flow
+1. **crosstown: Badge issuer service** — Monitor connector Admin API (`GET /admin/channels`, `GET /admin/settlement/states`) for settlement metrics. Auto-publish kind:8 awards when thresholds are crossed.
+2. **crosstown: Badge definitions** — Define standard badge set on bootstrap (settlement-99, throughput-1m, early-adopter, etc.)
+3. **crosstown: SocialTrustManager** — Query kind:30008 profile badges for trusted issuer pubkeys, factor into trust score
+4. **crosstown: Bootstrap service** — Include badge definitions in the 3-phase discovery flow
 
 #### Composability Map
 
@@ -810,7 +810,7 @@ Tag-based content warning on any event kind.
 
 **Why it's deferred:**
 - **Implementation Distance**: ~1.5 epics
-- **Economic Model**: Clear (publisher/subscriber) but requires STREAM integration which isn't fully wired in agent-society
+- **Economic Model**: Clear (publisher/subscriber) but requires STREAM integration which isn't fully wired in crosstown
 - **Priority**: This is a specific use case (data streaming), not foundational infrastructure. Build DVMs and zaps first; streaming subscriptions become a DVM variant later.
 
 ### NIP-46 (Remote Signing) — DEFERRED SIGNAL

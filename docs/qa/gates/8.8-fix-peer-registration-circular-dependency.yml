@@ -2,7 +2,7 @@ schema: 1
 story: '8.8'
 story_title: 'Fix Peer Registration Circular Dependency'
 gate: PASS
-status_reason: 'All 6 ACs met. Verification-only story — no source code changes needed in agent-society. peerAddress flow confirmed correct through 3 existing tests. Agent-runtime changes thoroughly documented.'
+status_reason: 'All 6 ACs met. Verification-only story — no source code changes needed in crosstown. peerAddress flow confirmed correct through 3 existing tests. Agent-runtime changes thoroughly documented.'
 reviewer: 'Quinn (Test Architect)'
 updated: '2026-02-09T22:30:00Z'
 

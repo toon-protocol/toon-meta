@@ -1,4 +1,4 @@
-# Agent Society Protocol - Design Conversation
+# Crosstown Protocol - Design Conversation
 
 This document captures the design conversation that led to this project. Use it as context for continuing development.
 
@@ -92,7 +92,7 @@ Publish kind:23194 encrypted request to receiver
 
 ## Project Scope Decision
 
-This project (`agent-society`) is separate from `agent-runtime` because:
+This project (`crosstown`) is separate from `agent-runtime` because:
 
 1. **Separation of concerns**: The social graph is agent-specific, not infrastructure
 2. **Reusability**: Multiple agent implementations can use this library
@@ -103,7 +103,7 @@ This project (`agent-society`) is separate from `agent-runtime` because:
 Individual Agent Repos
     │ uses
     ▼
-@agent-society/protocol (this library)
+@crosstown/protocol (this library)
     │ populates
     ▼
 ILP Connector (routes packets, no Nostr knowledge)
@@ -192,7 +192,7 @@ import {
   NostrPeerDiscoveryService,
   SocialTrustManager,
   NostrSpspClient
-} from '@agent-society/protocol';
+} from '@crosstown/protocol';
 import { SimplePool, generateSecretKey, getPublicKey } from 'nostr-tools';
 
 const secretKey = generateSecretKey();
@@ -223,7 +223,7 @@ const params = await spsp.requestSpspParams(receiverPubkey);
 ## Commands to Get Started
 
 ```bash
-cd /Users/jonathangreen/Documents/agent-society
+cd /Users/jonathangreen/Documents/crosstown
 
 # Install dependencies
 npm install

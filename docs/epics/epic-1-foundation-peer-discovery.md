@@ -30,7 +30,7 @@
 3. TypeScript interface `SpspInfo` defined with fields: `destinationAccount`, `sharedSecret`
 4. TypeScript interface `SpspRequest` defined for dynamic SPSP requests
 5. TypeScript interface `SpspResponse` defined for dynamic SPSP responses
-6. All interfaces exported from `@agent-society/core`
+6. All interfaces exported from `@crosstown/core`
 7. Unit tests verify type exports are accessible
 
 ## Story 1.3: Event Parser and Builder Utilities

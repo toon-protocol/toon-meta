@@ -2,16 +2,16 @@
 
 ## Context
 
-`@agent-society/core` provides an embedded mode where the connector runs in-process via `createAgentSocietyNode()`. All peer management and ILP packet routing already works through direct method calls on `ConnectorNode` — no HTTP required.
+`@crosstown/core` provides an embedded mode where the connector runs in-process via `createCrosstownNode()`. All peer management and ILP packet routing already works through direct method calls on `ConnectorNode` — no HTTP required.
 
-However, **payment channel operations are HTTP-only** (`POST /admin/channels`, `GET /admin/channels/:channelId`). This means the SPSP handshake flow cannot open payment channels in embedded mode. The `negotiateAndOpenChannel()` function in agent-society needs to call channel methods directly on the connector instance.
+However, **payment channel operations are HTTP-only** (`POST /admin/channels`, `GET /admin/channels/:channelId`). This means the SPSP handshake flow cannot open payment channels in embedded mode. The `negotiateAndOpenChannel()` function in crosstown needs to call channel methods directly on the connector instance.
 
-## What agent-society needs
+## What crosstown needs
 
-`ConnectorNode` needs to expose two public methods that match the `ConnectorChannelClient` interface already defined in `@agent-society/core`:
+`ConnectorNode` needs to expose two public methods that match the `ConnectorChannelClient` interface already defined in `@crosstown/core`:
 
 ```typescript
-// From @agent-society/core/types.ts
+// From @crosstown/core/types.ts
 
 interface OpenChannelParams {
   peerId: string;          // Registered peer ID (e.g., "nostr-54dad746e52dab00")
@@ -58,7 +58,7 @@ This is a thin wrapper around `ChannelManager.ensureChannelExists()` with the sa
 Exposes the same logic currently behind `GET /admin/channels/:channelId`:
 
 1. Get metadata from `channelManager.getChannelById(channelId)`
-2. Normalize status to agent-society's status union
+2. Normalize status to crosstown's status union
 3. Return `{ channelId, status, chain }`
 
 ### Current internal references (all private)
@@ -70,9 +70,9 @@ From `connector-node.ts`:
 
 The HTTP admin API in `admin-api.ts` accesses these via closures passed during server setup. The new public methods on `ConnectorNode` would access them directly as instance members.
 
-## How agent-society will consume this
+## How crosstown will consume this
 
-Once ConnectorNode exposes these methods, agent-society extends `EmbeddableConnectorLike`:
+Once ConnectorNode exposes these methods, crosstown extends `EmbeddableConnectorLike`:
 
 ```typescript
 // Current
@@ -94,7 +94,7 @@ interface EmbeddableConnectorLike {
 }
 ```
 
-Then `createDirectChannelClient(connector)` wraps these into a `ConnectorChannelClient`, and `negotiateAndOpenChannel()` gets wired into the ILP-routed SPSP handler inside `createAgentSocietyNode()`.
+Then `createDirectChannelClient(connector)` wraps these into a `ConnectorChannelClient`, and `negotiateAndOpenChannel()` gets wired into the ILP-routed SPSP handler inside `createCrosstownNode()`.
 
 ## End-to-end flow (after implementation)
 
@@ -130,10 +130,10 @@ Peer A (joiner)                          Peer B (genesis, spspMinPrice=0)
 | Add `openChannel()` to ConnectorNode | agent-runtime | `packages/connector/src/core/connector-node.ts` |
 | Add `getChannelState()` to ConnectorNode | agent-runtime | `packages/connector/src/core/connector-node.ts` |
 | Export types if not already | agent-runtime | `packages/connector/src/index.ts` |
-| Extend `EmbeddableConnectorLike` | agent-society | `packages/core/src/compose.ts` |
-| Create `createDirectChannelClient()` | agent-society | `packages/core/src/bootstrap/direct-channel-client.ts` |
-| Wire `negotiateAndOpenChannel` into SPSP handler | agent-society | `packages/core/src/compose.ts` |
-| Update integration test | agent-society | `packages/core/src/__integration__/five-peer-bootstrap.test.ts` |
+| Extend `EmbeddableConnectorLike` | crosstown | `packages/core/src/compose.ts` |
+| Create `createDirectChannelClient()` | crosstown | `packages/core/src/bootstrap/direct-channel-client.ts` |
+| Wire `negotiateAndOpenChannel` into SPSP handler | crosstown | `packages/core/src/compose.ts` |
+| Update integration test | crosstown | `packages/core/src/__integration__/five-peer-bootstrap.test.ts` |
 
 ## Reference files
 
@@ -142,9 +142,9 @@ Peer A (joiner)                          Peer B (genesis, spspMinPrice=0)
 - `packages/connector/src/settlement/channel-manager.ts` — `ensureChannelExists()`, `getChannelById()`
 - `packages/connector/src/http/admin-api.ts` — HTTP handlers to use as reference implementation
 
-**agent-society:**
+**crosstown:**
 - `packages/core/src/types.ts` — `ConnectorChannelClient`, `OpenChannelParams`, `ChannelState`
 - `packages/core/src/spsp/negotiateAndOpenChannel.ts` — settlement negotiation + channel open
-- `packages/core/src/compose.ts` — `EmbeddableConnectorLike`, `createAgentSocietyNode()`
+- `packages/core/src/compose.ts` — `EmbeddableConnectorLike`, `createCrosstownNode()`
 - `packages/core/src/bootstrap/direct-runtime-client.ts` — pattern for `createDirectChannelClient`
 - `packages/core/src/bootstrap/direct-connector-admin.ts` — pattern for `createDirectChannelClient`
