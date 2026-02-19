@@ -14,7 +14,7 @@ Establishes the communication substrate for cross-Town interaction. Agents becom
 - `PrivateMessaging` -- Three-layer NIP-17 encryption (rumor -> seal -> gift wrap) for cross-Town mail
 - `RemoteSignerDaemon` -- NIP-46 signer with scoped per-kind permissions for Polecats
 - NIP-40 expiration tags on ownership claims, session events, DVM job requests
-- Reaction/report signals feed into SocialTrustManager as lightweight reputation inputs
+- Reaction/report signals provide lightweight reputation inputs
 - Relay event store extended with kind:5 deletion handling
 
 **Gastown Integration:** Phase 1 — enables two Gas Town instances to exchange messages via Nostr. A Gas Town node subscribes to a Crosstown peer's relay and publishes kind:14 DMs, kind:30078 work dispatch, and kind:10032 peer info events.
@@ -47,7 +47,7 @@ Multi-signal trust model combining ILP-backed zaps, agent capability labels, ver
 - `BadgeIssuer` -- kind:30009 definitions, kind:8 awards, auto-issuance via metric thresholds
 - NIP-85 trust oracle integration -- kind:30382 pre-computed trust assertions; multiple competing oracles
 - NIP-51 lists: `crosstown-reviewers`, `crosstown-ci-providers`, relay sets, review queue bookmarks
-- SocialTrustManager expanded: zapVolume, zapDiversity, settlementReliability, qualityLabelScore, badgeScore
+- Trust metrics expanded: zapVolume, zapDiversity, settlementReliability, qualityLabelScore, badgeScore
 
 **Gastown Integration:** Phase 2-3 — trust scores drive merge authority selection, DVM provider ranking, and federation membership tiers. NIP-85 oracles replace expensive BFS computation at scale. NIP-51 lists scope which Towns can review patches and run CI.
 
@@ -102,7 +102,7 @@ Town-to-Town federation grounded in the Gas Town model. A Gas Town Town is an ag
 
 ## Trust Score Evolution
 
-The SocialTrustManager trust formula evolves across phases:
+Trust calculation is planned to evolve across phases:
 
 ```
 Phase 0 (current):  w1*socialDistance + w2*mutualFollowers + w3*reputationScore

@@ -26,7 +26,7 @@ The `ui-prototypes` package contains React-based UI prototypes for visualizing t
 
 ### 2.1 Technical Summary
 
-Crosstown Protocol is a **TypeScript monorepo** with a **modular package architecture**. The system consists of five packages plus a Docker entrypoint that enable autonomous agents to discover ILP payment peers via Nostr social graphs, exchange SPSP parameters with settlement negotiation over Nostr events, compute trust-based credit limits from social relationships, and run as autonomous LLM-powered agents that process Nostr events in real-time.
+Crosstown Protocol is a **TypeScript monorepo** with a **modular package architecture**. The system consists of four packages plus a Docker entrypoint that enable autonomous agents to discover ILP payment peers via Nostr social graphs, exchange SPSP parameters with settlement negotiation over Nostr events, and run as autonomous LLM-powered agents that process Nostr events in real-time.
 
 The architecture separates concerns across three layers:
 1. **Discovery & Configuration** — Nostr handles peer discovery, SPSP exchange, and social graph traversal
@@ -38,7 +38,7 @@ The library acts as a bridge — populating ILP connector routing tables from No
 ### 2.2 High Level Overview
 
 1. **Architectural Style:** Library/SDK with modular package structure + autonomous agent runtime
-2. **Repository Structure:** Monorepo with `@crosstown/core`, `@crosstown/bls`, `@crosstown/relay`, `@crosstown/examples`, `@crosstown/ui-prototypes`, plus `docker/` entrypoint
+2. **Repository Structure:** Monorepo with `@crosstown/core`, `@crosstown/bls`, `@crosstown/relay`, `@crosstown/examples`, plus `docker/` entrypoint
 3. **Service Architecture:** Library consumed by agents, with optional embedded connector mode and standalone Docker deployment
 4. **Integration Patterns:**
    - **Embedded Mode:** `createCrosstownNode()` wires ConnectorNode + BLS + Bootstrap + RelayMonitor in-process (zero-latency)
@@ -57,7 +57,6 @@ graph TB
             SPD[SocialPeerDiscovery]
             NSC[NostrSpspClient]
             NSS[NostrSpspServer]
-            STM[SocialTrustManager]
             COMP[compose: createCrosstownNode]
             EVT[Event Utilities]
         end
@@ -93,11 +92,9 @@ graph TB
     SPD --> NR
     NSC --> NR
     NSS --> NR
-    STM --> NR
     SPD --> AR
 
     BS -.->|Direct or HTTP| ILC
-    STM -.->|Credit Limits| ILC
     BLS --> PS
     BLS --> TOON
     BLS --> ES
@@ -112,7 +109,7 @@ graph TB
 
 | Pattern | Application | Rationale |
 |---------|-------------|-----------|
-| **Modular Monorepo** | Package organization (core, bls, relay, examples, ui-prototypes) | Simplifies dependency management; enables atomic changes across packages |
+| **Modular Monorepo** | Package organization (core, bls, relay, examples) | Simplifies dependency management; enables atomic changes across packages |
 | **Event-Driven Architecture** | Nostr pub/sub for discovery, SPSP, and real-time monitoring | Natural fit for Nostr; enables real-time updates via RelayMonitor |
 | **Composition Pattern** | `createCrosstownNode()` wires all components with start/stop lifecycle | Single entry point for embedded mode; avoids manual component wiring |
 | **Interface Abstraction** | `AgentRuntimeClient` / `ConnectorAdminClient` with HTTP and direct implementations | Swap between embedded and HTTP mode without changing consumer code |
@@ -231,22 +228,7 @@ graph TB
 - Response to SpspRequest
 - Encrypted with NIP-44 for recipient
 
-### 4.5 TrustScore
-
-**Purpose:** Computed trust assessment between two pubkeys.
-
-**Key Attributes:**
-- `score`: number - Overall trust score (0-1)
-- `socialDistance`: number - Hops in follow graph
-- `mutualFollowerCount`: number - Shared followers
-- `breakdown`: TrustBreakdown - Component score details (socialDistanceScore, mutualFollowersScore, reputationScore)
-
-**Relationships:**
-- Computed from social graph data
-- Used to derive credit limits via CreditLimitConfig
-- Future: expanded with zapVolume, zapDiversity, settlementReliability, qualityLabelScore, badgeScore (Epics 14-15)
-
-### 4.6 HandlePacketRequest / HandlePacketResponse
+### 4.5 HandlePacketRequest / HandlePacketResponse
 
 **Purpose:** ILP packet handling types for BLS communication with the connector.
 
@@ -267,7 +249,7 @@ graph TB
 - `message`: string - Human-readable error
 - `metadata`: { required, received } | undefined
 
-### 4.7 Bootstrap Types
+### 4.6 Bootstrap Types
 
 **Key Interfaces:**
 - `BootstrapConfig` - Known peers, query timeout, ArDrive settings
@@ -278,7 +260,7 @@ graph TB
 - `BootstrapPhase` - State machine: `'discovering' | 'registering' | 'handshaking' | 'announcing' | 'ready' | 'failed'`
 - `BootstrapEvent` - Discriminated union of lifecycle events (phase changes, peer registration, channel opens, announcements)
 
-### 4.8 Client Interfaces
+### 4.7 Client Interfaces
 
 **AgentRuntimeClient:**
 - `sendIlpPacket(params): Promise<IlpSendResult>` - Send ILP packets (HTTP or direct)
@@ -291,7 +273,7 @@ graph TB
 - `openChannel(params): Promise<OpenChannelResult>` - Open payment channel
 - `getChannelState(channelId): Promise<ChannelState>` - Query channel state
 
-### 4.9 Settlement Types
+### 4.8 Settlement Types
 
 **Key Interfaces:**
 - `SettlementNegotiationConfig` - Own chains, addresses, tokens, deposit amount, timeouts
@@ -300,7 +282,7 @@ graph TB
 - `OpenChannelResult` - Channel ID and status
 - `ChannelState` - Channel ID, status (`opening | open | closed | settled`), chain
 
-### 4.10 NostrEvent (External)
+### 4.9 NostrEvent (External)
 
 **Purpose:** Standard Nostr event structure from nostr-tools.
 
@@ -325,7 +307,6 @@ graph TB
 - `bootstrap/` - BootstrapService (multi-phase lifecycle), RelayMonitor (real-time kind:10032 monitoring), AgentRuntimeClient/ConnectorAdminClient interfaces, direct and HTTP client implementations
 - `discovery/` - SocialPeerDiscovery (layered: genesis → ArDrive → NIP-02), NostrPeerDiscovery, ArDrivePeerRegistry, GenesisPeerLoader
 - `spsp/` - NostrSpspClient, NostrSpspServer, IlpSpspClient (ILP-first SPSP), settlement negotiation, channel opening
-- `trust/` - SocialTrustManager, creditLimit mapping
 - `events/` - Parsers, builders, constants for all event kinds
 - `compose.ts` - `createCrosstownNode()` composition function
 
@@ -350,6 +331,7 @@ graph TB
 
 **Key Modules:**
 - `websocket/` - NostrRelayServer, ConnectionHandler (NIP-01 REQ/EVENT/CLOSE)
+- `subscriber/` - RelaySubscriber (upstream relay event propagation)
 - `bls/` - BusinessLogicServer (relay-specific BLS wrapping)
 - `pricing/` - PricingService (relay pricing config)
 - `storage/` - InMemoryEventStore, SqliteEventStore
@@ -367,18 +349,7 @@ graph TB
 
 **Dependencies:** @crosstown/core, @crosstown/bls
 
-### 5.5 @crosstown/ui-prototypes
-
-**Responsibility:** React-based UI prototypes for visualizing the agent network. Design exploration, not production code.
-
-**Key Structure:**
-- 9 prototypes in 3 categories: Observatory (network visualization), Colony (management), Nostr Client (social)
-- Shared components in `src/components/shared/`
-- Mock data layer with 12 agents, follow graph, trust scores, event feeds
-
-**Dependencies:** React 19, Vite 7, Tailwind CSS v4, shadcn/ui, Radix UI
-
-### 5.6 docker/
+### 5.5 docker/
 
 **Responsibility:** Standalone Docker entrypoint that wires BLS + relay + bootstrap into a deployable container.
 
@@ -388,7 +359,7 @@ graph TB
 
 **Dependencies:** @crosstown/core, @crosstown/bls, @crosstown/relay
 
-### 5.7 packages/agent/ (Planned — Epic 11)
+### 5.6 packages/agent/ (Planned — Epic 11)
 
 **Responsibility:** Autonomous TypeScript runtime using Vercel AI SDK (v6) that subscribes to Nostr relays, routes events by kind to LLM-powered handlers, and executes structured actions back to relays.
 
@@ -402,7 +373,7 @@ graph TB
 
 **Planned Dependencies:** ai (Vercel AI SDK v6), @ai-sdk/anthropic, zod, nostr-tools
 
-### 5.8 Component Diagram
+### 5.7 Component Diagram
 
 ```mermaid
 graph LR
@@ -415,7 +386,6 @@ graph LR
         NSC[NostrSpspClient]
         NSS[NostrSpspServer]
         ISC[IlpSpspClient]
-        STM[SocialTrustManager]
         BS[BootstrapService]
         RM[RelayMonitor]
         COMP[compose.ts]
@@ -776,10 +746,6 @@ crosstown/
 │   │   │   │   ├── IlpSpspClient.ts         # ILP-first SPSP (PREPARE/FULFILL)
 │   │   │   │   ├── settlement.ts            # Settlement chain negotiation logic
 │   │   │   │   └── negotiateAndOpenChannel.ts # Channel opening during handshake
-│   │   │   ├── trust/
-│   │   │   │   ├── index.ts
-│   │   │   │   ├── SocialTrustManager.ts
-│   │   │   │   └── creditLimit.ts           # Trust score → credit limit mapping
 │   │   │   ├── events/
 │   │   │   │   ├── index.ts
 │   │   │   │   ├── parsers.ts               # Event kind parsers
@@ -831,6 +797,9 @@ crosstown/
 │   │   │   │   ├── index.ts
 │   │   │   │   ├── NostrRelayServer.ts   # NIP-01 WebSocket server
 │   │   │   │   └── ConnectionHandler.ts  # Per-connection NIP-01 handler
+│   │   │   ├── subscriber/
+│   │   │   │   ├── index.ts
+│   │   │   │   └── RelaySubscriber.ts    # Upstream relay event propagation
 │   │   │   ├── bls/                      # Relay-specific BLS wrapper
 │   │   │   ├── pricing/                  # Relay pricing config
 │   │   │   ├── storage/                  # InMemoryEventStore, SqliteEventStore
@@ -850,25 +819,6 @@ crosstown/
 │   │   │       └── README.md
 │   │   ├── package.json
 │   │   └── tsconfig.json
-│   │
-│   └── ui-prototypes/                     # @crosstown/ui-prototypes
-│       ├── src/
-│       │   ├── App.tsx                   # Router for prototype pages
-│       │   ├── main.tsx                  # React entry point
-│       │   ├── components/
-│       │   │   ├── shared/              # Reusable components
-│       │   │   └── ui/                  # shadcn/ui components
-│       │   ├── data/
-│       │   │   ├── mock-agents.ts       # 12 mock agents with trust/ILP data
-│       │   │   └── mock-social.ts       # Follow graph, events, feeds
-│       │   └── prototypes/
-│       │       ├── observatory/         # Network visualization prototypes
-│       │       ├── colony/              # Management prototypes
-│       │       └── nostr-client/        # Social client prototypes
-│       ├── index.html
-│       ├── package.json
-│       ├── tsconfig.json
-│       └── vite.config.ts
 │
 ├── docker/                                # Docker entrypoint
 │   ├── src/
@@ -1043,7 +993,7 @@ class ConfigError extends BlsBaseError {}     // CONFIG_ERROR
 | Interfaces | PascalCase (no I- prefix by convention) | `IlpPeerInfo`, `HandlePacketRequest` |
 | Functions | camelCase | `discoverPeers`, `createCrosstownNode` |
 | Constants | UPPER_SNAKE_CASE | `ILP_PEER_INFO_KIND`, `SPSP_REQUEST_KIND` |
-| Type aliases | PascalCase | `TrustScore`, `BootstrapPhase` |
+| Type aliases | PascalCase | `BootstrapPhase`, `IlpPeerInfo` |
 | Event types | Discriminated unions with `type` field | `BootstrapEvent` |
 
 ### 12.3 Critical Rules
@@ -1193,7 +1143,7 @@ Establishes social identity, reputation signaling, and moderation primitives. Ag
 **Key Architectural Additions:**
 - `AgentProfileBuilder` — kind:0 profiles with NIP-05 identity
 - `RelayListManager` — kind:10002 relay preferences for multi-relay discovery
-- Reaction/report signals feed into SocialTrustManager as lightweight reputation inputs
+- Reaction/report signals provide lightweight reputation inputs
 - Relay event store extended with kind:5 deletion handling
 
 ### Phase 1: Paid Computation Marketplace (Epic 13)
@@ -1217,7 +1167,7 @@ ILP-backed zaps with cryptographic proof-of-payment. Zap history, diversity, and
 **Key Architectural Additions:**
 - ILP zap request (kind:9734) / receipt (kind:9735) event types
 - `ZapHandler` in BLS for accepting zap payments and publishing receipts
-- SocialTrustManager expanded: zapVolume, zapDiversity, settlementReliability
+- Trust metrics expanded: zapVolume, zapDiversity, settlementReliability
 - Trust-weighted route priority in peer registration
 - NIP-51 trusted-routes and mute lists for routing signals
 
@@ -1258,13 +1208,12 @@ Payment-gated agent swarms with ILP payment channel membership gating, hierarchi
 
 ### Trust Score Evolution
 
-The SocialTrustManager trust formula evolves across phases:
+Trust calculation is planned to evolve across phases:
 
 ```
-Phase 0 (current):  w1*socialDistance + w2*mutualFollowers + w3*reputationScore
-Phase 1 (Epic 12):  + w4*reactionScore + w5*reportPenalty
-Phase 2 (Epic 14):  + w6*zapVolume + w7*zapDiversity + w8*settlementReliability
-Phase 3 (Epic 15):  + w9*qualityLabelScore + w10*badgeScore
+Phase 1 (Epic 12):  reactionScore + reportPenalty
+Phase 2 (Epic 14):  + zapVolume + zapDiversity + settlementReliability
+Phase 3 (Epic 15):  + qualityLabelScore + badgeScore
 ```
 
 ---
@@ -1287,7 +1236,7 @@ _(To be completed after running architect-checklist)_
 
 1. Complete Epic 11: NIP Handler Agent Runtime (`packages/agent/`)
 2. Begin Epic 12: Social Fabric Foundation (NIP-05, NIP-25, NIP-65, NIP-09, NIP-56)
-3. Expand SocialTrustManager with reaction and report signals
+3. Implement trust calculation with reaction and report signals
 
 ### 17.3 Architecture Document Maintenance
 

@@ -33,10 +33,6 @@ crosstown/
 │   │   │   │   ├── IlpSpspClient.ts         # ILP-first SPSP (PREPARE/FULFILL)
 │   │   │   │   ├── settlement.ts            # Settlement chain negotiation logic
 │   │   │   │   └── negotiateAndOpenChannel.ts # Channel opening during handshake
-│   │   │   ├── trust/
-│   │   │   │   ├── index.ts
-│   │   │   │   ├── SocialTrustManager.ts
-│   │   │   │   └── creditLimit.ts           # Trust score → credit limit mapping
 │   │   │   ├── events/
 │   │   │   │   ├── index.ts
 │   │   │   │   ├── parsers.ts               # Event kind parsers
@@ -88,6 +84,9 @@ crosstown/
 │   │   │   │   ├── index.ts
 │   │   │   │   ├── NostrRelayServer.ts   # NIP-01 WebSocket server
 │   │   │   │   └── ConnectionHandler.ts  # Per-connection NIP-01 handler
+│   │   │   ├── subscriber/
+│   │   │   │   ├── index.ts
+│   │   │   │   └── RelaySubscriber.ts    # Upstream relay event propagation
 │   │   │   ├── bls/                      # Relay-specific BLS wrapper
 │   │   │   ├── pricing/                  # Relay pricing config
 │   │   │   ├── storage/                  # InMemoryEventStore, SqliteEventStore
@@ -107,25 +106,6 @@ crosstown/
 │   │   │       └── README.md
 │   │   ├── package.json
 │   │   └── tsconfig.json
-│   │
-│   └── ui-prototypes/                     # @crosstown/ui-prototypes
-│       ├── src/
-│       │   ├── App.tsx                   # Router for prototype pages
-│       │   ├── main.tsx                  # React entry point
-│       │   ├── components/
-│       │   │   ├── shared/              # Reusable components
-│       │   │   └── ui/                  # shadcn/ui components
-│       │   ├── data/
-│       │   │   ├── mock-agents.ts       # 12 mock agents with trust/ILP data
-│       │   │   └── mock-social.ts       # Follow graph, events, feeds
-│       │   └── prototypes/
-│       │       ├── observatory/         # Network visualization prototypes
-│       │       ├── colony/              # Management prototypes
-│       │       └── nostr-client/        # Social client prototypes
-│       ├── index.html
-│       ├── package.json
-│       ├── tsconfig.json
-│       └── vite.config.ts
 │
 ├── docker/                                # Docker entrypoint
 │   ├── src/

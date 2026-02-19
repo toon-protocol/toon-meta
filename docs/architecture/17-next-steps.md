@@ -10,7 +10,7 @@
 
 1. Complete Epic 11: NIP Handler Agent Runtime (`packages/agent/`)
 2. Begin Epic 12: Cross-Town Communication Foundation (NIP-05, NIP-17, NIP-25, NIP-40, NIP-46, NIP-65, NIP-09, NIP-56)
-3. Expand SocialTrustManager with reaction and report signals
+3. Implement trust calculation with reaction and report signals
 4. Add NIP handler references for Gas Town event kinds (kind:30078 work dispatch, kind:30080 completion, kind:30081 cost report)
 
 ## 17.3 Architecture Document Maintenance
