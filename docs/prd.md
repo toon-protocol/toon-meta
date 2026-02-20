@@ -8,13 +8,11 @@
 - Provide SPSP parameter exchange over Nostr events with settlement negotiation, eliminating HTTPS/DNS/TLS dependencies
 - Derive trust-based credit limits from social graph relationships (social distance, mutual followers, reputation)
 - Deliver a reference implementation of ILP-gated Nostr relays with pay-to-write spam resistance
-- Provide a standalone BLS Docker image for plug-and-play integration with agent-runtime
+- Provide a standalone BLS Docker image for plug-and-play integration
 - Implement layered peer discovery (genesis peers, ArDrive registry, NIP-02 social graph) for reliable network bootstrap
 - Support embedded connector mode for zero-latency in-process ILP routing alongside HTTP mode
-- Deliver an autonomous agent runtime powered by LLM-based event handlers for real-time Nostr event processing
-- Publish core packages to npm for downstream consumption by agent frameworks
+- Publish core packages to npm for downstream consumption
 - Establish the protocol as the standard for Nostr+ILP integration with formal NIP submissions
-- Achieve adoption by 3+ agent framework projects within 6 months of stable release
 
 ### 1.2 Background Context
 
@@ -22,7 +20,7 @@ Traditional ILP infrastructure struggles with peer discovery (requires manual co
 
 The convergence of Nostr's growth as decentralized identity infrastructure, rising interest in autonomous AI agents, ILP's maturity as a payment protocol, and the need for spam-resistant relay infrastructure creates the ideal moment for Crosstown Protocol. The core insight: **your Nostr follows become your ILP peers, and social distance informs financial trust.**
 
-The project has grown from a 3-package protocol library to a comprehensive 6-package monorepo with Docker deployment, embedded connector integration, settlement negotiation, layered peer discovery, and an autonomous LLM-powered agent runtime. A NIP adoption roadmap (Epics 12-17) extends the protocol with social identity, paid computation, zaps, labels, messaging, and agent swarms.
+The project has evolved from initial peer discovery concepts to a comprehensive 4-package monorepo with Docker deployment, embedded connector integration, settlement negotiation, layered peer discovery, and production-ready npm packages (v1.1.1).
 
 ### 1.3 Change Log
 
@@ -30,6 +28,7 @@ The project has grown from a 3-package protocol library to a comprehensive 6-pac
 |------|---------|-------------|--------|
 | 2026-02-05 | 0.1 | Initial PRD draft from Project Brief | PM |
 | 2026-02-17 | 2.0 | Major update: Epics 5-11 added (BLS Docker, layered discovery, settlement negotiation, bootstrap, npm publishing, embedded connector, agent runtime). Epics 12-17 roadmap added. Updated FRs/NFRs, package structure (6 packages + Docker), three deployment modes, Node.js 24.x. Removed kind:10047 static SPSP. | PM |
+| 2026-02-20 | 3.0 | Scope refocus: Removed unimplemented Epics 11-17 (agent runtime, computation marketplace, git collaboration). Updated to reflect actual implementation status (Epics 1-10 complete, 4 packages published at v1.1.1). Archived future vision documents. Crosstown is now production-ready as an ILP-gated Nostr relay protocol library. | PM |
 
 ---
 
@@ -82,18 +81,9 @@ The project has grown from a 3-package protocol library to a comprehensive 6-pac
 - **FR29:** The library SHALL retain `createHttpRuntimeClient()` as HTTP fallback for isolated deployments
 - **FR30:** `@agent-runtime/connector` SHALL be an optional peer dependency (HTTP-only mode works without it)
 
-**Agent Runtime (Epic 11)**
-
-- **FR31:** The agent runtime SHALL subscribe to Nostr relays and route events by kind to LLM-powered handlers
-- **FR32:** The agent runtime SHALL use Vercel AI SDK (v6) with `generateText()` + `Output.object()` for structured output with Zod validation
-- **FR33:** The agent runtime SHALL support multi-model provider registry (Anthropic, OpenAI, Ollama) with per-kind model selection
-- **FR34:** The agent runtime SHALL enforce per-kind action allowlists, rejecting unauthorized actions
-- **FR35:** The agent runtime SHALL implement content isolation with datamarkers for untrusted event content before LLM processing
-- **FR36:** The agent runtime SHALL provide per-pubkey, per-kind rate limiting and SQLite audit logging for all actions
-
 **Integration (Epic 9)**
 
-- **FR37:** The library SHALL integrate with agent-runtime via documented Admin API, BLS contract, and embedded connector patterns
+- **FR31:** The library SHALL provide clear integration patterns for downstream consumers via documented APIs and examples
 
 ### 2.2 Non-Functional Requirements
 
@@ -109,7 +99,6 @@ The project has grown from a 3-package protocol library to a comprehensive 6-pac
 - **NFR10:** The library SHALL use nostr-tools as the sole Nostr library dependency
 - **NFR11:** The BLS Docker image SHALL be under 150MB and pass health checks within 10 seconds of startup
 - **NFR12:** Core, BLS, and relay packages SHALL achieve >80% line coverage for public APIs
-- **NFR13:** The agent runtime SHALL support deterministic testing via `MockLanguageModelV3` without live LLM calls
 
 ---
 
@@ -117,16 +106,14 @@ The project has grown from a 3-package protocol library to a comprehensive 6-pac
 
 ### 3.1 Repository Structure: Monorepo
 
-The project uses a pnpm monorepo with six packages plus a Docker entrypoint:
-- `@crosstown/core` - Main protocol library (discovery, SPSP, trust, bootstrap, compose)
-- `@crosstown/bls` - Standalone Business Logic Server (payment verification, TOON, pricing, storage)
-- `@crosstown/relay` - ILP-gated Nostr relay reference implementation
-- `@crosstown/agent` - Autonomous LLM-powered agent runtime (Epic 11, in progress)
+The project uses a pnpm monorepo with four packages plus Docker deployment:
+- `@crosstown/core` - Main protocol library (discovery, SPSP, trust, bootstrap, compose) - **Published v1.1.1**
+- `@crosstown/bls` - Standalone Business Logic Server (payment verification, TOON, pricing, storage) - **Published v1.1.1**
+- `@crosstown/relay` - ILP-gated Nostr relay reference implementation - **Published v1.1.1**
 - `@crosstown/examples` - Integration examples (private, not published)
-- `@crosstown/ui-prototypes` - React UI prototypes for network visualization (private)
-- `docker/` - Standalone Docker entrypoint for BLS + relay + bootstrap deployment
+- `docker/` - Standalone Docker entrypoint for BLS deployment
 
-**Rationale:** Monorepo simplifies dependency management between packages and enables atomic changes. The BLS was extracted (Epic 5) for independent Docker deployment. The agent runtime (Epic 11) adds LLM-powered autonomous event processing.
+**Rationale:** Monorepo simplifies dependency management between packages and enables atomic changes. The BLS was extracted (Epic 5) for independent Docker deployment.
 
 ### 3.2 Service Architecture
 
@@ -142,8 +129,7 @@ The project provides both a **library** and **deployable services**. Three integ
 
 - **Unit Tests:** Required for all public APIs using Vitest with mocked SimplePool
 - **Integration Tests:** Five-peer bootstrap test with mocked connectors (`vitest.integration.config.ts`)
-- **Agent Runtime Tests:** Using Vercel AI SDK `MockLanguageModelV3` for deterministic testing without LLM calls
-- **E2E Tests:** Not in current scope — planned for post-Epic 11
+- **E2E Tests:** Not in current scope
 
 **Rationale:** Mocked tests ensure CI reliability without external dependencies. Integration tests validate multi-component bootstrap flows.
 
@@ -156,8 +142,7 @@ The project provides both a **library** and **deployable services**. Three integ
 - TOON encoding via `@toon-format/toon` for ILP packet data
 - pnpm workspaces for monorepo management
 - tsup for library bundling (ESM output)
-- `@agent-runtime/connector` is an optional peer dependency for embedded mode
-- Vercel AI SDK v6 for LLM integration in agent runtime
+- `@crosstown/connector` is an optional peer dependency for embedded mode
 - Static SPSP publishing (kind:10047) was removed — SPSP uses only encrypted request/response (kind:23194/23195) to protect shared secrets
 
 ---
@@ -169,23 +154,18 @@ The project provides both a **library** and **deployable services**. Three integ
 
 | Epic | Title | Status | Goal |
 |------|-------|--------|------|
-| 1 | Foundation & Peer Discovery | Complete | Establish project infrastructure and deliver core peer discovery from NIP-02 follow lists |
-| 2 | SPSP Over Nostr | Complete | Enable SPSP parameter exchange via Nostr events (static and dynamic) |
-| 3 | Social Trust Engine | Complete | Compute trust scores from social graph data for credit limit derivation |
-| 4 | ILP-Gated Relay | Complete | Reference implementation of pay-to-write Nostr relay with ILP integration |
-| 5 | Standalone BLS Docker Image | Complete | Publishable BLS container for agent-runtime integration with standard contract |
-| 6 | Decentralized Peer Discovery | Complete | Layered peer discovery combining genesis peers, ArDrive registry, and NIP-02 social graph |
-| 7 | SPSP Settlement Negotiation | Complete | Extend SPSP to negotiate settlement chains and open payment channels via connector Admin API |
-| 8 | Nostr Network Bootstrap | Complete | Complete bootstrap flow: relay discovery → 0-amount ILP SPSP → paid announcements → cross-peer discovery |
-| 9 | npm Package Publishing | Complete | Publish @crosstown/core, @crosstown/bls, and @crosstown/relay as public npm packages |
-| 10 | Embedded Connector Integration | Complete | Eliminate HTTP boundary by embedding ConnectorNode in-process; `createCrosstownNode()` composition |
-| **11** | **NIP Handler Agent Runtime** | **In Progress** | **Autonomous TypeScript runtime using Vercel AI SDK (v6) for LLM-powered Nostr event processing** |
-| 12 | Social Fabric Foundation | Planned | NIP-05, NIP-25, NIP-65, NIP-09, NIP-56 — social identity, reputation, moderation |
-| 13 | Paid Computation Marketplace | Planned | NIP-90 DVMs with ILP micropayments; NIP-89 service discovery |
-| 14 | ILP Zaps & Social Routing | Planned | NIP-57 zaps adapted for ILP; trust-weighted routing; NIP-51 route lists |
-| 15 | Agent Labels & Verifiable Credentials | Planned | NIP-32 labeling; NIP-58 badges; multi-signal trust model |
-| 16 | Private Messaging & Content Layer | Planned | NIP-17 DMs; NIP-10 threading; NIP-18 reposts; NIP-23 long-form; NIP-72 communities |
-| 17 | Payment-Gated Agent Swarms | Planned | NIP-29 relay-based groups with ILP payment channel membership gating |
+| 1 | Foundation & Peer Discovery | ✅ Complete | Establish project infrastructure and deliver core peer discovery from NIP-02 follow lists |
+| 2 | SPSP Over Nostr | ✅ Complete | Enable SPSP parameter exchange via Nostr events with NIP-44 encryption |
+| 3 | Social Trust Engine | ✅ Complete | Compute trust scores from social graph data for credit limit derivation |
+| 4 | ILP-Gated Relay | ✅ Complete | Reference implementation of pay-to-write Nostr relay with ILP integration |
+| 5 | Standalone BLS Docker Image | ✅ Complete | Publishable BLS container with standard contract for integration |
+| 6 | Decentralized Peer Discovery | ✅ Complete | Layered peer discovery combining genesis peers, ArDrive registry, and NIP-02 social graph |
+| 7 | SPSP Settlement Negotiation | ✅ Complete | Extend SPSP to negotiate settlement chains and open payment channels via connector Admin API |
+| 8 | Nostr Network Bootstrap | ✅ Complete | Complete bootstrap flow: relay discovery → 0-amount ILP SPSP → paid announcements → cross-peer discovery |
+| 9 | npm Package Publishing | ✅ Complete | Publish @crosstown/core, @crosstown/bls, and @crosstown/relay as public npm packages (v1.1.1) |
+| 10 | Embedded Connector Integration | ✅ Complete | Eliminate HTTP boundary by embedding ConnectorNode in-process; `createCrosstownNode()` composition |
+
+**Note:** Epics 11-17 (agent runtime, computation marketplace, git collaboration, etc.) were planned but not implemented. These documents have been archived to `docs/archive/` for future reference.
 
 ---
 
