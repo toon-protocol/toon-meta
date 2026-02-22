@@ -15,12 +15,13 @@
 | 8 | Nostr Network Bootstrap | Complete | Complete bootstrap flow: relay discovery → 0-amount ILP SPSP → paid announcements → cross-peer discovery |
 | **9** | **npm Package Publishing** | **Complete** | **Publish @crosstown/core, @crosstown/bls, and @crosstown/relay as public npm packages** |
 | **10** | **Embedded Connector Integration** | **Complete** | **Eliminate HTTP boundary by embedding ConnectorNode in-process; `createCrosstownNode()` composition** |
-| **11** | **NIP Handler Agent Runtime** | **In Progress** | **Autonomous TypeScript runtime using Vercel AI SDK (v6) for LLM-powered Nostr event processing** |
-| 12 | Cross-Town Communication Foundation | Planned | NIP-05, NIP-17, NIP-25, NIP-40, NIP-46, NIP-65, NIP-09, NIP-56 — cross-Town messaging, identity, remote signing, lifecycle management |
-| 13 | Paid Computation Marketplace | Planned | NIP-90 DVMs with ILP micropayments; NIP-89 service discovery; DVM payment flow for cross-Town work dispatch |
-| 14 | Trust Infrastructure & Reputation | Planned | NIP-57 ILP zaps; NIP-32 labeling (agent taxonomy + code review); NIP-58 badges; NIP-85 trust oracles; NIP-51 lists |
-| 15 | Decentralized Git Collaboration | Planned | NIP-34 patches/PRs/status; NIP-29 project groups; NIP-32 review labels; NIP-77 negentropy — trust-weighted multi-approval merges |
-| 16 | Content & Community Layer | Planned | NIP-10 threading; NIP-18 reposts; NIP-23 long-form; NIP-53 live activities; NIP-72 communities |
-| 17 | Cross-Town Federation & Agent Swarms | Planned | NIP-29 federation groups; payment-gated Town membership; hierarchical ILP addressing; Wasteland protocol replacement |
+| **11** | **Crosstown Client HTTP Mode Support** | **Draft** | **Enable @crosstown/client to connect to external connectors via HTTP; unified client API for embedded and HTTP modes** |
+| 12 | NIP Handler Agent Runtime | Planned | Autonomous TypeScript runtime using Vercel AI SDK (v6) for LLM-powered Nostr event processing |
+| 13 | Cross-Town Communication Foundation | Planned | NIP-05, NIP-17, NIP-25, NIP-40, NIP-46, NIP-65, NIP-09, NIP-56 — cross-Town messaging, identity, remote signing, lifecycle management |
+| 14 | Paid Computation Marketplace | Planned | NIP-90 DVMs with ILP micropayments; NIP-89 service discovery; DVM payment flow for cross-Town work dispatch |
+| 15 | Trust Infrastructure & Reputation | Planned | NIP-57 ILP zaps; NIP-32 labeling (agent taxonomy + code review); NIP-58 badges; NIP-85 trust oracles; NIP-51 lists |
+| 16 | Decentralized Git Collaboration | Planned | NIP-34 patches/PRs/status; NIP-29 project groups; NIP-32 review labels; NIP-77 negentropy — trust-weighted multi-approval merges |
+| 17 | Content & Community Layer | Planned | NIP-10 threading; NIP-18 reposts; NIP-23 long-form; NIP-53 live activities; NIP-72 communities |
+| 18 | Cross-Town Federation & Agent Swarms | Planned | NIP-29 federation groups; payment-gated Town membership; hierarchical ILP addressing; Wasteland protocol replacement |
 
 ---
