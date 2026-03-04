@@ -43,7 +43,7 @@ development_status:
   # Epic 1: ILP-Gated Service Node SDK
   epic-1: in-progress
   1-0-extract-toon-codec-to-crosstown-core: done
-  1-1-unified-identity-from-seed-phrase: backlog
+  1-1-unified-identity-from-seed-phrase: done
   1-2-handler-registry-with-kind-based-routing: backlog
   1-3-handlercontext-with-toon-passthrough-and-lazy-decode: backlog
   1-4-schnorr-signature-verification-pipeline: backlog
