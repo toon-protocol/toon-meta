@@ -58,11 +58,13 @@ Events are encoded using [TOON format](https://toonformat.dev) (Token-Oriented O
 ```
 
 **Why TOON?**
+
 - Compact encoding reduces bytes (and cost, if priced per-byte)
 - Lossless JSON round-trip (Nostr events are JSON)
 - Well-specified with implementations in multiple languages
 
 **Why raw ILP packets (not STREAM)?**
+
 - Nostr events are small (typically < 10KB)
 - Single packet is sufficient
 - Condition/fulfillment proves delivery
@@ -118,6 +120,7 @@ Pricing is advertised in the relay's kind:10032 (ILP Peer Info) event:
 ### Atomicity
 
 Payment is atomic with storage:
+
 - Relay only returns FULFILL after successful storage
 - If storage fails, relay returns REJECT
 - Author's money is only spent if event is stored
@@ -198,11 +201,11 @@ Alice's agent:
 
 **What Alice does with received events**:
 
-| Option | Description | Cost |
-|--------|-------------|------|
-| Read-only | Display in feed, don't store | Free |
-| Cache locally | Store on own relay | Free (self-write) |
-| Re-broadcast | Pay to store on other relays | Paid |
+| Option        | Description                  | Cost              |
+| ------------- | ---------------------------- | ----------------- |
+| Read-only     | Display in feed, don't store | Free              |
+| Cache locally | Store on own relay           | Free (self-write) |
+| Re-broadcast  | Pay to store on other relays | Paid              |
 
 **This creates a natural content propagation model**:
 
@@ -223,6 +226,7 @@ Carol sees Bob's post via Alice's cache
 ```
 
 Events propagate through the social graph without explicit payment at each hop. Payment is only required when:
+
 - Storing on someone else's relay (they pay for storage)
 - Broadcasting to relays you don't control
 
@@ -263,6 +267,7 @@ Event from Bob (signed by <bob>):
 ```
 
 This allows agents to:
+
 - Publish their profile (kind:0)
 - Update their follow list (kind:3)
 - Publish their ILP peer info (kind:10032)
@@ -402,18 +407,18 @@ Alice authors a new post (kind:1).
 
 ### Existing NIPs Used
 
-| Kind | Name | Usage |
-|------|------|-------|
-| 0 | Profile Metadata | Agent's profile |
-| 3 | Follow List | Defines ILP peers |
-| 10002 | Relay List | Hints for where to find someone's events |
+| Kind  | Name             | Usage                                    |
+| ----- | ---------------- | ---------------------------------------- |
+| 0     | Profile Metadata | Agent's profile                          |
+| 3     | Follow List      | Defines ILP peers                        |
+| 10002 | Relay List       | Hints for where to find someone's events |
 
 ### New Kinds (Proposed)
 
-| Kind | Name | Purpose |
-|------|------|---------|
-| 10032 | ILP Peer Info | Advertise ILP address, pricing, capabilities |
-| 10033 | Route Announcement | Announce reachable destinations to peers |
+| Kind  | Name               | Purpose                                      |
+| ----- | ------------------ | -------------------------------------------- |
+| 10032 | ILP Peer Info      | Advertise ILP address, pricing, capabilities |
+| 10033 | Route Announcement | Announce reachable destinations to peers     |
 
 ### Kind 10032: ILP Peer Info
 
@@ -529,26 +534,31 @@ Tags: `["route", "<ilp_address>", "<fee>", "<distance_hint>"]`
 ## Security Considerations
 
 ### Spam Resistance
+
 - Every write costs money
 - Price can be adjusted based on demand
 - Per-kind pricing allows charging more for expensive-to-store events
 
 ### Payment Verification
+
 - ILP condition/fulfillment is cryptographic
 - Relay only fulfills after successful storage
 - No payment without storage, no storage without payment
 
 ### Signature Verification
+
 - Events must have valid Nostr signatures
 - Relay verifies before storing
 - Prevents forged events
 
 ### Routing Security
+
 - Route announcements should be signed
 - Connectors should validate announcements
 - Potential for route poisoning (needs analysis)
 
 ### Denial of Service
+
 - Payment requirement deters most DoS
 - Rate limiting can be layered on top
 - Expensive events (large, frequent) cost more

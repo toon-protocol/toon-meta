@@ -24,11 +24,11 @@ The project has evolved from initial peer discovery concepts to a comprehensive 
 
 ### 1.3 Change Log
 
-| Date | Version | Description | Author |
-|------|---------|-------------|--------|
-| 2026-02-05 | 0.1 | Initial PRD draft from Project Brief | PM |
-| 2026-02-17 | 2.0 | Major update: Epics 5-11 added (BLS Docker, layered discovery, settlement negotiation, bootstrap, npm publishing, embedded connector, agent runtime). Epics 12-17 roadmap added. Updated FRs/NFRs, package structure (6 packages + Docker), three deployment modes, Node.js 24.x. Removed kind:10047 static SPSP. | PM |
-| 2026-02-20 | 3.0 | Scope refocus: Removed unimplemented Epics 11-17 (agent runtime, computation marketplace, git collaboration). Updated to reflect actual implementation status (Epics 1-10 complete, 4 packages published at v1.1.1). Archived future vision documents. Crosstown is now production-ready as an ILP-gated Nostr relay protocol library. | PM |
+| Date       | Version | Description                                                                                                                                                                                                                                                                                                                            | Author |
+| ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 2026-02-05 | 0.1     | Initial PRD draft from Project Brief                                                                                                                                                                                                                                                                                                   | PM     |
+| 2026-02-17 | 2.0     | Major update: Epics 5-11 added (BLS Docker, layered discovery, settlement negotiation, bootstrap, npm publishing, embedded connector, agent runtime). Epics 12-17 roadmap added. Updated FRs/NFRs, package structure (6 packages + Docker), three deployment modes, Node.js 24.x. Removed kind:10047 static SPSP.                      | PM     |
+| 2026-02-20 | 3.0     | Scope refocus: Removed unimplemented Epics 11-17 (agent runtime, computation marketplace, git collaboration). Updated to reflect actual implementation status (Epics 1-10 complete, 4 packages published at v1.1.1). Archived future vision documents. Crosstown is now production-ready as an ILP-gated Nostr relay protocol library. | PM     |
 
 ---
 
@@ -107,6 +107,7 @@ The project has evolved from initial peer discovery concepts to a comprehensive 
 ### 3.1 Repository Structure: Monorepo
 
 The project uses a pnpm monorepo with four packages plus Docker deployment:
+
 - `@crosstown/core` - Main protocol library (discovery, SPSP, trust, bootstrap, compose) - **Published v1.1.1**
 - `@crosstown/bls` - Standalone Business Logic Server (payment verification, TOON, pricing, storage) - **Published v1.1.1**
 - `@crosstown/relay` - ILP-gated Nostr relay reference implementation - **Published v1.1.1**
@@ -152,18 +153,18 @@ The project provides both a **library** and **deployable services**. Three integ
 > **Canonical location for epic details:** [`docs/epics/`](epics/)
 > Each epic has its own file: `epic-{n}-{title}.md`
 
-| Epic | Title | Status | Goal |
-|------|-------|--------|------|
-| 1 | Foundation & Peer Discovery | ✅ Complete | Establish project infrastructure and deliver core peer discovery from NIP-02 follow lists |
-| 2 | SPSP Over Nostr | ✅ Complete | Enable SPSP parameter exchange via Nostr events with NIP-44 encryption |
-| 3 | Social Trust Engine | ✅ Complete | Compute trust scores from social graph data for credit limit derivation |
-| 4 | ILP-Gated Relay | ✅ Complete | Reference implementation of pay-to-write Nostr relay with ILP integration |
-| 5 | Standalone BLS Docker Image | ✅ Complete | Publishable BLS container with standard contract for integration |
-| 6 | Decentralized Peer Discovery | ✅ Complete | Layered peer discovery combining genesis peers, ArDrive registry, and NIP-02 social graph |
-| 7 | SPSP Settlement Negotiation | ✅ Complete | Extend SPSP to negotiate settlement chains and open payment channels via connector Admin API |
-| 8 | Nostr Network Bootstrap | ✅ Complete | Complete bootstrap flow: relay discovery → 0-amount ILP SPSP → paid announcements → cross-peer discovery |
-| 9 | npm Package Publishing | ✅ Complete | Publish @crosstown/core, @crosstown/bls, and @crosstown/relay as public npm packages (v1.1.1) |
-| 10 | Embedded Connector Integration | ✅ Complete | Eliminate HTTP boundary by embedding ConnectorNode in-process; `createCrosstownNode()` composition |
+| Epic | Title                          | Status      | Goal                                                                                                     |
+| ---- | ------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------- |
+| 1    | Foundation & Peer Discovery    | ✅ Complete | Establish project infrastructure and deliver core peer discovery from NIP-02 follow lists                |
+| 2    | SPSP Over Nostr                | ✅ Complete | Enable SPSP parameter exchange via Nostr events with NIP-44 encryption                                   |
+| 3    | Social Trust Engine            | ✅ Complete | Compute trust scores from social graph data for credit limit derivation                                  |
+| 4    | ILP-Gated Relay                | ✅ Complete | Reference implementation of pay-to-write Nostr relay with ILP integration                                |
+| 5    | Standalone BLS Docker Image    | ✅ Complete | Publishable BLS container with standard contract for integration                                         |
+| 6    | Decentralized Peer Discovery   | ✅ Complete | Layered peer discovery combining genesis peers, ArDrive registry, and NIP-02 social graph                |
+| 7    | SPSP Settlement Negotiation    | ✅ Complete | Extend SPSP to negotiate settlement chains and open payment channels via connector Admin API             |
+| 8    | Nostr Network Bootstrap        | ✅ Complete | Complete bootstrap flow: relay discovery → 0-amount ILP SPSP → paid announcements → cross-peer discovery |
+| 9    | npm Package Publishing         | ✅ Complete | Publish @crosstown/core, @crosstown/bls, and @crosstown/relay as public npm packages (v1.1.1)            |
+| 10   | Embedded Connector Integration | ✅ Complete | Eliminate HTTP boundary by embedding ConnectorNode in-process; `createCrosstownNode()` composition       |
 
 **Note:** Epics 11-17 (agent runtime, computation marketplace, git collaboration, etc.) were planned but not implemented. These documents have been archived to `docs/archive/` for future reference.
 
@@ -287,16 +288,17 @@ The project provides both a **library** and **deployable services**. Three integ
 
 See individual epic files in `docs/epics/` for full details.
 
-| Epic | NIPs | Key Additions |
-|------|------|---------------|
-| 12 | NIP-05, NIP-25, NIP-65, NIP-09, NIP-56 | Agent profiles, reactions, relay lists, deletion, reporting |
-| 13 | NIP-90, NIP-89 | DVM job handler, service discovery, job chaining |
-| 14 | NIP-57, NIP-51 | ILP zaps with proof-of-payment, trust-weighted routing |
-| 15 | NIP-32, NIP-58 | Agent capability labels, badge credentials |
-| 16 | NIP-17, NIP-10, NIP-18, NIP-23, NIP-72 | Private DMs, threading, reposts, articles, communities |
-| 17 | NIP-29 | Payment-gated agent swarms with hierarchical ILP addresses |
+| Epic | NIPs                                   | Key Additions                                               |
+| ---- | -------------------------------------- | ----------------------------------------------------------- |
+| 12   | NIP-05, NIP-25, NIP-65, NIP-09, NIP-56 | Agent profiles, reactions, relay lists, deletion, reporting |
+| 13   | NIP-90, NIP-89                         | DVM job handler, service discovery, job chaining            |
+| 14   | NIP-57, NIP-51                         | ILP zaps with proof-of-payment, trust-weighted routing      |
+| 15   | NIP-32, NIP-58                         | Agent capability labels, badge credentials                  |
+| 16   | NIP-17, NIP-10, NIP-18, NIP-23, NIP-72 | Private DMs, threading, reposts, articles, communities      |
+| 17   | NIP-29                                 | Payment-gated agent swarms with hierarchical ILP addresses  |
 
 **Trust Score Evolution:**
+
 ```
 Epics 1-4:   w1*socialDistance + w2*mutualFollowers + w3*reputationScore
 Epic 12:     + w4*reactionScore + w5*reportPenalty
@@ -329,6 +331,7 @@ _(To be completed after PRD review)_
 ### 7.3 Architect Prompt
 
 > You are the Architect for the Crosstown Protocol project. Review the PRD at `docs/prd.md` and the architecture document at `docs/architecture.md`. Key considerations:
+>
 > - 6-package monorepo: `@crosstown/core`, `@crosstown/bls`, `@crosstown/relay`, `@crosstown/agent`, `@crosstown/examples`, `@crosstown/ui-prototypes`
 > - Three integration modes: embedded (createCrosstownNode), HTTP (Admin API), Docker
 > - Settlement negotiation during SPSP handshake (chain intersection, payment channels)

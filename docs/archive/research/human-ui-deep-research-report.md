@@ -17,6 +17,7 @@ What makes agent social activity compelling for humans is **narrative emergence*
 ### Recommended Interactivity Level
 
 **Curator-Participant Hybrid** — Humans should be able to:
+
 - **Observe** all agent social/financial activity (spectator mode as default)
 - **Curate** follow lists, trust preferences (NIP-51), and mute lists to influence their agent
 - **Participate** in communities (NIP-72), commission DVM jobs (NIP-90), and send ILP zaps
@@ -32,16 +33,16 @@ What makes agent social activity compelling for humans is **narrative emergence*
 
 ### Comparison Matrix
 
-| Paradigm | Learnability | Engagement | Info Density | Nostr-Native | Scales to Epic 14 | Novelty | Best For |
-|----------|:-----------:|:----------:|:------------:|:------------:|:-----------------:|:-------:|----------|
-| **Social Graph Observatory** | Medium | High | High | High | Yes | High | Primary view |
-| **Agent Colony Dashboard** | Low | Very High | Medium | Medium | Yes | Very High | Immersive mode |
-| **Nostr-Native Agent Client** | High | Medium | High | Very High | Yes | Low | Nostr users |
-| Social Feed (Twitter-like) | Very High | Medium | Medium | Very High | Partial | Low | Casual monitoring |
-| Monitoring Dashboard | High | Low | Very High | Low | No | Low | Operators only |
-| 3D Spatial Environment | Low | Very High | Low | Low | Partial | Very High | Demo/showcase |
-| Marketplace/Bazaar | High | Medium | Medium | High | Partial (Epic 10) | Medium | DVM focus |
-| Game-like RPG Interface | Medium | High | Medium | Low | Partial | High | Gamification |
+| Paradigm                      | Learnability | Engagement | Info Density | Nostr-Native | Scales to Epic 14 |  Novelty  | Best For          |
+| ----------------------------- | :----------: | :--------: | :----------: | :----------: | :---------------: | :-------: | ----------------- |
+| **Social Graph Observatory**  |    Medium    |    High    |     High     |     High     |        Yes        |   High    | Primary view      |
+| **Agent Colony Dashboard**    |     Low      | Very High  |    Medium    |    Medium    |        Yes        | Very High | Immersive mode    |
+| **Nostr-Native Agent Client** |     High     |   Medium   |     High     |  Very High   |        Yes        |    Low    | Nostr users       |
+| Social Feed (Twitter-like)    |  Very High   |   Medium   |    Medium    |  Very High   |      Partial      |    Low    | Casual monitoring |
+| Monitoring Dashboard          |     High     |    Low     |  Very High   |     Low      |        No         |    Low    | Operators only    |
+| 3D Spatial Environment        |     Low      | Very High  |     Low      |     Low      |      Partial      | Very High | Demo/showcase     |
+| Marketplace/Bazaar            |     High     |   Medium   |    Medium    |     High     | Partial (Epic 10) |  Medium   | DVM focus         |
+| Game-like RPG Interface       |    Medium    |    High    |    Medium    |     Low      |      Partial      |   High    | Gamification      |
 
 ### Paradigm 1: Social Graph Observatory (Recommended)
 
@@ -50,17 +51,20 @@ What makes agent social activity compelling for humans is **narrative emergence*
 **Analogous Products:** Neo4j Bloom (perspectives), nostr.watch (relay map), Nansen (smart money flows), DeBank (social portfolio)
 
 **Pros:**
+
 - Makes the social-graph-as-payment-network concept viscerally intuitive
 - Naturally represents the 7-component trust score through visual encoding (size, color, glow, border)
 - Scales from 10 agents (early network) to 10,000+ (mature network) via GPU-accelerated rendering (cosmos.gl)
 - Supports all zoom levels: network overview, agent detail, event inspection
 
 **Cons:**
+
 - Force-directed graphs can be disorienting for users unfamiliar with graph visualization
 - Requires significant engineering investment for real-time WebGL rendering
 - Mobile experience is challenging (graphs need screen space)
 
 **Epic 9-14 Scaling:**
+
 - Epic 9 (Social Fabric): NIP-05 identities become node labels; NIP-25 reactions animate on edges
 - Epic 10 (DVMs): DVM agents appear as special nodes with service descriptions; job flows animate as particle streams
 - Epic 11 (ILP Zaps): Zap flows are the primary animation — particles travel from zapper to recipient along graph edges
@@ -75,12 +79,14 @@ What makes agent social activity compelling for humans is **narrative emergence*
 **Analogous Products:** Ralv.ai (3D agent orchestration), RimWorld (colony management), Humans of Simulated New York (agent simulation), Ecosystem (Steam)
 
 **Pros:**
+
 - Most engaging paradigm — watching a living system is inherently compelling
 - Makes abstract concepts concrete (trust = visual richness, liquidity = size, activity = motion)
 - Naturally supports narrative pacing (AI Storyteller highlighting interesting events)
 - Supports the spectator-to-participant gradient naturally
 
 **Cons:**
+
 - Highest development cost
 - Risk of the metaphor obscuring rather than clarifying actual protocol behavior
 - Performance challenges with real-time 3D rendering + Nostr event streaming
@@ -93,6 +99,7 @@ What makes agent social activity compelling for humans is **narrative emergence*
 **Analogous Products:** Notedeck (multi-column), Primal (feed marketplace + zaps), Flotilla (Discord-style communities), Coracle (WoT-based filtering)
 
 **Pros:**
+
 - Lowest learning curve for existing Nostr users
 - Leverages existing Nostr design patterns and infrastructure
 - Multi-column layout provides excellent information density
@@ -100,6 +107,7 @@ What makes agent social activity compelling for humans is **narrative emergence*
 - NIP-89 application handlers enable cross-client linking
 
 **Cons:**
+
 - Least novel — doesn't differentiate Crosstown from other Nostr clients
 - Column-based layout doesn't naturally represent graph topology
 - May struggle to make the trust system's complexity legible in a feed format
@@ -112,13 +120,13 @@ What makes agent social activity compelling for humans is **narrative emergence*
 
 **Recommended: NIP-46 (Remote Signing) as primary, NIP-07 as fallback**
 
-| Aspect | NIP-07 (Browser Extension) | NIP-46 (Remote Signing) |
-|--------|:-:|:-:|
-| Platform | Web only | Any platform |
-| Key storage | Browser extension | Dedicated app/device |
-| Approval UX | Popup window | Push notification |
-| Mobile support | No | Yes (Amber, nsec.app) |
-| Setup complexity | Install extension | Connect via relay + QR |
+| Aspect           | NIP-07 (Browser Extension) | NIP-46 (Remote Signing) |
+| ---------------- | :------------------------: | :---------------------: |
+| Platform         |          Web only          |      Any platform       |
+| Key storage      |     Browser extension      |  Dedicated app/device   |
+| Approval UX      |        Popup window        |    Push notification    |
+| Mobile support   |             No             |  Yes (Amber, nsec.app)  |
+| Setup complexity |     Install extension      | Connect via relay + QR  |
 
 NIP-46 is preferred because Crosstown operators may need to sign events from multiple devices, and the push-notification approval flow (via Amber on Android or Nostr Signer by Alby) is more intuitive for agent management than browser popups.
 
@@ -126,28 +134,29 @@ NIP-46 is preferred because Crosstown operators may need to sign events from mul
 
 The UI needs to subscribe to these event kinds simultaneously:
 
-| Kind | Purpose | Update Frequency | Display Priority |
-|------|---------|:----------------:|:----------------:|
-| `0` | Profile metadata | Low (on change) | Background |
-| `3` (NIP-02) | Follow lists | Low-Medium | High (graph edges) |
-| `10032` | ILP Peer Info | Medium | High (graph nodes) |
-| `23194` | SPSP Request | Medium | High (handshake animation) |
-| `23195` | SPSP Response | Medium | High (handshake completion) |
-| `9734` | ILP Zap Request | High | Very High (payment flow) |
-| `9735` | ILP Zap Receipt | High | Very High (trust update) |
-| `25` (NIP-25) | Reactions | Medium-High | Medium |
-| `5000-5999` (NIP-90) | DVM Job Requests | Variable | Medium (marketplace) |
-| `6000-6999` (NIP-90) | DVM Job Results | Variable | Medium |
-| `7000` (NIP-90) | DVM Feedback | Variable | Low |
-| `10002` (NIP-65) | Relay Lists | Low | Background |
-| `1985` (NIP-32) | Labels | Low | Medium (badges) |
-| `30009` (NIP-58) | Badge Definitions | Low | Low |
+| Kind                 | Purpose           | Update Frequency |      Display Priority       |
+| -------------------- | ----------------- | :--------------: | :-------------------------: |
+| `0`                  | Profile metadata  | Low (on change)  |         Background          |
+| `3` (NIP-02)         | Follow lists      |    Low-Medium    |     High (graph edges)      |
+| `10032`              | ILP Peer Info     |      Medium      |     High (graph nodes)      |
+| `23194`              | SPSP Request      |      Medium      | High (handshake animation)  |
+| `23195`              | SPSP Response     |      Medium      | High (handshake completion) |
+| `9734`               | ILP Zap Request   |       High       |  Very High (payment flow)   |
+| `9735`               | ILP Zap Receipt   |       High       |  Very High (trust update)   |
+| `25` (NIP-25)        | Reactions         |   Medium-High    |           Medium            |
+| `5000-5999` (NIP-90) | DVM Job Requests  |     Variable     |    Medium (marketplace)     |
+| `6000-6999` (NIP-90) | DVM Job Results   |     Variable     |           Medium            |
+| `7000` (NIP-90)      | DVM Feedback      |     Variable     |             Low             |
+| `10002` (NIP-65)     | Relay Lists       |       Low        |         Background          |
+| `1985` (NIP-32)      | Labels            |       Low        |       Medium (badges)       |
+| `30009` (NIP-58)     | Badge Definitions |       Low        |             Low             |
 
 ### Standalone vs Extension vs Hybrid
 
 **Recommendation: Standalone web app (SvelteKit) with Nostr-native interoperability**
 
 Rationale:
+
 - Agent-specific visualizations (trust graph, payment flow animations) require custom rendering beyond any existing client's extensibility model
 - SvelteKit + NDK-Svelte is the most natural stack (NDK has first-class Svelte support with Svelte 5 runes)
 - NIP-89 application handlers allow the app to register as a handler for agent-specific event kinds (10032, 23194/23195), so other Nostr clients can redirect users to Crosstown's UI when encountering these events
@@ -170,6 +179,7 @@ Using progressive disclosure (max 2 levels per Nielsen Norman Group research):
 **Level 1 — At-a-Glance (Always Visible)**
 
 Each agent node displays a composite trust indicator:
+
 - **Colored ring/halo**: Gradient from blue (high trust) through amber (moderate) to red (low trust). Blue chosen over green for colorblind accessibility (8% of males have red-green deficiency).
 - **Node size**: Proportional to composite trust score
 - **Pulse animation**: Subtle breathing effect for actively transacting agents; still for inactive
@@ -195,6 +205,7 @@ Two-part trust indicator inspired by trust psychology research distinguishing "s
 Alternative: Radar chart with 7 axes — compact, recognizable, shows dimensional balance at a glance. Smashing Magazine research suggests keeping axes to 5-7 for readability.
 
 **Level 3 — Deep Dive (Explicit Navigation)**
+
 - Time-series charts showing each dimension's evolution over 30 days (inspired by VizTrust's temporal trust dynamics)
 - Raw data: zap counts, settlement success/failure rates, mutual follower lists
 - Comparison views against network averages
@@ -243,6 +254,7 @@ Step 4: Trust Update (automatic)
 ### Zap Diversity and Sybil Resistance
 
 Visualize zap diversity as a pie chart or segmented ring within the agent node:
+
 - Many small slices from diverse sources = high diversity score (Sybil-resistant)
 - Few large slices from concentrated sources = low diversity (potentially gamed)
 - Color-code slices by social distance to show whether zaps come from close (1st-degree) or distant (3rd+ degree) peers
@@ -250,6 +262,7 @@ Visualize zap diversity as a pie chart or segmented ring within the agent node:
 ### NIP-51 Route Preferences and Mute Lists
 
 Provide a **Curator Panel** (accessible to agent operators) that displays:
+
 - **Trusted Routes (NIP-51 list)**: Agents explicitly preferred for routing, shown as highlighted edges in the graph
 - **Mute List**: Agents explicitly distrusted, shown as dimmed/hidden nodes (with toggle to reveal)
 - **Route Priority Editor**: Drag-and-drop reordering of preferred routing peers, with trust score context
@@ -263,6 +276,7 @@ Provide a **Curator Panel** (accessible to agent operators) that displays:
 **Description:** An ambient overlay on the social graph that encodes trust density as temperature (warm colors for high-trust clusters, cool colors for sparse trust) and payment flow as wind patterns (animated directional particles showing where money is flowing). Settlement activity creates "precipitation" — visible droplets when payments complete.
 
 **Technical Approach:**
+
 - Voronoi tessellation of the graph space, with each cell colored by average trust score of contained nodes
 - WebGL particle system for payment flow animation (particles follow edges, speed proportional to transaction frequency)
 - Subtle procedural animation for "weather" effects — the map feels alive even during low-activity periods
@@ -297,6 +311,7 @@ Provide a **Curator Panel** (accessible to agent operators) that displays:
 **Description:** An AI-curated narrative layer that transforms raw Nostr events into human-readable stories, published as Nostr events themselves. Instead of "kind:10032 event from npub1abc...", the timeline reads: "Your agent Alice discovered 3 new peers through Bob's follow list this morning. She initiated SPSP handshakes with all three, and Carol responded with favorable settlement terms. Alice's trust score for Carol increased from 0.62 to 0.78 as their first 5 payments settled successfully."
 
 **Technical Approach:**
+
 - Event aggregation engine groups related Nostr events into "story arcs" (discovery → handshake → settlement → trust update)
 - Template-based narrative generation with natural language patterns (no LLM required for v1)
 - Publish narratives as kind:1 (note) events tagged with the agent's pubkey, making them visible in any Nostr client
@@ -342,6 +357,7 @@ Provide a **Curator Panel** (accessible to agent operators) that displays:
 ### Framework: SvelteKit
 
 **Why SvelteKit over Next.js/React:**
+
 - NDK has first-class Svelte 5 support (`ndk-svelte`) with reactive runes that automatically update UI when Nostr events arrive
 - Svelte's compile-time reactivity handles high-frequency state updates more efficiently than React's reconciliation — critical when streaming hundreds of Nostr events per second
 - Coracle (the most technically advanced Nostr client) is built with Svelte, validating this choice for Nostr applications
@@ -350,11 +366,11 @@ Provide a **Curator Panel** (accessible to agent operators) that displays:
 
 ### Graph Visualization: Tiered Approach
 
-| Scale | Library | Rendering | Use Case |
-|-------|---------|-----------|----------|
-| < 500 nodes | Sigma.js + Graphology | WebGL | Default interactive view with ForceAtlas2 layout |
-| 500-100K nodes | cosmos.gl | WebGL (GPU compute) | Network-wide overview, zoom to cluster |
-| Focused subgraph | D3.js force simulation | SVG | Agent detail view showing 2-hop neighborhood |
+| Scale            | Library                | Rendering           | Use Case                                         |
+| ---------------- | ---------------------- | ------------------- | ------------------------------------------------ |
+| < 500 nodes      | Sigma.js + Graphology  | WebGL               | Default interactive view with ForceAtlas2 layout |
+| 500-100K nodes   | cosmos.gl              | WebGL (GPU compute) | Network-wide overview, zoom to cluster           |
+| Focused subgraph | D3.js force simulation | SVG                 | Agent detail view showing 2-hop neighborhood     |
 
 **Graphology** serves as the shared graph data structure — nodes and edges are managed in Graphology and rendered by whichever visualization layer is active.
 
@@ -375,6 +391,7 @@ For handling potentially thousands of real-time Nostr events:
 ### Nostr Library: NDK
 
 NDK (Nostr Development Kit) is preferred over raw nostr-tools because:
+
 - Outbox model support (routes events to the correct relays automatically using NIP-65)
 - Subscription reference counting (multiple components share subscriptions efficiently)
 - Svelte 5 reactive stores via `ndk-svelte`

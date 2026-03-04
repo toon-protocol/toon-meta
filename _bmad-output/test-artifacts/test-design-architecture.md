@@ -1,5 +1,12 @@
 ---
-stepsCompleted: ['step-01-detect-mode', 'step-02-load-context', 'step-03-risk-and-testability', 'step-04-coverage-plan', 'step-05-generate-output']
+stepsCompleted:
+  [
+    'step-01-detect-mode',
+    'step-02-load-context',
+    'step-03-risk-and-testability',
+    'step-04-coverage-plan',
+    'step-05-generate-output',
+  ]
 lastStep: 'step-05-generate-output'
 lastSaved: '2026-03-03'
 workflowType: 'testarch-test-design'
@@ -85,32 +92,32 @@ inputDocuments:
 
 #### High-Priority Risks (Score >=6) - IMMEDIATE ATTENTION
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
-|---------|----------|-------------|-------------|--------|-------|------------|-------|----------|
-| **R-001** | **TECH** | TOON pipeline stage ordering — verifying after full decode trusts the decode; pricing before verify allows payment for forged events | 2 | 3 | **9** | Document invariant in ADR; unit test stage ordering; integration test full pipeline | Architecture | Pre-impl |
-| **R-002** | **SEC** | Schnorr verification bypass — devMode toggle leaking to production skips all signature verification | 2 | 3 | **6** | Config-only toggle, default false, no env var override; unit test devMode=false enforcement | Dev | Story 1.4 |
-| **R-003** | **TECH** | TOON codec extraction regression — moving codec from BLS to core breaks encode/decode across packages | 2 | 3 | **6** | Roundtrip encode/decode tests in core; BLS + relay import validation after move | Dev | Story 1.0 |
-| **R-004** | **SEC** | Git command injection — Rig spawns git via child_process; unsanitized inputs enable shell injection | 2 | 3 | **6** | execFile only (no exec); input sanitization for paths, repo names, patch content | Dev | Epic 3 |
-| **R-005** | **DATA** | Payment channel state integrity — nonce conflicts, race conditions in on-chain operations can lock funds | 2 | 3 | **6** | Nonce retry logic; channel lifecycle integration tests against Anvil | Dev | Story 1.7 |
-| **R-006** | **TECH** | SDK replacement E2E regression — subtle pipeline differences break bootstrap/channels/publishing | 3 | 2 | **6** | Existing E2E test suite as SDK completion gate (Story 2.3) | Dev | Epic 2 |
+| Risk ID   | Category | Description                                                                                                                          | Probability | Impact | Score | Mitigation                                                                                  | Owner        | Timeline  |
+| --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------- | ------ | ----- | ------------------------------------------------------------------------------------------- | ------------ | --------- |
+| **R-001** | **TECH** | TOON pipeline stage ordering — verifying after full decode trusts the decode; pricing before verify allows payment for forged events | 2           | 3      | **9** | Document invariant in ADR; unit test stage ordering; integration test full pipeline         | Architecture | Pre-impl  |
+| **R-002** | **SEC**  | Schnorr verification bypass — devMode toggle leaking to production skips all signature verification                                  | 2           | 3      | **6** | Config-only toggle, default false, no env var override; unit test devMode=false enforcement | Dev          | Story 1.4 |
+| **R-003** | **TECH** | TOON codec extraction regression — moving codec from BLS to core breaks encode/decode across packages                                | 2           | 3      | **6** | Roundtrip encode/decode tests in core; BLS + relay import validation after move             | Dev          | Story 1.0 |
+| **R-004** | **SEC**  | Git command injection — Rig spawns git via child_process; unsanitized inputs enable shell injection                                  | 2           | 3      | **6** | execFile only (no exec); input sanitization for paths, repo names, patch content            | Dev          | Epic 3    |
+| **R-005** | **DATA** | Payment channel state integrity — nonce conflicts, race conditions in on-chain operations can lock funds                             | 2           | 3      | **6** | Nonce retry logic; channel lifecycle integration tests against Anvil                        | Dev          | Story 1.7 |
+| **R-006** | **TECH** | SDK replacement E2E regression — subtle pipeline differences break bootstrap/channels/publishing                                     | 3           | 2      | **6** | Existing E2E test suite as SDK completion gate (Story 2.3)                                  | Dev          | Epic 2    |
 
 #### Medium-Priority Risks (Score 3-5)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
-|---------|----------|-------------|-------------|--------|-------|------------|-------|
-| R-007 | TECH | ConnectorNodeLike structural typing drift — connector API changes break SDK silently at runtime | 2 | 2 | 4 | Integration test matching structural type against real connector | Dev |
-| R-008 | TECH | Transit semantics misrouting — isTransit flag swapped causes data loss or forwarding block | 1 | 3 | 3 | Unit tests for both fire-and-forget and await paths | Dev |
-| R-009 | OPS | Rig relay dependency — relay unavailability breaks issue/PR page rendering | 2 | 2 | 4 | Graceful degradation with error page; integration test with relay down | Dev |
-| R-010 | BUS | Self-write pricing bypass — pubkey format mismatch (hex vs npub) breaks free self-write | 1 | 3 | 3 | Unit test pubkey format normalization | Dev |
-| R-011 | TECH | BIP-39/NIP-06 derivation interop — derived keys incompatible with nostr-tools or ethers | 1 | 3 | 3 | Cross-library key derivation validation | Dev |
+| Risk ID | Category | Description                                                                                     | Probability | Impact | Score | Mitigation                                                             | Owner |
+| ------- | -------- | ----------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ---------------------------------------------------------------------- | ----- |
+| R-007   | TECH     | ConnectorNodeLike structural typing drift — connector API changes break SDK silently at runtime | 2           | 2      | 4     | Integration test matching structural type against real connector       | Dev   |
+| R-008   | TECH     | Transit semantics misrouting — isTransit flag swapped causes data loss or forwarding block      | 1           | 3      | 3     | Unit tests for both fire-and-forget and await paths                    | Dev   |
+| R-009   | OPS      | Rig relay dependency — relay unavailability breaks issue/PR page rendering                      | 2           | 2      | 4     | Graceful degradation with error page; integration test with relay down | Dev   |
+| R-010   | BUS      | Self-write pricing bypass — pubkey format mismatch (hex vs npub) breaks free self-write         | 1           | 3      | 3     | Unit test pubkey format normalization                                  | Dev   |
+| R-011   | TECH     | BIP-39/NIP-06 derivation interop — derived keys incompatible with nostr-tools or ethers         | 1           | 3      | 3     | Cross-library key derivation validation                                | Dev   |
 
 #### Low-Priority Risks (Score 1-2)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Action |
-|---------|----------|-------------|-------------|--------|-------|--------|
-| R-012 | BUS | Eta template port fidelity from Forgejo Go HTML | 1 | 2 | 2 | Monitor |
-| R-013 | DATA | SQLite repo metadata schema evolution (no migration strategy) | 1 | 2 | 2 | Monitor |
-| R-014 | OPS | Package ESM export configuration for npm publish | 1 | 1 | 1 | Monitor |
+| Risk ID | Category | Description                                                   | Probability | Impact | Score | Action  |
+| ------- | -------- | ------------------------------------------------------------- | ----------- | ------ | ----- | ------- |
+| R-012   | BUS      | Eta template port fidelity from Forgejo Go HTML               | 1           | 2      | 2     | Monitor |
+| R-013   | DATA     | SQLite repo metadata schema evolution (no migration strategy) | 1           | 2      | 2     | Monitor |
+| R-014   | OPS      | Package ESM export configuration for npm publish              | 1           | 1      | 1     | Monitor |
 
 ---
 
@@ -152,6 +159,7 @@ inputDocuments:
 #### R-001: TOON Pipeline Stage Ordering (Score: 9) - CRITICAL
 
 **Mitigation Strategy:**
+
 1. Document pipeline stage invariant in architecture as a non-negotiable ordering constraint
 2. Unit test each stage independently (shallow parse, verify, price, dispatch)
 3. Integration test full pipeline verifying stages execute in order
@@ -164,6 +172,7 @@ inputDocuments:
 #### R-002: Schnorr Verification Bypass (Score: 6)
 
 **Mitigation Strategy:**
+
 1. `devMode` config property defaults to `false`; no environment variable override
 2. Unit test: devMode=false + invalid signature = F06 rejection (handler never called)
 
@@ -175,6 +184,7 @@ inputDocuments:
 #### R-003: TOON Codec Extraction Regression (Score: 6)
 
 **Mitigation Strategy:**
+
 1. Roundtrip encode/decode test in `@crosstown/core` after extraction
 2. Run full `pnpm -r test` after codec move to verify no regressions
 
@@ -186,6 +196,7 @@ inputDocuments:
 #### R-004: Git Command Injection (Score: 6)
 
 **Mitigation Strategy:**
+
 1. All git operations use `child_process.execFile` (not `exec`)
 2. Input sanitization for repo names, paths, and patch content (reject shell metacharacters)
 3. Code review gate: no `child_process.exec` calls in `packages/rig/`
@@ -198,6 +209,7 @@ inputDocuments:
 #### R-005: Payment Channel State Integrity (Score: 6)
 
 **Mitigation Strategy:**
+
 1. Nonce retry logic for blockchain transaction conflicts
 2. Integration test: channel open -> deposit -> balance proof -> settle lifecycle against Anvil
 3. Test infrastructure: Anvil container with deterministic contract addresses + Faucet for wallet funding
@@ -210,6 +222,7 @@ inputDocuments:
 #### R-006: SDK Replacement E2E Regression (Score: 6)
 
 **Mitigation Strategy:**
+
 1. Existing `genesis-bootstrap-with-channels.test.ts` is the SDK completion gate
 2. SDK-based relay (Town) must pass all tests in this suite before Story 2.3 is marked done
 

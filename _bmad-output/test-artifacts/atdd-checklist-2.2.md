@@ -1,5 +1,12 @@
 ---
-stepsCompleted: ['step-01-preflight-and-context', 'step-02-generation-mode', 'step-03-test-strategy', 'step-04-generate-tests', 'step-05-validate-and-complete']
+stepsCompleted:
+  [
+    'step-01-preflight-and-context',
+    'step-02-generation-mode',
+    'step-03-test-strategy',
+    'step-04-generate-tests',
+    'step-05-validate-and-complete',
+  ]
 lastStep: 'step-05-validate-and-complete'
 lastSaved: '2026-03-04'
 workflowType: 'testarch-atdd'
@@ -102,6 +109,7 @@ SPSP request handling (kind:23194) is reimplemented as an SDK handler, enabling 
 **Justification:** Anvil blockchain not available in unit CI. Channel opening requires on-chain transactions.
 
 **Methods mocked:**
+
 - `openChannel(params)` — Returns `{ channelId, status: 'open' }`
 - `getChannelState(channelId)` — Returns `{ channelId, status: 'open', chain }`
 
@@ -110,6 +118,7 @@ SPSP request handling (kind:23194) is reimplemented as an SDK handler, enabling 
 **Justification:** Connector admin API not available in unit tests. Peer registration requires a running connector.
 
 **Methods mocked:**
+
 - `addPeer(config)` — Returns `undefined` (success)
 - `removePeer(id)` — Returns `undefined` (success)
 

@@ -16,6 +16,7 @@
 ## 17.3 Architecture Document Maintenance
 
 This document is sharded into focused files for dev agent consumption:
+
 - `docs/architecture/2-high-level-architecture.md` - Section 2
 - `docs/architecture/3-tech-stack.md` - Section 3
 - `docs/architecture/5-components.md` - Section 5

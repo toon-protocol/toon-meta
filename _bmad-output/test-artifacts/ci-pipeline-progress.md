@@ -1,5 +1,11 @@
 ---
-stepsCompleted: ['step-01-preflight', 'step-02-generate-pipeline', 'step-03-configure-quality-gates', 'step-04-validate-and-summary']
+stepsCompleted:
+  [
+    'step-01-preflight',
+    'step-02-generate-pipeline',
+    'step-03-configure-quality-gates',
+    'step-04-validate-and-summary',
+  ]
 lastStep: 'step-04-validate-and-summary'
 lastSaved: '2026-03-04'
 ---
@@ -18,25 +24,25 @@ lastSaved: '2026-03-04'
 
 ## Step 1: Preflight Results
 
-| Check | Result | Details |
-|-------|--------|---------|
-| Git repository | PASS | `.git/` exists, remote configured (github.com/ALLiDoizCode/crosstown) |
-| Test stack type | **backend** | No frontend indicators; Node.js monorepo with Vitest |
-| Test framework | **Vitest** | 6 configs detected (root unit, root integration, client unit, client e2e, core integration, docker) |
-| CI platform | **github-actions** | `.github/workflows/publish-bls.yml` exists |
-| Package manager | **pnpm** | `pnpm@8.15.0` (packageManager field) |
-| Node version | **>=20** | From `engines` in root package.json; no `.nvmrc` |
-| Existing CI | `publish-bls.yml` only | No test pipeline exists yet |
+| Check           | Result                 | Details                                                                                             |
+| --------------- | ---------------------- | --------------------------------------------------------------------------------------------------- |
+| Git repository  | PASS                   | `.git/` exists, remote configured (github.com/ALLiDoizCode/crosstown)                               |
+| Test stack type | **backend**            | No frontend indicators; Node.js monorepo with Vitest                                                |
+| Test framework  | **Vitest**             | 6 configs detected (root unit, root integration, client unit, client e2e, core integration, docker) |
+| CI platform     | **github-actions**     | `.github/workflows/publish-bls.yml` exists                                                          |
+| Package manager | **pnpm**               | `pnpm@8.15.0` (packageManager field)                                                                |
+| Node version    | **>=20**               | From `engines` in root package.json; no `.nvmrc`                                                    |
+| Existing CI     | `publish-bls.yml` only | No test pipeline exists yet                                                                         |
 
 ### Vitest Configuration Map
 
-| Config | Scope | Include Pattern | Timeout | Notes |
-|--------|-------|-----------------|---------|-------|
-| `vitest.config.ts` (root) | Unit | `packages/*/src/**/*.test.ts` | default | Excludes `__integration__/` |
-| `vitest.integration.config.ts` (root) | Integration | `packages/*/src/__integration__/**/*.test.ts` | 60s | All packages |
-| `packages/client/vitest.config.ts` | Client unit | `src/**/*.test.ts` | default | Package-scoped |
-| `packages/client/vitest.e2e.config.ts` | Client E2E | `tests/e2e/**/*.test.ts` | 30s | Requires genesis node |
-| `packages/core/vitest.integration.config.ts` | Core integration | `src/integration/**/*.test.ts` | 30s | Sequential (forks, singleFork) |
+| Config                                       | Scope            | Include Pattern                               | Timeout | Notes                          |
+| -------------------------------------------- | ---------------- | --------------------------------------------- | ------- | ------------------------------ |
+| `vitest.config.ts` (root)                    | Unit             | `packages/*/src/**/*.test.ts`                 | default | Excludes `__integration__/`    |
+| `vitest.integration.config.ts` (root)        | Integration      | `packages/*/src/__integration__/**/*.test.ts` | 60s     | All packages                   |
+| `packages/client/vitest.config.ts`           | Client unit      | `src/**/*.test.ts`                            | default | Package-scoped                 |
+| `packages/client/vitest.e2e.config.ts`       | Client E2E       | `tests/e2e/**/*.test.ts`                      | 30s     | Requires genesis node          |
+| `packages/core/vitest.integration.config.ts` | Core integration | `src/integration/**/*.test.ts`                | 30s     | Sequential (forks, singleFork) |
 
 ---
 
@@ -75,13 +81,13 @@ Nightly / manual:
 
 ### Stage Details
 
-| Stage | Trigger | Timeout | Dependencies | What It Tests |
-|-------|---------|---------|-------------|---------------|
-| lint-and-build | All | 10 min | None | ESLint + TypeScript compilation |
-| unit-tests | PR, push, manual | 10 min | lint-and-build | Pure functions: TOON codec, pricing calc, key derivation |
-| integration-tests | PR, push, manual | 15 min | lint-and-build | Component boundaries: real crypto, real TOON, ConnectorNodeLike |
-| e2e-tests | Nightly, push to main, manual | 30 min | lint-and-build | Full stack: genesis node, Anvil, relay, payment channels |
-| report | PR only | 5 min | unit + integration | GitHub Step Summary |
+| Stage             | Trigger                       | Timeout | Dependencies       | What It Tests                                                   |
+| ----------------- | ----------------------------- | ------- | ------------------ | --------------------------------------------------------------- |
+| lint-and-build    | All                           | 10 min  | None               | ESLint + TypeScript compilation                                 |
+| unit-tests        | PR, push, manual              | 10 min  | lint-and-build     | Pure functions: TOON codec, pricing calc, key derivation        |
+| integration-tests | PR, push, manual              | 15 min  | lint-and-build     | Component boundaries: real crypto, real TOON, ConnectorNodeLike |
+| e2e-tests         | Nightly, push to main, manual | 30 min  | lint-and-build     | Full stack: genesis node, Anvil, relay, payment channels        |
+| report            | PR only                       | 5 min   | unit + integration | GitHub Step Summary                                             |
 
 ### Key Design Decisions
 
@@ -97,12 +103,12 @@ Nightly / manual:
 
 ### Pass Rate Thresholds
 
-| Priority | Required Pass Rate | Enforcement |
-|----------|-------------------|-------------|
-| P0 (critical path) | 100% | CI blocks merge |
-| P1 (high priority) | 100% | CI blocks merge |
-| P2 (medium) | 95% | Warning in report |
-| P3 (low) | Best effort | Informational |
+| Priority           | Required Pass Rate | Enforcement       |
+| ------------------ | ------------------ | ----------------- |
+| P0 (critical path) | 100%               | CI blocks merge   |
+| P1 (high priority) | 100%               | CI blocks merge   |
+| P2 (medium)        | 95%                | Warning in report |
+| P3 (low)           | Best effort        | Informational     |
 
 ### Quality Gate Rules
 
@@ -114,6 +120,7 @@ Nightly / manual:
 ### Burn-In Decision
 
 **SKIPPED** — Backend-only stack rationale:
+
 - Unit tests are pure functions (TOON codec, pricing) — deterministic by nature
 - Integration tests use real crypto libraries (`nostr-tools`, `@scure/bip39`) — no timing flakiness
 - E2E tests have 30s timeout and run against stable Docker services
@@ -131,33 +138,33 @@ Nightly / manual:
 
 ### Checklist Results
 
-| Item | Status | Notes |
-|------|--------|-------|
-| CI file created | PASS | `.github/workflows/test.yml` |
-| YAML syntax valid | PASS | Standard GitHub Actions syntax |
-| Correct test commands | PASS | `pnpm test`, `pnpm vitest --config`, `pnpm test:e2e` |
-| Node version matches | PASS | `20` (matches `engines: >=20`) |
-| pnpm caching | PASS | `pnpm/action-setup@v4` + `setup-node` cache |
-| Build artifact caching | PASS | `actions/cache/save` + `actions/cache/restore` by SHA |
-| No browser install | PASS | Backend-only stack |
-| No burn-in | PASS | Backend-only (documented rationale) |
-| Concurrency control | PASS | `cancel-in-progress: true` per workflow+ref |
-| Failure artifacts | PASS | Uploaded for integration and E2E failures |
-| E2E service health checks | PASS | `curl` wait loops for BLS and Faucet |
-| Service logs on failure | PASS | Docker compose logs collected |
-| No secrets in config | PASS | No credentials hardcoded |
-| Triggers correct | PASS | push, PR, schedule, workflow_dispatch |
+| Item                      | Status | Notes                                                 |
+| ------------------------- | ------ | ----------------------------------------------------- |
+| CI file created           | PASS   | `.github/workflows/test.yml`                          |
+| YAML syntax valid         | PASS   | Standard GitHub Actions syntax                        |
+| Correct test commands     | PASS   | `pnpm test`, `pnpm vitest --config`, `pnpm test:e2e`  |
+| Node version matches      | PASS   | `20` (matches `engines: >=20`)                        |
+| pnpm caching              | PASS   | `pnpm/action-setup@v4` + `setup-node` cache           |
+| Build artifact caching    | PASS   | `actions/cache/save` + `actions/cache/restore` by SHA |
+| No browser install        | PASS   | Backend-only stack                                    |
+| No burn-in                | PASS   | Backend-only (documented rationale)                   |
+| Concurrency control       | PASS   | `cancel-in-progress: true` per workflow+ref           |
+| Failure artifacts         | PASS   | Uploaded for integration and E2E failures             |
+| E2E service health checks | PASS   | `curl` wait loops for BLS and Faucet                  |
+| Service logs on failure   | PASS   | Docker compose logs collected                         |
+| No secrets in config      | PASS   | No credentials hardcoded                              |
+| Triggers correct          | PASS   | push, PR, schedule, workflow_dispatch                 |
 
 ### Performance Estimates
 
-| Stage | Estimated Duration | Budget |
-|-------|-------------------|--------|
-| lint-and-build | ~3 min | 10 min |
-| unit-tests | ~2 min | 10 min |
-| integration-tests | ~5 min | 15 min |
-| e2e-tests (nightly) | ~10 min | 30 min |
-| **Total (PR)** | **~7 min** (parallel unit + integration) | 15 min |
-| **Total (nightly)** | **~13 min** (parallel all 3) | 30 min |
+| Stage               | Estimated Duration                       | Budget |
+| ------------------- | ---------------------------------------- | ------ |
+| lint-and-build      | ~3 min                                   | 10 min |
+| unit-tests          | ~2 min                                   | 10 min |
+| integration-tests   | ~5 min                                   | 15 min |
+| e2e-tests (nightly) | ~10 min                                  | 30 min |
+| **Total (PR)**      | **~7 min** (parallel unit + integration) | 15 min |
+| **Total (nightly)** | **~13 min** (parallel all 3)             | 30 min |
 
 ### Next Steps for User
 
@@ -169,9 +176,9 @@ Nightly / manual:
 
 ### Files Created
 
-| File | Purpose |
-|------|---------|
-| `.github/workflows/test.yml` | GitHub Actions test pipeline |
+| File                                                  | Purpose                                |
+| ----------------------------------------------------- | -------------------------------------- |
+| `.github/workflows/test.yml`                          | GitHub Actions test pipeline           |
 | `_bmad-output/test-artifacts/ci-pipeline-progress.md` | This document (CI setup documentation) |
 
 ---

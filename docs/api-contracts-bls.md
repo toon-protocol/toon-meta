@@ -17,6 +17,7 @@ ILP payment verification for Nostr event storage.
 **See:** [api-contracts-relay.md](./api-contracts-relay.md#post-handle-packet) for complete endpoint documentation.
 
 **Summary:**
+
 - Accepts ILP packet with base64-encoded TOON Nostr event
 - Validates payment amount against event size
 - Stores event if payment sufficient
@@ -29,6 +30,7 @@ ILP payment verification for Nostr event storage.
 Health check endpoint.
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -56,11 +58,13 @@ Health check endpoint.
 ### Environment Variables
 
 **Required:**
+
 - `NODE_ID` - Unique node identifier
 - `NOSTR_SECRET_KEY` - 64-char hex Nostr secret key
 - `ILP_ADDRESS` - ILP address (format: `g.domain.subdomain`)
 
 **Optional:**
+
 - `BLS_PORT` - HTTP port (default: 3100)
 - `BLS_BASE_PRICE_PER_BYTE` - Base price per byte (default: 10)
 - `OWNER_PUBKEY` - Owner pubkey for self-write bypass
@@ -80,10 +84,10 @@ const { app, start, stop } = createBlsServer({
   basePricePerByte: 100n,
   ownerPubkey: 'abc123...',
   dbPath: './events.db',
-  spspMinPrice: 0n,  // Free SPSP requests
+  spspMinPrice: 0n, // Free SPSP requests
 });
 
-start(3100);  // Start on port 3100
+start(3100); // Start on port 3100
 ```
 
 ---

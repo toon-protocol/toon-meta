@@ -10,6 +10,7 @@ We're implementing the proper Nostr SPSP bootstrap flow for the Crosstown multi-
 ## Architecture
 
 ### Current (Manual) Approach ❌
+
 ```
 User → HTTP Admin API → Register Peers → Add BTP Secrets to ENV
 ```
@@ -19,6 +20,7 @@ User → HTTP Admin API → Register Peers → Add BTP Secrets to ENV
 - Bypasses the Nostr/SPSP layer entirely
 
 ### Target (Nostr SPSP) Approach ✅
+
 ```
 Genesis Peer → Publish kind:10032 → Nostr Relay
                                        ↓
@@ -78,7 +80,9 @@ Joiner Peer → Register Peer with Connector Admin API (using sharedSecret from 
 ## Bootstrap Flow Detail
 
 ### Phase 1: Discovery
+
 1. Genesis peer starts, publishes kind:10032 to Nostr relay:
+
    ```json
    {
      "kind": 10032,
@@ -97,7 +101,9 @@ Joiner Peer → Register Peer with Connector Admin API (using sharedSecret from 
 3. BootstrapService discovers genesis peer from event
 
 ### Phase 2: Handshake (SPSP)
+
 1. Joiner sends SPSP request (kind:23194) to genesis peer's ILP address
+
    ```typescript
    {
      kind: 23194,
@@ -115,6 +121,7 @@ Joiner Peer → Register Peer with Connector Admin API (using sharedSecret from 
 2. Genesis receives SPSP request, decrypts it
 3. Genesis negotiates settlement chain and opens payment channel
 4. Genesis responds with SPSP response (kind:23195):
+
    ```typescript
    {
      kind: 23195,
@@ -154,23 +161,25 @@ Joiner Peer → Register Peer with Connector Admin API (using sharedSecret from 
    ```
 
 ### Phase 3: Announce
+
 1. Joiner publishes own kind:10032 event to relay
 2. Genesis and other peers discover new joiner
 3. Network forms mesh topology
 
 ## Key Differences from Manual Approach
 
-| Aspect | Manual | Nostr SPSP |
-|--------|--------|------------|
-| **Peer Discovery** | Hardcoded in docker-compose | Automatic via Nostr relay |
-| **Shared Secret** | ENV variable `BTP_PEER_X_SECRET` | Exchanged via SPSP (kind:23195) |
-| **Payment Channels** | Manual HTTP POST to /admin/channels | Automatic during SPSP handshake |
-| **Connector Registration** | Manual HTTP POST to /admin/peers | Automatic after SPSP response |
-| **Scalability** | Must update all configs to add peer | New peer joins by connecting to relay |
+| Aspect                     | Manual                              | Nostr SPSP                            |
+| -------------------------- | ----------------------------------- | ------------------------------------- |
+| **Peer Discovery**         | Hardcoded in docker-compose         | Automatic via Nostr relay             |
+| **Shared Secret**          | ENV variable `BTP_PEER_X_SECRET`    | Exchanged via SPSP (kind:23195)       |
+| **Payment Channels**       | Manual HTTP POST to /admin/channels | Automatic during SPSP handshake       |
+| **Connector Registration** | Manual HTTP POST to /admin/peers    | Automatic after SPSP response         |
+| **Scalability**            | Must update all configs to add peer | New peer joins by connecting to relay |
 
 ## Environment Variables
 
 ### Genesis Peer (peer1)
+
 ```bash
 NODE_ID=peer1
 NOSTR_SECRET_KEY=d5c4f02f7c0f9c8e7a6b5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a
@@ -189,6 +198,7 @@ BTP_SECRET=crosstown-network-secret-2026
 ```
 
 ### Joiner Peer (peer2)
+
 ```bash
 NODE_ID=peer2
 NOSTR_SECRET_KEY=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2
@@ -219,6 +229,7 @@ BTP_SECRET=crosstown-network-secret-2026
 ## Files Created/Modified
 
 ### New Files
+
 - `packages/core/src/bootstrap/http-connector-admin.ts`
 - `packages/core/src/bootstrap/http-runtime-client.ts`
 - `packages/core/src/bootstrap/http-channel-client.ts`
@@ -226,6 +237,7 @@ BTP_SECRET=crosstown-network-secret-2026
 - `test-btp-network-settlement.mjs` (test script)
 
 ### Modified Files
+
 - `packages/core/src/bootstrap/index.ts` (added HTTP client exports)
 - `docker-compose-multi-peer.yml` (added BTP_PEER_X_SECRET env vars - to be removed once bootstrap works)
 

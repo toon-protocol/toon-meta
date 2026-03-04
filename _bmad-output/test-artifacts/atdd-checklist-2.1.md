@@ -1,5 +1,12 @@
 ---
-stepsCompleted: ['step-01-preflight-and-context', 'step-02-generation-mode', 'step-03-test-strategy', 'step-04-generate-tests', 'step-05-validate-and-complete']
+stepsCompleted:
+  [
+    'step-01-preflight-and-context',
+    'step-02-generation-mode',
+    'step-03-test-strategy',
+    'step-04-generate-tests',
+    'step-05-validate-and-complete',
+  ]
 lastStep: 'step-05-validate-and-complete'
 lastSaved: '2026-03-04'
 workflowType: 'testarch-atdd'
@@ -89,7 +96,7 @@ The relay BLS is reimplemented as an SDK handler that stores Nostr events via th
 - `createValidSignedEvent(overrides?, secretKey?)` — Create properly signed Nostr event using real nostr-tools
 - `eventToBase64Toon(event)` — Encode event to base64 TOON wire format
 - `createPacketRequest(event, amount, destination?)` — Build HandlePacketRequest
-- `calculatePrice(event, basePricePerByte)` — Compute exact price (toonBytes.length * basePricePerByte)
+- `calculatePrice(event, basePricePerByte)` — Compute exact price (toonBytes.length \* basePricePerByte)
 
 ---
 
@@ -106,6 +113,7 @@ N/A — Tests use inline setup/teardown with `beforeEach`/`afterEach`. SQLite :m
 The `createEventStorageHandler()` function from `@crosstown/sdk` abstracts the connector transport. The handler receives a `HandlePacketRequest` directly — no HTTP or WebSocket transport mock is needed.
 
 **No external service mocks required.** Tests use:
+
 - Real SQLite :memory: (EventStore)
 - Real TOON codec (encodeEventToToon/decodeEventFromToon from @crosstown/relay)
 - Real nostr-tools signatures (generateSecretKey/getPublicKey/finalizeEvent)

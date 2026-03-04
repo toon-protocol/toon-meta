@@ -5,6 +5,7 @@
 Investigate and recommend the optimal technical architecture for building an **ElizaOS plugin** (`@elizaos/plugin-crosstown` or `@crosstown/elizaos-plugin`) that wraps the **Crosstown protocol** — enabling any ElizaOS-powered AI agent to participate in Nostr-based ILP payment networks with social-graph-driven peer discovery, trust derivation, and micropayment routing.
 
 The research must produce:
+
 1. A detailed plugin architecture mapping Crosstown's capabilities to ElizaOS's component model (Actions, Providers, Services, Evaluators, Events, Routes)
 2. A concrete implementation plan showing how ElizaOS agents gain Nostr identity, discover ILP peers, negotiate SPSP handshakes, compute trust scores, and route payments — all through natural agent conversation and autonomous decision-making
 3. Analysis of how Crosstown's 5-phase bootstrap process maps to ElizaOS's agent lifecycle
@@ -21,6 +22,7 @@ The goal is to make the Interledger Protocol accessible to any ElizaOS agent thr
 **Nature:** TypeScript monorepo library bridging Nostr and Interledger Protocol (ILP)
 
 **Core Architecture:**
+
 - Monorepo (pnpm workspace): `packages/core` (protocol library), `packages/bls` (Business Logic Server), `packages/relay` (ILP-gated Nostr relay), `packages/examples`, `packages/ui-prototypes`
 - Built on `nostr-tools 2.20.0`, `better-sqlite3`, `hono 4.x`, `@toon-format/toon`
 - Node.js 20+, TypeScript, ESM output via `tsup`
@@ -39,7 +41,7 @@ The goal is to make the Interledger Protocol accessible to any ElizaOS agent thr
    - Phase 3: `handshaking` → SPSP via ILP packets for settlement negotiation
    - Phase 4: `announcing` → Publish own kind:10032 as paid ILP PREPARE
    - Phase 5: `ready` → Signal bootstrap complete
-   Emits typed events: `bootstrap:phase`, `bootstrap:peer-registered`, `bootstrap:channel-opened`, `bootstrap:handshake-failed`, `bootstrap:announced`, `bootstrap:ready`.
+     Emits typed events: `bootstrap:phase`, `bootstrap:peer-registered`, `bootstrap:channel-opened`, `bootstrap:handshake-failed`, `bootstrap:announced`, `bootstrap:ready`.
 
 5. **ILP-Gated Relay** (`NostrRelayServer` + `BusinessLogicServer`) — Pay-to-write Nostr relay. Events encoded to TOON format, sent as ILP PREPARE packet data. BLS verifies payment amount against pricing service, stores event, returns fulfillment (SHA256 of eventId). Free reads via standard NIP-01 WebSocket queries.
 
@@ -52,35 +54,44 @@ The goal is to make the Interledger Protocol accessible to any ElizaOS agent thr
 
 ```typescript
 interface IlpPeerInfo {
-  ilpAddress: string;           // e.g., "g.agent.alice"
-  btpEndpoint: string;          // WebSocket URL
-  assetCode: string;            // e.g., "USD"
-  assetScale: number;           // Decimal places
-  supportedChains: string[];    // e.g., ["evm:base:8453", "xrp:mainnet"]
+  ilpAddress: string; // e.g., "g.agent.alice"
+  btpEndpoint: string; // WebSocket URL
+  assetCode: string; // e.g., "USD"
+  assetScale: number; // Decimal places
+  supportedChains: string[]; // e.g., ["evm:base:8453", "xrp:mainnet"]
   settlementAddresses: Record<string, string>;
   preferredTokens: Record<string, string>;
   tokenNetworks: Record<string, string>;
 }
 
 interface TrustScore {
-  score: number;                // 0-1 normalized
-  socialDistance: number;        // Hops in follow graph
+  score: number; // 0-1 normalized
+  socialDistance: number; // Hops in follow graph
   mutualFollowerCount: number;
-  breakdown: { socialDistanceScore, mutualFollowersScore, reputationScore };
+  breakdown: { socialDistanceScore; mutualFollowersScore; reputationScore };
 }
 
 interface SpspInfo {
-  destinationAccount: string;   // ILP address to send to
-  sharedSecret: string;         // Base64-encoded STREAM secret
+  destinationAccount: string; // ILP address to send to
+  sharedSecret: string; // Base64-encoded STREAM secret
 }
 
 // Client interfaces for connector integration
-interface ConnectorAdminClient { addPeer(config): Promise<void>; removePeer(peerId): Promise<void>; }
-interface AgentRuntimeClient { sendIlpPrepare(prepare): Promise<IlpReply>; }
-interface ConnectorChannelClient { openChannel(params): Promise<OpenChannelResult>; getChannelState(channelId): Promise<ChannelState>; }
+interface ConnectorAdminClient {
+  addPeer(config): Promise<void>;
+  removePeer(peerId): Promise<void>;
+}
+interface AgentRuntimeClient {
+  sendIlpPrepare(prepare): Promise<IlpReply>;
+}
+interface ConnectorChannelClient {
+  openChannel(params): Promise<OpenChannelResult>;
+  getChannelState(channelId): Promise<ChannelState>;
+}
 ```
 
 **Known Integration Gaps (as of Feb 2026):**
+
 - `ConnectorChannelClient` implementation incomplete
 - BLS `/handle-payment` doesn't wire settlement negotiation end-to-end
 - `NostrSpspServer` not fully configured with settlement params in entrypoint
@@ -122,6 +133,7 @@ interface ConnectorChannelClient { openChannel(params): Promise<OpenChannelResul
    6. Storage → Memories persist with embeddings
 
 5. **Key Interfaces:**
+
 ```typescript
 interface Plugin {
   name: string;
@@ -130,7 +142,7 @@ interface Plugin {
   init?: (config: any, runtime: IAgentRuntime) => Promise<void>;
   actions?: Action[];
   providers?: Provider[];
-  services?: typeof Service[];
+  services?: (typeof Service)[];
   evaluators?: Evaluator[];
 }
 
@@ -155,6 +167,7 @@ interface IAgentRuntime {
 ### Project 3: Existing ElizaOS Plugin Patterns (Reference)
 
 **plugin-babylon** (https://github.com/elizaos-plugins/plugin-babylon/) — ElizaOS plugin for Babylon prediction markets. Demonstrates:
+
 - 14 actions for trading, social posting, market analysis
 - 14+ providers for multi-resolution data reads
 - 2 services for background monitoring
@@ -249,6 +262,7 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 ### Information Sources
 
 **Primary Sources (Highest Priority):**
+
 - ElizaOS official documentation: https://docs.elizaos.ai/
 - ElizaOS full documentation for LLMs: https://docs.elizaos.ai/llms-full.txt
 - ElizaOS GitHub repository: https://github.com/elizaOS/eliza
@@ -256,6 +270,7 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 - Existing ElizaOS plugins (plugin-babylon as reference architecture)
 
 **Secondary Sources:**
+
 - Nostr protocol NIPs repository: https://github.com/nostr-protocol/nips
 - Interledger Protocol specifications: https://interledger.org/developers/rfcs/
 - ElizaOS plugin development guides and examples
@@ -263,6 +278,7 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 - SPSP specification: RFC-0009
 
 **Tertiary Sources:**
+
 - Agent-to-agent payment protocol research
 - Autonomous agent economy design patterns
 - Social graph-based trust systems in distributed networks
@@ -287,6 +303,7 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 ## Expected Deliverables
 
 ### Executive Summary
+
 - Key findings on architectural fit between Crosstown and ElizaOS
 - Critical integration challenges and recommended solutions
 - Top 3 highest-value capabilities the plugin would unlock
@@ -295,12 +312,14 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 ### Detailed Analysis
 
 #### 1. Plugin Architecture Specification
+
 - Complete component inventory (Actions, Providers, Services, Evaluators, Events, Routes)
 - For each component: name, description, inputs/outputs, Crosstown classes used, ElizaOS interfaces implemented
 - Dependency graph between components
 - Configuration schema (Character settings, environment variables, secrets)
 
 #### 2. Integration Architecture
+
 - Data flow diagrams for key user stories:
   - Agent bootstrap into ILP network
   - Agent discovers and evaluates a new peer
@@ -311,6 +330,7 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 - State management design (what lives in ElizaOS memory vs Crosstown state)
 
 #### 3. Implementation Roadmap
+
 - Phase 1: Core infrastructure (Service + identity + bootstrap)
 - Phase 2: Basic operations (peer discovery Provider + trust Provider + pay Action)
 - Phase 3: Full SPSP flow (SPSP Actions + settlement negotiation)
@@ -320,18 +340,21 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 - Dependencies between phases
 
 #### 4. Character Configuration Guide
+
 - Template Character configs for ILP-enabled agents
 - Required plugins, settings, and secrets
 - Example knowledge bases for payment-aware agents
 - Personality trait recommendations for different agent archetypes
 
 #### 5. Risk Assessment
+
 - Technical risks (API compatibility, performance, reliability)
 - Architectural risks (tight coupling, version drift, breaking changes)
 - Operational risks (key management, relay dependency, settlement failures)
 - Mitigation strategies for each identified risk
 
 ### Supporting Materials
+
 - Component mapping matrix (Crosstown → ElizaOS)
 - Interface adapter specifications
 - Configuration reference table
@@ -349,16 +372,19 @@ This plugin serves as a reference architecture for complex ElizaOS integrations.
 ## Timeline and Priority
 
 **Highest Priority:**
+
 - Plugin architecture specification (Actions, Services, Providers mapping)
 - Bootstrap lifecycle integration design
 - Payment action end-to-end flow
 
 **Medium Priority:**
+
 - Trust-informed decision making patterns
 - Memory and state management design
 - Character configuration templates
 
 **Lower Priority (but important for completeness):**
+
 - Multi-agent mesh networking
 - Autonomous behavior patterns
 - Performance and scalability analysis

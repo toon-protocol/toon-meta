@@ -1,5 +1,12 @@
 ---
-stepsCompleted: ['step-01-detect-mode', 'step-02-load-context', 'step-03-risk-and-testability', 'step-04-coverage-plan', 'step-05-generate-output']
+stepsCompleted:
+  [
+    'step-01-detect-mode',
+    'step-02-load-context',
+    'step-03-risk-and-testability',
+    'step-04-coverage-plan',
+    'step-05-generate-output',
+  ]
 lastStep: 'step-05-generate-output'
 lastSaved: '2026-03-04'
 ---
@@ -33,13 +40,13 @@ lastSaved: '2026-03-04'
 
 ## Not in Scope
 
-| Item | Reasoning | Mitigation |
-|------|-----------|------------|
-| **Admin panels / user settings** | Template port scope excludes non-code-browsing Forgejo features | Not needed — Nostr pubkey identity replaces user management |
-| **OAuth / notification system** | Forgejo features irrelevant to Nostr-native identity model | Pubkey-based auth handles all access control |
-| **Performance / load testing** | Rig is single-tenant, low-concurrency service; no SLA targets defined | Monitor in production; add k6 tests if usage grows |
-| **Multi-relay redundancy** | Deferred per architecture (post-MVP enhancement) | Single relay dependency is an accepted trade-off |
-| **E2E tests (full Rig + ILP)** | Requires deployed SDK + connector + relay infrastructure not yet available | Integration tests with real git + SQLite :memory: cover handler flows; E2E deferred to post-Epic 3 |
+| Item                             | Reasoning                                                                  | Mitigation                                                                                         |
+| -------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Admin panels / user settings** | Template port scope excludes non-code-browsing Forgejo features            | Not needed — Nostr pubkey identity replaces user management                                        |
+| **OAuth / notification system**  | Forgejo features irrelevant to Nostr-native identity model                 | Pubkey-based auth handles all access control                                                       |
+| **Performance / load testing**   | Rig is single-tenant, low-concurrency service; no SLA targets defined      | Monitor in production; add k6 tests if usage grows                                                 |
+| **Multi-relay redundancy**       | Deferred per architecture (post-MVP enhancement)                           | Single relay dependency is an accepted trade-off                                                   |
+| **E2E tests (full Rig + ILP)**   | Requires deployed SDK + connector + relay infrastructure not yet available | Integration tests with real git + SQLite :memory: cover handler flows; E2E deferred to post-Epic 3 |
 
 ---
 
@@ -47,31 +54,31 @@ lastSaved: '2026-03-04'
 
 ### High-Priority Risks (Score >=6)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
-|---------|----------|-------------|-------------|--------|-------|------------|-------|----------|
-| E3-R001 | SEC | Git command injection — all git operations use `child_process` with inputs from Nostr events. Using `exec` instead of `execFile` enables shell injection. | 2 | 3 | 6 | `execFile` only; input sanitization; reject shell metacharacters; lint rule blocking `exec` in `packages/rig/` | Dev | Stories 3.1-3.4 |
-| E3-R002 | SEC | Authorization bypass in PR lifecycle — maintainer permission checks rely on kind:30617 maintainer tags. Stale/spoofed events could grant unauthorized merge/close. | 2 | 3 | 6 | Verify maintainer list from freshest kind:30617 event; reject unauthorized pubkeys with F06 | Dev | Story 3.6 |
-| E3-R003 | SEC | Path traversal in git operations — repo names and file paths from NIP-34 events could escape `repoDir` (e.g., `../../etc/passwd`). | 2 | 3 | 6 | `path.resolve()` + verify within `repoDir`; reject `../` in names/paths | Dev | Stories 3.1, 3.4, 3.8 |
-| E3-R004 | SEC | XSS via Nostr event content — issue bodies, comments, PR descriptions rendered in Eta templates. Unescaped content enables stored XSS. | 2 | 3 | 6 | Eta auto-escape; sanitize markdown; CSP headers on Express | Dev | Stories 3.7-3.11 |
-| E3-R005 | TECH | Malformed patch crashes git backend — patches from arbitrary Nostr events may be malformed, causing `git am`/`git apply` to fail or hang. | 3 | 2 | 6 | Timeout on child_process; catch git errors → `ctx.reject('F00')`; test with malformed inputs | Dev | Story 3.2 |
+| Risk ID | Category | Description                                                                                                                                                        | Probability | Impact | Score | Mitigation                                                                                                     | Owner | Timeline              |
+| ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- | ------ | ----- | -------------------------------------------------------------------------------------------------------------- | ----- | --------------------- |
+| E3-R001 | SEC      | Git command injection — all git operations use `child_process` with inputs from Nostr events. Using `exec` instead of `execFile` enables shell injection.          | 2           | 3      | 6     | `execFile` only; input sanitization; reject shell metacharacters; lint rule blocking `exec` in `packages/rig/` | Dev   | Stories 3.1-3.4       |
+| E3-R002 | SEC      | Authorization bypass in PR lifecycle — maintainer permission checks rely on kind:30617 maintainer tags. Stale/spoofed events could grant unauthorized merge/close. | 2           | 3      | 6     | Verify maintainer list from freshest kind:30617 event; reject unauthorized pubkeys with F06                    | Dev   | Story 3.6             |
+| E3-R003 | SEC      | Path traversal in git operations — repo names and file paths from NIP-34 events could escape `repoDir` (e.g., `../../etc/passwd`).                                 | 2           | 3      | 6     | `path.resolve()` + verify within `repoDir`; reject `../` in names/paths                                        | Dev   | Stories 3.1, 3.4, 3.8 |
+| E3-R004 | SEC      | XSS via Nostr event content — issue bodies, comments, PR descriptions rendered in Eta templates. Unescaped content enables stored XSS.                             | 2           | 3      | 6     | Eta auto-escape; sanitize markdown; CSP headers on Express                                                     | Dev   | Stories 3.7-3.11      |
+| E3-R005 | TECH     | Malformed patch crashes git backend — patches from arbitrary Nostr events may be malformed, causing `git am`/`git apply` to fail or hang.                          | 3           | 2      | 6     | Timeout on child_process; catch git errors → `ctx.reject('F00')`; test with malformed inputs                   | Dev   | Story 3.2             |
 
 ### Medium-Priority Risks (Score 3-4)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
-|---------|----------|-------------|-------------|--------|-------|------------|-------|
-| E3-R006 | TECH | Relay unavailability breaks issue/PR pages — Rig queries relay at render time with no cache | 2 | 2 | 4 | Graceful degradation with "relay unavailable" message | Dev |
-| E3-R007 | DATA | NIP-34 event validation — malformed events with missing `a` tags or invalid repo references | 2 | 2 | 4 | Validate required tags before processing; reject with F00 | Dev |
-| E3-R008 | TECH | Express route conflicts — overlapping patterns between repo, git-backend, and issues routes | 2 | 2 | 4 | Route mounting order; integration test all patterns | Dev |
-| E3-R009 | DATA | SQLite repo metadata concurrent writes during simultaneous repo creation | 1 | 3 | 3 | better-sqlite3 WAL mode; serialize writes | Dev |
-| E3-R010 | OPS | Git binary missing at runtime — startup check skipped or version incompatible | 1 | 3 | 3 | Startup verification with version check; exit with clear error | Dev |
+| Risk ID | Category | Description                                                                                 | Probability | Impact | Score | Mitigation                                                     | Owner |
+| ------- | -------- | ------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | -------------------------------------------------------------- | ----- |
+| E3-R006 | TECH     | Relay unavailability breaks issue/PR pages — Rig queries relay at render time with no cache | 2           | 2      | 4     | Graceful degradation with "relay unavailable" message          | Dev   |
+| E3-R007 | DATA     | NIP-34 event validation — malformed events with missing `a` tags or invalid repo references | 2           | 2      | 4     | Validate required tags before processing; reject with F00      | Dev   |
+| E3-R008 | TECH     | Express route conflicts — overlapping patterns between repo, git-backend, and issues routes | 2           | 2      | 4     | Route mounting order; integration test all patterns            | Dev   |
+| E3-R009 | DATA     | SQLite repo metadata concurrent writes during simultaneous repo creation                    | 1           | 3      | 3     | better-sqlite3 WAL mode; serialize writes                      | Dev   |
+| E3-R010 | OPS      | Git binary missing at runtime — startup check skipped or version incompatible               | 1           | 3      | 3     | Startup verification with version check; exit with clear error | Dev   |
 
 ### Low-Priority Risks (Score 1-2)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Action |
-|---------|----------|-------------|-------------|--------|-------|--------|
-| E3-R011 | BUS | Eta template port fidelity — rendering differences from Forgejo Go HTML | 1 | 2 | 2 | Monitor |
-| E3-R012 | OPS | Package ESM/CLI/Docker configuration | 1 | 1 | 1 | Monitor |
-| E3-R013 | BUS | Pubkey profile enrichment failures — kind:0 fetch fails to truncated npub fallback | 1 | 1 | 1 | Monitor |
+| Risk ID | Category | Description                                                                        | Probability | Impact | Score | Action  |
+| ------- | -------- | ---------------------------------------------------------------------------------- | ----------- | ------ | ----- | ------- |
+| E3-R011 | BUS      | Eta template port fidelity — rendering differences from Forgejo Go HTML            | 1           | 2      | 2     | Monitor |
+| E3-R012 | OPS      | Package ESM/CLI/Docker configuration                                               | 1           | 1      | 1     | Monitor |
+| E3-R013 | BUS      | Pubkey profile enrichment failures — kind:0 fetch fails to truncated npub fallback | 1           | 1      | 1     | Monitor |
 
 ### Risk Category Legend
 
@@ -110,19 +117,19 @@ lastSaved: '2026-03-04'
 
 **Criteria:** Blocks core write path + High risk (>=6) + No workaround. Security mitigations are non-negotiable.
 
-| Test ID | Requirement | Test Level | Risk Link | Notes |
-|---------|-------------|-----------|-----------|-------|
-| 3.1-UNIT-001 | All git operations use `execFile`, never `exec` | Unit | E3-R001 | Verify function signatures in git/operations.ts |
-| 3.1-UNIT-002 | Path traversal rejected in repo names | Unit | E3-R003 | `../`, absolute paths, null bytes, shell metacharacters |
-| 3.2-UNIT-001 | Malformed patch → `ctx.reject('F00')` | Unit | E3-R005 | Empty, binary, oversized, timeout |
-| 3.2-UNIT-002 | Patch path traversal — diff referencing outside repo | Unit | E3-R003 | `diff --git a/../../etc/passwd` |
-| 3.4-UNIT-001 | HTTP push (receive-pack) rejected | Unit | E3-R001 | Only upload-pack allowed |
-| 3.5-UNIT-001 | Unauthorized pubkey → `ctx.reject('F06')` | Unit | E3-R002 | Non-maintainer merge/close blocked |
-| 3.6-UNIT-001 | Merge only by maintainer pubkeys from kind:30617 | Unit | E3-R002 | Maintainer list lookup + rejection |
-| 3.11-UNIT-001 | XSS payloads escaped in Eta templates | Unit | E3-R004 | `<script>`, `onerror=`, `javascript:` in content |
-| 3.1-INT-001 | Repo creation: kind:30617 → `git init --bare` → SQLite | Integration | E3-R001 | Real git + SQLite :memory: |
-| 3.2-INT-001 | Patch application: kind:1617 → `git am` succeeds | Integration | E3-R005 | Real git repo on disk |
-| 3.6-INT-001 | PR merge: kind:1631 → `git merge` on target branch | Integration | E3-R002 | Authorized maintainer merge |
+| Test ID       | Requirement                                            | Test Level  | Risk Link | Notes                                                   |
+| ------------- | ------------------------------------------------------ | ----------- | --------- | ------------------------------------------------------- |
+| 3.1-UNIT-001  | All git operations use `execFile`, never `exec`        | Unit        | E3-R001   | Verify function signatures in git/operations.ts         |
+| 3.1-UNIT-002  | Path traversal rejected in repo names                  | Unit        | E3-R003   | `../`, absolute paths, null bytes, shell metacharacters |
+| 3.2-UNIT-001  | Malformed patch → `ctx.reject('F00')`                  | Unit        | E3-R005   | Empty, binary, oversized, timeout                       |
+| 3.2-UNIT-002  | Patch path traversal — diff referencing outside repo   | Unit        | E3-R003   | `diff --git a/../../etc/passwd`                         |
+| 3.4-UNIT-001  | HTTP push (receive-pack) rejected                      | Unit        | E3-R001   | Only upload-pack allowed                                |
+| 3.5-UNIT-001  | Unauthorized pubkey → `ctx.reject('F06')`              | Unit        | E3-R002   | Non-maintainer merge/close blocked                      |
+| 3.6-UNIT-001  | Merge only by maintainer pubkeys from kind:30617       | Unit        | E3-R002   | Maintainer list lookup + rejection                      |
+| 3.11-UNIT-001 | XSS payloads escaped in Eta templates                  | Unit        | E3-R004   | `<script>`, `onerror=`, `javascript:` in content        |
+| 3.1-INT-001   | Repo creation: kind:30617 → `git init --bare` → SQLite | Integration | E3-R001   | Real git + SQLite :memory:                              |
+| 3.2-INT-001   | Patch application: kind:1617 → `git am` succeeds       | Integration | E3-R005   | Real git repo on disk                                   |
+| 3.6-INT-001   | PR merge: kind:1631 → `git merge` on target branch     | Integration | E3-R002   | Authorized maintainer merge                             |
 
 **Total P0**: 11 tests, ~20-35 hours
 
@@ -130,21 +137,21 @@ lastSaved: '2026-03-04'
 
 **Criteria:** Core read path + handler happy paths + git HTTP backend
 
-| Test ID | Requirement | Test Level | Risk Link | Notes |
-|---------|-------------|-----------|-----------|-------|
-| 3.3-UNIT-001 | Issue handler accepts valid kind:1621 | Unit | — | `ctx.accept()` happy path |
-| 3.3-UNIT-002 | Comment handler accepts valid kind:1622 | Unit | — | `ctx.accept()` happy path |
-| 3.3-UNIT-003 | Non-existent repo → `ctx.reject('F00')` | Unit | E3-R007 | Invalid `a` tag reference |
-| 3.1-UNIT-003 | Git startup verification | Unit | E3-R010 | Mock execFile → missing git → exit |
-| 3.5-UNIT-002 | Pubkey as git author identity | Unit | — | `GIT_AUTHOR_NAME`/`EMAIL` format |
-| 3.6-UNIT-002 | Status events update repo metadata | Unit | — | kind:1630/1632/1633 state transitions |
-| 3.4-INT-001 | Clone via HTTP (git-upload-pack) | Integration | — | Real git repo, Express route |
-| 3.4-INT-002 | Fetch via HTTP returns updated refs | Integration | — | After patch applied |
-| 3.7-INT-001 | Repository list page renders | Integration | — | Express + SQLite + Eta |
-| 3.8-INT-001 | File tree renders from `git ls-tree` | Integration | — | Express + real git repo |
-| 3.8-INT-002 | Blob view renders file content | Integration | — | Syntax highlighting |
-| 3.9-INT-001 | Commit log renders from `git log` | Integration | — | Express + real git repo |
-| 3.9-INT-002 | Commit diff renders from `git diff` | Integration | — | Diff formatting |
+| Test ID      | Requirement                             | Test Level  | Risk Link | Notes                                 |
+| ------------ | --------------------------------------- | ----------- | --------- | ------------------------------------- |
+| 3.3-UNIT-001 | Issue handler accepts valid kind:1621   | Unit        | —         | `ctx.accept()` happy path             |
+| 3.3-UNIT-002 | Comment handler accepts valid kind:1622 | Unit        | —         | `ctx.accept()` happy path             |
+| 3.3-UNIT-003 | Non-existent repo → `ctx.reject('F00')` | Unit        | E3-R007   | Invalid `a` tag reference             |
+| 3.1-UNIT-003 | Git startup verification                | Unit        | E3-R010   | Mock execFile → missing git → exit    |
+| 3.5-UNIT-002 | Pubkey as git author identity           | Unit        | —         | `GIT_AUTHOR_NAME`/`EMAIL` format      |
+| 3.6-UNIT-002 | Status events update repo metadata      | Unit        | —         | kind:1630/1632/1633 state transitions |
+| 3.4-INT-001  | Clone via HTTP (git-upload-pack)        | Integration | —         | Real git repo, Express route          |
+| 3.4-INT-002  | Fetch via HTTP returns updated refs     | Integration | —         | After patch applied                   |
+| 3.7-INT-001  | Repository list page renders            | Integration | —         | Express + SQLite + Eta                |
+| 3.8-INT-001  | File tree renders from `git ls-tree`    | Integration | —         | Express + real git repo               |
+| 3.8-INT-002  | Blob view renders file content          | Integration | —         | Syntax highlighting                   |
+| 3.9-INT-001  | Commit log renders from `git log`       | Integration | —         | Express + real git repo               |
+| 3.9-INT-002  | Commit diff renders from `git diff`     | Integration | —         | Diff formatting                       |
 
 **Total P1**: 13 tests, ~18-30 hours
 
@@ -152,18 +159,18 @@ lastSaved: '2026-03-04'
 
 **Criteria:** Secondary features + edge cases + relay-sourced data
 
-| Test ID | Requirement | Test Level | Risk Link | Notes |
-|---------|-------------|-----------|-----------|-------|
-| 3.10-INT-001 | Blame view renders from `git blame` | Integration | — | Express + real git repo |
-| 3.11-INT-001 | Issues list from relay queries | Integration | E3-R006 | Mocked relay subscription |
-| 3.11-INT-002 | PR list from relay queries with status | Integration | E3-R006 | Mocked relay |
-| 3.11-INT-003 | Comment thread renders chronologically | Integration | — | Verify ordering |
-| 3.5-UNIT-003 | kind:0 profile enrichment; missing → truncated npub | Unit | E3-R013 | Graceful fallback |
-| 3.7-UNIT-001 | Empty state when no repos exist | Unit | — | Template renders message |
-| 3.8-UNIT-001 | 404 for non-existent path | Unit | — | Tree/blob error handling |
-| 3.9-UNIT-001 | 404 for invalid commit SHA | Unit | — | Diff/log error handling |
-| 3.11-INT-004 | Relay unavailable → graceful degradation | Integration | E3-R006 | Mocked relay timeout |
-| 3.1-UNIT-004 | Unsupported NIP-34 kind → `ctx.reject('F00')` | Unit | E3-R007 | Unknown kind rejection |
+| Test ID      | Requirement                                         | Test Level  | Risk Link | Notes                     |
+| ------------ | --------------------------------------------------- | ----------- | --------- | ------------------------- |
+| 3.10-INT-001 | Blame view renders from `git blame`                 | Integration | —         | Express + real git repo   |
+| 3.11-INT-001 | Issues list from relay queries                      | Integration | E3-R006   | Mocked relay subscription |
+| 3.11-INT-002 | PR list from relay queries with status              | Integration | E3-R006   | Mocked relay              |
+| 3.11-INT-003 | Comment thread renders chronologically              | Integration | —         | Verify ordering           |
+| 3.5-UNIT-003 | kind:0 profile enrichment; missing → truncated npub | Unit        | E3-R013   | Graceful fallback         |
+| 3.7-UNIT-001 | Empty state when no repos exist                     | Unit        | —         | Template renders message  |
+| 3.8-UNIT-001 | 404 for non-existent path                           | Unit        | —         | Tree/blob error handling  |
+| 3.9-UNIT-001 | 404 for invalid commit SHA                          | Unit        | —         | Diff/log error handling   |
+| 3.11-INT-004 | Relay unavailable → graceful degradation            | Integration | E3-R006   | Mocked relay timeout      |
+| 3.1-UNIT-004 | Unsupported NIP-34 kind → `ctx.reject('F00')`       | Unit        | E3-R007   | Unknown kind rejection    |
 
 **Total P2**: 10 tests, ~8-15 hours
 
@@ -171,13 +178,13 @@ lastSaved: '2026-03-04'
 
 **Criteria:** Nice-to-have + package configuration + cosmetic
 
-| Test ID | Requirement | Test Level | Notes |
-|---------|-------------|-----------|-------|
-| 3.12-UNIT-001 | Package exports `startRig`, `RigConfig` | Unit | Public API surface |
-| 3.12-UNIT-002 | CLI entrypoint parses flags | Unit | `--mnemonic`, `--relay-url` |
-| 3.11-UNIT-002 | Contribution banner renders with docs link | Unit | Banner text check |
-| 3.10-UNIT-001 | 404 for non-existent blame file at ref | Unit | Error handling |
-| 3.4-INT-003 | 404 for clone/fetch non-existent repo | Integration | HTTP 404 response |
+| Test ID       | Requirement                                | Test Level  | Notes                       |
+| ------------- | ------------------------------------------ | ----------- | --------------------------- |
+| 3.12-UNIT-001 | Package exports `startRig`, `RigConfig`    | Unit        | Public API surface          |
+| 3.12-UNIT-002 | CLI entrypoint parses flags                | Unit        | `--mnemonic`, `--relay-url` |
+| 3.11-UNIT-002 | Contribution banner renders with docs link | Unit        | Banner text check           |
+| 3.10-UNIT-001 | 404 for non-existent blame file at ref     | Unit        | Error handling              |
+| 3.4-INT-003   | 404 for clone/fetch non-existent repo      | Integration | HTTP 404 response           |
 
 **Total P3**: 5 tests, ~2-4 hours
 
@@ -187,10 +194,10 @@ lastSaved: '2026-03-04'
 
 **Philosophy:** Run everything on every PR. The Rig's tests use real git repos on disk + SQLite :memory: — no live infrastructure needed. Vitest parallelization keeps the full suite under 10 minutes.
 
-| Trigger | What Runs | Duration |
-|---------|-----------|----------|
-| **Every PR** | All 39 unit + integration tests | < 10 min |
-| **Manual** | Exploratory template fidelity review | As needed |
+| Trigger      | What Runs                            | Duration  |
+| ------------ | ------------------------------------ | --------- |
+| **Every PR** | All 39 unit + integration tests      | < 10 min  |
+| **Manual**   | Exploratory template fidelity review | As needed |
 
 No nightly or weekly cadence needed — all tests are fast and infrastructure-light (real git + in-memory SQLite only).
 
@@ -200,13 +207,13 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 
 ### Test Development Effort
 
-| Priority | Count | Effort Range | Notes |
-|----------|-------|-------------|-------|
-| P0 | 11 | ~20-35 hours | Security input crafting, git repo fixtures |
-| P1 | 13 | ~18-30 hours | Handler logic + Express route integration |
-| P2 | 10 | ~8-15 hours | Relay mocking, error states |
-| P3 | 5 | ~2-4 hours | Package config, simple assertions |
-| **Total** | **39** | **~48-84 hours** | **~1.5-3 weeks, 1 engineer** |
+| Priority  | Count  | Effort Range     | Notes                                      |
+| --------- | ------ | ---------------- | ------------------------------------------ |
+| P0        | 11     | ~20-35 hours     | Security input crafting, git repo fixtures |
+| P1        | 13     | ~18-30 hours     | Handler logic + Express route integration  |
+| P2        | 10     | ~8-15 hours      | Relay mocking, error states                |
+| P3        | 5      | ~2-4 hours       | Package config, simple assertions          |
+| **Total** | **39** | **~48-84 hours** | **~1.5-3 weeks, 1 engineer**               |
 
 ### Prerequisites
 
@@ -263,6 +270,7 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 ### E3-R001: Git Command Injection (Score: 6)
 
 **Mitigation Strategy:**
+
 1. All git operations in `packages/rig/src/git/operations.ts` use `child_process.execFile` exclusively
 2. Input sanitization for repo names (alphanumeric + hyphens only), file paths (no `../`, no absolute paths), and patch content (reject shell metacharacters)
 3. Lint rule or code review gate blocking `child_process.exec` in `packages/rig/`
@@ -275,6 +283,7 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 ### E3-R002: Authorization Bypass in PR Lifecycle (Score: 6)
 
 **Mitigation Strategy:**
+
 1. Maintainer list fetched from the most recent kind:30617 event for the repository on every authorization check
 2. Non-maintainer pubkeys receive `ctx.reject('F06', 'Unauthorized: pubkey lacks maintainer permissions')`
 3. Unit test the boundary: same pubkey authorized as maintainer → allowed; different pubkey → rejected
@@ -287,6 +296,7 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 ### E3-R003: Path Traversal in Git Operations (Score: 6)
 
 **Mitigation Strategy:**
+
 1. All paths canonicalized via `path.resolve(repoDir, userInput)`
 2. Verify resolved path starts with `repoDir` prefix — reject otherwise
 3. Reject `../`, absolute paths, and null bytes in repo names and file paths
@@ -299,6 +309,7 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 ### E3-R004: XSS via Nostr Event Content (Score: 6)
 
 **Mitigation Strategy:**
+
 1. Eta template engine configured with auto-escape enabled for all interpolated values
 2. Markdown rendering sanitized (strip raw HTML or use allowlist)
 3. Content-Security-Policy headers on all Express responses
@@ -312,6 +323,7 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 ### E3-R005: Malformed Patch Crashes Git Backend (Score: 6)
 
 **Mitigation Strategy:**
+
 1. Timeout on all `child_process.execFile` calls (default 30s)
 2. Catch all git errors gracefully → `ctx.reject('F00', errorMessage)`
 3. Test with empty patches, binary content, oversized patches, and patches that conflict
@@ -355,12 +367,12 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 
 ## Interworking & Regression
 
-| Service/Component | Impact | Regression Scope |
-|-------------------|--------|-----------------|
-| **@crosstown/sdk** | Rig depends on `createNode()`, handler registry, `HandlerContext` | SDK unit + integration tests must pass |
-| **@crosstown/core (NIP-34)** | Rig uses NIP-34 types, constants, `parseRepositoryReference()` | Core NIP-34 tests must pass |
-| **@crosstown/core (TOON)** | SDK pipeline uses TOON codec (shallow parse → verify → dispatch) | Core TOON codec roundtrip tests must pass |
-| **Relay (WebSocket)** | Rig queries relay for issues/PRs/comments at render time | Relay WebSocket subscription tests must pass |
+| Service/Component            | Impact                                                            | Regression Scope                             |
+| ---------------------------- | ----------------------------------------------------------------- | -------------------------------------------- |
+| **@crosstown/sdk**           | Rig depends on `createNode()`, handler registry, `HandlerContext` | SDK unit + integration tests must pass       |
+| **@crosstown/core (NIP-34)** | Rig uses NIP-34 types, constants, `parseRepositoryReference()`    | Core NIP-34 tests must pass                  |
+| **@crosstown/core (TOON)**   | SDK pipeline uses TOON codec (shallow parse → verify → dispatch)  | Core TOON codec roundtrip tests must pass    |
+| **Relay (WebSocket)**        | Rig queries relay for issues/PRs/comments at render time          | Relay WebSocket subscription tests must pass |
 
 ---
 
@@ -389,11 +401,11 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 
 ### Inherited System-Level Risks
 
-| System Risk | Epic 3 Risk | Status |
-|-------------|-------------|--------|
-| R-004 (Git command injection) | E3-R001 | Scoped to stories 3.1-3.4 |
-| R-009 (Rig relay dependency) | E3-R006 | Medium priority, graceful degradation |
-| R-012 (Eta template port fidelity) | E3-R011 | Low priority, monitor |
+| System Risk                        | Epic 3 Risk | Status                                |
+| ---------------------------------- | ----------- | ------------------------------------- |
+| R-004 (Git command injection)      | E3-R001     | Scoped to stories 3.1-3.4             |
+| R-009 (Rig relay dependency)       | E3-R006     | Medium priority, graceful degradation |
+| R-012 (Eta template port fidelity) | E3-R011     | Low priority, monitor                 |
 
 ---
 

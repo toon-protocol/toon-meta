@@ -5,33 +5,38 @@
 ## What We've Built
 
 ### 1. HTTP Connector Clients ✅
+
 - **`http-connector-admin.ts`** - Admin API client for peer registration
 - **`http-runtime-client.ts`** - Runtime client for sending ILP packets
 - **`http-channel-client.ts`** - Channel client for payment channel operations
 - Location: `packages/core/src/bootstrap/`
 
 ### 2. Bootstrap Entrypoint ✅
+
 - **`entrypoint-with-bootstrap.ts`** - Complete Crosstown node with bootstrap
 - Integrates:
-  * BLS (Business Logic Server)
-  * Nostr Relay
-  * CrosstownNode with BootstrapService
-  * SPSP request/response handlers
-  * Payment channel negotiation
+  - BLS (Business Logic Server)
+  - Nostr Relay
+  - CrosstownNode with BootstrapService
+  - SPSP request/response handlers
+  - Payment channel negotiation
 - Location: `packages/bls/src/`
 
 ### 3. SPSP Security ✅ CONFIRMED
+
 - **NIP-44 Encryption**: All SPSP events are encrypted end-to-end
 - **sharedSecret Protection**: Never exposed in plaintext
 - **ILP Packet Transport**: SPSP events sent as TOON-encoded ILP PREPARE/FULFILL data
 
 ### 4. Docker Configuration ✅
+
 - **`docker-compose-bootstrap.yml`** - Multi-peer bootstrap network
 - Genesis peer (peer1) with `SPSP_MIN_PRICE=0` for free handshakes
 - Joiner peers (peer2-4) with `BOOTSTRAP_RELAYS` and `BOOTSTRAP_PEERS`
 - Uses `ENTRYPOINT=entrypoint-with-bootstrap.js` environment variable
 
 ### 5. Test Documentation ✅
+
 - **`BOOTSTRAP-TEST-PLAN.md`** - Comprehensive 6-phase test plan
 - **`test-bootstrap-flow.sh`** - Automated test script
 - Verification commands for each phase
@@ -39,6 +44,7 @@
 ## Issues Fixed
 
 ### TypeScript Compilation
+
 - ✅ Type mismatches in HTTP clients (accepted vs type)
 - ✅ Missing type annotations
 - ✅ Import path errors
@@ -49,17 +55,20 @@
 - ✅ HandlePacketRequest/Response type conflicts
 
 ### Docker Build
+
 - ✅ Docker space issue (freed 7.9GB with cleanup)
 - ✅ Connector image version mismatch (fixed 1.19.1 → 1.19.2)
 - ✅ Crosstown image tag (fixed optimized → bootstrap)
 
 ### Configuration
+
 - ✅ **genesis-peers.json conflict** - Empty array to prevent dummy peer interference
 - ✅ Peer2 secret key updated to avoid collision with dummy genesis peer
 
 ## Current State
 
 ### Build Status
+
 - **@crosstown/core**: ✅ Built successfully
 - **@crosstown/bls**: ✅ Built successfully (includes entrypoint-with-bootstrap.js)
 - **Docker Image**: ⏳ Rebuilding with updated genesis-peers.json
@@ -68,6 +77,7 @@
   - Expected completion: ~5-10 minutes
 
 ### Network Status
+
 - **Anvil**: Running (contracts deployed)
 - **Token Faucet**: Running
 - **Genesis Peer (peer1)**: Not running (waiting for new image)
@@ -76,16 +86,19 @@
 ## Next Steps
 
 ### 1. Complete Docker Build ⏳
+
 - Wait for image rebuild to complete
 - Verify bootstrap entrypoint is included
 
 ### 2. Start Bootstrap Network 📋
+
 ```bash
 docker-compose -f docker-compose-bootstrap.yml down -v
 docker-compose -f docker-compose-bootstrap.yml up -d
 ```
 
 ### 3. Test Bootstrap Flow 📋
+
 ```bash
 bash test-bootstrap-flow.sh
 ```
@@ -93,17 +106,20 @@ bash test-bootstrap-flow.sh
 ### 4. Verify Each Phase 📋
 
 #### Phase 1: Genesis Startup
+
 - [ ] Genesis publishes kind:10032
 - [ ] Relay starts on port 7100
 - [ ] SPSP server ready with minPrice=0
 - [ ] Running as bootstrap node
 
 #### Phase 2: Joiner Discovery
+
 - [ ] Peer2 connects to genesis relay (ws://crosstown-peer1:7100)
 - [ ] Peer2 discovers genesis kind:10032 event
 - [ ] Bootstrap service enters discovery phase
 
 #### Phase 3: SPSP Handshake
+
 - [ ] Peer2 sends encrypted SPSP request (kind:23194)
 - [ ] Genesis receives and decrypts request
 - [ ] Genesis negotiates settlement chain
@@ -115,16 +131,19 @@ bash test-bootstrap-flow.sh
 - [ ] BTP connection established
 
 #### Phase 4: Announcement
+
 - [ ] Peer2 publishes own kind:10032 to genesis relay
 - [ ] Genesis RelayMonitor discovers peer2
 
 #### Phase 5: Packet Routing
+
 - [ ] Send test event from peer1 → peer2
 - [ ] Packet routes through BTP (NOT local delivery)
 - [ ] Signed claims generated
 - [ ] Settlement tracking updated
 
 #### Phase 6: Settlement Trigger
+
 - [ ] Send enough packets to exceed threshold (5000 units)
 - [ ] Settlement triggers automatically
 - [ ] On-chain transaction confirmed
@@ -134,6 +153,7 @@ bash test-bootstrap-flow.sh
 ## Expected Behavior
 
 ### Genesis Peer Logs
+
 ```
 ✅ Nostr relay started on port 7100
 ✅ SPSP server started
@@ -142,6 +162,7 @@ bash test-bootstrap-flow.sh
 ```
 
 ### Joiner Peer Logs
+
 ```
 ✅ Querying ws://crosstown-peer1:7100 for peer info
 ✅ Peer discovered: 9c8e6a...
@@ -162,27 +183,28 @@ bash test-bootstrap-flow.sh
 
 ## Success Criteria
 
-| Criteria | Status |
-|----------|--------|
-| All packages build successfully | ✅ |
-| Docker image built | ⏳ |
-| Genesis publishes kind:10032 | ⬜ |
-| Joiner discovers genesis | ⬜ |
-| SPSP request encrypted (NIP-44) | ✅ Code verified |
-| SPSP response encrypted (NIP-44) | ✅ Code verified |
-| SharedSecret exchanged securely | ✅ Code verified |
-| Payment channel opens during handshake | ⬜ |
-| BTP peer registered with SPSP secret | ⬜ |
-| BTP connection established | ⬜ |
-| Packets route via BTP (not local delivery) | ⬜ |
-| Signed claims generated | ⬜ |
-| Settlement triggers at threshold | ⬜ |
-| On-chain transaction confirmed | ⬜ |
-| Balances updated on-chain | ⬜ |
+| Criteria                                   | Status           |
+| ------------------------------------------ | ---------------- |
+| All packages build successfully            | ✅               |
+| Docker image built                         | ⏳               |
+| Genesis publishes kind:10032               | ⬜               |
+| Joiner discovers genesis                   | ⬜               |
+| SPSP request encrypted (NIP-44)            | ✅ Code verified |
+| SPSP response encrypted (NIP-44)           | ✅ Code verified |
+| SharedSecret exchanged securely            | ✅ Code verified |
+| Payment channel opens during handshake     | ⬜               |
+| BTP peer registered with SPSP secret       | ⬜               |
+| BTP connection established                 | ⬜               |
+| Packets route via BTP (not local delivery) | ⬜               |
+| Signed claims generated                    | ⬜               |
+| Settlement triggers at threshold           | ⬜               |
+| On-chain transaction confirmed             | ⬜               |
+| Balances updated on-chain                  | ⬜               |
 
 ## Files Modified/Created
 
 ### Created
+
 - `packages/core/src/bootstrap/http-connector-admin.ts`
 - `packages/core/src/bootstrap/http-runtime-client.ts`
 - `packages/core/src/bootstrap/http-channel-client.ts`
@@ -193,6 +215,7 @@ bash test-bootstrap-flow.sh
 - `BOOTSTRAP-PROGRESS.md` (this file)
 
 ### Modified
+
 - `packages/core/src/bootstrap/index.ts` - Added HTTP client exports
 - `packages/core/src/index.ts` - Re-exported HTTP clients
 - `packages/bls/tsup.config.ts` - Added entrypoint-with-bootstrap.ts to build
@@ -203,27 +226,32 @@ bash test-bootstrap-flow.sh
 ## Debug Commands
 
 ### Check Genesis Logs
+
 ```bash
 docker logs crosstown-peer1 2>&1 | grep -E "kind:10032|bootstrap|SPSP"
 ```
 
 ### Check Joiner Logs
+
 ```bash
 docker logs crosstown-peer2 2>&1 | grep -E "discovered|SPSP|channel"
 ```
 
 ### Check Connector Peers
+
 ```bash
 curl http://localhost:8092/admin/peers | jq '.[] | select(.peerId | startswith("nostr-"))'
 ```
 
 ### Check Payment Channels
+
 ```bash
 curl http://localhost:8091/admin/channels | jq '.'
 curl http://localhost:8092/admin/channels | jq '.'
 ```
 
 ### Check Settlement States
+
 ```bash
 curl http://localhost:8091/admin/settlement/states | jq '.'
 curl http://localhost:8092/admin/settlement/states | jq '.'

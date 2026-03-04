@@ -18,6 +18,7 @@
 - **Coverage Requirement:** >80% for public APIs
 
 **Requirements:**
+
 - All public methods have unit tests
 - Edge cases and error conditions covered
 - SimplePool always mocked (never live relays)

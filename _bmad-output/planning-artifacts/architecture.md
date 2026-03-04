@@ -45,6 +45,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 **Functional Requirements:**
 The SDK epics introduce 24 FRs organized across three domains:
+
 - **TOON Codec Prerequisite (FR-SDK-0, 1 FR):** Extract TOON encoder, decoder, and shallow parser to @crosstown/core
 - **SDK Core (FR-SDK-1 to FR-SDK-NEW-1, 14 FRs):** Node composition, handler registry, TOON-native context, signature verification, pricing validation, PaymentHandler bridge, connector lifecycle, network discovery, dev mode, unified identity
 - **NIP-34 Git Forge (FR-NIP34-1 to FR-NIP34-6, 6 FRs):** Git HTTP backend, pubkey-native identity, read-only web UI, PR lifecycle, relay-sourced issues/PRs, package publishing
@@ -54,8 +55,9 @@ These build on the existing 66 FRs from the PRD (Epics 1-17), with the SDK repla
 
 **Non-Functional Requirements:**
 7 new NFRs (NFR-SDK-1 to NFR-SDK-7) supplement the existing 15:
+
 - TypeScript strict mode, Node.js 24.x, ESM (consistent with existing)
-- >80% line coverage for public APIs (consistent)
+- > 80% line coverage for public APIs (consistent)
 - Developer integration time <30 minutes / ~10 lines of code (new — defines SDK ergonomics)
 - Structural typing for ConnectorNode (consistent pattern)
 - Minimal package dependencies (new — constrains SDK surface)
@@ -100,16 +102,16 @@ These build on the existing 66 FRs from the PRD (Epics 1-17), with the SDK repla
 
 The SDK introduces pipeline stages between connector and business logic. Each stage needs targeted testing:
 
-| Level | Scope | What It Catches |
-|-------|-------|----------------|
-| Unit | HandlerRegistry routing (kind match, default fallback, F00 on no match) | Dispatch correctness |
-| Unit | Signature verification pipeline (valid/invalid/devMode skip) | Auth bypass bugs |
-| Unit | Pricing validation (per-byte, per-kind, self-write bypass, F04 rejection) | Payment logic errors |
-| Unit | PaymentHandler bridge (isTransit fire-and-forget vs await) | Flow control bugs |
-| Integration | Full pipeline: TOON → shallow parse → verify → price → dispatch → accept/reject | Stage interaction bugs |
-| E2E | Existing genesis-bootstrap test against SDK-built relay | Regression from replacement |
+| Level       | Scope                                                                           | What It Catches             |
+| ----------- | ------------------------------------------------------------------------------- | --------------------------- |
+| Unit        | HandlerRegistry routing (kind match, default fallback, F00 on no match)         | Dispatch correctness        |
+| Unit        | Signature verification pipeline (valid/invalid/devMode skip)                    | Auth bypass bugs            |
+| Unit        | Pricing validation (per-byte, per-kind, self-write bypass, F04 rejection)       | Payment logic errors        |
+| Unit        | PaymentHandler bridge (isTransit fire-and-forget vs await)                      | Flow control bugs           |
+| Integration | Full pipeline: TOON → shallow parse → verify → price → dispatch → accept/reject | Stage interaction bugs      |
+| E2E         | Existing genesis-bootstrap test against SDK-built relay                         | Regression from replacement |
 
-Lower test levels first — the E2E test catches regressions but unit tests catch them faster and tell you *where*.
+Lower test levels first — the E2E test catches regressions but unit tests catch them faster and tell you _where_.
 
 ## Starter Template Evaluation
 
@@ -128,34 +130,40 @@ Backend protocol SDK (TypeScript/Node.js monorepo) — existing project.
 **Architectural Decisions Already Established:**
 
 **Language & Runtime:**
+
 - TypeScript ^5.3 (strict: true, noUncheckedIndexedAccess, noImplicitOverride)
 - Node.js 24.x, ESM-only ("type": "module")
 - moduleResolution: "bundler" for tsup/esbuild compatibility
 
 **Build Tooling:**
+
 - tsup ^8.0 for ESM library bundling
 - pnpm workspaces for monorepo management
 - tsconfig.json extending root config per package
 
 **Testing Framework:**
-- Vitest ^1.0 with co-located *.test.ts files
-- Integration tests in __integration__/ directories
+
+- Vitest ^1.0 with co-located \*.test.ts files
+- Integration tests in **integration**/ directories
 - E2E tests in packages/client/tests/e2e/
 - Mocked SimplePool — no live relay dependencies
 
 **Code Quality:**
+
 - ESLint 9.x (flat config) with typescript-eslint strict + stylistic
 - Prettier 3.x (semi, singleQuote, tabWidth 2, trailingComma es5)
 - No explicit `any` — use `unknown` with type guards
 
 **Code Organization:**
-- packages/*/src/index.ts exports all public APIs
+
+- packages/\*/src/index.ts exports all public APIs
 - PascalCase files for classes, kebab-case for utilities
 - Constants in UPPER_SNAKE_CASE
 - Structural `*Like` types for cross-package interfaces
 
 **New Package Setup Pattern:**
 Each new package (sdk, town, rig) will be initialized with:
+
 1. Directory in packages/
 2. package.json with "type": "module", workspace dependencies
 3. tsconfig.json extending root
@@ -164,12 +172,12 @@ Each new package (sdk, town, rig) will be initialized with:
 
 **New Dependencies for SDK Epics:**
 
-| Dependency | Package | Purpose |
-|-----------|---------|---------|
-| @scure/bip39 | sdk | BIP-39 mnemonic generation/validation |
-| @scure/bip32 | sdk | BIP-32 HD key derivation |
-| eta (or ejs) | rig | Template engine for web UI |
-| express (or fastify) | rig | HTTP server for web UI + git backend |
+| Dependency           | Package | Purpose                               |
+| -------------------- | ------- | ------------------------------------- |
+| @scure/bip39         | sdk     | BIP-39 mnemonic generation/validation |
+| @scure/bip32         | sdk     | BIP-32 HD key derivation              |
+| eta (or ejs)         | rig     | Template engine for web UI            |
+| express (or fastify) | rig     | HTTP server for web UI + git backend  |
 
 **Note:** Dependency versions should be verified at implementation time. The @scure libraries are from the same author as @noble/curves (used by nostr-tools), ensuring cryptographic consistency.
 
@@ -178,87 +186,86 @@ Each new package (sdk, town, rig) will be initialized with:
 ### Decision Priority Analysis
 
 **Critical Decisions (Block Implementation):**
+
 1. TOON codec extracted to @crosstown/core (unblocks SDK dependency graph)
 2. SDK identity module location (unblocks Story 1.1)
 3. PaymentHandler bridge pattern with isTransit semantics (unblocks Story 1.6)
 
-**Important Decisions (Shape Architecture):**
-4. Rig HTTP framework (Express)
-5. Rig template engine (Eta)
-6. Git backend approach (child_process + git binary)
-7. Rig data strategy (pure relay query + SQLite for repo metadata)
+**Important Decisions (Shape Architecture):** 4. Rig HTTP framework (Express) 5. Rig template engine (Eta) 6. Git backend approach (child_process + git binary) 7. Rig data strategy (pure relay query + SQLite for repo metadata)
 
 **Deferred Decisions (Post-MVP):**
+
 - Rig event caching layer (if relay latency becomes a UX problem)
 - Rig offline mode (if needed)
 - Multi-relay redundancy for Rig queries
 
 ### Decision 1: TOON Codec Location
 
-| Attribute | Value |
-|-----------|-------|
-| Decision | Extract TOON encoder/decoder to `@crosstown/core` |
+| Attribute | Value                                                                                            |
+| --------- | ------------------------------------------------------------------------------------------------ |
+| Decision  | Extract TOON encoder/decoder to `@crosstown/core`                                                |
 | Rationale | Avoids circular dependency: SDK → relay → SDK. Core is the shared foundation. Codec is ~100 LOC. |
-| Affects | SDK, BLS, relay (import path change), core (new @toon-format/toon dependency) |
-| Version | @toon-format/toon ^1.0 (existing, no change) |
+| Affects   | SDK, BLS, relay (import path change), core (new @toon-format/toon dependency)                    |
+| Version   | @toon-format/toon ^1.0 (existing, no change)                                                     |
 
 ### Decision 2: Rig HTTP Framework
 
-| Attribute | Value |
-|-----------|-------|
-| Decision | Express ^5.2 |
+| Attribute | Value                                                                                                                                                                           |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Decision  | Express ^5.2                                                                                                                                                                    |
 | Rationale | Most mature ecosystem for template rendering, static files, and CGI-style git backend proxying. Eta integration is trivial. Express 5 is now the npm default with LTS timeline. |
-| Affects | Rig package only |
-| Version | express ^5.2, @types/express (latest) |
+| Affects   | Rig package only                                                                                                                                                                |
+| Version   | express ^5.2, @types/express (latest)                                                                                                                                           |
 
 ### Decision 3: Rig Template Engine
 
-| Attribute | Value |
-|-----------|-------|
-| Decision | Eta ^4.5 |
+| Attribute | Value                                                                                                                  |
+| --------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Decision  | Eta ^4.5                                                                                                               |
 | Rationale | TypeScript-native, faster than EJS, actively maintained, small bundle. Modern replacement for EJS by the same concept. |
-| Affects | Rig web UI rendering |
-| Version | eta ^4.5 |
+| Affects   | Rig web UI rendering                                                                                                   |
+| Version   | eta ^4.5                                                                                                               |
 
 ### Decision 4: Git Backend Approach
 
-| Attribute | Value |
-|-----------|-------|
-| Decision | `child_process` + system `git` binary |
-| Rationale | Battle-tested by Forgejo/GitLab/Gitea. Reliable for all git operations (init, am, merge, blame, http-backend). Epics doc specifies this approach. |
-| Affects | Rig package. System requirement: git must be in PATH. |
-| Constraint | Rig startup must verify git availability and log version. Exit with clear error if missing. |
+| Attribute  | Value                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Decision   | `child_process` + system `git` binary                                                                                                             |
+| Rationale  | Battle-tested by Forgejo/GitLab/Gitea. Reliable for all git operations (init, am, merge, blame, http-backend). Epics doc specifies this approach. |
+| Affects    | Rig package. System requirement: git must be in PATH.                                                                                             |
+| Constraint | Rig startup must verify git availability and log version. Exit with clear error if missing.                                                       |
 
 ### Decision 5a: Rig Issue/PR Data Source
 
-| Attribute | Value |
-|-----------|-------|
-| Decision | Pure relay query at render time |
+| Attribute | Value                                                                                                                          |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Decision  | Pure relay query at render time                                                                                                |
 | Rationale | Simplest approach. No local state, no sync logic. Accepts trade-off that Rig issue/PR rendering depends on relay availability. |
-| Affects | Rig web UI pages (issues, PRs, comments) |
-| Trade-off | Page load latency coupled to relay. Acknowledged. Can add caching layer later if needed. |
+| Affects   | Rig web UI pages (issues, PRs, comments)                                                                                       |
+| Trade-off | Page load latency coupled to relay. Acknowledged. Can add caching layer later if needed.                                       |
 
 ### Decision 5b: Rig Repository Metadata Storage
 
-| Attribute | Value |
-|-----------|-------|
-| Decision | SQLite via better-sqlite3 |
+| Attribute | Value                                                                                                                                     |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Decision  | SQLite via better-sqlite3                                                                                                                 |
 | Rationale | Consistent with existing BLS pattern. Supports queries (list repos, filter by owner pubkey). Synchronous API fits request/response cycle. |
-| Affects | Rig package |
-| Version | better-sqlite3 ^11.0 (existing, no change) |
+| Affects   | Rig package                                                                                                                               |
+| Version   | better-sqlite3 ^11.0 (existing, no change)                                                                                                |
 
 ### Decision 6: Identity Module Location
 
-| Attribute | Value |
-|-----------|-------|
-| Decision | Identity functions in `@crosstown/sdk` |
+| Attribute | Value                                                                                                                |
+| --------- | -------------------------------------------------------------------------------------------------------------------- |
+| Decision  | Identity functions in `@crosstown/sdk`                                                                               |
 | Rationale | Identity is an SDK concern per Story 1.1. Town and Rig both depend on SDK, so no access issue. Keeps core unchanged. |
-| Affects | SDK package |
-| Version | @scure/bip39 ^2.0, @scure/bip32 ^2.0 |
+| Affects   | SDK package                                                                                                          |
+| Version   | @scure/bip39 ^2.0, @scure/bip32 ^2.0                                                                                 |
 
 ### Decision Impact Analysis
 
 **Implementation Sequence:**
+
 1. Extract TOON codec to core (unblocks everything)
 2. SDK identity module (Story 1.1, foundational)
 3. SDK handler registry + context (Stories 1.2-1.3)
@@ -268,6 +275,7 @@ Each new package (sdk, town, rig) will be initialized with:
 7. Rig HTTP + git backend + web UI (Epic 3)
 
 **Cross-Component Dependencies:**
+
 - TOON codec extraction (Decision 1) → must complete before SDK development begins
 - SDK identity (Decision 6) → used by Town and Rig for node identity
 - Express + Eta (Decisions 2-3) → isolated to Rig, no cross-package impact
@@ -328,7 +336,7 @@ interface ToonRoutingMeta {
   pubkey: string;
   id: string;
   sig: string;
-  rawBytes: Uint8Array;  // Original bytes for Schnorr verification
+  rawBytes: Uint8Array; // Original bytes for Schnorr verification
 }
 ```
 
@@ -361,13 +369,14 @@ All SDK errors extend `CrosstownError` from `@crosstown/core`:
 
 ```typescript
 // New SDK error classes
-class NodeError extends CrosstownError {}         // Lifecycle: already started, already stopped
-class HandlerError extends CrosstownError {}       // Handler dispatch failures
-class VerificationError extends CrosstownError {}  // Schnorr verification failures
-class PricingError extends CrosstownError {}       // Payment validation failures
+class NodeError extends CrosstownError {} // Lifecycle: already started, already stopped
+class HandlerError extends CrosstownError {} // Handler dispatch failures
+class VerificationError extends CrosstownError {} // Schnorr verification failures
+class PricingError extends CrosstownError {} // Payment validation failures
 ```
 
 Error code mapping to ILP:
+
 - `VerificationError` → ILP `F06` (unexpected payment)
 - `PricingError` → ILP `F04` (insufficient amount)
 - `HandlerError` → ILP `T00` (internal error)
@@ -431,17 +440,40 @@ Stateless functions taking `repoPath` as a parameter. Located at `packages/rig/s
 
 ```typescript
 // packages/rig/src/git/operations.ts
-export async function initRepo(repoPath: string, bare: boolean): Promise<void>
-export async function applyPatch(repoPath: string, patchContent: string): Promise<void>
-export async function merge(repoPath: string, branch: string, authorPubkey: string): Promise<void>
-export async function lsTree(repoPath: string, ref: string, path?: string): Promise<TreeEntry[]>
-export async function showBlob(repoPath: string, ref: string, path: string): Promise<string>
-export async function log(repoPath: string, ref: string, limit?: number): Promise<CommitEntry[]>
-export async function diff(repoPath: string, sha: string): Promise<string>
-export async function blame(repoPath: string, ref: string, path: string): Promise<BlameLine[]>
+export async function initRepo(repoPath: string, bare: boolean): Promise<void>;
+export async function applyPatch(
+  repoPath: string,
+  patchContent: string
+): Promise<void>;
+export async function merge(
+  repoPath: string,
+  branch: string,
+  authorPubkey: string
+): Promise<void>;
+export async function lsTree(
+  repoPath: string,
+  ref: string,
+  path?: string
+): Promise<TreeEntry[]>;
+export async function showBlob(
+  repoPath: string,
+  ref: string,
+  path: string
+): Promise<string>;
+export async function log(
+  repoPath: string,
+  ref: string,
+  limit?: number
+): Promise<CommitEntry[]>;
+export async function diff(repoPath: string, sha: string): Promise<string>;
+export async function blame(
+  repoPath: string,
+  ref: string,
+  path: string
+): Promise<BlameLine[]>;
 
 // packages/rig/src/git/http-backend.ts
-export function createGitHttpBackend(repoDir: string): express.RequestHandler
+export function createGitHttpBackend(repoDir: string): express.RequestHandler;
 ```
 
 All functions use `child_process.execFile` (not `exec`) for safety. Errors throw `RigError extends CrosstownError`.
@@ -452,10 +484,26 @@ Dedicated query module for Rig relay interactions:
 
 ```typescript
 // packages/rig/src/relay/queries.ts
-export async function queryIssues(pool: SimplePool, relayUrl: string, repoEventId: string): Promise<NostrEvent[]>
-export async function queryPullRequests(pool: SimplePool, relayUrl: string, repoEventId: string): Promise<NostrEvent[]>
-export async function queryComments(pool: SimplePool, relayUrl: string, parentEventId: string): Promise<NostrEvent[]>
-export async function queryProfile(pool: SimplePool, relayUrl: string, pubkey: string): Promise<NostrEvent | null>
+export async function queryIssues(
+  pool: SimplePool,
+  relayUrl: string,
+  repoEventId: string
+): Promise<NostrEvent[]>;
+export async function queryPullRequests(
+  pool: SimplePool,
+  relayUrl: string,
+  repoEventId: string
+): Promise<NostrEvent[]>;
+export async function queryComments(
+  pool: SimplePool,
+  relayUrl: string,
+  parentEventId: string
+): Promise<NostrEvent[]>;
+export async function queryProfile(
+  pool: SimplePool,
+  relayUrl: string,
+  pubkey: string
+): Promise<NostrEvent | null>;
 ```
 
 Returns decoded `NostrEvent` arrays (not TOON — the UI needs structured data). Uses `nostr-tools` SimplePool internally.
@@ -647,6 +695,7 @@ packages/rig/
 ```
 
 **Boundary Rules:**
+
 - SDK imports core and bls — never relay directly
 - Town and Rig import SDK — never core/bls directly (except core types)
 - No package imports from town or rig (they are leaf nodes)
@@ -667,51 +716,51 @@ ILP Packet → ConnectorNode.setPacketHandler()
 
 ### Requirements to Structure Mapping
 
-| Epic/Story | Package | Primary Files |
-|------------|---------|--------------|
-| **Epic 1: SDK** | | |
-| Story 1.0: TOON codec extraction | core | `toon/encoder.ts`, `toon/decoder.ts`, `toon/shallow-parse.ts` |
-| Story 1.1: Identity | sdk | `identity.ts` |
-| Story 1.2: Handler Registry | sdk | `HandlerRegistry.ts` |
-| Story 1.3: HandlerContext | sdk | `HandlerContext.ts` |
-| Story 1.4: Verification | sdk | `verification.ts` |
-| Story 1.5: Pricing | sdk | `pricing.ts` |
-| Story 1.6: PaymentHandler Bridge | sdk | `PaymentHandlerBridge.ts` |
-| Story 1.7: createNode + lifecycle | sdk | `ServiceNode.ts` |
-| Story 1.8: Connector methods | sdk | `ServiceNode.ts` (exposes connector) |
-| Story 1.9: Bootstrap integration | sdk | `ServiceNode.ts` (wires BootstrapService) |
-| Story 1.10: Dev mode | sdk | `verification.ts`, `pricing.ts`, `ServiceNode.ts` |
-| Story 1.11: Package setup | sdk | `package.json`, `index.ts` |
-| **Epic 2: Town** | | |
-| Story 2.1: Event storage handler | town | `handlers/event-storage.ts` |
-| Story 2.2: SPSP handler | town | `handlers/spsp-handshake.ts` |
-| Story 2.3: E2E validation | client | `tests/e2e/` (existing) |
-| Story 2.4: Remove git-proxy | root | Delete `packages/git-proxy/` |
-| Story 2.5: Publish town | town | `town.ts`, `cli.ts`, `Dockerfile` |
-| **Epic 3: Rig** | | |
-| Story 3.1: SDK node + repo creation | rig | `handlers/repo-announcement.ts`, `git/operations.ts` (initRepo) |
-| Story 3.2: Patch handler | rig | `handlers/patch.ts`, `git/operations.ts` (applyPatch) |
-| Story 3.3: Issue + comment handlers | rig | `handlers/issue.ts`, `handlers/comment.ts` |
-| Story 3.4: Git HTTP backend | rig | `git/http-backend.ts`, `routes/git-backend.ts` |
-| Story 3.5: Pubkey identity | rig | `identity/pubkey-display.ts` |
-| Story 3.6: PR lifecycle | rig | `handlers/status.ts` |
-| Story 3.7: Layout + repo list | rig | `routes/repos.ts` (list), `views/layout.eta`, `views/repos/list.eta` |
-| Story 3.8: File tree + blob view | rig | `routes/repos.ts` (tree/blob), `views/repos/tree.eta`, `views/repos/blob.eta` |
-| Story 3.9: Commit log + diff | rig | `routes/commits.ts`, `views/commits/log.eta`, `views/commits/diff.eta` |
-| Story 3.10: Blame view | rig | `routes/repos.ts` (blame), `views/repos/blame.eta` |
-| Story 3.11: Issues/PRs from relay | rig | `relay/queries.ts`, `routes/issues.ts`, `routes/pulls.ts`, `views/issues/`, `views/pulls/` |
-| Story 3.12: Publish rig | rig | `rig.ts`, `cli.ts`, `Dockerfile` |
+| Epic/Story                          | Package | Primary Files                                                                              |
+| ----------------------------------- | ------- | ------------------------------------------------------------------------------------------ |
+| **Epic 1: SDK**                     |         |                                                                                            |
+| Story 1.0: TOON codec extraction    | core    | `toon/encoder.ts`, `toon/decoder.ts`, `toon/shallow-parse.ts`                              |
+| Story 1.1: Identity                 | sdk     | `identity.ts`                                                                              |
+| Story 1.2: Handler Registry         | sdk     | `HandlerRegistry.ts`                                                                       |
+| Story 1.3: HandlerContext           | sdk     | `HandlerContext.ts`                                                                        |
+| Story 1.4: Verification             | sdk     | `verification.ts`                                                                          |
+| Story 1.5: Pricing                  | sdk     | `pricing.ts`                                                                               |
+| Story 1.6: PaymentHandler Bridge    | sdk     | `PaymentHandlerBridge.ts`                                                                  |
+| Story 1.7: createNode + lifecycle   | sdk     | `ServiceNode.ts`                                                                           |
+| Story 1.8: Connector methods        | sdk     | `ServiceNode.ts` (exposes connector)                                                       |
+| Story 1.9: Bootstrap integration    | sdk     | `ServiceNode.ts` (wires BootstrapService)                                                  |
+| Story 1.10: Dev mode                | sdk     | `verification.ts`, `pricing.ts`, `ServiceNode.ts`                                          |
+| Story 1.11: Package setup           | sdk     | `package.json`, `index.ts`                                                                 |
+| **Epic 2: Town**                    |         |                                                                                            |
+| Story 2.1: Event storage handler    | town    | `handlers/event-storage.ts`                                                                |
+| Story 2.2: SPSP handler             | town    | `handlers/spsp-handshake.ts`                                                               |
+| Story 2.3: E2E validation           | client  | `tests/e2e/` (existing)                                                                    |
+| Story 2.4: Remove git-proxy         | root    | Delete `packages/git-proxy/`                                                               |
+| Story 2.5: Publish town             | town    | `town.ts`, `cli.ts`, `Dockerfile`                                                          |
+| **Epic 3: Rig**                     |         |                                                                                            |
+| Story 3.1: SDK node + repo creation | rig     | `handlers/repo-announcement.ts`, `git/operations.ts` (initRepo)                            |
+| Story 3.2: Patch handler            | rig     | `handlers/patch.ts`, `git/operations.ts` (applyPatch)                                      |
+| Story 3.3: Issue + comment handlers | rig     | `handlers/issue.ts`, `handlers/comment.ts`                                                 |
+| Story 3.4: Git HTTP backend         | rig     | `git/http-backend.ts`, `routes/git-backend.ts`                                             |
+| Story 3.5: Pubkey identity          | rig     | `identity/pubkey-display.ts`                                                               |
+| Story 3.6: PR lifecycle             | rig     | `handlers/status.ts`                                                                       |
+| Story 3.7: Layout + repo list       | rig     | `routes/repos.ts` (list), `views/layout.eta`, `views/repos/list.eta`                       |
+| Story 3.8: File tree + blob view    | rig     | `routes/repos.ts` (tree/blob), `views/repos/tree.eta`, `views/repos/blob.eta`              |
+| Story 3.9: Commit log + diff        | rig     | `routes/commits.ts`, `views/commits/log.eta`, `views/commits/diff.eta`                     |
+| Story 3.10: Blame view              | rig     | `routes/repos.ts` (blame), `views/repos/blame.eta`                                         |
+| Story 3.11: Issues/PRs from relay   | rig     | `relay/queries.ts`, `routes/issues.ts`, `routes/pulls.ts`, `views/issues/`, `views/pulls/` |
+| Story 3.12: Publish rig             | rig     | `rig.ts`, `cli.ts`, `Dockerfile`                                                           |
 
 ### Cross-Cutting Concerns Location
 
-| Concern | Where |
-|---------|-------|
-| TOON codec + shallow parse | `packages/core/src/toon/` |
-| Unified identity | `packages/sdk/src/identity.ts` |
-| Error hierarchy | `packages/core/src/errors.ts` (base), `packages/sdk/src/errors.ts` (SDK), `packages/rig/src/errors.ts` (Rig) |
-| Bootstrap + discovery | `packages/core/src/bootstrap/` (unchanged) |
-| Event types + builders | `packages/core/src/events/` (unchanged) |
-| NIP-34 types | `packages/core/src/nip34/` (existing, used by Rig) |
+| Concern                    | Where                                                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| TOON codec + shallow parse | `packages/core/src/toon/`                                                                                    |
+| Unified identity           | `packages/sdk/src/identity.ts`                                                                               |
+| Error hierarchy            | `packages/core/src/errors.ts` (base), `packages/sdk/src/errors.ts` (SDK), `packages/rig/src/errors.ts` (Rig) |
+| Bootstrap + discovery      | `packages/core/src/bootstrap/` (unchanged)                                                                   |
+| Event types + builders     | `packages/core/src/events/` (unchanged)                                                                      |
+| NIP-34 types               | `packages/core/src/nip34/` (existing, used by Rig)                                                           |
 
 ## Architecture Validation Results
 
@@ -730,16 +779,17 @@ Package boundaries are well-defined. The dependency graph is acyclic. ConnectorN
 
 **Epic/Feature Coverage (24 FRs):**
 
-| FR Range | Stories | Architecture Support |
-|----------|---------|---------------------|
-| FR-SDK-0 (1 FR) | Story 1.0 | TOON codec extraction to `packages/core/src/toon/` |
-| FR-SDK-1 through FR-SDK-NEW-1 (14 FRs) | Stories 1.1–1.11 | All mapped to specific files in `packages/sdk/src/` |
-| FR-SDK-14, FR-SDK-15, FR-SDK-16, FR-RELAY-1 (4 FRs) | Stories 2.1–2.5 | Covered by `packages/town/` + existing E2E suite |
-| FR-NIP34-1 through FR-NIP34-6 (6 FRs) | Stories 3.1–3.12 | Covered by `packages/rig/` (handlers, git, routes, views) |
+| FR Range                                            | Stories          | Architecture Support                                      |
+| --------------------------------------------------- | ---------------- | --------------------------------------------------------- |
+| FR-SDK-0 (1 FR)                                     | Story 1.0        | TOON codec extraction to `packages/core/src/toon/`        |
+| FR-SDK-1 through FR-SDK-NEW-1 (14 FRs)              | Stories 1.1–1.11 | All mapped to specific files in `packages/sdk/src/`       |
+| FR-SDK-14, FR-SDK-15, FR-SDK-16, FR-RELAY-1 (4 FRs) | Stories 2.1–2.5  | Covered by `packages/town/` + existing E2E suite          |
+| FR-NIP34-1 through FR-NIP34-6 (6 FRs)               | Stories 3.1–3.12 | Covered by `packages/rig/` (handlers, git, routes, views) |
 
 All 24 FRs have direct architectural support. No gaps in functional coverage.
 
 **Cross-Epic Dependencies Handled:**
+
 - TOON codec extraction (Epic 0 prerequisite) → enables all three epics
 - SDK identity (Epic 1) → used by Town (Epic 2) and Rig (Epic 3)
 - SDK handler registry (Epic 1) → consumed by Town and Rig handler implementations
@@ -747,31 +797,34 @@ All 24 FRs have direct architectural support. No gaps in functional coverage.
 
 **Non-Functional Requirements (7 NFRs):**
 
-| NFR | Architectural Support |
-|-----|----------------------|
-| NFR-SDK-1: TypeScript strict | Starter template: strict: true, noUncheckedIndexedAccess |
-| NFR-SDK-2: Node.js 24.x ESM | Starter template: "type": "module" |
-| NFR-SDK-3: >80% coverage | Co-located *.test.ts files for every source file + integration tests |
-| NFR-SDK-4: <30min integration | Pattern 2 (builder chaining) + createNode() ergonomics |
-| NFR-SDK-5: Structural typing | ConnectorNodeLike pattern in types.ts |
-| NFR-SDK-6: Mocked tests | Test strategy: mocked connectors, no live dependencies |
-| NFR-SDK-7: Minimal deps | Decision 1 removes relay from SDK deps (TOON moves to core) |
+| NFR                           | Architectural Support                                                 |
+| ----------------------------- | --------------------------------------------------------------------- |
+| NFR-SDK-1: TypeScript strict  | Starter template: strict: true, noUncheckedIndexedAccess              |
+| NFR-SDK-2: Node.js 24.x ESM   | Starter template: "type": "module"                                    |
+| NFR-SDK-3: >80% coverage      | Co-located \*.test.ts files for every source file + integration tests |
+| NFR-SDK-4: <30min integration | Pattern 2 (builder chaining) + createNode() ergonomics                |
+| NFR-SDK-5: Structural typing  | ConnectorNodeLike pattern in types.ts                                 |
+| NFR-SDK-6: Mocked tests       | Test strategy: mocked connectors, no live dependencies                |
+| NFR-SDK-7: Minimal deps       | Decision 1 removes relay from SDK deps (TOON moves to core)           |
 
 All 7 NFRs are architecturally addressed.
 
 ### Implementation Readiness Validation ✅
 
 **Decision Completeness:**
+
 - All 7 decisions include version numbers, rationale, and affected packages
 - Decision Impact Analysis provides explicit implementation sequence
 - Cross-component dependencies are mapped
 
 **Structure Completeness:**
+
 - 4 package structures fully defined (core modification + sdk + town + rig)
 - Every story maps to specific files (Requirements to Structure Mapping table)
 - Integration points specified (PaymentHandler bridge, ConnectorNodeLike, relay queries)
 
 **Pattern Completeness:**
+
 - 9 patterns with code examples (correct and incorrect)
 - Anti-pattern section documents 5 common mistakes
 - Enforcement guidelines provide 6 mandatory rules for AI agents
@@ -816,7 +869,7 @@ Town depends on SDK + BLS (for EventStore). Rig depends on SDK + core. SDK depen
 **✅ Architectural Decisions**
 
 - [x] Critical decisions documented with versions (7 decisions)
-- [x] Technology stack fully specified (Express 5.2, Eta 4.5, better-sqlite3 11, @scure/* 2.0)
+- [x] Technology stack fully specified (Express 5.2, Eta 4.5, better-sqlite3 11, @scure/\* 2.0)
 - [x] Integration patterns defined (PaymentHandler bridge, ConnectorNodeLike, relay queries)
 - [x] Performance considerations addressed (shallow TOON parse, lazy decode, relay query trade-off)
 
@@ -841,6 +894,7 @@ Town depends on SDK + BLS (for EventStore). Rig depends on SDK + core. SDK depen
 **Confidence Level:** High — all FRs covered, all NFRs addressed, no critical gaps, coherent decisions
 
 **Key Strengths:**
+
 - Clean dependency graph with no circular dependencies
 - Every story maps to specific files (implementation agents won't guess)
 - 9 patterns with code examples prevent style divergence
@@ -848,6 +902,7 @@ Town depends on SDK + BLS (for EventStore). Rig depends on SDK + core. SDK depen
 - Party Mode feedback (codec dependency, shallow parse ordering, test strategy) integrated
 
 **Areas for Future Enhancement:**
+
 - Rig event caching layer (deferred until relay latency becomes a UX problem)
 - Multi-relay redundancy for Rig queries
 - Rig offline mode
@@ -863,8 +918,8 @@ Town depends on SDK + BLS (for EventStore). Rig depends on SDK + core. SDK depen
 - Existing project-context rules (148 rules) remain in full effect
 
 **First Implementation Priority:**
+
 1. Extract TOON codec to `@crosstown/core` (unblocks all three epics)
 2. SDK identity module — Story 1.1 (`packages/sdk/src/identity.ts`)
 3. SDK handler registry + context — Stories 1.2–1.3
 4. Continue per Decision Impact Analysis sequence
-

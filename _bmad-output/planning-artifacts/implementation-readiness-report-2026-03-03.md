@@ -7,10 +7,10 @@ stepsCompleted:
   - step-05-epic-quality-review
   - step-06-final-assessment
 documentsIncluded:
-  architecture: "_bmad-output/planning-artifacts/architecture.md"
-  epics: "_bmad-output/planning-artifacts/epics.md"
-  prd: "docs/prd/ (OUTDATED - older project version)"
-  ux: "N/A"
+  architecture: '_bmad-output/planning-artifacts/architecture.md'
+  epics: '_bmad-output/planning-artifacts/epics.md'
+  prd: 'docs/prd/ (OUTDATED - older project version)'
+  ux: 'N/A'
 ---
 
 # Implementation Readiness Assessment Report
@@ -22,12 +22,12 @@ documentsIncluded:
 
 ### Documents Identified
 
-| Document | Source | Status |
-|----------|--------|--------|
-| PRD | `docs/prd/` (sharded) | Outdated - older project version |
-| Architecture | `_bmad-output/planning-artifacts/architecture.md` | Current |
-| Epics & Stories | `_bmad-output/planning-artifacts/epics.md` | Current |
-| UX Design | N/A | Not applicable (protocol/SDK project) |
+| Document        | Source                                            | Status                                |
+| --------------- | ------------------------------------------------- | ------------------------------------- |
+| PRD             | `docs/prd/` (sharded)                             | Outdated - older project version      |
+| Architecture    | `_bmad-output/planning-artifacts/architecture.md` | Current                               |
+| Epics & Stories | `_bmad-output/planning-artifacts/epics.md`        | Current                               |
+| UX Design       | N/A                                               | Not applicable (protocol/SDK project) |
 
 ### Issues
 
@@ -41,6 +41,7 @@ documentsIncluded:
 ### Functional Requirements
 
 **Core Protocol (Epics 1-4)**
+
 - FR1: Discover ILP peers by querying NIP-02 follow lists from configured Nostr relays
 - FR2: Query kind:10032 events to retrieve connector ILP addresses, BTP endpoints, settlement capabilities, and settlement addresses
 - FR3: Subscribe to peer updates and notify consumers when peer info changes via RelayMonitor
@@ -56,12 +57,14 @@ documentsIncluded:
 - FR13: Bypass payment requirements for agent's own events (self-write)
 
 **BLS & Docker (Epic 5)**
+
 - FR14: BLS extracted as standalone package (`@crosstown/bls`)
 - FR15: BLS Docker image implements standard BLS contract (`/health`, `/handle-packet`)
 - FR16: BLS configurable via environment variables
 - FR17: BLS persist events to SQLite with in-memory fallback
 
 **Layered Discovery & Bootstrap (Epics 6, 8)**
+
 - FR18: Layered peer discovery: genesis peers → ArDrive registry → NIP-02 social graph
 - FR19: Multi-phase bootstrap lifecycle: discovering → registering → handshaking → announcing → ready
 - FR20: Bootstrap service sends SPSP handshakes as ILP packets via `POST /ilp/send`
@@ -69,24 +72,29 @@ documentsIncluded:
 - FR22: RelayMonitor detects new kind:10032 events and initiates SPSP handshakes
 
 **Settlement Negotiation (Epic 7)**
+
 - FR23: SPSP handshake negotiates settlement chains by intersecting supportedChains
 - FR24: SPSP responder opens payment channels via connector Admin API during handshake
 - FR25: kind:10032 events advertise settlement capabilities
 - FR26: BLS accepts configurable 0-amount ILP packets for SPSP requests during bootstrap
 
 **Embedded Connector (Epic 10)**
+
 - FR27: Provide `createCrosstownNode()` composition function
 - FR28: Provide `DirectRuntimeClient` and `DirectConnectorAdmin` for in-process ILP communication
 - FR29: Retain `createHttpRuntimeClient()` as HTTP fallback
 - FR30: `@agent-runtime/connector` as optional peer dependency
 
 **Agent Runtime (Epic 11) - may be outdated**
+
 - FR31-FR36: Agent runtime with LLM-powered event handlers, multi-model support, action allowlists, content isolation, rate limiting
 
 **Integration (Epic 9)**
+
 - FR37: Integrate with agent-runtime via documented Admin API, BLS contract, and embedded connector patterns
 
 **NIP Adoption Roadmap (Epics 12-17) - may be outdated**
+
 - FR38-FR66: Cross-Town communication, paid computation marketplace, trust infrastructure, decentralized git collaboration, content/community layer, federation/agent swarms
 
 **Total FRs: 66**
@@ -131,39 +139,39 @@ documentsIncluded:
 
 ### Key Finding: Divergent Requirement Sets
 
-The current epics document (`_bmad-output/planning-artifacts/epics.md`) defines its **own requirement set** (FR-SDK-*, FR-NIP34-*, FR-RELAY-*) rather than referencing the old PRD's FR1-FR66. The project scope has evolved significantly — the old PRD covered 17 epics (core protocol + agent runtime + Gas Town integration + NIP adoption roadmap), while the current epics cover 3 focused epics (SDK + Relay + The Rig).
+The current epics document (`_bmad-output/planning-artifacts/epics.md`) defines its **own requirement set** (FR-SDK-_, FR-NIP34-_, FR-RELAY-\*) rather than referencing the old PRD's FR1-FR66. The project scope has evolved significantly — the old PRD covered 17 epics (core protocol + agent runtime + Gas Town integration + NIP adoption roadmap), while the current epics cover 3 focused epics (SDK + Relay + The Rig).
 
 ### Current Epics — Internal FR Coverage (Self-Consistency)
 
 All 24 FRs defined in the epics document have explicit story coverage:
 
-| FR Number | Requirement | Epic/Story | Status |
-|-----------|-------------|------------|--------|
-| FR-SDK-0 | TOON codec in @crosstown/core | Epic 1, Story 1.0 | Covered |
-| FR-SDK-1 | `createNode()` composition function | Epic 1, Story 1.7 | Covered |
-| FR-SDK-2 | Handler registry `.on(kind, handler)` | Epic 1, Story 1.2 | Covered |
-| FR-SDK-3 | TOON-native HandlerContext | Epic 1, Story 1.3 | Covered |
-| FR-SDK-4 | Schnorr signature verification | Epic 1, Story 1.4 | Covered |
-| FR-SDK-5 | Pricing validation + self-write bypass | Epic 1, Story 1.5 | Covered |
-| FR-SDK-6 | PaymentHandler bridge + isTransit | Epic 1, Story 1.6 | Covered |
-| FR-SDK-7 | HandlerContext accept()/reject() | Epic 1, Story 1.3 | Covered |
-| FR-SDK-8 | Connector direct methods API | Epic 1, Story 1.8 | Covered |
-| FR-SDK-9 | BootstrapService + RelayMonitor | Epic 1, Story 1.9 | Covered |
-| FR-SDK-10 | Node lifecycle start()/stop() | Epic 1, Story 1.7 | Covered |
-| FR-SDK-11 | Embedded connector mode | Epic 1, Story 1.7 | Covered |
-| FR-SDK-12 | Dev mode | Epic 1, Story 1.10 | Covered |
-| FR-SDK-13 | npm publish as @crosstown/sdk | Epic 1, Story 1.11 | Covered |
-| FR-SDK-NEW-1 | Unified identity from seed phrase | Epic 1, Story 1.1 | Covered |
-| FR-SDK-14 | Relay reimplementation using SDK | Epic 2, Story 2.1 | Covered |
-| FR-SDK-15 | E2E test validation | Epic 2, Story 2.3 | Covered |
-| FR-SDK-16 | Remove packages/git-proxy | Epic 2, Story 2.4 | Covered |
-| FR-RELAY-1 | Publish @crosstown/town | Epic 2, Story 2.5 | Covered |
-| FR-NIP34-1 | NIP-34 handlers + git HTTP backend | Epic 3, Stories 3.1-3.4 | Covered |
-| FR-NIP34-2 | Nostr pubkey-native git identity | Epic 3, Story 3.5 | Covered |
-| FR-NIP34-3 | Read-only code browsing web UI | Epic 3, Stories 3.7-3.10 | Covered |
-| FR-NIP34-4 | PR lifecycle via NIP-34 status events | Epic 3, Story 3.6 | Covered |
-| FR-NIP34-5 | Issues/PRs from Nostr events | Epic 3, Story 3.11 | Covered |
-| FR-NIP34-6 | Publish @crosstown/rig | Epic 3, Story 3.12 | Covered |
+| FR Number    | Requirement                            | Epic/Story               | Status  |
+| ------------ | -------------------------------------- | ------------------------ | ------- |
+| FR-SDK-0     | TOON codec in @crosstown/core          | Epic 1, Story 1.0        | Covered |
+| FR-SDK-1     | `createNode()` composition function    | Epic 1, Story 1.7        | Covered |
+| FR-SDK-2     | Handler registry `.on(kind, handler)`  | Epic 1, Story 1.2        | Covered |
+| FR-SDK-3     | TOON-native HandlerContext             | Epic 1, Story 1.3        | Covered |
+| FR-SDK-4     | Schnorr signature verification         | Epic 1, Story 1.4        | Covered |
+| FR-SDK-5     | Pricing validation + self-write bypass | Epic 1, Story 1.5        | Covered |
+| FR-SDK-6     | PaymentHandler bridge + isTransit      | Epic 1, Story 1.6        | Covered |
+| FR-SDK-7     | HandlerContext accept()/reject()       | Epic 1, Story 1.3        | Covered |
+| FR-SDK-8     | Connector direct methods API           | Epic 1, Story 1.8        | Covered |
+| FR-SDK-9     | BootstrapService + RelayMonitor        | Epic 1, Story 1.9        | Covered |
+| FR-SDK-10    | Node lifecycle start()/stop()          | Epic 1, Story 1.7        | Covered |
+| FR-SDK-11    | Embedded connector mode                | Epic 1, Story 1.7        | Covered |
+| FR-SDK-12    | Dev mode                               | Epic 1, Story 1.10       | Covered |
+| FR-SDK-13    | npm publish as @crosstown/sdk          | Epic 1, Story 1.11       | Covered |
+| FR-SDK-NEW-1 | Unified identity from seed phrase      | Epic 1, Story 1.1        | Covered |
+| FR-SDK-14    | Relay reimplementation using SDK       | Epic 2, Story 2.1        | Covered |
+| FR-SDK-15    | E2E test validation                    | Epic 2, Story 2.3        | Covered |
+| FR-SDK-16    | Remove packages/git-proxy              | Epic 2, Story 2.4        | Covered |
+| FR-RELAY-1   | Publish @crosstown/town                | Epic 2, Story 2.5        | Covered |
+| FR-NIP34-1   | NIP-34 handlers + git HTTP backend     | Epic 3, Stories 3.1-3.4  | Covered |
+| FR-NIP34-2   | Nostr pubkey-native git identity       | Epic 3, Story 3.5        | Covered |
+| FR-NIP34-3   | Read-only code browsing web UI         | Epic 3, Stories 3.7-3.10 | Covered |
+| FR-NIP34-4   | PR lifecycle via NIP-34 status events  | Epic 3, Story 3.6        | Covered |
+| FR-NIP34-5   | Issues/PRs from Nostr events           | Epic 3, Story 3.11       | Covered |
+| FR-NIP34-6   | Publish @crosstown/rig                 | Epic 3, Story 3.12       | Covered |
 
 **Internal coverage: 24/24 FRs = 100%**
 
@@ -171,50 +179,54 @@ All 24 FRs defined in the epics document have explicit story coverage:
 
 Since the PRD is outdated, this cross-reference shows how the old requirements map to the evolved architecture:
 
-| Old FR | Requirement | Current Coverage | Status |
-|--------|-------------|------------------|--------|
-| FR1-FR3 | Peer discovery (NIP-02, kind:10032, RelayMonitor) | FR-SDK-9 (Story 1.9) | Evolved |
-| FR4-FR5 | SPSP handshakes (kind:23194/23195) | Epic 2, Story 2.2 | Evolved |
-| FR6-FR7 | Trust scores / configurable trust calculator | **NOT COVERED** | Dropped |
-| FR8-FR9 | TypeScript interfaces + parser/builder utilities | Existing @crosstown/core | Pre-existing |
-| FR10 | ILP-gated relay accepts payments | FR-SDK-5 + Epic 2, Story 2.1 | Evolved |
-| FR11 | Configurable pricing (per-byte, per-kind) | FR-SDK-5 (Story 1.5) | Evolved |
-| FR12 | Free NIP-01 reads | Implicit (relay architecture) | Unchanged |
-| FR13 | Self-write bypass | FR-SDK-5 (Story 1.5) | Evolved |
-| FR14-FR17 | BLS standalone package + Docker | Superseded by SDK + @crosstown/town | Superseded |
-| FR18-FR22 | Layered discovery + bootstrap | FR-SDK-9 (Story 1.9) | Evolved |
-| FR23-FR26 | Settlement negotiation | Epic 2 Story 2.2 + FR-SDK-8 | Evolved |
-| FR27 | createCrosstownNode() | FR-SDK-1 (createNode()) | Evolved |
-| FR28 | DirectRuntimeClient/DirectConnectorAdmin | FR-SDK-8 + FR-SDK-11 | Evolved |
-| FR29 | HTTP fallback mode | **NOT COVERED** | Dropped |
-| FR30 | Optional peer dependency | NFR-SDK-5 | Evolved |
-| FR31-FR36 | Agent runtime (LLM handlers) | **NOT COVERED** | Dropped from scope |
-| FR37 | agent-runtime integration | Superseded by SDK model | Superseded |
-| FR38-FR45 | Cross-Town communication (NIP-17, NIP-46, etc.) | **NOT COVERED** | Deferred |
-| FR46-FR48 | Paid computation marketplace (NIP-90) | **NOT COVERED** | Deferred |
-| FR49-FR53 | Trust infrastructure (zaps, badges, etc.) | **NOT COVERED** | Deferred |
-| FR54-FR58 | Decentralized git (NIP-34) | FR-NIP34-1 through FR-NIP34-6 | Partially covered |
-| FR59-FR62 | Content & community layer | **NOT COVERED** | Deferred |
-| FR63-FR66 | Federation & agent swarms | **NOT COVERED** | Deferred |
+| Old FR    | Requirement                                       | Current Coverage                    | Status             |
+| --------- | ------------------------------------------------- | ----------------------------------- | ------------------ |
+| FR1-FR3   | Peer discovery (NIP-02, kind:10032, RelayMonitor) | FR-SDK-9 (Story 1.9)                | Evolved            |
+| FR4-FR5   | SPSP handshakes (kind:23194/23195)                | Epic 2, Story 2.2                   | Evolved            |
+| FR6-FR7   | Trust scores / configurable trust calculator      | **NOT COVERED**                     | Dropped            |
+| FR8-FR9   | TypeScript interfaces + parser/builder utilities  | Existing @crosstown/core            | Pre-existing       |
+| FR10      | ILP-gated relay accepts payments                  | FR-SDK-5 + Epic 2, Story 2.1        | Evolved            |
+| FR11      | Configurable pricing (per-byte, per-kind)         | FR-SDK-5 (Story 1.5)                | Evolved            |
+| FR12      | Free NIP-01 reads                                 | Implicit (relay architecture)       | Unchanged          |
+| FR13      | Self-write bypass                                 | FR-SDK-5 (Story 1.5)                | Evolved            |
+| FR14-FR17 | BLS standalone package + Docker                   | Superseded by SDK + @crosstown/town | Superseded         |
+| FR18-FR22 | Layered discovery + bootstrap                     | FR-SDK-9 (Story 1.9)                | Evolved            |
+| FR23-FR26 | Settlement negotiation                            | Epic 2 Story 2.2 + FR-SDK-8         | Evolved            |
+| FR27      | createCrosstownNode()                             | FR-SDK-1 (createNode())             | Evolved            |
+| FR28      | DirectRuntimeClient/DirectConnectorAdmin          | FR-SDK-8 + FR-SDK-11                | Evolved            |
+| FR29      | HTTP fallback mode                                | **NOT COVERED**                     | Dropped            |
+| FR30      | Optional peer dependency                          | NFR-SDK-5                           | Evolved            |
+| FR31-FR36 | Agent runtime (LLM handlers)                      | **NOT COVERED**                     | Dropped from scope |
+| FR37      | agent-runtime integration                         | Superseded by SDK model             | Superseded         |
+| FR38-FR45 | Cross-Town communication (NIP-17, NIP-46, etc.)   | **NOT COVERED**                     | Deferred           |
+| FR46-FR48 | Paid computation marketplace (NIP-90)             | **NOT COVERED**                     | Deferred           |
+| FR49-FR53 | Trust infrastructure (zaps, badges, etc.)         | **NOT COVERED**                     | Deferred           |
+| FR54-FR58 | Decentralized git (NIP-34)                        | FR-NIP34-1 through FR-NIP34-6       | Partially covered  |
+| FR59-FR62 | Content & community layer                         | **NOT COVERED**                     | Deferred           |
+| FR63-FR66 | Federation & agent swarms                         | **NOT COVERED**                     | Deferred           |
 
 ### Missing Requirements (from old PRD, not in current epics)
 
 **Intentionally Dropped:**
+
 - FR6-FR7: Trust scores / configurable trust calculator — not referenced in current SDK scope
 - FR29: HTTP fallback mode — SDK is embedded-only
 - FR31-FR36: Agent runtime — removed from scope entirely
 
 **Deferred (NIP adoption roadmap):**
+
 - FR38-FR66: The entire NIP adoption roadmap (epics 12-17 from old PRD) is not in the current 3-epic scope
 
 ### Coverage Statistics
 
 **Current Epics (self-consistency):**
+
 - Total FRs defined: 24
 - FRs covered in stories: 24
 - Coverage: **100%**
 
 **Old PRD cross-reference:**
+
 - Total old PRD FRs: 66
 - FRs evolved/covered in current epics: ~30 (FR1-FR5, FR8-FR28, FR30, FR54-FR58)
 - FRs intentionally dropped: ~9 (FR6-FR7, FR29, FR31-FR36)
@@ -263,16 +275,16 @@ While Epics 1-2 (SDK + Relay) are purely programmatic (no UI), **Epic 3 (The Rig
 
 ### Best Practices Compliance Checklist
 
-| Criteria | Epic 1 (SDK) | Epic 2 (Town) | Epic 3 (Rig) |
-|----------|:---:|:---:|:---:|
-| Delivers user value | PASS | PASS | PASS |
-| Can function independently | PASS* | PASS | PASS |
-| Stories appropriately sized | PASS | PASS | PASS (resolved) |
-| No forward dependencies | PASS | PASS | PASS |
-| Clear acceptance criteria | PASS | PASS | PASS |
-| FR traceability maintained | PASS | PASS | PASS |
+| Criteria                    | Epic 1 (SDK) | Epic 2 (Town) |  Epic 3 (Rig)   |
+| --------------------------- | :----------: | :-----------: | :-------------: |
+| Delivers user value         |     PASS     |     PASS      |      PASS       |
+| Can function independently  |    PASS\*    |     PASS      |      PASS       |
+| Stories appropriately sized |     PASS     |     PASS      | PASS (resolved) |
+| No forward dependencies     |     PASS     |     PASS      |      PASS       |
+| Clear acceptance criteria   |     PASS     |     PASS      |      PASS       |
+| FR traceability maintained  |     PASS     |     PASS      |      PASS       |
 
-*Epic 1 prerequisite (TOON codec extraction) now captured as Story 1.0.
+\*Epic 1 prerequisite (TOON codec extraction) now captured as Story 1.0.
 
 ---
 
@@ -283,9 +295,11 @@ While Epics 1-2 (SDK + Relay) are purely programmatic (no UI), **Epic 3 (The Rig
 The architecture document identifies "Extract TOON codec to `@crosstown/core`" as Decision 1 and "Epic 0 prerequisite" that "unblocks all three epics." However, **no story exists for this work in any epic.**
 
 The architecture states:
+
 > "TOON codec extraction (Epic 0 prerequisite) → enables all three epics"
 
 And:
+
 > "First Implementation Priority: 1. Extract TOON codec to @crosstown/core (unblocks all three epics)"
 
 This is real work (move ~100 LOC from BLS to core, add shallow-parse.ts, update imports in BLS and relay packages) that has no story, no acceptance criteria, and no FR.
@@ -301,6 +315,7 @@ This is real work (move ~100 LOC from BLS to core, add shallow-parse.ts, update 
 #### 2. Story 3.1 is Oversized
 
 Story 3.1 "Git HTTP Backend and NIP-34 Handler Service Node" covers:
+
 - SDK node creation with handlers for 8 NIP-34 kinds (30617, 1617, 1618, 1619, 1621, 1622, 1630-1633)
 - Repository creation from kind:30617 events (git init --bare + metadata)
 - Patch application from kind:1617 events (git am/apply)
@@ -311,6 +326,7 @@ Story 3.1 "Git HTTP Backend and NIP-34 Handler Service Node" covers:
 This is effectively 4-5 stories bundled into one. Each NIP-34 handler type is a distinct unit of work with its own AC.
 
 **Recommendation:** Split into:
+
 - 3.1a: SDK node setup + kind:30617 repo creation handler + git init
 - 3.1b: kind:1617 patch handler + git am/apply
 - 3.1c: kind:1621/1622 issue/comment acknowledgment handlers
@@ -319,6 +335,7 @@ This is effectively 4-5 stories bundled into one. Each NIP-34 handler type is a 
 #### 3. Story 3.3 is Oversized
 
 Story 3.3 "Read-Only Code Browsing Web UI" covers 6 distinct pages:
+
 - Repository list page
 - File tree view (directory navigation)
 - Blob view (syntax-highlighted file content)
@@ -329,6 +346,7 @@ Story 3.3 "Read-Only Code Browsing Web UI" covers 6 distinct pages:
 Each page requires: an Express route, an Eta template, git operations module functions, and potentially CSS/styling. The mechanical port of Forgejo templates is significant work per page.
 
 **Recommendation:** Split into:
+
 - 3.3a: Layout + repo list page (foundation)
 - 3.3b: File tree + blob view
 - 3.3c: Commit log + commit diff
@@ -339,6 +357,7 @@ Each page requires: an Express route, an Eta template, git operations module fun
 Story dependencies within each epic are implicit but not documented. Key dependencies:
 
 **Epic 1:**
+
 - Stories 1.4, 1.5 depend on TOON codec extraction (not a story)
 - Story 1.6 depends on 1.2 (handler registry)
 - Story 1.7 depends on 1.1-1.6, 1.8-1.9 (composition)
@@ -346,10 +365,12 @@ Story dependencies within each epic are implicit but not documented. Key depende
 - Story 1.11 depends on all others
 
 **Epic 2:**
+
 - Story 2.3 depends on 2.1, 2.2 (relay must work for E2E)
 - Story 2.5 depends on 2.1-2.3
 
 **Epic 3:**
+
 - Stories 3.3-3.5 depend on 3.1 (repos must exist)
 - Story 3.4 depends on 3.1 (patch handler must exist)
 - Story 3.6 depends on all others
@@ -381,6 +402,7 @@ The architecture corrects the epics document's dependency listing (NFR-SDK-7 lis
 ### Greenfield vs Brownfield Assessment
 
 This is a **brownfield** project (existing 7+ packages with established patterns):
+
 - Existing codebase serves as foundation for new packages
 - E2E tests validate backward compatibility (Story 2.3)
 - Cleanup story removes obsolete code (Story 2.4: remove git-proxy)
@@ -392,11 +414,11 @@ PASS — appropriate for brownfield.
 
 ### Summary of Findings
 
-| Severity | Count | Items | Status |
-|----------|:-----:|-------|--------|
-| Critical | 1 | Missing TOON codec extraction story | **RESOLVED** — Story 1.0 added |
-| Major | 3 | Story 3.1 oversized, Story 3.3 oversized, undocumented within-epic dependencies | **RESOLVED** — Epic 3 decomposed, dependencies added |
-| Minor | 3 | Soft metric in AC, technical epic title, stale dependency in NFR | **2/3 RESOLVED** — soft metric reframed, NFR fixed; title kept as-is |
+| Severity | Count | Items                                                                           | Status                                                               |
+| -------- | :---: | ------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Critical |   1   | Missing TOON codec extraction story                                             | **RESOLVED** — Story 1.0 added                                       |
+| Major    |   3   | Story 3.1 oversized, Story 3.3 oversized, undocumented within-epic dependencies | **RESOLVED** — Epic 3 decomposed, dependencies added                 |
+| Minor    |   3   | Soft metric in AC, technical epic title, stale dependency in NFR                | **2/3 RESOLVED** — soft metric reframed, NFR fixed; title kept as-is |
 
 **Overall Epic Quality:** Good across all 3 epics. All critical and major issues resolved.
 
@@ -410,17 +432,18 @@ PASS — appropriate for brownfield.
 
 The following issues were identified during the initial assessment and have since been addressed:
 
-| # | Severity | Issue | Resolution |
-|---|----------|-------|------------|
-| 1 | Critical | Missing TOON codec extraction story | **RESOLVED** — Story 1.0 added with 5 ACs, FR-SDK-0 added |
-| 2 | Major | Story 3.1 oversized | **RESOLVED** — Epic 3 decomposed from 6 to 12 stories (3.1-3.12) |
-| 3 | Major | Story 3.3 oversized | **RESOLVED** — Split into Stories 3.7-3.11 (layout, tree, commits, blame, issues) |
-| 4 | Major | Undocumented within-epic dependencies | **RESOLVED** — Dependencies added to all 29 stories |
-| 5 | Minor | Story 2.3 soft metric in AC | **RESOLVED** — Reframed "<100 lines" as a note rather than pass/fail AC |
-| 6 | Minor | Technical epic title | Not addressed (cosmetic, kept as-is) |
-| 7 | Minor | Stale NFR-SDK-7 dependency | **RESOLVED** — Updated to reference @crosstown/core per FR-SDK-0 |
+| #   | Severity | Issue                                 | Resolution                                                                        |
+| --- | -------- | ------------------------------------- | --------------------------------------------------------------------------------- |
+| 1   | Critical | Missing TOON codec extraction story   | **RESOLVED** — Story 1.0 added with 5 ACs, FR-SDK-0 added                         |
+| 2   | Major    | Story 3.1 oversized                   | **RESOLVED** — Epic 3 decomposed from 6 to 12 stories (3.1-3.12)                  |
+| 3   | Major    | Story 3.3 oversized                   | **RESOLVED** — Split into Stories 3.7-3.11 (layout, tree, commits, blame, issues) |
+| 4   | Major    | Undocumented within-epic dependencies | **RESOLVED** — Dependencies added to all 29 stories                               |
+| 5   | Minor    | Story 2.3 soft metric in AC           | **RESOLVED** — Reframed "<100 lines" as a note rather than pass/fail AC           |
+| 6   | Minor    | Technical epic title                  | Not addressed (cosmetic, kept as-is)                                              |
+| 7   | Minor    | Stale NFR-SDK-7 dependency            | **RESOLVED** — Updated to reference @crosstown/core per FR-SDK-0                  |
 
 **Additional improvements applied:**
+
 - Scope note added to epics document superseding outdated PRD
 - FR Coverage Map updated with FR-SDK-0 and renumbered Epic 3 references
 - Architecture document updated: story count 17→24, FR count 23→24, Epic 3 story references renumbered
@@ -434,15 +457,16 @@ The following issues were identified during the initial assessment and have sinc
 
 ### Readiness by Epic
 
-| Epic | Status | Blockers |
-|------|--------|----------|
-| **Epic 1: SDK** | Ready | None |
-| **Epic 2: Town** | Ready | Depends on Epic 1 completion |
-| **Epic 3: Rig** | Ready | Depends on Epics 1-2 completion |
+| Epic             | Status | Blockers                        |
+| ---------------- | ------ | ------------------------------- |
+| **Epic 1: SDK**  | Ready  | None                            |
+| **Epic 2: Town** | Ready  | Depends on Epic 1 completion    |
+| **Epic 3: Rig**  | Ready  | Depends on Epics 1-2 completion |
 
 ### Architecture Alignment
 
 The architecture document is **well-prepared** for implementation:
+
 - 7 decisions with versions and rationale
 - 9 implementation patterns with code examples
 - Complete package structures with file-level mapping

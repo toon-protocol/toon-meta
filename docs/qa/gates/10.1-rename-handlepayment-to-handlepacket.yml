@@ -38,6 +38,14 @@ recommendations:
   immediate: []
   future:
     - action: 'Fix pre-existing subscribeMany test failures in SocialPeerDiscovery.test.ts and RelayMonitor.test.ts'
-      refs: ['packages/core/src/discovery/SocialPeerDiscovery.test.ts', 'packages/core/src/bootstrap/RelayMonitor.test.ts']
+      refs:
+        [
+          'packages/core/src/discovery/SocialPeerDiscovery.test.ts',
+          'packages/core/src/bootstrap/RelayMonitor.test.ts',
+        ]
     - action: 'Consider resolving relay fulfillment deprecation — types mark fulfillment as optional/@deprecated but implementation still generates it'
-      refs: ['packages/relay/src/bls/types.ts', 'packages/relay/src/bls/BusinessLogicServer.ts']
+      refs:
+        [
+          'packages/relay/src/bls/types.ts',
+          'packages/relay/src/bls/BusinessLogicServer.ts',
+        ]

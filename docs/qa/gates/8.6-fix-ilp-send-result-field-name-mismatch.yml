@@ -27,10 +27,23 @@ evidence:
     ac_gaps: []
 
 nfr_validation:
-  security: { status: PASS, notes: 'No new attack surface; field normalization on parsed HTTP response only' }
-  performance: { status: PASS, notes: 'Negligible overhead from nullish coalescing chain' }
-  reliability: { status: PASS, notes: 'Graceful fallback to false when neither field present; backward compatible' }
-  maintainability: { status: PASS, notes: 'JSDoc documents field name discrepancy; tests cover all combinations' }
+  security:
+    {
+      status: PASS,
+      notes: 'No new attack surface; field normalization on parsed HTTP response only',
+    }
+  performance:
+    { status: PASS, notes: 'Negligible overhead from nullish coalescing chain' }
+  reliability:
+    {
+      status: PASS,
+      notes: 'Graceful fallback to false when neither field present; backward compatible',
+    }
+  maintainability:
+    {
+      status: PASS,
+      notes: 'JSDoc documents field name discrepancy; tests cover all combinations',
+    }
 
 recommendations:
   immediate: []

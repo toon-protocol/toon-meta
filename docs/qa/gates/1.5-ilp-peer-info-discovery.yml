@@ -49,5 +49,10 @@ nfr_validation:
 recommendations:
   immediate:
     - action: 'Fix VerifiedEvent type casting in test helpers'
-      refs: ['packages/core/src/discovery/NostrPeerDiscovery.test.ts:31', 'packages/core/src/discovery/NostrPeerDiscovery.test.ts:421', 'packages/core/src/discovery/NostrPeerDiscovery.test.ts:458']
+      refs:
+        [
+          'packages/core/src/discovery/NostrPeerDiscovery.test.ts:31',
+          'packages/core/src/discovery/NostrPeerDiscovery.test.ts:421',
+          'packages/core/src/discovery/NostrPeerDiscovery.test.ts:458',
+        ]
   future: []

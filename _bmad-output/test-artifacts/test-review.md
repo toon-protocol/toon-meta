@@ -1,5 +1,12 @@
 ---
-stepsCompleted: ['step-01-load-context', 'step-02-discover-tests', 'step-03-quality-evaluation', 'step-03f-aggregate-scores', 'step-04-generate-report']
+stepsCompleted:
+  [
+    'step-01-load-context',
+    'step-02-discover-tests',
+    'step-03-quality-evaluation',
+    'step-03f-aggregate-scores',
+    'step-04-generate-report',
+  ]
 lastStep: 'step-04-generate-report'
 lastSaved: '2026-03-04'
 workflowType: 'testarch-test-review'
@@ -49,21 +56,21 @@ The Crosstown test suite demonstrates strong test engineering discipline. The AT
 
 ## Quality Criteria Assessment
 
-| Criterion | Status | Violations | Notes |
-|-----------|--------|-----------|-------|
-| AAA Pattern (Arrange-Act-Assert) | PASS | 0 | All files follow AAA; some E2E mixed with logging |
-| Test IDs | WARN | 3 | SDK tests have IDs; existing tests (BLS, SPSP, client) lack formal IDs |
-| Priority Markers (P0/P1/P2/P3) | WARN | 5 | SDK/Rig tests tagged; existing tests untagged |
-| Hard Waits (sleep, waitForTimeout) | PASS | 0 | No hard waits; E2E uses health check loops (appropriate) |
-| Determinism (no conditionals) | WARN | 3 | `Date.now()` in 3 files without mocking |
-| Isolation (cleanup, no shared state) | PASS | 1 | E2E blockchain state persists; all unit tests isolated |
-| Fixture Patterns | PASS | 0 | `beforeEach`/`afterEach` used consistently |
-| Data Factories | PASS | 0 | Every test file has factory functions |
-| No-Mock Philosophy | PASS | 0 | Real crypto, real TOON, real SQLite; mocks at boundaries only |
-| Explicit Assertions | PASS | 0 | Specific assertions: regex, error codes, field-by-field |
-| Test Length (<=300 lines) | WARN | 2 | BLS: 1208 lines, SPSP: 743 lines |
-| Test Duration (<=1.5 min) | PASS | 0 | E2E: 60s timeout (within budget) |
-| Flakiness Patterns | WARN | 1 | E2E conditional skip (`if (!servicesReady)`) |
+| Criterion                            | Status | Violations | Notes                                                                  |
+| ------------------------------------ | ------ | ---------- | ---------------------------------------------------------------------- |
+| AAA Pattern (Arrange-Act-Assert)     | PASS   | 0          | All files follow AAA; some E2E mixed with logging                      |
+| Test IDs                             | WARN   | 3          | SDK tests have IDs; existing tests (BLS, SPSP, client) lack formal IDs |
+| Priority Markers (P0/P1/P2/P3)       | WARN   | 5          | SDK/Rig tests tagged; existing tests untagged                          |
+| Hard Waits (sleep, waitForTimeout)   | PASS   | 0          | No hard waits; E2E uses health check loops (appropriate)               |
+| Determinism (no conditionals)        | WARN   | 3          | `Date.now()` in 3 files without mocking                                |
+| Isolation (cleanup, no shared state) | PASS   | 1          | E2E blockchain state persists; all unit tests isolated                 |
+| Fixture Patterns                     | PASS   | 0          | `beforeEach`/`afterEach` used consistently                             |
+| Data Factories                       | PASS   | 0          | Every test file has factory functions                                  |
+| No-Mock Philosophy                   | PASS   | 0          | Real crypto, real TOON, real SQLite; mocks at boundaries only          |
+| Explicit Assertions                  | PASS   | 0          | Specific assertions: regex, error codes, field-by-field                |
+| Test Length (<=300 lines)            | WARN   | 2          | BLS: 1208 lines, SPSP: 743 lines                                       |
+| Test Duration (<=1.5 min)            | PASS   | 0          | E2E: 60s timeout (within budget)                                       |
+| Flakiness Patterns                   | WARN   | 1          | E2E conditional skip (`if (!servicesReady)`)                           |
 
 **Total Violations**: 0 Critical, 3 High, 7 Medium, 5 Low
 
@@ -109,12 +116,14 @@ Grade:                    A-
 **Issue Description**: Three test files use `Date.now()` in test data factories to generate timestamps. If tests run across a second boundary (e.g., during CI), the timestamp may differ between the factory call and the assertion, causing flakiness.
 
 **Current Code**:
+
 ```typescript
 // verification-pipeline.test.ts
 const event = { ...baseEvent, created_at: Math.floor(Date.now() / 1000) };
 ```
 
 **Recommended Improvement**:
+
 ```typescript
 // Use vi.setSystemTime() for deterministic timestamps
 beforeEach(() => {
@@ -140,6 +149,7 @@ const event = { ...baseEvent, created_at: Math.floor(Date.now() / 1000) };
 **Issue Description**: Two test files exceed the 300-line guideline. The BLS test file is 4x the limit. While the tests are well-organized internally, the file size makes navigation difficult and increases cognitive load during reviews.
 
 **Recommended Improvement**:
+
 - Split `BusinessLogicServer.test.ts` into:
   - `bls-pricing.test.ts` (pricing logic, overrides, self-write bypass)
   - `bls-validation.test.ts` (signature verification, event structure)
@@ -162,6 +172,7 @@ const event = { ...baseEvent, created_at: Math.floor(Date.now() / 1000) };
 **Issue Description**: The E2E test checks `if (!servicesReady) return` which silently passes when Docker services aren't running. In CI, this means the E2E job reports success even if genesis node failed to start.
 
 **Current Code**:
+
 ```typescript
 if (!servicesReady) {
   console.log('Services not ready, skipping E2E tests');
@@ -170,10 +181,13 @@ if (!servicesReady) {
 ```
 
 **Recommended Improvement**:
+
 ```typescript
 if (!servicesReady) {
   if (process.env.CI) {
-    throw new Error('Genesis node services not ready — E2E tests cannot run in CI');
+    throw new Error(
+      'Genesis node services not ready — E2E tests cannot run in CI'
+    );
   }
   console.log('Services not ready, skipping E2E tests (local development)');
   return;
@@ -208,7 +222,7 @@ Every test file defines factory functions that create test data with sensible de
 ```typescript
 // packages/rig/src/handlers/repo-creation-handler.test.ts
 function createMockHandlerContext(
-  overrides: Partial<HandlerContext> = {},
+  overrides: Partial<HandlerContext> = {}
 ): HandlerContext {
   return {
     toon: 'mock-toon-string',
@@ -216,7 +230,9 @@ function createMockHandlerContext(
     pubkey: 'ab'.repeat(32),
     amount: 1000n,
     destination: 'g.test.rig',
-    decode: vi.fn().mockReturnValue({ /* defaults */ }),
+    decode: vi.fn().mockReturnValue({
+      /* defaults */
+    }),
     accept: vi.fn(),
     reject: vi.fn(),
     ...overrides,
@@ -237,11 +253,20 @@ Tests use real cryptographic libraries for signature generation and verification
 
 ```typescript
 // packages/sdk/src/verification-pipeline.test.ts
-import { generateSecretKey, getPublicKey, finalizeEvent } from 'nostr-tools/pure';
+import {
+  generateSecretKey,
+  getPublicKey,
+  finalizeEvent,
+} from 'nostr-tools/pure';
 
 function createSignedToonPayload() {
   const sk = generateSecretKey();
-  const event = finalizeEvent({ /* real event */ }, sk);
+  const event = finalizeEvent(
+    {
+      /* real event */
+    },
+    sk
+  );
   return encodeEventToToon(event); // Real TOON encoding
 }
 ```
@@ -276,8 +301,12 @@ Test skeletons are written BEFORE implementation, with clear RED phase markers:
 ```typescript
 // ATDD Red Phase - tests will fail until implementation exists
 describe('Identity', () => {
-  it.skip('[P0] generates valid BIP-39 mnemonic', () => { /* ... */ });
-  it.skip('[P0] derives NIP-06 keypair from mnemonic', () => { /* ... */ });
+  it.skip('[P0] generates valid BIP-39 mnemonic', () => {
+    /* ... */
+  });
+  it.skip('[P0] derives NIP-06 keypair from mnemonic', () => {
+    /* ... */
+  });
 });
 ```
 
@@ -289,18 +318,18 @@ describe('Identity', () => {
 
 ### Files Reviewed
 
-| File | Lines | describe | it/test | Skipped | Factories | Quality |
-|------|-------|----------|---------|---------|-----------|---------|
-| `sdk/identity.test.ts` | 184 | 3 | 11 | 11 (RED) | Constants, test vectors | Excellent |
-| `sdk/handler-registry.test.ts` | 119 | 1 | 5 | 5 (RED) | `createMockContext()` | Excellent |
-| `sdk/verification-pipeline.test.ts` | 102 | 1 | 4 | 4 (RED) | `createSignedToonPayload()` | Good |
-| `town/event-storage-handler.test.ts` | 314 | 1 | 9 | 9 (RED) | `createValidSignedEvent()`, `calculatePrice()` | Good |
-| `rig/repo-creation-handler.test.ts` | 204 | 2 | 6 | 6 (RED) | `createMockHandlerContext()`, `createMockExecFile()` | Excellent |
-| `rig/pubkey-identity.test.ts` | 303 | 3 | 12 | 12 (RED) | `createMockRelayClient()` | Excellent |
-| `core/toon-codec.test.ts` | 129 | 3 | 8 | 8 (RED) | `createTestEvent()` | Excellent |
-| `client/e2e/genesis-bootstrap.test.ts` | 357 | 1 | 1 | 0 (GREEN) | Inline | Good (E2E) |
-| `core/spsp/NostrSpspClient.test.ts` | 743 | 5 | 32 | 0 (GREEN) | `createEncryptedResponseEvent()` | Excellent |
-| `bls/BusinessLogicServer.test.ts` | 1208 | 9 | 75 | 0 (GREEN) | `createValidSignedEvent()`, `createMockEventStore()` | Excellent |
+| File                                   | Lines | describe | it/test | Skipped   | Factories                                            | Quality    |
+| -------------------------------------- | ----- | -------- | ------- | --------- | ---------------------------------------------------- | ---------- |
+| `sdk/identity.test.ts`                 | 184   | 3        | 11      | 11 (RED)  | Constants, test vectors                              | Excellent  |
+| `sdk/handler-registry.test.ts`         | 119   | 1        | 5       | 5 (RED)   | `createMockContext()`                                | Excellent  |
+| `sdk/verification-pipeline.test.ts`    | 102   | 1        | 4       | 4 (RED)   | `createSignedToonPayload()`                          | Good       |
+| `town/event-storage-handler.test.ts`   | 314   | 1        | 9       | 9 (RED)   | `createValidSignedEvent()`, `calculatePrice()`       | Good       |
+| `rig/repo-creation-handler.test.ts`    | 204   | 2        | 6       | 6 (RED)   | `createMockHandlerContext()`, `createMockExecFile()` | Excellent  |
+| `rig/pubkey-identity.test.ts`          | 303   | 3        | 12      | 12 (RED)  | `createMockRelayClient()`                            | Excellent  |
+| `core/toon-codec.test.ts`              | 129   | 3        | 8       | 8 (RED)   | `createTestEvent()`                                  | Excellent  |
+| `client/e2e/genesis-bootstrap.test.ts` | 357   | 1        | 1       | 0 (GREEN) | Inline                                               | Good (E2E) |
+| `core/spsp/NostrSpspClient.test.ts`    | 743   | 5        | 32      | 0 (GREEN) | `createEncryptedResponseEvent()`                     | Excellent  |
+| `bls/BusinessLogicServer.test.ts`      | 1208  | 9        | 75      | 0 (GREEN) | `createValidSignedEvent()`, `createMockEventStore()` | Excellent  |
 
 **Suite Totals**: 3,663 lines, 29 describe blocks, 163 test cases (55 RED, 108 GREEN)
 
@@ -346,6 +375,7 @@ No re-review needed — approve as-is. Address recommendations incrementally dur
 ## Knowledge Base References
 
 This review consulted:
+
 - `test-quality.md` — Definition of Done (<300 lines, <1.5 min, self-cleaning)
 - `data-factories.md` — Factory functions with overrides pattern
 - `test-levels-framework.md` — Unit vs integration vs E2E appropriateness

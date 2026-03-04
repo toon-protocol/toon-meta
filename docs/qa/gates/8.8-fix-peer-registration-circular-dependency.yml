@@ -44,6 +44,7 @@ recommendations:
   immediate: []
   future:
     - action: 'Add transport-level test in docker/src/entrypoint.test.ts verifying createChannelClient().openChannel() includes peerAddress in POST body'
-      refs: ['docker/src/entrypoint.test.ts', 'docker/src/entrypoint.ts:301-308']
+      refs:
+        ['docker/src/entrypoint.test.ts', 'docker/src/entrypoint.ts:301-308']
     - action: 'Create corresponding story in agent-runtime repo to implement POST /admin/channels peerAddress acceptance and POST /admin/peers idempotency'
       refs: ['docs/stories/8.8.story.md']

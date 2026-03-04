@@ -1,6 +1,7 @@
 # Epic 1 Start Report
 
 ## Overview
+
 - **Epic**: 1 — ILP-Gated Service Node SDK
 - **Git start**: `0e1aae0fa839d418b85a0469261c27d062decdd8`
 - **Duration**: ~15 minutes
@@ -9,30 +10,33 @@
 - **Baseline test count**: 0
 
 ## Previous Epic Action Items
+
 N/A — Epic 1 is the first epic. No previous retrospective to review.
 
 ## Baseline Status
+
 - **Lint**: N/A (first epic, no code to lint)
 - **Tests**: N/A (first epic, no tests to run)
 - **Migrations**: N/A
 
 ## Epic Analysis
+
 - **Stories**: 12 stories
 
-| Story ID | Title |
-|----------|-------|
-| 1.0 | Extract TOON Codec to @crosstown/core |
-| 1.1 | Unified Identity from Seed Phrase |
-| 1.2 | Handler Registry with Kind-Based Routing |
-| 1.3 | HandlerContext with TOON Passthrough and Lazy Decode |
-| 1.4 | Schnorr Signature Verification Pipeline |
-| 1.5 | Pricing Validation with Self-Write Bypass |
-| 1.6 | PaymentHandler Bridge with Transit Semantics |
-| 1.7 | createNode() Composition with Embedded Connector Lifecycle |
-| 1.8 | Connector Direct Methods API |
-| 1.9 | Network Discovery and Bootstrap Integration |
-| 1.10 | Dev Mode |
-| 1.11 | Package Setup and npm Publish |
+| Story ID | Title                                                      |
+| -------- | ---------------------------------------------------------- |
+| 1.0      | Extract TOON Codec to @crosstown/core                      |
+| 1.1      | Unified Identity from Seed Phrase                          |
+| 1.2      | Handler Registry with Kind-Based Routing                   |
+| 1.3      | HandlerContext with TOON Passthrough and Lazy Decode       |
+| 1.4      | Schnorr Signature Verification Pipeline                    |
+| 1.5      | Pricing Validation with Self-Write Bypass                  |
+| 1.6      | PaymentHandler Bridge with Transit Semantics               |
+| 1.7      | createNode() Composition with Embedded Connector Lifecycle |
+| 1.8      | Connector Direct Methods API                               |
+| 1.9      | Network Discovery and Bootstrap Integration                |
+| 1.10     | Dev Mode                                                   |
+| 1.11     | Package Setup and npm Publish                              |
 
 - **Oversized stories** (>8 ACs): None — all stories have 3-5 ACs
 - **Dependencies**:
@@ -53,6 +57,7 @@ N/A — Epic 1 is the first epic. No previous retrospective to review.
   - **Critical path**: 1.0 -> 1.4 -> 1.10 -> 1.7 -> 1.11 (5 stories, strictly sequential)
 
 ## Test Design
+
 - **Epic test plan**: `_bmad-output/planning-artifacts/test-design-epic-1.md`
 - **Key risks identified**:
   - E1-R11: Pipeline ordering violation (score 9, highest risk)
@@ -63,22 +68,27 @@ N/A — Epic 1 is the first epic. No previous retrospective to review.
 ## Pipeline Steps
 
 ### Step 1: Previous Retro Check
+
 - **Status**: skipped
 - **Reason**: First epic — no previous retro to check
 
 ### Step 2: Tech Debt Cleanup
+
 - **Status**: skipped
 - **Reason**: No action items to resolve
 
 ### Step 3: Lint Baseline
+
 - **Status**: skipped
 - **Reason**: First epic — no code to lint
 
 ### Step 4: Test Baseline
+
 - **Status**: skipped
 - **Reason**: First epic — no tests to run
 
 ### Step 5: Epic Overview Review
+
 - **Status**: success
 - **Duration**: ~4 minutes
 - **What changed**: No files modified (analysis only)
@@ -87,6 +97,7 @@ N/A — Epic 1 is the first epic. No previous retrospective to review.
 - **Remaining concerns**: Story 1.9 has "None" for dependencies but functionally needs ConnectorNodeLike type and handler registry for integration testing
 
 ### Step 6: Sprint Status Update
+
 - **Status**: success
 - **Duration**: ~15 seconds
 - **What changed**: Modified `_bmad-output/implementation-artifacts/sprint-status.yaml` — epic-1 status changed from `backlog` to `in-progress`
@@ -95,6 +106,7 @@ N/A — Epic 1 is the first epic. No previous retrospective to review.
 - **Remaining concerns**: None
 
 ### Step 7: Epic Test Design
+
 - **Status**: success
 - **Duration**: ~8 minutes
 - **What changed**: Created `_bmad-output/planning-artifacts/test-design-epic-1.md` (573 lines)
@@ -103,12 +115,14 @@ N/A — Epic 1 is the first epic. No previous retrospective to review.
 - **Remaining concerns**: ToonRoutingMeta interface should be finalized in Story 1.0 before Story 1.4 begins; shallow parser implementation strategy (string scanning vs partial TOON decode) needs decision
 
 ## Ready to Develop
+
 - [x] All critical retro actions resolved (N/A — first epic)
 - [x] Lint and tests green (N/A — first epic, baseline is 0)
 - [x] Sprint status updated (epic-1: in-progress)
 - [x] Story order established (5-phase plan with parallelization opportunities)
 
 ## Next Steps
+
 First story to implement: **Story 1.0 — Extract TOON Codec to @crosstown/core**. This is the highest-priority story on the critical path. It introduces `ToonRoutingMeta` and the shallow parser, which 3 downstream stories (1.3, 1.4, 1.5) depend on. Stories 1.1, 1.2, 1.8, and 1.9 can be started in parallel if capacity allows.
 
 **Preparation notes**: Existing TOON encoder/decoder in `@crosstown/bls` should be extracted (not duplicated). The test skeleton files in `packages/sdk/src/` should be validated against acceptance criteria when implementation begins.
@@ -116,4 +130,5 @@ First story to implement: **Story 1.0 — Extract TOON Codec to @crosstown/core*
 ---
 
 ## TL;DR
+
 Epic 1 (ILP-Gated Service Node SDK) is ready to start. As the first epic, no previous retro cleanup was needed and the baseline is clean. The epic contains 12 well-sized stories (3-5 ACs each) with a clear 5-phase implementation plan. Story 1.0 (Extract TOON Codec) is the recommended first story, sitting on the critical path and blocking 3 downstream stories. A risk-based test plan with 71 tests has been created, with pipeline ordering identified as the highest-risk area (score 9).

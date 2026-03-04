@@ -9,13 +9,13 @@
 
 ### Top 5 NIP-Based Use Cases (Ranked by Signal Score)
 
-| Rank | Use Case | NIPs Involved | Components Reused | Estimated Epics |
-|------|----------|---------------|-------------------|-----------------|
-| **1** | **Paid Computation Marketplace (Agent DVMs)** | NIP-90, NIP-89 | BLS per-kind pricing, TOON encoding, ILP PREPARE/FULFILL, connector routing | 1 epic |
-| **2** | **ILP Zaps for Reputation & Social Routing** | NIP-57 (adapted) | SocialTrustManager, payment channels, kind:10032, connector route priority | 1.5 epics |
-| **3** | **Agent Capability Taxonomy & Quality Ratings** | NIP-32, NIP-90 | kind:0 profiles, DVM results (kind:6xxx), SocialTrustManager | 0.5 epic |
-| **4** | **Verifiable Agent Credentials** | NIP-58 | Connector settlement history, SocialTrustManager, Admin API channel stats | 1 epic |
-| **5** | **Payment-Gated Agent Swarms** | NIP-29, NIP-51 | Payment channels, ILP address hierarchy, TOON-encoded group events | 2 epics |
+| Rank  | Use Case                                        | NIPs Involved    | Components Reused                                                           | Estimated Epics |
+| ----- | ----------------------------------------------- | ---------------- | --------------------------------------------------------------------------- | --------------- |
+| **1** | **Paid Computation Marketplace (Agent DVMs)**   | NIP-90, NIP-89   | BLS per-kind pricing, TOON encoding, ILP PREPARE/FULFILL, connector routing | 1 epic          |
+| **2** | **ILP Zaps for Reputation & Social Routing**    | NIP-57 (adapted) | SocialTrustManager, payment channels, kind:10032, connector route priority  | 1.5 epics       |
+| **3** | **Agent Capability Taxonomy & Quality Ratings** | NIP-32, NIP-90   | kind:0 profiles, DVM results (kind:6xxx), SocialTrustManager                | 0.5 epic        |
+| **4** | **Verifiable Agent Credentials**                | NIP-58           | Connector settlement history, SocialTrustManager, Admin API channel stats   | 1 epic          |
+| **5** | **Payment-Gated Agent Swarms**                  | NIP-29, NIP-51   | Payment channels, ILP address hierarchy, TOON-encoded group events          | 2 epics         |
 
 **Key Finding:** NIP-90 (Data Vending Machines) is the missing skills registry primitive. It provides the exact request/response/payment pattern needed for agent-to-agent paid computation, with an existing ecosystem (DVMDash, Vendata, nostrdvm framework) that validates the pattern. Combined with ILP micropayments instead of Lightning, this creates a differentiated multi-chain paid computation marketplace that doesn't exist anywhere else.
 
@@ -39,6 +39,7 @@ NIP-90 defines a decentralized marketplace for on-demand computation:
 - **NIP-89 kind:31990**: Service provider discovery announcements (which job kinds a provider supports)
 
 Key protocol features:
+
 - **`i` tag**: Input data (URL, event ID, text, or output from another job — enabling job chaining)
 - **`bid` tag**: Maximum millisatoshis customer will pay
 - **`amount` tag**: Actual price requested by provider (in results/feedback)
@@ -47,17 +48,17 @@ Key protocol features:
 
 #### Mapping to Stack
 
-| NIP-90 Concept | Stack Component | Mapping |
-|----------------|-----------------|---------|
-| Job request (kind:5xxx) | BLS per-kind pricing | Add kind:5000-5999 to pricing table (e.g., kind:5050 text-gen = 500/byte) |
-| Job request transmission | TOON encoding + ILP PREPARE | TOON-encode the kind:5xxx event → ILP PREPARE data field |
-| Job result (kind:6xxx) | BLS response + ILP FULFILL | BLS processes request → returns kind:6xxx event as FULFILL data |
-| Job feedback (kind:7000) | BLS reject with data | Map `payment-required`/`error` to ILP REJECT with status in data field |
-| `bid` tag | ILP PREPARE amount | Customer's bid = ILP packet amount field |
-| `amount` tag | BLS pricing response | Provider's price communicated in REJECT data (payment-required) or FULFILL data |
-| NIP-89 kind:31990 | Skills registry discovery | Agent publishes kind:31990 to relay advertising supported job kinds |
-| Service provider discovery | SocialPeerDiscovery | Query kind:31990 filtered by social graph (follows' providers) |
-| Job chaining | Multi-hop ILP routing | Chain jobs across agents: Agent A transcribes → Agent B summarizes → Agent C translates |
+| NIP-90 Concept             | Stack Component             | Mapping                                                                                 |
+| -------------------------- | --------------------------- | --------------------------------------------------------------------------------------- |
+| Job request (kind:5xxx)    | BLS per-kind pricing        | Add kind:5000-5999 to pricing table (e.g., kind:5050 text-gen = 500/byte)               |
+| Job request transmission   | TOON encoding + ILP PREPARE | TOON-encode the kind:5xxx event → ILP PREPARE data field                                |
+| Job result (kind:6xxx)     | BLS response + ILP FULFILL  | BLS processes request → returns kind:6xxx event as FULFILL data                         |
+| Job feedback (kind:7000)   | BLS reject with data        | Map `payment-required`/`error` to ILP REJECT with status in data field                  |
+| `bid` tag                  | ILP PREPARE amount          | Customer's bid = ILP packet amount field                                                |
+| `amount` tag               | BLS pricing response        | Provider's price communicated in REJECT data (payment-required) or FULFILL data         |
+| NIP-89 kind:31990          | Skills registry discovery   | Agent publishes kind:31990 to relay advertising supported job kinds                     |
+| Service provider discovery | SocialPeerDiscovery         | Query kind:31990 filtered by social graph (follows' providers)                          |
+| Job chaining               | Multi-hop ILP routing       | Chain jobs across agents: Agent A transcribes → Agent B summarizes → Agent C translates |
 
 #### Payment Flow
 
@@ -97,12 +98,14 @@ Customer Agent                    Service Provider Agent
 6. **agent-runtime: PacketHandler** — No changes needed (already forwards to BLS, already uses SHA256 fulfillment)
 
 **New event kinds needed:**
+
 - None custom — uses standard NIP-90 kinds (5000-5999, 6000-6999, 7000) and NIP-89 kind:31990
 - The existing kind:23194/23195 SPSP negotiation remains separate (settlement setup vs. job execution are different concerns)
 
 #### Composability Map
 
 NIP-90 enables:
+
 - **Skills registry** (use case 5.3 in original doc) — NIP-89 announcements ARE the registry
 - **Collaborative research swarms** (5.2) — Job chaining across multiple agents
 - **Evolutionary skill development** (4.2) — kind:7000 feedback + NIP-32 labels for quality ratings
@@ -132,6 +135,7 @@ NIP-57 defines public, verifiable proof-of-payment events tied to specific Nostr
 - **Kind 9735**: Zap receipt (signed by payment provider, published to relays)
 
 Key structural elements:
+
 - `p` tag: recipient pubkey
 - `e`/`a` tags: event being zapped
 - `bolt11` tag: Lightning invoice (Lightning-specific)
@@ -145,19 +149,19 @@ Key structural elements:
 
 #### Mapping to Stack
 
-| NIP-57 Component | Lightning-Specific? | ILP Replacement |
-|-----------------|---------------------|-----------------|
-| Kind 9734 structure | No | Keep as-is (or use new kind, e.g., kind:9736) |
-| Kind 9735 structure | No | Keep as-is (or use new kind, e.g., kind:9737) |
-| LNURL discovery | Yes | kind:10032 ILP Peer Info (already implemented) |
-| BOLT11 invoice | Yes | ILP payment pointer + STREAM shared secret |
-| `bolt11` tag | Yes | `ilp-receipt` tag with STREAM receipt data |
-| `preimage` tag | Yes | `fulfillment` tag with SHA256(data) proof |
-| LNURL provider (bridge) | Yes | Agent-runtime + connector (already built) |
-| `amount` in millisats | Yes | ILP amount with asset code/scale |
-| `description` hash binding | Yes (BOLT11 specific) | SHA256(zap-request-json) stored in receipt |
-| Multi-recipient `zap` tag | No | Keep as-is; route proportional ILP payments |
-| Anonymous zaps | No | Keep as-is; throwaway Nostr keys |
+| NIP-57 Component           | Lightning-Specific?   | ILP Replacement                                |
+| -------------------------- | --------------------- | ---------------------------------------------- |
+| Kind 9734 structure        | No                    | Keep as-is (or use new kind, e.g., kind:9736)  |
+| Kind 9735 structure        | No                    | Keep as-is (or use new kind, e.g., kind:9737)  |
+| LNURL discovery            | Yes                   | kind:10032 ILP Peer Info (already implemented) |
+| BOLT11 invoice             | Yes                   | ILP payment pointer + STREAM shared secret     |
+| `bolt11` tag               | Yes                   | `ilp-receipt` tag with STREAM receipt data     |
+| `preimage` tag             | Yes                   | `fulfillment` tag with SHA256(data) proof      |
+| LNURL provider (bridge)    | Yes                   | Agent-runtime + connector (already built)      |
+| `amount` in millisats      | Yes                   | ILP amount with asset code/scale               |
+| `description` hash binding | Yes (BOLT11 specific) | SHA256(zap-request-json) stored in receipt     |
+| Multi-recipient `zap` tag  | No                    | Keep as-is; route proportional ILP payments    |
+| Anonymous zaps             | No                    | Keep as-is; throwaway Nostr keys               |
 
 #### Payment Flow: ILP Zap
 
@@ -216,12 +220,14 @@ trustScore(agent) =
 4. **Connector Admin API** — Add optional `priority` field to `POST /admin/peers` for trust-weighted route registration (if not already present).
 
 **New event kinds:**
+
 - kind:9736 (ILP Zap Request) — OR reuse kind:9734 with an `ilp` tag to distinguish from Lightning zaps
 - kind:9737 (ILP Zap Receipt) — OR reuse kind:9735 with `ilp-receipt` tag instead of `bolt11` tag
 
 #### Composability Map
 
 ILP Zaps enable:
+
 - **Social routing** (7.1) — Trust scores from zap history feed into route priority
 - **Social credit scoring** (7.2) — Zap volume + settlement history = decentralized credit score
 - **Attention markets** (3.3) — Zap as payment for attention; agents zap high-influence agents to promote content
@@ -304,6 +310,7 @@ After receiving a DVM result (kind:6xxx), the customer agent publishes a label:
 #### Payment Flow
 
 Labels themselves are free to publish. The economic value comes from composition:
+
 - **DVM result labels** create a feedback loop: agents with higher quality labels get more DVM jobs → more ILP revenue
 - **Capability labels** enable service discovery: agents find specialists via label queries → pay via ILP for services
 - **Warning labels** reduce losses: agents avoid unreliable peers → fewer failed settlements
@@ -341,12 +348,12 @@ Three-event badge lifecycle:
 
 #### Mapping to Stack
 
-| Badge Concept | Agent Network Mapping |
-|---------------|----------------------|
-| Badge issuer | Connector operator OR automated issuer agent |
-| Badge definition | Settlement reliability metric, throughput benchmark, uptime certification |
-| Badge award | Auto-issued when agent crosses threshold (e.g., 1000 settled channels) |
-| Badge display | Agent's kind:0 profile includes kind:30008 reference |
+| Badge Concept      | Agent Network Mapping                                                            |
+| ------------------ | -------------------------------------------------------------------------------- |
+| Badge issuer       | Connector operator OR automated issuer agent                                     |
+| Badge definition   | Settlement reliability metric, throughput benchmark, uptime certification        |
+| Badge award        | Auto-issued when agent crosses threshold (e.g., 1000 settled channels)           |
+| Badge display      | Agent's kind:0 profile includes kind:30008 reference                             |
 | Badge verification | Standard Nostr signature verification — issuer pubkey signs definition AND award |
 
 **Example Badge Definitions:**
@@ -357,7 +364,10 @@ Three-event badge lifecycle:
   "tags": [
     ["d", "settlement-reliability-99"],
     ["name", "99% Settlement Reliability"],
-    ["description", "Awarded to agents with >=99% successful payment channel settlements over 30 days"],
+    [
+      "description",
+      "Awarded to agents with >=99% successful payment channel settlements over 30 days"
+    ],
     ["image", "https://badges.agentnetwork.io/settlement-99.png", "256x256"]
   ]
 }
@@ -378,6 +388,7 @@ Three-event badge lifecycle:
 #### Payment Flow
 
 Badges themselves are free. Economic impact:
+
 - Agents with better badges get **higher trust scores** → **more routing traffic** → **more routing fees**
 - Badge-gated services: agents can require certain badges before accepting DVM jobs from unknown peers
 - **"Credit scoring without a central authority"** — badges + zap history + settlement stats = decentralized creditworthiness
@@ -474,10 +485,12 @@ Mute List as Distrust Signal (kind:10000):
 #### Implementation Sketch
 
 **NIP-29 (2 epics):**
+
 1. **Epic A: Group lifecycle management** — Create/join/leave groups, membership validation against channel state
 2. **Epic B: Group→ILP address mapping** — Allocate ILP address prefixes per group, route intra-group traffic, TOON-encode group events
 
 **NIP-51 (0.5 epic, can be done within social routing epic):**
+
 1. Publish kind:30000 "trusted-routes" from SocialTrustManager
 2. Subscribe to mute lists (kind:10000) as negative trust signals
 3. Wire into route priority during peer registration
@@ -490,11 +503,11 @@ The use cases above (DVMs, zaps, labels, badges, swarms) assume a functioning so
 
 ### Already Implemented
 
-| NIP | Status | Event Kinds | Implementation |
-|-----|--------|-------------|----------------|
-| **NIP-01** (Basic Protocol) | `mandatory` | 0 (metadata), 1 (text note) + kind ranges | Agent-society relay: full read/write, filter matching, event verification |
-| **NIP-02** (Follow Lists) | `final` | 3 (follow list, replaceable) | SocialPeerDiscovery: kind:3 → query kind:10032 → SPSP handshake → register peer |
-| **NIP-44** (Versioned Encryption) | `draft` | N/A (encryption primitive) | SPSP negotiation encryption (kind:23194/23195) |
+| NIP                               | Status      | Event Kinds                               | Implementation                                                                  |
+| --------------------------------- | ----------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
+| **NIP-01** (Basic Protocol)       | `mandatory` | 0 (metadata), 1 (text note) + kind ranges | Agent-society relay: full read/write, filter matching, event verification       |
+| **NIP-02** (Follow Lists)         | `final`     | 3 (follow list, replaceable)              | SocialPeerDiscovery: kind:3 → query kind:10032 → SPSP handshake → register peer |
+| **NIP-44** (Versioned Encryption) | `draft`     | N/A (encryption primitive)                | SPSP negotiation encryption (kind:23194/23195)                                  |
 
 ---
 
@@ -505,6 +518,7 @@ The use cases above (DVMs, zaps, labels, badges, swarms) assume a functioning so
 Maps Nostr pubkeys to human-readable identifiers (`agent-alpha@agents.example.com`). The domain hosts `/.well-known/nostr.json` which clients fetch to verify the mapping.
 
 **Kind:0 with NIP-05 field:**
+
 ```json
 {
   "kind": 0,
@@ -513,6 +527,7 @@ Maps Nostr pubkeys to human-readable identifiers (`agent-alpha@agents.example.co
 ```
 
 **DNS endpoint response (`/.well-known/nostr.json?name=agent-alpha`):**
+
 ```json
 {
   "names": {
@@ -526,6 +541,7 @@ Maps Nostr pubkeys to human-readable identifiers (`agent-alpha@agents.example.co
 ```
 
 **Agent relevance:**
+
 - Organizational namespacing: all agents under one domain (`alpha@agents.acme.com`, `beta@agents.acme.com`)
 - Human-readable discovery without knowing hex pubkeys
 - The `relays` field in the response doubles as relay discovery
@@ -550,6 +566,7 @@ Agents advertise their preferred relays for reading and writing via kind:10002 (
 **Client behavior:** To find agent X's events → query X's write relays. To send events mentioning X → publish to X's read relays.
 
 **Agent relevance:**
+
 - Essential for multi-relay deployments (agents declare where to find their kind:10032, kind:31990 events)
 - Complements kind:10032 (ILP Peer Info): NIP-65 says which relays to query; kind:10032 has the BTP endpoint
 - Enables relay migration without breaking peering relationships
@@ -566,6 +583,7 @@ Replaces deprecated NIP-04 with a three-layer encryption scheme for metadata-pri
 **Architecture:** Message (kind:14 unsigned rumor) → encrypted in kind:13 seal (signed by sender) → encrypted in kind:1059 gift wrap (signed by random one-time key).
 
 **Kind:14 chat message (inner rumor, unsigned):**
+
 ```json
 {
   "kind": 14,
@@ -580,16 +598,16 @@ Replaces deprecated NIP-04 with a three-layer encryption scheme for metadata-pri
 ```
 
 **Kind:10050 DM relay preference (replaceable):**
+
 ```json
 {
   "kind": 10050,
-  "tags": [
-    ["relay", "wss://dm-relay.example.com"]
-  ]
+  "tags": [["relay", "wss://dm-relay.example.com"]]
 }
 ```
 
 **Agent relevance:**
+
 - Private service negotiation (pricing, SLAs, terms) before ILP peering
 - Kind:15 file messages for encrypted delivery of computation results
 - Gift-wrap scheme hides which agents are communicating from relay operators
@@ -623,8 +641,20 @@ Defines how kind:1 text notes create threaded conversations via marked `e` tags 
 {
   "kind": 1,
   "tags": [
-    ["e", "<root-event-id>", "wss://relay.example.com", "root", "<root-author>"],
-    ["e", "<parent-event-id>", "wss://relay.example.com", "reply", "<parent-author>"],
+    [
+      "e",
+      "<root-event-id>",
+      "wss://relay.example.com",
+      "root",
+      "<root-author>"
+    ],
+    [
+      "e",
+      "<parent-event-id>",
+      "wss://relay.example.com",
+      "reply",
+      "<parent-author>"
+    ],
     ["p", "<root-author>"],
     ["p", "<parent-author>"]
   ],
@@ -669,6 +699,7 @@ Kind:7 reactions (`"+"` like, `"-"` dislike, or emoji) targeting events.
 ```
 
 **Agent relevance:**
+
 - Simplest post-payment quality signal: after ILP service delivery, publish `"+"` reaction
 - Aggregated like/dislike ratio as trust input for SocialTrustManager
 - Custom emoji reactions for structured feedback (`:fast-settlement:`, `:accurate:`)
@@ -692,6 +723,7 @@ Kind:1984 reports flag problematic agents with typed categories.
 **Report types:** `nudity`, `malware`, `profanity`, `illegal`, `spam`, `impersonation`, `other`
 
 **Agent relevance:**
+
 - Flag agents delivering malware, failing settlement, or impersonating identities
 - Social-graph-weighted moderation: reports from trusted peers (within BFS distance) carry more weight
 - Input to SocialTrustManager: N+ spam reports from agents within social distance 3 → reduce trust score
@@ -711,7 +743,10 @@ Addressable events (kind:30023) for articles with Markdown content, updateable v
   "tags": [
     ["d", "settlement-analysis-q4-2025"],
     ["title", "Settlement Performance Analysis: Q4 2025"],
-    ["summary", "Cross-chain settlement latency across Base L2, XRPL, and Aptos."],
+    [
+      "summary",
+      "Cross-chain settlement latency across Base L2, XRPL, and Aptos."
+    ],
     ["image", "https://example.com/chart.png"],
     ["published_at", "1672531200"],
     ["t", "settlement"],
@@ -722,6 +757,7 @@ Addressable events (kind:30023) for articles with Markdown content, updateable v
 ```
 
 **Agent relevance:**
+
 - Already priced in BLS (kind:30023 = 100/byte, "expensive")
 - Paid content marketplace: gate long-form analysis behind ILP micropayments
 - Updateable service documentation via stable `d` tag references
@@ -737,7 +773,10 @@ Reddit-style communities (kind:34550) with moderator approval (kind:4550) and th
   "tags": [
     ["d", "ilp-settlement-agents"],
     ["name", "ILP Settlement Agents"],
-    ["description", "Community for agents providing cross-chain settlement services."],
+    [
+      "description",
+      "Community for agents providing cross-chain settlement services."
+    ],
     ["p", "<moderator-agent-1>", "", "moderator"],
     ["p", "<moderator-agent-2>", "", "moderator"],
     ["relay", "wss://community-relay.example.com", "author"]
@@ -746,6 +785,7 @@ Reddit-style communities (kind:34550) with moderator approval (kind:4550) and th
 ```
 
 **Agent relevance:**
+
 - Curated service marketplaces: moderator agents approve vetted service offers
 - Capability-based communities (translation agents, data analysis agents)
 - Automated moderation: moderator agents approve based on NIP-05 identity, trust score, report history
@@ -765,12 +805,12 @@ Tag-based content warning on any event kind.
 
 ### Social Fabric Implementation Priority
 
-| Tier | NIPs | Rationale |
-|------|-------|-----------|
+| Tier                        | NIPs                             | Rationale                                                   |
+| --------------------------- | -------------------------------- | ----------------------------------------------------------- |
 | **Tier 1 — Implement Next** | NIP-05 (`final`), NIP-25, NIP-65 | Identity, simplest reputation signal, multi-relay discovery |
-| **Tier 2 — Implement Soon** | NIP-17, NIP-56, NIP-09 | Private comms, abuse prevention, state cleanup |
-| **Tier 3 — When Needed** | NIP-10, NIP-18, NIP-23, NIP-72 | Threading, reposts, paid content, curated communities |
-| **Tier 4 — Low Priority** | NIP-36 | Content warnings for edge cases |
+| **Tier 2 — Implement Soon** | NIP-17, NIP-56, NIP-09           | Private comms, abuse prevention, state cleanup              |
+| **Tier 3 — When Needed**    | NIP-10, NIP-18, NIP-23, NIP-72   | Threading, reposts, paid content, curated communities       |
+| **Tier 4 — Low Priority**   | NIP-36                           | Content warnings for edge cases                             |
 
 ---
 
@@ -781,6 +821,7 @@ Tag-based content warning on any event kind.
 **Why it looks appealing:** Structured product listings with prices could model agent capabilities as "products."
 
 **Why it fails:**
+
 - **Primitive Fit**: WEAK — NIP-15 uses NIP-04 (deprecated/unrecommended) for checkout. The payment flow (human e-commerce with order → invoice → payment) doesn't map to ILP PREPARE/FULFILL. The stall/product model is designed for physical goods with shipping zones.
 - **Implementation Distance**: 2+ epics with significant adaptation
 - **Differentiation**: FAIL — NIP-90 DVMs are a strictly better fit for machine-to-machine paid computation. NIP-15 adds human-readable product listings but duplicates DVM functionality for agent interactions.
@@ -799,6 +840,7 @@ Tag-based content warning on any event kind.
 ### NIP-47 (Nostr Wallet Connect) — NOISE
 
 **Why it fails:**
+
 - **Kind conflict:** NIP-47 uses kinds 23194 and 23195 — the EXACT same kinds we already use for SPSP negotiation. Adopting NIP-47 would require migrating our SPSP events to different kinds.
 - **Lightning-specific:** NWC operations (`pay_invoice`, `make_invoice`, `lookup_invoice`) are Lightning concepts. Adapting to ILP would require redefining every operation.
 - **Redundancy:** Our connector Admin API already provides richer payment channel management (`POST /admin/channels`, deposit, close, etc.) than NWC's operation set.
@@ -809,6 +851,7 @@ Tag-based content warning on any event kind.
 **Why it's interesting:** kind:30311 live activity events + STREAM micropayment gating could model real-time data stream subscriptions. An agent could broadcast market data as a live activity, with subscribers paying per-second via STREAM.
 
 **Why it's deferred:**
+
 - **Implementation Distance**: ~1.5 epics
 - **Economic Model**: Clear (publisher/subscriber) but requires STREAM integration which isn't fully wired in crosstown
 - **Priority**: This is a specific use case (data streaming), not foundational infrastructure. Build DVMs and zaps first; streaming subscriptions become a DVM variant later.
@@ -818,6 +861,7 @@ Tag-based content warning on any event kind.
 **Why it's interesting:** For multi-agent deployments, a "bunker" agent could hold master Nostr keys and sign on behalf of sub-agents (kind:24133 events). This solves key duplication across containers.
 
 **Why it's deferred:**
+
 - **No economic model** — Key management is infrastructure, not revenue-generating
 - **Implementation Distance**: ~1 epic, but only needed at scale (10+ agent containers)
 - **Priority**: Current deployment model (one keypair per agent container) works for initial scale. Revisit when multi-agent orchestration becomes a bottleneck.
@@ -825,6 +869,7 @@ Tag-based content warning on any event kind.
 ### NIP-78 (Application-specific Data) — NOISE
 
 **Why it fails:**
+
 - **Low differentiation** — Storing agent state on relays (kind:30078) competes with local persistence and doesn't require ILP
 - **No economic model**
 - **Relay storage is not designed for high-frequency state updates** — Agent state changes every packet; relay storage is for infrequent updates
@@ -834,6 +879,7 @@ Tag-based content warning on any event kind.
 **Why it's interesting:** kind:30382-30384 assertions could formalize arbiter agents that attest to task completion, enabling conditional ILP payments.
 
 **Why it's premature:**
+
 - **Draft/optional status** — Spec may change
 - **Minimal client support** — No known implementations in production
 - **Implementation Distance**: ~2 epics (need assertion framework + conditional payment logic)
@@ -842,6 +888,7 @@ Tag-based content warning on any event kind.
 ### NIP-69 (P2P Order Events) — NOISE
 
 **Why it fails:**
+
 - **Overlap with NIP-90:** The offer/take model (kind:38383) for service agreements duplicates DVM request/result flows
 - **Draft/optional status**
 - **Designed for human trades** (Bitcoin P2P), not machine-speed agent interactions
@@ -945,30 +992,30 @@ The following should be proposed as formal NIPs extending the existing Interledg
 
 ## Mapping to Original Use Cases Document
 
-| Original Use Case | Section | NIPs That Deliver It | Achievable with NIP Adoption? | Implementation Distance |
-|-------------------|---------|---------------------|-------------------------------|------------------------|
-| Living Agent Profiles (1.1) | Social Layer | **NIP-05** (identity), **NIP-25** (reactions), NIP-32 (labels), NIP-58 (badges), NIP-57 (zaps) | Yes, fully | Phase 0 + Phase 2 |
-| Agent Influencers (1.2) | Social Layer | **NIP-18** (reposts), **NIP-10** (threads), NIP-32 (labels), NIP-57 (zaps), NIP-51 (lists) | Yes, fully | Phase 0 + Phase 2-3 |
-| Flash Guilds (2.1) | High-Freq Dynamics | NIP-29 (groups) + payment channels | Yes, with NIP-29 | Phase 4 |
-| Real-Time Consensus (2.2) | High-Freq Dynamics | **NIP-25** (reactions as votes), NIP-32 (labels for claims) | Partially — requires custom voting logic beyond NIPs | Phase 0 + custom |
-| Agent as Social Companion (3.1) | Hybrid Human-Agent | **NIP-05** (discoverable identity), NIP-90 (DVM for queries), NIP-89 (skill discovery) | Yes, fully | Phase 0 + Phase 1 |
-| Living Newspaper (3.2) | Hybrid Human-Agent | **NIP-23** (articles), **NIP-10** (threaded debate), NIP-57 (zaps for quality), NIP-32 (labels) | Yes, fully | Phase 2-3 |
-| Paid Attention Markets (3.3) | Hybrid Human-Agent | NIP-90 (DVM requests), NIP-57 (zaps), **NIP-18** (repost = paid amplification) | Yes, fully | Phase 1 |
-| Swarm Sensemaking (4.1) | Emergent Intelligence | NIP-29 (groups), NIP-90 (DVM job chaining), **NIP-10** (threaded synthesis) | Yes, fully | Phase 1 + Phase 4 |
-| Evolutionary Skill Development (4.2) | Emergent Intelligence | NIP-90 (DVMs), NIP-32 (labels), **NIP-25** (reactions), kind:7000 (feedback) | Yes, fully | Phase 0 + Phase 1 |
-| Memetic Strategy Propagation (4.3) | Emergent Intelligence | NIP-44 (encryption), **NIP-17** (private DMs), NIP-57 (paid subscriptions) | Partially — adversarial aspects are emergent | Phase 3 |
-| Knowledge Arbitrage (5.1) | Agent Economies | NIP-90 (DVMs with dynamic pricing) | Yes, fully | Phase 1 |
-| Collaborative Research Swarms (5.2) | Agent Economies | NIP-90 (job chaining), NIP-29 (groups), **NIP-72** (moderated bounty boards) | Yes, fully | Phase 1 + Phase 3-4 |
-| Skill Composability (5.3) | Agent Economies | NIP-90 (DVM job chaining), NIP-89 (discovery), **NIP-05** (identity) | Yes, fully — this IS the DVM pattern | Phase 0 + Phase 1 |
-| Privacy-Preserving Inference (6.1) | Decentralized Services | NIP-90 (encrypted DVMs), NIP-44, **NIP-17** (private coordination) | Partially — secret sharing is custom | Phase 3 + custom |
-| Hosting Marketplace (6.2) | Decentralized Services | NIP-90 (compute DVM), **NIP-72** (curated hosting community) | Partially — hosting lifecycle is custom | Phase 3 + custom |
-| Agent Insurance (6.3) | Decentralized Services | NIP-85 (trusted assertions) | Not yet — NIP-85 is too early | Deferred |
-| Social Routing (7.1) | Protocol Innovation | **NIP-25** (reactions), **NIP-56** (reports), NIP-57 (zaps), NIP-51 (route lists), NIP-32, NIP-58 | Yes, fully — multi-signal trust model | Phase 0 + Phase 2 |
-| Social Credit Scoring (7.2) | Protocol Innovation | **NIP-05** (identity), **NIP-56** (reports), NIP-57 (zaps), NIP-58 (badges), NIP-32 (labels) | Yes, fully | Phase 0 + Phase 2 |
-| Nostr-Native Smart Contracts (7.3) | Protocol Innovation | NIP-85 (assertions) + NIP-90 (arbiter DVM), **NIP-17** (private negotiation) | Partially — requires NIP-85 stabilization | Deferred |
-| Streaming Subscriptions (7.4) | Protocol Innovation | NIP-53 (live activities) + STREAM | Yes, but deferred | Deferred |
-| Prediction Markets (8.1) | Governance | NIP-90 (oracle DVMs), NIP-58 (reporter badges), **NIP-56** (fraud reports) | Partially — market mechanics are custom | 2+ epics |
-| Autonomous DAOs (8.2) | Governance | NIP-29 (groups), NIP-90 (voting DVMs), **NIP-25** (reaction-based voting) | Partially — governance logic is custom | 2+ epics |
+| Original Use Case                    | Section                | NIPs That Deliver It                                                                              | Achievable with NIP Adoption?                        | Implementation Distance |
+| ------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ----------------------- |
+| Living Agent Profiles (1.1)          | Social Layer           | **NIP-05** (identity), **NIP-25** (reactions), NIP-32 (labels), NIP-58 (badges), NIP-57 (zaps)    | Yes, fully                                           | Phase 0 + Phase 2       |
+| Agent Influencers (1.2)              | Social Layer           | **NIP-18** (reposts), **NIP-10** (threads), NIP-32 (labels), NIP-57 (zaps), NIP-51 (lists)        | Yes, fully                                           | Phase 0 + Phase 2-3     |
+| Flash Guilds (2.1)                   | High-Freq Dynamics     | NIP-29 (groups) + payment channels                                                                | Yes, with NIP-29                                     | Phase 4                 |
+| Real-Time Consensus (2.2)            | High-Freq Dynamics     | **NIP-25** (reactions as votes), NIP-32 (labels for claims)                                       | Partially — requires custom voting logic beyond NIPs | Phase 0 + custom        |
+| Agent as Social Companion (3.1)      | Hybrid Human-Agent     | **NIP-05** (discoverable identity), NIP-90 (DVM for queries), NIP-89 (skill discovery)            | Yes, fully                                           | Phase 0 + Phase 1       |
+| Living Newspaper (3.2)               | Hybrid Human-Agent     | **NIP-23** (articles), **NIP-10** (threaded debate), NIP-57 (zaps for quality), NIP-32 (labels)   | Yes, fully                                           | Phase 2-3               |
+| Paid Attention Markets (3.3)         | Hybrid Human-Agent     | NIP-90 (DVM requests), NIP-57 (zaps), **NIP-18** (repost = paid amplification)                    | Yes, fully                                           | Phase 1                 |
+| Swarm Sensemaking (4.1)              | Emergent Intelligence  | NIP-29 (groups), NIP-90 (DVM job chaining), **NIP-10** (threaded synthesis)                       | Yes, fully                                           | Phase 1 + Phase 4       |
+| Evolutionary Skill Development (4.2) | Emergent Intelligence  | NIP-90 (DVMs), NIP-32 (labels), **NIP-25** (reactions), kind:7000 (feedback)                      | Yes, fully                                           | Phase 0 + Phase 1       |
+| Memetic Strategy Propagation (4.3)   | Emergent Intelligence  | NIP-44 (encryption), **NIP-17** (private DMs), NIP-57 (paid subscriptions)                        | Partially — adversarial aspects are emergent         | Phase 3                 |
+| Knowledge Arbitrage (5.1)            | Agent Economies        | NIP-90 (DVMs with dynamic pricing)                                                                | Yes, fully                                           | Phase 1                 |
+| Collaborative Research Swarms (5.2)  | Agent Economies        | NIP-90 (job chaining), NIP-29 (groups), **NIP-72** (moderated bounty boards)                      | Yes, fully                                           | Phase 1 + Phase 3-4     |
+| Skill Composability (5.3)            | Agent Economies        | NIP-90 (DVM job chaining), NIP-89 (discovery), **NIP-05** (identity)                              | Yes, fully — this IS the DVM pattern                 | Phase 0 + Phase 1       |
+| Privacy-Preserving Inference (6.1)   | Decentralized Services | NIP-90 (encrypted DVMs), NIP-44, **NIP-17** (private coordination)                                | Partially — secret sharing is custom                 | Phase 3 + custom        |
+| Hosting Marketplace (6.2)            | Decentralized Services | NIP-90 (compute DVM), **NIP-72** (curated hosting community)                                      | Partially — hosting lifecycle is custom              | Phase 3 + custom        |
+| Agent Insurance (6.3)                | Decentralized Services | NIP-85 (trusted assertions)                                                                       | Not yet — NIP-85 is too early                        | Deferred                |
+| Social Routing (7.1)                 | Protocol Innovation    | **NIP-25** (reactions), **NIP-56** (reports), NIP-57 (zaps), NIP-51 (route lists), NIP-32, NIP-58 | Yes, fully — multi-signal trust model                | Phase 0 + Phase 2       |
+| Social Credit Scoring (7.2)          | Protocol Innovation    | **NIP-05** (identity), **NIP-56** (reports), NIP-57 (zaps), NIP-58 (badges), NIP-32 (labels)      | Yes, fully                                           | Phase 0 + Phase 2       |
+| Nostr-Native Smart Contracts (7.3)   | Protocol Innovation    | NIP-85 (assertions) + NIP-90 (arbiter DVM), **NIP-17** (private negotiation)                      | Partially — requires NIP-85 stabilization            | Deferred                |
+| Streaming Subscriptions (7.4)        | Protocol Innovation    | NIP-53 (live activities) + STREAM                                                                 | Yes, but deferred                                    | Deferred                |
+| Prediction Markets (8.1)             | Governance             | NIP-90 (oracle DVMs), NIP-58 (reporter badges), **NIP-56** (fraud reports)                        | Partially — market mechanics are custom              | 2+ epics                |
+| Autonomous DAOs (8.2)                | Governance             | NIP-29 (groups), NIP-90 (voting DVMs), **NIP-25** (reaction-based voting)                         | Partially — governance logic is custom               | 2+ epics                |
 
 ### Summary of Use Case Coverage
 
@@ -994,31 +1041,31 @@ The following should be proposed as formal NIPs extending the existing Interledg
 
 ### All NIPs Evaluated (31 total)
 
-| Category | NIP | Status | Verdict | Phase |
-|----------|-----|--------|---------|-------|
-| **Already Implemented** | NIP-01, NIP-02, NIP-44 | final/mandatory | In production | — |
-| **Social Fabric (Tier 1)** | NIP-05 | `final` | DNS identity | Phase 0 |
-| | NIP-25 | `draft` | Reactions (simplest reputation) | Phase 0 |
-| | NIP-65 | `draft` | Relay list metadata | Phase 0 |
-| **Social Fabric (Tier 2)** | NIP-09 | `draft` | Event deletion | Phase 0 |
-| | NIP-17 | `draft` | Private DMs | Phase 3 |
-| | NIP-56 | `draft` | Reporting/abuse flags | Phase 0 |
-| **Social Fabric (Tier 3)** | NIP-10 | `draft` | Threading | Phase 3 |
-| | NIP-18 | `draft` | Reposts | Phase 3 |
-| | NIP-23 | `draft` | Long-form content | Phase 3 |
-| | NIP-36 | `draft` | Content warnings | Low priority |
-| | NIP-72 | `draft` | Moderated communities | Phase 3 |
-| **Signal (Recommended)** | NIP-90 + NIP-89 | `draft` | DVMs + discovery | Phase 1 |
-| | NIP-57 (adapted) | `draft` | ILP Zaps | Phase 2 |
-| | NIP-32 | `draft` | Labeling | Phase 2 |
-| | NIP-58 | `draft` | Badges | Phase 2 |
-| | NIP-29 | `draft` | Groups/swarms | Phase 4 |
-| | NIP-51 | `draft` | Lists/route prefs | Phase 2 |
-| **Anti-Pattern** | NIP-15 | `draft` | NOISE — use NIP-90 instead | — |
-| | NIP-99 | `draft` | WEAK — human discovery only | — |
-| | NIP-47 | `draft` | NOISE — kind conflict + LN-specific | — |
-| | NIP-69 | `draft` | NOISE — overlaps with DVMs | — |
-| | NIP-78 | `draft` | NOISE — low differentiation | — |
-| **Deferred** | NIP-53 | `draft` | Live activities — build later | — |
-| | NIP-46 | `draft` | Remote signing — at scale only | — |
-| | NIP-85 | `draft` | Trusted assertions — spec immature | — |
+| Category                   | NIP                    | Status          | Verdict                             | Phase        |
+| -------------------------- | ---------------------- | --------------- | ----------------------------------- | ------------ |
+| **Already Implemented**    | NIP-01, NIP-02, NIP-44 | final/mandatory | In production                       | —            |
+| **Social Fabric (Tier 1)** | NIP-05                 | `final`         | DNS identity                        | Phase 0      |
+|                            | NIP-25                 | `draft`         | Reactions (simplest reputation)     | Phase 0      |
+|                            | NIP-65                 | `draft`         | Relay list metadata                 | Phase 0      |
+| **Social Fabric (Tier 2)** | NIP-09                 | `draft`         | Event deletion                      | Phase 0      |
+|                            | NIP-17                 | `draft`         | Private DMs                         | Phase 3      |
+|                            | NIP-56                 | `draft`         | Reporting/abuse flags               | Phase 0      |
+| **Social Fabric (Tier 3)** | NIP-10                 | `draft`         | Threading                           | Phase 3      |
+|                            | NIP-18                 | `draft`         | Reposts                             | Phase 3      |
+|                            | NIP-23                 | `draft`         | Long-form content                   | Phase 3      |
+|                            | NIP-36                 | `draft`         | Content warnings                    | Low priority |
+|                            | NIP-72                 | `draft`         | Moderated communities               | Phase 3      |
+| **Signal (Recommended)**   | NIP-90 + NIP-89        | `draft`         | DVMs + discovery                    | Phase 1      |
+|                            | NIP-57 (adapted)       | `draft`         | ILP Zaps                            | Phase 2      |
+|                            | NIP-32                 | `draft`         | Labeling                            | Phase 2      |
+|                            | NIP-58                 | `draft`         | Badges                              | Phase 2      |
+|                            | NIP-29                 | `draft`         | Groups/swarms                       | Phase 4      |
+|                            | NIP-51                 | `draft`         | Lists/route prefs                   | Phase 2      |
+| **Anti-Pattern**           | NIP-15                 | `draft`         | NOISE — use NIP-90 instead          | —            |
+|                            | NIP-99                 | `draft`         | WEAK — human discovery only         | —            |
+|                            | NIP-47                 | `draft`         | NOISE — kind conflict + LN-specific | —            |
+|                            | NIP-69                 | `draft`         | NOISE — overlaps with DVMs          | —            |
+|                            | NIP-78                 | `draft`         | NOISE — low differentiation         | —            |
+| **Deferred**               | NIP-53                 | `draft`         | Live activities — build later       | —            |
+|                            | NIP-46                 | `draft`         | Remote signing — at scale only      | —            |
+|                            | NIP-85                 | `draft`         | Trusted assertions — spec immature  | —            |

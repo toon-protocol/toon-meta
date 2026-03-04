@@ -32,13 +32,13 @@ Each peer has independent settlement preferences. When registering a peer via `P
 ```typescript
 interface PeerConfig {
   peerId: string;
-  address: string;                                    // ILP address
+  address: string; // ILP address
   settlementPreference: 'evm' | 'xrp' | 'aptos' | 'any' | 'both';
-  settlementTokens: string[];                         // Supported tokens
-  evmAddress?: string;                                // 0x-prefixed Ethereum address
-  xrpAddress?: string;                                // r-prefixed XRP address
-  aptosAddress?: string;                              // 0x-prefixed Aptos address
-  aptosPubkey?: string;                               // 64-char hex ed25519 pubkey
+  settlementTokens: string[]; // Supported tokens
+  evmAddress?: string; // 0x-prefixed Ethereum address
+  xrpAddress?: string; // r-prefixed XRP address
+  aptosAddress?: string; // 0x-prefixed Aptos address
+  aptosPubkey?: string; // 64-char hex ed25519 pubkey
 }
 ```
 
@@ -257,6 +257,7 @@ Incompatible              → Error
 ```
 
 Settlement is triggered by `SettlementMonitor` when balance thresholds are exceeded. The executor:
+
 1. Opens channel (if none exists)
 2. Signs balance proof / claim
 3. Sends claim to peer via BTP `payment-channel-claim` sub-protocol
@@ -287,6 +288,7 @@ Claims are exchanged over the existing BTP WebSocket using a sub-protocol:
 ```
 
 **EVM claim structure:**
+
 ```json
 {
   "version": "1.0",
@@ -349,11 +351,13 @@ DELETE /admin/routes/:prefix     — Remove route
 ## Key Contracts & Addresses
 
 For local development (Anvil):
+
 - **TokenNetworkRegistry** — Deploys TokenNetwork per token
 - **TokenNetwork** — Channel operations (open, deposit, close, settle, cooperativeSettle)
 - **ERC20 Token** — The settlement token (e.g., AGENT token)
 
 For Base Sepolia testnet:
+
 - Addresses configured via `M2M_TOKEN_ADDRESS`, `TOKEN_NETWORK_REGISTRY_ADDRESS` env vars
 
 ---

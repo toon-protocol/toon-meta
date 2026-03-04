@@ -1,6 +1,7 @@
 # Crosstown x Gas Town Integration: Deep Research Analysis
 
 > **Revision History:**
+>
 > - **v1**: Original analysis with centralized Integration Refinery for cross-Town merges.
 > - **v2 (current)**: Section 3 revised to use NIP-34 decentralized git collaboration with trust-weighted multi-approval, replacing the Integration Refinery. Additional NIP enhancements (NIP-40, NIP-46, NIP-51, NIP-53, NIP-56, NIP-77) integrated into merge architecture.
 > - **Naming**: "Crosstown" is referred to as "Crosstown" throughout this revision, reflecting its role as the cross-Town communication layer.
@@ -13,15 +14,15 @@ This research evaluates the feasibility of integrating Gas Town (Steve Yegge's m
 
 **Verdict: Conditionally feasible, with a recommended hybrid architecture.**
 
-| Integration Point | Feasibility | Value | Priority |
-|---|---|---|---|
-| Identity mapping (Nostr keypair <-> Gas Town agent) | **High** | **High** | Phase 1 |
-| Communication layer (Nostr events for mail/nudge) | **High** | **High** | Phase 1 |
-| Economic model (ILP payments for inter-agent work) | **Medium** | **High** | Phase 2 |
-| Decentralized merge via NIP-34 | **Medium-High** | **High** | Phase 3 |
-| Beads sync over Nostr events | **Medium** | **Medium** | Phase 3 |
-| Cross-Town federation (Town-to-Town peering) | **Medium** | **Very High** | Phase 2-3 |
-| MEOW/DVM workflow mapping | **Low** | **Medium** | Phase 4 |
+| Integration Point                                   | Feasibility     | Value         | Priority  |
+| --------------------------------------------------- | --------------- | ------------- | --------- |
+| Identity mapping (Nostr keypair <-> Gas Town agent) | **High**        | **High**      | Phase 1   |
+| Communication layer (Nostr events for mail/nudge)   | **High**        | **High**      | Phase 1   |
+| Economic model (ILP payments for inter-agent work)  | **Medium**      | **High**      | Phase 2   |
+| Decentralized merge via NIP-34                      | **Medium-High** | **High**      | Phase 3   |
+| Beads sync over Nostr events                        | **Medium**      | **Medium**    | Phase 3   |
+| Cross-Town federation (Town-to-Town peering)        | **Medium**      | **Very High** | Phase 2-3 |
+| MEOW/DVM workflow mapping                           | **Low**         | **Medium**    | Phase 4   |
 
 ### Critical Architectural Decision
 
@@ -41,13 +42,13 @@ This exercises identity mapping, peering, communication, DVM work dispatch, and 
 
 ### Risk Assessment
 
-| Risk | Probability | Impact | Mitigation |
-|---|---|---|---|
-| Nostr relay latency degrades orchestration speed | Medium | High | Hybrid architecture; local for co-located, Nostr for remote only |
-| ILP payment channel management complexity | Medium | Medium | Per-peering SPSP handshake defines channel terms; no unknown-peer interactions; trust-based credit limits within peered channels |
-| Merge conflicts worsen with distributed agents | High | High | 5-layer conflict prevention: domain-scoped Towns (~60-70% reduction), file-level ownership claims, pre-merge conflict detection DVM, small patch policy, conflict-aware merge ordering. Combined estimated conflict rate < 10%. See Section 3.8 |
-| Agent coordination > 75% management threshold | High | High | Hierarchical Town structure; Mayors coordinate, Polecats stay local |
-| Beads last-writer-wins inadequate for distributed state | Medium | Medium | Restrict Beads writes to local; sync via Nostr events with conflict detection |
+| Risk                                                    | Probability | Impact | Mitigation                                                                                                                                                                                                                                      |
+| ------------------------------------------------------- | ----------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nostr relay latency degrades orchestration speed        | Medium      | High   | Hybrid architecture; local for co-located, Nostr for remote only                                                                                                                                                                                |
+| ILP payment channel management complexity               | Medium      | Medium | Per-peering SPSP handshake defines channel terms; no unknown-peer interactions; trust-based credit limits within peered channels                                                                                                                |
+| Merge conflicts worsen with distributed agents          | High        | High   | 5-layer conflict prevention: domain-scoped Towns (~60-70% reduction), file-level ownership claims, pre-merge conflict detection DVM, small patch policy, conflict-aware merge ordering. Combined estimated conflict rate < 10%. See Section 3.8 |
+| Agent coordination > 75% management threshold           | High        | High   | Hierarchical Town structure; Mayors coordinate, Polecats stay local                                                                                                                                                                             |
+| Beads last-writer-wins inadequate for distributed state | Medium      | Medium | Restrict Beads writes to local; sync via Nostr events with conflict detection                                                                                                                                                                   |
 
 ---
 
@@ -71,6 +72,7 @@ Address examples: `mayor/`, `deacon/`, `gastown/witness`, `gastown/crew/max`, `g
 The `Connection` package (`internal/connection/address.go`) already supports machine-qualified addresses: `[machine:]rig[/polecat]`, e.g., `vm:gastown/rictus`.
 
 **Crosstown** uses Nostr keypairs (secp256k1) as identity:
+
 - Public key (npub): 64-character hex, globally unique
 - Private key (nsec): Signs events, proves identity
 - NIP-02 follow lists define peering relationships
@@ -119,11 +121,11 @@ Polecats, being ephemeral, would share their Rig's keypair rather than maintaini
 
 The NIP-02 follow list naturally subsumes Gas Town's hierarchical addressing:
 
-| Gas Town Relationship | NIP-02 Mapping |
-|---|---|
-| Town A Mayor knows Town B Mayor | Town A npub follows Town B npub |
-| Mayor trusts Crew member Max | Mayor npub follows Max's npub |
-| Rig A peers with Rig B | Rig A npub follows Rig B npub |
+| Gas Town Relationship           | NIP-02 Mapping                               |
+| ------------------------------- | -------------------------------------------- |
+| Town A Mayor knows Town B Mayor | Town A npub follows Town B npub              |
+| Mayor trusts Crew member Max    | Mayor npub follows Max's npub                |
+| Rig A peers with Rig B          | Rig A npub follows Rig B npub                |
 | Town joins Wasteland federation | Town npub follows Wasteland coordinator npub |
 
 This enables **transitive discovery**: if Town A follows Town B and Town B follows Town C, Crosstown's social trust engine can compute trust scores for the A-C relationship (social distance = 2).
@@ -147,14 +149,14 @@ This enables **transitive discovery**: if Town A follows Town B and Town B follo
 
 ### 1.4 Identity Lifecycle
 
-| Event | Gas Town Action | Nostr/ILP Action |
-|---|---|---|
-| **Creation** | `gt init --nostr` | Generate keypair, publish kind:10032 |
-| **Key rotation** | Update identity bead, re-sign | Publish new kind:10032 (replaceable), NIP-02 update |
-| **Revocation** | Delete identity bead | Publish kind:5 (NIP-09 deletion) for kind:10032 |
-| **Agent spawn** (Polecat) | Create tmux session | No Nostr action (uses Rig keypair) |
-| **Agent death** (Polecat) | Nuke tmux session | No Nostr action |
-| **Town shutdown** | `gt shutdown` | Publish empty kind:10032 (signals offline) |
+| Event                     | Gas Town Action               | Nostr/ILP Action                                    |
+| ------------------------- | ----------------------------- | --------------------------------------------------- |
+| **Creation**              | `gt init --nostr`             | Generate keypair, publish kind:10032                |
+| **Key rotation**          | Update identity bead, re-sign | Publish new kind:10032 (replaceable), NIP-02 update |
+| **Revocation**            | Delete identity bead          | Publish kind:5 (NIP-09 deletion) for kind:10032     |
+| **Agent spawn** (Polecat) | Create tmux session           | No Nostr action (uses Rig keypair)                  |
+| **Agent death** (Polecat) | Nuke tmux session             | No Nostr action                                     |
+| **Town shutdown**         | `gt shutdown`                 | Publish empty kind:10032 (signals offline)          |
 
 ### 1.5 Compatibility with Gas Town's Connection Interface
 
@@ -173,6 +175,7 @@ type Connection interface {
 ```
 
 A `NostrConnection` implementation would:
+
 - `IsLocal()` returns `false`
 - `ReadFile/WriteFile` -> Nostr event publish/query (for configuration/state)
 - `Exec` -> NIP-90 DVM job request (for remote command execution)
@@ -199,28 +202,28 @@ type Machine struct {
 
 ### 2.1 Protocol Mapping Table
 
-| Gas Town Operation | Current Transport | Nostr Event Kind | ILP Packet | Latency (Local) | Latency (Nostr) | Notes |
-|---|---|---|---|---|---|---|
-| `gt sling <bead> <rig>` | Filesystem (hook) | New kind: 30078 (work dispatch) | Optional TOON wrapper | <1ms | 50-200ms | Work assignment; triggers GUPP |
-| `gt mail send` | Beads issue (filesystem) | kind:14 (NIP-17 DM, encrypted) | None | <1ms | 50-200ms | Encrypted via NIP-44 |
-| `gt mail check --inject` | Filesystem read | kind:14 subscription | None | <1ms | Real-time sub | UserPromptSubmit hook polls |
-| `gt nudge` | JSON file in queue dir | kind:14 with `priority:urgent` tag | None | <1ms + turn boundary | 50-200ms + turn boundary | Non-destructive injection |
-| Protocol: MERGE_READY | Mail (beads issue) | kind:14 with `protocol:merge-ready` tag | None | <1ms | 50-200ms | Witness -> Refinery |
-| Protocol: MERGED | Mail (beads issue) | kind:14 with `protocol:merged` tag | None | <1ms | 50-200ms | Refinery -> Witness |
-| Protocol: POLECAT_DONE | Mail (beads issue) | kind:14 with `protocol:polecat-done` tag | None | <1ms | 50-200ms | Worker -> Witness |
-| `gt prime --hook` | Filesystem (beads DB) | kind:30078 query (replaceable) | None | <10ms | 100-500ms | Session bootstrap context |
-| Wasteland `wanted` post | DoltHub push | NIP-90 DVM job request (kind:5xxx) | ILP PREPARE (payment gated) | N/A (manual) | 50-200ms | Cross-Town work request |
-| Wasteland completion | DoltHub PR | NIP-90 DVM result (kind:6xxx) + kind:30080 | ILP FULFILL (payment) | N/A (manual) | 50-200ms | Cross-Town work delivery |
-| `gt costs record` | Local JSONL | kind:30081 (cost report) | None | <1ms | 50-200ms | Optional; for network analytics |
+| Gas Town Operation       | Current Transport        | Nostr Event Kind                           | ILP Packet                  | Latency (Local)      | Latency (Nostr)          | Notes                           |
+| ------------------------ | ------------------------ | ------------------------------------------ | --------------------------- | -------------------- | ------------------------ | ------------------------------- |
+| `gt sling <bead> <rig>`  | Filesystem (hook)        | New kind: 30078 (work dispatch)            | Optional TOON wrapper       | <1ms                 | 50-200ms                 | Work assignment; triggers GUPP  |
+| `gt mail send`           | Beads issue (filesystem) | kind:14 (NIP-17 DM, encrypted)             | None                        | <1ms                 | 50-200ms                 | Encrypted via NIP-44            |
+| `gt mail check --inject` | Filesystem read          | kind:14 subscription                       | None                        | <1ms                 | Real-time sub            | UserPromptSubmit hook polls     |
+| `gt nudge`               | JSON file in queue dir   | kind:14 with `priority:urgent` tag         | None                        | <1ms + turn boundary | 50-200ms + turn boundary | Non-destructive injection       |
+| Protocol: MERGE_READY    | Mail (beads issue)       | kind:14 with `protocol:merge-ready` tag    | None                        | <1ms                 | 50-200ms                 | Witness -> Refinery             |
+| Protocol: MERGED         | Mail (beads issue)       | kind:14 with `protocol:merged` tag         | None                        | <1ms                 | 50-200ms                 | Refinery -> Witness             |
+| Protocol: POLECAT_DONE   | Mail (beads issue)       | kind:14 with `protocol:polecat-done` tag   | None                        | <1ms                 | 50-200ms                 | Worker -> Witness               |
+| `gt prime --hook`        | Filesystem (beads DB)    | kind:30078 query (replaceable)             | None                        | <10ms                | 100-500ms                | Session bootstrap context       |
+| Wasteland `wanted` post  | DoltHub push             | NIP-90 DVM job request (kind:5xxx)         | ILP PREPARE (payment gated) | N/A (manual)         | 50-200ms                 | Cross-Town work request         |
+| Wasteland completion     | DoltHub PR               | NIP-90 DVM result (kind:6xxx) + kind:30080 | ILP FULFILL (payment)       | N/A (manual)         | 50-200ms                 | Cross-Town work delivery        |
+| `gt costs record`        | Local JSONL              | kind:30081 (cost report)                   | None                        | <1ms                 | 50-200ms                 | Optional; for network analytics |
 
 ### 2.2 Proposed New Nostr Event Kinds for Gas Town
 
-| Kind | Name | Type | Purpose |
-|---|---|---|---|
-| 30078 | Gas Town Work Dispatch | Parameterized-replaceable | Work assignment (bead on hook); `d` tag = bead ID |
+| Kind      | Name                     | Type                          | Purpose                                             |
+| --------- | ------------------------ | ----------------------------- | --------------------------------------------------- |
+| 30078     | Gas Town Work Dispatch   | Parameterized-replaceable     | Work assignment (bead on hook); `d` tag = bead ID   |
 | ~~30079~~ | ~~Gas Town Wanted Work~~ | ~~Parameterized-replaceable~~ | **Replaced by NIP-90 DVM job requests (kind:5xxx)** |
-| 30080 | Gas Town Completion | Regular | Work completion evidence with stamps |
-| 30081 | Gas Town Cost Report | Regular | Token usage and cost tracking |
+| 30080     | Gas Town Completion      | Regular                       | Work completion evidence with stamps                |
+| 30081     | Gas Town Cost Report     | Regular                       | Token usage and cost tracking                       |
 
 All cross-Town messages would be NIP-44 encrypted (kind:14 via NIP-17 gift wrap) for privacy. The kinds above are for public/discoverable events.
 
@@ -228,35 +231,37 @@ All cross-Town messages would be NIP-44 encrypted (kind:14 via NIP-17 gift wrap)
 
 **Baseline measurements from comparable systems:**
 
-| System | Operation | Latency |
-|---|---|---|
-| Gas Town (local) | Hook dispatch, mail, nudge | <1ms |
-| Temporal.io | Schedule-to-start (task queue) | 50-150ms |
-| Kubernetes | Pod scheduling | 60-200ms |
-| Nostr relay | WebSocket round-trip (publish + subscription delivery) | 50-200ms |
-| ILP/STREAM | Payment packet (per hop) | 50-150ms estimated |
+| System           | Operation                                              | Latency            |
+| ---------------- | ------------------------------------------------------ | ------------------ |
+| Gas Town (local) | Hook dispatch, mail, nudge                             | <1ms               |
+| Temporal.io      | Schedule-to-start (task queue)                         | 50-150ms           |
+| Kubernetes       | Pod scheduling                                         | 60-200ms           |
+| Nostr relay      | WebSocket round-trip (publish + subscription delivery) | 50-200ms           |
+| ILP/STREAM       | Payment packet (per hop)                               | 50-150ms estimated |
 
 **Impact assessment:**
 
 Gas Town's orchestration messages are **infrequent** (work dispatch happens every few minutes, not milliseconds). The 50-200ms Nostr latency is acceptable for:
+
 - Work dispatch (`gt sling`): Agent takes minutes to complete work; 200ms dispatch overhead is negligible
 - Mail: Checked at turn boundaries (seconds between checks)
 - Protocol messages: Merge pipeline operates on minute timescales
 - Nudges: Already delayed until turn boundary
 
 Gas Town's **high-frequency** local operations would be degraded:
+
 - `gt prime --hook` at session start: 100-500ms vs <10ms (acceptable, happens once)
 - Nudge queue drain: Real-time Nostr subscription vs filesystem poll (comparable)
 - Git operations: Cannot be distributed without shared hosting (fundamental constraint)
 
 ### 2.4 Reliability Guarantees
 
-| Guarantee | Gas Town (Local) | Nostr/ILP (Distributed) |
-|---|---|---|
-| Message delivery | Filesystem writes are atomic | At-least-once (publish to multiple relays) |
-| Ordering | FIFO within nudge queue | No global ordering; timestamps + sequence tags |
-| Durability | Git-committed beads | Relay storage (configurable retention) |
-| Exactly-once execution | Beads issue state machine | Not guaranteed; idempotency via bead ID dedup |
+| Guarantee              | Gas Town (Local)             | Nostr/ILP (Distributed)                        |
+| ---------------------- | ---------------------------- | ---------------------------------------------- |
+| Message delivery       | Filesystem writes are atomic | At-least-once (publish to multiple relays)     |
+| Ordering               | FIFO within nudge queue      | No global ordering; timestamps + sequence tags |
+| Durability             | Git-committed beads          | Relay storage (configurable retention)         |
+| Exactly-once execution | Beads issue state machine    | Not guaranteed; idempotency via bead ID dedup  |
 
 **Key gap:** Nostr relays provide **at-most-once** delivery per relay (events may be missed if client disconnects) and **no ordering guarantees** across relays. Gas Town's GUPP principle ("if work is on your hook, run it") provides natural idempotency -- duplicate delivery results in re-checking an already-completed bead, which is a no-op.
 
@@ -313,6 +318,7 @@ open -> in_progress -> closed (merged | rejected | conflict | superseded)
 On conflict: `REWORK_REQUEST` -> Witness -> Polecat rebases -> re-verify -> re-merge.
 
 **Current scaling characteristics:**
+
 - 20-30 agents on one machine, all sharing the same git repository
 - Merge conflicts increase with agent count (reported by users on HN)
 - Sequential processing means N agents create O(N) queue depth
@@ -334,18 +340,18 @@ NIP-34 defines a complete protocol for git collaboration over Nostr. It is the n
 
 #### 3.2.1 NIP-34 Event Kinds
 
-| Kind | Name | Type | Purpose in Crosstown |
-|---|---|---|---|
+| Kind  | Name                    | Type                    | Purpose in Crosstown                                                                |
+| ----- | ----------------------- | ----------------------- | ----------------------------------------------------------------------------------- |
 | 30617 | Repository Announcement | Addressable-replaceable | Shared codebase metadata: clone URLs, maintainer list (Town npubs), relay endpoints |
-| 30618 | Repository State | Addressable-replaceable | Branch/tag tracking across Towns; each Town publishes its branch state |
-| 1617 | Patch | Regular | Cross-Town code contributions (git format-patch as Nostr events) |
-| 1618 | Pull Request | Regular | Larger cross-Town contributions referencing a clone URL |
-| 1619 | PR Update | Regular | Revisions to an existing cross-Town PR |
-| 1621 | Issue | Regular | Cross-Town bug reports, feature requests |
-| 1630 | Status: Open | Regular | Patch/PR submitted for review |
-| 1631 | Status: Applied/Merged | Regular | Patch/PR accepted and integrated |
-| 1632 | Status: Closed | Regular | Patch/PR rejected |
-| 1633 | Status: Draft | Regular | Work-in-progress, not yet reviewable |
+| 30618 | Repository State        | Addressable-replaceable | Branch/tag tracking across Towns; each Town publishes its branch state              |
+| 1617  | Patch                   | Regular                 | Cross-Town code contributions (git format-patch as Nostr events)                    |
+| 1618  | Pull Request            | Regular                 | Larger cross-Town contributions referencing a clone URL                             |
+| 1619  | PR Update               | Regular                 | Revisions to an existing cross-Town PR                                              |
+| 1621  | Issue                   | Regular                 | Cross-Town bug reports, feature requests                                            |
+| 1630  | Status: Open            | Regular                 | Patch/PR submitted for review                                                       |
+| 1631  | Status: Applied/Merged  | Regular                 | Patch/PR accepted and integrated                                                    |
+| 1632  | Status: Closed          | Regular                 | Patch/PR rejected                                                                   |
+| 1633  | Status: Draft           | Regular                 | Work-in-progress, not yet reviewable                                                |
 
 #### 3.2.2 Shared Codebase Announcement
 
@@ -451,12 +457,12 @@ A patch is mergeable when:
 
 **Example scenarios:**
 
-| Approvers | Trust Scores | Sum | Threshold 1.5 | Result |
-|---|---|---|---|---|
-| Town B (0.9) | - | 0.9 | Not met | Wait for more reviews |
-| Town B (0.9), Town C (0.7) | - | 1.6 | Met, 2 reviewers | Mergeable |
-| Town B (0.9), Town D (0.3) | - | 1.2 | Not met | Wait for more reviews |
-| Town B (0.9), Town C (0.7), Town D (0.3) | - | 1.9 | Met, 3 reviewers | Mergeable |
+| Approvers                                | Trust Scores | Sum | Threshold 1.5    | Result                |
+| ---------------------------------------- | ------------ | --- | ---------------- | --------------------- |
+| Town B (0.9)                             | -            | 0.9 | Not met          | Wait for more reviews |
+| Town B (0.9), Town C (0.7)               | -            | 1.6 | Met, 2 reviewers | Mergeable             |
+| Town B (0.9), Town D (0.3)               | -            | 1.2 | Not met          | Wait for more reviews |
+| Town B (0.9), Town C (0.7), Town D (0.3) | -            | 1.9 | Met, 3 reviewers | Mergeable             |
 
 Higher-value projects can raise the threshold and minimum reviewer count. Low-stakes repos can lower them.
 
@@ -480,9 +486,7 @@ Computing trust scores via BFS over the full follow graph is expensive at scale.
 ```json
 {
   "kind": 30382,
-  "tags": [
-    ["d", "<town-mayor-npub>"]
-  ],
+  "tags": [["d", "<town-mayor-npub>"]],
   "content": "{\"trust_score\": 0.85, \"successful_merges\": 47, \"failed_merges\": 2, \"merge_success_rate\": 0.959, \"social_distance\": 1, \"mutual_follows\": 12}"
 }
 ```
@@ -609,11 +613,11 @@ A single DVM CI result could be faked. Mitigation:
 
 #### 3.5.3 CI Cost Projections
 
-| Repo Size | Test Suite Duration | DVM Bid (sats) | At 10 merges/day |
-|---|---|---|---|
-| Small (< 1min tests) | 30-60s | 10-25 sats | 100-250 sats/day |
-| Medium (5-15min tests) | 5-15min | 50-200 sats | 500-2,000 sats/day |
-| Large (30min+ tests) | 30-60min | 200-1,000 sats | 2,000-10,000 sats/day |
+| Repo Size              | Test Suite Duration | DVM Bid (sats) | At 10 merges/day      |
+| ---------------------- | ------------------- | -------------- | --------------------- |
+| Small (< 1min tests)   | 30-60s              | 10-25 sats     | 100-250 sats/day      |
+| Medium (5-15min tests) | 5-15min             | 50-200 sats    | 500-2,000 sats/day    |
+| Large (30min+ tests)   | 30-60min            | 200-1,000 sats | 2,000-10,000 sats/day |
 
 At current rates (~$0.001/sat), even large repos cost < $10/day for distributed CI. This is competitive with centralized CI services and creates an open market where Towns with spare compute earn by running tests for others.
 
@@ -640,11 +644,11 @@ Each shared codebase operates within a NIP-29 relay-based group:
 
 **Group roles map to Crosstown roles:**
 
-| NIP-29 Role | Crosstown Meaning | Capabilities |
-|---|---|---|
-| Admin | High-trust Town Mayor (trust > 0.8) | Apply merges, manage membership, adjust thresholds |
-| Moderator | Mid-trust Town Mayor (trust 0.5-0.8) | Review patches, label, run CI |
-| Member | Contributing Town Mayor (trust > 0.3) | Submit patches, participate in discussion |
+| NIP-29 Role | Crosstown Meaning                     | Capabilities                                       |
+| ----------- | ------------------------------------- | -------------------------------------------------- |
+| Admin       | High-trust Town Mayor (trust > 0.8)   | Apply merges, manage membership, adjust thresholds |
+| Moderator   | Mid-trust Town Mayor (trust 0.5-0.8)  | Review patches, label, run CI                      |
+| Member      | Contributing Town Mayor (trust > 0.3) | Submit patches, participate in discussion          |
 
 #### 3.6.2 Membership via Trust
 
@@ -697,11 +701,12 @@ Beads' 19 dependency types create a directed acyclic graph (DAG) that determines
 
 ### 3.8 Merge Conflict Prevention
 
-The NIP-34 multi-approval architecture solves merge *governance* (who decides what merges, with no single point of failure) but does not solve merge *conflicts* (two Towns editing the same files). Conflicts are a git problem, not a governance problem. This section addresses conflict prevention directly with strategies ranging from organizational to Nostr-native.
+The NIP-34 multi-approval architecture solves merge _governance_ (who decides what merges, with no single point of failure) but does not solve merge _conflicts_ (two Towns editing the same files). Conflicts are a git problem, not a governance problem. This section addresses conflict prevention directly with strategies ranging from organizational to Nostr-native.
 
 #### 3.8.1 Impact Assessment
 
 Cross-Town merges introduce higher conflict risk than local merges because:
+
 - **Higher latency**: 50-200ms Nostr relay communication + minutes/hours for human-in-the-loop review means more time for conflicting changes to accumulate
 - **Less visibility**: Towns don't see each other's in-flight work by default (unlike co-located Polecats sharing a git repo)
 - **Larger surface area**: Cross-Town patches tend to be larger (bundled local merges) than individual Polecat commits
@@ -792,6 +797,7 @@ Before a Town begins work that will result in a cross-Town patch, the Mayor publ
 ```
 
 **Claims are advisory, not locks.** This is deliberate:
+
 - Hard locks over Nostr are impractical (no atomic CAS, relay latency)
 - Advisory claims work because Towns are incentivized to avoid conflicts (failed merges reduce trust score)
 - If two Towns ignore claims and conflict, the merge process still works — one rebases
@@ -865,6 +871,7 @@ A specialized NIP-90 DVM service that detects conflicts before review begins, sh
 The longer a branch lives, the more likely it conflicts. Cross-Town patches should be small and frequent.
 
 **NIP-34 enforces this naturally:**
+
 - kind:1617 patches are designed for small diffs (< 60KB content limit)
 - Larger changes use kind:1618 PRs, which should be decomposed into patch series
 - Each patch in a series references its predecessor via NIP-10 reply tags
@@ -884,11 +891,11 @@ The longer a branch lives, the more likely it conflicts. Cross-Town patches shou
 }
 ```
 
-| Policy | Default | Purpose |
-|---|---|---|
-| `max-files` | 15 | Patches touching > 15 files require decomposition into a series |
-| `max-lines` | 500 | Patches > 500 lines require decomposition |
-| `max-age-hours` | 24 | Patches older than 24 hours without merge get flagged for rebase |
+| Policy          | Default | Purpose                                                          |
+| --------------- | ------- | ---------------------------------------------------------------- |
+| `max-files`     | 15      | Patches touching > 15 files require decomposition into a series  |
+| `max-lines`     | 500     | Patches > 500 lines require decomposition                        |
+| `max-age-hours` | 24      | Patches older than 24 hours without merge get flagged for rebase |
 
 These are enforced by the NIP-29 group relay — oversized patches are rejected with a message to decompose. Towns can still submit kind:1618 PRs for genuinely large changes, but these receive higher scrutiny.
 
@@ -949,13 +956,13 @@ This runs in the merge authority's NIP handler when processing the merge queue. 
 
 #### 3.8.7 Combined Strategy Summary
 
-| # | Strategy | Conflict Reduction | Type | Complexity | Nostr NIPs Used |
-|---|---|---|---|---|---|
-| 1 | Domain-scoped Towns | **60-70%** | Organizational | Low | NIP-34 (domain tags in kind:30617) |
-| 2 | File-level ownership claims | **20-30%** | Advisory protocol | Medium | kind:30078 claims + NIP-32 labels |
-| 3 | Pre-merge conflict detection DVM | **10-20%** | Automated | Medium | NIP-90 (kind:5951/6951) + NIP-32 labels |
-| 4 | Small, frequent patches | **15-25%** | Protocol policy | Low | NIP-34 (kind:1617 design) + NIP-29 (group policy) |
-| 5 | Conflict-aware merge ordering | **5-15%** | Algorithmic | Medium | Merge authority logic |
+| #   | Strategy                         | Conflict Reduction | Type              | Complexity | Nostr NIPs Used                                   |
+| --- | -------------------------------- | ------------------ | ----------------- | ---------- | ------------------------------------------------- |
+| 1   | Domain-scoped Towns              | **60-70%**         | Organizational    | Low        | NIP-34 (domain tags in kind:30617)                |
+| 2   | File-level ownership claims      | **20-30%**         | Advisory protocol | Medium     | kind:30078 claims + NIP-32 labels                 |
+| 3   | Pre-merge conflict detection DVM | **10-20%**         | Automated         | Medium     | NIP-90 (kind:5951/6951) + NIP-32 labels           |
+| 4   | Small, frequent patches          | **15-25%**         | Protocol policy   | Low        | NIP-34 (kind:1617 design) + NIP-29 (group policy) |
+| 5   | Conflict-aware merge ordering    | **5-15%**          | Algorithmic       | Medium     | Merge authority logic                             |
 
 **These strategies are complementary and compound.** With all five active:
 
@@ -1000,18 +1007,18 @@ Occasional conflicts are normal and expected. Only chronic conflicts (> 5/month)
 
 ### 3.9 Failure Modes and Mitigations (updated)
 
-| Failure Mode | Probability | Impact | Mitigation |
-|---|---|---|---|
-| **Network partition** between Towns | Medium | High (cross-Town merges stall) | Timeout + fallback to local-only; resume on reconnection. Local Town work is never blocked. |
-| **Relay unavailability** | Low-Medium | Medium (patch delivery fails) | Multi-relay redundancy (NIP-65 relay list); patches stored on 3+ relays |
-| **Payment channel exhaustion** | Medium | Medium (CI/review payment stalls) | Pre-fund channels; trust-based credit for known peers |
-| **Nostr event ordering** | Certain | Low (handled by design) | NIP-34 patches include `previous` tags referencing prior events; timestamps resolve ambiguity |
-| **Eventual consistency of Beads** | Certain | Medium | Accept lag; cross-Town reads are advisory, not authoritative |
-| **Key compromise** | Low | Very High (identity theft) | Key rotation via NIP-02 update; revocation via kind:5; group membership revoked via kind:9001 |
-| **Split-brain merge** (two Towns merge same patch simultaneously) | Low | Medium (duplicate merge) | Merge authority selection algorithm (Section 3.3.2) ensures single authority per patch. If race condition occurs, git's content-addressable nature means identical merges produce identical commits — no divergence. |
-| **Malicious CI result** (DVM lies about tests passing) | Low | High (broken code merged) | Require 2+ independent DVM results; CI runner reputation tracking; any Town can dispute and re-run |
-| **Trust oracle manipulation** (NIP-85 provider games scores) | Low | High (wrong merge priority) | Multiple competing oracles; Towns can fall back to local BFS computation; oracle reputation tracked |
-| **Review collusion** (low-trust Towns rubber-stamp each other) | Low | Medium (bad code merged) | Trust-weighted approval means low-trust approvals contribute little; min trust threshold per individual reviewer (e.g., each approver must have trust > 0.4) |
+| Failure Mode                                                      | Probability | Impact                            | Mitigation                                                                                                                                                                                                           |
+| ----------------------------------------------------------------- | ----------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Network partition** between Towns                               | Medium      | High (cross-Town merges stall)    | Timeout + fallback to local-only; resume on reconnection. Local Town work is never blocked.                                                                                                                          |
+| **Relay unavailability**                                          | Low-Medium  | Medium (patch delivery fails)     | Multi-relay redundancy (NIP-65 relay list); patches stored on 3+ relays                                                                                                                                              |
+| **Payment channel exhaustion**                                    | Medium      | Medium (CI/review payment stalls) | Pre-fund channels; trust-based credit for known peers                                                                                                                                                                |
+| **Nostr event ordering**                                          | Certain     | Low (handled by design)           | NIP-34 patches include `previous` tags referencing prior events; timestamps resolve ambiguity                                                                                                                        |
+| **Eventual consistency of Beads**                                 | Certain     | Medium                            | Accept lag; cross-Town reads are advisory, not authoritative                                                                                                                                                         |
+| **Key compromise**                                                | Low         | Very High (identity theft)        | Key rotation via NIP-02 update; revocation via kind:5; group membership revoked via kind:9001                                                                                                                        |
+| **Split-brain merge** (two Towns merge same patch simultaneously) | Low         | Medium (duplicate merge)          | Merge authority selection algorithm (Section 3.3.2) ensures single authority per patch. If race condition occurs, git's content-addressable nature means identical merges produce identical commits — no divergence. |
+| **Malicious CI result** (DVM lies about tests passing)            | Low         | High (broken code merged)         | Require 2+ independent DVM results; CI runner reputation tracking; any Town can dispute and re-run                                                                                                                   |
+| **Trust oracle manipulation** (NIP-85 provider games scores)      | Low         | High (wrong merge priority)       | Multiple competing oracles; Towns can fall back to local BFS computation; oracle reputation tracked                                                                                                                  |
+| **Review collusion** (low-trust Towns rubber-stamp each other)    | Low         | Medium (bad code merged)          | Trust-weighted approval means low-trust approvals contribute little; min trust threshold per individual reviewer (e.g., each approver must have trust > 0.4)                                                         |
 
 ---
 
@@ -1021,31 +1028,31 @@ Occasional conflicts are normal and expected. Only chronic conflicts (> 5/month)
 
 **Goal:** Cross-Town agents can contribute to shared codebases using NIP-34 with trust-weighted multi-approval.
 
-| Task | Complexity | Dependencies |
-|---|---|---|
-| 3.1 NIP-34 repo announcement (kind:30617) for shared codebases | Low | Phase 1 (identity) |
-| 3.2 NIP-34 patch publishing from Town Refinery (kind:1617) | Medium | 3.1, Phase 1 |
-| 3.3 NIP-32 review label namespace and handlers | Medium | 3.2 |
-| 3.4 Trust-weighted merge threshold computation | Medium | 3.3, Phase 2 (trust scores) |
-| 3.5 Merge authority selection and patch application | High | 3.4 |
-| 3.6 NIP-90 DVM CI runner (test execution as a service) | Medium | 3.2 |
-| 3.7 NIP-29 project group setup and membership management | Medium | 3.1, Phase 1 |
-| 3.8 Beads -> Nostr event sync (kind:1617 publishing, kind:1630-1633 status) | Medium | 3.2 |
-| 3.9 Remote dependency tracking in Beads | Medium | 3.8 |
-| 3.10 Distributed `bd prime` with remote context | Medium | 3.8, 3.9 |
-| 3.11 Cross-machine seance (`gt seance --remote`) | Low | 3.8 |
-| 3.12 File-level ownership claim protocol (kind:30078 claims) | Medium | 3.2, 3.7 |
-| 3.13 NIP-90 DVM conflict detection service (kind:5951/6951) | Medium | 3.6, 3.12 |
-| 3.14 Domain-scoped Town tags in repo announcement (kind:30617) | Low | 3.1 |
-| 3.15 Conflict-aware merge ordering in merge authority logic | Medium | 3.5, 3.13 |
-| 3.16 Patch size policy enforcement in NIP-29 group relay | Low | 3.7 |
-| 3.17 NIP-46 remote signer for Polecat patch submission | Medium | 3.2, Phase 1 |
-| 3.18 NIP-40 expiration tags on claims, CI results, drafts | Low | 3.6, 3.12, 3.13 |
-| 3.19 NIP-51 reviewer/CI provider follow sets and review queue bookmarks | Medium | 3.3, 3.6 |
-| 3.20 NIP-53 live activity for merge sessions | Medium | 3.5 |
-| 3.21 NIP-56 reporting handlers for merge abuse | Low | 3.4 |
-| 3.22 NIP-77 negentropy sync for merge state recovery | Medium | 3.8 |
-| 3.23 Integration test: 3 Towns, shared repo, trust-weighted merge + conflict prevention + NIP enhancements | Very High | 3.1-3.22 |
+| Task                                                                                                       | Complexity | Dependencies                |
+| ---------------------------------------------------------------------------------------------------------- | ---------- | --------------------------- |
+| 3.1 NIP-34 repo announcement (kind:30617) for shared codebases                                             | Low        | Phase 1 (identity)          |
+| 3.2 NIP-34 patch publishing from Town Refinery (kind:1617)                                                 | Medium     | 3.1, Phase 1                |
+| 3.3 NIP-32 review label namespace and handlers                                                             | Medium     | 3.2                         |
+| 3.4 Trust-weighted merge threshold computation                                                             | Medium     | 3.3, Phase 2 (trust scores) |
+| 3.5 Merge authority selection and patch application                                                        | High       | 3.4                         |
+| 3.6 NIP-90 DVM CI runner (test execution as a service)                                                     | Medium     | 3.2                         |
+| 3.7 NIP-29 project group setup and membership management                                                   | Medium     | 3.1, Phase 1                |
+| 3.8 Beads -> Nostr event sync (kind:1617 publishing, kind:1630-1633 status)                                | Medium     | 3.2                         |
+| 3.9 Remote dependency tracking in Beads                                                                    | Medium     | 3.8                         |
+| 3.10 Distributed `bd prime` with remote context                                                            | Medium     | 3.8, 3.9                    |
+| 3.11 Cross-machine seance (`gt seance --remote`)                                                           | Low        | 3.8                         |
+| 3.12 File-level ownership claim protocol (kind:30078 claims)                                               | Medium     | 3.2, 3.7                    |
+| 3.13 NIP-90 DVM conflict detection service (kind:5951/6951)                                                | Medium     | 3.6, 3.12                   |
+| 3.14 Domain-scoped Town tags in repo announcement (kind:30617)                                             | Low        | 3.1                         |
+| 3.15 Conflict-aware merge ordering in merge authority logic                                                | Medium     | 3.5, 3.13                   |
+| 3.16 Patch size policy enforcement in NIP-29 group relay                                                   | Low        | 3.7                         |
+| 3.17 NIP-46 remote signer for Polecat patch submission                                                     | Medium     | 3.2, Phase 1                |
+| 3.18 NIP-40 expiration tags on claims, CI results, drafts                                                  | Low        | 3.6, 3.12, 3.13             |
+| 3.19 NIP-51 reviewer/CI provider follow sets and review queue bookmarks                                    | Medium     | 3.3, 3.6                    |
+| 3.20 NIP-53 live activity for merge sessions                                                               | Medium     | 3.5                         |
+| 3.21 NIP-56 reporting handlers for merge abuse                                                             | Low        | 3.4                         |
+| 3.22 NIP-77 negentropy sync for merge state recovery                                                       | Medium     | 3.8                         |
+| 3.23 Integration test: 3 Towns, shared repo, trust-weighted merge + conflict prevention + NIP enhancements | Very High  | 3.1-3.22                    |
 
 **Deliverable:** Multiple Towns collaborating on a shared codebase with decentralized review, distributed CI, trust-based merge authority, proactive conflict prevention, secure Polecat signing, and lifecycle management — no centralized Integration Refinery.
 
@@ -1053,20 +1060,20 @@ Occasional conflicts are normal and expected. Only chronic conflicts (> 5/month)
 
 ### 3.11 Comparison: Integration Refinery vs. NIP-34 Multi-Approval
 
-| Aspect | v1: Integration Refinery | v2: NIP-34 Multi-Approval |
-|---|---|---|
-| **Architecture** | Centralized (one designated Town) | Decentralized (social graph decides) |
-| **Single point of failure** | Yes (designated Town) | No (any qualified Town can merge) |
-| **Merge authority** | One Refinery process | Emergent from trust-weighted approval |
-| **Code review** | Internal to one Town | Distributed labels from multiple Towns (NIP-32) |
-| **CI/Testing** | One Refinery runs tests | DVM marketplace — any Town earns by running CI (NIP-90) |
-| **Coordination** | Custom protocol | NIP-29 project groups |
-| **Trust computation** | Each Town computes locally | NIP-85 trust oracles (cacheable, efficient) |
-| **Nostr-native** | No (custom bolt-on) | Yes (NIP-34 + 32 + 85 + 90 + 29 + 40 + 46 + 51 + 53 + 56 + 77) |
-| **Payment model** | N/A | Patch contributors + CI runners get paid via ILP |
-| **Failure recovery** | Failover to backup Town (manual) | Automatic: next-highest-trust Town takes over |
-| **Scalability** | Limited by single Refinery throughput | Scales with number of qualified Towns |
-| **Incentive alignment** | None (designated role) | Trust increases with good merges; bad merges reduce trust and access |
+| Aspect                      | v1: Integration Refinery              | v2: NIP-34 Multi-Approval                                            |
+| --------------------------- | ------------------------------------- | -------------------------------------------------------------------- |
+| **Architecture**            | Centralized (one designated Town)     | Decentralized (social graph decides)                                 |
+| **Single point of failure** | Yes (designated Town)                 | No (any qualified Town can merge)                                    |
+| **Merge authority**         | One Refinery process                  | Emergent from trust-weighted approval                                |
+| **Code review**             | Internal to one Town                  | Distributed labels from multiple Towns (NIP-32)                      |
+| **CI/Testing**              | One Refinery runs tests               | DVM marketplace — any Town earns by running CI (NIP-90)              |
+| **Coordination**            | Custom protocol                       | NIP-29 project groups                                                |
+| **Trust computation**       | Each Town computes locally            | NIP-85 trust oracles (cacheable, efficient)                          |
+| **Nostr-native**            | No (custom bolt-on)                   | Yes (NIP-34 + 32 + 85 + 90 + 29 + 40 + 46 + 51 + 53 + 56 + 77)       |
+| **Payment model**           | N/A                                   | Patch contributors + CI runners get paid via ILP                     |
+| **Failure recovery**        | Failover to backup Town (manual)      | Automatic: next-highest-trust Town takes over                        |
+| **Scalability**             | Limited by single Refinery throughput | Scales with number of qualified Towns                                |
+| **Incentive alignment**     | None (designated role)                | Trust increases with good merges; bad merges reduce trust and access |
 
 ---
 
@@ -1100,6 +1107,7 @@ Polecat "Toast" — merge-relevant permissions:
 ```
 
 **Impact on merge flow:**
+
 - Patches are signed via the signer, so they're still attributed to the Rig's npub — NIP-34 authorship is preserved
 - A compromised Polecat cannot forge merge status events (kind:1631) or review labels (kind:1985)
 - Merge authority verification is strengthened: only events signed for permitted kinds are valid
@@ -1109,17 +1117,18 @@ Polecat "Toast" — merge-relevant permissions:
 
 Several merge-related events should auto-expire to prevent stale state:
 
-| Event | Kind | Expiration | Rationale |
-|---|---|---|---|
-| File ownership claims | 30078 (status=working) | Estimated duration * 2 | Prevents stale claims from blocking other Towns (Section 3.8.3) |
-| DVM CI results | 6950 / 6951 | 24 hours | Stale test results shouldn't inform merge decisions — code changes invalidate old results |
-| DVM CI job requests | 5950 / 5951 | 48 hours | Unclaimed CI jobs should expire rather than accumulate |
-| Patch draft status | 1633 | 7 days | Draft patches abandoned for a week should clear from review queues |
-| Conflict detection results | 6951 | 12 hours | Conflict landscape changes as patches merge — stale detection is misleading |
+| Event                      | Kind                   | Expiration              | Rationale                                                                                 |
+| -------------------------- | ---------------------- | ----------------------- | ----------------------------------------------------------------------------------------- |
+| File ownership claims      | 30078 (status=working) | Estimated duration \* 2 | Prevents stale claims from blocking other Towns (Section 3.8.3)                           |
+| DVM CI results             | 6950 / 6951            | 24 hours                | Stale test results shouldn't inform merge decisions — code changes invalidate old results |
+| DVM CI job requests        | 5950 / 5951            | 48 hours                | Unclaimed CI jobs should expire rather than accumulate                                    |
+| Patch draft status         | 1633                   | 7 days                  | Draft patches abandoned for a week should clear from review queues                        |
+| Conflict detection results | 6951                   | 12 hours                | Conflict landscape changes as patches merge — stale detection is misleading               |
 
 **Implementation:** Add `["expiration", "<unix-timestamp>"]` tag to these events per NIP-40. Relays automatically stop serving expired events. NIP handlers should also check expiration client-side as a defense against non-compliant relays.
 
 **Integration with conflict prevention (Section 3.8):**
+
 - Ownership claims (Strategy 2) get automatic timeout — no manual cleanup, no indefinite locks
 - Conflict detection DVM results (Strategy 3) auto-expire, forcing fresh checks before merge
 
@@ -1127,14 +1136,15 @@ Several merge-related events should auto-expire to prevent stale state:
 
 Mayors use NIP-51 lists to manage merge-related configuration:
 
-| List Kind | `d` tag | Purpose |
-|---|---|---|
-| kind:30000 (follow set) | `crosstown-reviewers` | Towns this Mayor trusts for NIP-32 patch review labels — subset of full follow list |
-| kind:30000 (follow set) | `crosstown-ci-providers` | Towns qualified to run DVM CI for this Town's repos |
-| kind:30003 (bookmark set) | `crosstown-review-queue` | Patches (kind:1617) awaiting this Mayor's review — ordered by priority |
-| kind:30002 (relay set) | `crosstown-project-<name>-relays` | Per-project relay configuration for patch events, CI results, review labels |
+| List Kind                 | `d` tag                           | Purpose                                                                             |
+| ------------------------- | --------------------------------- | ----------------------------------------------------------------------------------- |
+| kind:30000 (follow set)   | `crosstown-reviewers`             | Towns this Mayor trusts for NIP-32 patch review labels — subset of full follow list |
+| kind:30000 (follow set)   | `crosstown-ci-providers`          | Towns qualified to run DVM CI for this Town's repos                                 |
+| kind:30003 (bookmark set) | `crosstown-review-queue`          | Patches (kind:1617) awaiting this Mayor's review — ordered by priority              |
+| kind:30002 (relay set)    | `crosstown-project-<name>-relays` | Per-project relay configuration for patch events, CI results, review labels         |
 
 **Impact on merge flow:**
+
 - **Reviewer scoping:** When computing merge threshold (Section 3.3.1), only approvals from Towns in the repo's `crosstown-reviewers` follow set count. This prevents random followers from rubber-stamping patches.
 - **CI provider scoping:** DVM CI results are only trusted from Towns in the `crosstown-ci-providers` follow set. This mitigates the malicious CI result risk (Section 3.9).
 - **Review queue management:** Mayors can track their pending reviews as a bookmarked list, auto-ordered by trust-weighted priority.
@@ -1161,6 +1171,7 @@ When a merge authority is processing a batch of patches, the session is publishe
 ```
 
 **Use cases in merge flow:**
+
 - **Collision prevention:** Other merge authorities see an active merge session for the same repo and defer — prevents the split-brain merge scenario (Section 3.9) more gracefully than relying solely on the authority selection algorithm
 - **Progress visibility:** Contributing Towns can watch their patch move through the merge pipeline in real-time via kind:1311 live chat updates
 - **Deacon monitoring:** The Deacon watches for merge sessions that go `status: "live"` without updates for > 30 minutes — indicates a stuck merge that needs intervention
@@ -1183,13 +1194,13 @@ Bad behavior in the merge process needs a negative signal mechanism:
 
 **Merge-specific report scenarios:**
 
-| Behavior | NIP-56 Category | Trust Impact |
-|---|---|---|
-| Submitting patches that consistently fail CI | `spam` | Reduced merge trust; higher review threshold required |
-| Malicious code in patches (backdoors, credential theft) | `malware` | Immediate removal from NIP-29 project group; trust score zeroed for repo |
-| Rubber-stamping reviews without reading code | `spam` | Review labels from this Town no longer count toward merge threshold |
-| Forging CI results (DVM returns fake "passing") | `other` | Removed from `crosstown-ci-providers` follow set |
-| Claiming merge authority but not completing merge | `other` | Temporary exclusion from merge authority selection |
+| Behavior                                                | NIP-56 Category | Trust Impact                                                             |
+| ------------------------------------------------------- | --------------- | ------------------------------------------------------------------------ |
+| Submitting patches that consistently fail CI            | `spam`          | Reduced merge trust; higher review threshold required                    |
+| Malicious code in patches (backdoors, credential theft) | `malware`       | Immediate removal from NIP-29 project group; trust score zeroed for repo |
+| Rubber-stamping reviews without reading code            | `spam`          | Review labels from this Town no longer count toward merge threshold      |
+| Forging CI results (DVM returns fake "passing")         | `other`         | Removed from `crosstown-ci-providers` follow set                         |
+| Claiming merge authority but not completing merge       | `other`         | Temporary exclusion from merge authority selection                       |
 
 **Integration with trust scores:**
 
@@ -1225,6 +1236,7 @@ Town B comes back online after 6-hour partition:
 ```
 
 **Bandwidth savings at scale:**
+
 - Without NIP-77: Re-download all events since `last_seen` — potentially thousands of events
 - With NIP-77: Exchange fingerprints first, download only missing events — typically 80-95% bandwidth reduction
 
@@ -1268,6 +1280,7 @@ Prerequisites:
 ```
 
 **Rejected alternatives:**
+
 - **NIP-47 (Wallet Connect):** Redundant with ILP. SPSP already handles payment setup; ILP PREPARE/FULFILL already provides atomic escrow. NIP-47 would lock to Lightning specifically, losing ILP's ledger-agnostic design.
 - **NIP-13 (Proof of Work) for anti-spam:** Eliminated by peering gate. Non-peered Towns cannot submit DVM jobs. The social graph is the spam filter.
 
@@ -1277,50 +1290,51 @@ Prerequisites:
 
 #### Core NIPs (Required)
 
-| NIP | Role in Merge Architecture | Notes |
-|---|---|---|
-| **NIP-02** | Follow graph = peering relationships; peering gate for work dispatch | Foundation of trust model and access control |
-| **NIP-34** | Core: patches (1617), PRs (1618), repo state (30618), status (1630-1633) | Foundation of cross-Town code collaboration |
-| **NIP-32** | Code review labels and quality classification | Enables distributed review; `crosstown.review` namespace |
-| **NIP-78** | Application-specific data (kind:30078 work dispatch) | Implicit — already the basis for Gas Town Work Dispatch events |
-| **NIP-90** | Distributed CI + conflict detection DVM; peering-gated ILP payment | kind:5950/6950 for CI; kind:5951/6951 for conflict detection |
+| NIP        | Role in Merge Architecture                                               | Notes                                                          |
+| ---------- | ------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| **NIP-02** | Follow graph = peering relationships; peering gate for work dispatch     | Foundation of trust model and access control                   |
+| **NIP-34** | Core: patches (1617), PRs (1618), repo state (30618), status (1630-1633) | Foundation of cross-Town code collaboration                    |
+| **NIP-32** | Code review labels and quality classification                            | Enables distributed review; `crosstown.review` namespace       |
+| **NIP-78** | Application-specific data (kind:30078 work dispatch)                     | Implicit — already the basis for Gas Town Work Dispatch events |
+| **NIP-90** | Distributed CI + conflict detection DVM; peering-gated ILP payment       | kind:5950/6950 for CI; kind:5951/6951 for conflict detection   |
 
 #### Recommended NIPs
 
-| NIP | Role in Merge Architecture | Notes |
-|---|---|---|
-| **NIP-29** | Project group coordination and membership | Trust-driven roles; falls back to NIP-02 follow-graph scoping |
-| **NIP-40** | Event expiration for merge lifecycle events | Auto-cleanup of stale claims, CI results, draft patches |
-| **NIP-44** | Encrypted payloads for private repo patches | Required for private repos; optional for public |
-| **NIP-46** | Remote signing for Polecat key isolation | Scoped signing prevents compromised Polecats from forging merge status |
-| **NIP-51** | Structured lists for merge config | Reviewer sets, CI provider sets, review queues, relay sets |
-| **NIP-53** | Live activities for merge session monitoring | Collision prevention; progress visibility; stuck merge detection |
-| **NIP-65** | Multi-relay redundancy for patch delivery | Prevents relay-unavailability failures |
-| **NIP-85** | Pre-computed trust assertions for merge decisions | Falls back to local BFS computation if unavailable |
+| NIP        | Role in Merge Architecture                        | Notes                                                                  |
+| ---------- | ------------------------------------------------- | ---------------------------------------------------------------------- |
+| **NIP-29** | Project group coordination and membership         | Trust-driven roles; falls back to NIP-02 follow-graph scoping          |
+| **NIP-40** | Event expiration for merge lifecycle events       | Auto-cleanup of stale claims, CI results, draft patches                |
+| **NIP-44** | Encrypted payloads for private repo patches       | Required for private repos; optional for public                        |
+| **NIP-46** | Remote signing for Polecat key isolation          | Scoped signing prevents compromised Polecats from forging merge status |
+| **NIP-51** | Structured lists for merge config                 | Reviewer sets, CI provider sets, review queues, relay sets             |
+| **NIP-53** | Live activities for merge session monitoring      | Collision prevention; progress visibility; stuck merge detection       |
+| **NIP-65** | Multi-relay redundancy for patch delivery         | Prevents relay-unavailability failures                                 |
+| **NIP-85** | Pre-computed trust assertions for merge decisions | Falls back to local BFS computation if unavailable                     |
 
 #### Optional NIPs
 
-| NIP | Role in Merge Architecture | Notes |
-|---|---|---|
-| **NIP-09** | Event deletion (retract a patch/review) | For correcting mistakes before merge |
-| **NIP-56** | Reporting for merge abuse | Negative trust signal for bad patches, fake CI, review collusion |
-| **NIP-77** | Negentropy syncing for merge state recovery | Efficient catch-up after partition; 80-95% bandwidth reduction |
-| **NIP-89** | App handlers for event routing | Discover handlers for new event kinds as ecosystem evolves |
+| NIP        | Role in Merge Architecture                  | Notes                                                            |
+| ---------- | ------------------------------------------- | ---------------------------------------------------------------- |
+| **NIP-09** | Event deletion (retract a patch/review)     | For correcting mistakes before merge                             |
+| **NIP-56** | Reporting for merge abuse                   | Negative trust signal for bad patches, fake CI, review collusion |
+| **NIP-77** | Negentropy syncing for merge state recovery | Efficient catch-up after partition; 80-95% bandwidth reduction   |
+| **NIP-89** | App handlers for event routing              | Discover handlers for new event kinds as ecosystem evolves       |
 
 #### Rejected NIPs (Not Used)
 
-| NIP | Why Rejected |
-|---|---|
-| **NIP-47** (Wallet Connect) | Redundant with ILP; SPSP handles payment setup; would lock to Lightning |
-| **NIP-03** (OpenTimestamps) | Relay timestamps + ILP timing sufficient; adds 10+ min latency for non-problem |
-| **NIP-99** (Classified Listings) | Redundant with NIP-90 DVMs for work dispatch |
-| **NIP-13** (Proof of Work) | Eliminated by peering gate; social graph is the spam filter |
+| NIP                              | Why Rejected                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| **NIP-47** (Wallet Connect)      | Redundant with ILP; SPSP handles payment setup; would lock to Lightning        |
+| **NIP-03** (OpenTimestamps)      | Relay timestamps + ILP timing sufficient; adds 10+ min latency for non-problem |
+| **NIP-99** (Classified Listings) | Redundant with NIP-90 DVMs for work dispatch                                   |
+| **NIP-13** (Proof of Work)       | Eliminated by peering gate; social graph is the spam filter                    |
 
 ---
 
 ## Section 4: Economic Model Design
 
 > **Revision Note (v2):** This section was revised to reflect two key architectural decisions:
+>
 > 1. **Peering is required for work dispatch.** A Town can only accept work from a Town it has an explicit NIP-02 peering relationship with. There are no anonymous or unknown-peer interactions.
 > 2. **Payment terms are per-peering-relationship.** The SPSP handshake (kind:23194/23195) between two Towns establishes the payment channel — including which chain/ledger, denomination, and credit terms. There is no global denomination.
 
@@ -1428,6 +1442,7 @@ Flow:
 ```
 
 **Key properties:**
+
 - **Atomic:** Funds lock before work starts (ILP PREPARE), release only on verified delivery (ILP FULFILL), or return to sender on expiry
 - **Denomination-agnostic:** Bid amounts use whatever unit the peers agreed on during SPSP — no global denomination required
 - **No trust required beyond peering:** The ILP PREPARE/FULFILL pattern provides escrow without trusting the counterparty to deliver after payment
@@ -1464,11 +1479,13 @@ For larger work items dispatched as DVM jobs:
 #### Payment Amounts
 
 The payment should cover:
+
 - **LLM token cost** for the executing Polecat (~$5-$50 per task depending on complexity)
 - **Infrastructure cost** for the hosting Town (compute, storage, bandwidth)
 - **Profit margin** incentivizing participation
 
 Suggested formula:
+
 ```
 payment = token_cost * 1.2 + base_fee
 ```
@@ -1497,6 +1514,7 @@ Denominated in whatever unit the peering channel uses. This creates a **market f
 ```
 
 **Channel management:**
+
 - Towns maintain channels only with directly-peered Towns (NIP-02 follow + SPSP handshake)
 - Each channel has its own ledger, denomination, and credit terms — no global standard required
 - Multi-hop routing via ILP connectors for indirect peers (Town A can pay Town C through Town B if A-B and B-C channels exist)
@@ -1507,12 +1525,12 @@ Denominated in whatever unit the peering channel uses. This creates a **market f
 
 ### 4.6 Cost Projections
 
-| Scale | Agents | Messaging Cost/Hr | Token Cost/Hr | Total/Hr |
-|---|---|---|---|---|
-| Single Town (baseline) | 20-30 | $0 | $100-$300 | $100-$300 |
-| 2 Towns, light federation | 40-60 | $0.50-$2 | $200-$600 | $200-$602 |
-| 5 Towns, active federation | 100-150 | $2-$10 | $500-$1,500 | $502-$1,510 |
-| 20 Towns, marketplace | 400-600 | $10-$50 | $2,000-$6,000 | $2,010-$6,050 |
+| Scale                      | Agents  | Messaging Cost/Hr | Token Cost/Hr | Total/Hr      |
+| -------------------------- | ------- | ----------------- | ------------- | ------------- |
+| Single Town (baseline)     | 20-30   | $0                | $100-$300     | $100-$300     |
+| 2 Towns, light federation  | 40-60   | $0.50-$2          | $200-$600     | $200-$602     |
+| 5 Towns, active federation | 100-150 | $2-$10            | $500-$1,500   | $502-$1,510   |
+| 20 Towns, marketplace      | 400-600 | $10-$50           | $2,000-$6,000 | $2,010-$6,050 |
 
 **Messaging costs are negligible** (<1% of total cost) at all scale points. The economic model is viable because the dominant cost (LLM tokens) already exists; ILP adds only marginal overhead.
 
@@ -1526,16 +1544,16 @@ Note: Cost projections use USD equivalents for comparison. Actual amounts are de
 
 #### Mapping Beads Concepts to Nostr Events
 
-| Beads Concept | Nostr Mapping | Sync Direction |
-|---|---|---|
-| Issue (open/in_progress) | kind:30078 (parameterized-replaceable, d=bead_id) | Beads -> Nostr (publish) |
-| Issue (closed) | kind:30080 (completion, references bead_id) | Beads -> Nostr (publish) |
-| Dependency edge | Tag: `["dep", "<type>", "<target_bead_id>"]` | Beads -> Nostr (in event tags) |
-| Comment | Not synced (local only) | None |
-| Wisp (ephemeral) | Not synced | None |
-| Agent state | kind:10032 update (ILP Peer Info + agent state tag) | Beads -> Nostr |
-| KV store | Not synced (local configuration) | None |
-| Compacted issue | Not synced (historical) | None |
+| Beads Concept            | Nostr Mapping                                       | Sync Direction                 |
+| ------------------------ | --------------------------------------------------- | ------------------------------ |
+| Issue (open/in_progress) | kind:30078 (parameterized-replaceable, d=bead_id)   | Beads -> Nostr (publish)       |
+| Issue (closed)           | kind:30080 (completion, references bead_id)         | Beads -> Nostr (publish)       |
+| Dependency edge          | Tag: `["dep", "<type>", "<target_bead_id>"]`        | Beads -> Nostr (in event tags) |
+| Comment                  | Not synced (local only)                             | None                           |
+| Wisp (ephemeral)         | Not synced                                          | None                           |
+| Agent state              | kind:10032 update (ILP Peer Info + agent state tag) | Beads -> Nostr                 |
+| KV store                 | Not synced (local configuration)                    | None                           |
+| Compacted issue          | Not synced (historical)                             | None                           |
 
 #### Sync Protocol
 
@@ -1594,13 +1612,13 @@ Nostr's built-in event persistence and filtering (NIP-01 REQ with filters) makes
 
 **Accepted tradeoffs:**
 
-| Property | Local (Beads) | Distributed (Nostr) |
-|---|---|---|
-| Consistency | Strong (single-writer DB) | Eventual (relay propagation delay) |
-| Availability | High (local filesystem) | Medium (relay-dependent) |
-| Partition tolerance | N/A (single machine) | Yes (multiple relays) |
-| Read freshness | Immediate | Seconds to minutes lag |
-| Write conflicts | Last-writer-wins (Dolt cell merge) | Timestamp ordering; cross-Town writes are to different namespaces |
+| Property            | Local (Beads)                      | Distributed (Nostr)                                               |
+| ------------------- | ---------------------------------- | ----------------------------------------------------------------- |
+| Consistency         | Strong (single-writer DB)          | Eventual (relay propagation delay)                                |
+| Availability        | High (local filesystem)            | Medium (relay-dependent)                                          |
+| Partition tolerance | N/A (single machine)               | Yes (multiple relays)                                             |
+| Read freshness      | Immediate                          | Seconds to minutes lag                                            |
+| Write conflicts     | Last-writer-wins (Dolt cell merge) | Timestamp ordering; cross-Town writes are to different namespaces |
 
 **Design principle:** Each Town is authoritative for its own beads. Cross-Town references are **advisory** -- they inform scheduling and priority but don't block local execution. If a remote dependency's status is unknown (relay unavailable), the local agent can proceed optimistically and reconcile later.
 
@@ -1647,14 +1665,14 @@ Nostr's built-in event persistence and filtering (NIP-01 REQ with filters) makes
 
 ### 6.2 Network Overhead Analysis
 
-| Metric | 30 agents | 100 agents | 500 agents | 1,000 agents |
-|---|---|---|---|---|
-| Events/second (Nostr) | 0 | 0.83 | 14 | 28 |
-| Bandwidth (KB/s) | 0 | 0.5 | 8.4 | 16.8 |
-| ILP packets/second | 0 | 0.1 | 1.5 | 3 |
-| Relay storage/day (MB) | 0 | 1.8 | 30 | 60 |
-| Payment channels | 0 | 3-10 | 50-100 | 200-500 |
-| Trust computations/hour | 0 | 50-100 | 500-1,000 | 2,000-5,000 |
+| Metric                  | 30 agents | 100 agents | 500 agents | 1,000 agents |
+| ----------------------- | --------- | ---------- | ---------- | ------------ |
+| Events/second (Nostr)   | 0         | 0.83       | 14         | 28           |
+| Bandwidth (KB/s)        | 0         | 0.5        | 8.4        | 16.8         |
+| ILP packets/second      | 0         | 0.1        | 1.5        | 3            |
+| Relay storage/day (MB)  | 0         | 1.8        | 30         | 60           |
+| Payment channels        | 0         | 3-10       | 50-100     | 200-500      |
+| Trust computations/hour | 0         | 50-100     | 500-1,000  | 2,000-5,000  |
 
 **Relay capacity is never the bottleneck.** Even at 1,000 agents, the event volume (28/second) is trivial for any production Nostr relay. The bottleneck shifts to:
 
@@ -1665,17 +1683,17 @@ Nostr's built-in event persistence and filtering (NIP-01 REQ with filters) makes
 
 ### 6.3 Comparison with Existing Distributed Agent Frameworks
 
-| Aspect | Gas Town + Crosstown | AutoGen v0.4 | LangGraph Platform | Temporal Workers |
-|---|---|---|---|---|
-| **Max tested agents** | 20-30 (local) | Unknown (distributed) | Unknown | Millions of workflows |
-| **Identity** | Nostr keypair (decentralized) | API keys (centralized) | Config-based | Worker identity tokens |
-| **Payment** | ILP channels (per-message) | None | None | None |
-| **Trust** | Social graph + payment history | None | None | None |
-| **Discovery** | NIP-02 + kind:10032 (decentralized) | Manual config | Manual config | Task queue registration |
-| **Communication latency** | 50-200ms (Nostr) | gRPC (~10ms) | HTTP (~50ms) | Task queue (~50-150ms) |
-| **State persistence** | Beads (git-backed) + Nostr events | Custom (no default) | Graph checkpoints | Event-sourced history |
-| **Failure recovery** | GUPP (self-activation from state) | Manual retry | Graph replay | Automatic replay |
-| **Unique advantage** | Decentralized + economic incentives | Cross-language | Production platform | Proven at massive scale |
+| Aspect                    | Gas Town + Crosstown                | AutoGen v0.4           | LangGraph Platform  | Temporal Workers        |
+| ------------------------- | ----------------------------------- | ---------------------- | ------------------- | ----------------------- |
+| **Max tested agents**     | 20-30 (local)                       | Unknown (distributed)  | Unknown             | Millions of workflows   |
+| **Identity**              | Nostr keypair (decentralized)       | API keys (centralized) | Config-based        | Worker identity tokens  |
+| **Payment**               | ILP channels (per-message)          | None                   | None                | None                    |
+| **Trust**                 | Social graph + payment history      | None                   | None                | None                    |
+| **Discovery**             | NIP-02 + kind:10032 (decentralized) | Manual config          | Manual config       | Task queue registration |
+| **Communication latency** | 50-200ms (Nostr)                    | gRPC (~10ms)           | HTTP (~50ms)        | Task queue (~50-150ms)  |
+| **State persistence**     | Beads (git-backed) + Nostr events   | Custom (no default)    | Graph checkpoints   | Event-sourced history   |
+| **Failure recovery**      | GUPP (self-activation from state)   | Manual retry           | Graph replay        | Automatic replay        |
+| **Unique advantage**      | Decentralized + economic incentives | Cross-language         | Production platform | Proven at massive scale |
 
 **Key insight:** No existing framework provides the combination of decentralized identity, payment-gated messaging, and trust-based routing. Crosstown's unique contribution is precisely these missing layers. However, the proven scalability of Temporal (millions of workflows) suggests that some architectural patterns (task queues, event sourcing, automatic replay) should inform the design.
 
@@ -1687,13 +1705,13 @@ Nostr's built-in event persistence and filtering (NIP-01 REQ with filters) makes
 
 Gas Town's MEOW Stack maps to Crosstown's planned NIP-90 DVM system:
 
-| MEOW Concept | DVM Equivalent | Mapping Quality |
-|---|---|---|
-| Formula (TOML definition) | DVM Job Request (kind:5000-5999) | **Good** - Both define work specifications |
-| Molecule (runtime instance) | DVM Job + Feedback chain | **Partial** - Molecules have richer state |
-| Wisp (ephemeral step) | DVM Job Feedback (kind:7000) | **Good** - Both are ephemeral status updates |
-| Convoy (parallel legs) | Multiple DVM Jobs with shared tag | **Partial** - No native convoy concept in NIP-90 |
-| Synthesis (combine results) | DVM Result aggregation (kind:6000-6999) | **Partial** - Requires custom aggregation logic |
+| MEOW Concept                | DVM Equivalent                          | Mapping Quality                                  |
+| --------------------------- | --------------------------------------- | ------------------------------------------------ |
+| Formula (TOML definition)   | DVM Job Request (kind:5000-5999)        | **Good** - Both define work specifications       |
+| Molecule (runtime instance) | DVM Job + Feedback chain                | **Partial** - Molecules have richer state        |
+| Wisp (ephemeral step)       | DVM Job Feedback (kind:7000)            | **Good** - Both are ephemeral status updates     |
+| Convoy (parallel legs)      | Multiple DVM Jobs with shared tag       | **Partial** - No native convoy concept in NIP-90 |
+| Synthesis (combine results) | DVM Result aggregation (kind:6000-6999) | **Partial** - Requires custom aggregation logic  |
 
 **Workflow example: Multi-step code review as DVM chain:**
 
@@ -1717,11 +1735,11 @@ Formula: code-review-pipeline
 
 ### 7.2 Witness/Deacon as Nostr Monitoring Agents (Question 7)
 
-| Gas Town Role | Nostr Implementation | Event Kinds |
-|---|---|---|
-| **Witness** (monitors Polecats) | NIP handler subscribing to kind:30078 (work dispatch status) | Filter: `kinds:[30078], authors:[rig_npubs]` |
-| **Deacon** (system watchdog) | Periodic Nostr queries + heartbeat events | Publish kind:10032 updates; query kind:30078 for stale work |
-| **Seance** (historical context) | Nostr event query with time range filter | `REQ: kinds:[30078,30080], authors:[npub], since:<timestamp>` |
+| Gas Town Role                   | Nostr Implementation                                         | Event Kinds                                                   |
+| ------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------- |
+| **Witness** (monitors Polecats) | NIP handler subscribing to kind:30078 (work dispatch status) | Filter: `kinds:[30078], authors:[rig_npubs]`                  |
+| **Deacon** (system watchdog)    | Periodic Nostr queries + heartbeat events                    | Publish kind:10032 updates; query kind:30078 for stale work   |
+| **Seance** (historical context) | Nostr event query with time range filter                     | `REQ: kinds:[30078,30080], authors:[npub], since:<timestamp>` |
 
 The Witness currently monitors Polecats by inspecting tmux sessions. A Nostr-based Witness would instead subscribe to work status events:
 
@@ -1746,14 +1764,14 @@ The Witness currently monitors Polecats by inspecting tmux sessions. A Nostr-bas
 
 Gas Town's Wasteland protocol (`internal/wasteland/`) already implements federation via DoltHub. Crosstown can replace DoltHub as the federation transport:
 
-| Wasteland Concept | DoltHub (Current) | Nostr/ILP (Proposed) |
-|---|---|---|
-| Town registry | DoltHub `towns` table | NIP-02 follow graph + kind:10032 |
-| Wanted work posting | DoltHub `wanted` table | NIP-90 DVM job request (kind:5xxx) |
-| Work claiming | DoltHub row update | DVM feedback (kind:7000) + ILP PREPARE |
-| Completion evidence | DoltHub `completions` table | DVM result (kind:6xxx) + kind:30080 |
-| Trust/stamps | DoltHub `stamps` table | Crosstown trust scores |
-| Badges | DoltHub `badges` table | NIP-58 badges (planned Epic 15) |
+| Wasteland Concept   | DoltHub (Current)           | Nostr/ILP (Proposed)                   |
+| ------------------- | --------------------------- | -------------------------------------- |
+| Town registry       | DoltHub `towns` table       | NIP-02 follow graph + kind:10032       |
+| Wanted work posting | DoltHub `wanted` table      | NIP-90 DVM job request (kind:5xxx)     |
+| Work claiming       | DoltHub row update          | DVM feedback (kind:7000) + ILP PREPARE |
+| Completion evidence | DoltHub `completions` table | DVM result (kind:6xxx) + kind:30080    |
+| Trust/stamps        | DoltHub `stamps` table      | Crosstown trust scores                 |
+| Badges              | DoltHub `badges` table      | NIP-58 badges (planned Epic 15)        |
 
 **Town-to-Town peering in Nostr/ILP terms:**
 
@@ -1771,6 +1789,7 @@ Gas Town's Wasteland protocol (`internal/wasteland/`) already implements federat
 ```
 
 **Advantages over DoltHub:**
+
 - No dependency on a centralized service (DoltHub)
 - Real-time event delivery (vs. git push/pull polling)
 - Built-in payment for cross-Town work
@@ -1802,6 +1821,7 @@ Gas Town's Wasteland protocol (`internal/wasteland/`) already implements federat
 ```
 
 **Integration pattern:**
+
 1. `bd prime` bootstraps session with local state (Beads) + remote context (Nostr queries)
 2. During session: Beads records local work; NIP handler processes incoming Nostr events
 3. On status change: Beads FlushManager triggers Nostr event publish
@@ -1810,7 +1830,7 @@ Gas Town's Wasteland protocol (`internal/wasteland/`) already implements federat
 
 ### 7.5 Trust-Weighted Merge Priority (Question 10)
 
-> **Note:** The v2 merge architecture replaces merge *priority ordering* (which implies a queue and a single processor) with merge *threshold consensus* (trust-weighted multi-approval). The algorithm below is retained for reference but has been superseded by the trust-weighted multi-approval model in Section 3.3. The v2 model uses a richer trust composition that includes merge-specific reputation (merge success rate, code quality history, payment reliability).
+> **Note:** The v2 merge architecture replaces merge _priority ordering_ (which implies a queue and a single processor) with merge _threshold consensus_ (trust-weighted multi-approval). The algorithm below is retained for reference but has been superseded by the trust-weighted multi-approval model in Section 3.3. The v2 model uses a richer trust composition that includes merge-specific reputation (merge success rate, code quality history, payment reliability).
 
 **Original algorithm specification (v1, superseded):**
 
@@ -1849,6 +1869,7 @@ def compute_merge_priority(mr, trust_engine, dependency_graph):
 ```
 
 **Interaction with Beads dependency graph:**
+
 - The `blocked_count` directly uses Beads' `blocked_issues_cache` (25x faster than recursive CTE)
 - Dependencies of type `blocks`, `parent-child`, `conditional-blocks`, and `waits-for` affect ready-work calculation
 - Trust scores are cached with 1-hour TTL to avoid expensive BFS recomputation
@@ -1862,15 +1883,15 @@ def compute_merge_priority(mr, trust_engine, dependency_graph):
 
 **Goal:** Two Gas Town instances can exchange work requests via Nostr.
 
-| Task | Complexity | Dependencies |
-|---|---|---|
-| 1.1 Nostr keypair generation for Gas Town (`gt init --nostr`) | Low | None |
-| 1.2 kind:10032 publishing (Town ILP Peer Info) | Low | Crosstown core (existing) |
-| 1.3 NIP-02 follow management (`gt federation add-peer --nostr`) | Medium | 1.1 |
-| 1.4 Nostr mail transport (kind:14 for cross-Town messages) | Medium | 1.1, 1.3 |
-| 1.5 NIP handler for kind:30078 (work dispatch) | Medium | Crosstown Epic 11 |
-| 1.6 NIP handler for NIP-90 DVM job requests (work dispatch) | Medium | 1.5 |
-| 1.7 Integration test: Town A dispatches work, Town B executes | High | 1.1-1.6 |
+| Task                                                            | Complexity | Dependencies              |
+| --------------------------------------------------------------- | ---------- | ------------------------- |
+| 1.1 Nostr keypair generation for Gas Town (`gt init --nostr`)   | Low        | None                      |
+| 1.2 kind:10032 publishing (Town ILP Peer Info)                  | Low        | Crosstown core (existing) |
+| 1.3 NIP-02 follow management (`gt federation add-peer --nostr`) | Medium     | 1.1                       |
+| 1.4 Nostr mail transport (kind:14 for cross-Town messages)      | Medium     | 1.1, 1.3                  |
+| 1.5 NIP handler for kind:30078 (work dispatch)                  | Medium     | Crosstown Epic 11         |
+| 1.6 NIP handler for NIP-90 DVM job requests (work dispatch)     | Medium     | 1.5                       |
+| 1.7 Integration test: Town A dispatches work, Town B executes   | High       | 1.1-1.6                   |
 
 **Deliverable:** Working proof-of-concept of cross-Town work dispatch.
 
@@ -1878,14 +1899,14 @@ def compute_merge_priority(mr, trust_engine, dependency_graph):
 
 **Goal:** Cross-Town work dispatch includes ILP payments.
 
-| Task | Complexity | Dependencies |
-|---|---|---|
-| 2.1 ILP payment channel setup between Towns | Medium | Phase 1 |
-| 2.2 Trust-based credit limits for inter-Town channels | Medium | 2.1 |
-| 2.3 Payment gating for wanted work (escrow pattern) | High | 2.1 |
-| 2.4 Completion verification + ILP FULFILL | High | 2.3 |
-| 2.5 Cost tracking integration (`gt costs` + ILP ledger) | Medium | 2.1 |
-| 2.6 Scaling test: 3 Towns, 60 agents, real work | High | 2.1-2.5 |
+| Task                                                    | Complexity | Dependencies |
+| ------------------------------------------------------- | ---------- | ------------ |
+| 2.1 ILP payment channel setup between Towns             | Medium     | Phase 1      |
+| 2.2 Trust-based credit limits for inter-Town channels   | Medium     | 2.1          |
+| 2.3 Payment gating for wanted work (escrow pattern)     | High       | 2.1          |
+| 2.4 Completion verification + ILP FULFILL               | High       | 2.3          |
+| 2.5 Cost tracking integration (`gt costs` + ILP ledger) | Medium     | 2.1          |
+| 2.6 Scaling test: 3 Towns, 60 agents, real work         | High       | 2.1-2.5      |
 
 **Deliverable:** Functional marketplace where Towns buy/sell agent computation.
 
@@ -1895,20 +1916,20 @@ def compute_merge_priority(mr, trust_engine, dependency_graph):
 
 > Full task breakdown in Section 3.10.
 
-| Task | Complexity | Dependencies |
-|---|---|---|
-| 3.1 NIP-34 repo announcement (kind:30617) for shared codebases | Low | Phase 1 (identity) |
-| 3.2 NIP-34 patch publishing from Town Refinery (kind:1617) | Medium | 3.1, Phase 1 |
-| 3.3 NIP-32 review label namespace and handlers | Medium | 3.2 |
-| 3.4 Trust-weighted merge threshold computation | Medium | 3.3, Phase 2 (trust scores) |
-| 3.5 Merge authority selection and patch application | High | 3.4 |
-| 3.6 NIP-90 DVM CI runner (test execution as a service) | Medium | 3.2 |
-| 3.7 NIP-29 project group setup and membership management | Medium | 3.1, Phase 1 |
-| 3.8 Beads -> Nostr event sync (kind:1617 publishing, kind:1630-1633 status) | Medium | 3.2 |
-| 3.9 Remote dependency tracking in Beads | Medium | 3.8 |
-| 3.10 Distributed `bd prime` with remote context | Medium | 3.8, 3.9 |
-| 3.11 Cross-machine seance (`gt seance --remote`) | Low | 3.8 |
-| 3.12 Integration test: 3 Towns, shared repo, trust-weighted merge | Very High | 3.1-3.11 |
+| Task                                                                        | Complexity | Dependencies                |
+| --------------------------------------------------------------------------- | ---------- | --------------------------- |
+| 3.1 NIP-34 repo announcement (kind:30617) for shared codebases              | Low        | Phase 1 (identity)          |
+| 3.2 NIP-34 patch publishing from Town Refinery (kind:1617)                  | Medium     | 3.1, Phase 1                |
+| 3.3 NIP-32 review label namespace and handlers                              | Medium     | 3.2                         |
+| 3.4 Trust-weighted merge threshold computation                              | Medium     | 3.3, Phase 2 (trust scores) |
+| 3.5 Merge authority selection and patch application                         | High       | 3.4                         |
+| 3.6 NIP-90 DVM CI runner (test execution as a service)                      | Medium     | 3.2                         |
+| 3.7 NIP-29 project group setup and membership management                    | Medium     | 3.1, Phase 1                |
+| 3.8 Beads -> Nostr event sync (kind:1617 publishing, kind:1630-1633 status) | Medium     | 3.2                         |
+| 3.9 Remote dependency tracking in Beads                                     | Medium     | 3.8                         |
+| 3.10 Distributed `bd prime` with remote context                             | Medium     | 3.8, 3.9                    |
+| 3.11 Cross-machine seance (`gt seance --remote`)                            | Low        | 3.8                         |
+| 3.12 Integration test: 3 Towns, shared repo, trust-weighted merge           | Very High  | 3.1-3.11                    |
 
 **Deliverable:** Multiple Towns collaborating on a shared codebase with decentralized review, distributed CI, and trust-based merge authority — no centralized Integration Refinery.
 
@@ -1916,13 +1937,13 @@ def compute_merge_priority(mr, trust_engine, dependency_graph):
 
 **Goal:** Full Gas Town <-> Crosstown convergence.
 
-| Task | Complexity | Dependencies |
-|---|---|---|
-| 4.1 MEOW/DVM workflow mapping | High | Phase 3, Epic 13 (DVMs) |
-| 4.2 Nostr-based Witness/Deacon for remote agents | Medium | Phase 1 |
-| 4.3 Wasteland protocol migration to Nostr/ILP | High | Phase 2 |
-| 4.4 Unified memory architecture (Beads + Nostr) | High | Phase 3 |
-| 4.5 NIP-29 agent swarms with Gas Town roles | Very High | Phase 3, Epic 17 (Swarms) |
+| Task                                             | Complexity | Dependencies              |
+| ------------------------------------------------ | ---------- | ------------------------- |
+| 4.1 MEOW/DVM workflow mapping                    | High       | Phase 3, Epic 13 (DVMs)   |
+| 4.2 Nostr-based Witness/Deacon for remote agents | Medium     | Phase 1                   |
+| 4.3 Wasteland protocol migration to Nostr/ILP    | High       | Phase 2                   |
+| 4.4 Unified memory architecture (Beads + Nostr)  | High       | Phase 3                   |
+| 4.5 NIP-29 agent swarms with Gas Town roles      | Very High  | Phase 3, Epic 17 (Swarms) |
 
 **Deliverable:** Full convergence of Gas Town and Crosstown into a distributed agent marketplace.
 
@@ -1934,25 +1955,25 @@ def compute_merge_priority(mr, trust_engine, dependency_graph):
 
 ### 9.1 Assessed NIPs — Final Recommendations
 
-| # | NIP | Opportunity | Value | Phase |
-|---|---|---|---|---|
-| 1 | **NIP-46** (Remote Signing) | Polecat key isolation — scoped signing permissions without sharing Rig keypair | **High** | Phase 1 |
-| 2 | **NIP-51** (Lists) | Structured Town configuration — relay sets, trusted provider lists, project bookmarks | **Medium-High** | Phase 1-2 |
-| 3 | **NIP-53** (Live Activities) | Real-time agent session monitoring — replaces tmux-based Witness for remote agents | **Medium-High** | Phase 2 |
-| 4 | **NIP-56** (Reporting) | Bad actor flagging — trust system needs a negative signal mechanism (kind:1984 reports) | **Medium** | Phase 2-3 |
-| 5 | **NIP-40** (Expiration) | Auto-cleanup — ownership claims, stale CI results, session events expire automatically | **Medium** | Phase 1 |
-| 6 | **NIP-77** (Negentropy) | Efficient relay catch-up after network partition — bandwidth-efficient delta sync | **Medium** | Phase 3 |
-| 7 | **NIP-89** (App Handlers) | Event routing — Towns discover handlers for unfamiliar event kinds as ecosystem evolves | **Low-Medium** | Phase 4 |
+| #   | NIP                          | Opportunity                                                                             | Value           | Phase     |
+| --- | ---------------------------- | --------------------------------------------------------------------------------------- | --------------- | --------- |
+| 1   | **NIP-46** (Remote Signing)  | Polecat key isolation — scoped signing permissions without sharing Rig keypair          | **High**        | Phase 1   |
+| 2   | **NIP-51** (Lists)           | Structured Town configuration — relay sets, trusted provider lists, project bookmarks   | **Medium-High** | Phase 1-2 |
+| 3   | **NIP-53** (Live Activities) | Real-time agent session monitoring — replaces tmux-based Witness for remote agents      | **Medium-High** | Phase 2   |
+| 4   | **NIP-56** (Reporting)       | Bad actor flagging — trust system needs a negative signal mechanism (kind:1984 reports) | **Medium**      | Phase 2-3 |
+| 5   | **NIP-40** (Expiration)      | Auto-cleanup — ownership claims, stale CI results, session events expire automatically  | **Medium**      | Phase 1   |
+| 6   | **NIP-77** (Negentropy)      | Efficient relay catch-up after network partition — bandwidth-efficient delta sync       | **Medium**      | Phase 3   |
+| 7   | **NIP-89** (App Handlers)    | Event routing — Towns discover handlers for unfamiliar event kinds as ecosystem evolves | **Low-Medium**  | Phase 4   |
 
 ### 9.2 Rejected NIPs — With Reasoning
 
-| NIP | Original Rationale | Why Rejected |
-|---|---|---|
-| **NIP-47** (Wallet Connect) | Replace custom ILP payment wiring | **Redundant with ILP.** SPSP over Nostr (kind:23194/23195) already handles payment setup. ILP PREPARE/FULFILL already provides atomic escrow. NIP-47 would add a second payment system for the same function and lock the architecture to Lightning specifically, losing ILP's ledger-agnostic design. |
-| **NIP-03** (OpenTimestamps) | Tamper-proof timestamps for dispute resolution | **Unnecessary.** Nostr relay receipt timestamps provide independent witnesses. ILP's built-in timeout/expiry handles payment disputes natively. Gas Town's GUPP principle makes most ordering disputes moot (idempotent work). Adding Bitcoin-anchored timestamps would introduce 10+ minute confirmation latency for a non-problem. |
-| **NIP-99** (Classified Listings) | Wanted work marketplace | **Redundant with NIP-90 DVMs.** DVMs already handle the full discovery → bidding → execution → delivery lifecycle. NIP-99 would add a separate browsing layer before the DVM flow — unnecessary for agent-to-agent dispatch. Could be revisited in Phase 4 if human-facing marketplace browsing becomes a requirement. |
-| **NIP-13** (Proof of Work) | Anti-spam for open marketplace | **Eliminated by peering gate.** The architecture requires NIP-02 peering + SPSP handshake before any work dispatch. Non-peered Towns cannot submit DVM jobs or patches. The social graph is the spam filter — PoW is solving a problem that doesn't exist. |
-| **NIP-78** (App Data) | Town configuration key-value store | **Already in use.** Crosstown's kind:30078 (Gas Town Work Dispatch) IS NIP-78 application-specific data. The kind number is the same. Adding NIP-78 as a separate recommendation would be confusing since it's already the foundation for work dispatch events. Town configuration is better served by NIP-51 Lists which provides structured, typed list formats. |
+| NIP                              | Original Rationale                             | Why Rejected                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **NIP-47** (Wallet Connect)      | Replace custom ILP payment wiring              | **Redundant with ILP.** SPSP over Nostr (kind:23194/23195) already handles payment setup. ILP PREPARE/FULFILL already provides atomic escrow. NIP-47 would add a second payment system for the same function and lock the architecture to Lightning specifically, losing ILP's ledger-agnostic design.                                                             |
+| **NIP-03** (OpenTimestamps)      | Tamper-proof timestamps for dispute resolution | **Unnecessary.** Nostr relay receipt timestamps provide independent witnesses. ILP's built-in timeout/expiry handles payment disputes natively. Gas Town's GUPP principle makes most ordering disputes moot (idempotent work). Adding Bitcoin-anchored timestamps would introduce 10+ minute confirmation latency for a non-problem.                               |
+| **NIP-99** (Classified Listings) | Wanted work marketplace                        | **Redundant with NIP-90 DVMs.** DVMs already handle the full discovery → bidding → execution → delivery lifecycle. NIP-99 would add a separate browsing layer before the DVM flow — unnecessary for agent-to-agent dispatch. Could be revisited in Phase 4 if human-facing marketplace browsing becomes a requirement.                                             |
+| **NIP-13** (Proof of Work)       | Anti-spam for open marketplace                 | **Eliminated by peering gate.** The architecture requires NIP-02 peering + SPSP handshake before any work dispatch. Non-peered Towns cannot submit DVM jobs or patches. The social graph is the spam filter — PoW is solving a problem that doesn't exist.                                                                                                         |
+| **NIP-78** (App Data)            | Town configuration key-value store             | **Already in use.** Crosstown's kind:30078 (Gas Town Work Dispatch) IS NIP-78 application-specific data. The kind number is the same. Adding NIP-78 as a separate recommendation would be confusing since it's already the foundation for work dispatch events. Town configuration is better served by NIP-51 Lists which provides structured, typed list formats. |
 
 ### 9.3 NIP-46: Remote Signing for Polecat Key Isolation
 
@@ -1976,6 +1997,7 @@ Polecat "Toast" connects to Rig signer:
 ```
 
 **Properties:**
+
 - Polecats never touch the private key
 - Compromised Polecat can only sign permitted event kinds — cannot modify peering, identity, or payment channels
 - Rig revokes connection instantly on Polecat death (tmux session nuke)
@@ -1984,26 +2006,26 @@ Polecat "Toast" connects to Rig signer:
 
 **Integration with Gas Town lifecycle:**
 
-| Event | Gas Town Action | NIP-46 Action |
-|---|---|---|
-| Polecat spawn | `gt spawn` creates tmux session | Rig signer issues scoped connection to new Polecat |
-| Polecat working | Polecat publishes kind:30078 status | Polecat requests signing via kind:24133 → Rig signer signs |
-| Polecat done | Polecat signals DONE | Polecat publishes signed kind:1617 patch via signer |
-| Polecat death | `gt nuke` destroys tmux session | Rig signer revokes connection; rejects future kind:24133 from that client key |
-| Key compromise detected | Manual intervention | Rig signer revokes all active connections; rotates client keys |
+| Event                   | Gas Town Action                     | NIP-46 Action                                                                 |
+| ----------------------- | ----------------------------------- | ----------------------------------------------------------------------------- |
+| Polecat spawn           | `gt spawn` creates tmux session     | Rig signer issues scoped connection to new Polecat                            |
+| Polecat working         | Polecat publishes kind:30078 status | Polecat requests signing via kind:24133 → Rig signer signs                    |
+| Polecat done            | Polecat signals DONE                | Polecat publishes signed kind:1617 patch via signer                           |
+| Polecat death           | `gt nuke` destroys tmux session     | Rig signer revokes connection; rejects future kind:24133 from that client key |
+| Key compromise detected | Manual intervention                 | Rig signer revokes all active connections; rotates client keys                |
 
 ### 9.4 NIP-51: Lists for Town Configuration
 
 **Crosstown-specific list usage:**
 
-| List Kind | Crosstown Use | Example |
-|---|---|---|
-| kind:30000 (follow sets) | "Trusted CI providers" — subset of follows qualified to run DVM CI | `d: "crosstown-ci-providers"` |
-| kind:30000 (follow sets) | "Preferred merge reviewers" — Towns this Mayor trusts for NIP-32 review labels | `d: "crosstown-reviewers"` |
-| kind:30002 (relay sets) | "Project X relays" — per-project relay configuration | `d: "project-agent-marketplace-relays"` |
-| kind:30002 (relay sets) | "Federation relays" — relays for cross-Town coordination events | `d: "crosstown-federation-relays"` |
-| kind:10009 (simple groups) | NIP-29 project groups this Town participates in | References group IDs |
-| kind:30003 (bookmark sets) | "Patches awaiting review" — Mayor's review queue | `d: "crosstown-review-queue"` |
+| List Kind                  | Crosstown Use                                                                  | Example                                 |
+| -------------------------- | ------------------------------------------------------------------------------ | --------------------------------------- |
+| kind:30000 (follow sets)   | "Trusted CI providers" — subset of follows qualified to run DVM CI             | `d: "crosstown-ci-providers"`           |
+| kind:30000 (follow sets)   | "Preferred merge reviewers" — Towns this Mayor trusts for NIP-32 review labels | `d: "crosstown-reviewers"`              |
+| kind:30002 (relay sets)    | "Project X relays" — per-project relay configuration                           | `d: "project-agent-marketplace-relays"` |
+| kind:30002 (relay sets)    | "Federation relays" — relays for cross-Town coordination events                | `d: "crosstown-federation-relays"`      |
+| kind:10009 (simple groups) | NIP-29 project groups this Town participates in                                | References group IDs                    |
+| kind:30003 (bookmark sets) | "Patches awaiting review" — Mayor's review queue                               | `d: "crosstown-review-queue"`           |
 
 Private items (NIP-44 encrypted in `.content`) store sensitive config: payment thresholds, internal credit limits, SPSP negotiation parameters.
 
@@ -2030,6 +2052,7 @@ Each active work session is published as a live activity:
 ```
 
 **Monitoring flow:**
+
 - Witness publishes kind:30311 with `status: "live"` when session starts
 - Polecats emit progress updates as kind:1311 (live chat messages)
 - Other Towns can observe work in progress before it becomes a patch
@@ -2043,12 +2066,12 @@ Each active work session is published as a live activity:
 
 **Events that should auto-expire:**
 
-| Event Type | Expiration | Rationale |
-|---|---|---|
-| File ownership claims (kind:30078, status=working) | Estimated duration * 2 | Prevents stale locks from blocking other Towns |
-| DVM CI results (kind:6xxx) | 24 hours | Stale test results shouldn't inform merge decisions |
-| NIP-53 live activity sessions (kind:30311) | Max session duration (e.g., 8 hours) | Dead sessions should auto-clear |
-| DVM job requests (kind:5xxx) | Deadline tag or 48 hours default | Unclaimed work shouldn't linger indefinitely |
+| Event Type                                         | Expiration                           | Rationale                                           |
+| -------------------------------------------------- | ------------------------------------ | --------------------------------------------------- |
+| File ownership claims (kind:30078, status=working) | Estimated duration \* 2              | Prevents stale locks from blocking other Towns      |
+| DVM CI results (kind:6xxx)                         | 24 hours                             | Stale test results shouldn't inform merge decisions |
+| NIP-53 live activity sessions (kind:30311)         | Max session duration (e.g., 8 hours) | Dead sessions should auto-clear                     |
+| DVM job requests (kind:5xxx)                       | Deadline tag or 48 hours default     | Unclaimed work shouldn't linger indefinitely        |
 
 Relays automatically stop serving expired events. No manual cleanup required.
 
@@ -2069,12 +2092,12 @@ If a Town consistently produces bad code, misses deadlines, or submits malicious
 
 **Report categories for Crosstown:**
 
-| NIP-56 Category | Crosstown Meaning |
-|---|---|
-| `spam` | Low-quality patches, frivolous DVM job claims |
-| `malware` | Malicious code in patches |
-| `impersonation` | Fake Town identity |
-| `other` | Deadline manipulation, escrow abuse, review collusion |
+| NIP-56 Category | Crosstown Meaning                                     |
+| --------------- | ----------------------------------------------------- |
+| `spam`          | Low-quality patches, frivolous DVM job claims         |
+| `malware`       | Malicious code in patches                             |
+| `impersonation` | Fake Town identity                                    |
+| `other`         | Deadline manipulation, escrow abuse, review collusion |
 
 Reports from high-trust Towns (trust > 0.7) carry more weight. Trust score formula could incorporate report count as a negative signal:
 
@@ -2095,28 +2118,28 @@ At scale (500+ agents, thousands of events/day), this reduces reconnection bandw
 
 ### 9.9 Updated NIP Dependency Summary (Complete)
 
-| NIP | Role in Crosstown | Required | Phase |
-|---|---|---|---|
-| **NIP-01** | Basic protocol | Yes | All |
-| **NIP-02** | Follow graph = peering relationships | Yes | Phase 1 |
-| **NIP-09** | Event deletion (retract patch/review) | Optional | Phase 1 |
-| **NIP-17** | Private DMs (cross-Town mail) | Yes | Phase 1 |
-| **NIP-29** | Project group coordination | Recommended | Phase 2 |
-| **NIP-32** | Distributed code review labels | Yes | Phase 3 |
-| **NIP-34** | Decentralized git collaboration (patches, PRs, status) | Yes | Phase 3 |
-| **NIP-40** | Event expiration (auto-cleanup) | Recommended | Phase 1 |
-| **NIP-44** | Encrypted payloads (private repos, DMs) | Yes | Phase 1 |
-| **NIP-46** | Remote signing (Polecat key isolation) | Recommended | Phase 1 |
-| **NIP-51** | Structured lists (Town config, relay sets) | Recommended | Phase 1-2 |
-| **NIP-53** | Live activities (agent session monitoring) | Recommended | Phase 2 |
-| **NIP-56** | Reporting (bad actor flagging) | Optional | Phase 2-3 |
-| **NIP-58** | Badges (reputation, planned Epic 15) | Optional | Phase 4 |
-| **NIP-65** | Relay list metadata (multi-relay redundancy) | Recommended | Phase 1 |
-| **NIP-77** | Negentropy syncing (efficient reconnection) | Optional | Phase 3 |
-| **NIP-78** | Application-specific data (kind:30078 work dispatch) | Yes (implicit) | Phase 1 |
-| **NIP-85** | Trusted assertions (pre-computed trust scores) | Recommended | Phase 3 |
-| **NIP-89** | App handlers (event routing for evolving ecosystem) | Optional | Phase 4 |
-| **NIP-90** | DVMs (work dispatch, CI marketplace) | Yes | Phase 1-2 |
+| NIP        | Role in Crosstown                                      | Required       | Phase     |
+| ---------- | ------------------------------------------------------ | -------------- | --------- |
+| **NIP-01** | Basic protocol                                         | Yes            | All       |
+| **NIP-02** | Follow graph = peering relationships                   | Yes            | Phase 1   |
+| **NIP-09** | Event deletion (retract patch/review)                  | Optional       | Phase 1   |
+| **NIP-17** | Private DMs (cross-Town mail)                          | Yes            | Phase 1   |
+| **NIP-29** | Project group coordination                             | Recommended    | Phase 2   |
+| **NIP-32** | Distributed code review labels                         | Yes            | Phase 3   |
+| **NIP-34** | Decentralized git collaboration (patches, PRs, status) | Yes            | Phase 3   |
+| **NIP-40** | Event expiration (auto-cleanup)                        | Recommended    | Phase 1   |
+| **NIP-44** | Encrypted payloads (private repos, DMs)                | Yes            | Phase 1   |
+| **NIP-46** | Remote signing (Polecat key isolation)                 | Recommended    | Phase 1   |
+| **NIP-51** | Structured lists (Town config, relay sets)             | Recommended    | Phase 1-2 |
+| **NIP-53** | Live activities (agent session monitoring)             | Recommended    | Phase 2   |
+| **NIP-56** | Reporting (bad actor flagging)                         | Optional       | Phase 2-3 |
+| **NIP-58** | Badges (reputation, planned Epic 15)                   | Optional       | Phase 4   |
+| **NIP-65** | Relay list metadata (multi-relay redundancy)           | Recommended    | Phase 1   |
+| **NIP-77** | Negentropy syncing (efficient reconnection)            | Optional       | Phase 3   |
+| **NIP-78** | Application-specific data (kind:30078 work dispatch)   | Yes (implicit) | Phase 1   |
+| **NIP-85** | Trusted assertions (pre-computed trust scores)         | Recommended    | Phase 3   |
+| **NIP-89** | App handlers (event routing for evolving ecosystem)    | Optional       | Phase 4   |
+| **NIP-90** | DVMs (work dispatch, CI marketplace)                   | Yes            | Phase 1-2 |
 
 ---
 
@@ -2153,7 +2176,8 @@ At scale (500+ agents, thousands of events/day), this reduces reconnection bandw
 ### ~~Kind 30079: Gas Town Wanted Work~~ (Superseded)
 
 > **Superseded by NIP-90 DVM job requests (kind:5xxx).** Cross-Town work dispatch now uses standard NIP-90 DVMs with DVM bid as price signal and ILP PREPARE/FULFILL for atomic payment. The bid amount is denominated in whatever unit the peering channel uses (agreed during SPSP handshake). See Section 4.3 for the full DVM + ILP payment flow.
-```
+
+````
 
 ### Kind 30080: Gas Town Completion Evidence
 
@@ -2182,55 +2206,56 @@ At scale (500+ agents, thousands of events/day), this reduces reconnection bandw
     { "dimension": "test_coverage", "confidence": 0.92 }
   ]
 }
-```
+````
 
 ---
 
 ## Appendix B: Risk Register
 
-| ID | Risk | Probability | Impact | Mitigation | Owner |
-|---|---|---|---|---|---|
-| R1 | Nostr relay latency degrades orchestration | Medium | High | Hybrid architecture: local for co-located, Nostr for remote | Architecture |
-| R2 | ILP channel rebalancing complexity | Medium | Medium | Per-peering SPSP negotiation defines settlement terms; peering gate eliminates unknown-peer channels; trust-based credit limits reduce settlement frequency | Economic Model |
-| R3 | Merge conflicts at integration points | High | High | NIP-34 decentralized merge with trust-weighted multi-approval; NIP-32 "conflict-risk" labels; NIP-90 DVM CI verification (see Section 3) | Merge/Coord |
-| R4 | 75% management threshold for distributed agents | High | High | Hierarchical Town structure; Mayors coordinate, Polecats stay local | Scaling |
-| R5 | Beads LWW inadequate for distributed writes | Medium | Medium | Restrict Beads writes to local; sync via Nostr with conflict detection | State |
-| R6 | Key compromise of Town identity | Low | Very High | Key rotation protocol; revocation via NIP-09; multi-sig for high-value operations | Security |
-| R7 | Economic incentive misalignment (free-riding) | Low | Medium | Peering gate prevents anonymous free-riding; ILP PREPARE/FULFILL ensures atomic payment-for-work; reputation tracking via trust score | Economic Model |
-| R8 | Gas Town Go <-> Crosstown TypeScript impedance | High | Medium | Gateway pattern: Crosstown Node as TypeScript bridge; Go CLI for local ops | Architecture |
-| R9 | Nostr event ordering issues cause state divergence | Medium | Low | Timestamp-based ordering; idempotent operations; GUPP self-correction | Communication |
-| R10 | Token cost explosion at scale (>100 agents) | Medium | High | Market pricing; competitive bidding; trust-based discounts; model cost optimization | Economic Model |
+| ID  | Risk                                               | Probability | Impact    | Mitigation                                                                                                                                                  | Owner          |
+| --- | -------------------------------------------------- | ----------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| R1  | Nostr relay latency degrades orchestration         | Medium      | High      | Hybrid architecture: local for co-located, Nostr for remote                                                                                                 | Architecture   |
+| R2  | ILP channel rebalancing complexity                 | Medium      | Medium    | Per-peering SPSP negotiation defines settlement terms; peering gate eliminates unknown-peer channels; trust-based credit limits reduce settlement frequency | Economic Model |
+| R3  | Merge conflicts at integration points              | High        | High      | NIP-34 decentralized merge with trust-weighted multi-approval; NIP-32 "conflict-risk" labels; NIP-90 DVM CI verification (see Section 3)                    | Merge/Coord    |
+| R4  | 75% management threshold for distributed agents    | High        | High      | Hierarchical Town structure; Mayors coordinate, Polecats stay local                                                                                         | Scaling        |
+| R5  | Beads LWW inadequate for distributed writes        | Medium      | Medium    | Restrict Beads writes to local; sync via Nostr with conflict detection                                                                                      | State          |
+| R6  | Key compromise of Town identity                    | Low         | Very High | Key rotation protocol; revocation via NIP-09; multi-sig for high-value operations                                                                           | Security       |
+| R7  | Economic incentive misalignment (free-riding)      | Low         | Medium    | Peering gate prevents anonymous free-riding; ILP PREPARE/FULFILL ensures atomic payment-for-work; reputation tracking via trust score                       | Economic Model |
+| R8  | Gas Town Go <-> Crosstown TypeScript impedance     | High        | Medium    | Gateway pattern: Crosstown Node as TypeScript bridge; Go CLI for local ops                                                                                  | Architecture   |
+| R9  | Nostr event ordering issues cause state divergence | Medium      | Low       | Timestamp-based ordering; idempotent operations; GUPP self-correction                                                                                       | Communication  |
+| R10 | Token cost explosion at scale (>100 agents)        | Medium      | High      | Market pricing; competitive bidding; trust-based discounts; model cost optimization                                                                         | Economic Model |
 
 ---
 
 ## Appendix C: Glossary
 
-| Term | Definition |
-|---|---|
-| **GUPP** | "If there is work on your hook, YOU MUST RUN IT" -- Gas Town's self-activation principle |
-| **MEOW** | Molecular Expression of Work -- Gas Town's layered workflow orchestration stack |
-| **TOON** | Compact encoding format for Nostr events in ILP packets |
-| **Wasteland** | Gas Town's existing federation protocol using DoltHub |
-| **NIP** | Nostr Implementation Possibility -- protocol extension proposals |
-| **ILP** | Interledger Protocol -- cross-ledger payment routing |
-| **SPSP** | Simple Payment Setup Protocol -- ILP's payment initiation mechanism |
-| **BLS** | Business Logic Server -- Crosstown's payment verification layer |
-| **DVM** | Data Vending Machine -- NIP-90's paid computation marketplace |
-| **NDI** | Nondeterministic Idempotence -- Gas Town's crash recovery property |
-| **BTP** | Bilateral Transfer Protocol -- ILP's peer-to-peer transport layer |
-| **Convoy** | Gas Town's parallel work dispatch pattern (Formula type) |
-| **Molecule** | Gas Town's runtime workflow instance (from Formula template) |
-| **Wisp** | Gas Town's ephemeral work unit (TTL-based, never exported) |
-| **Swarm** | Gas Town's coordinated multi-agent work unit |
-| **Polecat** | Gas Town's ephemeral worker agent (spawned per task) |
-| **Refinery** | Gas Town's merge queue processor |
-| **Rig** | Gas Town's project container (maps to one git repository) |
+| Term          | Definition                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| **GUPP**      | "If there is work on your hook, YOU MUST RUN IT" -- Gas Town's self-activation principle |
+| **MEOW**      | Molecular Expression of Work -- Gas Town's layered workflow orchestration stack          |
+| **TOON**      | Compact encoding format for Nostr events in ILP packets                                  |
+| **Wasteland** | Gas Town's existing federation protocol using DoltHub                                    |
+| **NIP**       | Nostr Implementation Possibility -- protocol extension proposals                         |
+| **ILP**       | Interledger Protocol -- cross-ledger payment routing                                     |
+| **SPSP**      | Simple Payment Setup Protocol -- ILP's payment initiation mechanism                      |
+| **BLS**       | Business Logic Server -- Crosstown's payment verification layer                          |
+| **DVM**       | Data Vending Machine -- NIP-90's paid computation marketplace                            |
+| **NDI**       | Nondeterministic Idempotence -- Gas Town's crash recovery property                       |
+| **BTP**       | Bilateral Transfer Protocol -- ILP's peer-to-peer transport layer                        |
+| **Convoy**    | Gas Town's parallel work dispatch pattern (Formula type)                                 |
+| **Molecule**  | Gas Town's runtime workflow instance (from Formula template)                             |
+| **Wisp**      | Gas Town's ephemeral work unit (TTL-based, never exported)                               |
+| **Swarm**     | Gas Town's coordinated multi-agent work unit                                             |
+| **Polecat**   | Gas Town's ephemeral worker agent (spawned per task)                                     |
+| **Refinery**  | Gas Town's merge queue processor                                                         |
+| **Rig**       | Gas Town's project container (maps to one git repository)                                |
 
 ---
 
 ## References
 
 ### Primary Sources
+
 - [Gas Town Repository](https://github.com/steveyegge/gastown) (~189K LOC Go)
 - [Beads Repository](https://github.com/steveyegge/beads) (~225K LOC Go)
 - [Crosstown Repository](https://github.com/jonathangreen/crosstown) (TypeScript, formerly "Crosstown")
@@ -2238,6 +2263,7 @@ At scale (500+ agents, thousands of events/day), this reduces reconnection bandw
 - [Beads Architecture](https://github.com/steveyegge/beads/blob/main/docs/ARCHITECTURE.md)
 
 ### Comparable Systems
+
 - [Temporal.io](https://temporal.io/) -- Schedule-to-start latency: 50-150ms; Netflix runs millions of deployments
 - [Kubernetes v1.35](https://kubernetes.io/) -- Workload-aware scheduling, gang scheduling
 - [Lightning Network](https://lightning.network/) -- Payment channels, 95-99.7% success rate for <$100
@@ -2245,12 +2271,14 @@ At scale (500+ agents, thousands of events/day), this reduces reconnection bandw
 - [AutoGen v0.4](https://microsoft.github.io/autogen/) -- Distributed agent runtime
 
 ### Academic Literature
+
 - [Market Making for Multi-Agent LLM Systems](https://arxiv.org/html/2511.17621v1)
 - [Game-Theoretic Lens on LLM Multi-Agent Systems](https://arxiv.org/html/2601.15047v1)
 - [Blockchain-Enhanced Incentive Mechanisms](https://www.nature.com/articles/s41598-025-20247-8)
 - [Multi-Agent Coordination Survey](https://arxiv.org/html/2502.14743v2)
 
 ### Protocol Specifications
+
 - [NIP-02: Follow List](https://github.com/nostr-protocol/nips/blob/master/02.md)
 - [NIP-17: Private Direct Messages](https://github.com/nostr-protocol/nips/blob/master/17.md)
 - [NIP-29: Relay-based Groups](https://github.com/nostr-protocol/nips/blob/master/29.md) — Project coordination groups (v2)

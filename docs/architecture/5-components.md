@@ -5,6 +5,7 @@
 **Responsibility:** Main protocol library providing peer discovery, SPSP exchange, trust calculation, bootstrap orchestration, and embedded connector composition.
 
 **Key Modules:**
+
 - `bootstrap/` - BootstrapService (multi-phase lifecycle), RelayMonitor (real-time kind:10032 monitoring), AgentRuntimeClient/ConnectorAdminClient interfaces, direct and HTTP client implementations
 - `discovery/` - SocialPeerDiscovery (layered: genesis → ArDrive → NIP-02), NostrPeerDiscovery, ArDrivePeerRegistry, GenesisPeerLoader
 - `spsp/` - NostrSpspClient, NostrSpspServer, IlpSpspClient (ILP-first SPSP), settlement negotiation, channel opening
@@ -18,6 +19,7 @@
 **Responsibility:** Standalone Business Logic Server for ILP payment verification, TOON decoding, event pricing, and storage. Extracted from relay as a reusable package for both relay and Docker deployments.
 
 **Key Modules:**
+
 - `bls/` - BusinessLogicServer (handlePacket), types (HandlePacketRequest/Response)
 - `pricing/` - PricingService (per-kind pricing), config loading (env vars, file-based)
 - `storage/` - EventStore interface, InMemoryEventStore, SqliteEventStore
@@ -31,6 +33,7 @@
 **Responsibility:** Reference implementation of ILP-gated Nostr relay with NIP-01 WebSocket server.
 
 **Key Modules:**
+
 - `websocket/` - NostrRelayServer, ConnectionHandler (NIP-01 REQ/EVENT/CLOSE)
 - `subscriber/` - RelaySubscriber (upstream relay event propagation)
 - `bls/` - BusinessLogicServer (relay-specific BLS wrapping)
@@ -46,6 +49,7 @@
 **Responsibility:** Integration examples demonstrating library usage.
 
 **Key Interfaces:**
+
 - `ilp-gated-relay-demo/` - Full relay demo with agent, relay, and mock connector
 
 **Dependencies:** @crosstown/core, @crosstown/bls
@@ -55,6 +59,7 @@
 **Responsibility:** Standalone Docker entrypoint that wires BLS + relay + bootstrap into a deployable container.
 
 **Key Files:**
+
 - `src/entrypoint.ts` - Main entrypoint: config loading, BLS server start, SPSP server start, bootstrap orchestration
 - `Dockerfile` - Container build
 
@@ -65,6 +70,7 @@
 **Responsibility:** Autonomous TypeScript runtime using Vercel AI SDK (v6) that subscribes to Nostr relays, routes events by kind to LLM-powered handlers, and executes structured actions back to relays.
 
 **Planned Modules:**
+
 - Kind Registry + Handler Loader (markdown handler references → system prompts)
 - Zod action schemas with per-kind allowlists
 - Core handler function (`handleNostrEvent()`) with structured output

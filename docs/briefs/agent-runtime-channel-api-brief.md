@@ -14,11 +14,11 @@ However, **payment channel operations are HTTP-only** (`POST /admin/channels`, `
 // From @crosstown/core/types.ts
 
 interface OpenChannelParams {
-  peerId: string;          // Registered peer ID (e.g., "nostr-54dad746e52dab00")
-  chain: string;           // Settlement chain (e.g., "evm:base:84532")
-  token?: string;          // Token contract address
-  tokenNetwork?: string;   // TokenNetwork contract address
-  peerAddress: string;     // Peer's on-chain wallet address
+  peerId: string; // Registered peer ID (e.g., "nostr-54dad746e52dab00")
+  chain: string; // Settlement chain (e.g., "evm:base:84532")
+  token?: string; // Token contract address
+  tokenNetwork?: string; // TokenNetwork contract address
+  peerAddress: string; // Peer's on-chain wallet address
   initialDeposit?: string; // Amount as string (default: "0")
   settlementTimeout?: number; // Challenge period in seconds (default: 86400)
 }
@@ -64,6 +64,7 @@ Exposes the same logic currently behind `GET /admin/channels/:channelId`:
 ### Current internal references (all private)
 
 From `connector-node.ts`:
+
 - `_channelManager: ChannelManager` — holds channel lifecycle state
 - `_paymentChannelSDK: PaymentChannelSDK` — on-chain operations
 - `_settlementExecutor` — settlement execution
@@ -89,8 +90,8 @@ interface EmbeddableConnectorLike {
   registerPeer(params: RegisterPeerParams): Promise<void>;
   removePeer(peerId: string): Promise<void>;
   setPacketHandler(handler: PacketHandler): void;
-  openChannel(params: OpenChannelParams): Promise<OpenChannelResult>;   // NEW
-  getChannelState(channelId: string): Promise<ChannelState>;            // NEW
+  openChannel(params: OpenChannelParams): Promise<OpenChannelResult>; // NEW
+  getChannelState(channelId: string): Promise<ChannelState>; // NEW
 }
 ```
 
@@ -125,24 +126,26 @@ Peer A (joiner)                          Peer B (genesis, spspMinPrice=0)
 
 ## Scope
 
-| Change | Project | File |
-|--------|---------|------|
-| Add `openChannel()` to ConnectorNode | agent-runtime | `packages/connector/src/core/connector-node.ts` |
-| Add `getChannelState()` to ConnectorNode | agent-runtime | `packages/connector/src/core/connector-node.ts` |
-| Export types if not already | agent-runtime | `packages/connector/src/index.ts` |
-| Extend `EmbeddableConnectorLike` | crosstown | `packages/core/src/compose.ts` |
-| Create `createDirectChannelClient()` | crosstown | `packages/core/src/bootstrap/direct-channel-client.ts` |
-| Wire `negotiateAndOpenChannel` into SPSP handler | crosstown | `packages/core/src/compose.ts` |
-| Update integration test | crosstown | `packages/core/src/__integration__/five-peer-bootstrap.test.ts` |
+| Change                                           | Project       | File                                                            |
+| ------------------------------------------------ | ------------- | --------------------------------------------------------------- |
+| Add `openChannel()` to ConnectorNode             | agent-runtime | `packages/connector/src/core/connector-node.ts`                 |
+| Add `getChannelState()` to ConnectorNode         | agent-runtime | `packages/connector/src/core/connector-node.ts`                 |
+| Export types if not already                      | agent-runtime | `packages/connector/src/index.ts`                               |
+| Extend `EmbeddableConnectorLike`                 | crosstown     | `packages/core/src/compose.ts`                                  |
+| Create `createDirectChannelClient()`             | crosstown     | `packages/core/src/bootstrap/direct-channel-client.ts`          |
+| Wire `negotiateAndOpenChannel` into SPSP handler | crosstown     | `packages/core/src/compose.ts`                                  |
+| Update integration test                          | crosstown     | `packages/core/src/__integration__/five-peer-bootstrap.test.ts` |
 
 ## Reference files
 
 **agent-runtime:**
+
 - `packages/connector/src/core/connector-node.ts` — ConnectorNode class (needs new methods)
 - `packages/connector/src/settlement/channel-manager.ts` — `ensureChannelExists()`, `getChannelById()`
 - `packages/connector/src/http/admin-api.ts` — HTTP handlers to use as reference implementation
 
 **crosstown:**
+
 - `packages/core/src/types.ts` — `ConnectorChannelClient`, `OpenChannelParams`, `ChannelState`
 - `packages/core/src/spsp/negotiateAndOpenChannel.ts` — settlement negotiation + channel open
 - `packages/core/src/compose.ts` — `EmbeddableConnectorLike`, `createCrosstownNode()`

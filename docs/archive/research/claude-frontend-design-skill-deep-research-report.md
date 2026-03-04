@@ -6,35 +6,35 @@
 
 **React (Next.js or Vite) + shadcn/ui + Tailwind CSS v4 + Reagraph/Sigma.js for graph visualization**
 
-This is the optimal stack when Claude Code is the primary builder. While the previous research correctly identified SvelteKit as the best *technical* choice for the Crosstown UI, the calculus changes fundamentally when the builder is an AI model rather than a human developer. The React + shadcn/ui + Tailwind combination has emerged as the **de facto standard for AI code generation** across every major AI-first builder (v0, Lovable, Bolt.new), and Claude's training data density for React dwarfs all alternatives by an order of magnitude.
+This is the optimal stack when Claude Code is the primary builder. While the previous research correctly identified SvelteKit as the best _technical_ choice for the Crosstown UI, the calculus changes fundamentally when the builder is an AI model rather than a human developer. The React + shadcn/ui + Tailwind combination has emerged as the **de facto standard for AI code generation** across every major AI-first builder (v0, Lovable, Bolt.new), and Claude's training data density for React dwarfs all alternatives by an order of magnitude.
 
 ### Decision Matrix
 
-| Criterion | React + shadcn/ui | SvelteKit + shadcn-svelte | Vue + Nuxt |
-|-----------|:-----------------:|:------------------------:|:----------:|
-| **Claude code quality** | 9/10 | 6/10 | 7/10 |
-| **Training data density** | 10/10 | 3/10 | 5/10 |
-| **Component library maturity** | 10/10 | 6/10 | 7/10 |
-| **AI-first tool ecosystem** | 10/10 | 3/10 | 4/10 |
-| **Graph viz library support** | 9/10 | 5/10 | 6/10 |
-| **NDK/Nostr integration** | 7/10 | 9/10 | 5/10 |
-| **Runtime performance** | 7/10 | 9/10 | 8/10 |
-| **Bundle size** | 6/10 | 9/10 | 7/10 |
-| **Community/ecosystem** | 10/10 | 5/10 | 7/10 |
-| **Weighted Total** | **8.6** | **5.9** | **6.3** |
+| Criterion                      | React + shadcn/ui | SvelteKit + shadcn-svelte | Vue + Nuxt |
+| ------------------------------ | :---------------: | :-----------------------: | :--------: |
+| **Claude code quality**        |       9/10        |           6/10            |    7/10    |
+| **Training data density**      |       10/10       |           3/10            |    5/10    |
+| **Component library maturity** |       10/10       |           6/10            |    7/10    |
+| **AI-first tool ecosystem**    |       10/10       |           3/10            |    4/10    |
+| **Graph viz library support**  |       9/10        |           5/10            |    6/10    |
+| **NDK/Nostr integration**      |       7/10        |           9/10            |    5/10    |
+| **Runtime performance**        |       7/10        |           9/10            |    8/10    |
+| **Bundle size**                |       6/10        |           9/10            |    7/10    |
+| **Community/ecosystem**        |       10/10       |           5/10            |    7/10    |
+| **Weighted Total**             |      **8.6**      |          **5.9**          |  **6.3**   |
 
 Weights: Claude code quality (25%), training data density (20%), component library (15%), AI tool ecosystem (10%), graph viz (10%), NDK integration (5%), runtime perf (5%), bundle size (3%), community (7%).
 
 ### Key Trade-offs
 
-| You Gain (React) | You Lose (vs SvelteKit) |
-|---|---|
-| Claude produces idiomatic, correct code on first attempt | Lose NDK-Svelte's first-class reactive stores |
-| shadcn/ui has 10x more examples than shadcn-svelte in training data | Slightly larger bundle size (~44KB vs ~1.6KB runtime) |
-| Every AI-first tool targets this stack — proven patterns | Lose Svelte's compile-time reactivity advantage |
+| You Gain (React)                                                        | You Lose (vs SvelteKit)                                      |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Claude produces idiomatic, correct code on first attempt                | Lose NDK-Svelte's first-class reactive stores                |
+| shadcn/ui has 10x more examples than shadcn-svelte in training data     | Slightly larger bundle size (~44KB vs ~1.6KB runtime)        |
+| Every AI-first tool targets this stack — proven patterns                | Lose Svelte's compile-time reactivity advantage              |
 | Reagraph, react-force-graph, @react-sigma provide direct React bindings | Must use NDK directly (hooks/context) rather than ndk-svelte |
-| Anthropic's own frontend-design skill targets React | Coracle/ndk-svelte ecosystem patterns unavailable |
-| Largest pool of examples, tutorials, StackOverflow answers | Slightly more verbose component code |
+| Anthropic's own frontend-design skill targets React                     | Coracle/ndk-svelte ecosystem patterns unavailable            |
+| Largest pool of examples, tutorials, StackOverflow answers              | Slightly more verbose component code                         |
 
 ### Migration Assessment
 
@@ -53,12 +53,12 @@ The previous research recommended SvelteKit based on pure technical merit. **Tha
 The single most important factor for AI code generation quality is **how much training data exists for a given framework**. This determines whether Claude can produce idiomatic, correct code or resorts to guessing and mixing patterns.
 
 | Framework | Weekly npm Downloads | GitHub Repos (est.) | StackOverflow Questions | Relative Training Data |
-|-----------|:-------------------:|:-------------------:|:----------------------:|:---------------------:|
-| React | 30M+ | ~2M | ~400K | 100% (baseline) |
-| Vue | 5M+ | ~500K | ~100K | ~20% |
-| Angular | 3M+ | ~300K | ~300K | ~18% |
-| Svelte | 1.7M | ~50K | ~15K | ~5% |
-| Solid | 200K | ~10K | ~2K | ~1% |
+| --------- | :------------------: | :-----------------: | :---------------------: | :--------------------: |
+| React     |         30M+         |         ~2M         |          ~400K          |    100% (baseline)     |
+| Vue       |         5M+          |        ~500K        |          ~100K          |          ~20%          |
+| Angular   |         3M+          |        ~300K        |          ~300K          |          ~18%          |
+| Svelte    |         1.7M         |        ~50K         |          ~15K           |          ~5%           |
+| Solid     |         200K         |        ~10K         |           ~2K           |          ~1%           |
 
 React has **~20x more training data** than Svelte. This gap directly translates to Claude's ability to produce correct, idiomatic code without hallucinating APIs or mixing syntax versions.
 
@@ -74,20 +74,21 @@ The previous research recommended Svelte 5 with runes. This is the **highest-ris
 
 4. **Workarounds are fragile**: The recommended approach is to load the entire Svelte 5 docs (`svelte.dev/llms.txt`, ~130K tokens) into context. This consumes a large portion of Claude's context window and competes with the actual project code for attention.
 
-### SvelteBench Results: Claude *Can* Do Svelte 5, But...
+### SvelteBench Results: Claude _Can_ Do Svelte 5, But...
 
 The svelte-bench benchmark (Svelte 5-specific LLM evaluation) shows:
 
-| Model | pass@1 Score |
-|-------|:-----------:|
-| Claude Opus 4.5 | **100.0%** |
-| GPT-5.2 | 97.8% |
-| Gemini 3 Flash | 94.4% |
-| Claude Sonnet 4.5 | 93.3% |
-| Claude Sonnet 4 | 90.0% |
-| Claude Haiku 4.5 | 84.4% |
+| Model             | pass@1 Score |
+| ----------------- | :----------: |
+| Claude Opus 4.5   |  **100.0%**  |
+| GPT-5.2           |    97.8%     |
+| Gemini 3 Flash    |    94.4%     |
+| Claude Sonnet 4.5 |    93.3%     |
+| Claude Sonnet 4   |    90.0%     |
+| Claude Haiku 4.5  |    84.4%     |
 
 Claude Opus 4.5 achieves a perfect score — **but this is on isolated, single-component tasks with 9 test cases**. The benchmark does not test:
+
 - Multi-file SvelteKit applications
 - Server/client boundary management (+page.server.ts, load functions)
 - Integration with third-party libraries (NDK, Sigma.js)
@@ -107,6 +108,7 @@ Claude's React output quality is well-documented:
 ### Verdict: React Wins for AI-Built Applications
 
 When Claude is the builder:
+
 - **React**: Produces correct code on first attempt ~90% of the time. Rarely mixes paradigms. Excellent at hooks, context, component composition.
 - **Svelte 5**: Produces correct code ~70-80% of the time without docs injection. Frequently confuses Svelte 4/5 syntax. Requires 130K+ tokens of docs in context. Risk of subtle bugs from syntax mixing.
 - **Vue 3**: Decent output quality (~80%), but Composition API vs Options API confusion is common. Smaller ecosystem than React.
@@ -131,16 +133,16 @@ shadcn/ui has become the standard component library for AI-generated frontend co
 
 ### Component Library Comparison
 
-| Library | Framework | AI Code Quality | Component Count | Accessibility | Customizability |
-|---------|-----------|:-:|:-:|:-:|:-:|
-| **shadcn/ui** | React | 10/10 | 50+ | Excellent (Radix) | Full (own code) |
-| shadcn-svelte | Svelte 5 | 5/10 | 40+ | Good (Bits UI) | Full (own code) |
-| Bits UI | Svelte 5 | 4/10 | 30+ | Good | High (headless) |
-| Melt UI | Svelte 5 | 3/10 | 25+ | Good | Very High (builder) |
-| Material UI | React | 7/10 | 60+ | Good | Medium (theme) |
-| Chakra UI | React | 6/10 | 50+ | Excellent | High (theme + sx) |
-| Radix UI | React | 8/10 | 30+ | Excellent | Very High (headless) |
-| DaisyUI | Any (Tailwind) | 7/10 | 50+ | Medium | Medium (class-based) |
+| Library       | Framework      | AI Code Quality | Component Count |   Accessibility   |   Customizability    |
+| ------------- | -------------- | :-------------: | :-------------: | :---------------: | :------------------: |
+| **shadcn/ui** | React          |      10/10      |       50+       | Excellent (Radix) |   Full (own code)    |
+| shadcn-svelte | Svelte 5       |      5/10       |       40+       |  Good (Bits UI)   |   Full (own code)    |
+| Bits UI       | Svelte 5       |      4/10       |       30+       |       Good        |   High (headless)    |
+| Melt UI       | Svelte 5       |      3/10       |       25+       |       Good        | Very High (builder)  |
+| Material UI   | React          |      7/10       |       60+       |       Good        |    Medium (theme)    |
+| Chakra UI     | React          |      6/10       |       50+       |     Excellent     |  High (theme + sx)   |
+| Radix UI      | React          |      8/10       |       30+       |     Excellent     | Very High (headless) |
+| DaisyUI       | Any (Tailwind) |      7/10       |       50+       |      Medium       | Medium (class-based) |
 
 **shadcn-svelte assessment**: While it mirrors shadcn/ui's code-ownership model for Svelte, it has far fewer examples in training data. Claude frequently generates React shadcn/ui patterns when asked for shadcn-svelte, or confuses Bits UI (the underlying headless layer) with Melt UI (the older builder API).
 
@@ -156,16 +158,17 @@ shadcn/ui primitives (Button, Card, Dialog, Tabs, etc.)
 ```
 
 **Design Token System:**
+
 ```css
 /* Crosstown design tokens */
 :root {
-  --trust-high: oklch(0.7 0.15 200);      /* Blue — high trust */
-  --trust-medium: oklch(0.7 0.12 80);     /* Amber — moderate */
-  --trust-low: oklch(0.6 0.15 25);        /* Red — low trust */
-  --zap-active: oklch(0.8 0.18 85);       /* Gold — payment flowing */
+  --trust-high: oklch(0.7 0.15 200); /* Blue — high trust */
+  --trust-medium: oklch(0.7 0.12 80); /* Amber — moderate */
+  --trust-low: oklch(0.6 0.15 25); /* Red — low trust */
+  --zap-active: oklch(0.8 0.18 85); /* Gold — payment flowing */
   --social-proximity: oklch(0.65 0.12 250); /* Cool blue — social trust */
-  --earned-trust: oklch(0.75 0.15 75);    /* Warm gold — earned trust */
-  --node-pulse: 2s ease-in-out infinite;  /* Agent activity animation */
+  --earned-trust: oklch(0.75 0.15 75); /* Warm gold — earned trust */
+  --node-pulse: 2s ease-in-out infinite; /* Agent activity animation */
 }
 ```
 
@@ -177,16 +180,17 @@ shadcn/ui primitives (Button, Card, Dialog, Tabs, etc.)
 
 Crosstown's graph visualization needs span from small subgraphs (agent detail: ~20 nodes) to massive network overviews (10,000+ agents). No single library handles all scales optimally.
 
-| Scale | Library | Rendering | React Support | Claude Proficiency | Use Case |
-|-------|---------|-----------|:---:|:---:|----------|
-| **< 200 nodes** | react-force-graph-2d | Canvas/D3 | Native | High | Agent neighborhood, detail views |
-| **200-5,000 nodes** | Sigma.js + @react-sigma | WebGL | Good | Medium | Default interactive observatory |
-| **5,000-100K nodes** | Cosmograph (@cosmograph/react) | GPU (WebGL2) | Official React pkg | Low-Medium | Full network overview, zoom |
-| **Subgraph analysis** | Cytoscape.js | Canvas | Via react-cytoscapejs | Medium | Trust path analysis, community detection |
+| Scale                 | Library                        | Rendering    |     React Support     | Claude Proficiency | Use Case                                 |
+| --------------------- | ------------------------------ | ------------ | :-------------------: | :----------------: | ---------------------------------------- |
+| **< 200 nodes**       | react-force-graph-2d           | Canvas/D3    |        Native         |        High        | Agent neighborhood, detail views         |
+| **200-5,000 nodes**   | Sigma.js + @react-sigma        | WebGL        |         Good          |       Medium       | Default interactive observatory          |
+| **5,000-100K nodes**  | Cosmograph (@cosmograph/react) | GPU (WebGL2) |  Official React pkg   |     Low-Medium     | Full network overview, zoom              |
+| **Subgraph analysis** | Cytoscape.js                   | Canvas       | Via react-cytoscapejs |       Medium       | Trust path analysis, community detection |
 
 **Primary Recommendation: Sigma.js + Graphology + @react-sigma/core**
 
 Rationale:
+
 - WebGL rendering handles thousands of nodes smoothly
 - Graphology provides the shared data model for graph analysis (centrality, community detection, shortest path)
 - @react-sigma/core provides React components (`<SigmaContainer>`, `<ControlsContainer>`)
@@ -196,6 +200,7 @@ Rationale:
 **Secondary: Cosmograph for Large-Scale Overview**
 
 cosmos.gl (now Cosmograph) is the performance champion (1M+ nodes via GPU compute), and the `@cosmograph/react` package provides React integration. However:
+
 - Claude has limited training data for cosmos.gl/Cosmograph
 - The API is less conventional than D3/Sigma patterns
 - Best used as a "zoom out" view that hands off to Sigma.js when users drill into clusters
@@ -206,13 +211,13 @@ While react-force-graph has the best Claude support (most training examples, sim
 
 ### Animation Strategy
 
-| Animation Type | Library | Claude Proficiency | Use Case |
-|----------------|---------|:---:|----------|
-| Page transitions | Framer Motion | High | Route transitions, panel open/close |
-| Micro-interactions | CSS transitions/animations | Very High | Hover states, trust badge pulse |
-| Payment flow particles | Custom Canvas/WebGL | Medium | Zap animation on graph edges |
-| Staggered reveals | Framer Motion | High | List/grid item entrance |
-| Trust score updates | CSS transitions | Very High | Number interpolation, color shift |
+| Animation Type         | Library                    | Claude Proficiency | Use Case                            |
+| ---------------------- | -------------------------- | :----------------: | ----------------------------------- |
+| Page transitions       | Framer Motion              |        High        | Route transitions, panel open/close |
+| Micro-interactions     | CSS transitions/animations |     Very High      | Hover states, trust badge pulse     |
+| Payment flow particles | Custom Canvas/WebGL        |       Medium       | Zap animation on graph edges        |
+| Staggered reveals      | Framer Motion              |        High        | List/grid item entrance             |
+| Trust score updates    | CSS transitions            |     Very High      | Number interpolation, color shift   |
 
 **Recommendation: Framer Motion for React components + custom Canvas shaders for graph-layer animations.**
 
@@ -361,7 +366,7 @@ crosstown-ui/
 
 **1. Feature-based folder structure** (components/graph/, components/trust/, etc.) over type-based (components/, containers/, hoc/). Claude navigates feature folders more reliably because each folder has a cohesive purpose.
 
-**2. Pattern files** (patterns/ directory): These are the single highest-leverage improvement for Claude's output quality. Each pattern file shows Claude *exactly* how the project builds a certain type of component. Example:
+**2. Pattern files** (patterns/ directory): These are the single highest-leverage improvement for Claude's output quality. Each pattern file shows Claude _exactly_ how the project builds a certain type of component. Example:
 
 ```markdown
 # COMPONENT_PATTERN.md
@@ -391,6 +396,7 @@ Every component in this project follows this pattern:
 # Crosstown UI
 
 ## Tech Stack
+
 - React 19 + TypeScript (strict mode)
 - Tailwind CSS v4
 - shadcn/ui components (in src/components/ui/)
@@ -400,12 +406,14 @@ Every component in this project follows this pattern:
 - Vitest for testing
 
 ## Commands
+
 - `npm run dev` — Start development server (localhost:5173)
 - `npm run build` — Production build
 - `npm run test` — Run all tests
 - `npm run lint` — ESLint + Prettier check
 
 ## Code Conventions
+
 - Functional components with hooks (never class components)
 - Props defined as TypeScript interfaces (never `any`)
 - Use `cn()` from lib/utils for conditional Tailwind classes
@@ -415,12 +423,14 @@ Every component in this project follows this pattern:
 - Design tokens in globals.css as CSS variables (--trust-high, --zap-active, etc.)
 
 ## Architecture
+
 - Graph visualization: Sigma.js + Graphology (see patterns/GRAPH_PATTERN.md)
 - Nostr integration: NDK hooks (see patterns/NDK_PATTERN.md)
 - Trust computation: Web Worker (see patterns/TRUST_PATTERN.md)
 - Event kinds: 10032 (peer info), 23194/23195 (SPSP), 9734/9735 (ILP zaps)
 
 ## Key Files
+
 - src/types/ — All TypeScript interfaces (read these before generating code)
 - src/hooks/ — Custom hooks (prefer using existing hooks over creating new ones)
 - patterns/ — Reference implementations (follow these patterns exactly)
@@ -443,6 +453,7 @@ Every component in this project follows this pattern:
 6. **Phase 6 — Animation & Polish**: Add Framer Motion transitions, zap flow animations, and the frontend-design skill's aesthetic guidance.
 
 **QA Workflow:**
+
 - Vitest for component logic and hook testing
 - Playwright for visual regression testing (screenshot comparison)
 - Human review checkpoints after each phase
@@ -460,13 +471,14 @@ NDK provides React bindings via `@nostr-dev-kit/ndk-react`:
 // Provider wraps the app
 <NDKProvider ndk={ndkInstance}>
   <App />
-</NDKProvider>
+</NDKProvider>;
 
 // Hooks for data access
 const { fetchEvents, signPublishEvent, loginWithNip07 } = useNDK();
 ```
 
 While NDK's Svelte integration (`ndk-svelte`) is more elegant (reactive Svelte stores that auto-update), the React integration is **fully functional** and provides:
+
 - `useNDK()` hook for NDK instance access
 - Context-based provider pattern (standard React)
 - Event subscription management
@@ -489,7 +501,7 @@ function useAgentEvents(agentPubkey: string) {
     });
 
     sub.on('event', (event) => {
-      setEvents(prev => [...prev, event].sort(byCreatedAt));
+      setEvents((prev) => [...prev, event].sort(byCreatedAt));
     });
 
     return () => sub.stop();
@@ -524,6 +536,7 @@ ndk.signer = nip46Signer;
 **Problem:** Claude may generate React 17/18 patterns (class components, older hooks patterns) instead of React 19 idioms.
 
 **Mitigation:**
+
 - CLAUDE.md explicitly states "React 19 + TypeScript strict mode"
 - Pattern files show current idioms
 - ESLint rules catch deprecated patterns
@@ -534,6 +547,7 @@ ndk.signer = nip46Signer;
 **Problem:** Tailwind v4 (CSS-first config, renamed utilities) was released January 2025. Claude may mix v3 and v4 syntax.
 
 **Mitigation:**
+
 - Provide `tailwind.config.ts` as explicit reference
 - CLAUDE.md documents any v4-specific patterns
 - PostCSS build step catches invalid classes
@@ -544,6 +558,7 @@ ndk.signer = nip46Signer;
 **Problem:** Sigma.js has less documentation than D3, and Claude may struggle with custom WebGL renderers.
 
 **Mitigation:**
+
 - Provide detailed `GRAPH_PATTERN.md` with working Sigma.js + React integration
 - Start with default Sigma.js renderers, customize incrementally
 - Use Graphology's well-documented API for data operations (Claude handles this better than rendering)
@@ -554,6 +569,7 @@ ndk.signer = nip46Signer;
 **Problem:** NDK's React integration is less mature than its Svelte integration.
 
 **Mitigation:**
+
 - Wrap NDK in custom hooks (`use-nostr-events.ts`, `use-agent-profile.ts`) that abstract NDK internals
 - Claude works well with custom hooks — once defined, it reuses them correctly
 - Monitor ndk-react updates — the library is actively maintained
@@ -564,6 +580,7 @@ ndk.signer = nip46Signer;
 **Problem:** Claude defaults to generic, forgettable UI (Inter font, purple gradients, white backgrounds).
 
 **Mitigation:**
+
 - Install Anthropic's frontend-design skill (75% improvement in blind evals)
 - Define explicit design tokens in CSS variables
 - CLAUDE.md: "Never use Inter, Roboto, or Arial fonts"
@@ -575,6 +592,7 @@ ndk.signer = nip46Signer;
 **Problem:** The project may attract human contributors who expect the SvelteKit stack recommended by the first research report.
 
 **Mitigation:**
+
 - React is the most widely known framework (52% of frontend job listings)
 - shadcn/ui is well-documented and widely understood
 - The project structure follows standard React conventions
@@ -595,6 +613,7 @@ A hybrid approach was considered: React for the UI shell + SvelteKit for a graph
 **Recommendation: Tailwind CSS v4** (with v3 fallback if Claude struggles)
 
 Rationale:
+
 - Tailwind is the default styling choice for all AI code generators
 - Claude produces more visually consistent output with Tailwind (constrained vocabulary) than free-form CSS
 - shadcn/ui is built on Tailwind
@@ -604,13 +623,13 @@ Rationale:
 
 ## Appendix C: Next.js vs Vite
 
-| Aspect | Next.js (App Router) | Vite + React Router |
-|--------|:----:|:----:|
-| SSR/SEO | Built-in | Requires additional setup |
-| Claude proficiency | High | Very High |
-| Build complexity | Higher (RSC, Server Actions) | Lower |
-| Deployment | Vercel-optimized | Any static host |
-| Graph viz compatibility | Good (client components) | Excellent (fully client-side) |
+| Aspect                  |     Next.js (App Router)     |      Vite + React Router      |
+| ----------------------- | :--------------------------: | :---------------------------: |
+| SSR/SEO                 |           Built-in           |   Requires additional setup   |
+| Claude proficiency      |             High             |           Very High           |
+| Build complexity        | Higher (RSC, Server Actions) |             Lower             |
+| Deployment              |       Vercel-optimized       |        Any static host        |
+| Graph viz compatibility |   Good (client components)   | Excellent (fully client-side) |
 
 **Recommendation: Start with Vite + React Router.**
 
@@ -623,12 +642,14 @@ If SEO becomes important later (public agent profiles, shareable narratives), mi
 ## Sources
 
 ### AI Code Generation & Framework Comparison
+
 - [AI Frontend Generator Comparison 2025](https://www.hansreinl.de/blog/ai-code-generators-frontend-comparison)
 - [Claude vs ChatGPT for Coding 2026](https://www.leanware.co/insights/claude-vs-chatgpt-coding)
 - [GitHub Copilot, ChatGPT & Claude: AI-Assisted Frontend Development](https://www.200oksolutions.com/blog/github-copilot-vs-chatgpt-vs-claude-frontend/)
 - [Building Faster with V0 and Claude Code](https://strapi.io/blog/building-faster-with-v0-and-claude-code-lessons-learned-from-vibe-coding)
 
 ### Svelte 5 + LLM
+
 - [Better AI LLM Assistance for Svelte 5 — Stanislav Khromov](https://khromov.se/getting-better-ai-llm-assistance-for-svelte-5-and-sveltekit/)
 - [AI/LLM Prompt/Rules for Svelte 5 — Svelte GitHub Discussion #14125](https://github.com/sveltejs/svelte/discussions/14125)
 - [SvelteBench — LLM Benchmark for Svelte 5](https://github.com/khromov/svelte-bench)
@@ -636,12 +657,14 @@ If SEO becomes important later (public agent profiles, shareable narratives), mi
 - [Svelte 5 LLM Compact Reference](https://github.com/martypara/svelte5-llm-compact)
 
 ### shadcn/ui & Component Libraries
+
 - [shadcn/ui — The Foundation for Your Design System](https://ui.shadcn.com/)
 - [shadcn/ui Ecosystem 2025 Guide](https://www.devkit.best/blog/mdx/shadcn-ui-ecosystem-complete-guide-2025)
 - [shadcn-svelte Introduction](https://www.shadcn-svelte.com/docs)
 - [shadcn Component Comparison (React vs Svelte)](https://github.com/jasongitmail/shadcn-compare)
 
 ### v0 & AI-First Builders
+
 - [Announcing v0: Generative UI — Vercel](https://vercel.com/blog/announcing-v0-generative-ui)
 - [v0 Design Systems Documentation](https://v0.app/docs/design-systems)
 - [Vercel v0.dev Review 2025](https://skywork.ai/blog/vercel-v0-dev-review-2025-ai-ui-react-tailwind/)
@@ -649,6 +672,7 @@ If SEO becomes important later (public agent profiles, shareable narratives), mi
 - [Choosing Your AI Prototyping Stack](https://annaarteeva.medium.com/choosing-your-ai-prototyping-stack-lovable-v0-bolt-replit-cursor-magic-patterns-compared-9a5194f163e9)
 
 ### Claude Code & Frontend Design
+
 - [Improving Frontend Design Through Skills — Anthropic Blog](https://claude.com/blog/improving-frontend-design-through-skills)
 - [Teaching Claude to Design Better — Justin Wetch](https://www.justinwetch.com/blog/improvingclaudefrontend)
 - [Anthropic Frontend Design Skill (SKILL.md)](https://github.com/anthropics/claude-code/blob/main/plugins/frontend-design/skills/frontend-design/SKILL.md)
@@ -656,6 +680,7 @@ If SEO becomes important later (public agent profiles, shareable narratives), mi
 - [Claude Code Full-Stack Configuration Guide](https://htdocs.dev/posts/claude-code-full-stack-configuration-guide/)
 
 ### Graph Visualization
+
 - [Top 13 JavaScript Graph Visualization Libraries — Linkurious](https://linkurious.com/blog/top-javascript-graph-libraries/)
 - [Best Libraries for Large Force-Directed Graphs](https://weber-stephen.medium.com/the-best-libraries-and-methods-to-render-large-network-graphs-on-the-web-d122ece2f4dc/)
 - [Sigma.js](https://www.sigmajs.org/)
@@ -665,17 +690,20 @@ If SEO becomes important later (public agent profiles, shareable narratives), mi
 - [Cosmograph React Package](https://cosmograph.app/docs/cosmograph/Cosmograph%20library/Cosmograph/)
 
 ### NDK / Nostr
+
 - [NDK — Nostr Development Kit](https://github.com/nostr-dev-kit/ndk)
 - [NDK React](https://github.com/nostr-dev-kit/ndk-react)
 - [NDK Svelte](https://github.com/nostr-dev-kit/ndk-svelte)
 - [Snort — React-based Nostr Client](https://github.com/v0l/snort)
 
 ### Tailwind CSS
+
 - [Tailwind CSS v4 LLM Discussion](https://github.com/tailwindlabs/tailwindcss/discussions/14677)
 - [Tailwind CSS v4 vs Claude 3.7 Sonnet](https://medium.com/@dpzhcmy/tailwind-css-v4-the-archenemy-of-claude-3-7-sonnet-209ce7470f76)
 - [Tailwind CSS AI and LLM — Flowbite](https://flowbite.com/docs/getting-started/llm/)
 
 ### Framework Comparisons
+
 - [Svelte vs React 2026 — The Frontend Company](https://www.thefrontendcompany.com/posts/svelte-vs-react)
 - [6 Best JavaScript Frameworks for 2026 — Strapi](https://strapi.io/blog/best-javascript-frameworks)
 - [React vs Vue vs Svelte vs SolidJS 2025-2026](https://www.frontendtools.tech/blog/best-frontend-frameworks-2025-comparison)

@@ -58,10 +58,10 @@ The BLS is the core of the ILP-gated relay. It receives payment notifications fr
 
 ### Required Endpoints
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/handle-packet` | POST | Called by connector when payment arrives |
-| `/health` | GET | Health check for connector to verify BLS is up |
+| Endpoint         | Method | Purpose                                        |
+| ---------------- | ------ | ---------------------------------------------- |
+| `/handle-packet` | POST   | Called by connector when payment arrives       |
+| `/health`        | GET    | Health check for connector to verify BLS is up |
 
 ### Payment Flow
 
@@ -108,7 +108,7 @@ import { PricingService } from './pricing';
 const app = express();
 app.use(express.json());
 
-const relay = new NostrRelay();       // Your Nostr relay implementation
+const relay = new NostrRelay(); // Your Nostr relay implementation
 const pricing = new PricingService(); // Price lookup from kind:10032
 
 // Health check
@@ -133,7 +133,7 @@ app.post('/handle-packet', async (req, res) => {
     if (!verifyEvent(event)) {
       return res.json({
         accept: false,
-        code: 'F00',  // Bad request
+        code: 'F00', // Bad request
         message: 'Invalid event signature',
       });
     }
@@ -145,7 +145,7 @@ app.post('/handle-packet', async (req, res) => {
     if (BigInt(amount) < price) {
       return res.json({
         accept: false,
-        code: 'F06',  // Insufficient payment
+        code: 'F06', // Insufficient payment
         message: `Insufficient payment: got ${amount}, need ${price}`,
         metadata: {
           required: price.toString(),
@@ -171,7 +171,6 @@ app.post('/handle-packet', async (req, res) => {
         storedAt: Date.now(),
       },
     });
-
   } catch (error) {
     console.error('Payment handling error:', error);
     return res.json({
@@ -205,15 +204,17 @@ interface PricingConfig {
 }
 
 export class PricingService {
-  constructor(private config: PricingConfig = {
-    pricePerByte: 10n,
-    kindPrices: new Map([
-      [0, 10000n],   // Profile metadata
-      [1, 5000n],    // Short text note
-      [3, 20000n],   // Follow list
-      [7, 1000n],    // Reaction
-    ]),
-  }) {}
+  constructor(
+    private config: PricingConfig = {
+      pricePerByte: 10n,
+      kindPrices: new Map([
+        [0, 10000n], // Profile metadata
+        [1, 5000n], // Short text note
+        [3, 20000n], // Follow list
+        [7, 1000n], // Reaction
+      ]),
+    }
+  ) {}
 
   getPrice(event: NostrEvent): bigint {
     // Check for kind-specific price
@@ -252,10 +253,10 @@ healthCheckPort: 8080
 # Business Logic Server configuration
 bls:
   enabled: true
-  url: http://localhost:3001        # BLS base URL
+  url: http://localhost:3001 # BLS base URL
   handlePacketPath: /handle-packet
   healthPath: /health
-  timeout: 5000                      # ms
+  timeout: 5000 # ms
 
 adminApi:
   enabled: true
@@ -284,13 +285,15 @@ export class AgentBLS {
   private relay: NostrRelay;
   private pricing: PricingService;
 
-  constructor(private config: {
-    relays: string[];
-    pubkey: string;
-    secretKey: Uint8Array;
-    adminUrl: string;
-    adminApiKey?: string;
-  }) {
+  constructor(
+    private config: {
+      relays: string[];
+      pubkey: string;
+      secretKey: Uint8Array;
+      adminUrl: string;
+      adminApiKey?: string;
+    }
+  ) {
     this.pool = new SimplePool();
     this.relay = new NostrRelay();
     this.pricing = new PricingService();
@@ -357,10 +360,12 @@ export class AgentBLS {
         id: peer.pubkey.slice(0, 16),
         url: peer.btpEndpoint,
         authToken: await this.deriveAuthToken(peer.pubkey),
-        routes: [{
-          prefix: peer.ilpAddress,
-          priority: Math.floor(trust.score),
-        }],
+        routes: [
+          {
+            prefix: peer.ilpAddress,
+            priority: Math.floor(trust.score),
+          },
+        ],
       }),
     });
   }
@@ -390,6 +395,7 @@ export class AgentBLS {
 ```
 
 **Advantages:**
+
 - Decoupled deployment and scaling
 - Independent upgrades
 - Clear separation of concerns
@@ -411,6 +417,7 @@ export class AgentBLS {
 ```
 
 **Advantages:**
+
 - Simpler deployment
 - Lower latency (no HTTP calls)
 - Single configuration
@@ -440,6 +447,7 @@ X-Api-Key: your-api-key
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -468,6 +476,7 @@ X-Api-Key: your-api-key
 ```
 
 Response:
+
 ```json
 {
   "peers": [
@@ -631,7 +640,10 @@ Then modify `ConnectorNode.start()`:
 ```typescript
 // In connector-node.ts
 
-import { NostrDiscoveryIntegration, NostrDiscoveryConfig } from '../discovery/nostr-discovery-integration';
+import {
+  NostrDiscoveryIntegration,
+  NostrDiscoveryConfig,
+} from '../discovery/nostr-discovery-integration';
 
 export class ConnectorNode {
   private nostrDiscovery?: NostrDiscoveryIntegration;
@@ -671,7 +683,7 @@ nostrDiscovery:
   relays:
     - wss://relay.damus.io
     - wss://nos.lol
-  pubkey: "your-hex-pubkey"
+  pubkey: 'your-hex-pubkey'
   # secretKey loaded from env or secure storage
   trustConfig:
     baseCreditForFollowed: 50000
@@ -681,17 +693,17 @@ nostrDiscovery:
 
 ## Mapping Concepts
 
-| crosstown | agent-runtime | Notes |
-|---------------|---------------|-------|
-| `AgentBLS` | Business Logic Server | Handles `/handle-packet`, `/health` |
-| `NostrRelay.storeEvent()` | BLS accept response | Payment → event storage |
-| `PricingService.getPrice()` | BLS accept/reject decision | Amount vs price check |
-| `NostrPeerDiscoveryService.discoverPeers()` | `BTPClientManager.addPeer()` | Discovered peers become BTP connections |
-| `SocialTrustManager.computeTrust()` | `RoutingTable.addRoute(priority)` | Trust score → route priority |
-| `IlpPeerInfo.btpEndpoint` | `Peer.url` | WebSocket URL for BTP |
-| `IlpPeerInfo.ilpAddress` | Route prefix | e.g., `g.alice` |
-| Follow list (NIP-02) | Peer list | Social graph = network graph |
-| `kind:10032` event | Peer configuration | Connector metadata + pricing |
+| crosstown                                   | agent-runtime                     | Notes                                   |
+| ------------------------------------------- | --------------------------------- | --------------------------------------- |
+| `AgentBLS`                                  | Business Logic Server             | Handles `/handle-packet`, `/health`     |
+| `NostrRelay.storeEvent()`                   | BLS accept response               | Payment → event storage                 |
+| `PricingService.getPrice()`                 | BLS accept/reject decision        | Amount vs price check                   |
+| `NostrPeerDiscoveryService.discoverPeers()` | `BTPClientManager.addPeer()`      | Discovered peers become BTP connections |
+| `SocialTrustManager.computeTrust()`         | `RoutingTable.addRoute(priority)` | Trust score → route priority            |
+| `IlpPeerInfo.btpEndpoint`                   | `Peer.url`                        | WebSocket URL for BTP                   |
+| `IlpPeerInfo.ilpAddress`                    | Route prefix                      | e.g., `g.alice`                         |
+| Follow list (NIP-02)                        | Peer list                         | Social graph = network graph            |
+| `kind:10032` event                          | Peer configuration                | Connector metadata + pricing            |
 
 ## Authentication Strategies
 

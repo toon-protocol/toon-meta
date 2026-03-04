@@ -1,5 +1,12 @@
 ---
-stepsCompleted: ['step-01-detect-mode', 'step-02-load-context', 'step-03-risk-and-testability', 'step-04-coverage-plan', 'step-05-generate-output']
+stepsCompleted:
+  [
+    'step-01-detect-mode',
+    'step-02-load-context',
+    'step-03-risk-and-testability',
+    'step-04-coverage-plan',
+    'step-05-generate-output',
+  ]
 lastStep: 'step-05-generate-output'
 lastSaved: '2026-03-04'
 ---
@@ -35,13 +42,13 @@ lastSaved: '2026-03-04'
 
 ## Not in Scope
 
-| Item | Reasoning | Mitigation |
-|------|-----------|------------|
-| **Epic 2 Town handlers** | SDK validation happens in Epic 2 | Covered by Epic 2 test design |
-| **Epic 3 Rig/NIP-34** | Different epic, different handlers | Covered by Epic 3 test design |
+| Item                         | Reasoning                                                   | Mitigation                                                     |
+| ---------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------- |
+| **Epic 2 Town handlers**     | SDK validation happens in Epic 2                            | Covered by Epic 2 test design                                  |
+| **Epic 3 Rig/NIP-34**        | Different epic, different handlers                          | Covered by Epic 3 test design                                  |
 | **E2E against genesis node** | SDK doesn't deploy standalone; validated via Town in Epic 2 | `genesis-bootstrap-with-channels.test.ts` remains the E2E gate |
-| **Performance/load testing** | No SLA targets defined for SDK internals | Monitor pipeline latency in integration tests |
-| **Multi-node peering** | Requires deploy-peers.sh infrastructure | Deferred to Epic 2 E2E |
+| **Performance/load testing** | No SLA targets defined for SDK internals                    | Monitor pipeline latency in integration tests                  |
+| **Multi-node peering**       | Requires deploy-peers.sh infrastructure                     | Deferred to Epic 2 E2E                                         |
 
 ---
 
@@ -49,30 +56,30 @@ lastSaved: '2026-03-04'
 
 ### High-Priority Risks (Score >=6)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
-|---------|----------|-------------|-------------|--------|-------|------------|-------|----------|
-| E1-R001 | TECH | TOON pipeline stage ordering — shallow parse → verify → price → dispatch is a correctness invariant. Stage reordering causes verify-after-decode (trusts decode) or price-before-verify (pays for forged events). | 3 | 3 | 9 | Integration test asserts stage ordering: inject invalid sig → handler never invoked; inject underpaid → rejection includes verify trace | Dev | Story 1.7 |
-| E1-R002 | SEC | Schnorr verification devMode leakage — if devMode defaults to true or can be set via env var, production skips all signature verification. | 2 | 3 | 6 | Unit test: devMode unset → defaults false → invalid sig → F06; no env var override path in code | Dev | Story 1.4 |
-| E1-R003 | TECH | TOON codec extraction regression — moving encoder/decoder from BLS to core breaks encode/decode roundtrip. Shallow parser introduces new failure surface. | 2 | 3 | 6 | Roundtrip tests in @crosstown/core using real TOON codec; run full `pnpm -r test` after move | Dev | Story 1.0 |
-| E1-R004 | SEC | BIP-39/NIP-06 key derivation interop — derived keys from @scure/bip39+bip32 may be incompatible with nostr-tools Schnorr verification or viem EVM address derivation. | 2 | 3 | 6 | Cross-library validation: derive key → sign with nostr-tools → verify with nostr-tools; derive same key → compute EVM address → verify with viem | Dev | Story 1.1 |
-| E1-R005 | TECH | PaymentHandler bridge transit semantics — swapped isTransit flag causes fire-and-forget when await is needed (data loss) or await when fire-and-forget is needed (forwarding block). | 2 | 3 | 6 | Unit test both paths: isTransit=true returns immediately (handler still running); isTransit=false waits for handler result | Dev | Story 1.6 |
+| Risk ID | Category | Description                                                                                                                                                                                                       | Probability | Impact | Score | Mitigation                                                                                                                                       | Owner | Timeline  |
+| ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----- | --------- |
+| E1-R001 | TECH     | TOON pipeline stage ordering — shallow parse → verify → price → dispatch is a correctness invariant. Stage reordering causes verify-after-decode (trusts decode) or price-before-verify (pays for forged events). | 3           | 3      | 9     | Integration test asserts stage ordering: inject invalid sig → handler never invoked; inject underpaid → rejection includes verify trace          | Dev   | Story 1.7 |
+| E1-R002 | SEC      | Schnorr verification devMode leakage — if devMode defaults to true or can be set via env var, production skips all signature verification.                                                                        | 2           | 3      | 6     | Unit test: devMode unset → defaults false → invalid sig → F06; no env var override path in code                                                  | Dev   | Story 1.4 |
+| E1-R003 | TECH     | TOON codec extraction regression — moving encoder/decoder from BLS to core breaks encode/decode roundtrip. Shallow parser introduces new failure surface.                                                         | 2           | 3      | 6     | Roundtrip tests in @crosstown/core using real TOON codec; run full `pnpm -r test` after move                                                     | Dev   | Story 1.0 |
+| E1-R004 | SEC      | BIP-39/NIP-06 key derivation interop — derived keys from @scure/bip39+bip32 may be incompatible with nostr-tools Schnorr verification or viem EVM address derivation.                                             | 2           | 3      | 6     | Cross-library validation: derive key → sign with nostr-tools → verify with nostr-tools; derive same key → compute EVM address → verify with viem | Dev   | Story 1.1 |
+| E1-R005 | TECH     | PaymentHandler bridge transit semantics — swapped isTransit flag causes fire-and-forget when await is needed (data loss) or await when fire-and-forget is needed (forwarding block).                              | 2           | 3      | 6     | Unit test both paths: isTransit=true returns immediately (handler still running); isTransit=false waits for handler result                       | Dev   | Story 1.6 |
 
 ### Medium-Priority Risks (Score 3-4)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
-|---------|----------|-------------|-------------|--------|-------|------------|-------|
-| E1-R006 | TECH | ConnectorNodeLike structural drift — connector API changes break SDK at runtime with no compile error | 2 | 2 | 4 | Integration test matching structural type against real ConnectorNode | Dev |
-| E1-R007 | BUS | Self-write pricing bypass format mismatch — hex pubkey vs npub format breaks free self-write | 1 | 3 | 3 | Unit test with both pubkey formats; normalize to hex internally | Dev |
-| E1-R008 | TECH | Handler exception propagation — unhandled async errors in handlers leak instead of producing T00 | 2 | 2 | 4 | Integration test: handler throws → T00 response returned, no unhandled rejection | Dev |
-| E1-R009 | DATA | Shallow parse field extraction — parser extracts wrong byte offsets for id/pubkey/sig from TOON binary format | 1 | 3 | 3 | Unit test with known TOON payloads; verify each field matches full decode | Dev |
+| Risk ID | Category | Description                                                                                                   | Probability | Impact | Score | Mitigation                                                                       | Owner |
+| ------- | -------- | ------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | -------------------------------------------------------------------------------- | ----- |
+| E1-R006 | TECH     | ConnectorNodeLike structural drift — connector API changes break SDK at runtime with no compile error         | 2           | 2      | 4     | Integration test matching structural type against real ConnectorNode             | Dev   |
+| E1-R007 | BUS      | Self-write pricing bypass format mismatch — hex pubkey vs npub format breaks free self-write                  | 1           | 3      | 3     | Unit test with both pubkey formats; normalize to hex internally                  | Dev   |
+| E1-R008 | TECH     | Handler exception propagation — unhandled async errors in handlers leak instead of producing T00              | 2           | 2      | 4     | Integration test: handler throws → T00 response returned, no unhandled rejection | Dev   |
+| E1-R009 | DATA     | Shallow parse field extraction — parser extracts wrong byte offsets for id/pubkey/sig from TOON binary format | 1           | 3      | 3     | Unit test with known TOON payloads; verify each field matches full decode        | Dev   |
 
 ### Low-Priority Risks (Score 1-2)
 
-| Risk ID | Category | Description | Probability | Impact | Score | Action |
-|---------|----------|-------------|-------------|--------|-------|--------|
-| E1-R010 | OPS | Lifecycle start/stop race conditions — double start or stop during bootstrap | 1 | 2 | 2 | Monitor |
-| E1-R011 | OPS | Package ESM export configuration — wrong module resolution for consumers | 1 | 1 | 1 | Monitor |
-| E1-R012 | BUS | kindPricing map type coercion — number keys vs string keys in Map | 1 | 2 | 2 | Monitor |
+| Risk ID | Category | Description                                                                  | Probability | Impact | Score | Action  |
+| ------- | -------- | ---------------------------------------------------------------------------- | ----------- | ------ | ----- | ------- |
+| E1-R010 | OPS      | Lifecycle start/stop race conditions — double start or stop during bootstrap | 1           | 2      | 2     | Monitor |
+| E1-R011 | OPS      | Package ESM export configuration — wrong module resolution for consumers     | 1           | 1      | 1     | Monitor |
+| E1-R012 | BUS      | kindPricing map type coercion — number keys vs string keys in Map            | 1           | 2      | 2     | Monitor |
 
 ### Risk Category Legend
 
@@ -98,7 +105,7 @@ lastSaved: '2026-03-04'
 - [ ] All P0 tests passing (51 tests — 100% required)
 - [ ] All P1 tests passing (27 tests — or failures triaged with waivers)
 - [ ] No open high-priority risks (E1-R001 through E1-R005) unmitigated
-- [ ] >80% line coverage for public APIs (NFR-SDK-3)
+- [ ] > 80% line coverage for public APIs (NFR-SDK-3)
 - [ ] Integration test proves full pipeline: TOON → parse → verify → price → dispatch → accept/reject
 - [ ] All existing BLS + relay tests pass after TOON codec extraction
 
@@ -110,15 +117,15 @@ lastSaved: '2026-03-04'
 
 **Criteria**: Core SDK pipeline + High risk (>=6) + No workaround
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-|-------------|-----------|-----------|------------|-------|-------|
-| FR-SDK-NEW-1: Identity from seed phrase | Unit (real crypto) | E1-R004 | 11 | Dev | Real @scure/bip39+bip32, cross-verify with nostr-tools |
-| FR-SDK-2: Handler registry routing | Unit | — | 5 | Dev | Kind dispatch, default fallback, F00 on no match |
-| FR-SDK-3/7: HandlerContext TOON passthrough | Unit | E1-R009 | 7 | Dev | Raw TOON, lazy decode caching, accept/reject format |
-| FR-SDK-4: Schnorr verification pipeline | Unit (real crypto) | E1-R002 | 4 | Dev | Real nostr-tools Schnorr, devMode enforcement |
-| FR-SDK-5: Pricing validation | Unit | E1-R007 | 6 | Dev | Per-byte, per-kind, self-write bypass, F04 rejection |
-| FR-SDK-1/10/11: createNode composition | Integration | E1-R001 | 13 | Dev | Full pipeline integration with real TOON codec |
-| FR-SDK-0: TOON codec extraction | Unit | E1-R003 | 5 | Dev | Roundtrip encode/decode, shallow parse |
+| Requirement                                 | Test Level         | Risk Link | Test Count | Owner | Notes                                                  |
+| ------------------------------------------- | ------------------ | --------- | ---------- | ----- | ------------------------------------------------------ |
+| FR-SDK-NEW-1: Identity from seed phrase     | Unit (real crypto) | E1-R004   | 11         | Dev   | Real @scure/bip39+bip32, cross-verify with nostr-tools |
+| FR-SDK-2: Handler registry routing          | Unit               | —         | 5          | Dev   | Kind dispatch, default fallback, F00 on no match       |
+| FR-SDK-3/7: HandlerContext TOON passthrough | Unit               | E1-R009   | 7          | Dev   | Raw TOON, lazy decode caching, accept/reject format    |
+| FR-SDK-4: Schnorr verification pipeline     | Unit (real crypto) | E1-R002   | 4          | Dev   | Real nostr-tools Schnorr, devMode enforcement          |
+| FR-SDK-5: Pricing validation                | Unit               | E1-R007   | 6          | Dev   | Per-byte, per-kind, self-write bypass, F04 rejection   |
+| FR-SDK-1/10/11: createNode composition      | Integration        | E1-R001   | 13         | Dev   | Full pipeline integration with real TOON codec         |
+| FR-SDK-0: TOON codec extraction             | Unit               | E1-R003   | 5          | Dev   | Roundtrip encode/decode, shallow parse                 |
 
 **Total P0**: 51 tests, ~22-33 hours
 
@@ -126,12 +133,12 @@ lastSaved: '2026-03-04'
 
 **Criteria**: Important features + Medium risk (3-4) + Common workflows
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-|-------------|-----------|-----------|------------|-------|-------|
-| FR-SDK-0: TOON codec re-exports and edge cases | Unit | E1-R003 | 3 | Dev | Index re-exports, unicode handling |
-| FR-SDK-6: PaymentHandler bridge transit | Unit | E1-R005 | 3 | Dev | isTransit fire-and-forget vs await, exception → T00 |
-| FR-SDK-9: Network discovery & bootstrap | Integration | E1-R006 | 8 | Dev | Real BootstrapService, RelayMonitor, Anvil for channels |
-| FR-SDK-NEW-1: Identity edge cases | Unit (real crypto) | — | 4 | Dev | 24-word mnemonic, consecutive calls, default index |
+| Requirement                                    | Test Level         | Risk Link | Test Count | Owner | Notes                                                   |
+| ---------------------------------------------- | ------------------ | --------- | ---------- | ----- | ------------------------------------------------------- |
+| FR-SDK-0: TOON codec re-exports and edge cases | Unit               | E1-R003   | 3          | Dev   | Index re-exports, unicode handling                      |
+| FR-SDK-6: PaymentHandler bridge transit        | Unit               | E1-R005   | 3          | Dev   | isTransit fire-and-forget vs await, exception → T00     |
+| FR-SDK-9: Network discovery & bootstrap        | Integration        | E1-R006   | 8          | Dev   | Real BootstrapService, RelayMonitor, Anvil for channels |
+| FR-SDK-NEW-1: Identity edge cases              | Unit (real crypto) | —         | 4          | Dev   | 24-word mnemonic, consecutive calls, default index      |
 
 **Total P1**: 18 tests (revised from ATDD 27 to avoid double-counting P0), ~8-16 hours
 
@@ -139,10 +146,10 @@ lastSaved: '2026-03-04'
 
 **Criteria**: Secondary features + Low risk (1-2) + Edge cases
 
-| Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
-|-------------|-----------|-----------|------------|-------|-------|
-| FR-SDK-8: Connector direct methods | Unit | E1-R006 | 4 | Dev | registerPeer, removePeer, channelClient nullable |
-| FR-SDK-12: Dev mode | Unit | — | 5 | Dev | Bypass verification, pricing; verbose logging |
+| Requirement                        | Test Level | Risk Link | Test Count | Owner | Notes                                            |
+| ---------------------------------- | ---------- | --------- | ---------- | ----- | ------------------------------------------------ |
+| FR-SDK-8: Connector direct methods | Unit       | E1-R006   | 4          | Dev   | registerPeer, removePeer, channelClient nullable |
+| FR-SDK-12: Dev mode                | Unit       | —         | 5          | Dev   | Bypass verification, pricing; verbose logging    |
 
 **Total P2**: 9 tests, ~2-5 hours
 
@@ -150,9 +157,9 @@ lastSaved: '2026-03-04'
 
 **Criteria**: Nice-to-have + Package setup
 
-| Requirement | Test Level | Test Count | Owner | Notes |
-|-------------|-----------|------------|-------|-------|
-| FR-SDK-13: Package exports | Unit | 9 | Dev | Import verification for all public APIs |
+| Requirement                | Test Level | Test Count | Owner | Notes                                   |
+| -------------------------- | ---------- | ---------- | ----- | --------------------------------------- |
+| FR-SDK-13: Package exports | Unit       | 9          | Dev   | Import verification for all public APIs |
 
 **Total P3**: 9 tests, ~1-2 hours
 
@@ -211,13 +218,13 @@ lastSaved: '2026-03-04'
 
 ### Test Development Effort
 
-| Priority | Count | Hours/Test | Total Hours | Notes |
-|----------|-------|-----------|-------------|-------|
-| P0 | 51 | 0.5 | ~25 | Real crypto setup overhead |
-| P1 | 18 | 0.75 | ~14 | Integration with local infra |
-| P2 | 9 | 0.5 | ~5 | Standard unit tests |
-| P3 | 9 | 0.25 | ~2 | Import verification |
-| **Total** | **87** | **—** | **~46** | **~6 days** |
+| Priority  | Count  | Hours/Test | Total Hours | Notes                        |
+| --------- | ------ | ---------- | ----------- | ---------------------------- |
+| P0        | 51     | 0.5        | ~25         | Real crypto setup overhead   |
+| P1        | 18     | 0.75       | ~14         | Integration with local infra |
+| P2        | 9      | 0.5        | ~5          | Standard unit tests          |
+| P3        | 9      | 0.25       | ~2          | Import verification          |
+| **Total** | **87** | **—**      | **~46**     | **~6 days**                  |
 
 ### Prerequisites
 
@@ -264,7 +271,7 @@ lastSaved: '2026-03-04'
 - [ ] All P0 tests pass
 - [ ] No high-risk (>=6) items unmitigated
 - [ ] Full pipeline integration test passes (TOON → parse → verify → price → dispatch → accept/reject)
-- [ ] Cross-library key derivation validated (nostr-tools + @scure/* + viem)
+- [ ] Cross-library key derivation validated (nostr-tools + @scure/\* + viem)
 - [ ] devMode defaults to false with no env var override
 - [ ] All existing BLS + relay tests pass after TOON codec extraction
 
@@ -275,6 +282,7 @@ lastSaved: '2026-03-04'
 ### E1-R001: TOON Pipeline Stage Ordering (Score: 9) - CRITICAL
 
 **Mitigation Strategy:**
+
 1. Document pipeline invariant in architecture: `shallow parse → Schnorr verify → pricing validate → handler dispatch`
 2. Integration test: inject invalid signature → handler is NEVER invoked (verify runs before dispatch)
 3. Integration test: inject underpaid valid event → F04 rejection includes amount metadata (price runs after verify)
@@ -288,6 +296,7 @@ lastSaved: '2026-03-04'
 ### E1-R002: Schnorr Verification devMode Leakage (Score: 6)
 
 **Mitigation Strategy:**
+
 1. `devMode` property defaults to `false` in NodeConfig
 2. No environment variable reads for devMode — config-only
 3. Unit test: unset devMode + invalid sig → F06 rejection, handler never called
@@ -300,6 +309,7 @@ lastSaved: '2026-03-04'
 ### E1-R003: TOON Codec Extraction Regression (Score: 6)
 
 **Mitigation Strategy:**
+
 1. Roundtrip tests in `packages/core/src/toon/toon-codec.test.ts` — encode → decode → bit-exact match
 2. Shallow parse test validates field extraction against full decode
 3. Run `pnpm -r test` after codec move — zero regressions in BLS + relay
@@ -312,6 +322,7 @@ lastSaved: '2026-03-04'
 ### E1-R004: BIP-39/NIP-06 Key Derivation Interop (Score: 6)
 
 **Mitigation Strategy:**
+
 1. Derive key from known test mnemonic (`abandon` vector)
 2. Sign event with derived key using nostr-tools → verify succeeds
 3. Derive EVM address from same key → matches expected address
@@ -325,6 +336,7 @@ lastSaved: '2026-03-04'
 ### E1-R005: PaymentHandler Bridge Transit Semantics (Score: 6)
 
 **Mitigation Strategy:**
+
 1. Unit test isTransit=true: bridge returns BEFORE handler resolves (fire-and-forget)
 2. Unit test isTransit=false: bridge returns AFTER handler resolves (await semantics)
 3. Unit test handler exception: T00 response returned, no unhandled rejection
@@ -362,13 +374,13 @@ lastSaved: '2026-03-04'
 
 ## Interworking & Regression
 
-| Service/Component | Impact | Regression Scope |
-|-------------------|--------|------------------|
-| **@crosstown/bls** | Import path changes after TOON codec extraction | All existing BLS tests must pass |
-| **@crosstown/relay** | Import path changes if relay references TOON codec | All existing relay tests must pass |
-| **@crosstown/core** | New toon/ module added | Existing core tests must pass; new TOON tests added |
+| Service/Component        | Impact                                             | Regression Scope                                                         |
+| ------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| **@crosstown/bls**       | Import path changes after TOON codec extraction    | All existing BLS tests must pass                                         |
+| **@crosstown/relay**     | Import path changes if relay references TOON codec | All existing relay tests must pass                                       |
+| **@crosstown/core**      | New toon/ module added                             | Existing core tests must pass; new TOON tests added                      |
 | **@crosstown/connector** | SDK's PaymentHandler bridge consumes connector API | Connector tests unaffected; SDK integration tests validate compatibility |
-| **@crosstown/client** | No direct impact | Existing E2E tests remain unchanged |
+| **@crosstown/client**    | No direct impact                                   | Existing E2E tests remain unchanged                                      |
 
 ---
 
@@ -384,9 +396,9 @@ lastSaved: '2026-03-04'
 
 **Test Design Approved By:**
 
-- [ ] Product Manager: Jonathan Date: ___
-- [ ] Tech Lead: ___ Date: ___
-- [ ] QA Lead: ___ Date: ___
+- [ ] Product Manager: Jonathan Date: \_\_\_
+- [ ] Tech Lead: **_ Date: _**
+- [ ] QA Lead: **_ Date: _**
 
 **Comments:**
 

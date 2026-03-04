@@ -14,6 +14,7 @@ Successfully diagnosed and fixed payment channel initialization in the multi-pee
 The connector v1.19.1 was using **different environment variable names** than what was configured:
 
 #### ❌ Wrong Env Vars (Original)
+
 ```bash
 BASE_ENABLED=true
 BASE_RPC_URL=http://anvil:8545
@@ -23,6 +24,7 @@ BASE_PRIVATE_KEY=0xac09...
 ```
 
 #### ✅ Correct Env Vars (Fixed)
+
 ```bash
 SETTLEMENT_ENABLED=true              # not BASE_ENABLED
 BASE_L2_RPC_URL=http://anvil:8545   # not BASE_RPC_URL
@@ -45,6 +47,7 @@ TREASURY_EVM_PRIVATE_KEY=0xac09...  # not BASE_PRIVATE_KEY
 ### ✅ What's Working
 
 **Payment Channel Infrastructure**
+
 - ✅ All 4 peers have payment channel SDK initialized
 - ✅ Channel Manager running on all connectors
 - ✅ Contract addresses configured:
@@ -52,12 +55,14 @@ TREASURY_EVM_PRIVATE_KEY=0xac09...  # not BASE_PRIVATE_KEY
   - **Token Network Registry**: `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512`
 
 **Packet Delivery**
+
 - ✅ **180/180 packets delivered** (100% success rate)
 - ✅ **6 routes tested** (peer1↔peer2, peer2↔peer3, peer3↔peer4)
 - ✅ **18,000 units transferred**
 - ✅ Zero packet failures
 
 **Settlement State Tracking**
+
 - ✅ Settlement states visible for all peers
 - ✅ Accounts showing "IDLE" state (ready for transactions)
 - ✅ TigerBeetle accounting infrastructure initialized
@@ -88,17 +93,17 @@ TREASURY_EVM_PRIVATE_KEY=0xac09...  # not BASE_PRIVATE_KEY
 ### Environment Variables (All Peers)
 
 ```yaml
-SETTLEMENT_ENABLED: "true"
+SETTLEMENT_ENABLED: 'true'
 BASE_L2_RPC_URL: http://anvil:8545
 TOKEN_NETWORK_REGISTRY: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 M2M_TOKEN_ADDRESS: 0x5FbDB2315678afecb367f032d93F642f64180aa3
 TREASURY_EVM_PRIVATE_KEY: <unique-per-peer>
 
 # Peer address mapping
-PEER1_EVM_ADDRESS: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
-PEER2_EVM_ADDRESS: "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
-PEER3_EVM_ADDRESS: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
-PEER4_EVM_ADDRESS: "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
+PEER1_EVM_ADDRESS: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
+PEER2_EVM_ADDRESS: '0x90F79bf6EB2c4f870365E785982E1f101E93b906'
+PEER3_EVM_ADDRESS: '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65'
+PEER4_EVM_ADDRESS: '0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc'
 ```
 
 ### Connector Config (connector-config-peer.yaml)
@@ -177,13 +182,13 @@ cast logs --address 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 \
 
 ## 🎯 Success Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Payment Channel Init | 4 peers | 4 peers | ✅ |
-| Packet Delivery | 100% | 100% (180/180) | ✅ |
-| Settlement Tracking | Enabled | Enabled | ✅ |
-| Blockchain Connected | Yes | Yes (Anvil) | ✅ |
-| Contract Deployment | Success | Success | ✅ |
+| Metric               | Target  | Actual         | Status |
+| -------------------- | ------- | -------------- | ------ |
+| Payment Channel Init | 4 peers | 4 peers        | ✅     |
+| Packet Delivery      | 100%    | 100% (180/180) | ✅     |
+| Settlement Tracking  | Enabled | Enabled        | ✅     |
+| Blockchain Connected | Yes     | Yes (Anvil)    | ✅     |
+| Contract Deployment  | Success | Success        | ✅     |
 
 ---
 
@@ -224,6 +229,7 @@ open http://localhost:3014  # Peer 4
 **Payment channels are now fully initialized and ready for settlement testing!**
 
 The multi-peer Crosstown network is operational with:
+
 - ✅ Payment channel infrastructure active
 - ✅ Settlement state tracking working
 - ✅ Packet delivery at 100% success rate

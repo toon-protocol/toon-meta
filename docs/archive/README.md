@@ -59,6 +59,7 @@ The following features were **documented but never implemented**:
 **Current Mission:** Crosstown is a **protocol library** for ILP-gated Nostr relays with peer discovery, SPSP negotiation, and bootstrap services. The core functionality is complete and published to npm.
 
 **Future Consideration:** These documents may be valuable for:
+
 - Future projects that want to build on Crosstown's foundation
 - Reference implementations of advanced Nostr+ILP patterns
 - Understanding the original vision and potential expansion paths

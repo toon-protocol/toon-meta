@@ -1,26 +1,32 @@
 # Payment Channels Not Working - Root Cause & Fix
 
 ## Problem Summary
+
 Payment channels and settlement infrastructure are **NOT enabled** even though auto-deployment is configured.
 
 ## Root Causes
 
 ### 1. Contract Deployer Issues
+
 - **Volume mounted as read-only** (`:ro`) - forge can't write broadcast artifacts
 - **Fails silently** - exits with code 0 but produces no output
 - **Path issue** - `../connector/packages/contracts` may not resolve correctly
 
 ### 2. Anvil State Loss
+
 - Anvil is **ephemeral** - loses all state on restart
 - Contracts deployed successfully earlier but lost when Anvil restarted
 - Need persistent state or auto-redeploy
 
 ### 3. Missing Environment Variables
+
 Even if contracts deploy successfully, the connector and crosstown don't know the addresses:
+
 - `BASE_TOKEN_ADDRESS` not set
 - `BASE_REGISTRY_ADDRESS` (TokenNetwork address) not set
 
 ## Deployed Contract Addresses (From Last Successful Deployment)
+
 ```
 AGENT Token (MockERC20):  0x5FbDB2315678afecb367f032d93F642f64180aa3
 TokenNetwork:             0xe7f1725e7734ce288f8367e1bb143e90bb3f0512
@@ -31,30 +37,30 @@ TokenNetwork:             0xe7f1725e7734ce288f8367e1bb143e90bb3f0512
 ### Fix 1: Update docker-compose-with-local.yml
 
 ```yaml
-  contract-deployer:
-    image: ghcr.io/foundry-rs/foundry:latest
-    container_name: crosstown-contract-deployer
-    working_dir: /contracts
-    environment:
-      BASE_RPC_URL: http://anvil:8545
-    volumes:
-      # FIX: Remove :ro to allow writing broadcast artifacts
-      - /Users/jonathangreen/Documents/connector/packages/contracts:/contracts
-    networks:
-      - crosstown-network
-    depends_on:
-      anvil:
-        condition: service_healthy
-    command: >
-      sh -c '
-        echo "Deploying contracts to local Anvil...";
-        forge script script/DeployLocal.s.sol:DeployLocalScript --rpc-url http://anvil:8545 --broadcast;
-        echo "";
-        echo "=== DEPLOYMENT COMPLETE ===";
-        cat broadcast/DeployLocal.s.sol/31337/run-latest.json | grep -A1 "AGENT_TOKEN_ADDRESS\\|TOKEN_NETWORK_ADDRESS" || echo "Check logs for addresses";
-        echo "====================================";
-      '
-    restart: "no"
+contract-deployer:
+  image: ghcr.io/foundry-rs/foundry:latest
+  container_name: crosstown-contract-deployer
+  working_dir: /contracts
+  environment:
+    BASE_RPC_URL: http://anvil:8545
+  volumes:
+    # FIX: Remove :ro to allow writing broadcast artifacts
+    - /Users/jonathangreen/Documents/connector/packages/contracts:/contracts
+  networks:
+    - crosstown-network
+  depends_on:
+    anvil:
+      condition: service_healthy
+  command: >
+    sh -c '
+      echo "Deploying contracts to local Anvil...";
+      forge script script/DeployLocal.s.sol:DeployLocalScript --rpc-url http://anvil:8545 --broadcast;
+      echo "";
+      echo "=== DEPLOYMENT COMPLETE ===";
+      cat broadcast/DeployLocal.s.sol/31337/run-latest.json | grep -A1 "AGENT_TOKEN_ADDRESS\\|TOKEN_NETWORK_ADDRESS" || echo "Check logs for addresses";
+      echo "====================================";
+    '
+  restart: 'no'
 ```
 
 ### Fix 2: Extract and Set Contract Addresses
@@ -79,18 +85,18 @@ docker logs crosstown-contract-deployer 2>&1 | grep "deployed to"
 Update docker-compose-with-local.yml:
 
 ```yaml
-  connector:
-    environment:
-      BASE_TOKEN_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
-      BASE_REGISTRY_ADDRESS: "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512"
-      # ... other env vars
+connector:
+  environment:
+    BASE_TOKEN_ADDRESS: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+    BASE_REGISTRY_ADDRESS: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512'
+    # ... other env vars
 
-  crosstown:
-    environment:
-      # If crosstown needs these too
-      BASE_TOKEN_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
-      BASE_REGISTRY_ADDRESS: "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512"
-      # ... other env vars
+crosstown:
+  environment:
+    # If crosstown needs these too
+    BASE_TOKEN_ADDRESS: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+    BASE_REGISTRY_ADDRESS: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512'
+    # ... other env vars
 ```
 
 ## Quick Fix (Manual Deployment)
@@ -136,18 +142,30 @@ docker logs crosstown-connector 2>&1 | grep -i "base\|token\|registry"
 ## Long-term Solution
 
 **Option A**: Use Anvil with persistent state
+
 ```yaml
 anvil:
-  command: ["anvil", "--host", "0.0.0.0", "--state", "/data/anvil-state.json", "--state-interval", "10"]
+  command:
+    [
+      'anvil',
+      '--host',
+      '0.0.0.0',
+      '--state',
+      '/data/anvil-state.json',
+      '--state-interval',
+      '10',
+    ]
   volumes:
     - anvil-data:/data
 ```
 
 **Option B**: Auto-deploy on every startup
+
 - Remove `:ro` from deployer volume
 - Add init container or startup script to connector that waits for contracts
 - Parse deployment addresses automatically and set env vars
 
 **Option C**: Use deterministic deployment
+
 - Deploy with CREATE2 for deterministic addresses
 - Hard-code known addresses in docker-compose

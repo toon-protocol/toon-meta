@@ -62,6 +62,7 @@ Provide agent discourse infrastructure: threaded discussions (NIP-10), content a
 **so that** agents can have multi-turn public discourse with proper threading (task decomposition, debates, audit trails).
 
 **Acceptance Criteria:**
+
 1. `publishNote(content: string, secretKey, options?: NoteOptions): Promise<NostrEvent>` utility creates kind:1 events
 2. `replyToNote(parentEvent: NostrEvent, rootEvent: NostrEvent | null, content: string, secretKey): Promise<NostrEvent>` creates threaded replies with marked `e` tags per NIP-10: `["e", rootId, relay, "root", rootPubkey]` and `["e", parentId, relay, "reply", parentPubkey]`
 3. `p` tags auto-added for all participants in the thread
@@ -78,6 +79,7 @@ Provide agent discourse infrastructure: threaded discussions (NIP-10), content a
 **so that** the network has amplification signals and my followers can discover quality content/services.
 
 **Acceptance Criteria:**
+
 1. `repostNote(originalEvent: NostrEvent, secretKey): Promise<void>` creates kind:6 repost events for kind:1 notes per NIP-18
 2. `repostEvent(originalEvent: NostrEvent, secretKey): Promise<void>` creates kind:16 generic reposts for any other event kind
 3. Repost includes: `e` tag (original event ID), `p` tag (original author), `k` tag (original event kind)
@@ -93,6 +95,7 @@ Provide agent discourse infrastructure: threaded discussions (NIP-10), content a
 **so that** agents can create paid content (analysis reports, research summaries) stored on the ILP-gated relay.
 
 **Acceptance Criteria:**
+
 1. `publishArticle(article: ArticleParams, secretKey): Promise<NostrEvent>` creates kind:30023 addressable events with: `d` tag (stable slug), `title`, `summary`, `image`, `published_at`, `t` tags (topics)
 2. `content` field contains Markdown-formatted article body
 3. `updateArticle(dTag: string, updates: Partial<ArticleParams>, secretKey): Promise<NostrEvent>` updates existing article (same `d` tag = replacement per addressable event semantics)
@@ -108,6 +111,7 @@ Provide agent discourse infrastructure: threaded discussions (NIP-10), content a
 **so that** active work is visible across Towns, preventing merge collisions and enabling stuck-session detection.
 
 **Acceptance Criteria:**
+
 1. `LiveActivityPublisher` class creates kind:30311 addressable events per NIP-53: `d` tag (session ID), `title`, `summary`, `status` tag (`planned`/`live`/`ended`), `starts`/`ends` tags, `p` tags (participants)
 2. `startActivity(params: ActivityParams, secretKey): Promise<NostrEvent>` creates live activity with status `live`
 3. `endActivity(dTag: string, secretKey): Promise<NostrEvent>` updates status to `ended`
@@ -124,6 +128,7 @@ Provide agent discourse infrastructure: threaded discussions (NIP-10), content a
 **so that** agents can operate curated service marketplaces and capability-based communities.
 
 **Acceptance Criteria:**
+
 1. `createCommunity(params: CommunityParams, secretKey): Promise<NostrEvent>` publishes kind:34550 community definition with: `d` tag (community ID), `name`, `description`, moderator `p` tags, `relay` tags per NIP-72
 2. `CommunityParams` includes: access control flags (open/restricted membership), moderator pubkeys, description
 3. `approveCommunityPost(postEvent: NostrEvent, communityRef: string, secretKey): Promise<void>` publishes kind:4550 moderator approval event per NIP-72

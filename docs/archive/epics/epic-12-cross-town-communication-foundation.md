@@ -23,7 +23,6 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 ### Enhancement Details
 
 - **What's being added:** Eight NIP implementations forming the cross-Town communication layer:
-
   1. **NIP-05:** Human-readable DNS identity (`agent-alpha@agents.example.com`) on kind:0 profiles — machine and human discoverability
   2. **NIP-65:** Relay list metadata (kind:10002) so peers know which relays to query for an agent's events — multi-relay redundancy
   3. **NIP-25:** Reactions (kind:7) as the simplest post-service quality signal feeding into trust scores
@@ -67,6 +66,7 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 **so that** humans and other agents can discover and verify my agent using a human-readable identifier.
 
 **Acceptance Criteria:**
+
 1. `AgentProfileBuilder` utility created in `@crosstown/core` that constructs kind:0 metadata events
 2. Builder accepts `nip05` field (e.g., `"agent-alpha@agents.example.com"`) and includes it in kind:0 content JSON
 3. Builder also accepts `name`, `about`, `picture`, and `banner` fields per NIP-01 kind:0 spec
@@ -83,6 +83,7 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 **so that** other agents and clients know which relays to query for my events and where to send events mentioning me.
 
 **Acceptance Criteria:**
+
 1. `RelayListManager` utility created that publishes kind:10002 replaceable events
 2. Supports `read`, `write`, and unmarked (both) relay designations per NIP-65 spec
 3. `publishRelayList(relays: RelayListEntry[], secretKey): Promise<void>` publishes to all configured relays
@@ -97,6 +98,7 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 **so that** the network has lightweight quality signals that feed into trust scoring.
 
 **Acceptance Criteria:**
+
 1. `publishReaction(targetEvent: NostrEvent, content: string, secretKey): Promise<void>` utility created
 2. Supports standard reactions: `"+"` (like), `"-"` (dislike), and custom emoji strings
 3. Reaction event includes proper `e` tag (target event), `p` tag (target author), and `k` tag (target kind) per NIP-25
@@ -113,6 +115,7 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 **so that** I can retract stale service listings, malformed publications, or expired pricing.
 
 **Acceptance Criteria:**
+
 1. `requestDeletion(eventIds: string[], secretKey, reason?: string): Promise<void>` utility created
 2. Publishes kind:5 event with `e` tags referencing target events and `k` tags for target kinds per NIP-09
 3. Optional `content` field carries deletion reason
@@ -127,6 +130,7 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 **so that** the network has moderation signals that reduce trust in bad actors.
 
 **Acceptance Criteria:**
+
 1. `publishReport(targetPubkey: string, eventId: string | null, reportType: ReportType, secretKey, reason?: string): Promise<void>` utility created
 2. Supports report types: `spam`, `malware`, `impersonation`, `illegal`, `other` per NIP-56
 3. Report event (kind:1984) includes `p` tag (reported pubkey) with report type, and optional `e` tag (specific offending event)
@@ -142,6 +146,7 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 **so that** I can negotiate service terms, pricing, and SLAs privately without relay operators seeing who communicates with whom.
 
 **Acceptance Criteria:**
+
 1. `PrivateMessaging` class created with `sendDM(recipientPubkey: string, content: string, secretKey, options?: DmOptions): Promise<void>`
 2. Implements NIP-17 three-layer encryption: kind:14 (unsigned rumor) -> kind:13 seal (NIP-44 encrypted, signed by sender) -> kind:1059 gift wrap (NIP-44 encrypted, signed by random throwaway key)
 3. Gift wrap's `created_at` randomized within +/-2 days per spec (anti-correlation)
@@ -160,6 +165,7 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 **so that** key isolation is maintained in multi-agent Towns.
 
 **Acceptance Criteria:**
+
 1. `RemoteSignerDaemon` class created that listens for kind:24133 NIP-46 requests via relay
 2. Supports scoped permissions: per-kind signing allowlists (e.g., Polecat A can sign kind:1 and kind:7, but not kind:10032)
 3. Request types supported: `sign_event`, `get_public_key`, `nip44_encrypt`, `nip44_decrypt` per NIP-46 spec
@@ -177,6 +183,7 @@ Establish the communication substrate for cross-Town interaction. Agents become 
 **so that** stale data is automatically cleaned up by relays.
 
 **Acceptance Criteria:**
+
 1. `addExpiration(event: UnsignedEvent, expiresAt: number): UnsignedEvent` utility adds `expiration` tag per NIP-40
 2. `isExpired(event: NostrEvent): boolean` checks if an event's expiration tag has passed
 3. Event builders for kind:30078 (ownership claims), kind:30311 (live activities), and kind:5xxx (DVM requests) accept optional `expiresIn` parameter (seconds from now)

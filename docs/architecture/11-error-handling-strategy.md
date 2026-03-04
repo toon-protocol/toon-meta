@@ -7,28 +7,37 @@
 - **Error Propagation:** Errors thrown from library; consumers handle
 
 **Core Package (`@crosstown/core`):**
+
 ```typescript
 class CrosstownError extends Error {
-  constructor(message: string, public readonly code: string, cause?: Error) {
+  constructor(
+    message: string,
+    public readonly code: string,
+    cause?: Error
+  ) {
     super(message, { cause });
   }
 }
 
-class InvalidEventError extends CrosstownError {}      // INVALID_EVENT
-class PeerDiscoveryError extends CrosstownError {}      // PEER_DISCOVERY_FAILED
-class SpspError extends CrosstownError {}               // SPSP_FAILED
-class SpspTimeoutError extends CrosstownError {}        // SPSP_TIMEOUT
-class TrustCalculationError extends CrosstownError {}   // TRUST_CALCULATION_FAILED
+class InvalidEventError extends CrosstownError {} // INVALID_EVENT
+class PeerDiscoveryError extends CrosstownError {} // PEER_DISCOVERY_FAILED
+class SpspError extends CrosstownError {} // SPSP_FAILED
+class SpspTimeoutError extends CrosstownError {} // SPSP_TIMEOUT
+class TrustCalculationError extends CrosstownError {} // TRUST_CALCULATION_FAILED
 ```
 
 **BLS Package (`@crosstown/bls`):**
+
 ```typescript
 class BlsBaseError extends Error {
-  constructor(message: string, public code: string) {}
+  constructor(
+    message: string,
+    public code: string
+  ) {}
 }
 
-class BlsError extends BlsBaseError {}        // BLS_ERROR
-class ConfigError extends BlsBaseError {}     // CONFIG_ERROR
+class BlsError extends BlsBaseError {} // BLS_ERROR
+class ConfigError extends BlsBaseError {} // CONFIG_ERROR
 ```
 
 **ILP Error Codes (BLS):** `F00` (bad request), `F06` (insufficient amount), `T00` (internal error)

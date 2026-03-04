@@ -47,7 +47,7 @@ import type { Plugin } from '@elizaos/core';
 
 const crosstownPlugin: Plugin = {
   name: '@crosstown/elizaos-plugin',
-  dependencies: [],  // No ElizaOS plugin dependencies
+  dependencies: [], // No ElizaOS plugin dependencies
   priority: 10,
 
   init: async (config: CrosstownConfig, runtime: IAgentRuntime) => {
@@ -74,15 +74,12 @@ const crosstownPlugin: Plugin = {
   ],
 
   services: [
-    CrosstownService,        // Core lifecycle + bootstrap
-    NostrRelayService,          // Relay connection management
-    PaymentChannelService,      // Settlement channel monitoring
+    CrosstownService, // Core lifecycle + bootstrap
+    NostrRelayService, // Relay connection management
+    PaymentChannelService, // Settlement channel monitoring
   ],
 
-  evaluators: [
-    paymentOutcomeEvaluator,
-    trustEvolutionEvaluator,
-  ],
+  evaluators: [paymentOutcomeEvaluator, trustEvolutionEvaluator],
 
   events: {
     [EventType.MESSAGE_RECEIVED]: [handleIncomingSpspRequest],
@@ -93,7 +90,11 @@ const crosstownPlugin: Plugin = {
     { type: 'GET', path: '/status', handler: getNetworkStatus },
     { type: 'GET', path: '/peers', handler: getPeerList },
     { type: 'GET', path: '/trust/:pubkey', handler: getTrustScore },
-    { type: 'POST', path: '/connector/webhook', handler: handleConnectorWebhook },
+    {
+      type: 'POST',
+      path: '/connector/webhook',
+      handler: handleConnectorWebhook,
+    },
     { type: 'GET', path: '/payments', handler: getPaymentHistory },
   ],
 };
@@ -103,39 +104,39 @@ const crosstownPlugin: Plugin = {
 
 ##### Actions (6)
 
-| Action | Description | Crosstown Classes | Trigger |
-|--------|-------------|----------------------|---------|
-| `PAY` | Send ILP payment to a peer | `NostrSpspClient`, `SocialTrustManager`, `NostrPeerDiscovery` | "Pay Alice 5 USD" |
-| `REQUEST_PAYMENT` | Request payment from a peer via SPSP | `NostrSpspServer` | "Request 10 USD from Bob" |
-| `DISCOVER_PEERS` | Scan follow list for ILP-capable peers | `NostrPeerDiscovery` | "Find new payment peers" |
-| `CHECK_TRUST` | Compute and report trust score for a peer | `SocialTrustManager` | "How much do I trust Carol?" |
-| `BOOTSTRAP_NETWORK` | Trigger or restart bootstrap process | `BootstrapService` | "Bootstrap my ILP network" |
-| `PUBLISH_PEER_INFO` | Publish/update kind:10032 event | `buildIlpPeerInfoEvent` | "Update my ILP peer info" |
+| Action              | Description                               | Crosstown Classes                                             | Trigger                      |
+| ------------------- | ----------------------------------------- | ------------------------------------------------------------- | ---------------------------- |
+| `PAY`               | Send ILP payment to a peer                | `NostrSpspClient`, `SocialTrustManager`, `NostrPeerDiscovery` | "Pay Alice 5 USD"            |
+| `REQUEST_PAYMENT`   | Request payment from a peer via SPSP      | `NostrSpspServer`                                             | "Request 10 USD from Bob"    |
+| `DISCOVER_PEERS`    | Scan follow list for ILP-capable peers    | `NostrPeerDiscovery`                                          | "Find new payment peers"     |
+| `CHECK_TRUST`       | Compute and report trust score for a peer | `SocialTrustManager`                                          | "How much do I trust Carol?" |
+| `BOOTSTRAP_NETWORK` | Trigger or restart bootstrap process      | `BootstrapService`                                            | "Bootstrap my ILP network"   |
+| `PUBLISH_PEER_INFO` | Publish/update kind:10032 event           | `buildIlpPeerInfoEvent`                                       | "Update my ILP peer info"    |
 
 ##### Providers (5)
 
-| Provider | Description | Data Surfaced | Position |
-|----------|-------------|---------------|----------|
-| `trustScoreProvider` | Current trust scores for mentioned peers | Trust score breakdown, credit limits, social distance | 10 |
-| `peerStatusProvider` | Connected ILP peer status | Peer count, online/offline, last seen, asset codes | 20 |
-| `ilpBalanceProvider` | ILP connector balances | Balance per peer, pending settlements, total routing capacity | 30 |
-| `networkStatusProvider` | Bootstrap phase, relay connectivity | Current phase, connected relays, error states | 5 |
-| `paymentHistoryProvider` | Recent payment activity | Last N payments, success rate, volume by peer | 40 |
+| Provider                 | Description                              | Data Surfaced                                                 | Position |
+| ------------------------ | ---------------------------------------- | ------------------------------------------------------------- | -------- |
+| `trustScoreProvider`     | Current trust scores for mentioned peers | Trust score breakdown, credit limits, social distance         | 10       |
+| `peerStatusProvider`     | Connected ILP peer status                | Peer count, online/offline, last seen, asset codes            | 20       |
+| `ilpBalanceProvider`     | ILP connector balances                   | Balance per peer, pending settlements, total routing capacity | 30       |
+| `networkStatusProvider`  | Bootstrap phase, relay connectivity      | Current phase, connected relays, error states                 | 5        |
+| `paymentHistoryProvider` | Recent payment activity                  | Last N payments, success rate, volume by peer                 | 40       |
 
 ##### Services (3)
 
-| Service | serviceType | Description | Lifecycle |
-|---------|-------------|-------------|-----------|
-| `CrosstownService` | `'crosstown'` | Core service managing Nostr identity, bootstrap state machine, SPSP server | Starts on agent init, runs bootstrap phases, listens for SPSP requests |
-| `NostrRelayService` | `'nostr_relay'` | Manages SimplePool connections, subscription lifecycle, reconnection | Starts after CrosstownService, maintains relay connections |
-| `PaymentChannelService` | `'payment_channel'` | Monitors settlement channels, manages open/close lifecycle | Starts after bootstrap reaches `ready` phase |
+| Service                 | serviceType         | Description                                                                | Lifecycle                                                              |
+| ----------------------- | ------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `CrosstownService`      | `'crosstown'`       | Core service managing Nostr identity, bootstrap state machine, SPSP server | Starts on agent init, runs bootstrap phases, listens for SPSP requests |
+| `NostrRelayService`     | `'nostr_relay'`     | Manages SimplePool connections, subscription lifecycle, reconnection       | Starts after CrosstownService, maintains relay connections             |
+| `PaymentChannelService` | `'payment_channel'` | Monitors settlement channels, manages open/close lifecycle                 | Starts after bootstrap reaches `ready` phase                           |
 
 ##### Evaluators (2)
 
-| Evaluator | Description | When It Runs |
-|-----------|-------------|--------------|
+| Evaluator                 | Description                                                 | When It Runs               |
+| ------------------------- | ----------------------------------------------------------- | -------------------------- |
 | `paymentOutcomeEvaluator` | Assesses payment success/failure, records outcome in memory | After PAY action completes |
-| `trustEvolutionEvaluator` | Recalculates trust scores based on interaction history | After any peer interaction |
+| `trustEvolutionEvaluator` | Recalculates trust scores based on interaction history      | After any peer interaction |
 
 ##### Events (Custom)
 
@@ -159,53 +160,53 @@ declare module '@elizaos/core' {
 
 ##### Routes (5)
 
-| Method | Path | Auth | Purpose |
-|--------|------|------|---------|
-| GET | `/status` | Public | Network status, bootstrap phase, peer count |
-| GET | `/peers` | Private | Full peer list with trust scores and ILP info |
-| GET | `/trust/:pubkey` | Private | Trust score for specific peer |
-| POST | `/connector/webhook` | Private | ILP connector callbacks (payment received, balance updates) |
-| GET | `/payments` | Private | Payment history with filtering |
+| Method | Path                 | Auth    | Purpose                                                     |
+| ------ | -------------------- | ------- | ----------------------------------------------------------- |
+| GET    | `/status`            | Public  | Network status, bootstrap phase, peer count                 |
+| GET    | `/peers`             | Private | Full peer list with trust scores and ILP info               |
+| GET    | `/trust/:pubkey`     | Private | Trust score for specific peer                               |
+| POST   | `/connector/webhook` | Private | ILP connector callbacks (payment received, balance updates) |
+| GET    | `/payments`          | Private | Payment history with filtering                              |
 
 #### 1.3 Configuration Schema
 
 ```typescript
 interface CrosstownConfig {
   // Nostr Configuration
-  nostrRelays: string[];                    // Relay URLs for peer discovery
-  nostrPrivateKey?: string;                 // Override: usually from character.secrets
+  nostrRelays: string[]; // Relay URLs for peer discovery
+  nostrPrivateKey?: string; // Override: usually from character.secrets
 
   // ILP Configuration
-  ilpAddress: string;                       // Agent's ILP address (e.g., "g.agent.alice")
-  btpEndpoint: string;                      // BTP WebSocket URL for connector
-  connectorAdminUrl: string;                // ILP connector admin API URL
-  assetCode: string;                        // Default: "USD"
-  assetScale: number;                       // Default: 9
+  ilpAddress: string; // Agent's ILP address (e.g., "g.agent.alice")
+  btpEndpoint: string; // BTP WebSocket URL for connector
+  connectorAdminUrl: string; // ILP connector admin API URL
+  assetCode: string; // Default: "USD"
+  assetScale: number; // Default: 9
 
   // Settlement Configuration
-  supportedChains: string[];                // e.g., ["evm:base:8453"]
+  supportedChains: string[]; // e.g., ["evm:base:8453"]
   settlementAddresses: Record<string, string>;
   preferredTokens: Record<string, string>;
 
   // Trust Configuration
-  maxSocialDistance: number;                 // Default: 3
+  maxSocialDistance: number; // Default: 3
   trustWeights: {
-    socialDistance: number;                  // Default: 0.5
-    mutualFollowers: number;                // Default: 0.3
-    reputation: number;                     // Default: 0.2
+    socialDistance: number; // Default: 0.5
+    mutualFollowers: number; // Default: 0.3
+    reputation: number; // Default: 0.2
   };
-  creditLimitCurve: 'linear' | 'exponential';  // Default: 'linear'
-  maxCreditLimit: number;                   // Default: 1000 (in asset units)
+  creditLimitCurve: 'linear' | 'exponential'; // Default: 'linear'
+  maxCreditLimit: number; // Default: 1000 (in asset units)
 
   // Bootstrap Configuration
-  genesisFile?: string;                     // Path to genesis peer list
-  arDriveRegistry?: string;                 // ArDrive registry URL
-  autoBootstrap: boolean;                   // Default: true
+  genesisFile?: string; // Path to genesis peer list
+  arDriveRegistry?: string; // ArDrive registry URL
+  autoBootstrap: boolean; // Default: true
 
   // Operational
-  paymentConfirmationThreshold: number;     // Trust score above which payments auto-execute
-  maxPaymentAmount: number;                 // Safety limit
-  autonomousMode: boolean;                  // Enable autonomous peer management
+  paymentConfirmationThreshold: number; // Trust score above which payments auto-execute
+  maxPaymentAmount: number; // Safety limit
+  autonomousMode: boolean; // Enable autonomous peer management
 }
 ```
 
@@ -417,16 +418,16 @@ NostrRelayService routes to CrosstownService
 
 #### 2.5 State Management Design
 
-| Data | ElizaOS Location | Crosstown Location | Sync Strategy |
-|------|-----------------|----------------------|---------------|
-| Nostr keypair | `character.secrets` | N/A (derived at init) | Character is source of truth |
-| Peer list | Entity Components (`type: 'ilp-peer'`) | `NostrPeerDiscovery` cache | Sync on discovery events |
-| Trust scores | Provider (computed on-demand) | `SocialTrustManager` cache | Recompute per-request, cache in state |
-| Payment history | Memory (`tags: ['payment']`) | N/A (plugin creates) | ElizaOS Memory is source of truth |
-| Bootstrap state | Service internal state | `BootstrapService` state machine | Service wraps BootstrapService |
-| ILP balances | Provider (fetched from connector) | Connector internal | Fetched on-demand from connector API |
-| Channel state | Service internal state | `ConnectorChannelClient` | Service wraps channel client |
-| Follow graph | Relationship records | `SocialTrustManager` graph | Nostr relay is source of truth |
+| Data            | ElizaOS Location                       | Crosstown Location               | Sync Strategy                         |
+| --------------- | -------------------------------------- | -------------------------------- | ------------------------------------- |
+| Nostr keypair   | `character.secrets`                    | N/A (derived at init)            | Character is source of truth          |
+| Peer list       | Entity Components (`type: 'ilp-peer'`) | `NostrPeerDiscovery` cache       | Sync on discovery events              |
+| Trust scores    | Provider (computed on-demand)          | `SocialTrustManager` cache       | Recompute per-request, cache in state |
+| Payment history | Memory (`tags: ['payment']`)           | N/A (plugin creates)             | ElizaOS Memory is source of truth     |
+| Bootstrap state | Service internal state                 | `BootstrapService` state machine | Service wraps BootstrapService        |
+| ILP balances    | Provider (fetched from connector)      | Connector internal               | Fetched on-demand from connector API  |
+| Channel state   | Service internal state                 | `ConnectorChannelClient`         | Service wraps channel client          |
+| Follow graph    | Relationship records                   | `SocialTrustManager` graph       | Nostr relay is source of truth        |
 
 ---
 
@@ -529,25 +530,48 @@ export class CrosstownService extends Service {
 #### 3.2 PAY Action
 
 ```typescript
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from '@elizaos/core';
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from '@elizaos/core';
 
 export const payAction: Action = {
   name: 'PAY',
-  description: 'Send an ILP payment to a peer. Use when the user wants to pay someone.',
+  description:
+    'Send an ILP payment to a peer. Use when the user wants to pay someone.',
   similes: ['SEND_PAYMENT', 'TRANSFER', 'SEND_MONEY', 'PAY_PEER'],
 
   examples: [
     [
       { name: 'user', content: { text: 'Pay Alice 5 USD' } },
-      { name: 'agent', content: { text: 'I\'ll send 5 USD to Alice via ILP.', actions: ['PAY'] } },
+      {
+        name: 'agent',
+        content: {
+          text: "I'll send 5 USD to Alice via ILP.",
+          actions: ['PAY'],
+        },
+      },
     ],
     [
       { name: 'user', content: { text: 'Send 0.50 to bob@example.com' } },
-      { name: 'agent', content: { text: 'Sending 0.50 USD to bob@example.com.', actions: ['PAY'] } },
+      {
+        name: 'agent',
+        content: {
+          text: 'Sending 0.50 USD to bob@example.com.',
+          actions: ['PAY'],
+        },
+      },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State
+  ): Promise<boolean> => {
     // Check that CrosstownService is running and bootstrap is ready
     const service = runtime.getService<CrosstownService>('crosstown');
     if (!service) return false;
@@ -565,7 +589,7 @@ export const payAction: Action = {
     message: Memory,
     state: State,
     options: Record<string, unknown>,
-    callback: HandlerCallback,
+    callback: HandlerCallback
   ): Promise<void> => {
     const service = runtime.getService<CrosstownService>('crosstown');
     if (!service) {
@@ -574,31 +598,40 @@ export const payAction: Action = {
     }
 
     // 1. Parse payment intent from message
-    const { recipient, amount, currency } = parsePaymentIntent(message.content.text || '');
+    const { recipient, amount, currency } = parsePaymentIntent(
+      message.content.text || ''
+    );
     if (!recipient || !amount) {
-      await callback({ text: 'I need a recipient and amount. Example: "Pay Alice 5 USD"' });
+      await callback({
+        text: 'I need a recipient and amount. Example: "Pay Alice 5 USD"',
+      });
       return;
     }
 
     // 2. Resolve recipient to Nostr pubkey
     const pubkey = await resolveRecipient(runtime, service, recipient);
     if (!pubkey) {
-      await callback({ text: `I couldn't find "${recipient}" in my peer network. Please provide their Nostr pubkey or NIP-05 address.` });
+      await callback({
+        text: `I couldn't find "${recipient}" in my peer network. Please provide their Nostr pubkey or NIP-05 address.`,
+      });
       return;
     }
 
     // 3. Check trust score
-    const trustScore = await service.getTrustManager().getTrustScore(
-      service.getNostrPubkey(), pubkey
-    );
+    const trustScore = await service
+      .getTrustManager()
+      .getTrustScore(service.getNostrPubkey(), pubkey);
 
-    const threshold = Number(runtime.getSetting('CROSSTOWN_TRUST_THRESHOLD') || 0.5);
+    const threshold = Number(
+      runtime.getSetting('CROSSTOWN_TRUST_THRESHOLD') || 0.5
+    );
     if (trustScore.score < threshold) {
       await callback({
-        text: `Trust score for ${recipient} is ${trustScore.score.toFixed(2)} (below threshold ${threshold}). ` +
-              `Social distance: ${trustScore.socialDistance} hops, ` +
-              `${trustScore.mutualFollowerCount} mutual followers. ` +
-              `Proceed anyway?`,
+        text:
+          `Trust score for ${recipient} is ${trustScore.score.toFixed(2)} (below threshold ${threshold}). ` +
+          `Social distance: ${trustScore.socialDistance} hops, ` +
+          `${trustScore.mutualFollowerCount} mutual followers. ` +
+          `Proceed anyway?`,
       });
       // In a real implementation, this would await user confirmation
       return;
@@ -618,37 +651,53 @@ export const payAction: Action = {
       });
 
       // 6. Record payment in memory
-      await runtime.createMemory({
-        entityId: runtime.agentId,
-        roomId: message.roomId,
-        content: {
-          text: `Payment sent: ${amount} ${currency} to ${recipient}`,
-          source: 'crosstown',
-          payment: {
-            recipient, pubkey, amount, currency,
-            destination: spspInfo.destinationAccount,
-            status: result.success ? 'fulfilled' : 'rejected',
-            timestamp: Date.now(),
+      await runtime.createMemory(
+        {
+          entityId: runtime.agentId,
+          roomId: message.roomId,
+          content: {
+            text: `Payment sent: ${amount} ${currency} to ${recipient}`,
+            source: 'crosstown',
+            payment: {
+              recipient,
+              pubkey,
+              amount,
+              currency,
+              destination: spspInfo.destinationAccount,
+              status: result.success ? 'fulfilled' : 'rejected',
+              timestamp: Date.now(),
+            },
+          },
+          metadata: {
+            type: 'custom',
+            tags: ['payment', 'sent', result.success ? 'success' : 'failed'],
           },
         },
-        metadata: { type: 'custom', tags: ['payment', 'sent', result.success ? 'success' : 'failed'] },
-      }, 'memories');
+        'memories'
+      );
 
       // 7. Report result
       if (result.success) {
-        await callback({ text: `Payment of ${amount} ${currency} to ${recipient} was successful.` });
+        await callback({
+          text: `Payment of ${amount} ${currency} to ${recipient} was successful.`,
+        });
       } else {
         await callback({ text: `Payment failed: ${result.error}` });
       }
 
       // 8. Emit event for evaluators
       await runtime.emitEvent('PAYMENT_SENT' as any, {
-        runtime, source: 'crosstown',
-        recipient: pubkey, amount, currency, success: result.success,
+        runtime,
+        source: 'crosstown',
+        recipient: pubkey,
+        amount,
+        currency,
+        success: result.success,
       });
-
     } catch (error) {
-      await callback({ text: `Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}` });
+      await callback({
+        text: `Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
     }
   },
 };
@@ -657,14 +706,24 @@ export const payAction: Action = {
 #### 3.3 Trust Score Provider
 
 ```typescript
-import type { Provider, IAgentRuntime, Memory, State, ProviderResult } from '@elizaos/core';
+import type {
+  Provider,
+  IAgentRuntime,
+  Memory,
+  State,
+  ProviderResult,
+} from '@elizaos/core';
 
 export const trustScoreProvider: Provider = {
   name: 'trustScore',
   description: 'Provides trust scores for peers mentioned in the conversation',
-  position: 10,  // Run early — trust informs all payment decisions
+  position: 10, // Run early — trust informs all payment decisions
 
-  get: async (runtime: IAgentRuntime, message: Memory, state: State): Promise<ProviderResult> => {
+  get: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state: State
+  ): Promise<ProviderResult> => {
     const service = runtime.getService<CrosstownService>('crosstown');
     if (!service || service.getBootstrapPhase() !== 'ready') {
       return { text: '', values: {}, data: {} };
@@ -683,9 +742,9 @@ export const trustScoreProvider: Provider = {
       const pubkey = await resolveRecipient(runtime, service, peer);
       if (!pubkey) continue;
 
-      const score = await service.getTrustManager().getTrustScore(
-        service.getNostrPubkey(), pubkey
-      );
+      const score = await service
+        .getTrustManager()
+        .getTrustScore(service.getNostrPubkey(), pubkey);
 
       trustData[peer] = {
         score: score.score,
@@ -697,13 +756,16 @@ export const trustScoreProvider: Provider = {
 
       textParts.push(
         `Trust for ${peer}: ${(score.score * 100).toFixed(0)}% ` +
-        `(${score.socialDistance} hops, ${score.mutualFollowerCount} mutual followers, ` +
-        `credit limit: $${computeCreditLimit(score.score, runtime).toFixed(2)})`
+          `(${score.socialDistance} hops, ${score.mutualFollowerCount} mutual followers, ` +
+          `credit limit: $${computeCreditLimit(score.score, runtime).toFixed(2)})`
       );
     }
 
     return {
-      text: textParts.length > 0 ? `\n## Peer Trust Scores\n${textParts.join('\n')}` : '',
+      text:
+        textParts.length > 0
+          ? `\n## Peer Trust Scores\n${textParts.join('\n')}`
+          : '',
       values: { trustScores: trustData },
       data: { providers: { trustScore: trustData } },
     };
@@ -717,15 +779,15 @@ export const trustScoreProvider: Provider = {
 
 #### 4.1 Mapping Crosstown Phases to ElizaOS Lifecycle
 
-| Crosstown Phase | ElizaOS Stage | Integration Point |
-|---------------------|---------------|-------------------|
-| (pre-bootstrap) | `plugin.init()` | Validate config, create SimplePool |
-| (pre-bootstrap) | `Service.start()` | Load keypair, initialize subsystems |
-| Phase 1: `discovering` | Service internal | GenesisPeerLoader, ArDrive, environment scan |
-| Phase 2: `registering` | Service internal + Memory writes | Create Entity Components for each peer |
-| Phase 3: `handshaking` | Service internal + Event emissions | SPSP negotiation, channel opening |
-| Phase 4: `announcing` | Service internal | Publish kind:10032 to relays |
-| Phase 5: `ready` | Service ready signal | Other services can proceed, Actions become valid |
+| Crosstown Phase        | ElizaOS Stage                      | Integration Point                                |
+| ---------------------- | ---------------------------------- | ------------------------------------------------ |
+| (pre-bootstrap)        | `plugin.init()`                    | Validate config, create SimplePool               |
+| (pre-bootstrap)        | `Service.start()`                  | Load keypair, initialize subsystems              |
+| Phase 1: `discovering` | Service internal                   | GenesisPeerLoader, ArDrive, environment scan     |
+| Phase 2: `registering` | Service internal + Memory writes   | Create Entity Components for each peer           |
+| Phase 3: `handshaking` | Service internal + Event emissions | SPSP negotiation, channel opening                |
+| Phase 4: `announcing`  | Service internal                   | Publish kind:10032 to relays                     |
+| Phase 5: `ready`       | Service ready signal               | Other services can proceed, Actions become valid |
 
 #### 4.2 Bootstrap as Service (Recommended Approach)
 
@@ -774,6 +836,7 @@ Phase fails → BootstrapService emits error event
 ```
 
 Rationale:
+
 - `secrets` is the ElizaOS convention for sensitive configuration
 - `getSetting()` resolves secrets with highest priority from `character.secrets`
 - Secrets are masked in settings UI (`secret: true` in Setting interface)
@@ -851,13 +914,13 @@ Priority order for resolving "Alice" to a Nostr pubkey:
 
 #### 6.3 Trust Thresholds and Confirmation Logic
 
-| Trust Score | Amount | Behavior |
-|-------------|--------|----------|
-| >= threshold (0.5) | <= max | Auto-execute, report result |
-| >= threshold (0.5) | > max | Prompt for confirmation (amount exceeds safety limit) |
-| > 0, < threshold | Any | Prompt: "Trust score is low. Proceed?" |
-| == 0 | Any | Reject: "Unknown peer. Cannot route payment." |
-| Social distance > 3 | Any | Reject: "Peer is too distant in the social graph." |
+| Trust Score         | Amount | Behavior                                              |
+| ------------------- | ------ | ----------------------------------------------------- |
+| >= threshold (0.5)  | <= max | Auto-execute, report result                           |
+| >= threshold (0.5)  | > max  | Prompt for confirmation (amount exceeds safety limit) |
+| > 0, < threshold    | Any    | Prompt: "Trust score is low. Proceed?"                |
+| == 0                | Any    | Reject: "Unknown peer. Cannot route payment."         |
+| Social distance > 3 | Any    | Reject: "Peer is too distant in the social graph."    |
 
 ---
 
@@ -875,6 +938,7 @@ The `trustScoreProvider` enriches every conversation about a peer with trust dat
 #### 7.2 Trust Score in Memory
 
 Trust scores are computed on-demand (not cached in memory) because:
+
 - The Nostr social graph changes (new follows, unfollows)
 - Payment history evolves
 - Caching stale trust scores leads to incorrect decisions
@@ -883,21 +947,25 @@ However, **trust snapshots** are stored in Memory for historical analysis:
 
 ```typescript
 // After each significant interaction, record a trust snapshot
-await runtime.createMemory({
-  entityId: runtime.agentId,
-  roomId: selfRoomId,
-  content: {
-    text: `Trust snapshot for ${peerName}: ${score.score.toFixed(2)}`,
-    trustSnapshot: {
-      pubkey, score: score.score,
-      socialDistance: score.socialDistance,
-      mutualFollowers: score.mutualFollowerCount,
-      timestamp: Date.now(),
-      trigger: 'payment_completed',
+await runtime.createMemory(
+  {
+    entityId: runtime.agentId,
+    roomId: selfRoomId,
+    content: {
+      text: `Trust snapshot for ${peerName}: ${score.score.toFixed(2)}`,
+      trustSnapshot: {
+        pubkey,
+        score: score.score,
+        socialDistance: score.socialDistance,
+        mutualFollowers: score.mutualFollowerCount,
+        timestamp: Date.now(),
+        trigger: 'payment_completed',
+      },
     },
+    metadata: { type: 'custom', tags: ['trust', 'snapshot', pubkey] },
   },
-  metadata: { type: 'custom', tags: ['trust', 'snapshot', pubkey] },
-}, 'memories');
+  'memories'
+);
 ```
 
 This enables queries like: "How has my trust with Alice changed over time?"
@@ -917,15 +985,15 @@ For peers with social distance > 3 (outside the agent's trust horizon):
 
 #### 8.1 Memory Types for Payment Data
 
-| Memory Purpose | MemoryType | Tags | Content Fields |
-|---------------|-----------|------|----------------|
-| Payment sent | `custom` | `['payment', 'sent', 'success'/'failed']` | recipient, amount, currency, destination, timestamp |
-| Payment received | `custom` | `['payment', 'received']` | sender, amount, currency, timestamp |
-| Peer discovery | `custom` | `['ilp-peer', 'discovery']` | pubkey, ilpAddress, btpEndpoint, trustScore |
-| Trust snapshot | `custom` | `['trust', 'snapshot', pubkey]` | pubkey, score, socialDistance, mutualFollowers, trigger |
-| SPSP handshake | `custom` | `['spsp', 'handshake']` | pubkey, destination, settlementChain, timestamp |
-| Bootstrap event | `custom` | `['bootstrap', phase]` | phase, peerCount, error (if any) |
-| Channel state | `custom` | `['channel', 'opened'/'closed']` | channelId, peer, capacity, timestamp |
+| Memory Purpose   | MemoryType | Tags                                      | Content Fields                                          |
+| ---------------- | ---------- | ----------------------------------------- | ------------------------------------------------------- |
+| Payment sent     | `custom`   | `['payment', 'sent', 'success'/'failed']` | recipient, amount, currency, destination, timestamp     |
+| Payment received | `custom`   | `['payment', 'received']`                 | sender, amount, currency, timestamp                     |
+| Peer discovery   | `custom`   | `['ilp-peer', 'discovery']`               | pubkey, ilpAddress, btpEndpoint, trustScore             |
+| Trust snapshot   | `custom`   | `['trust', 'snapshot', pubkey]`           | pubkey, score, socialDistance, mutualFollowers, trigger |
+| SPSP handshake   | `custom`   | `['spsp', 'handshake']`                   | pubkey, destination, settlementChain, timestamp         |
+| Bootstrap event  | `custom`   | `['bootstrap', phase]`                    | phase, peerCount, error (if any)                        |
+| Channel state    | `custom`   | `['channel', 'opened'/'closed']`          | channelId, peer, capacity, timestamp                    |
 
 #### 8.2 Semantic Search over Payment History
 
@@ -958,7 +1026,7 @@ await runtime.createComponent({
     lastSeen: Date.now(),
     totalPaymentsSent: 5,
     totalPaymentsReceived: 3,
-    totalVolume: 150.00,
+    totalVolume: 150.0,
   },
 });
 ```
@@ -1012,28 +1080,37 @@ Agent A (ElizaOS instance 1): "I need to pay Agent C"
 ```typescript
 // In CrosstownService, schedule periodic trust updates
 if (config.autonomousMode) {
-  setInterval(async () => {
-    const peers = await this.peerDiscovery.discoverPeers(this.nostrKeypair.publicKey);
-
-    for (const [pubkey, peerInfo] of peers) {
-      const oldScore = cachedTrustScores.get(pubkey);
-      const newScore = await this.trustManager.getTrustScore(
-        this.nostrKeypair.publicKey, pubkey
+  setInterval(
+    async () => {
+      const peers = await this.peerDiscovery.discoverPeers(
+        this.nostrKeypair.publicKey
       );
 
-      if (oldScore && Math.abs(newScore.score - oldScore.score) > 0.1) {
-        // Significant trust change — emit event
-        await runtime.emitEvent('TRUST_SCORE_UPDATED' as any, {
-          runtime, source: 'crosstown',
-          pubkey, oldScore: oldScore.score, newScore: newScore.score,
-        });
+      for (const [pubkey, peerInfo] of peers) {
+        const oldScore = cachedTrustScores.get(pubkey);
+        const newScore = await this.trustManager.getTrustScore(
+          this.nostrKeypair.publicKey,
+          pubkey
+        );
 
-        // Adjust credit limit
-        const newLimit = computeCreditLimit(newScore.score, runtime);
-        await updatePeerCreditLimit(pubkey, newLimit);
+        if (oldScore && Math.abs(newScore.score - oldScore.score) > 0.1) {
+          // Significant trust change — emit event
+          await runtime.emitEvent('TRUST_SCORE_UPDATED' as any, {
+            runtime,
+            source: 'crosstown',
+            pubkey,
+            oldScore: oldScore.score,
+            newScore: newScore.score,
+          });
+
+          // Adjust credit limit
+          const newLimit = computeCreditLimit(newScore.score, runtime);
+          await updatePeerCreditLimit(pubkey, newLimit);
+        }
       }
-    }
-  }, 15 * 60 * 1000); // Every 15 minutes
+    },
+    15 * 60 * 1000
+  ); // Every 15 minutes
 }
 ```
 
@@ -1042,31 +1119,36 @@ if (config.autonomousMode) {
 ```typescript
 // Monitor channel utilization and manage lifecycle
 if (config.autonomousMode) {
-  setInterval(async () => {
-    const channels = await this.channelClient.listChannels();
+  setInterval(
+    async () => {
+      const channels = await this.channelClient.listChannels();
 
-    for (const channel of channels) {
-      // Close idle channels (no activity in 7 days)
-      if (channel.lastActivity < Date.now() - 7 * 24 * 60 * 60 * 1000) {
-        await this.channelClient.closeChannel(channel.id);
-        await runtime.emitEvent('CHANNEL_CLOSED' as any, {
-          runtime, source: 'crosstown',
-          channelId: channel.id, reason: 'idle',
-        });
-      }
-
-      // Open new channels for high-trust peers without channels
-      const peersWithoutChannels = await findPeersWithoutChannels();
-      for (const peer of peersWithoutChannels) {
-        if (peer.trustScore > 0.7) {
-          await this.channelClient.openChannel({
-            peer: peer.pubkey,
-            capacity: computeCreditLimit(peer.trustScore, runtime),
+      for (const channel of channels) {
+        // Close idle channels (no activity in 7 days)
+        if (channel.lastActivity < Date.now() - 7 * 24 * 60 * 60 * 1000) {
+          await this.channelClient.closeChannel(channel.id);
+          await runtime.emitEvent('CHANNEL_CLOSED' as any, {
+            runtime,
+            source: 'crosstown',
+            channelId: channel.id,
+            reason: 'idle',
           });
         }
+
+        // Open new channels for high-trust peers without channels
+        const peersWithoutChannels = await findPeersWithoutChannels();
+        for (const peer of peersWithoutChannels) {
+          if (peer.trustScore > 0.7) {
+            await this.channelClient.openChannel({
+              peer: peer.pubkey,
+              capacity: computeCreditLimit(peer.trustScore, runtime),
+            });
+          }
+        }
       }
-    }
-  }, 60 * 60 * 1000); // Every hour
+    },
+    60 * 60 * 1000
+  ); // Every hour
 }
 ```
 
@@ -1075,38 +1157,48 @@ if (config.autonomousMode) {
 ```typescript
 // Proactively explore follow graph for new peering opportunities
 if (config.autonomousMode) {
-  setInterval(async () => {
-    // Get friends-of-friends who have ILP peer info
-    const followList = await this.peerDiscovery.getFollowList(this.nostrKeypair.publicKey);
+  setInterval(
+    async () => {
+      // Get friends-of-friends who have ILP peer info
+      const followList = await this.peerDiscovery.getFollowList(
+        this.nostrKeypair.publicKey
+      );
 
-    for (const followedPubkey of followList) {
-      const theirFollows = await this.peerDiscovery.getFollowList(followedPubkey);
+      for (const followedPubkey of followList) {
+        const theirFollows =
+          await this.peerDiscovery.getFollowList(followedPubkey);
 
-      for (const candidate of theirFollows) {
-        if (candidate === this.nostrKeypair.publicKey) continue;
-        if (await isAlreadyPeered(candidate)) continue;
+        for (const candidate of theirFollows) {
+          if (candidate === this.nostrKeypair.publicKey) continue;
+          if (await isAlreadyPeered(candidate)) continue;
 
-        const peerInfo = await this.peerDiscovery.getPeerInfo(candidate);
-        if (!peerInfo) continue; // Not an ILP peer
+          const peerInfo = await this.peerDiscovery.getPeerInfo(candidate);
+          if (!peerInfo) continue; // Not an ILP peer
 
-        const trustScore = await this.trustManager.getTrustScore(
-          this.nostrKeypair.publicKey, candidate
-        );
+          const trustScore = await this.trustManager.getTrustScore(
+            this.nostrKeypair.publicKey,
+            candidate
+          );
 
-        if (trustScore.score > 0.6 && trustScore.socialDistance <= 2) {
-          // Good candidate — log for review or auto-peer
-          await runtime.createMemory({
-            entityId: runtime.agentId,
-            roomId: selfRoomId,
-            content: {
-              text: `Potential new peer: ${candidate} (trust: ${trustScore.score.toFixed(2)}, ${trustScore.socialDistance} hops)`,
-            },
-            metadata: { type: 'custom', tags: ['peer-candidate'] },
-          }, 'memories');
+          if (trustScore.score > 0.6 && trustScore.socialDistance <= 2) {
+            // Good candidate — log for review or auto-peer
+            await runtime.createMemory(
+              {
+                entityId: runtime.agentId,
+                roomId: selfRoomId,
+                content: {
+                  text: `Potential new peer: ${candidate} (trust: ${trustScore.score.toFixed(2)}, ${trustScore.socialDistance} hops)`,
+                },
+                metadata: { type: 'custom', tags: ['peer-candidate'] },
+              },
+              'memories'
+            );
+          }
         }
       }
-    }
-  }, 6 * 60 * 60 * 1000); // Every 6 hours
+    },
+    6 * 60 * 60 * 1000
+  ); // Every 6 hours
 }
 ```
 
@@ -1116,28 +1208,28 @@ if (config.autonomousMode) {
 
 #### 11.1 Failure Mode Analysis
 
-| Failure | Detection | Recovery | User Communication |
-|---------|-----------|----------|--------------------|
-| Relay connectivity loss | SimplePool connection error | Exponential backoff reconnection (5s, 10s, 20s, 40s, max 5min) | "Lost connection to Nostr relay. Reconnecting..." |
-| SPSP handshake timeout | 30s timeout on kind:23195 response | Retry on different relay (if multiple configured); escalate to user after 3 retries | "SPSP handshake with Alice timed out. Trying alternative relay..." |
-| ILP REJECT packet | ILP error code in REJECT packet | Map ILP error code to human message; retry with different route if available | "Payment rejected: insufficient liquidity on route. Trying alternate path..." |
-| Bootstrap phase failure | BootstrapService error event | Retry phase with exponential backoff; allow manual restart via Action | "Bootstrap stalled at phase 3. SPSP timeout for Bob. Retry?" |
-| Trust score computation failure | SocialTrustManager error | Return trust score 0 (conservative — no trust); log error | "Couldn't compute trust for Carol. Treating as untrusted." |
-| ILP connector unreachable | HTTP connection error to admin API | Retry with backoff; set service state to 'connector-unavailable' | "ILP connector is unreachable. Payment operations unavailable." |
-| NIP-44 decryption failure | Decryption error on incoming message | Log and skip message; may indicate key mismatch | Silent — log internally |
-| Settlement channel failure | ConnectorChannelClient error | Close failed channel, attempt re-open; escalate if persistent | "Settlement channel with Bob failed. Re-establishing..." |
+| Failure                         | Detection                            | Recovery                                                                            | User Communication                                                            |
+| ------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Relay connectivity loss         | SimplePool connection error          | Exponential backoff reconnection (5s, 10s, 20s, 40s, max 5min)                      | "Lost connection to Nostr relay. Reconnecting..."                             |
+| SPSP handshake timeout          | 30s timeout on kind:23195 response   | Retry on different relay (if multiple configured); escalate to user after 3 retries | "SPSP handshake with Alice timed out. Trying alternative relay..."            |
+| ILP REJECT packet               | ILP error code in REJECT packet      | Map ILP error code to human message; retry with different route if available        | "Payment rejected: insufficient liquidity on route. Trying alternate path..." |
+| Bootstrap phase failure         | BootstrapService error event         | Retry phase with exponential backoff; allow manual restart via Action               | "Bootstrap stalled at phase 3. SPSP timeout for Bob. Retry?"                  |
+| Trust score computation failure | SocialTrustManager error             | Return trust score 0 (conservative — no trust); log error                           | "Couldn't compute trust for Carol. Treating as untrusted."                    |
+| ILP connector unreachable       | HTTP connection error to admin API   | Retry with backoff; set service state to 'connector-unavailable'                    | "ILP connector is unreachable. Payment operations unavailable."               |
+| NIP-44 decryption failure       | Decryption error on incoming message | Log and skip message; may indicate key mismatch                                     | Silent — log internally                                                       |
+| Settlement channel failure      | ConnectorChannelClient error         | Close failed channel, attempt re-open; escalate if persistent                       | "Settlement channel with Bob failed. Re-establishing..."                      |
 
 #### 11.2 Error Code Mapping
 
-| Crosstown Error | ElizaOS Handling |
-|--------------------|-----------------|
-| `PeerDiscoveryError` | Log in Memory, surface via networkStatusProvider |
-| `SpspTimeoutError` | Retry action, surface in callback message |
-| `TrustComputationError` | Default to score=0 (conservative), log warning |
-| `BootstrapPhaseError` | Emit BOOTSTRAP_PHASE_CHANGED with error, allow manual retry |
-| `BlsError` / `ILP_ERROR_CODES` | Map to user-friendly message in action callback |
-| `ToonEncodeError` | Log error, skip event encoding, surface in Provider |
-| `PricingError` | Log error, reject payment attempt |
+| Crosstown Error                | ElizaOS Handling                                            |
+| ------------------------------ | ----------------------------------------------------------- |
+| `PeerDiscoveryError`           | Log in Memory, surface via networkStatusProvider            |
+| `SpspTimeoutError`             | Retry action, surface in callback message                   |
+| `TrustComputationError`        | Default to score=0 (conservative), log warning              |
+| `BootstrapPhaseError`          | Emit BOOTSTRAP_PHASE_CHANGED with error, allow manual retry |
+| `BlsError` / `ILP_ERROR_CODES` | Map to user-friendly message in action callback             |
+| `ToonEncodeError`              | Log error, skip event encoding, surface in Provider         |
+| `PricingError`                 | Log error, reject payment attempt                           |
 
 ---
 
@@ -1240,6 +1332,7 @@ if (config.autonomousMode) {
 **Goal**: Agent has a Nostr identity, connects to relays, and bootstraps into the ILP network.
 
 **Components**:
+
 - `CrosstownService` — Nostr keypair management, bootstrap lifecycle
 - `NostrRelayService` — SimplePool management, subscription lifecycle
 - `networkStatusProvider` — Bootstrap phase and relay status
@@ -1247,6 +1340,7 @@ if (config.autonomousMode) {
 - Plugin entry point with configuration validation
 
 **Deliverables**:
+
 - Agent starts, loads Nostr keypair from Character secrets
 - Agent connects to configured relays
 - Agent runs 5-phase bootstrap (discovers peers, registers with connector, handshakes, announces, ready)
@@ -1262,6 +1356,7 @@ if (config.autonomousMode) {
 **Goal**: Agent can discover peers, compute trust, and surface this information in conversations.
 
 **Components**:
+
 - `trustScoreProvider` — Trust scores for mentioned peers
 - `peerStatusProvider` — Connected peer status
 - `DISCOVER_PEERS` Action — Manual peer discovery
@@ -1270,6 +1365,7 @@ if (config.autonomousMode) {
 - Memory integration — peer discovery records, trust snapshots
 
 **Deliverables**:
+
 - Provider context includes trust scores when peers are mentioned
 - Agent can answer "How much do I trust Alice?" with breakdown
 - Agent can discover new peers and report findings
@@ -1284,6 +1380,7 @@ if (config.autonomousMode) {
 **Goal**: Agent can send and receive ILP payments through natural conversation.
 
 **Components**:
+
 - `PAY` Action — End-to-end payment execution
 - `REQUEST_PAYMENT` Action — SPSP request handling
 - `ilpBalanceProvider` — ILP connector balance data
@@ -1293,6 +1390,7 @@ if (config.autonomousMode) {
 - Routes: `/payments` for payment history
 
 **Deliverables**:
+
 - "Pay Alice 5 USD" works end-to-end
 - Recipient resolution (name → Memory → NIP-05 → pubkey)
 - Trust-gated payment confirmation
@@ -1309,12 +1407,14 @@ if (config.autonomousMode) {
 **Goal**: Agent autonomously manages its ILP network position.
 
 **Components**:
+
 - `trustEvolutionEvaluator` — Long-term trust tracking
 - `PaymentChannelService` — Settlement channel lifecycle
 - Autonomous mode behaviors: periodic trust recalculation, channel management, social graph exploration
 - Enhanced `networkStatusProvider` with channel and routing data
 
 **Deliverables**:
+
 - Agent periodically recalculates trust scores and adjusts credit limits
 - Agent opens/closes settlement channels based on activity
 - Agent explores follow graph for new peering opportunities
@@ -1329,12 +1429,14 @@ if (config.autonomousMode) {
 **Goal**: Multiple agents form an interconnected ILP payment mesh.
 
 **Components**:
+
 - Cross-agent payment routing optimization
 - Shared relay infrastructure management
 - Inter-agent trust propagation
 - Agent coordination via ElizaOS multi-agent (`IElizaOS.handleMessage`)
 
 **Deliverables**:
+
 - Multiple agents discover and peer with each other
 - Routing tables optimized across agent mesh
 - Agents coordinate on trust assessments
@@ -1348,32 +1450,32 @@ if (config.autonomousMode) {
 
 #### 14.1 Technical Risks
 
-| Risk | Severity | Likelihood | Mitigation |
-|------|----------|------------|------------|
-| Crosstown settlement flow incomplete (60-75%) | High | Confirmed | Design plugin with abstracted settlement interface; mock settlement for testing; prioritize non-settlement features first |
-| NIP-47 kind number collision | Medium | Medium | Use payload content (not kind number) for message routing; document disambiguation strategy |
-| nostr-tools API instability | Medium | Low | Pin version, wrap in adapter layer, maintain compatibility tests |
-| ILP connector unavailability | High | Medium | Graceful degradation — agent operates in "Nostr-only" mode without ILP features |
-| Nostr relay downtime | Medium | Medium | Multi-relay configuration, automatic failover, offline queueing |
+| Risk                                          | Severity | Likelihood | Mitigation                                                                                                                |
+| --------------------------------------------- | -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Crosstown settlement flow incomplete (60-75%) | High     | Confirmed  | Design plugin with abstracted settlement interface; mock settlement for testing; prioritize non-settlement features first |
+| NIP-47 kind number collision                  | Medium   | Medium     | Use payload content (not kind number) for message routing; document disambiguation strategy                               |
+| nostr-tools API instability                   | Medium   | Low        | Pin version, wrap in adapter layer, maintain compatibility tests                                                          |
+| ILP connector unavailability                  | High     | Medium     | Graceful degradation — agent operates in "Nostr-only" mode without ILP features                                           |
+| Nostr relay downtime                          | Medium   | Medium     | Multi-relay configuration, automatic failover, offline queueing                                                           |
 
 #### 14.2 Architectural Risks
 
-| Risk | Severity | Likelihood | Mitigation |
-|------|----------|------------|------------|
-| Tight coupling between plugin and Crosstown internals | High | Medium | Use only public API surface; wrap Crosstown classes in adapter layer |
-| ElizaOS breaking changes in Plugin interface | Medium | Medium | Pin ElizaOS version; follow semver; maintain integration tests |
-| State synchronization between ElizaOS Memory and Crosstown caches | Medium | High | Designate single source of truth per data type (see section 2.5) |
-| Plugin bloat from trying to wrap everything | Medium | Medium | Phase implementation; only build what's needed for each milestone |
+| Risk                                                              | Severity | Likelihood | Mitigation                                                           |
+| ----------------------------------------------------------------- | -------- | ---------- | -------------------------------------------------------------------- |
+| Tight coupling between plugin and Crosstown internals             | High     | Medium     | Use only public API surface; wrap Crosstown classes in adapter layer |
+| ElizaOS breaking changes in Plugin interface                      | Medium   | Medium     | Pin ElizaOS version; follow semver; maintain integration tests       |
+| State synchronization between ElizaOS Memory and Crosstown caches | Medium   | High       | Designate single source of truth per data type (see section 2.5)     |
+| Plugin bloat from trying to wrap everything                       | Medium   | Medium     | Phase implementation; only build what's needed for each milestone    |
 
 #### 14.3 Operational Risks
 
-| Risk | Severity | Likelihood | Mitigation |
-|------|----------|------------|------------|
-| Nostr private key exposure | Critical | Low | Store in Character secrets only; never log; mask in UI |
-| Incorrect trust score leading to bad payment decisions | High | Medium | Conservative defaults (high threshold, low max payment); always show trust breakdown to user |
-| Settlement key compromise | Critical | Low | Separate from Nostr key; use hardware security if available; limit settlement amounts |
-| Relay censorship/blocking | Medium | Medium | Multi-relay configuration; include at least 3 independent relays |
-| Memory growth from payment history | Low | High | Implement memory pruning; archive old records; aggregate statistics |
+| Risk                                                   | Severity | Likelihood | Mitigation                                                                                   |
+| ------------------------------------------------------ | -------- | ---------- | -------------------------------------------------------------------------------------------- |
+| Nostr private key exposure                             | Critical | Low        | Store in Character secrets only; never log; mask in UI                                       |
+| Incorrect trust score leading to bad payment decisions | High     | Medium     | Conservative defaults (high threshold, low max payment); always show trust breakdown to user |
+| Settlement key compromise                              | Critical | Low        | Separate from Nostr key; use hardware security if available; limit settlement amounts        |
+| Relay censorship/blocking                              | Medium   | Medium     | Multi-relay configuration; include at least 3 independent relays                             |
+| Memory growth from payment history                     | Low      | High       | Implement memory pruning; archive old records; aggregate statistics                          |
 
 ---
 
@@ -1381,52 +1483,52 @@ if (config.autonomousMode) {
 
 #### 15.1 Component Mapping Matrix
 
-| Crosstown Class | ElizaOS Component | Type | Notes |
-|--------------------|-------------------|------|-------|
-| `BootstrapService` | `CrosstownService` | Service | Wrapped in service lifecycle |
-| `NostrPeerDiscovery` | `CrosstownService` (internal) + `peerStatusProvider` | Service + Provider | Discovery runs in service, results surfaced via provider |
-| `SocialTrustManager` | `CrosstownService` (internal) + `trustScoreProvider` | Service + Provider | Computation in service, context injection via provider |
-| `NostrSpspClient` | `PAY` Action | Action | Triggered by user intent |
-| `NostrSpspServer` | `CrosstownService` (internal) + event handler | Service + Event | Listens for incoming SPSP requests |
-| `buildIlpPeerInfoEvent` | `PUBLISH_PEER_INFO` Action | Action | Triggered by user or bootstrap |
-| `parseIlpPeerInfo` | `CrosstownService` (internal) | Service | Used during peer discovery |
-| `ConnectorAdminClient` | `CrosstownService` (internal) | Service | Peer registration |
-| `AgentRuntimeClient` | `PAY` Action (internal) | Action | ILP packet sending |
-| `ConnectorChannelClient` | `PaymentChannelService` | Service | Settlement channel lifecycle |
-| `GenesisPeerLoader` | `CrosstownService` (bootstrap) | Service | Phase 1 of bootstrap |
-| `ArDrivePeerRegistry` | `CrosstownService` (bootstrap) | Service | Phase 1 of bootstrap |
-| `PricingService` | N/A (BLS-side only) | N/A | Used by relay, not by agent plugin |
-| `BusinessLogicServer` | N/A (BLS-side only) | N/A | Server-side component |
-| `NostrRelayServer` | N/A (relay-side only) | N/A | Server-side component |
+| Crosstown Class          | ElizaOS Component                                    | Type               | Notes                                                    |
+| ------------------------ | ---------------------------------------------------- | ------------------ | -------------------------------------------------------- |
+| `BootstrapService`       | `CrosstownService`                                   | Service            | Wrapped in service lifecycle                             |
+| `NostrPeerDiscovery`     | `CrosstownService` (internal) + `peerStatusProvider` | Service + Provider | Discovery runs in service, results surfaced via provider |
+| `SocialTrustManager`     | `CrosstownService` (internal) + `trustScoreProvider` | Service + Provider | Computation in service, context injection via provider   |
+| `NostrSpspClient`        | `PAY` Action                                         | Action             | Triggered by user intent                                 |
+| `NostrSpspServer`        | `CrosstownService` (internal) + event handler        | Service + Event    | Listens for incoming SPSP requests                       |
+| `buildIlpPeerInfoEvent`  | `PUBLISH_PEER_INFO` Action                           | Action             | Triggered by user or bootstrap                           |
+| `parseIlpPeerInfo`       | `CrosstownService` (internal)                        | Service            | Used during peer discovery                               |
+| `ConnectorAdminClient`   | `CrosstownService` (internal)                        | Service            | Peer registration                                        |
+| `AgentRuntimeClient`     | `PAY` Action (internal)                              | Action             | ILP packet sending                                       |
+| `ConnectorChannelClient` | `PaymentChannelService`                              | Service            | Settlement channel lifecycle                             |
+| `GenesisPeerLoader`      | `CrosstownService` (bootstrap)                       | Service            | Phase 1 of bootstrap                                     |
+| `ArDrivePeerRegistry`    | `CrosstownService` (bootstrap)                       | Service            | Phase 1 of bootstrap                                     |
+| `PricingService`         | N/A (BLS-side only)                                  | N/A                | Used by relay, not by agent plugin                       |
+| `BusinessLogicServer`    | N/A (BLS-side only)                                  | N/A                | Server-side component                                    |
+| `NostrRelayServer`       | N/A (relay-side only)                                | N/A                | Server-side component                                    |
 
 #### 15.2 Glossary of Cross-Project Terminology
 
-| Crosstown Term | ElizaOS Equivalent | Description |
-|-------------------|-------------------|-------------|
-| Nostr pubkey | Entity ID / Agent ID | Unique identifier for a network participant |
-| Follow list (NIP-02) | Relationship records | Social graph edges representing trust/peering |
-| kind:10032 event | Entity Component (type: 'ilp-peer') | Structured data attached to a peer |
-| SPSP handshake | Action execution (PAY) | Request-response for payment setup |
-| Trust score | Provider data (trustScoreProvider) | Computed metric influencing decisions |
-| Bootstrap phase | Service state | Lifecycle stage of network initialization |
-| ILP PREPARE/FULFILL/REJECT | Action result | Payment packet lifecycle |
-| Settlement channel | Service state (PaymentChannelService) | Long-lived payment capacity reservation |
-| BTP endpoint | Configuration setting | WebSocket URL for connector communication |
-| Credit limit | Computed from trust score | Maximum outstanding balance with a peer |
+| Crosstown Term             | ElizaOS Equivalent                    | Description                                   |
+| -------------------------- | ------------------------------------- | --------------------------------------------- |
+| Nostr pubkey               | Entity ID / Agent ID                  | Unique identifier for a network participant   |
+| Follow list (NIP-02)       | Relationship records                  | Social graph edges representing trust/peering |
+| kind:10032 event           | Entity Component (type: 'ilp-peer')   | Structured data attached to a peer            |
+| SPSP handshake             | Action execution (PAY)                | Request-response for payment setup            |
+| Trust score                | Provider data (trustScoreProvider)    | Computed metric influencing decisions         |
+| Bootstrap phase            | Service state                         | Lifecycle stage of network initialization     |
+| ILP PREPARE/FULFILL/REJECT | Action result                         | Payment packet lifecycle                      |
+| Settlement channel         | Service state (PaymentChannelService) | Long-lived payment capacity reservation       |
+| BTP endpoint               | Configuration setting                 | WebSocket URL for connector communication     |
+| Credit limit               | Computed from trust score             | Maximum outstanding balance with a peer       |
 
 #### 15.3 NIP-47 Relationship Analysis
 
 Crosstown's SPSP protocol intentionally mirrors NIP-47 (Nostr Wallet Connect):
 
-| Aspect | NIP-47 (NWC) | Crosstown SPSP |
-|--------|-------------|-------------------|
-| Request kind | 23194 | 23194 (same) |
-| Response kind | 23195 | 23195 (same) |
-| Encryption | NIP-44 | NIP-44 (same) |
-| Payload format | `{method, params}` | `{destinationAccount, sharedSecret, ...}` |
-| Purpose | Lightning wallet operations | ILP payment setup |
-| Discovery | Connection URI | NIP-02 follow list + kind:10032 |
-| Trust model | Explicit connection string | Social graph derivation |
+| Aspect         | NIP-47 (NWC)                | Crosstown SPSP                            |
+| -------------- | --------------------------- | ----------------------------------------- |
+| Request kind   | 23194                       | 23194 (same)                              |
+| Response kind  | 23195                       | 23195 (same)                              |
+| Encryption     | NIP-44                      | NIP-44 (same)                             |
+| Payload format | `{method, params}`          | `{destinationAccount, sharedSecret, ...}` |
+| Purpose        | Lightning wallet operations | ILP payment setup                         |
+| Discovery      | Connection URI              | NIP-02 follow list + kind:10032           |
+| Trust model    | Explicit connection string  | Social graph derivation                   |
 
 **Coexistence strategy**: Since both protocols use the same kind numbers, message routing must examine the encrypted payload content. The payload structure differs (NWC uses `method` field, SPSP uses `destinationAccount`/`sharedSecret`), making disambiguation straightforward after decryption. An ElizaOS agent could implement both protocols simultaneously, using NWC for Lightning settlement and SPSP for ILP routing setup.
 
@@ -1441,6 +1543,7 @@ The five-phase implementation roadmap allows iterative delivery of value, starti
 The primary risk is Crosstown's incomplete settlement flow (60-75%), which can be mitigated by designing clean abstraction boundaries around settlement operations and focusing early phases on the complete subsystems (peer discovery, trust computation, SPSP negotiation).
 
 The plugin architecture draws heavily from the plugin-babylon reference, particularly its patterns for:
+
 - Service lifecycle management (autonomous coordinator)
 - Dual operating modes (conversational vs. autonomous)
 - Background monitoring with deterministic thresholds (Spartan Trader pattern adapted for trust-based decisions)

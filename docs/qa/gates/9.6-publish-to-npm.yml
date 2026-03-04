@@ -1,10 +1,10 @@
 schema: 1
-story: "9.6"
-story_title: "Publish to npm"
+story: '9.6'
+story_title: 'Publish to npm'
 gate: PASS
-status_reason: "All 6 acceptance criteria verified. Three packages published to npm at v1.0.0 in correct dependency order, fresh project install and TypeScript compilation confirmed, git tag v1.0.0 created."
-reviewer: "Quinn (Test Architect)"
-updated: "2026-02-11T18:30:00Z"
+status_reason: 'All 6 acceptance criteria verified. Three packages published to npm at v1.0.0 in correct dependency order, fresh project install and TypeScript compilation confirmed, git tag v1.0.0 created.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-02-11T18:30:00Z'
 
 waiver: { active: false }
 
@@ -15,10 +15,10 @@ risk_summary:
   recommendations:
     must_fix: []
     monitor:
-      - "13 transitive dependency vulnerabilities (upstream: @ardrive/turbo-sdk, @cosmjs/*, elliptic) — monitor for upstream patches"
+      - '13 transitive dependency vulnerabilities (upstream: @ardrive/turbo-sdk, @cosmjs/*, elliptic) — monitor for upstream patches'
 
 quality_score: 100
-expires: "2026-02-25T18:30:00Z"
+expires: '2026-02-25T18:30:00Z'
 
 evidence:
   tests_reviewed: 0
@@ -30,23 +30,27 @@ evidence:
 nfr_validation:
   security:
     status: PASS
-    notes: "No secrets in tarballs; files field restricts to dist/ only; npm auth token not committed"
+    notes: 'No secrets in tarballs; files field restricts to dist/ only; npm auth token not committed'
   performance:
     status: PASS
-    notes: "No runtime code changes; publish-only story"
+    notes: 'No runtime code changes; publish-only story'
   reliability:
     status: PASS
-    notes: "Post-publish verification confirmed install and TypeScript compilation in fresh project"
+    notes: 'Post-publish verification confirmed install and TypeScript compilation in fresh project'
   maintainability:
     status: PASS
-    notes: "Thorough documentation in story file; publish order and rollback strategy documented"
+    notes: 'Thorough documentation in story file; publish order and rollback strategy documented'
 
 recommendations:
   immediate: []
   future:
-    - action: "Add a LICENSE file to the repository root so published tarballs include it"
-      refs: ["packages/bls/", "packages/core/", "packages/relay/"]
-    - action: "Monitor upstream dependency vulnerabilities for patches (elliptic, @cosmjs/*, @ardrive/turbo-sdk)"
-      refs: ["packages/core/package.json", "packages/relay/package.json"]
-    - action: "Fix pre-existing subscribeMany test failures"
-      refs: ["packages/core/src/discovery/SocialPeerDiscovery.test.ts", "packages/core/src/bootstrap/RelayMonitor.test.ts"]
+    - action: 'Add a LICENSE file to the repository root so published tarballs include it'
+      refs: ['packages/bls/', 'packages/core/', 'packages/relay/']
+    - action: 'Monitor upstream dependency vulnerabilities for patches (elliptic, @cosmjs/*, @ardrive/turbo-sdk)'
+      refs: ['packages/core/package.json', 'packages/relay/package.json']
+    - action: 'Fix pre-existing subscribeMany test failures'
+      refs:
+        [
+          'packages/core/src/discovery/SocialPeerDiscovery.test.ts',
+          'packages/core/src/bootstrap/RelayMonitor.test.ts',
+        ]

@@ -15,6 +15,7 @@
 **Current version**: `@elizaos/core` v1.7.2 (published January 19, 2026). The latest GitHub release is v1.7.2 with 293 total releases.
 
 **Maturity signals**:
+
 - **GitHub stars**: ~17,500
 - **Forks**: ~5,400
 - **Contributors**: 583
@@ -22,6 +23,7 @@
 - **License**: MIT
 
 **Major version timeline**:
+
 - **v0.x**: Original Eliza framework (2024-early 2025). Monolithic, character-file-driven.
 - **v1.x**: Major refactor. Introduced Entity/Room/World model (replacing User/Participant), Service pattern, event system in plugins, enhanced plugin architecture. Current stable line.
 - **v2 Beta**: Announced March 2025. Introduced Hierarchical Task Networks (HTN), enhanced event-driven architecture, unified wallet system, Chainlink CCIP cross-chain integration. Still in beta as of early 2026 — not yet merged to main. The v2 beta is heavily Web3-focused.
@@ -38,16 +40,16 @@ ElizaOS supports all major LLM providers through a plugin-based model registrati
 
 **Supported providers**:
 
-| Provider | Text Gen | Embeddings | Structured Output | Offline |
-|----------|----------|------------|-------------------|---------|
-| OpenAI | Yes | Yes | Yes | No |
-| Anthropic | Yes | No | Yes | No |
-| Google GenAI | Yes | Yes | Yes | No |
-| Ollama | Yes | Yes | Yes | Yes |
-| OpenRouter | Yes | Yes | Yes | No |
-| Grok | Yes | ? | ? | No |
-| Llama (local) | Yes | Yes | Yes | Yes |
-| DeepSeek | Yes | ? | ? | No |
+| Provider      | Text Gen | Embeddings | Structured Output | Offline |
+| ------------- | -------- | ---------- | ----------------- | ------- |
+| OpenAI        | Yes      | Yes        | Yes               | No      |
+| Anthropic     | Yes      | No         | Yes               | No      |
+| Google GenAI  | Yes      | Yes        | Yes               | No      |
+| Ollama        | Yes      | Yes        | Yes               | Yes     |
+| OpenRouter    | Yes      | Yes        | Yes               | No      |
+| Grok          | Yes      | ?          | ?                 | No      |
+| Llama (local) | Yes      | Yes        | Yes               | Yes     |
+| DeepSeek      | Yes      | ?          | ?                 | No      |
 
 **Abstraction pattern**: The old `ModelProviderName` enum (e.g., `ModelProviderName.ANTHROPIC`) is **deprecated** in v1.x. The new pattern uses plugin-based model registration with priority levels:
 
@@ -57,6 +59,7 @@ runtime.registerModel(ModelType.TEXT_LARGE, generateText, 'anthropic', 100);
 ```
 
 Model selection follows a priority chain:
+
 1. Match requested `ModelType` (e.g., `TEXT_LARGE`, `TEXT_SMALL`, `OBJECT_LARGE`)
 2. Evaluate registered providers by priority weight
 3. Fall back to lower-priority providers
@@ -66,6 +69,7 @@ Model selection follows a priority chain:
 **Local model support**: Ollama integration is first-class. Other local runtimes (llama.cpp) can work through Ollama or OpenAI-compatible API endpoints.
 
 **Model types**:
+
 - `TEXT_SMALL` / `TEXT_LARGE` — conversational generation
 - `TEXT_EMBEDDING` — vector embeddings
 - `OBJECT_SMALL` / `OBJECT_LARGE` — structured/JSON output
@@ -79,6 +83,7 @@ Model selection follows a priority chain:
 ElizaOS has a dedicated model type for structured output: `OBJECT_GENERATION` (with `OBJECT_SMALL` and `OBJECT_LARGE` variants). This delegates to each provider's native structured output capability.
 
 **What is available**:
+
 - `runtime.useModel(ModelType.OBJECT_LARGE, { prompt, schema })` — generate structured objects
 - Providers like OpenAI, Anthropic, Google GenAI, and Ollama all support structured output mode
 - The `ActionResult` interface provides a standardized return type with `success`, `text`, `values`, `data`, and `error` fields
@@ -88,6 +93,7 @@ ElizaOS has a dedicated model type for structured output: `OBJECT_GENERATION` (w
 **Tool-use / function calling**: Actions serve as the tool-use equivalent. The LLM selects which action to invoke based on the action's name, description, and similes. This is more of a "routing + execution" pattern than true function-calling tool-use.
 
 **Validation patterns**:
+
 - Actions have a `validate` function that runs before the handler
 - Evaluators can post-process and validate responses
 - `ActionResult` has a standardized shape for success/failure
@@ -108,16 +114,16 @@ This is ElizaOS's strongest feature. The plugin system is comprehensive and well
 export const myPlugin: Plugin = {
   name: 'plugin-name',
   description: 'Plugin description',
-  actions: [],        // Executable tasks
-  providers: [],      // Data/context suppliers
-  evaluators: [],     // Response assessors
-  services: [],       // Background services
+  actions: [], // Executable tasks
+  providers: [], // Data/context suppliers
+  evaluators: [], // Response assessors
+  services: [], // Background services
   init: async (config) => {},
-  models: {},         // Model registrations
-  routes: [],         // HTTP endpoints
-  events: {},         // Event handlers
-  tests: [],          // Built-in tests
-  dependencies: [],   // Required plugins
+  models: {}, // Model registrations
+  routes: [], // HTTP endpoints
+  events: {}, // Event handlers
+  tests: [], // Built-in tests
+  dependencies: [], // Required plugins
 };
 ```
 
@@ -144,11 +150,13 @@ const myAction: Action = {
     return {
       success: true,
       text: 'Event processed',
-      data: { eventId: '...' }
+      data: { eventId: '...' },
     };
   },
 
-  examples: [/* conversation examples for LLM context */]
+  examples: [
+    /* conversation examples for LLM context */
+  ],
 };
 ```
 
@@ -164,9 +172,9 @@ const nostrContextProvider: Provider = {
     return {
       text: `Connected to ${relayData.count} relays`,
       values: { relayCount: relayData.count },
-      data: relayData
+      data: relayData,
     };
-  }
+  },
 };
 ```
 
@@ -175,11 +183,11 @@ const nostrContextProvider: Provider = {
 ```typescript
 const responseEvaluator: Evaluator = {
   name: 'RESPONSE_VALIDATOR',
-  alwaysRun: true,  // Run on every response
+  alwaysRun: true, // Run on every response
   validate: async (runtime, message) => true,
   handler: async (runtime, message, state) => {
     // Assess and potentially modify the response
-  }
+  },
 };
 ```
 
@@ -230,6 +238,7 @@ Incoming message -> Intent recognition -> Action selection
 ### Runtime Loop
 
 The `AgentRuntime` manages:
+
 - Message queuing and processing
 - State composition (`composeState`)
 - Memory retrieval (vector-based)
@@ -239,6 +248,7 @@ The `AgentRuntime` manages:
 ### Client Adapters / Services
 
 ElizaOS connects to external platforms via Service plugins:
+
 - Discord, Telegram, Twitter/X, Farcaster — each as a Service plugin
 - The server uses **Socket.IO** for real-time client-server communication
 - REST API with three delivery modes: WebSocket, SSE streaming, synchronous
@@ -246,12 +256,14 @@ ElizaOS connects to external platforms via Service plugins:
 ### WebSocket / Event Source Integration
 
 ElizaOS's native messaging is Socket.IO-based, not raw WebSocket. It uses a Room/Channel model where:
+
 1. Client connects via Socket.IO
 2. Client joins a Room
 3. Messages are sent to the Room
 4. Server processes and broadcasts responses
 
 **For Nostr relay integration**: There is no native Nostr adapter. You would need to build a Service plugin that:
+
 1. Subscribes to Nostr relays via `nostr-tools`
 2. Converts Nostr events into ElizaOS `Memory` / message objects
 3. Feeds them into the runtime for processing
@@ -289,6 +301,7 @@ zod: ^4.3.5
 ```
 
 **Notable concerns**:
+
 - `@langchain/core` and `@langchain/textsplitters` — pulls in LangChain as a transitive dependency, which is a significant dependency tree
 - `pdfjs-dist` — PDF processing library, heavy for a core package
 - `handlebars` — template engine used for prompt templates
@@ -372,6 +385,7 @@ ElizaOS has explicit multi-agent support:
 - **TEE deployment**: Agent swarms can run in Trusted Execution Environments (Phala Cloud integration)
 
 **Practical patterns**:
+
 - Multiple homogeneous agents with voting consensus
 - Heterogeneous agents with different capabilities sharing a World
 - Agent-to-agent messaging through Rooms
@@ -385,11 +399,13 @@ ElizaOS has explicit multi-agent support:
 **Built-in**: No dedicated token counting, cost tracking, or context window management features were found in the documentation or package analysis.
 
 **What's available**:
+
 - Model type selection (`TEXT_SMALL` vs `TEXT_LARGE`) provides coarse cost control
 - Provider priority system allows routing to cheaper models first
 - Memory retrieval limits can control context size
 
 **What's missing**:
+
 - No per-request token counting
 - No cost accumulation / budget tracking
 - No context window overflow management
@@ -418,15 +434,17 @@ class NostrRelayService extends Service {
     const pubkey = runtime.getSetting('NOSTR_PUBKEY');
 
     // Subscribe to events mentioning our agent
-    const sub = this.pool.subscribeMany(relays, [
-      { kinds: [1, 1059, 5000, 5001], '#p': [pubkey] }
-    ], {
-      onevent: async (event: NostrEvent) => {
-        // Convert Nostr event to ElizaOS message and inject into runtime
-        const memory = nostrEventToMemory(event);
-        await runtime.processMessage(memory);
+    const sub = this.pool.subscribeMany(
+      relays,
+      [{ kinds: [1, 1059, 5000, 5001], '#p': [pubkey] }],
+      {
+        onevent: async (event: NostrEvent) => {
+          // Convert Nostr event to ElizaOS message and inject into runtime
+          const memory = nostrEventToMemory(event);
+          await runtime.processMessage(memory);
+        },
       }
-    });
+    );
   }
 
   async stop() {
@@ -457,12 +475,16 @@ Author: ${event.pubkey}
 Trust score: ${state.values?.trustScore ?? 'unknown'}
 
 Respond with JSON: { "action": "reply" | "react" | "ignore", "content": "..." }`,
-      runtime
+      runtime,
     });
 
     // Validate decision against allowlist
     if (!['reply', 'react', 'ignore'].includes(decision.action)) {
-      return { success: false, text: 'Invalid action type', error: 'Action not in allowlist' };
+      return {
+        success: false,
+        text: 'Invalid action type',
+        error: 'Action not in allowlist',
+      };
     }
 
     if (decision.action === 'reply') {
@@ -472,9 +494,9 @@ Respond with JSON: { "action": "reply" | "react" | "ignore", "content": "..." }`
     return {
       success: true,
       text: `Handled kind:1 event with action: ${decision.action}`,
-      data: { action: decision.action, eventId: event.id }
+      data: { action: decision.action, eventId: event.id },
     };
-  }
+  },
 };
 
 // --- Provider: Trust/Social Context ---
@@ -490,9 +512,9 @@ const trustContextProvider: Provider = {
     return {
       text: `Author trust score: ${trustScore}, social distance: ${socialDistance} hops`,
       values: { trustScore, socialDistance },
-      data: { trustScore, socialDistance, pubkey }
+      data: { trustScore, socialDistance, pubkey },
     };
-  }
+  },
 };
 
 // --- Evaluator: Rate Limit Check ---
@@ -507,7 +529,7 @@ const rateLimitEvaluator: Evaluator = {
       // Could modify state or flag for throttling
       state.values.rateLimited = true;
     }
-  }
+  },
 };
 
 // --- Plugin Assembly ---
@@ -548,7 +570,9 @@ interface ActionResult {
 
 interface Provider<TContext = unknown> {
   name: string;
-  get: (ctx: TContext) => Promise<{ text: string; values: Record<string, unknown> }>;
+  get: (
+    ctx: TContext
+  ) => Promise<{ text: string; values: Record<string, unknown> }>;
 }
 
 interface Evaluator<TContext = unknown> {
@@ -588,7 +612,7 @@ class NostrAgentRuntime {
     const ctx: NostrEventContext = {
       event,
       runtime: this.runtime,
-      state: new Map()
+      state: new Map(),
     };
 
     // 1. Inject context from all providers
@@ -616,7 +640,7 @@ class NostrAgentRuntime {
 
     // 4. Run evaluators (post-processing / guardrails)
     for (const evaluator of this.evaluators) {
-      if (evaluator.alwaysRun || await evaluator.validate(ctx)) {
+      if (evaluator.alwaysRun || (await evaluator.validate(ctx))) {
         await evaluator.handler(ctx);
       }
     }
@@ -638,7 +662,7 @@ pool.subscribeMany(relays, filters, {
         await pool.publish(relays, result.data.publishEvent);
       }
     }
-  }
+  },
 });
 ```
 

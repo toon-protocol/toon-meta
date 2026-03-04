@@ -79,6 +79,7 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 ### Additional Requirements
 
 **From Architecture - Coding Standards:**
+
 - Use PascalCase for classes, camelCase for functions, UPPER_SNAKE_CASE for constants
 - Export all public APIs from package `index.ts`
 - Use `nostr-tools` types (don't redefine Nostr event types)
@@ -86,12 +87,14 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - Never use `any` - use `unknown` and type guards
 
 **From Architecture - Test Strategy:**
+
 - Vitest as test framework
 - Co-located `*.test.ts` files next to source
 - Factory functions for test fixtures
 - AAA pattern (Arrange, Act, Assert)
 
 **From Architecture - Crosstown Service Protocol:**
+
 - Service contract is `POST /handle-packet` with `HandlePacketRequest`/`HandlePacketResponse`
 - These types already exist in `packages/core/src/compose.ts`
 - The connector's `PaymentHandler` auto-computes fulfillment (SDK doesn't need to SHA-256)
@@ -100,6 +103,7 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - TOON is the AI-native wire format — handlers receive raw TOON for direct LLM consumption
 
 **From Connector Package (@crosstown/connector@1.4.0):**
+
 - `ConnectorNode` class with `setPacketHandler(handler: PaymentHandler)` for simplified handling
 - `PaymentRequest` includes `isTransit`, `paymentId`, `destination`, `amount`, `data`
 - `PaymentResponse` returns `{ accept: boolean, data?, rejectReason? }`
@@ -108,6 +112,7 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - `ConnectorConfig` with `peers`, `routes`, `btpServerPort`, `settlementInfra` options
 
 **From Identity Design (session-derived):**
+
 - Both Nostr (BIP-340 Schnorr) and EVM (ECDSA) use secp256k1 — same private key works for both
 - BIP-39 mnemonic → BIP-32 HD derivation → NIP-06 path `m/44'/1237'/0'/0/{index}`
 - One keypair = Nostr pubkey + EVM address (deterministically linked)
@@ -116,43 +121,46 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 
 ### FR Coverage Map
 
-FR-SDK-0:     Epic 1, Story 1.0 - TOON codec extraction to @crosstown/core
-FR-SDK-1:     Epic 1, Story 1.7 - createNode() composition function
-FR-SDK-2:     Epic 1, Story 1.2 - Handler registry (.on/.onDefault)
-FR-SDK-3:     Epic 1, Story 1.3 - TOON-native HandlerContext with passthrough + lazy decode
-FR-SDK-4:     Epic 1, Story 1.4 - Schnorr signature verification pipeline
-FR-SDK-5:     Epic 1, Story 1.5 - Pricing validation with self-write bypass
-FR-SDK-6:     Epic 1, Story 1.6 - PaymentHandler bridge with isTransit semantics
-FR-SDK-7:     Epic 1, Story 1.3 - HandlerContext accept()/reject() helpers
-FR-SDK-8:     Epic 1, Story 1.8 - Connector direct methods API
-FR-SDK-9:     Epic 1, Story 1.9 - BootstrapService + RelayMonitor integration
-FR-SDK-10:    Epic 1, Story 1.7 - Node lifecycle (start/stop)
-FR-SDK-11:    Epic 1, Story 1.7 - Embedded connector mode
-FR-SDK-12:    Epic 1, Story 1.10 - Dev mode
-FR-SDK-13:    Epic 1, Story 1.11 - npm publish as @crosstown/sdk
+FR-SDK-0: Epic 1, Story 1.0 - TOON codec extraction to @crosstown/core
+FR-SDK-1: Epic 1, Story 1.7 - createNode() composition function
+FR-SDK-2: Epic 1, Story 1.2 - Handler registry (.on/.onDefault)
+FR-SDK-3: Epic 1, Story 1.3 - TOON-native HandlerContext with passthrough + lazy decode
+FR-SDK-4: Epic 1, Story 1.4 - Schnorr signature verification pipeline
+FR-SDK-5: Epic 1, Story 1.5 - Pricing validation with self-write bypass
+FR-SDK-6: Epic 1, Story 1.6 - PaymentHandler bridge with isTransit semantics
+FR-SDK-7: Epic 1, Story 1.3 - HandlerContext accept()/reject() helpers
+FR-SDK-8: Epic 1, Story 1.8 - Connector direct methods API
+FR-SDK-9: Epic 1, Story 1.9 - BootstrapService + RelayMonitor integration
+FR-SDK-10: Epic 1, Story 1.7 - Node lifecycle (start/stop)
+FR-SDK-11: Epic 1, Story 1.7 - Embedded connector mode
+FR-SDK-12: Epic 1, Story 1.10 - Dev mode
+FR-SDK-13: Epic 1, Story 1.11 - npm publish as @crosstown/sdk
 FR-SDK-NEW-1: Epic 1, Story 1.1 - Unified identity from seed phrase
-FR-SDK-14:    Epic 2, Story 2.1 - Relay reimplementation using SDK
-FR-SDK-15:    Epic 2, Story 2.3 - E2E test validation
-FR-SDK-16:    Epic 2, Story 2.4 - Remove packages/git-proxy
-FR-RELAY-1:   Epic 2, Story 2.5 - Publish @crosstown/town package
-FR-NIP34-1:   Epic 3, Stories 3.1-3.4 - Git HTTP backend and NIP-34 handlers (split across repo, patch, issue/comment, HTTP backend)
-FR-NIP34-2:   Epic 3, Story 3.5 - Nostr pubkey-native git identity
-FR-NIP34-3:   Epic 3, Stories 3.7-3.10 - Read-only code browsing web UI (split across layout+repo list, tree+blob, commits+diff, blame)
-FR-NIP34-4:   Epic 3, Story 3.6 - PR lifecycle via NIP-34 status events
-FR-NIP34-5:   Epic 3, Story 3.11 - Issues/PRs from Nostr events on relay
-FR-NIP34-6:   Epic 3, Story 3.12 - Publish @crosstown/rig package
+FR-SDK-14: Epic 2, Story 2.1 - Relay reimplementation using SDK
+FR-SDK-15: Epic 2, Story 2.3 - E2E test validation
+FR-SDK-16: Epic 2, Story 2.4 - Remove packages/git-proxy
+FR-RELAY-1: Epic 2, Story 2.5 - Publish @crosstown/town package
+FR-NIP34-1: Epic 3, Stories 3.1-3.4 - Git HTTP backend and NIP-34 handlers (split across repo, patch, issue/comment, HTTP backend)
+FR-NIP34-2: Epic 3, Story 3.5 - Nostr pubkey-native git identity
+FR-NIP34-3: Epic 3, Stories 3.7-3.10 - Read-only code browsing web UI (split across layout+repo list, tree+blob, commits+diff, blame)
+FR-NIP34-4: Epic 3, Story 3.6 - PR lifecycle via NIP-34 status events
+FR-NIP34-5: Epic 3, Story 3.11 - Issues/PRs from Nostr events on relay
+FR-NIP34-6: Epic 3, Story 3.12 - Publish @crosstown/rig package
 
 ## Epic List
 
 ### Epic 1: ILP-Gated Service Node SDK
+
 A developer can create a working ILP-gated service node from a 12-word seed phrase in ~10 lines of code. The SDK provides unified secp256k1 identity (Nostr + EVM), TOON-native kind-based event handling with raw TOON passthrough for LLM consumption and lazy decode for code handlers, configurable pricing validation, embedded connector lifecycle management, network discovery, and dev mode. Includes the TOON codec extraction prerequisite. Published as `@crosstown/sdk`.
 **FRs covered:** FR-SDK-0, FR-SDK-1, FR-SDK-2, FR-SDK-3, FR-SDK-4, FR-SDK-5, FR-SDK-6, FR-SDK-7, FR-SDK-8, FR-SDK-9, FR-SDK-10, FR-SDK-11, FR-SDK-12, FR-SDK-13, FR-SDK-NEW-1
 
 ### Epic 2: Nostr Relay Reference Implementation & SDK Validation
+
 The existing relay BLS is rebuilt using the SDK's handler registry, proving SDK completeness. Adds Nostr-specific handlers (event storage, SPSP handshake) as documented examples of code-based handlers that decode TOON to structured NostrEvent objects. Published as `@crosstown/town` so anyone can `npm install` and run their own relay to join the network. All existing E2E tests pass. Old experimental `packages/git-proxy/` removed.
 **FRs covered:** FR-SDK-14, FR-SDK-15, FR-SDK-16, FR-RELAY-1
 
 ### Epic 3: The Rig — ILP-Gated TypeScript Git Forge
+
 A TypeScript-native git forge built on the SDK. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. Published as `@crosstown/rig` so operators can `npx @crosstown/rig` and add git collaboration to their node. No Go dependency, no Docker required. The Rig serves as the second SDK example, demonstrating multi-handler services with git integration and relay-sourced data rendering.
 **FRs covered:** FR-NIP34-1, FR-NIP34-2, FR-NIP34-3, FR-NIP34-4, FR-NIP34-5, FR-NIP34-6
 **Stories:** 12 (decomposed for proper sizing)
@@ -602,6 +610,7 @@ So that the SDK is proven to be a complete replacement for the manual wiring.
 **Given** the SDK-based relay entrypoint
 **When** compared to the original `docker/src/entrypoint.ts`
 **Then** the handler registrations are significantly shorter than the original ~300 lines in `entrypoint.ts`
+
 > _Note: Target is <100 lines of handler logic, reflecting the SDK's abstraction value._
 
 **Given** the test `genesis-bootstrap-with-channels.test.ts`
@@ -678,6 +687,7 @@ A TypeScript-native git forge built on the SDK. The Rig is a mechanical port of 
 **Reference:** [forgejo](https://codeberg.org/forgejo/forgejo) (Go, GPL-3.0) — source for mechanical template port
 
 **Architecture notes:**
+
 - **Pure TypeScript** — no Go dependency, no Docker required, no external database
 - **Git HTTP backend** via `child_process` spawning the `git` binary (git-http-backend for clone/fetch, direct git commands for repo init/management)
 - **Read-only web UI** mechanically ported from Forgejo's Go HTML templates to Eta templates, served by Express

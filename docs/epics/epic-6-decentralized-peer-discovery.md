@@ -39,6 +39,7 @@ These layers feed into the **connector admin API** (`POST /admin/peers`, `POST /
 **so that** new nodes can bootstrap into the network without external configuration.
 
 **Acceptance Criteria:**
+
 1. Create `packages/core/src/discovery/genesis-peers.json` with initial genesis peer entries
 2. Schema: `[{ "pubkey": "hex64", "relayUrl": "wss://...", "ilpAddress": "g.xxx", "btpEndpoint": "ws://..." }]`
 3. Create `GenesisPeerLoader` that imports and validates the JSON at build time
@@ -56,6 +57,7 @@ These layers feed into the **connector admin API** (`POST /admin/peers`, `POST /
 **so that** peers can be discovered from a decentralized registry that survives relay downtime.
 
 **Acceptance Criteria:**
+
 1. Create `packages/core/src/discovery/ArDrivePeerRegistry.ts`
 2. **Read path** (free, no wallet): Query Arweave GraphQL gateway (`https://arweave.net/graphql`) by tags: `App-Name: "crosstown"`, `type: "ilp-peer-info"`
 3. Fetch transaction data, parse as `IlpPeerInfo` JSON
@@ -75,6 +77,7 @@ These layers feed into the **connector admin API** (`POST /admin/peers`, `POST /
 **so that** initial peering is simple, reliable, and requires no SPSP handshake.
 
 **Acceptance Criteria:**
+
 1. Refactor `packages/core/src/bootstrap.ts`:
    - Remove `directSpspHandshake()` from bootstrap flow
    - Add method to load and merge peers from genesis config + ArDrive + env var
@@ -97,6 +100,7 @@ These layers feed into the **connector admin API** (`POST /admin/peers`, `POST /
 **so that** my routing table grows organically through social trust signals.
 
 **Acceptance Criteria:**
+
 1. Create `packages/core/src/discovery/SocialPeerDiscovery.ts`
 2. Subscribe to NIP-02 follow list events (kind:3) for the node's pubkey
 3. When a new follow is detected (pubkey not already peered):
@@ -121,6 +125,7 @@ These layers feed into the **connector admin API** (`POST /admin/peers`, `POST /
 **so that** the container bootstraps from genesis/ArDrive and expands via social graph.
 
 **Acceptance Criteria:**
+
 1. Update `docker/src/entrypoint.ts`:
    - Load genesis peers + query ArDrive registry on startup
    - Run bootstrap with combined static peer list (no SPSP during bootstrap)

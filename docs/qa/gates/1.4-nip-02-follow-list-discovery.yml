@@ -1,11 +1,11 @@
 # Quality Gate Decision
 schema: 1
-story: "1.4"
-story_title: "NIP-02 Follow List Discovery"
+story: '1.4'
+story_title: 'NIP-02 Follow List Discovery'
 gate: PASS
-status_reason: "All 6 acceptance criteria met with comprehensive test coverage. Clean implementation following project patterns with no issues identified."
-reviewer: "Quinn (Test Architect)"
-updated: "2026-02-06T06:00:00Z"
+status_reason: 'All 6 acceptance criteria met with comprehensive test coverage. Clean implementation following project patterns with no issues identified.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-02-06T06:00:00Z'
 
 waiver: { active: false }
 
@@ -18,7 +18,7 @@ risk_summary:
     monitor: []
 
 quality_score: 100
-expires: "2026-02-20T06:00:00Z"
+expires: '2026-02-20T06:00:00Z'
 
 evidence:
   tests_reviewed: 15
@@ -30,16 +30,16 @@ evidence:
 nfr_validation:
   security:
     status: PASS
-    notes: "Pubkey validation prevents malformed input; no sensitive data handling"
+    notes: 'Pubkey validation prevents malformed input; no sensitive data handling'
   performance:
     status: PASS
-    notes: "Appropriate algorithms for expected data sizes"
+    notes: 'Appropriate algorithms for expected data sizes'
   reliability:
     status: PASS
-    notes: "Graceful handling of empty results and relay failures"
+    notes: 'Graceful handling of empty results and relay failures'
   maintainability:
     status: PASS
-    notes: "Well-documented code following established patterns"
+    notes: 'Well-documented code following established patterns'
 
 recommendations:
   immediate: []

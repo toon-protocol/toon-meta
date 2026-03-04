@@ -1,5 +1,12 @@
 ---
-stepsCompleted: ['step-01-preflight-and-context', 'step-02-generation-mode', 'step-03-test-strategy', 'step-04-generate-tests', 'step-05-validate-and-complete']
+stepsCompleted:
+  [
+    'step-01-preflight-and-context',
+    'step-02-generation-mode',
+    'step-03-test-strategy',
+    'step-04-generate-tests',
+    'step-05-validate-and-complete',
+  ]
 lastStep: 'step-05-validate-and-complete'
 lastSaved: '2026-03-04'
 workflowType: 'testarch-atdd'
@@ -249,11 +256,13 @@ cd packages/client && pnpm vitest run tests/e2e/sdk-relay-validation.test.ts -t 
 ### GREEN Phase (DEV Team)
 
 **Prerequisites:**
+
 1. Stories 2.1 + 2.2 must be GREEN first (integration tests passing)
 2. `startTown()` function created (Story 2.5 partial)
 3. Genesis node redeployed with @crosstown/town
 
 **Implementation Order:**
+
 1. Deploy SDK relay → bootstrap test passes
 2. Verify publish → publish test passes
 3. Verify channels → channel state test passes

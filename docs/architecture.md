@@ -15,10 +15,10 @@ The `ui-prototypes` package contains React-based UI prototypes for visualizing t
 
 ### 1.2 Change Log
 
-| Date | Version | Description | Author |
-|------|---------|-------------|--------|
-| 2026-02-05 | 0.1 | Initial architecture document | Architect |
-| 2026-02-17 | 0.2 | Major update: BLS package extraction, bootstrap/compose modules, embedded connector, agent runtime, settlement negotiation, layered peer discovery, ui-prototypes, Docker entrypoint, NIP adoption roadmap (Epics 12-17), tech stack version updates | Architect |
+| Date       | Version | Description                                                                                                                                                                                                                                          | Author    |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 2026-02-05 | 0.1     | Initial architecture document                                                                                                                                                                                                                        | Architect |
+| 2026-02-17 | 0.2     | Major update: BLS package extraction, bootstrap/compose modules, embedded connector, agent runtime, settlement negotiation, layered peer discovery, ui-prototypes, Docker entrypoint, NIP adoption roadmap (Epics 12-17), tech stack version updates | Architect |
 
 ---
 
@@ -29,6 +29,7 @@ The `ui-prototypes` package contains React-based UI prototypes for visualizing t
 Crosstown Protocol is a **TypeScript monorepo** with a **modular package architecture**. The system consists of four packages plus a Docker entrypoint that enable autonomous agents to discover ILP payment peers via Nostr social graphs, exchange SPSP parameters with settlement negotiation over Nostr events, and run as autonomous LLM-powered agents that process Nostr events in real-time.
 
 The architecture separates concerns across three layers:
+
 1. **Discovery & Configuration** — Nostr handles peer discovery, SPSP exchange, and social graph traversal
 2. **Payment Routing** — ILP connectors handle actual packet routing, settlement, and payment channels
 3. **Autonomous Decision-Making** — LLM-powered handlers process Nostr events and execute structured actions (planned, Epic 11)
@@ -107,18 +108,18 @@ graph TB
 
 ### 2.4 Architectural and Design Patterns
 
-| Pattern | Application | Rationale |
-|---------|-------------|-----------|
-| **Modular Monorepo** | Package organization (core, bls, relay, examples) | Simplifies dependency management; enables atomic changes across packages |
-| **Event-Driven Architecture** | Nostr pub/sub for discovery, SPSP, and real-time monitoring | Natural fit for Nostr; enables real-time updates via RelayMonitor |
-| **Composition Pattern** | `createCrosstownNode()` wires all components with start/stop lifecycle | Single entry point for embedded mode; avoids manual component wiring |
-| **Interface Abstraction** | `AgentRuntimeClient` / `ConnectorAdminClient` with HTTP and direct implementations | Swap between embedded and HTTP mode without changing consumer code |
-| **Layered Peer Discovery** | Genesis peers → ArDrive registry → NIP-02 social graph | Progressive fallback ensures bootstrap works even with minimal network |
-| **Strategy Pattern** | Configurable trust calculation weights | Agents can tune trust weights without code changes |
-| **Builder Pattern** | Event builder utilities for all Nostr event kinds | Ensures correct event structure, tagging, and signing |
-| **Deterministic Event Routing** | Kind number → handler dispatch (not LLM classification) | Predictable, testable routing; LLM decides actions within handlers |
-| **Business Logic Server (BLS)** | Payment verification and TOON-encoded event processing | Standard ILP integration pattern; extracted as reusable package |
-| **State Machine** | Bootstrap phases: discovering → registering → handshaking → announcing → ready | Clear lifecycle with event-driven phase transitions |
+| Pattern                         | Application                                                                        | Rationale                                                                |
+| ------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Modular Monorepo**            | Package organization (core, bls, relay, examples)                                  | Simplifies dependency management; enables atomic changes across packages |
+| **Event-Driven Architecture**   | Nostr pub/sub for discovery, SPSP, and real-time monitoring                        | Natural fit for Nostr; enables real-time updates via RelayMonitor        |
+| **Composition Pattern**         | `createCrosstownNode()` wires all components with start/stop lifecycle             | Single entry point for embedded mode; avoids manual component wiring     |
+| **Interface Abstraction**       | `AgentRuntimeClient` / `ConnectorAdminClient` with HTTP and direct implementations | Swap between embedded and HTTP mode without changing consumer code       |
+| **Layered Peer Discovery**      | Genesis peers → ArDrive registry → NIP-02 social graph                             | Progressive fallback ensures bootstrap works even with minimal network   |
+| **Strategy Pattern**            | Configurable trust calculation weights                                             | Agents can tune trust weights without code changes                       |
+| **Builder Pattern**             | Event builder utilities for all Nostr event kinds                                  | Ensures correct event structure, tagging, and signing                    |
+| **Deterministic Event Routing** | Kind number → handler dispatch (not LLM classification)                            | Predictable, testable routing; LLM decides actions within handlers       |
+| **Business Logic Server (BLS)** | Payment verification and TOON-encoded event processing                             | Standard ILP integration pattern; extracted as reusable package          |
+| **State Machine**               | Bootstrap phases: discovering → registering → handshaking → announcing → ready     | Clear lifecycle with event-driven phase transitions                      |
 
 ---
 
@@ -133,28 +134,28 @@ graph TB
 
 ### 3.2 Technology Stack Table
 
-| Category | Technology | Version | Purpose | Rationale |
-|----------|------------|---------|---------|-----------|
-| **Language** | TypeScript | ^5.3.x | Primary development language | PRD requirement; strong typing for complex protocol work |
-| **Runtime** | Node.js | 24.x | Primary runtime | LTS stability; ESM support; PRD requirement (18+) |
-| **Runtime** | Modern Browsers | ESM | Secondary runtime (ui-prototypes) | PRD requirement for browser compatibility |
-| **Nostr Library** | nostr-tools | ^2.20.x | Nostr protocol operations | PRD requirement; official reference implementation |
-| **Encryption** | @noble/ciphers | 0.5.x | NIP-44 encryption | Used by nostr-tools for encrypted DMs/SPSP |
-| **TOON Encoding** | @toon-format/toon | 1.x | Encode Nostr events for ILP packet data | Standard format for embedding events in ILP PREPARE/FULFILL |
-| **Database** | better-sqlite3 | ^11.x | BLS/relay event storage | Synchronous API; excellent performance; single-file |
-| **WebSocket** | ws | 8.x | Relay WebSocket server | Standard Node.js WebSocket library |
-| **HTTP Server** | Hono | ^4.x | BLS HTTP endpoints | Lightweight; TypeScript-first; works everywhere |
-| **Build Tool** | tsup | 8.x | Library bundling | ESM/CJS dual output; minimal config |
-| **Package Manager** | pnpm | >=8 | Monorepo management | Efficient disk usage; workspace support |
-| **Test Framework** | Vitest | ^1.x | Unit and integration testing | Fast; native ESM; PRD requirement |
-| **Linting** | ESLint | ^9.x | Code quality | Flat config; TypeScript support; ecosystem standard |
-| **Formatting** | Prettier | ^3.2.x | Code formatting | Consistent style; zero-config |
-| **Container** | Docker | - | Standalone BLS+relay deployment | Reproducible builds; production deployment |
-| **UI Framework** | React | 19.x | UI prototypes | Component model for agent network visualization |
-| **UI Build** | Vite | 7.x | UI prototype dev server and build | Fast HMR; native ESM |
-| **UI Styling** | Tailwind CSS | v4 | UI prototype styling | Utility-first; rapid prototyping |
-| **UI Components** | shadcn/ui + Radix | - | UI prototype components | Accessible, composable component primitives |
-| **AI SDK** | Vercel AI SDK | v6.x | LLM integration for agent runtime (planned) | Multi-model support; structured output via Zod; lightweight |
+| Category            | Technology        | Version | Purpose                                     | Rationale                                                   |
+| ------------------- | ----------------- | ------- | ------------------------------------------- | ----------------------------------------------------------- |
+| **Language**        | TypeScript        | ^5.3.x  | Primary development language                | PRD requirement; strong typing for complex protocol work    |
+| **Runtime**         | Node.js           | 24.x    | Primary runtime                             | LTS stability; ESM support; PRD requirement (18+)           |
+| **Runtime**         | Modern Browsers   | ESM     | Secondary runtime (ui-prototypes)           | PRD requirement for browser compatibility                   |
+| **Nostr Library**   | nostr-tools       | ^2.20.x | Nostr protocol operations                   | PRD requirement; official reference implementation          |
+| **Encryption**      | @noble/ciphers    | 0.5.x   | NIP-44 encryption                           | Used by nostr-tools for encrypted DMs/SPSP                  |
+| **TOON Encoding**   | @toon-format/toon | 1.x     | Encode Nostr events for ILP packet data     | Standard format for embedding events in ILP PREPARE/FULFILL |
+| **Database**        | better-sqlite3    | ^11.x   | BLS/relay event storage                     | Synchronous API; excellent performance; single-file         |
+| **WebSocket**       | ws                | 8.x     | Relay WebSocket server                      | Standard Node.js WebSocket library                          |
+| **HTTP Server**     | Hono              | ^4.x    | BLS HTTP endpoints                          | Lightweight; TypeScript-first; works everywhere             |
+| **Build Tool**      | tsup              | 8.x     | Library bundling                            | ESM/CJS dual output; minimal config                         |
+| **Package Manager** | pnpm              | >=8     | Monorepo management                         | Efficient disk usage; workspace support                     |
+| **Test Framework**  | Vitest            | ^1.x    | Unit and integration testing                | Fast; native ESM; PRD requirement                           |
+| **Linting**         | ESLint            | ^9.x    | Code quality                                | Flat config; TypeScript support; ecosystem standard         |
+| **Formatting**      | Prettier          | ^3.2.x  | Code formatting                             | Consistent style; zero-config                               |
+| **Container**       | Docker            | -       | Standalone BLS+relay deployment             | Reproducible builds; production deployment                  |
+| **UI Framework**    | React             | 19.x    | UI prototypes                               | Component model for agent network visualization             |
+| **UI Build**        | Vite              | 7.x     | UI prototype dev server and build           | Fast HMR; native ESM                                        |
+| **UI Styling**      | Tailwind CSS      | v4      | UI prototype styling                        | Utility-first; rapid prototyping                            |
+| **UI Components**   | shadcn/ui + Radix | -       | UI prototype components                     | Accessible, composable component primitives                 |
+| **AI SDK**          | Vercel AI SDK     | v6.x    | LLM integration for agent runtime (planned) | Multi-model support; structured output via Zod; lightweight |
 
 ---
 
@@ -165,9 +166,10 @@ graph TB
 **Purpose:** Represents ILP connection information published by a peer via kind:10032 events.
 
 **Key Attributes:**
+
 - `ilpAddress`: string - ILP address of the peer's connector
 - `btpEndpoint`: string - BTP WebSocket endpoint URL
-- `settlementEngine`: string | undefined - *(deprecated)* Use supportedChains instead
+- `settlementEngine`: string | undefined - _(deprecated)_ Use supportedChains instead
 - `assetCode`: string - Asset code (e.g., "USD", "XRP")
 - `assetScale`: number - Asset scale (decimal places)
 - `supportedChains`: string[] | undefined - Settlement chain identifiers (e.g., `["evm:base:8453", "xrp:mainnet"]`)
@@ -176,6 +178,7 @@ graph TB
 - `tokenNetworks`: Record<string, string> | undefined - Maps chain to TokenNetwork contract (EVM)
 
 **Relationships:**
+
 - Associated with a Nostr pubkey (event author)
 - Used by SocialPeerDiscovery to populate connector peer list
 - Settlement fields used during SPSP negotiation (Epic 7)
@@ -185,10 +188,12 @@ graph TB
 **Purpose:** SPSP parameters for payment setup, exchanged via kind:23195 (dynamic response).
 
 **Key Attributes:**
+
 - `destinationAccount`: string - ILP address to send payment to
 - `sharedSecret`: string - Base64-encoded shared secret for STREAM
 
 **Relationships:**
+
 - Associated with a Nostr pubkey
 - Used by NostrSpspClient/Server for payment setup
 
@@ -197,6 +202,7 @@ graph TB
 **Purpose:** Request for fresh SPSP parameters with settlement negotiation, sent as kind:23194 ephemeral event.
 
 **Key Attributes:**
+
 - `requestId`: string - Unique request identifier
 - `timestamp`: number - Request timestamp
 - `ilpAddress`: string | undefined - Requester's ILP address
@@ -205,6 +211,7 @@ graph TB
 - `preferredTokens`: Record<string, string> | undefined - Requester's preferred tokens per chain
 
 **Relationships:**
+
 - Sent to a specific recipient pubkey
 - Triggers SpspResponse from recipient
 - Encrypted with NIP-44
@@ -214,6 +221,7 @@ graph TB
 **Purpose:** Response containing SPSP parameters with negotiated settlement details, sent as kind:23195 ephemeral event.
 
 **Key Attributes:**
+
 - `requestId`: string - Matching request identifier
 - `destinationAccount`: string - ILP address
 - `sharedSecret`: string - Base64-encoded shared secret
@@ -225,6 +233,7 @@ graph TB
 - `settlementTimeout`: number | undefined - Challenge period in seconds
 
 **Relationships:**
+
 - Response to SpspRequest
 - Encrypted with NIP-44 for recipient
 
@@ -233,17 +242,20 @@ graph TB
 **Purpose:** ILP packet handling types for BLS communication with the connector.
 
 **HandlePacketRequest:**
+
 - `amount`: string - Payment amount (parsed to bigint)
 - `destination`: string - ILP destination address
 - `data`: string - Base64-encoded TOON Nostr event
 - `sourceAccount`: string | undefined - Source ILP address
 
 **HandlePacketAcceptResponse:**
+
 - `accept`: true
 - `fulfillment`: string - Base64-encoded SHA-256 fulfillment
 - `metadata`: { eventId, storedAt } | undefined
 
 **HandlePacketRejectResponse:**
+
 - `accept`: false
 - `code`: string - ILP error code (F00, F06, T00)
 - `message`: string - Human-readable error
@@ -252,6 +264,7 @@ graph TB
 ### 4.6 Bootstrap Types
 
 **Key Interfaces:**
+
 - `BootstrapConfig` - Known peers, query timeout, ArDrive settings
 - `BootstrapServiceConfig` - Extends BootstrapConfig with agent-runtime URL, settlement info, TOON codec DI callbacks
 - `DiscoveredPeer` - Peer found via kind:10032 (pubkey, peerId, peerInfo, discoveredAt)
@@ -263,19 +276,23 @@ graph TB
 ### 4.7 Client Interfaces
 
 **AgentRuntimeClient:**
+
 - `sendIlpPacket(params): Promise<IlpSendResult>` - Send ILP packets (HTTP or direct)
 
 **ConnectorAdminClient:**
+
 - `addPeer(config): Promise<void>` - Register peer with connector (supports routes with priority, settlement config)
 - `removePeer?(peerId): Promise<void>` - Optional peer removal
 
 **ConnectorChannelClient:**
+
 - `openChannel(params): Promise<OpenChannelResult>` - Open payment channel
 - `getChannelState(channelId): Promise<ChannelState>` - Query channel state
 
 ### 4.8 Settlement Types
 
 **Key Interfaces:**
+
 - `SettlementNegotiationConfig` - Own chains, addresses, tokens, deposit amount, timeouts
 - `SettlementNegotiationResult` - Negotiated chain, addresses, channel ID
 - `OpenChannelParams` - Peer ID, chain, token, peer address, deposit
@@ -287,6 +304,7 @@ graph TB
 **Purpose:** Standard Nostr event structure from nostr-tools.
 
 **Key Attributes:**
+
 - `id`: string - Event hash
 - `pubkey`: string - Author public key
 - `kind`: number - Event kind
@@ -304,6 +322,7 @@ graph TB
 **Responsibility:** Main protocol library providing peer discovery, SPSP exchange, trust calculation, bootstrap orchestration, and embedded connector composition.
 
 **Key Modules:**
+
 - `bootstrap/` - BootstrapService (multi-phase lifecycle), RelayMonitor (real-time kind:10032 monitoring), AgentRuntimeClient/ConnectorAdminClient interfaces, direct and HTTP client implementations
 - `discovery/` - SocialPeerDiscovery (layered: genesis → ArDrive → NIP-02), NostrPeerDiscovery, ArDrivePeerRegistry, GenesisPeerLoader
 - `spsp/` - NostrSpspClient, NostrSpspServer, IlpSpspClient (ILP-first SPSP), settlement negotiation, channel opening
@@ -317,6 +336,7 @@ graph TB
 **Responsibility:** Standalone Business Logic Server for ILP payment verification, TOON decoding, event pricing, and storage. Extracted from relay as a reusable package for both relay and Docker deployments.
 
 **Key Modules:**
+
 - `bls/` - BusinessLogicServer (handlePacket), types (HandlePacketRequest/Response)
 - `pricing/` - PricingService (per-kind pricing), config loading (env vars, file-based)
 - `storage/` - EventStore interface, InMemoryEventStore, SqliteEventStore
@@ -330,6 +350,7 @@ graph TB
 **Responsibility:** Reference implementation of ILP-gated Nostr relay with NIP-01 WebSocket server.
 
 **Key Modules:**
+
 - `websocket/` - NostrRelayServer, ConnectionHandler (NIP-01 REQ/EVENT/CLOSE)
 - `subscriber/` - RelaySubscriber (upstream relay event propagation)
 - `bls/` - BusinessLogicServer (relay-specific BLS wrapping)
@@ -345,6 +366,7 @@ graph TB
 **Responsibility:** Integration examples demonstrating library usage.
 
 **Key Interfaces:**
+
 - `ilp-gated-relay-demo/` - Full relay demo with agent, relay, and mock connector
 
 **Dependencies:** @crosstown/core, @crosstown/bls
@@ -354,6 +376,7 @@ graph TB
 **Responsibility:** Standalone Docker entrypoint that wires BLS + relay + bootstrap into a deployable container.
 
 **Key Files:**
+
 - `src/entrypoint.ts` - Main entrypoint: config loading, BLS server start, SPSP server start, bootstrap orchestration
 - `Dockerfile` - Container build
 
@@ -364,6 +387,7 @@ graph TB
 **Responsibility:** Autonomous TypeScript runtime using Vercel AI SDK (v6) that subscribes to Nostr relays, routes events by kind to LLM-powered handlers, and executes structured actions back to relays.
 
 **Planned Modules:**
+
 - Kind Registry + Handler Loader (markdown handler references → system prompts)
 - Zod action schemas with per-kind allowlists
 - Core handler function (`handleNostrEvent()`) with structured output
@@ -460,18 +484,19 @@ graph LR
 - **Rate Limits:** Relay-dependent
 
 **Key Operations Used:**
+
 - `REQ` - Subscribe to events matching filters
 - `EVENT` - Publish signed events
 - `CLOSE` - Close subscriptions
 
 **Event Kinds Used:**
 
-| Kind | Name | Usage |
-|------|------|-------|
-| 3 | Follow List (NIP-02) | Peer discovery via social graph |
-| 10032 | ILP Peer Info | Connector address, BTP endpoint, settlement chains |
-| 23194 | SPSP Request | Encrypted request for SPSP parameters + settlement negotiation |
-| 23195 | SPSP Response | Encrypted response with SPSP params + negotiated settlement |
+| Kind  | Name                 | Usage                                                          |
+| ----- | -------------------- | -------------------------------------------------------------- |
+| 3     | Follow List (NIP-02) | Peer discovery via social graph                                |
+| 10032 | ILP Peer Info        | Connector address, BTP endpoint, settlement chains             |
+| 23194 | SPSP Request         | Encrypted request for SPSP parameters + settlement negotiation |
+| 23195 | SPSP Response        | Encrypted response with SPSP params + negotiated settlement    |
 
 **Integration Notes:** Library uses nostr-tools SimplePool for relay management. All tests mock SimplePool to avoid live relay dependency. RelayMonitor provides real-time subscription to kind:10032 events for dynamic peer discovery.
 
@@ -482,21 +507,21 @@ graph LR
 
 **Integration Modes:**
 
-| Mode | Transport | Latency | Configuration |
-|------|-----------|---------|---------------|
-| **Embedded** | In-process function calls | Zero | `createCrosstownNode()` with ConnectorNode |
-| **HTTP** | REST API | Network | `createHttpRuntimeClient(baseUrl)` |
+| Mode         | Transport                 | Latency | Configuration                              |
+| ------------ | ------------------------- | ------- | ------------------------------------------ |
+| **Embedded** | In-process function calls | Zero    | `createCrosstownNode()` with ConnectorNode |
+| **HTTP**     | REST API                  | Network | `createHttpRuntimeClient(baseUrl)`         |
 
 **Key API Surfaces (both modes):**
 
-| Operation | HTTP Endpoint | Direct Method |
-|-----------|---------------|---------------|
-| Send ILP packet | `POST /ilp/send` | `connector.sendPacket()` |
-| Add peer | `POST /admin/peers` | `connector.registerPeer()` |
-| Remove peer | `DELETE /admin/peers/:id` | `connector.removePeer()` |
-| Handle incoming packet | `POST /handle-packet` | `bls.handlePacket()` (public) |
-| Open payment channel | `POST /admin/channels` | `connector.openChannel()` |
-| Get channel state | `GET /admin/channels/:id` | `connector.getChannelState()` |
+| Operation              | HTTP Endpoint             | Direct Method                 |
+| ---------------------- | ------------------------- | ----------------------------- |
+| Send ILP packet        | `POST /ilp/send`          | `connector.sendPacket()`      |
+| Add peer               | `POST /admin/peers`       | `connector.registerPeer()`    |
+| Remove peer            | `DELETE /admin/peers/:id` | `connector.removePeer()`      |
+| Handle incoming packet | `POST /handle-packet`     | `bls.handlePacket()` (public) |
+| Open payment channel   | `POST /admin/channels`    | `connector.openChannel()`     |
+| Get channel state      | `GET /admin/channels/:id` | `connector.getChannelState()` |
 
 **Integration Notes:** `@agent-runtime/connector` is an optional peer dependency. HTTP-only mode works without it. Both HTTP and direct clients implement the same `AgentRuntimeClient` / `ConnectorAdminClient` interfaces.
 
@@ -703,6 +728,7 @@ CREATE INDEX idx_events_pubkey_kind ON events(pubkey, kind);
 ```
 
 **Design Notes:**
+
 - Tags stored as JSON for flexibility
 - `received_at` tracks when relay received event (for debugging/auditing)
 - Replaceable events handled in application layer (delete old, insert new)
@@ -869,12 +895,14 @@ crosstown/
 - **Pipeline Configuration:** `.github/workflows/ci.yml`
 
 **npm Publishing Flow:**
+
 1. Version bump in package.json files (coordinated across packages)
 2. Create git tag
 3. GitHub Actions builds and tests
 4. Publish to npm registry (@crosstown/core, @crosstown/bls, @crosstown/relay)
 
 **Docker Publishing Flow:**
+
 1. Build from `docker/Dockerfile`
 2. Image includes BLS + relay + bootstrap entrypoint
 3. Configure via environment variables
@@ -914,28 +942,37 @@ Local Dev → PR → main branch → Tagged Release → npm publish / Docker bui
 - **Error Propagation:** Errors thrown from library; consumers handle
 
 **Core Package (`@crosstown/core`):**
+
 ```typescript
 class CrosstownError extends Error {
-  constructor(message: string, public readonly code: string, cause?: Error) {
+  constructor(
+    message: string,
+    public readonly code: string,
+    cause?: Error
+  ) {
     super(message, { cause });
   }
 }
 
-class InvalidEventError extends CrosstownError {}      // INVALID_EVENT
-class PeerDiscoveryError extends CrosstownError {}      // PEER_DISCOVERY_FAILED
-class SpspError extends CrosstownError {}               // SPSP_FAILED
-class SpspTimeoutError extends CrosstownError {}        // SPSP_TIMEOUT
-class TrustCalculationError extends CrosstownError {}   // TRUST_CALCULATION_FAILED
+class InvalidEventError extends CrosstownError {} // INVALID_EVENT
+class PeerDiscoveryError extends CrosstownError {} // PEER_DISCOVERY_FAILED
+class SpspError extends CrosstownError {} // SPSP_FAILED
+class SpspTimeoutError extends CrosstownError {} // SPSP_TIMEOUT
+class TrustCalculationError extends CrosstownError {} // TRUST_CALCULATION_FAILED
 ```
 
 **BLS Package (`@crosstown/bls`):**
+
 ```typescript
 class BlsBaseError extends Error {
-  constructor(message: string, public code: string) {}
+  constructor(
+    message: string,
+    public code: string
+  ) {}
 }
 
-class BlsError extends BlsBaseError {}        // BLS_ERROR
-class ConfigError extends BlsBaseError {}     // CONFIG_ERROR
+class BlsError extends BlsBaseError {} // BLS_ERROR
+class ConfigError extends BlsBaseError {} // CONFIG_ERROR
 ```
 
 **ILP Error Codes (BLS):** `F00` (bad request), `F06` (insufficient amount), `T00` (internal error)
@@ -985,16 +1022,16 @@ class ConfigError extends BlsBaseError {}     // CONFIG_ERROR
 
 ### 12.2 Naming Conventions
 
-| Element | Convention | Example |
-|---------|------------|---------|
+| Element        | Convention                                       | Example                                     |
+| -------------- | ------------------------------------------------ | ------------------------------------------- |
 | Files (source) | PascalCase for classes, kebab-case for utilities | `BusinessLogicServer.ts`, `credit-limit.ts` |
-| Files (test) | Match source with `.test.ts` suffix | `BusinessLogicServer.test.ts` |
-| Classes | PascalCase | `SocialPeerDiscovery` |
-| Interfaces | PascalCase (no I- prefix by convention) | `IlpPeerInfo`, `HandlePacketRequest` |
-| Functions | camelCase | `discoverPeers`, `createCrosstownNode` |
-| Constants | UPPER_SNAKE_CASE | `ILP_PEER_INFO_KIND`, `SPSP_REQUEST_KIND` |
-| Type aliases | PascalCase | `BootstrapPhase`, `IlpPeerInfo` |
-| Event types | Discriminated unions with `type` field | `BootstrapEvent` |
+| Files (test)   | Match source with `.test.ts` suffix              | `BusinessLogicServer.test.ts`               |
+| Classes        | PascalCase                                       | `SocialPeerDiscovery`                       |
+| Interfaces     | PascalCase (no I- prefix by convention)          | `IlpPeerInfo`, `HandlePacketRequest`        |
+| Functions      | camelCase                                        | `discoverPeers`, `createCrosstownNode`      |
+| Constants      | UPPER_SNAKE_CASE                                 | `ILP_PEER_INFO_KIND`, `SPSP_REQUEST_KIND`   |
+| Type aliases   | PascalCase                                       | `BootstrapPhase`, `IlpPeerInfo`             |
+| Event types    | Discriminated unions with `type` field           | `BootstrapEvent`                            |
 
 ### 12.3 Critical Rules
 
@@ -1028,6 +1065,7 @@ class ConfigError extends BlsBaseError {}     // CONFIG_ERROR
 - **Coverage Requirement:** >80% for public APIs
 
 **Requirements:**
+
 - All public methods have unit tests
 - Edge cases and error conditions covered
 - SimplePool always mocked (never live relays)
@@ -1141,6 +1179,7 @@ The following epics extend the protocol with standardized Nostr Improvement Prop
 Establishes social identity, reputation signaling, and moderation primitives. Agents become first-class Nostr participants — discoverable by humans and machines, capable of expressing quality feedback, and protected from abuse.
 
 **Key Architectural Additions:**
+
 - `AgentProfileBuilder` — kind:0 profiles with NIP-05 identity
 - `RelayListManager` — kind:10002 relay preferences for multi-relay discovery
 - Reaction/report signals provide lightweight reputation inputs
@@ -1153,6 +1192,7 @@ Establishes social identity, reputation signaling, and moderation primitives. Ag
 Enables paid agent-to-agent computation via NIP-90 DVMs with ILP micropayments. Customer sends ILP PREPARE with TOON-encoded kind:5xxx job request; provider returns kind:6xxx result in FULFILL.
 
 **Key Architectural Additions:**
+
 - `DvmJobHandler` — BLS module for processing DVM job requests
 - `DvmAnnouncementBuilder` — kind:31990 capability advertisements
 - `DvmDiscovery` — Social-graph-weighted service provider discovery
@@ -1165,6 +1205,7 @@ Enables paid agent-to-agent computation via NIP-90 DVMs with ILP micropayments. 
 ILP-backed zaps with cryptographic proof-of-payment. Zap history, diversity, and settlement reliability feed into trust scores. NIP-51 lists enable explicit routing preferences.
 
 **Key Architectural Additions:**
+
 - ILP zap request (kind:9734) / receipt (kind:9735) event types
 - `ZapHandler` in BLS for accepting zap payments and publishing receipts
 - Trust metrics expanded: zapVolume, zapDiversity, settlementReliability
@@ -1178,6 +1219,7 @@ ILP-backed zaps with cryptographic proof-of-payment. Zap history, diversity, and
 Agent capability taxonomy via labels, post-service quality ratings, and verifiable badge credentials for settlement reliability and throughput milestones.
 
 **Key Architectural Additions:**
+
 - NIP-32 label namespaces: `agent-skill`, `agent-quality`, `agent-warning`, `agent-tier`
 - `BadgeIssuer` — kind:30009 definitions, kind:8 awards, auto-issuance via metric thresholds
 - Comprehensive multi-signal trust model (9 components)
@@ -1189,6 +1231,7 @@ Agent capability taxonomy via labels, post-service quality ratings, and verifiab
 Full communication stack: metadata-private DMs, threaded discussions, content amplification, paid articles, and moderated agent communities.
 
 **Key Architectural Additions:**
+
 - `PrivateMessaging` — Three-layer NIP-17 encryption (rumor → seal → gift wrap)
 - Threading utilities for multi-turn public discourse
 - NIP-23 article authoring with ILP payment gating (already priced in BLS)
@@ -1201,6 +1244,7 @@ Full communication stack: metadata-private DMs, threaded discussions, content am
 Payment-gated agent swarms with ILP payment channel membership gating, hierarchical ILP address allocation, and TOON-encoded intra-swarm communication where every message is a micropayment.
 
 **Key Architectural Additions:**
+
 - `SwarmManager` — NIP-29 group lifecycle (create, join, dissolve)
 - `MembershipValidator` — Payment channel deposit + badge + trust gating
 - `SwarmAddressManager` — Hierarchical ILP address allocation (`g.swarm-<groupId>.<memberId>`)
@@ -1241,6 +1285,7 @@ _(To be completed after running architect-checklist)_
 ### 17.3 Architecture Document Maintenance
 
 This document is sharded into focused files for dev agent consumption:
+
 - `docs/architecture/2-high-level-architecture.md` - Section 2
 - `docs/architecture/3-tech-stack.md` - Section 3
 - `docs/architecture/5-components.md` - Section 5

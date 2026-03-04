@@ -62,17 +62,19 @@ This keeps the BLS simple (no blockchain SDKs, no private keys, no on-chain moni
 **so that** other peers can discover my settlement capabilities before initiating an SPSP handshake.
 
 **Current `IlpPeerInfo` interface:**
+
 ```typescript
 interface IlpPeerInfo {
   ilpAddress: string;
   btpEndpoint: string;
-  settlementEngine?: string;  // Single string — inadequate
+  settlementEngine?: string; // Single string — inadequate
   assetCode: string;
   assetScale: number;
 }
 ```
 
 **New `IlpPeerInfo` interface:**
+
 ```typescript
 interface IlpPeerInfo {
   ilpAddress: string;
@@ -80,10 +82,10 @@ interface IlpPeerInfo {
   assetCode: string;
   assetScale: number;
   // New settlement fields
-  supportedChains: string[];              // e.g., ["evm:base:8453", "xrp:mainnet"]
-  settlementAddresses: Record<string, string>;  // chain → address
-  preferredTokens?: Record<string, string>;     // chain → token contract address
-  tokenNetworks?: Record<string, string>;       // chain → TokenNetwork contract address
+  supportedChains: string[]; // e.g., ["evm:base:8453", "xrp:mainnet"]
+  settlementAddresses: Record<string, string>; // chain → address
+  preferredTokens?: Record<string, string>; // chain → token contract address
+  tokenNetworks?: Record<string, string>; // chain → TokenNetwork contract address
 }
 ```
 
@@ -106,6 +108,7 @@ interface IlpPeerInfo {
 **so that** both peers agree on a settlement chain during the handshake.
 
 **Current interfaces:**
+
 ```typescript
 interface SpspRequest {
   requestId: string;
@@ -120,6 +123,7 @@ interface SpspResponse {
 ```
 
 **New interfaces:**
+
 ```typescript
 interface SpspRequest {
   requestId: string;
@@ -136,12 +140,12 @@ interface SpspResponse {
   destinationAccount: string;
   sharedSecret: string;
   // New settlement fields
-  negotiatedChain: string;                    // The agreed-upon chain
-  settlementAddress: string;                  // Responder's address on negotiated chain
-  tokenAddress?: string;                      // Token contract (EVM)
-  tokenNetworkAddress?: string;               // TokenNetwork contract (EVM)
-  channelId?: string;                         // Channel ID if opened during handshake
-  settlementTimeout?: number;                 // Challenge period in seconds
+  negotiatedChain: string; // The agreed-upon chain
+  settlementAddress: string; // Responder's address on negotiated chain
+  tokenAddress?: string; // Token contract (EVM)
+  tokenNetworkAddress?: string; // TokenNetwork contract (EVM)
+  channelId?: string; // Channel ID if opened during handshake
+  settlementTimeout?: number; // Challenge period in seconds
 }
 ```
 
@@ -317,7 +321,7 @@ interface SpspResponse {
 - [ ] Integration test: two peers negotiate chain and open channel via SPSP
 - [ ] ConnectorChannelClient HTTP implementation wired in entrypoint
 - [ ] Settlement negotiation works in both direct Nostr and ILP-routed SPSP paths
-- [ ] TOKEN_NETWORK_* env vars parsed and passed through to settlement config
+- [ ] TOKEN*NETWORK*\* env vars parsed and passed through to settlement config
 
 ## Related Work
 

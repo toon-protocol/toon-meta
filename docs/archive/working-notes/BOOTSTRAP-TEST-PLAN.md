@@ -1,9 +1,11 @@
 # Nostr SPSP Bootstrap Test Plan
 
 ## Overview
+
 This test verifies the Nostr SPSP bootstrap flow works end-to-end with encrypted shared secrets and automatic payment channel creation.
 
 ## Prerequisites
+
 ✅ All packages build successfully
 ✅ Docker image `crosstown:bootstrap` built
 ✅ Connector image `connector:1.19.1` available
@@ -12,7 +14,9 @@ This test verifies the Nostr SPSP bootstrap flow works end-to-end with encrypted
 ## Test Phases
 
 ### Phase 1: Genesis Peer Startup
+
 **Expected Behavior:**
+
 1. ✅ Peer1 starts with `ENTRYPOINT=entrypoint-with-bootstrap.js`
 2. ✅ Nostr relay starts on port 7100
 3. ✅ BLS starts on port 3100
@@ -22,6 +26,7 @@ This test verifies the Nostr SPSP bootstrap flow works end-to-end with encrypted
 7. ✅ SPSP handler configured with `spspMinPrice=0` (free handshakes)
 
 **Verification:**
+
 ```bash
 # Check genesis logs
 docker logs crosstown-peer1 | grep -E "kind:10032|bootstrap|relay|BLS started"
@@ -34,7 +39,9 @@ curl http://localhost:3101/health
 ```
 
 ### Phase 2: Joiner Peer Discovery
+
 **Expected Behavior:**
+
 1. ✅ Peer2 starts with bootstrap config:
    - `BOOTSTRAP_RELAYS=ws://crosstown-peer1:7100`
    - `BOOTSTRAP_PEERS={peer1-pubkey}`
@@ -44,6 +51,7 @@ curl http://localhost:3101/health
 5. ✅ Event emitted: `{type: 'bootstrap:peer-discovered', peerPubkey: '...'}`
 
 **Verification:**
+
 ```bash
 # Check peer2 logs for discovery
 docker logs crosstown-peer2 | grep -E "peer-discovered|kind:10032|Discovery"
@@ -52,7 +60,9 @@ docker logs crosstown-peer2 | grep -E "peer-discovered|kind:10032|Discovery"
 ```
 
 ### Phase 3: SPSP Handshake (The Critical Part!)
+
 **Expected Behavior:**
+
 1. ✅ BootstrapService enters Phase 2: Handshake
 2. ✅ Peer2 builds SPSP request (kind:23194):
    - Encrypts payload with NIP-44
@@ -97,6 +107,7 @@ docker logs crosstown-peer2 | grep -E "peer-discovered|kind:10032|Discovery"
 12. ✅ Event emitted: `{type: 'bootstrap:channel-opened', channelId: '...', negotiatedChain: 'evm:base:31337'}`
 
 **Verification:**
+
 ```bash
 # Watch SPSP handshake in peer2 logs
 docker logs -f crosstown-peer2 | grep -E "SPSP|handshake|channel-opened|sharedSecret"
@@ -116,13 +127,16 @@ docker logs connector-peer2 | grep -E "BTP|authenticated|connected"
 ```
 
 ### Phase 4: Announcement
+
 **Expected Behavior:**
+
 1. ✅ BootstrapService enters Phase 3: Announce
 2. ✅ Peer2 publishes own kind:10032 event to genesis relay
 3. ✅ Genesis RelayMonitor sees peer2's kind:10032
 4. ✅ Event emitted: `{type: 'bootstrap:announced', destination: '...'}`
 
 **Verification:**
+
 ```bash
 # Check peer2 announcement
 docker logs crosstown-peer2 | grep -E "announced|kind:10032"
@@ -132,7 +146,9 @@ docker logs crosstown-peer2 | grep -E "announced|kind:10032"
 ```
 
 ### Phase 5: Packet Routing (NOT Local Delivery!)
+
 **Expected Behavior:**
+
 1. ✅ Send Nostr event from peer1 to peer2
 2. ✅ Packet routes through **BTP** (ws://connector-peer2:3000)
 3. ✅ **NOT** through local delivery (http://crosstown-peer2:3100)
@@ -140,11 +156,12 @@ docker logs crosstown-peer2 | grep -E "announced|kind:10032"
 5. ✅ Settlement tracking updated
 
 **Test Script:**
+
 ```javascript
 // Send test event peer1 → peer2
 const event = {
   kind: 1,
-  content: "Test bootstrap flow",
+  content: 'Test bootstrap flow',
   tags: [],
   created_at: Math.floor(Date.now() / 1000),
 };
@@ -158,6 +175,7 @@ fetch('http://localhost:3101/publish', {
 ```
 
 **Verification:**
+
 ```bash
 # Check connector logs for BTP packet routing (NOT local delivery)
 docker logs connector-peer1 | grep -E "BTP.*peer2|sendPacket.*g.crosstown.peer2"
@@ -171,7 +189,9 @@ curl http://localhost:8092/admin/settlement/states | jq '.'
 ```
 
 ### Phase 6: Settlement Trigger
+
 **Expected Behavior:**
+
 1. ✅ Send enough packets to exceed threshold (5000 units)
 2. ✅ Signed claims accumulated
 3. ✅ Settlement triggered automatically
@@ -181,6 +201,7 @@ curl http://localhost:8092/admin/settlement/states | jq '.'
 7. ✅ Payment channel balances updated
 
 **Verification:**
+
 ```bash
 # Send 100 packets (each ~100 units = 10,000 total > 5000 threshold)
 for i in {1..100}; do
@@ -205,26 +226,28 @@ cast balance 0x90F79bf6EB2c4f870365E785982E1f101E93b906 --rpc-url http://localho
 
 ## Success Criteria
 
-| Criteria | Status |
-|----------|--------|
-| Genesis publishes kind:10032 | ⬜ |
-| Joiner discovers genesis | ⬜ |
-| SPSP request encrypted (NIP-44) | ⬜ |
-| SPSP response encrypted (NIP-44) | ⬜ |
-| SharedSecret exchanged securely | ⬜ |
-| Payment channel opens during handshake | ⬜ |
-| BTP peer registered with SPSP secret | ⬜ |
-| BTP connection established | ⬜ |
-| Packets route via BTP (not local delivery) | ⬜ |
-| Signed claims generated | ⬜ |
-| Settlement triggers at threshold | ⬜ |
-| On-chain transaction confirmed | ⬜ |
-| Balances updated on-chain | ⬜ |
+| Criteria                                   | Status |
+| ------------------------------------------ | ------ |
+| Genesis publishes kind:10032               | ⬜     |
+| Joiner discovers genesis                   | ⬜     |
+| SPSP request encrypted (NIP-44)            | ⬜     |
+| SPSP response encrypted (NIP-44)           | ⬜     |
+| SharedSecret exchanged securely            | ⬜     |
+| Payment channel opens during handshake     | ⬜     |
+| BTP peer registered with SPSP secret       | ⬜     |
+| BTP connection established                 | ⬜     |
+| Packets route via BTP (not local delivery) | ⬜     |
+| Signed claims generated                    | ⬜     |
+| Settlement triggers at threshold           | ⬜     |
+| On-chain transaction confirmed             | ⬜     |
+| Balances updated on-chain                  | ⬜     |
 
 ## Common Issues & Debugging
 
 ### Issue: Genesis doesn't publish kind:10032
+
 **Debug:**
+
 ```bash
 docker logs crosstown-peer1 | grep -i error
 # Check if relay started
@@ -232,7 +255,9 @@ docker logs crosstown-peer1 | grep "Nostr relay started"
 ```
 
 ### Issue: Joiner doesn't discover genesis
+
 **Debug:**
+
 ```bash
 # Check relay connectivity
 docker exec crosstown-peer2 wget -qO- http://crosstown-peer1:7100/health
@@ -241,7 +266,9 @@ docker exec crosstown-peer1 env | grep NOSTR_SECRET_KEY
 ```
 
 ### Issue: SPSP handshake fails
+
 **Debug:**
+
 ```bash
 # Check SPSP pricing (should be 0 for genesis)
 docker logs crosstown-peer1 | grep "SPSP rejected"
@@ -250,7 +277,9 @@ docker logs crosstown-peer2 | grep "SPSP.*decrypt"
 ```
 
 ### Issue: BTP authentication fails
+
 **Debug:**
+
 ```bash
 # Check sharedSecret was extracted
 docker logs crosstown-peer2 | grep "sharedSecret"
@@ -260,7 +289,9 @@ docker logs connector-peer2 | grep "BTP.*auth"
 ```
 
 ### Issue: Packets go through local delivery
+
 **Debug:**
+
 ```bash
 # Check routing table
 curl http://localhost:8092/admin/routes | jq '.'
@@ -268,6 +299,7 @@ curl http://localhost:8092/admin/routes | jq '.'
 ```
 
 ## Next Steps After Success
+
 1. Add peers 3 & 4 to test mesh network
 2. Test multi-hop routing (peer1 → peer2 → peer3 → peer4)
 3. Test settlement with multiple peers

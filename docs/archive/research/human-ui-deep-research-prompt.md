@@ -33,17 +33,17 @@ agent-runtime (ILP connector - SEPARATE PROJECT, OUT OF SCOPE FOR THIS UI)
 
 ### The 14-Epic Roadmap (All Potential UI Surface Area)
 
-| Epic | Title | UI-Relevant Data |
-|------|-------|-------------------|
-| 1-5 | Foundation, SPSP, Trust, Relay, Docker | Peer graph, trust scores, relay events |
-| 6 | Decentralized Peer Discovery | Bootstrap phases, peer sources (genesis, ArDrive, social) |
-| 7-8 | Settlement Negotiation & Bootstrap | SPSP handshake events, channel opening notifications |
-| **9** | **Social Fabric Foundation** | **NIP-05 identities, NIP-65 relay lists, NIP-25 reactions, NIP-09 deletions, NIP-56 reports** |
-| **10** | **Paid Computation Marketplace (DVMs)** | **NIP-90 job requests/results, agent service listings, micropayment flows** |
-| **11** | **ILP Zaps & Social Routing** | **kind:9734 zap requests, kind:9735 receipts with fulfillment proofs, trust score updates, NIP-51 route preference lists** |
-| **12** | **Capability Labels & Credentials** | **NIP-32 labels (settlement reliability, throughput), NIP-58 badges** |
-| **13** | **Private Messaging & Content** | **NIP-17 DMs, NIP-10 threads, NIP-18 reposts, NIP-23 paid articles, NIP-72 communities** |
-| **14** | **Payment-Gated Agent Swarms** | **NIP-29 relay-based groups with payment membership gating** |
+| Epic   | Title                                   | UI-Relevant Data                                                                                                           |
+| ------ | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1-5    | Foundation, SPSP, Trust, Relay, Docker  | Peer graph, trust scores, relay events                                                                                     |
+| 6      | Decentralized Peer Discovery            | Bootstrap phases, peer sources (genesis, ArDrive, social)                                                                  |
+| 7-8    | Settlement Negotiation & Bootstrap      | SPSP handshake events, channel opening notifications                                                                       |
+| **9**  | **Social Fabric Foundation**            | **NIP-05 identities, NIP-65 relay lists, NIP-25 reactions, NIP-09 deletions, NIP-56 reports**                              |
+| **10** | **Paid Computation Marketplace (DVMs)** | **NIP-90 job requests/results, agent service listings, micropayment flows**                                                |
+| **11** | **ILP Zaps & Social Routing**           | **kind:9734 zap requests, kind:9735 receipts with fulfillment proofs, trust score updates, NIP-51 route preference lists** |
+| **12** | **Capability Labels & Credentials**     | **NIP-32 labels (settlement reliability, throughput), NIP-58 badges**                                                      |
+| **13** | **Private Messaging & Content**         | **NIP-17 DMs, NIP-10 threads, NIP-18 reposts, NIP-23 paid articles, NIP-72 communities**                                   |
+| **14** | **Payment-Gated Agent Swarms**          | **NIP-29 relay-based groups with payment membership gating**                                                               |
 
 ### ILP Zap Flow (Epic 11 — Critical Detail)
 
@@ -76,13 +76,13 @@ Nostr clients already provide diverse social experiences: microblogging (Damus, 
 
 ### Nostr Event Kinds Used by Crosstown
 
-| Kind | Name | Purpose |
-|------|------|---------|
-| `10032` | ILP Peer Info | Replaceable event with connector's ILP address, BTP endpoint, settlement info |
-| `23194` | SPSP Request | NIP-44 encrypted request for fresh SPSP parameters |
-| `23195` | SPSP Response | NIP-44 encrypted response with SPSP destination_account and shared_secret |
-| `9734` | ILP Zap Request | Zap request with ILP amount and relay targets |
-| `9735` | ILP Zap Receipt | Zap receipt with fulfillment proof and trust signal |
+| Kind    | Name            | Purpose                                                                       |
+| ------- | --------------- | ----------------------------------------------------------------------------- |
+| `10032` | ILP Peer Info   | Replaceable event with connector's ILP address, BTP endpoint, settlement info |
+| `23194` | SPSP Request    | NIP-44 encrypted request for fresh SPSP parameters                            |
+| `23195` | SPSP Response   | NIP-44 encrypted response with SPSP destination_account and shared_secret     |
+| `9734`  | ILP Zap Request | Zap request with ILP amount and relay targets                                 |
+| `9735`  | ILP Zap Receipt | Zap receipt with fulfillment proof and trust signal                           |
 
 ---
 
@@ -191,33 +191,39 @@ Nostr clients already provide diverse social experiences: microblogging (Damus, 
 ### Detailed Analysis
 
 **Section 1: UI Paradigm Comparison**
+
 - Comparison matrix of 5-8 paradigms rated across criteria
 - For each: description, analogous products, pros/cons for Crosstown, mockup/wireframe concept
 - Explicit consideration of how each paradigm scales from Epic 9 through Epic 14
 
 **Section 2: Nostr-Native Design Considerations**
+
 - How to leverage existing Nostr infrastructure (relays, event subscriptions, NIP-07/46 auth)
 - Whether standalone app vs client extension vs hybrid
 - How the UI subscribes to relevant event kinds (10032, 9734, 9735, NIP-90, etc.)
 - How NIP-05 identities, NIP-65 relay lists, and NIP-72 communities integrate
 
 **Section 3: Trust & Zap Visualization**
+
 - Specific approaches for visualizing the 7-component trust score
 - ILP zap flow visualization (request → payment → receipt → trust update)
 - Zap diversity and Sybil resistance as visual concepts
 - NIP-51 route preference and mute list management UI
 
 **Section 4: Novel Visualization Concepts**
+
 - 2-3 original ideas specific to "social graph as payment network with agent autonomy"
 - Concept descriptions with enough detail for prototyping
 - Technical feasibility for each
 
 **Section 5: Technology Stack Recommendations**
+
 - Framework and libraries for real-time Nostr event rendering + graph visualization
 - Performance considerations (potentially thousands of real-time events)
 - Nostr library integration (nostr-tools, NDK)
 
 **Section 6: User Journey Maps**
+
 - First-time human user onboarding
 - "Check on my agent" daily flow
 - "Something interesting happened" notification

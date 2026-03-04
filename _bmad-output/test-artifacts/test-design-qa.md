@@ -1,5 +1,12 @@
 ---
-stepsCompleted: ['step-01-detect-mode', 'step-02-load-context', 'step-03-risk-and-testability', 'step-04-coverage-plan', 'step-05-generate-output']
+stepsCompleted:
+  [
+    'step-01-detect-mode',
+    'step-02-load-context',
+    'step-03-risk-and-testability',
+    'step-04-coverage-plan',
+    'step-05-generate-output',
+  ]
 lastStep: 'step-05-generate-output'
 lastSaved: '2026-03-03'
 workflowType: 'testarch-test-design'
@@ -43,13 +50,13 @@ inputDocuments:
 
 ## Not in Scope
 
-| Item | Reasoning | Mitigation |
-|------|-----------|------------|
-| **Connector internals** | Connector is a separate package with its own test suite; SDK interfaces via `ConnectorNodeLike` structural type | Validated at integration boundary via R-007 tests |
-| **Rig admin panels / OAuth / notifications** | Explicitly excluded from Forgejo template port scope (read-only code browsing only) | Not in requirements; deferred post-MVP |
-| **Multi-relay redundancy** | Deferred architectural decision | Rig graceful degradation tested (R-009) |
-| **Performance / load testing** | No NFR defines RPS or throughput targets for SDK | Monitor during E2E; add if NFRs introduced |
-| **Rig offline mode** | Deferred architectural decision | N/A |
+| Item                                         | Reasoning                                                                                                       | Mitigation                                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| **Connector internals**                      | Connector is a separate package with its own test suite; SDK interfaces via `ConnectorNodeLike` structural type | Validated at integration boundary via R-007 tests |
+| **Rig admin panels / OAuth / notifications** | Explicitly excluded from Forgejo template port scope (read-only code browsing only)                             | Not in requirements; deferred post-MVP            |
+| **Multi-relay redundancy**                   | Deferred architectural decision                                                                                 | Rig graceful degradation tested (R-009)           |
+| **Performance / load testing**               | No NFR defines RPS or throughput targets for SDK                                                                | Monitor during E2E; add if NFRs introduced        |
+| **Rig offline mode**                         | Deferred architectural decision                                                                                 | N/A                                               |
 
 ---
 
@@ -139,27 +146,27 @@ describe('TOON shallow parse', () => {
 
 ### High-Priority Risks (Score >=6)
 
-| Risk ID | Category | Description | Score | QA Test Coverage |
-|---------|----------|-------------|-------|------------------|
-| **R-001** | TECH | TOON pipeline stage ordering | **9** | P0-001 (unit: shallow parse), P0-002 (integration: full pipeline ordering) |
-| **R-002** | SEC | Schnorr verification bypass | **6** | P0-003 (unit: invalid sig rejected), P0-004 (unit: devMode=false enforced) |
-| **R-003** | TECH | TOON codec extraction regression | **6** | P0-005 (unit: roundtrip), P0-006 (integration: BLS+relay imports) |
-| **R-004** | SEC | Git command injection in Rig | **6** | P0-007 (unit: execFile used), P0-008 (unit: input sanitization) |
-| **R-005** | DATA | Payment channel state integrity | **6** | P0-009 (integration: channel lifecycle), P0-010 (integration: nonce retry) |
-| **R-006** | TECH | SDK replacement E2E regression | **6** | P0-011, P0-012 (E2E: genesis-bootstrap + event publish) |
+| Risk ID   | Category | Description                      | Score | QA Test Coverage                                                           |
+| --------- | -------- | -------------------------------- | ----- | -------------------------------------------------------------------------- |
+| **R-001** | TECH     | TOON pipeline stage ordering     | **9** | P0-001 (unit: shallow parse), P0-002 (integration: full pipeline ordering) |
+| **R-002** | SEC      | Schnorr verification bypass      | **6** | P0-003 (unit: invalid sig rejected), P0-004 (unit: devMode=false enforced) |
+| **R-003** | TECH     | TOON codec extraction regression | **6** | P0-005 (unit: roundtrip), P0-006 (integration: BLS+relay imports)          |
+| **R-004** | SEC      | Git command injection in Rig     | **6** | P0-007 (unit: execFile used), P0-008 (unit: input sanitization)            |
+| **R-005** | DATA     | Payment channel state integrity  | **6** | P0-009 (integration: channel lifecycle), P0-010 (integration: nonce retry) |
+| **R-006** | TECH     | SDK replacement E2E regression   | **6** | P0-011, P0-012 (E2E: genesis-bootstrap + event publish)                    |
 
 ### Medium/Low-Priority Risks
 
-| Risk ID | Category | Description | Score | QA Test Coverage |
-|---------|----------|-------------|-------|------------------|
-| R-007 | TECH | ConnectorNodeLike structural typing drift | 4 | P1-014 (integration: type matching) |
-| R-008 | TECH | Transit semantics misrouting | 3 | P1-011, P1-012 (unit: both paths) |
-| R-009 | OPS | Rig relay dependency for issues/PRs | 4 | P1-027 (integration: relay query rendering) |
-| R-010 | BUS | Self-write pricing bypass edge cases | 3 | P1-008, P1-010 (unit: pricing + bypass) |
-| R-011 | TECH | BIP-39/NIP-06 derivation interop | 3 | P1-017, P1-018 (unit: key derivation) |
-| R-012 | BUS | Eta template port fidelity | 2 | P2-010 (integration: view rendering) |
-| R-013 | DATA | SQLite schema evolution | 2 | P3-002 (unit: CRUD) |
-| R-014 | OPS | Package ESM export config | 1 | P3-001 (unit: exports valid) |
+| Risk ID | Category | Description                               | Score | QA Test Coverage                            |
+| ------- | -------- | ----------------------------------------- | ----- | ------------------------------------------- |
+| R-007   | TECH     | ConnectorNodeLike structural typing drift | 4     | P1-014 (integration: type matching)         |
+| R-008   | TECH     | Transit semantics misrouting              | 3     | P1-011, P1-012 (unit: both paths)           |
+| R-009   | OPS      | Rig relay dependency for issues/PRs       | 4     | P1-027 (integration: relay query rendering) |
+| R-010   | BUS      | Self-write pricing bypass edge cases      | 3     | P1-008, P1-010 (unit: pricing + bypass)     |
+| R-011   | TECH     | BIP-39/NIP-06 derivation interop          | 3     | P1-017, P1-018 (unit: key derivation)       |
+| R-012   | BUS      | Eta template port fidelity                | 2     | P2-010 (integration: view rendering)        |
+| R-013   | DATA     | SQLite schema evolution                   | 2     | P3-002 (unit: CRUD)                         |
+| R-014   | OPS      | Package ESM export config                 | 1     | P3-001 (unit: exports valid)                |
 
 ---
 
@@ -181,7 +188,7 @@ describe('TOON shallow parse', () => {
 - [ ] All P0 tests passing (100% required)
 - [ ] All P1 tests passing (>=95%, failures triaged)
 - [ ] No open high-severity bugs in P0/P1 scope
-- [ ] >80% line coverage for SDK public APIs (NFR-SDK-3)
+- [ ] > 80% line coverage for SDK public APIs (NFR-SDK-3)
 - [ ] E2E regression suite passes against SDK-based relay
 
 ---
@@ -194,20 +201,20 @@ describe('TOON shallow parse', () => {
 
 **Criteria:** Blocks core functionality + High risk (>=6) + No workaround + Affects all SDK consumers
 
-| Test ID | Requirement | Test Level | Risk Link | Notes |
-|---------|-------------|------------|-----------|-------|
-| **P0-001** | TOON shallow parse extracts kind/pubkey/id/sig without full decode | Unit | R-001 | Verify rawBytes preserved |
-| **P0-002** | Full pipeline ordering: parse -> verify -> price -> dispatch | Integration | R-001 | Invalid sig = handler never invoked |
-| **P0-003** | Schnorr verification rejects invalid signatures with F06 | Unit | R-002 | Use nostr-tools test vectors |
-| **P0-004** | devMode=false enforces verification (no bypass leak) | Unit | R-002 | Explicit production config test |
-| **P0-005** | TOON codec encode/decode roundtrip from @crosstown/core | Unit | R-003 | Replaces existing BLS codec tests |
-| **P0-006** | BLS + relay imports work after codec extraction to core | Integration | R-003 | Run `pnpm -r test` post-move |
-| **P0-007** | All git operations use execFile (not exec) | Unit | R-004 | Static analysis + runtime test |
-| **P0-008** | Git input sanitization rejects shell metacharacters | Unit | R-004 | Path traversal, semicolons, backticks |
-| **P0-009** | Payment channel open/deposit/balance-proof lifecycle | Integration | R-005 | Requires Anvil container |
-| **P0-010** | Nonce conflict retry for on-chain operations | Integration | R-005 | Simulate concurrent transactions |
-| **P0-011** | SDK-based relay passes genesis-bootstrap-with-channels E2E | E2E | R-006 | Requires full genesis deployment |
-| **P0-012** | SDK-based relay event publish + query cycle | E2E | R-006 | Validates TOON-native storage |
+| Test ID    | Requirement                                                        | Test Level  | Risk Link | Notes                                 |
+| ---------- | ------------------------------------------------------------------ | ----------- | --------- | ------------------------------------- |
+| **P0-001** | TOON shallow parse extracts kind/pubkey/id/sig without full decode | Unit        | R-001     | Verify rawBytes preserved             |
+| **P0-002** | Full pipeline ordering: parse -> verify -> price -> dispatch       | Integration | R-001     | Invalid sig = handler never invoked   |
+| **P0-003** | Schnorr verification rejects invalid signatures with F06           | Unit        | R-002     | Use nostr-tools test vectors          |
+| **P0-004** | devMode=false enforces verification (no bypass leak)               | Unit        | R-002     | Explicit production config test       |
+| **P0-005** | TOON codec encode/decode roundtrip from @crosstown/core            | Unit        | R-003     | Replaces existing BLS codec tests     |
+| **P0-006** | BLS + relay imports work after codec extraction to core            | Integration | R-003     | Run `pnpm -r test` post-move          |
+| **P0-007** | All git operations use execFile (not exec)                         | Unit        | R-004     | Static analysis + runtime test        |
+| **P0-008** | Git input sanitization rejects shell metacharacters                | Unit        | R-004     | Path traversal, semicolons, backticks |
+| **P0-009** | Payment channel open/deposit/balance-proof lifecycle               | Integration | R-005     | Requires Anvil container              |
+| **P0-010** | Nonce conflict retry for on-chain operations                       | Integration | R-005     | Simulate concurrent transactions      |
+| **P0-011** | SDK-based relay passes genesis-bootstrap-with-channels E2E         | E2E         | R-006     | Requires full genesis deployment      |
+| **P0-012** | SDK-based relay event publish + query cycle                        | E2E         | R-006     | Validates TOON-native storage         |
 
 **Total P0:** ~12 tests
 
@@ -217,36 +224,36 @@ describe('TOON shallow parse', () => {
 
 **Criteria:** Important features + Medium risk (3-5) + Common workflows + Core SDK API surface
 
-| Test ID | Requirement | Test Level | Risk Link | Notes |
-|---------|-------------|------------|-----------|-------|
-| **P1-001** | Handler registry kind-based routing dispatches correctly | Unit | - | Kind match |
-| **P1-002** | Handler registry onDefault fallback invoked | Unit | - | No kind match |
-| **P1-003** | Handler registry F00 on no matching handler | Unit | - | No default either |
-| **P1-004** | HandlerContext.toon provides raw TOON without decode | Unit | - | LLM passthrough |
-| **P1-005** | HandlerContext.decode() lazy evaluation and caching | Unit | - | Second call returns cached |
-| **P1-006** | HandlerContext.accept(data?) correct response format | Unit | - | HandlePacketAcceptResponse |
-| **P1-007** | HandlerContext.reject(code, msg) correct response format | Unit | - | HandlePacketRejectResponse |
-| **P1-008** | Pricing per-byte calculation rejects underpaid with F04 | Unit | R-010 | amount < bytes * basePricePerByte |
-| **P1-009** | Pricing per-kind override takes precedence | Unit | - | kindPricing map |
-| **P1-010** | Self-write bypass (node's own pubkey = free) | Unit | R-010 | Pubkey format normalization |
-| **P1-011** | PaymentHandler bridge isTransit=true fire-and-forget | Unit | R-008 | Non-blocking |
-| **P1-012** | PaymentHandler bridge isTransit=false awaits response | Unit | R-008 | Blocking |
-| **P1-013** | PaymentHandler bridge catches exception -> T00 | Unit | - | Unhandled handler throw |
-| **P1-014** | ConnectorNodeLike structural type matches connector API | Integration | R-007 | Compile-time + runtime |
-| **P1-015** | createNode() composition wires all pipeline stages | Integration | - | Smoke test |
-| **P1-016** | node.start()/stop() lifecycle, double start throws NodeError | Unit | - | State machine |
-| **P1-017** | generateMnemonic() returns valid 12-word BIP-39 mnemonic | Unit | R-011 | Validate against BIP-39 wordlist |
-| **P1-018** | fromMnemonic() derives correct NIP-06 path keypair | Unit | R-011 | m/44'/1237'/0'/0/0 |
-| **P1-019** | fromMnemonic() with accountIndex derives distinct keys | Unit | R-011 | Index 0 != index 1 |
-| **P1-020** | fromSecretKey() derives matching pubkey + evmAddress | Unit | - | Cross-library validation |
-| **P1-021** | Dev mode skips verification + bypasses pricing + logs | Unit | - | All three behaviors |
-| **P1-022** | Town event storage handler: decode -> store -> accept | Unit | - | Story 2.1 |
-| **P1-023** | Town SPSP handshake handler: negotiate -> channel -> accept | Unit | - | Story 2.2 |
-| **P1-024** | Rig repo creation handler (kind:30617 -> git init --bare) | Unit | - | Story 3.1 |
-| **P1-025** | Rig patch handler (kind:1617 -> git am) | Unit | - | Story 3.2 |
-| **P1-026** | Rig issue/comment handlers acknowledge (kind:1621/1622) | Unit | - | Story 3.3 |
-| **P1-027** | Rig relay query renders issues/PRs in web UI | Integration | R-009 | Relay query + Eta render |
-| **P1-028** | Bootstrap + relay monitor discovers and registers peers | Integration | - | Story 1.9 |
+| Test ID    | Requirement                                                  | Test Level  | Risk Link | Notes                              |
+| ---------- | ------------------------------------------------------------ | ----------- | --------- | ---------------------------------- |
+| **P1-001** | Handler registry kind-based routing dispatches correctly     | Unit        | -         | Kind match                         |
+| **P1-002** | Handler registry onDefault fallback invoked                  | Unit        | -         | No kind match                      |
+| **P1-003** | Handler registry F00 on no matching handler                  | Unit        | -         | No default either                  |
+| **P1-004** | HandlerContext.toon provides raw TOON without decode         | Unit        | -         | LLM passthrough                    |
+| **P1-005** | HandlerContext.decode() lazy evaluation and caching          | Unit        | -         | Second call returns cached         |
+| **P1-006** | HandlerContext.accept(data?) correct response format         | Unit        | -         | HandlePacketAcceptResponse         |
+| **P1-007** | HandlerContext.reject(code, msg) correct response format     | Unit        | -         | HandlePacketRejectResponse         |
+| **P1-008** | Pricing per-byte calculation rejects underpaid with F04      | Unit        | R-010     | amount < bytes \* basePricePerByte |
+| **P1-009** | Pricing per-kind override takes precedence                   | Unit        | -         | kindPricing map                    |
+| **P1-010** | Self-write bypass (node's own pubkey = free)                 | Unit        | R-010     | Pubkey format normalization        |
+| **P1-011** | PaymentHandler bridge isTransit=true fire-and-forget         | Unit        | R-008     | Non-blocking                       |
+| **P1-012** | PaymentHandler bridge isTransit=false awaits response        | Unit        | R-008     | Blocking                           |
+| **P1-013** | PaymentHandler bridge catches exception -> T00               | Unit        | -         | Unhandled handler throw            |
+| **P1-014** | ConnectorNodeLike structural type matches connector API      | Integration | R-007     | Compile-time + runtime             |
+| **P1-015** | createNode() composition wires all pipeline stages           | Integration | -         | Smoke test                         |
+| **P1-016** | node.start()/stop() lifecycle, double start throws NodeError | Unit        | -         | State machine                      |
+| **P1-017** | generateMnemonic() returns valid 12-word BIP-39 mnemonic     | Unit        | R-011     | Validate against BIP-39 wordlist   |
+| **P1-018** | fromMnemonic() derives correct NIP-06 path keypair           | Unit        | R-011     | m/44'/1237'/0'/0/0                 |
+| **P1-019** | fromMnemonic() with accountIndex derives distinct keys       | Unit        | R-011     | Index 0 != index 1                 |
+| **P1-020** | fromSecretKey() derives matching pubkey + evmAddress         | Unit        | -         | Cross-library validation           |
+| **P1-021** | Dev mode skips verification + bypasses pricing + logs        | Unit        | -         | All three behaviors                |
+| **P1-022** | Town event storage handler: decode -> store -> accept        | Unit        | -         | Story 2.1                          |
+| **P1-023** | Town SPSP handshake handler: negotiate -> channel -> accept  | Unit        | -         | Story 2.2                          |
+| **P1-024** | Rig repo creation handler (kind:30617 -> git init --bare)    | Unit        | -         | Story 3.1                          |
+| **P1-025** | Rig patch handler (kind:1617 -> git am)                      | Unit        | -         | Story 3.2                          |
+| **P1-026** | Rig issue/comment handlers acknowledge (kind:1621/1622)      | Unit        | -         | Story 3.3                          |
+| **P1-027** | Rig relay query renders issues/PRs in web UI                 | Integration | R-009     | Relay query + Eta render           |
+| **P1-028** | Bootstrap + relay monitor discovers and registers peers      | Integration | -         | Story 1.9                          |
 
 **Total P1:** ~28 tests
 
@@ -256,19 +263,19 @@ describe('TOON shallow parse', () => {
 
 **Criteria:** Secondary features + Low risk (1-2) + Edge cases + Regression prevention
 
-| Test ID | Requirement | Test Level | Risk Link | Notes |
-|---------|-------------|------------|-----------|-------|
-| **P2-001** | Handler replacement on duplicate .on(kind) call | Unit | - | Last handler wins |
-| **P2-002** | Schnorr verify with devMode=true skips + logs debug | Unit | - | DevMode behavior |
-| **P2-003** | Pricing default basePricePerByte=10n when unconfigured | Unit | - | Sensible default |
-| **P2-004** | node.stop() is idempotent (double stop = no-op) | Unit | - | Lifecycle edge case |
-| **P2-005** | Rig git HTTP backend serves clone/fetch (read-only) | Integration | - | CGI proxy |
-| **P2-006** | Rig git HTTP backend rejects push | Integration | - | Write via ILP only |
-| **P2-007** | Rig pubkey display with kind:0 profile enrichment | Unit | - | npub formatting |
-| **P2-008** | Rig PR status events (kinds 1630-1633) lifecycle | Unit | - | Story 3.6 |
-| **P2-009** | Rig unauthorized pubkey rejected for merge/close | Unit | - | Maintainer check |
-| **P2-010** | Rig web UI renders repo list, tree, blob, blame views | Integration | R-012 | Eta templates |
-| **P2-011** | node.peerWith(pubkey) manual peering | Integration | - | Story 1.9 |
+| Test ID    | Requirement                                            | Test Level  | Risk Link | Notes               |
+| ---------- | ------------------------------------------------------ | ----------- | --------- | ------------------- |
+| **P2-001** | Handler replacement on duplicate .on(kind) call        | Unit        | -         | Last handler wins   |
+| **P2-002** | Schnorr verify with devMode=true skips + logs debug    | Unit        | -         | DevMode behavior    |
+| **P2-003** | Pricing default basePricePerByte=10n when unconfigured | Unit        | -         | Sensible default    |
+| **P2-004** | node.stop() is idempotent (double stop = no-op)        | Unit        | -         | Lifecycle edge case |
+| **P2-005** | Rig git HTTP backend serves clone/fetch (read-only)    | Integration | -         | CGI proxy           |
+| **P2-006** | Rig git HTTP backend rejects push                      | Integration | -         | Write via ILP only  |
+| **P2-007** | Rig pubkey display with kind:0 profile enrichment      | Unit        | -         | npub formatting     |
+| **P2-008** | Rig PR status events (kinds 1630-1633) lifecycle       | Unit        | -         | Story 3.6           |
+| **P2-009** | Rig unauthorized pubkey rejected for merge/close       | Unit        | -         | Maintainer check    |
+| **P2-010** | Rig web UI renders repo list, tree, blob, blame views  | Integration | R-012     | Eta templates       |
+| **P2-011** | node.peerWith(pubkey) manual peering                   | Integration | -         | Story 1.9           |
 
 **Total P2:** ~11 tests
 
@@ -278,10 +285,10 @@ describe('TOON shallow parse', () => {
 
 **Criteria:** Nice-to-have + Exploratory + Package validation
 
-| Test ID | Requirement | Test Level | Notes |
-|---------|-------------|------------|-------|
-| **P3-001** | Package ESM exports and TypeScript declarations valid | Unit | All 3 new packages |
-| **P3-002** | SQLite repo metadata CRUD operations | Unit | RepoMetadataStore |
+| Test ID    | Requirement                                           | Test Level | Notes              |
+| ---------- | ----------------------------------------------------- | ---------- | ------------------ |
+| **P3-001** | Package ESM exports and TypeScript declarations valid | Unit       | All 3 new packages |
+| **P3-002** | SQLite repo metadata CRUD operations                  | Unit       | RepoMetadataStore  |
 
 **Total P3:** ~2 tests
 
@@ -322,13 +329,13 @@ describe('TOON shallow parse', () => {
 
 **QA test development effort only** (excludes DevOps, Backend, infrastructure work):
 
-| Priority | Count | Effort Range | Notes |
-|----------|-------|-------------|-------|
-| P0 | ~12 | ~15-25 hours | Complex setup (security, pipeline ordering, Anvil integration) |
-| P1 | ~28 | ~20-35 hours | Standard coverage (handler dispatch, pricing, identity) |
-| P2 | ~11 | ~8-15 hours | Edge cases, simple validation |
-| P3 | ~2 | ~1-3 hours | Package validation |
-| **Total** | ~53 | **~44-78 hours** | **~1.5-3 weeks, 1 QA engineer, full-time** |
+| Priority  | Count | Effort Range     | Notes                                                          |
+| --------- | ----- | ---------------- | -------------------------------------------------------------- |
+| P0        | ~12   | ~15-25 hours     | Complex setup (security, pipeline ordering, Anvil integration) |
+| P1        | ~28   | ~20-35 hours     | Standard coverage (handler dispatch, pricing, identity)        |
+| P2        | ~11   | ~8-15 hours      | Edge cases, simple validation                                  |
+| P3        | ~2    | ~1-3 hours       | Package validation                                             |
+| **Total** | ~53   | **~44-78 hours** | **~1.5-3 weeks, 1 QA engineer, full-time**                     |
 
 **Assumptions:**
 
@@ -341,12 +348,12 @@ describe('TOON shallow parse', () => {
 
 ## Implementation Planning Handoff
 
-| Work Item | Owner | Dependencies/Notes |
-|-----------|-------|-------------------|
-| TOON event + keypair + ILP packet test factories | QA | Requires Story 1.0 complete |
-| Vitest config in sdk, town, rig packages | Dev | Part of package setup stories |
-| Anvil + Faucet CI pipeline | DevOps | Existing `docker-compose-genesis.yml` |
-| Git binary availability in CI | DevOps | Required for Rig integration tests |
+| Work Item                                        | Owner  | Dependencies/Notes                    |
+| ------------------------------------------------ | ------ | ------------------------------------- |
+| TOON event + keypair + ILP packet test factories | QA     | Requires Story 1.0 complete           |
+| Vitest config in sdk, town, rig packages         | Dev    | Part of package setup stories         |
+| Anvil + Faucet CI pipeline                       | DevOps | Existing `docker-compose-genesis.yml` |
+| Git binary availability in CI                    | DevOps | Required for Rig integration tests    |
 
 ---
 
@@ -354,13 +361,13 @@ describe('TOON shallow parse', () => {
 
 **Services and components impacted by the SDK:**
 
-| Service/Component | Impact | Regression Scope | Validation Steps |
-|-------------------|--------|------------------|------------------|
-| **@crosstown/core** | TOON codec moves here from BLS | All existing core tests + BLS import tests | `pnpm -r test` after codec extraction |
-| **@crosstown/bls** | TOON codec removed, imports from core | BLS unit tests must pass with new imports | P0-006 validates |
-| **@crosstown/relay** | May need updated TOON imports | Relay tests pass with core imports | P0-006 validates |
-| **@crosstown/client** | No code changes, E2E tests validate SDK | E2E test suite | P0-011, P0-012 |
-| **@crosstown/connector** | No code changes, SDK interfaces via structural type | ConnectorNodeLike compatibility | P1-014 validates |
+| Service/Component        | Impact                                              | Regression Scope                           | Validation Steps                      |
+| ------------------------ | --------------------------------------------------- | ------------------------------------------ | ------------------------------------- |
+| **@crosstown/core**      | TOON codec moves here from BLS                      | All existing core tests + BLS import tests | `pnpm -r test` after codec extraction |
+| **@crosstown/bls**       | TOON codec removed, imports from core               | BLS unit tests must pass with new imports  | P0-006 validates                      |
+| **@crosstown/relay**     | May need updated TOON imports                       | Relay tests pass with core imports         | P0-006 validates                      |
+| **@crosstown/client**    | No code changes, E2E tests validate SDK             | E2E test suite                             | P0-011, P0-012                        |
+| **@crosstown/connector** | No code changes, SDK interfaces via structural type | ConnectorNodeLike compatibility            | P1-014 validates                      |
 
 **Regression test strategy:**
 

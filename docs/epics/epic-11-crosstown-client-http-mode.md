@@ -89,25 +89,28 @@ await client.publishEvent(myEvent);  // Send via HTTP → connector → BLS
 
 ## Stories
 
-| # | Story | Description | Size |
-|---|-------|-------------|------|
-| 11.1 | Implement HttpRuntimeClient | Create HTTP client implementing `AgentRuntimeClient` interface. Sends ILP packets via `POST /ilp`. Includes retry logic with exponential backoff, error handling for network/connector errors. Unit tests with mocked HTTP. | M |
-| 11.2 | Implement HttpConnectorAdmin | Create HTTP client implementing `ConnectorAdminClient` interface. Methods: `addPeer()`, `removePeer()`, `getPeers()` via admin API. Error handling for unauthorized, not found, duplicate peer. Unit tests with mocked HTTP. | M |
-| 11.3 | HTTP Mode Integration & E2E Testing | Create `@crosstown/client` package. Implement `initializeHttpMode()`, `CrosstownClient` class, config validation. Wire HTTP clients into lifecycle. E2E test using docker-compose infrastructure. Update README with examples. | L |
+| #    | Story                               | Description                                                                                                                                                                                                                    | Size |
+| ---- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| 11.1 | Implement HttpRuntimeClient         | Create HTTP client implementing `AgentRuntimeClient` interface. Sends ILP packets via `POST /ilp`. Includes retry logic with exponential backoff, error handling for network/connector errors. Unit tests with mocked HTTP.    | M    |
+| 11.2 | Implement HttpConnectorAdmin        | Create HTTP client implementing `ConnectorAdminClient` interface. Methods: `addPeer()`, `removePeer()`, `getPeers()` via admin API. Error handling for unauthorized, not found, duplicate peer. Unit tests with mocked HTTP.   | M    |
+| 11.3 | HTTP Mode Integration & E2E Testing | Create `@crosstown/client` package. Implement `initializeHttpMode()`, `CrosstownClient` class, config validation. Wire HTTP clients into lifecycle. E2E test using docker-compose infrastructure. Update README with examples. | L    |
 
 ## Files Changed Per Story
 
 ### Story 11.1 (HttpRuntimeClient)
+
 - `packages/client/src/adapters/HttpRuntimeClient.ts` — **new**
 - `packages/client/src/adapters/HttpRuntimeClient.test.ts` — **new**
 - `packages/client/src/adapters/index.ts` — **new** (exports)
 
 ### Story 11.2 (HttpConnectorAdmin)
+
 - `packages/client/src/adapters/HttpConnectorAdmin.ts` — **new**
 - `packages/client/src/adapters/HttpConnectorAdmin.test.ts` — **new**
 - `packages/client/src/adapters/index.ts` — update exports
 
 ### Story 11.3 (Integration & E2E)
+
 - `packages/client/package.json` — **new** (package definition)
 - `packages/client/tsconfig.json` — **new**
 - `packages/client/tsup.config.ts` — **new**

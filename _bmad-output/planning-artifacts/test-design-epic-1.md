@@ -12,6 +12,7 @@
 Epic 1 delivers 12 stories (1.0-1.11) producing `@crosstown/sdk` -- the developer-facing abstraction for building ILP-gated service nodes. The SDK wraps TOON codec, handler registry, Schnorr verification, pricing validation, PaymentHandler bridge, unified identity, and embedded connector lifecycle into a `createNode()` composition function.
 
 **What exists today:**
+
 - TOON codec lives in `packages/bls/src/toon/` (encoder.ts, decoder.ts, toon.test.ts)
 - `createCrosstownNode()` composition exists in `packages/core/src/compose.ts` with `HandlePacketRequest`/`HandlePacketResponse` types
 - `EmbeddableConnectorLike` structural type already defined in compose.ts
@@ -20,12 +21,14 @@ Epic 1 delivers 12 stories (1.0-1.11) producing `@crosstown/sdk` -- the develope
 - No identity module exists yet
 
 **What this test plan covers:**
+
 - Stories 1.0-1.11 of Epic 1, focusing on the SDK processing pipeline
 - Risk assessment for each story with probability x impact scoring
 - Cross-story integration boundaries and the pipeline ordering invariant
 - Regression risks when later stories modify earlier work
 
 **What this test plan does NOT cover:**
+
 - Epic 2 (Town relay reimplementation) -- covered by its own test design
 - Epic 3 (Rig git forge) -- covered by its own test design
 - E2E tests against genesis node -- the SDK is tested via unit/integration; E2E validation happens in Epic 2 Story 2.3
@@ -43,36 +46,36 @@ Epic 1 delivers 12 stories (1.0-1.11) producing `@crosstown/sdk` -- the develope
 
 ### Story-Level Risk Matrix
 
-| Story | Risk ID | Category | Description | P | I | Score | Mitigation |
-|-------|---------|----------|-------------|---|---|-------|------------|
-| **1.0 TOON Codec** | E1-R01 | TECH | Codec extraction breaks encode/decode roundtrip across BLS/relay packages | 2 | 3 | **6** | Roundtrip test in core; run `pnpm -r test` after move |
-| **1.0 TOON Codec** | E1-R02 | DATA | Shallow parser extracts wrong byte offsets for id/pubkey/sig from TOON binary format | 2 | 3 | **6** | Cross-validate shallow parse output against full decode for same payload |
-| **1.1 Identity** | E1-R03 | SEC | Keys derived via @scure/bip39+bip32 incompatible with nostr-tools Schnorr or viem EVM address | 2 | 3 | **6** | Cross-library roundtrip: derive key -> sign with nostr-tools -> verify; derive -> compute EVM address -> verify with known test vectors |
-| **1.2 Registry** | E1-R04 | BUS | No handler and no default -> silent drop instead of F00 rejection | 1 | 2 | 2 | Unit test for F00 on unmatched kind with no default |
-| **1.3 Context** | E1-R05 | PERF | `decode()` called multiple times causes redundant TOON parsing | 1 | 2 | 2 | Unit test: second `decode()` call returns same object reference |
-| **1.4 Verification** | E1-R06 | SEC | devMode defaults to true or has env var override, leaking bypass to production | 2 | 3 | **6** | Unit test: default config + invalid sig = F06 rejection; grep codebase for `process.env` reads of devMode |
-| **1.4 Verification** | E1-R07 | SEC | Verification runs AFTER full decode (trusts decode, defeats purpose) | 2 | 3 | **6** | Integration test: verify stage uses shallow parse fields only, not decoded event |
-| **1.5 Pricing** | E1-R08 | BUS | Self-write pubkey comparison fails due to format mismatch (hex vs npub vs different case) | 1 | 3 | 3 | Unit test with hex pubkey, normalized hex, and edge cases |
-| **1.6 Bridge** | E1-R09 | TECH | isTransit flag swapped: fire-and-forget when await needed (data loss) or await when fire-and-forget needed (forwarding block) | 2 | 3 | **6** | Unit test both paths: isTransit=true returns before handler resolves; isTransit=false waits |
-| **1.6 Bridge** | E1-R10 | TECH | Unhandled async exception in handler leaks as unhandled rejection instead of T00 | 2 | 2 | 4 | Unit test: throwing handler -> T00 response, no unhandled rejection |
-| **1.7 createNode** | E1-R11 | TECH | **Pipeline stage ordering violation** -- stages execute in wrong order (e.g., dispatch before verify, price before parse) | 3 | 3 | **9** | Integration test with spy/trace proving exact execution order: shallow parse -> verify -> price -> dispatch |
-| **1.7 createNode** | E1-R12 | TECH | Double `start()` does not throw, causing duplicate bootstrap and relay monitor subscriptions | 1 | 2 | 2 | Unit test: second start() throws NodeError |
-| **1.8 Connector API** | E1-R13 | TECH | ConnectorNodeLike structural type drifts from real ConnectorNode, runtime failures with no compile error | 2 | 2 | 4 | Integration test against real connector validates structural compatibility |
-| **1.9 Bootstrap** | E1-R14 | OPS | Channel opening during bootstrap fails silently, peerCount reports success but channels are 0 | 1 | 2 | 2 | Integration test validates channelCount in StartResult |
-| **1.10 Dev Mode** | E1-R15 | SEC | Dev mode bypasses leak to production through incomplete config isolation | 1 | 3 | 3 | Unit test: devMode unset in config -> verification and pricing active |
-| **1.11 Package** | E1-R16 | OPS | ESM export map misconfigured, consumers get import errors | 1 | 1 | 1 | Import validation test |
+| Story                 | Risk ID | Category | Description                                                                                                                   | P   | I   | Score | Mitigation                                                                                                                              |
+| --------------------- | ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- | --- | --- | ----- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **1.0 TOON Codec**    | E1-R01  | TECH     | Codec extraction breaks encode/decode roundtrip across BLS/relay packages                                                     | 2   | 3   | **6** | Roundtrip test in core; run `pnpm -r test` after move                                                                                   |
+| **1.0 TOON Codec**    | E1-R02  | DATA     | Shallow parser extracts wrong byte offsets for id/pubkey/sig from TOON binary format                                          | 2   | 3   | **6** | Cross-validate shallow parse output against full decode for same payload                                                                |
+| **1.1 Identity**      | E1-R03  | SEC      | Keys derived via @scure/bip39+bip32 incompatible with nostr-tools Schnorr or viem EVM address                                 | 2   | 3   | **6** | Cross-library roundtrip: derive key -> sign with nostr-tools -> verify; derive -> compute EVM address -> verify with known test vectors |
+| **1.2 Registry**      | E1-R04  | BUS      | No handler and no default -> silent drop instead of F00 rejection                                                             | 1   | 2   | 2     | Unit test for F00 on unmatched kind with no default                                                                                     |
+| **1.3 Context**       | E1-R05  | PERF     | `decode()` called multiple times causes redundant TOON parsing                                                                | 1   | 2   | 2     | Unit test: second `decode()` call returns same object reference                                                                         |
+| **1.4 Verification**  | E1-R06  | SEC      | devMode defaults to true or has env var override, leaking bypass to production                                                | 2   | 3   | **6** | Unit test: default config + invalid sig = F06 rejection; grep codebase for `process.env` reads of devMode                               |
+| **1.4 Verification**  | E1-R07  | SEC      | Verification runs AFTER full decode (trusts decode, defeats purpose)                                                          | 2   | 3   | **6** | Integration test: verify stage uses shallow parse fields only, not decoded event                                                        |
+| **1.5 Pricing**       | E1-R08  | BUS      | Self-write pubkey comparison fails due to format mismatch (hex vs npub vs different case)                                     | 1   | 3   | 3     | Unit test with hex pubkey, normalized hex, and edge cases                                                                               |
+| **1.6 Bridge**        | E1-R09  | TECH     | isTransit flag swapped: fire-and-forget when await needed (data loss) or await when fire-and-forget needed (forwarding block) | 2   | 3   | **6** | Unit test both paths: isTransit=true returns before handler resolves; isTransit=false waits                                             |
+| **1.6 Bridge**        | E1-R10  | TECH     | Unhandled async exception in handler leaks as unhandled rejection instead of T00                                              | 2   | 2   | 4     | Unit test: throwing handler -> T00 response, no unhandled rejection                                                                     |
+| **1.7 createNode**    | E1-R11  | TECH     | **Pipeline stage ordering violation** -- stages execute in wrong order (e.g., dispatch before verify, price before parse)     | 3   | 3   | **9** | Integration test with spy/trace proving exact execution order: shallow parse -> verify -> price -> dispatch                             |
+| **1.7 createNode**    | E1-R12  | TECH     | Double `start()` does not throw, causing duplicate bootstrap and relay monitor subscriptions                                  | 1   | 2   | 2     | Unit test: second start() throws NodeError                                                                                              |
+| **1.8 Connector API** | E1-R13  | TECH     | ConnectorNodeLike structural type drifts from real ConnectorNode, runtime failures with no compile error                      | 2   | 2   | 4     | Integration test against real connector validates structural compatibility                                                              |
+| **1.9 Bootstrap**     | E1-R14  | OPS      | Channel opening during bootstrap fails silently, peerCount reports success but channels are 0                                 | 1   | 2   | 2     | Integration test validates channelCount in StartResult                                                                                  |
+| **1.10 Dev Mode**     | E1-R15  | SEC      | Dev mode bypasses leak to production through incomplete config isolation                                                      | 1   | 3   | 3     | Unit test: devMode unset in config -> verification and pricing active                                                                   |
+| **1.11 Package**      | E1-R16  | OPS      | ESM export map misconfigured, consumers get import errors                                                                     | 1   | 1   | 1     | Import validation test                                                                                                                  |
 
 ### High-Priority Risks (Score >= 6) -- Ordered by Score
 
-| Rank | Risk ID | Score | Story | Summary |
-|------|---------|-------|-------|---------|
-| 1 | E1-R11 | **9** | 1.7 | Pipeline stage ordering violation (CRITICAL) |
-| 2 | E1-R01 | **6** | 1.0 | TOON codec extraction regression |
-| 3 | E1-R02 | **6** | 1.0 | Shallow parser byte offset errors |
-| 4 | E1-R03 | **6** | 1.1 | Cross-library key derivation incompatibility |
-| 5 | E1-R06 | **6** | 1.4 | devMode bypass leaking to production |
-| 6 | E1-R07 | **6** | 1.4 | Verification after full decode (defeats purpose) |
-| 7 | E1-R09 | **6** | 1.6 | Transit semantics swapped |
+| Rank | Risk ID | Score | Story | Summary                                          |
+| ---- | ------- | ----- | ----- | ------------------------------------------------ |
+| 1    | E1-R11  | **9** | 1.7   | Pipeline stage ordering violation (CRITICAL)     |
+| 2    | E1-R01  | **6** | 1.0   | TOON codec extraction regression                 |
+| 3    | E1-R02  | **6** | 1.0   | Shallow parser byte offset errors                |
+| 4    | E1-R03  | **6** | 1.1   | Cross-library key derivation incompatibility     |
+| 5    | E1-R06  | **6** | 1.4   | devMode bypass leaking to production             |
+| 6    | E1-R07  | **6** | 1.4   | Verification after full decode (defeats purpose) |
+| 7    | E1-R09  | **6** | 1.6   | Transit semantics swapped                        |
 
 ---
 
@@ -93,12 +96,14 @@ ILP Packet
 ```
 
 **Why this order is non-negotiable:**
+
 - **Shallow parse BEFORE verify**: Verification needs `id`, `pubkey`, `sig` from the shallow parse. Full decode first would trust the decode.
 - **Verify BEFORE price**: Pricing a forged event wastes validation effort and leaks pricing information.
 - **Price BEFORE dispatch**: Underpaid events must never reach developer handlers.
 - **isTransit BEFORE everything**: Transit packets are forwarded immediately; only final-hop packets enter the pipeline.
 
 **Integration test strategy:**
+
 - Instrument each pipeline stage with a call-order tracker
 - Assert exact invocation sequence for valid events, invalid signatures, and underpaid events
 - Assert handler is NEVER invoked when verification or pricing fails
@@ -107,12 +112,12 @@ ILP Packet
 
 The TOON codec extraction is the foundational prerequisite. Every pipeline stage consumes TOON data:
 
-| Consumer Story | What it needs from 1.0 | Failure mode if broken |
-|----------------|----------------------|----------------------|
-| 1.3 (Context) | `decodeToon()` for lazy decode, raw TOON string for passthrough | `ctx.decode()` throws; `ctx.toon` is garbled |
-| 1.4 (Verify) | `shallowParseToon()` for `id`, `pubkey`, `sig`, `rawBytes` | Verification operates on wrong data; all events rejected or all accepted |
-| 1.5 (Pricing) | TOON byte length (`rawBytes.length`) for per-byte pricing | Pricing uses wrong byte count; events over/underpriced |
-| 1.7 (createNode) | All of the above wired together | Full pipeline broken |
+| Consumer Story   | What it needs from 1.0                                          | Failure mode if broken                                                   |
+| ---------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 1.3 (Context)    | `decodeToon()` for lazy decode, raw TOON string for passthrough | `ctx.decode()` throws; `ctx.toon` is garbled                             |
+| 1.4 (Verify)     | `shallowParseToon()` for `id`, `pubkey`, `sig`, `rawBytes`      | Verification operates on wrong data; all events rejected or all accepted |
+| 1.5 (Pricing)    | TOON byte length (`rawBytes.length`) for per-byte pricing       | Pricing uses wrong byte count; events over/underpriced                   |
+| 1.7 (createNode) | All of the above wired together                                 | Full pipeline broken                                                     |
 
 **Boundary test:** Encode a known NostrEvent -> shallow parse -> verify fields match -> full decode -> decoded event matches original. This single test validates the 1.0 -> 1.3/1.4/1.5 boundary.
 
@@ -150,168 +155,174 @@ Self-write bypass compares the event's pubkey against the node's own pubkey. The
 
 ### Story 1.0: Extract TOON Codec to @crosstown/core
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.0-01 | Encode NostrEvent -> TOON bytes -> decode back = identical event | U | E1-R01 | P0 |
-| T-1.0-02 | Shallow parse extracts kind from TOON bytes, matches full decode | U | E1-R02 | P0 |
-| T-1.0-03 | Shallow parse extracts pubkey from TOON bytes, matches full decode | U | E1-R02 | P0 |
-| T-1.0-04 | Shallow parse extracts id from TOON bytes, matches full decode | U | E1-R02 | P0 |
-| T-1.0-05 | Shallow parse extracts sig from TOON bytes, matches full decode | U | E1-R02 | P0 |
-| T-1.0-06 | Shallow parse preserves rawBytes (byte-exact match with encoded input) | U | E1-R02 | P0 |
-| T-1.0-07 | Re-export from `@crosstown/core` index.ts works (import validation) | U | E1-R01 | P1 |
-| T-1.0-08 | BLS tests pass after import path change (`pnpm -r test`) | I | E1-R01 | P0 |
+| ID       | Test                                                                   | Level | Risk   | Priority |
+| -------- | ---------------------------------------------------------------------- | ----- | ------ | -------- |
+| T-1.0-01 | Encode NostrEvent -> TOON bytes -> decode back = identical event       | U     | E1-R01 | P0       |
+| T-1.0-02 | Shallow parse extracts kind from TOON bytes, matches full decode       | U     | E1-R02 | P0       |
+| T-1.0-03 | Shallow parse extracts pubkey from TOON bytes, matches full decode     | U     | E1-R02 | P0       |
+| T-1.0-04 | Shallow parse extracts id from TOON bytes, matches full decode         | U     | E1-R02 | P0       |
+| T-1.0-05 | Shallow parse extracts sig from TOON bytes, matches full decode        | U     | E1-R02 | P0       |
+| T-1.0-06 | Shallow parse preserves rawBytes (byte-exact match with encoded input) | U     | E1-R02 | P0       |
+| T-1.0-07 | Re-export from `@crosstown/core` index.ts works (import validation)    | U     | E1-R01 | P1       |
+| T-1.0-08 | BLS tests pass after import path change (`pnpm -r test`)               | I     | E1-R01 | P0       |
 
 **Notes:**
+
 - The TOON codec is ~100 LOC. Roundtrip test is the single highest-value test for this story.
 - Shallow parse is entirely new code. Every field extraction needs its own test because byte offset bugs are subtle.
 - T-1.0-08 is not a test file you write; it's `pnpm -r test` run after the code move. Include it in CI gate.
 
 ### Story 1.1: Unified Identity from Seed Phrase
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.1-01 | `generateMnemonic()` returns valid 12-word BIP-39 mnemonic | U (real crypto) | E1-R03 | P0 |
-| T-1.1-02 | `fromMnemonic(words)` derives secretKey at NIP-06 path m/44'/1237'/0'/0/0 | U (real crypto) | E1-R03 | P0 |
-| T-1.1-03 | `fromMnemonic(words)` returns x-only Schnorr pubkey (32 bytes hex, 64 chars) | U (real crypto) | E1-R03 | P0 |
-| T-1.1-04 | `fromMnemonic(words)` returns correct EVM address (Keccak-256 derived, 0x prefix) | U (real crypto) | E1-R03 | P0 |
-| T-1.1-05 | Derived key signs event, nostr-tools verifies signature (cross-library roundtrip) | U (real crypto) | E1-R03 | P0 |
-| T-1.1-06 | `fromMnemonic(words, { accountIndex: 3 })` derives at m/44'/1237'/0'/0/3 | U (real crypto) | E1-R03 | P0 |
-| T-1.1-07 | Different account indices produce distinct keypairs | U (real crypto) | E1-R03 | P0 |
-| T-1.1-08 | `fromSecretKey(key)` derives matching pubkey and evmAddress | U (real crypto) | E1-R03 | P0 |
-| T-1.1-09 | 24-word mnemonic accepted and produces valid key | U (real crypto) | - | P1 |
-| T-1.1-10 | Invalid mnemonic throws descriptive error | U (real crypto) | - | P1 |
-| T-1.1-11 | Known test vector: "abandon" x11 + "about" produces expected key | U (real crypto) | E1-R03 | P0 |
+| ID       | Test                                                                              | Level           | Risk   | Priority |
+| -------- | --------------------------------------------------------------------------------- | --------------- | ------ | -------- |
+| T-1.1-01 | `generateMnemonic()` returns valid 12-word BIP-39 mnemonic                        | U (real crypto) | E1-R03 | P0       |
+| T-1.1-02 | `fromMnemonic(words)` derives secretKey at NIP-06 path m/44'/1237'/0'/0/0         | U (real crypto) | E1-R03 | P0       |
+| T-1.1-03 | `fromMnemonic(words)` returns x-only Schnorr pubkey (32 bytes hex, 64 chars)      | U (real crypto) | E1-R03 | P0       |
+| T-1.1-04 | `fromMnemonic(words)` returns correct EVM address (Keccak-256 derived, 0x prefix) | U (real crypto) | E1-R03 | P0       |
+| T-1.1-05 | Derived key signs event, nostr-tools verifies signature (cross-library roundtrip) | U (real crypto) | E1-R03 | P0       |
+| T-1.1-06 | `fromMnemonic(words, { accountIndex: 3 })` derives at m/44'/1237'/0'/0/3          | U (real crypto) | E1-R03 | P0       |
+| T-1.1-07 | Different account indices produce distinct keypairs                               | U (real crypto) | E1-R03 | P0       |
+| T-1.1-08 | `fromSecretKey(key)` derives matching pubkey and evmAddress                       | U (real crypto) | E1-R03 | P0       |
+| T-1.1-09 | 24-word mnemonic accepted and produces valid key                                  | U (real crypto) | -      | P1       |
+| T-1.1-10 | Invalid mnemonic throws descriptive error                                         | U (real crypto) | -      | P1       |
+| T-1.1-11 | Known test vector: "abandon" x11 + "about" produces expected key                  | U (real crypto) | E1-R03 | P0       |
 
 **Notes:**
+
 - ALL identity tests use real crypto libraries. No mocked Schnorr, no mocked key derivation.
 - T-1.1-05 is the critical cross-library boundary test. If this passes, the identity -> verification pipeline works.
 - T-1.1-11 uses a known BIP-39 test vector for deterministic validation.
 
 ### Story 1.2: Handler Registry with Kind-Based Routing
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.2-01 | `.on(kind, handler)` dispatches to correct handler | U | - | P0 |
-| T-1.2-02 | Multiple kinds registered, each dispatches to its own handler | U | - | P0 |
-| T-1.2-03 | `.onDefault(handler)` invoked when no kind match | U | - | P0 |
-| T-1.2-04 | No handler, no default -> auto-reject F00 | U | E1-R04 | P0 |
-| T-1.2-05 | `.on(kind, newHandler)` replaces previous handler for that kind | U | - | P1 |
+| ID       | Test                                                            | Level | Risk   | Priority |
+| -------- | --------------------------------------------------------------- | ----- | ------ | -------- |
+| T-1.2-01 | `.on(kind, handler)` dispatches to correct handler              | U     | -      | P0       |
+| T-1.2-02 | Multiple kinds registered, each dispatches to its own handler   | U     | -      | P0       |
+| T-1.2-03 | `.onDefault(handler)` invoked when no kind match                | U     | -      | P0       |
+| T-1.2-04 | No handler, no default -> auto-reject F00                       | U     | E1-R04 | P0       |
+| T-1.2-05 | `.on(kind, newHandler)` replaces previous handler for that kind | U     | -      | P1       |
 
 **Notes:**
+
 - HandlerRegistry is a pure routing component. Tests are fast and straightforward.
 - T-1.2-04 is the safety net -- silent drops would be a data integrity issue.
 
 ### Story 1.3: HandlerContext with TOON Passthrough and Lazy Decode
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.3-01 | `ctx.toon` contains raw TOON string, no decode performed at construction | U | - | P0 |
-| T-1.3-02 | `ctx.kind` matches shallow-parsed kind (not decoded) | U | - | P0 |
-| T-1.3-03 | `ctx.pubkey` matches shallow-parsed pubkey | U | - | P0 |
-| T-1.3-04 | `ctx.amount` contains ILP payment amount as bigint | U | - | P0 |
-| T-1.3-05 | `ctx.destination` contains ILP destination address | U | - | P0 |
-| T-1.3-06 | `ctx.decode()` performs full TOON decode and returns NostrEvent | U | - | P0 |
-| T-1.3-07 | `ctx.decode()` second call returns cached result (same object reference) | U | E1-R05 | P0 |
-| T-1.3-08 | `ctx.accept()` produces HandlePacketAcceptResponse | U | - | P0 |
-| T-1.3-09 | `ctx.accept(data)` includes response data in fulfillment | U | - | P1 |
-| T-1.3-10 | `ctx.reject(code, message)` produces HandlePacketRejectResponse | U | - | P0 |
+| ID       | Test                                                                     | Level | Risk   | Priority |
+| -------- | ------------------------------------------------------------------------ | ----- | ------ | -------- |
+| T-1.3-01 | `ctx.toon` contains raw TOON string, no decode performed at construction | U     | -      | P0       |
+| T-1.3-02 | `ctx.kind` matches shallow-parsed kind (not decoded)                     | U     | -      | P0       |
+| T-1.3-03 | `ctx.pubkey` matches shallow-parsed pubkey                               | U     | -      | P0       |
+| T-1.3-04 | `ctx.amount` contains ILP payment amount as bigint                       | U     | -      | P0       |
+| T-1.3-05 | `ctx.destination` contains ILP destination address                       | U     | -      | P0       |
+| T-1.3-06 | `ctx.decode()` performs full TOON decode and returns NostrEvent          | U     | -      | P0       |
+| T-1.3-07 | `ctx.decode()` second call returns cached result (same object reference) | U     | E1-R05 | P0       |
+| T-1.3-08 | `ctx.accept()` produces HandlePacketAcceptResponse                       | U     | -      | P0       |
+| T-1.3-09 | `ctx.accept(data)` includes response data in fulfillment                 | U     | -      | P1       |
+| T-1.3-10 | `ctx.reject(code, message)` produces HandlePacketRejectResponse          | U     | -      | P0       |
 
 ### Story 1.4: Schnorr Signature Verification Pipeline
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.4-01 | Valid Schnorr signature passes verification, event dispatched | U (real crypto) | - | P0 |
-| T-1.4-02 | Invalid signature rejected with F06, handler NEVER invoked | U (real crypto) | E1-R06 | P0 |
-| T-1.4-03 | Tampered event content -> signature mismatch -> F06 | U (real crypto) | - | P0 |
-| T-1.4-04 | devMode=true -> invalid signature accepted, handler invoked | U (real crypto) | - | P1 |
-| T-1.4-05 | devMode unset (default) -> invalid signature -> F06 (no bypass leak) | U (real crypto) | E1-R06 | P0 |
-| T-1.4-06 | Verification uses shallow parse fields (id, pubkey, sig), NOT full decode | U | E1-R07 | P0 |
+| ID       | Test                                                                      | Level           | Risk   | Priority |
+| -------- | ------------------------------------------------------------------------- | --------------- | ------ | -------- |
+| T-1.4-01 | Valid Schnorr signature passes verification, event dispatched             | U (real crypto) | -      | P0       |
+| T-1.4-02 | Invalid signature rejected with F06, handler NEVER invoked                | U (real crypto) | E1-R06 | P0       |
+| T-1.4-03 | Tampered event content -> signature mismatch -> F06                       | U (real crypto) | -      | P0       |
+| T-1.4-04 | devMode=true -> invalid signature accepted, handler invoked               | U (real crypto) | -      | P1       |
+| T-1.4-05 | devMode unset (default) -> invalid signature -> F06 (no bypass leak)      | U (real crypto) | E1-R06 | P0       |
+| T-1.4-06 | Verification uses shallow parse fields (id, pubkey, sig), NOT full decode | U               | E1-R07 | P0       |
 
 **Notes:**
+
 - T-1.4-06 is the architectural invariant test. The verification module should accept `ToonRoutingMeta` (from shallow parse), NOT a `NostrEvent` (from full decode). If the function signature requires a NostrEvent, the architecture is violated.
 - Tests use real nostr-tools signing/verification. Create a helper `createSignedToonPayload()` that generates a real signed event.
 
 ### Story 1.5: Pricing Validation with Self-Write Bypass
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.5-01 | Per-byte pricing: amount >= toonBytes.length * basePricePerByte -> accepted | U | - | P0 |
-| T-1.5-02 | Per-byte pricing: amount < required -> F04 with `required` and `received` in metadata | U | - | P0 |
-| T-1.5-03 | Per-kind override: kindPricing[23194] = 0n -> free for that kind | U | - | P0 |
-| T-1.5-04 | Per-kind override takes precedence over per-byte calculation | U | - | P0 |
-| T-1.5-05 | Self-write bypass: event pubkey = node pubkey -> pricing skipped | U | E1-R08 | P0 |
-| T-1.5-06 | Default basePricePerByte is 10n when unconfigured | U | - | P1 |
-| T-1.5-07 | Exact payment amount (amount == required) accepted | U | - | P1 |
+| ID       | Test                                                                                  | Level | Risk   | Priority |
+| -------- | ------------------------------------------------------------------------------------- | ----- | ------ | -------- |
+| T-1.5-01 | Per-byte pricing: amount >= toonBytes.length \* basePricePerByte -> accepted          | U     | -      | P0       |
+| T-1.5-02 | Per-byte pricing: amount < required -> F04 with `required` and `received` in metadata | U     | -      | P0       |
+| T-1.5-03 | Per-kind override: kindPricing[23194] = 0n -> free for that kind                      | U     | -      | P0       |
+| T-1.5-04 | Per-kind override takes precedence over per-byte calculation                          | U     | -      | P0       |
+| T-1.5-05 | Self-write bypass: event pubkey = node pubkey -> pricing skipped                      | U     | E1-R08 | P0       |
+| T-1.5-06 | Default basePricePerByte is 10n when unconfigured                                     | U     | -      | P1       |
+| T-1.5-07 | Exact payment amount (amount == required) accepted                                    | U     | -      | P1       |
 
 ### Story 1.6: PaymentHandler Bridge with Transit Semantics
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.6-01 | isTransit=true: bridge returns BEFORE handler promise resolves (fire-and-forget) | U | E1-R09 | P0 |
-| T-1.6-02 | isTransit=false: bridge returns AFTER handler promise resolves (await) | U | E1-R09 | P0 |
-| T-1.6-03 | Handler throws -> T00 reject response returned, no unhandled rejection | U | E1-R10 | P0 |
-| T-1.6-04 | Handler async rejection -> T00 reject response returned | U | E1-R10 | P1 |
+| ID       | Test                                                                             | Level | Risk   | Priority |
+| -------- | -------------------------------------------------------------------------------- | ----- | ------ | -------- |
+| T-1.6-01 | isTransit=true: bridge returns BEFORE handler promise resolves (fire-and-forget) | U     | E1-R09 | P0       |
+| T-1.6-02 | isTransit=false: bridge returns AFTER handler promise resolves (await)           | U     | E1-R09 | P0       |
+| T-1.6-03 | Handler throws -> T00 reject response returned, no unhandled rejection           | U     | E1-R10 | P0       |
+| T-1.6-04 | Handler async rejection -> T00 reject response returned                          | U     | E1-R10 | P1       |
 
 ### Story 1.7: createNode() Composition with Embedded Connector Lifecycle
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.7-01 | **Pipeline ordering: shallow parse -> verify -> price -> dispatch** (spy-instrumented) | I | E1-R11 | P0 |
-| T-1.7-02 | Pipeline: invalid signature -> verify rejects -> handler never invoked | I | E1-R11 | P0 |
-| T-1.7-03 | Pipeline: valid sig, underpaid -> price rejects with F04 -> handler never invoked | I | E1-R11 | P0 |
-| T-1.7-04 | Pipeline: valid sig, sufficient payment -> handler invoked, accept returned | I | E1-R11 | P0 |
-| T-1.7-05 | Pipeline: self-write event -> pricing bypassed -> handler invoked | I | E1-R11 | P0 |
-| T-1.7-06 | `node.start()` calls `connector.setPacketHandler()` | I | - | P0 |
-| T-1.7-07 | `node.start()` runs bootstrap and returns StartResult with peerCount, channelCount | I | - | P1 |
-| T-1.7-08 | `node.stop()` unsubscribes relay monitor | I | - | P1 |
-| T-1.7-09 | `node.stop()` is idempotent (double stop = no-op) | U | E1-R12 | P2 |
-| T-1.7-10 | Double `node.start()` throws NodeError | U | E1-R12 | P0 |
-| T-1.7-11 | `node.pubkey` returns correct x-only public key | U | - | P1 |
-| T-1.7-12 | `node.evmAddress` returns correct EVM address | U | - | P1 |
-| T-1.7-13 | createNode with minimal config uses sensible defaults (basePricePerByte=10n, devMode=false) | U | - | P1 |
+| ID       | Test                                                                                        | Level | Risk   | Priority |
+| -------- | ------------------------------------------------------------------------------------------- | ----- | ------ | -------- |
+| T-1.7-01 | **Pipeline ordering: shallow parse -> verify -> price -> dispatch** (spy-instrumented)      | I     | E1-R11 | P0       |
+| T-1.7-02 | Pipeline: invalid signature -> verify rejects -> handler never invoked                      | I     | E1-R11 | P0       |
+| T-1.7-03 | Pipeline: valid sig, underpaid -> price rejects with F04 -> handler never invoked           | I     | E1-R11 | P0       |
+| T-1.7-04 | Pipeline: valid sig, sufficient payment -> handler invoked, accept returned                 | I     | E1-R11 | P0       |
+| T-1.7-05 | Pipeline: self-write event -> pricing bypassed -> handler invoked                           | I     | E1-R11 | P0       |
+| T-1.7-06 | `node.start()` calls `connector.setPacketHandler()`                                         | I     | -      | P0       |
+| T-1.7-07 | `node.start()` runs bootstrap and returns StartResult with peerCount, channelCount          | I     | -      | P1       |
+| T-1.7-08 | `node.stop()` unsubscribes relay monitor                                                    | I     | -      | P1       |
+| T-1.7-09 | `node.stop()` is idempotent (double stop = no-op)                                           | U     | E1-R12 | P2       |
+| T-1.7-10 | Double `node.start()` throws NodeError                                                      | U     | E1-R12 | P0       |
+| T-1.7-11 | `node.pubkey` returns correct x-only public key                                             | U     | -      | P1       |
+| T-1.7-12 | `node.evmAddress` returns correct EVM address                                               | U     | -      | P1       |
+| T-1.7-13 | createNode with minimal config uses sensible defaults (basePricePerByte=10n, devMode=false) | U     | -      | P1       |
 
 **Notes:**
+
 - T-1.7-01 through T-1.7-05 are the MOST IMPORTANT tests in Epic 1. They validate the pipeline ordering invariant (E1-R11, score 9).
 - These integration tests wire real TOON codec, real Schnorr verification, real pricing, and real handler dispatch.
 - Use a spy/wrapper pattern to record the order of stage invocations.
 
 ### Story 1.8: Connector Direct Methods API
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.8-01 | `node.connector` exposes registerPeer, removePeer, sendPacket | U | E1-R13 | P2 |
-| T-1.8-02 | `node.channelClient` is null when connector lacks channel support | U | - | P2 |
-| T-1.8-03 | `node.channelClient` is non-null when connector has openChannel/getChannelState | U | - | P2 |
+| ID       | Test                                                                            | Level | Risk   | Priority |
+| -------- | ------------------------------------------------------------------------------- | ----- | ------ | -------- |
+| T-1.8-01 | `node.connector` exposes registerPeer, removePeer, sendPacket                   | U     | E1-R13 | P2       |
+| T-1.8-02 | `node.channelClient` is null when connector lacks channel support               | U     | -      | P2       |
+| T-1.8-03 | `node.channelClient` is non-null when connector has openChannel/getChannelState | U     | -      | P2       |
 
 ### Story 1.9: Network Discovery and Bootstrap Integration
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.9-01 | `node.start()` with knownPeers triggers BootstrapService discovery | I | - | P1 |
-| T-1.9-02 | StartResult.channelCount reflects channels opened during bootstrap | I | E1-R14 | P1 |
-| T-1.9-03 | RelayMonitor detects kind:10032 events after start | I | - | P1 |
-| T-1.9-04 | `node.peerWith(pubkey)` initiates manual peering | I | - | P2 |
-| T-1.9-05 | Bootstrap lifecycle events emitted via `node.on('bootstrap', listener)` | I | - | P2 |
+| ID       | Test                                                                    | Level | Risk   | Priority |
+| -------- | ----------------------------------------------------------------------- | ----- | ------ | -------- |
+| T-1.9-01 | `node.start()` with knownPeers triggers BootstrapService discovery      | I     | -      | P1       |
+| T-1.9-02 | StartResult.channelCount reflects channels opened during bootstrap      | I     | E1-R14 | P1       |
+| T-1.9-03 | RelayMonitor detects kind:10032 events after start                      | I     | -      | P1       |
+| T-1.9-04 | `node.peerWith(pubkey)` initiates manual peering                        | I     | -      | P2       |
+| T-1.9-05 | Bootstrap lifecycle events emitted via `node.on('bootstrap', listener)` | I     | -      | P2       |
 
 **Notes:**
+
 - These tests require either a mocked connector or a running Anvil+Faucet for channel tests.
 - P1 priority because bootstrap integration is validated end-to-end in Epic 2 Story 2.3.
 
 ### Story 1.10: Dev Mode
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.10-01 | devMode=true: invalid signature accepted | U | - | P1 |
-| T-1.10-02 | devMode=true: underpaid event accepted (pricing bypass) | U | - | P1 |
-| T-1.10-03 | devMode=true: packet details logged | U | - | P2 |
-| T-1.10-04 | devMode not set: verification and pricing active (no leak) | U | E1-R15 | P0 |
+| ID        | Test                                                       | Level | Risk   | Priority |
+| --------- | ---------------------------------------------------------- | ----- | ------ | -------- |
+| T-1.10-01 | devMode=true: invalid signature accepted                   | U     | -      | P1       |
+| T-1.10-02 | devMode=true: underpaid event accepted (pricing bypass)    | U     | -      | P1       |
+| T-1.10-03 | devMode=true: packet details logged                        | U     | -      | P2       |
+| T-1.10-04 | devMode not set: verification and pricing active (no leak) | U     | E1-R15 | P0       |
 
 ### Story 1.11: Package Setup and npm Publish
 
-| ID | Test | Level | Risk | Priority |
-|----|------|-------|------|----------|
-| T-1.11-01 | All public APIs importable from `@crosstown/sdk` | U | E1-R16 | P2 |
-| T-1.11-02 | TypeScript types exported correctly | U | - | P3 |
+| ID        | Test                                             | Level | Risk   | Priority |
+| --------- | ------------------------------------------------ | ----- | ------ | -------- |
+| T-1.11-01 | All public APIs importable from `@crosstown/sdk` | U     | E1-R16 | P2       |
+| T-1.11-02 | TypeScript types exported correctly              | U     | -      | P3       |
 
 ---
 
@@ -324,6 +335,7 @@ These tests span multiple stories and validate the integration boundaries identi
 The pipeline ordering tests (T-1.7-01 through T-1.7-05) are the primary cross-story scenarios. They exercise every stage in sequence:
 
 **Scenario A: Happy path (valid event, sufficient payment)**
+
 ```
 1. Encode real NostrEvent to TOON [1.0]
 2. Create ILP packet with base64 TOON data
@@ -338,6 +350,7 @@ The pipeline ordering tests (T-1.7-01 through T-1.7-05) are the primary cross-st
 ```
 
 **Scenario B: Forged event (invalid signature)**
+
 ```
 1-4. Same as Scenario A
 5. Schnorr verify FAILS -> F06 rejection
@@ -345,6 +358,7 @@ The pipeline ordering tests (T-1.7-01 through T-1.7-05) are the primary cross-st
 ```
 
 **Scenario C: Underpaid event (valid sig, insufficient amount)**
+
 ```
 1-5. Same as Scenario A (verify passes)
 6. Pricing FAILS -> F04 rejection with required/received amounts
@@ -352,6 +366,7 @@ The pipeline ordering tests (T-1.7-01 through T-1.7-05) are the primary cross-st
 ```
 
 **Scenario D: Self-write (own pubkey, any amount)**
+
 ```
 1-5. Same as Scenario A (verify passes for own key)
 6. Pricing BYPASSED (pubkey matches node pubkey) [1.5 + 1.1]
@@ -359,6 +374,7 @@ The pipeline ordering tests (T-1.7-01 through T-1.7-05) are the primary cross-st
 ```
 
 **Scenario E: Transit packet**
+
 ```
 1. ILP packet arrives with isTransit=true
 2. PaymentHandlerBridge fires-and-forgets [1.6]
@@ -413,6 +429,7 @@ This validates pubkey format consistency between identity derivation and pricing
 **Risk:** Adding devMode bypass logic to verification.ts and pricing.ts could introduce conditional branches that accidentally affect production behavior (e.g., an early return that doesn't check the devMode flag properly).
 
 **Mitigation:**
+
 - T-1.10-04 (devMode not set -> verification and pricing active) catches production leakage
 - T-1.4-05 (devMode unset -> invalid sig -> F06) is the explicit production enforcement test
 - Both must pass together to confirm isolation
@@ -428,6 +445,7 @@ This validates pubkey format consistency between identity derivation and pricing
 **Risk:** After extracting the codec, BLS and relay packages import from `@crosstown/core` instead of local paths. If the codec behavior subtly changes during extraction (e.g., different error types, different handling of edge cases), downstream tests may fail.
 
 **Mitigation:**
+
 - T-1.0-01 (roundtrip test) validates codec behavior is preserved
 - T-1.0-08 (`pnpm -r test`) catches downstream regressions
 - The codec should be a pure copy-paste with only import path changes; no behavior modifications during extraction
@@ -443,6 +461,7 @@ This validates pubkey format consistency between identity derivation and pricing
 **Current state:** The TOON format is string-based (TextEncoder/TextDecoder for Uint8Array conversion, then `@toon-format/toon` decode). Shallow parse should be significantly faster than full decode because it extracts only 4 fields (kind, pubkey, id, sig) without parsing content, tags, or created_at.
 
 **Test approach:**
+
 - No explicit performance test in Epic 1 (no SLA defined in NFRs)
 - Monitor: if full pipeline integration tests (T-1.7-01) take >100ms per event, investigate shallow parse implementation
 - The shallow parser should ideally use string scanning (indexOf/substring) rather than full JSON-like decode
@@ -456,6 +475,7 @@ This validates pubkey format consistency between identity derivation and pricing
 **Current state:** nostr-tools uses @noble/curves for Schnorr, which is pure JavaScript (no native addon). Performance is ~1000-3000 verifications/second on modern hardware.
 
 **Test approach:**
+
 - No throughput test in Epic 1 (SDK is a library; throughput depends on the consumer's deployment)
 - If performance becomes a concern in Epic 2 E2E tests, consider: (a) verification batching, (b) WebAssembly Schnorr implementation, (c) caching verified event IDs
 
@@ -471,13 +491,13 @@ This validates pubkey format consistency between identity derivation and pricing
 
 ### Priority Distribution
 
-| Priority | Test Count | Effort Estimate | When to Run |
-|----------|-----------|-----------------|-------------|
-| P0 | 38 | ~19-25 hours | Every commit (CI) |
-| P1 | 22 | ~11-17 hours | Every PR to main |
-| P2 | 10 | ~3-5 hours | Nightly |
-| P3 | 1 | ~0.5 hours | On-demand |
-| **Total** | **71** | **~33-48 hours** | |
+| Priority  | Test Count | Effort Estimate  | When to Run       |
+| --------- | ---------- | ---------------- | ----------------- |
+| P0        | 38         | ~19-25 hours     | Every commit (CI) |
+| P1        | 22         | ~11-17 hours     | Every PR to main  |
+| P2        | 10         | ~3-5 hours       | Nightly           |
+| P3        | 1          | ~0.5 hours       | On-demand         |
+| **Total** | **71**     | **~33-48 hours** |                   |
 
 ### Implementation Order
 
@@ -505,20 +525,20 @@ Tests should be written in story dependency order:
 - [ ] All P0 tests passing (38 tests, 100% required)
 - [ ] All P1 tests passing (22 tests, >=95% with triaged waivers)
 - [ ] No high-priority risks (E1-R01 through E1-R11) unmitigated
-- [ ] >80% line coverage for SDK public APIs (NFR-SDK-3)
+- [ ] > 80% line coverage for SDK public APIs (NFR-SDK-3)
 - [ ] Full pipeline integration test passes: TOON -> parse -> verify -> price -> dispatch -> accept/reject
 - [ ] All existing BLS + relay tests pass after TOON codec extraction
 
 ### Quality Gates
 
-| Gate | Threshold | Enforcement |
-|------|-----------|-------------|
-| P0 pass rate | 100% | CI blocks merge |
-| P1 pass rate | >= 95% | CI warns, manual review |
-| High-risk mitigations | 100% tested | Code review gate |
-| Public API coverage | > 80% line | Vitest coverage report |
-| Pipeline ordering | 100% branch | P0 integration test |
-| Security scenarios (SEC) | 100% | P0 test suite |
+| Gate                     | Threshold   | Enforcement             |
+| ------------------------ | ----------- | ----------------------- |
+| P0 pass rate             | 100%        | CI blocks merge         |
+| P1 pass rate             | >= 95%      | CI warns, manual review |
+| High-risk mitigations    | 100% tested | Code review gate        |
+| Public API coverage      | > 80% line  | Vitest coverage report  |
+| Pipeline ordering        | 100% branch | P0 integration test     |
+| Security scenarios (SEC) | 100%        | P0 test suite           |
 
 ---
 
@@ -532,21 +552,30 @@ function createSignedToonPayload(opts?: {
   kind?: number;
   content?: string;
   secretKey?: Uint8Array;
-}): { toonBytes: Uint8Array; toonString: string; event: NostrEvent }
+}): { toonBytes: Uint8Array; toonString: string; event: NostrEvent };
 
 // Test factory: tampered TOON payload (valid structure, invalid signature)
-function createTamperedToonPayload(): { toonBytes: Uint8Array; toonString: string }
+function createTamperedToonPayload(): {
+  toonBytes: Uint8Array;
+  toonString: string;
+};
 
 // Test factory: ILP payment request
-function createPaymentRequest(overrides?: Partial<{
-  amount: string;
-  destination: string;
-  data: string;
-  isTransit: boolean;
-}>): PaymentRequest
+function createPaymentRequest(
+  overrides?: Partial<{
+    amount: string;
+    destination: string;
+    data: string;
+    isTransit: boolean;
+  }>
+): PaymentRequest;
 
 // Test factory: node identity
-function createTestIdentity(): { secretKey: Uint8Array; pubkey: string; evmAddress: string }
+function createTestIdentity(): {
+  secretKey: Uint8Array;
+  pubkey: string;
+  evmAddress: string;
+};
 ```
 
 ---
@@ -555,19 +584,19 @@ function createTestIdentity(): { secretKey: Uint8Array; pubkey: string; evmAddre
 
 This plan adapts and extends `_bmad-output/test-artifacts/test-design-epic-1.md`:
 
-| Aspect | test-artifacts version | This version |
-|--------|----------------------|--------------|
-| Risk count | 12 | 16 (added E1-R07 verify-after-decode, E1-R02 shallow parse offsets, refined others) |
-| Test count | 87 | 71 (consolidated redundant tests, removed P3 import-per-API tests in favor of single import validation) |
-| Pipeline tests | 13 (P0) | 5 focused integration + 33 supporting unit (cleaner separation) |
-| Performance section | Brief note | Detailed analysis with TOON parsing and Schnorr throughput |
-| Regression analysis | Not covered | Section 6 with 5 specific regression scenarios |
-| Cross-story scenarios | Not covered | Section 5 with 5 named end-to-end scenarios |
-| Factory definitions | Listed | Typed signatures provided |
+| Aspect                | test-artifacts version | This version                                                                                            |
+| --------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------- |
+| Risk count            | 12                     | 16 (added E1-R07 verify-after-decode, E1-R02 shallow parse offsets, refined others)                     |
+| Test count            | 87                     | 71 (consolidated redundant tests, removed P3 import-per-API tests in favor of single import validation) |
+| Pipeline tests        | 13 (P0)                | 5 focused integration + 33 supporting unit (cleaner separation)                                         |
+| Performance section   | Brief note             | Detailed analysis with TOON parsing and Schnorr throughput                                              |
+| Regression analysis   | Not covered            | Section 6 with 5 specific regression scenarios                                                          |
+| Cross-story scenarios | Not covered            | Section 5 with 5 named end-to-end scenarios                                                             |
+| Factory definitions   | Listed                 | Typed signatures provided                                                                               |
 
 ---
 
 ## Approval
 
-- [ ] Product Manager: ___ Date: ___
-- [ ] Tech Lead: ___ Date: ___
+- [ ] Product Manager: **_ Date: _**
+- [ ] Tech Lead: **_ Date: _**
