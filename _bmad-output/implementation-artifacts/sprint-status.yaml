@@ -54,7 +54,7 @@ development_status:
   1-9-network-discovery-and-bootstrap-integration: done
   1-10-dev-mode: done
   1-11-package-setup-and-npm-publish: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # Epic 2: Nostr Relay Reference Implementation & SDK Validation
   epic-2: backlog
