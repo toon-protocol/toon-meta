@@ -52,7 +52,7 @@ development_status:
   1-7-createnode-composition-with-embedded-connector-lifecycle: done
   1-8-connector-direct-methods-api: done
   1-9-network-discovery-and-bootstrap-integration: done
-  1-10-dev-mode: backlog
+  1-10-dev-mode: done
   1-11-package-setup-and-npm-publish: backlog
   epic-1-retrospective: optional
 
