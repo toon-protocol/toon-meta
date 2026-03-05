@@ -41,7 +41,7 @@ story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # Epic 1: ILP-Gated Service Node SDK
-  epic-1: in-progress
+  epic-1: done
   1-0-extract-toon-codec-to-crosstown-core: done
   1-1-unified-identity-from-seed-phrase: done
   1-2-handler-registry-with-kind-based-routing: done
@@ -53,7 +53,7 @@ development_status:
   1-8-connector-direct-methods-api: done
   1-9-network-discovery-and-bootstrap-integration: done
   1-10-dev-mode: done
-  1-11-package-setup-and-npm-publish: backlog
+  1-11-package-setup-and-npm-publish: done
   epic-1-retrospective: optional
 
   # Epic 2: Nostr Relay Reference Implementation & SDK Validation
