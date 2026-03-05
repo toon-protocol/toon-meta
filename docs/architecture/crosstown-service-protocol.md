@@ -42,7 +42,7 @@ Extending the Crosstown network is equivalent to deploying a new ILP node with a
 └──────────────────────────────────────────────────┘
 ```
 
-Every node in the network is: **Connector + Service**. The connector is always the same. The service defines what the node *does*.
+Every node in the network is: **Connector + Service**. The connector is always the same. The service defines what the node _does_.
 
 ## Multi-Hop Event Processing
 
@@ -85,24 +85,24 @@ On the final hop (no more hops remaining), the connector **awaits** the service 
 
 ```typescript
 // In connector packet handler
-const hasNextHop = remainingHops.length > 0
+const hasNextHop = remainingHops.length > 0;
 
 if (hasNextHop) {
   // Fire and forget - don't block forwarding
   fetch(LOCAL_SERVICE_ENDPOINT + '/handle-packet', {
     method: 'POST',
-    body: JSON.stringify(packetData)
-  }).catch(err => log.warn('Local service unreachable', err))
+    body: JSON.stringify(packetData),
+  }).catch((err) => log.warn('Local service unreachable', err));
 
   // Continue forwarding immediately
-  return forwardToNextHop(packet)
+  return forwardToNextHop(packet);
 } else {
   // Final hop - await service response
   const result = await fetch(LOCAL_SERVICE_ENDPOINT + '/handle-packet', {
     method: 'POST',
-    body: JSON.stringify(packetData)
-  })
-  return result.json()
+    body: JSON.stringify(packetData),
+  });
+  return result.json();
 }
 ```
 
@@ -113,6 +113,7 @@ Every Crosstown service implements a single HTTP endpoint:
 ### `POST /handle-packet`
 
 **Request body** (same as existing `HandlePacketRequest`):
+
 ```typescript
 {
   amount: string       // Payment amount (parsed to bigint)
@@ -123,6 +124,7 @@ Every Crosstown service implements a single HTTP endpoint:
 ```
 
 **Accept response:**
+
 ```typescript
 {
   accept: true
@@ -135,11 +137,12 @@ Every Crosstown service implements a single HTTP endpoint:
 ```
 
 **Reject response:**
+
 ```typescript
 {
-  accept: false
-  code: string     // ILP error code (F00, F06, T00)
-  message: string  // Human-readable error
+  accept: false;
+  code: string; // ILP error code (F00, F06, T00)
+  message: string; // Human-readable error
 }
 ```
 
@@ -147,12 +150,12 @@ This is the **only interface** between connector and service. The service never 
 
 ## Node Types
 
-| Node Type | Connector | Service | Event Processing |
-|-----------|-----------|---------|-----------------|
-| Relay | Standard ILP | Nostr Relay + BLS | Store events, verify payment, return fulfillment |
-| Forgejo Gateway | Standard ILP | NIP-34 Processor | Map Nostr events to git operations |
-| CI Runner | Standard ILP | Build Service | Execute builds triggered by events |
-| Package Registry | Standard ILP | Artifact Store | Store/serve packages referenced in events |
+| Node Type        | Connector    | Service           | Event Processing                                 |
+| ---------------- | ------------ | ----------------- | ------------------------------------------------ |
+| Relay            | Standard ILP | Nostr Relay + BLS | Store events, verify payment, return fulfillment |
+| Forgejo Gateway  | Standard ILP | NIP-34 Processor  | Map Nostr events to git operations               |
+| CI Runner        | Standard ILP | Build Service     | Execute builds triggered by events               |
+| Package Registry | Standard ILP | Artifact Store    | Store/serve packages referenced in events        |
 
 All node types use the **same connector image**. Only the `LOCAL_SERVICE_ENDPOINT` environment variable changes.
 
@@ -180,14 +183,14 @@ Forgejo's authentication system must be adapted to use Nostr pubkeys:
 
 The first non-relay service type. NIP-34 defines Nostr event kinds for git operations:
 
-| NIP-34 Kind | Purpose | Forgejo API Mapping |
-|-------------|---------|-------------------|
-| `30617` | Repository announcement | `POST /orgs/{org}/repos` or `POST /user/repos` |
-| `1617` | Patch submission | `POST /repos/{owner}/{repo}/pulls` |
-| `1618` | Patch reply/review | `POST /repos/{owner}/{repo}/pulls/{id}/reviews` |
-| `1621` | Issue creation | `POST /repos/{owner}/{repo}/issues` |
-| `1622` | Issue reply | `POST /repos/{owner}/{repo}/issues/{id}/comments` |
-| `1630-1633` | Status events | `POST /repos/{owner}/{repo}/statuses/{sha}` |
+| NIP-34 Kind | Purpose                 | Forgejo API Mapping                               |
+| ----------- | ----------------------- | ------------------------------------------------- |
+| `30617`     | Repository announcement | `POST /orgs/{org}/repos` or `POST /user/repos`    |
+| `1617`      | Patch submission        | `POST /repos/{owner}/{repo}/pulls`                |
+| `1618`      | Patch reply/review      | `POST /repos/{owner}/{repo}/pulls/{id}/reviews`   |
+| `1621`      | Issue creation          | `POST /repos/{owner}/{repo}/issues`               |
+| `1622`      | Issue reply             | `POST /repos/{owner}/{repo}/issues/{id}/comments` |
+| `1630-1633` | Status events           | `POST /repos/{owner}/{repo}/statuses/{sha}`       |
 
 ### Forgejo Gateway Event Processing
 
@@ -264,13 +267,13 @@ spec:
   template:
     spec:
       containers:
-      - name: connector
-        image: crosstown/connector
-        env:
-        - name: LOCAL_SERVICE_ENDPOINT
-          value: http://localhost:3100  # Same pod
-      - name: relay
-        image: crosstown/relay
+        - name: connector
+          image: crosstown/connector
+          env:
+            - name: LOCAL_SERVICE_ENDPOINT
+              value: http://localhost:3100 # Same pod
+        - name: relay
+          image: crosstown/relay
 ```
 
 Same connector image. Different `LOCAL_SERVICE_ENDPOINT`. Same pattern for Forgejo or any future service type.

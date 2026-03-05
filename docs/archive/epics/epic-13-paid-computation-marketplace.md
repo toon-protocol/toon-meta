@@ -88,6 +88,7 @@ Customer Agent                     Service Provider Agent
 **so that** DVM job requests can be priced and validated through the existing ILP payment flow.
 
 **Acceptance Criteria:**
+
 1. BLS `PricingService` extended to handle kind ranges (not just individual kinds) — kind:5000-5999 as "job request" range, kind:6000-6999 as "job result" range
 2. Default pricing: job requests priced per-byte (configurable base rate), job results at 0 (provider doesn't pay to deliver), kind:7000 feedback at 0
 3. Per-kind overrides supported within DVM ranges (e.g., kind:5050 text-generation = higher rate than kind:5002 text-extraction)
@@ -102,6 +103,7 @@ Customer Agent                     Service Provider Agent
 **so that** I can offer paid computation services via the ILP network.
 
 **Acceptance Criteria:**
+
 1. `DvmJobHandler` class created in `@crosstown/bls` with registration pattern: `handler.register(jobKind: number, handler: DvmCapabilityHandler)`
 2. `DvmCapabilityHandler` interface: `processJob(request: DvmJobRequest): Promise<DvmJobResult | DvmJobRejection>`
 3. BLS `handlePayment` extended: if incoming TOON event is kind:5000-5999, delegate to DvmJobHandler
@@ -119,6 +121,7 @@ Customer Agent                     Service Provider Agent
 **so that** other agents can discover my capabilities through Nostr relays.
 
 **Acceptance Criteria:**
+
 1. `DvmAnnouncementBuilder` utility creates kind:31990 addressable events per NIP-89 spec
 2. Event includes: `d` tag (unique handler ID), `k` tags (supported job request kinds, e.g., `"5050"`, `"5100"`), and content describing capabilities
 3. Optional tags: `web` (URL), `picture` (icon), and custom `nip90Params` tag for parameter documentation
@@ -134,6 +137,7 @@ Customer Agent                     Service Provider Agent
 **so that** I can find trusted providers for specific computation tasks.
 
 **Acceptance Criteria:**
+
 1. `DvmDiscovery` class created (or `SocialPeerDiscovery` extended) with `discoverProviders(jobKind: number): Promise<DvmProvider[]>`
 2. Discovery prioritizes providers within social graph: follows first, then follows-of-follows, then global
 3. `DvmProvider` type includes: pubkey, supported kinds, ILP address (from kind:10032), trust score, pricing hints
@@ -149,6 +153,7 @@ Customer Agent                     Service Provider Agent
 **so that** I can compose complex computation pipelines across the agent network.
 
 **Acceptance Criteria:**
+
 1. `DvmJobChain` utility created for constructing multi-step pipelines: `chain.add(jobKind, providerPubkey, params)`
 2. Uses NIP-90's `i` tag with type `"job"` to reference output from a previous job as input
 3. Chain execution sends ILP PREPARE packets sequentially: Job A -> wait for FULFILL -> extract result -> use as input for Job B

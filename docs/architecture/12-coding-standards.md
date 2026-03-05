@@ -8,16 +8,16 @@
 
 ## 12.2 Naming Conventions
 
-| Element | Convention | Example |
-|---------|------------|---------|
+| Element        | Convention                                       | Example                                     |
+| -------------- | ------------------------------------------------ | ------------------------------------------- |
 | Files (source) | PascalCase for classes, kebab-case for utilities | `BusinessLogicServer.ts`, `credit-limit.ts` |
-| Files (test) | Match source with `.test.ts` suffix | `BusinessLogicServer.test.ts` |
-| Classes | PascalCase | `SocialPeerDiscovery` |
-| Interfaces | PascalCase (no I- prefix by convention) | `IlpPeerInfo`, `HandlePacketRequest` |
-| Functions | camelCase | `discoverPeers`, `createCrosstownNode` |
-| Constants | UPPER_SNAKE_CASE | `ILP_PEER_INFO_KIND`, `SPSP_REQUEST_KIND` |
-| Type aliases | PascalCase | `TrustScore`, `BootstrapPhase` |
-| Event types | Discriminated unions with `type` field | `BootstrapEvent` |
+| Files (test)   | Match source with `.test.ts` suffix              | `BusinessLogicServer.test.ts`               |
+| Classes        | PascalCase                                       | `SocialPeerDiscovery`                       |
+| Interfaces     | PascalCase (no I- prefix by convention)          | `IlpPeerInfo`, `HandlePacketRequest`        |
+| Functions      | camelCase                                        | `discoverPeers`, `createCrosstownNode`      |
+| Constants      | UPPER_SNAKE_CASE                                 | `ILP_PEER_INFO_KIND`, `SPSP_REQUEST_KIND`   |
+| Type aliases   | PascalCase                                       | `TrustScore`, `BootstrapPhase`              |
+| Event types    | Discriminated unions with `type` field           | `BootstrapEvent`                            |
 
 ## 12.3 Critical Rules
 

@@ -16,6 +16,7 @@
 ## 7.3 Architect Prompt
 
 > You are the Architect for the Crosstown Protocol project. Review the PRD at `docs/prd.md` and the architecture document at `docs/architecture.md`. Key considerations:
+>
 > - 6-package monorepo: `@crosstown/core`, `@crosstown/bls`, `@crosstown/relay`, `@crosstown/agent`, `@crosstown/examples`, `@crosstown/ui-prototypes`
 > - Three integration modes: embedded (createCrosstownNode), HTTP (Admin API), Docker
 > - Settlement negotiation during SPSP handshake (chain intersection, payment channels)

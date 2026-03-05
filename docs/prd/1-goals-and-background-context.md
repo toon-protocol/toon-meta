@@ -29,10 +29,10 @@ The [Crosstown x Gas Town Integration Analysis](../research/gastown-integration-
 
 ## 1.3 Change Log
 
-| Date | Version | Description | Author |
-|------|---------|-------------|--------|
-| 2026-02-05 | 0.1 | Initial PRD draft from Project Brief | PM |
-| 2026-02-17 | 2.0 | Major update: Epics 5-11 added (BLS Docker, layered discovery, settlement negotiation, bootstrap, npm publishing, embedded connector, agent runtime). Epics 12-17 roadmap added. Updated FRs/NFRs, package structure (6 packages + Docker), three deployment modes, Node.js 24.x. Removed kind:10047 static SPSP. | PM |
-| 2026-02-17 | 3.0 | Epics 12-17 restructured for Gas Town integration (planned work). NIP-17 moved to Epic 12. NIP-34 added as Epic 15. Old Epics 14+15 merged into new Epic 14 (Trust Infrastructure). Epic 17 grounded in Gas Town federation model. New FRs (38-66) and NFRs (14-15) added. | Architect |
+| Date       | Version | Description                                                                                                                                                                                                                                                                                                       | Author    |
+| ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 2026-02-05 | 0.1     | Initial PRD draft from Project Brief                                                                                                                                                                                                                                                                              | PM        |
+| 2026-02-17 | 2.0     | Major update: Epics 5-11 added (BLS Docker, layered discovery, settlement negotiation, bootstrap, npm publishing, embedded connector, agent runtime). Epics 12-17 roadmap added. Updated FRs/NFRs, package structure (6 packages + Docker), three deployment modes, Node.js 24.x. Removed kind:10047 static SPSP. | PM        |
+| 2026-02-17 | 3.0     | Epics 12-17 restructured for Gas Town integration (planned work). NIP-17 moved to Epic 12. NIP-34 added as Epic 15. Old Epics 14+15 merged into new Epic 14 (Trust Infrastructure). Epic 17 grounded in Gas Town federation model. New FRs (38-66) and NFRs (14-15) added.                                        | Architect |
 
 ---

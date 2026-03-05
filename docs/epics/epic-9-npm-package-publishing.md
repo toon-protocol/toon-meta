@@ -47,13 +47,13 @@ Publish `@crosstown/core`, `@crosstown/bls`, and `@crosstown/relay` as public np
 
 ## Stories
 
-| # | Story | Description | Size |
-|---|-------|-------------|------|
-| 9.1 | Add publish metadata to all packages | Add repository, author, publishConfig, license fields to core, bls, relay package.json files | S |
-| 9.2 | Add README.md to core and relay | Minimal README with package description, install, basic usage example | S |
-| 9.3 | Version bump to 1.0.0 | Bump all three packages from 0.1.0 to 1.0.0 | S |
-| 9.4 | Resolve workspace references | Replace `workspace:*` in relay's dependencies and core's devDependencies with `^1.0.0` version ranges | S |
-| 9.5 | Validate package contents | Run `npm pack` for each package, verify tarball contents, test install in fresh project | M |
-| 9.6 | Publish to npm | Publish in order: bls → core → relay. Verify installs and imports work post-publish | M |
+| #   | Story                                | Description                                                                                           | Size |
+| --- | ------------------------------------ | ----------------------------------------------------------------------------------------------------- | ---- |
+| 9.1 | Add publish metadata to all packages | Add repository, author, publishConfig, license fields to core, bls, relay package.json files          | S    |
+| 9.2 | Add README.md to core and relay      | Minimal README with package description, install, basic usage example                                 | S    |
+| 9.3 | Version bump to 1.0.0                | Bump all three packages from 0.1.0 to 1.0.0                                                           | S    |
+| 9.4 | Resolve workspace references         | Replace `workspace:*` in relay's dependencies and core's devDependencies with `^1.0.0` version ranges | S    |
+| 9.5 | Validate package contents            | Run `npm pack` for each package, verify tarball contents, test install in fresh project               | M    |
+| 9.6 | Publish to npm                       | Publish in order: bls → core → relay. Verify installs and imports work post-publish                   | M    |
 
 ---

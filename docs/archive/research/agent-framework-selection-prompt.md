@@ -15,6 +15,7 @@ TOON Input → Extract Kind → Registry Lookup → Load Handler Reference → S
 ```
 
 Key existing components:
+
 - **BusinessLogicServer** (`packages/bls/`) — TOON decoding, signature verification, Hono HTTP server
 - **RelayMonitor** (`packages/core/`) — relay subscription patterns using nostr-tools
 - **Event builders/parsers** (`packages/core/src/events/`) — construct and parse Nostr events
@@ -23,6 +24,7 @@ Key existing components:
 ### What needs to be built
 
 An autonomous runtime that:
+
 1. Subscribes to Nostr relays and receives events in real-time
 2. Passes raw TOON event data + handler context to an LLM
 3. Gets back structured JSON action decisions (reply, react, zap, repost, ignore, etc.)
@@ -33,6 +35,7 @@ An autonomous runtime that:
 8. Rate-limits and audit-logs all actions
 
 ### Technology constraints
+
 - **Language**: TypeScript (ESM, Node.js)
 - **Existing deps**: nostr-tools, @toon-format/toon, hono, better-sqlite3, ws
 - **Build**: tsup, monorepo with packages/
@@ -123,6 +126,7 @@ An autonomous runtime that:
 ## Expected Deliverables
 
 ### Executive Summary
+
 - Recommended framework (or "build minimal" approach) with 2-3 sentence rationale
 - Runner-up option and when you'd choose it instead
 - Key risks or dealbreakers identified
@@ -130,6 +134,7 @@ An autonomous runtime that:
 ### Detailed Analysis
 
 For each framework evaluated:
+
 1. **Overview** — What it is, who maintains it, maturity level
 2. **Multi-model support** — Provider list, abstraction pattern, local model support
 3. **Structured output** — How it handles JSON/Zod, tool-use patterns, error recovery
@@ -140,11 +145,11 @@ For each framework evaluated:
 
 ### Comparison Matrix
 
-| Criteria | Framework A | Framework B | ... |
-|----------|------------|------------|-----|
-| Multi-model | ... | ... | ... |
-| Structured output | ... | ... | ... |
-| ... | ... | ... | ... |
+| Criteria          | Framework A | Framework B | ... |
+| ----------------- | ----------- | ----------- | --- |
+| Multi-model       | ...         | ...         | ... |
+| Structured output | ...         | ...         | ... |
+| ...               | ...         | ...         | ... |
 
 ### Recommendation
 
@@ -156,6 +161,7 @@ For each framework evaluated:
 ## Success Criteria
 
 The research is successful if:
+
 1. At least 5 frameworks are evaluated with sufficient depth to make an informed decision
 2. The multi-model and skills-compatibility requirements are specifically addressed for each option
 3. A clear recommendation emerges (or a well-reasoned "build minimal" argument)

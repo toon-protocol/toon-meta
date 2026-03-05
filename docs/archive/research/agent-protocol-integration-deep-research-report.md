@@ -42,16 +42,16 @@ An authenticated variant (`GetExtendedAgentCard`) provides additional metadata t
 
 All A2A communication occurs over HTTP(S) using JSON-RPC 2.0 payloads. Core methods:
 
-| Method | Purpose |
-|--------|---------|
-| `SendMessage` | Initiate interaction, get immediate or task-based response |
-| `SendStreamingMessage` | Real-time event streaming during processing |
-| `GetTask` | Retrieve task state, artifacts, optional history |
-| `ListTasks` | Discover tasks with filtering and pagination |
-| `CancelTask` | Request task cancellation (idempotent) |
-| `SubscribeToTask` | Persistent streaming for existing tasks |
-| `GetExtendedAgentCard` | Authenticated agent metadata |
-| Push Notification CRUD | Create/Get/List/Delete webhook configs |
+| Method                 | Purpose                                                    |
+| ---------------------- | ---------------------------------------------------------- |
+| `SendMessage`          | Initiate interaction, get immediate or task-based response |
+| `SendStreamingMessage` | Real-time event streaming during processing                |
+| `GetTask`              | Retrieve task state, artifacts, optional history           |
+| `ListTasks`            | Discover tasks with filtering and pagination               |
+| `CancelTask`           | Request task cancellation (idempotent)                     |
+| `SubscribeToTask`      | Persistent streaming for existing tasks                    |
+| `GetExtendedAgentCard` | Authenticated agent metadata                               |
+| Push Notification CRUD | Create/Get/List/Delete webhook configs                     |
 
 ### Task-Based Communication Model
 
@@ -125,6 +125,7 @@ x402 is an open payment protocol developed by Coinbase (released May 2025) that 
 ### Message Format
 
 **PaymentRequirements** (returned in `PAYMENT-REQUIRED` header):
+
 - Scheme identifier (e.g., `exact-evm`)
 - Network/chain specification
 - Token address (e.g., USDC contract)
@@ -134,11 +135,13 @@ x402 is an open payment protocol developed by Coinbase (released May 2025) that 
 - Additional parameters per scheme
 
 **PaymentPayload** (sent in `PAYMENT-SIGNATURE` header):
+
 - Signed transaction data (EIP-3009 for EVM chains)
 - Scheme-specific authorization proof
 - Network identifier
 
 **SettlementResponse** (returned in `PAYMENT-RESPONSE` header):
+
 - Transaction hash
 - Settlement status
 - Network confirmation details
@@ -162,18 +165,18 @@ The **facilitator** is a server that handles verification and settlement so sell
 
 ### Comparison with ILP Micropayments
 
-| Dimension | x402 | ILP |
-|-----------|------|-----|
-| **Architecture** | HTTP-native (402 status code + headers) | Packet-routing across payment networks |
-| **Micropayment floor** | ~$0.001 per request | Sub-cent streaming payments |
-| **Settlement** | On-chain stablecoin (USDC on Base/Solana) | Settlement engine agnostic (any ledger) |
-| **Transport** | HTTP request/response cycle | BTP (Bilateral Transfer Protocol) |
-| **Identity** | Wallet addresses | ILP addresses (e.g., `g.node.alice`) |
-| **Intermediaries** | Facilitator server | Connectors route packets |
-| **Agent focus** | Purpose-built for AI agents | General-purpose, not agent-specific |
-| **Adoption** | 140M+ tx, growing rapidly | Smaller ecosystem, W3C Web Monetization attempt stalled |
-| **Currency** | Stablecoins (USDC) | Any currency via connectors |
-| **Trust model** | On-chain verification | Bilateral trust between peers |
+| Dimension              | x402                                      | ILP                                                     |
+| ---------------------- | ----------------------------------------- | ------------------------------------------------------- |
+| **Architecture**       | HTTP-native (402 status code + headers)   | Packet-routing across payment networks                  |
+| **Micropayment floor** | ~$0.001 per request                       | Sub-cent streaming payments                             |
+| **Settlement**         | On-chain stablecoin (USDC on Base/Solana) | Settlement engine agnostic (any ledger)                 |
+| **Transport**          | HTTP request/response cycle               | BTP (Bilateral Transfer Protocol)                       |
+| **Identity**           | Wallet addresses                          | ILP addresses (e.g., `g.node.alice`)                    |
+| **Intermediaries**     | Facilitator server                        | Connectors route packets                                |
+| **Agent focus**        | Purpose-built for AI agents               | General-purpose, not agent-specific                     |
+| **Adoption**           | 140M+ tx, growing rapidly                 | Smaller ecosystem, W3C Web Monetization attempt stalled |
+| **Currency**           | Stablecoins (USDC)                        | Any currency via connectors                             |
+| **Trust model**        | On-chain verification                     | Bilateral trust between peers                           |
 
 **Key insight**: x402 is HTTP-native and optimized for the AI agent use case. ILP is more general and protocol-agnostic but lacks the HTTP-native integration and agent-specific tooling. However, ILP's settlement-engine architecture could theoretically settle via stablecoins just as x402 does, and ILP's social-graph-informed routing (as proposed by Crosstown) has no equivalent in x402.
 
@@ -217,6 +220,7 @@ function getAgentWallet(uint256 agentId) external view returns (address);
 ```
 
 Key properties:
+
 - Agent ID is a globally unique, tokenized entry (ERC-721)
 - Token URI points to an off-chain agent registration file (JSON) -- can include A2A or MCP endpoints
 - Agent wallet can be set separately from owner address
@@ -290,6 +294,7 @@ ERC-8004 does not natively reference Nostr. However, a bridge is architecturally
 **Trust/Reputation**: Solver competition provides market-driven trust. No formal on-chain reputation registry, but solver performance is implicitly tracked.
 
 **Strengths**:
+
 - Massive scale (46M users, $10B+ intent volume)
 - Chain abstraction removes blockchain complexity for users
 - Natural language intent expression with AI agent translation
@@ -297,6 +302,7 @@ ERC-8004 does not natively reference Nostr. However, a bridge is architecturally
 - Active AI agent marketplace (NEAR AI)
 
 **Weaknesses**:
+
 - Tied to NEAR ecosystem (despite chain abstraction claims)
 - Solver Bus is off-chain, reducing transparency
 - No formal agent identity or reputation standard
@@ -321,12 +327,14 @@ ERC-8004 does not natively reference Nostr. However, a bridge is architecturally
 **Trust/Reputation**: Platform-managed trust. Security controls include dedicated agent wallets, spending limits, and optional approval flows before payment finalization.
 
 **Strengths**:
+
 - First to market with AI-to-AI payments on a proprietary platform
 - Multi-rail payment support (Visa, USDC, FET)
 - Strong user control mechanisms (spending limits, approval gates)
 - Agents can transact while user is offline
 
 **Weaknesses**:
+
 - Platform-locked (ASI:ONE only)
 - ASI Alliance instability (Ocean Protocol withdrew in October 2025 over treasury disputes)
 - Proprietary identity model, not interoperable
@@ -346,6 +354,7 @@ ERC-8004 does not natively reference Nostr. However, a bridge is architecturally
 ### c) Autonolas (Olas)
 
 **Payment Mechanism**: Multi-layered token economics using OLAS:
+
 - **Developer incentives**: Proportional to code contributions
 - **Operator rewards**: For running agent services
 - **Bonding**: LP share bonding for protocol-owned liquidity
@@ -359,6 +368,7 @@ ERC-8004 does not natively reference Nostr. However, a bridge is architecturally
 **Trust/Reputation**: Crypto-economic security via staking and slashing. Consensus-based action approval. Service owners can be whitelisted through veOLAS governance.
 
 **Strengths**:
+
 - Sophisticated multi-agent coordination with consensus
 - On-chain composability (components -> agents -> services)
 - Slashing provides economic security guarantees
@@ -366,6 +376,7 @@ ERC-8004 does not natively reference Nostr. However, a bridge is architecturally
 - Open Autonomy framework for building agent services
 
 **Weaknesses**:
+
 - Complex token economics may deter adoption
 - Agent coordination overhead (consensus gadget)
 - Primarily Ethereum-based
@@ -391,12 +402,14 @@ ERC-8004 does not natively reference Nostr. However, a bridge is architecturally
 **Trust/Reputation**: Marketplace-based ratings and reviews. Service quality tracked through platform metrics.
 
 **Strengths**:
+
 - Pioneer in decentralized AI marketplace concept (since 2017)
 - Wide range of AI services available
 - Academic credibility (Dr. Ben Goertzel, AGI research)
 - Part of ASI Alliance (broader ecosystem)
 
 **Weaknesses**:
+
 - Token migration from AGIX to ASI creates confusion
 - ASI Alliance instability (Ocean's departure)
 - Marketplace model is centralized despite decentralized branding
@@ -440,6 +453,7 @@ Alby's MCP server connects Bitcoin Lightning wallets to LLMs via Nostr Wallet Co
 An n8n workflow that enables AI agents to find and use MCP Server tools served as DVMs over Nostr. Demonstrates the full loop: AI agent -> MCP -> Nostr DVM -> compute -> payment -> result.
 
 **Strengths of Nostr-native approaches**:
+
 - Fully decentralized, censorship-resistant
 - Native Lightning micropayment integration
 - Open protocol (anyone can build DVMs, no platform lock-in)
@@ -448,6 +462,7 @@ An n8n workflow that enables AI agents to find and use MCP Server tools served a
 - No token required -- uses Bitcoin/Lightning
 
 **Weaknesses**:
+
 - Small ecosystem compared to alternatives
 - No formal agent identity standard (just Nostr keypairs)
 - Payment UX relies on Lightning, which has adoption limitations
@@ -468,15 +483,19 @@ An n8n workflow that enables AI agents to find and use MCP Server tools served a
 ### f) Other Relevant Agent Payment Systems (2025-2026)
 
 #### Visa Trusted Agent Protocol (October 2025)
+
 Open framework for safe agent-driven checkout. Helps merchants distinguish legitimate AI agents from bots. Built on existing web infrastructure. Partners with 10+ organizations.
 
 #### Stripe Agentic Commerce Protocol (September 2025)
+
 API for agentic payments launched with OpenAI. Enables AI agents to complete purchases on behalf of users through existing Stripe payment rails.
 
 #### Mastercard Agent Pay
+
 Introduces Agentic Tokens for security and transparency in AI agent payments. Provides before/during/after transaction verification.
 
 #### Google AP2 (covered in Section 1)
+
 Open protocol with 60+ partners. Mandate-based authorization with cryptographic audit trail.
 
 ### Sources
@@ -489,19 +508,19 @@ Open protocol with 60+ partners. Mandate-based authorization with cryptographic 
 
 ### Competitive Landscape Summary Table
 
-| System | Payment Rail | Identity | Trust Model | Micropayments | Open Standard | Agent-Native |
-|--------|-------------|----------|-------------|---------------|---------------|--------------|
-| **A2A + x402** | Stablecoin (USDC) | Agent Card + Wallet | On-chain verification | Yes ($0.001) | Yes (Apache 2.0) | Yes |
-| **A2A + AP2** | Card/Crypto/Bank | Agent Card + Mandates | Cryptographic audit | No (full tx) | Yes (Apache 2.0) | Yes |
-| **ERC-8004** | N/A (identity layer) | ERC-721 NFT | On-chain reputation | N/A | Yes (EIP) | Yes |
-| **NEAR Intents** | NEAR tokens | NEAR accounts | Solver competition | Partial | Yes | Partial |
-| **Fetch.ai/ASI** | Visa/USDC/FET | Platform wallets | Platform-managed | No | No | Yes |
-| **Olas** | OLAS token | NFT registry | Staking/slashing | No | Yes | Yes |
-| **SingularityNET** | ASI token | Platform registry | Marketplace ratings | No | Partial | No |
-| **Nostr DVMs** | Lightning (sats) | Nostr keypairs | Social graph | Yes (msats) | Yes (NIP-90) | Partial |
-| **ILP (Crosstown)** | Any (settlement agnostic) | Nostr keypairs + ILP address | Social graph trust | Yes (streaming) | Yes (RFC) | Designed for it |
-| **Visa TAP** | Card networks | Visa credentials | Framework verification | No | Partial | Partial |
-| **Stripe ACP** | Stripe rails | Stripe accounts | Stripe trust | Yes | No | Partial |
+| System              | Payment Rail              | Identity                     | Trust Model            | Micropayments   | Open Standard    | Agent-Native    |
+| ------------------- | ------------------------- | ---------------------------- | ---------------------- | --------------- | ---------------- | --------------- |
+| **A2A + x402**      | Stablecoin (USDC)         | Agent Card + Wallet          | On-chain verification  | Yes ($0.001)    | Yes (Apache 2.0) | Yes             |
+| **A2A + AP2**       | Card/Crypto/Bank          | Agent Card + Mandates        | Cryptographic audit    | No (full tx)    | Yes (Apache 2.0) | Yes             |
+| **ERC-8004**        | N/A (identity layer)      | ERC-721 NFT                  | On-chain reputation    | N/A             | Yes (EIP)        | Yes             |
+| **NEAR Intents**    | NEAR tokens               | NEAR accounts                | Solver competition     | Partial         | Yes              | Partial         |
+| **Fetch.ai/ASI**    | Visa/USDC/FET             | Platform wallets             | Platform-managed       | No              | No               | Yes             |
+| **Olas**            | OLAS token                | NFT registry                 | Staking/slashing       | No              | Yes              | Yes             |
+| **SingularityNET**  | ASI token                 | Platform registry            | Marketplace ratings    | No              | Partial          | No              |
+| **Nostr DVMs**      | Lightning (sats)          | Nostr keypairs               | Social graph           | Yes (msats)     | Yes (NIP-90)     | Partial         |
+| **ILP (Crosstown)** | Any (settlement agnostic) | Nostr keypairs + ILP address | Social graph trust     | Yes (streaming) | Yes (RFC)        | Designed for it |
+| **Visa TAP**        | Card networks             | Visa credentials             | Framework verification | No              | Partial          | Partial         |
+| **Stripe ACP**      | Stripe rails              | Stripe accounts              | Stripe trust           | Yes             | No               | Partial         |
 
 ---
 
@@ -522,6 +541,7 @@ MCP is Anthropic's open protocol (released November 2024, latest spec: November 
 ### Tool Exposure Pattern
 
 MCP servers expose tools with:
+
 - **Name**: Unique identifier for the tool
 - **Description**: Human-readable explanation for the model
 - **Input schema**: JSON Schema defining expected parameters
@@ -543,6 +563,7 @@ An MCP gateway is a session-aware reverse proxy that fronts multiple MCP servers
 - **Lifecycle management**: Connects to each server on startup, runs initialize, caches capabilities
 
 Implementations:
+
 - **FastMCP Proxy Provider**: Native composite proxy support
 - **mcp-proxy-server** (GitHub: adamwattis): Aggregates multiple MCP resource servers through single interface
 - **Atrax** (GitHub: metcalfc): MCP proxy with multiple server aggregation
@@ -564,6 +585,7 @@ app.mount("calendar", calendar_server)
 #### 3. Enterprise Gateway Pattern
 
 For production deployments:
+
 - Central registry of approved MCP servers
 - OAuth/OIDC authentication per server
 - Rate limiting and usage tracking
@@ -573,6 +595,7 @@ For production deployments:
 ### November 2025 Specification: Tasks Primitive
 
 The latest MCP spec introduces **Tasks** -- allowing servers to perform asynchronous, long-running operations:
+
 - Server creates a task, returns a handle
 - Publishes progress updates
 - Delivers results when complete
@@ -582,6 +605,7 @@ This mirrors A2A's task lifecycle and enables MCP servers to manage stateful wor
 ### MCP + Nostr Integration Opportunities
 
 The DVMCP bridge already demonstrates MCP-to-DVM connectivity. For Crosstown:
+
 - ILP connector operations could be exposed as MCP tools
 - Social trust queries could be MCP resources
 - SPSP handshake flows could be MCP tool sequences
@@ -607,11 +631,11 @@ NIP-90 defines Nostr as a marketplace for on-demand computation. Users publish j
 
 ### Event Kinds
 
-| Kind Range | Purpose |
-|------------|---------|
-| 5000-5999 | Job requests |
-| 6000-6999 | Job results (request kind + 1000) |
-| 7000 | Job feedback/status |
+| Kind Range | Purpose                           |
+| ---------- | --------------------------------- |
+| 5000-5999  | Job requests                      |
+| 6000-6999  | Job results (request kind + 1000) |
+| 7000       | Job feedback/status               |
 
 ### Job Request Format (Kind 5000-5999)
 
@@ -648,13 +672,13 @@ Input types: `url`, `event`, `job` (for chaining), `text`
 
 ### Job Feedback Status Types (Kind 7000)
 
-| Status | Description |
-|--------|-------------|
+| Status             | Description                        |
+| ------------------ | ---------------------------------- |
 | `payment-required` | Payment needed before continuation |
-| `processing` | Job in progress |
-| `error` | Processing failed |
-| `success` | Job completed successfully |
-| `partial` | Partial results available |
+| `processing`       | Job in progress                    |
+| `error`            | Processing failed                  |
+| `success`          | Job completed successfully         |
+| `partial`          | Partial results available          |
 
 ### Payment Integration
 
@@ -666,6 +690,7 @@ The payment flow is deliberately flexible:
 4. **Trust-based**: Provider assesses likelihood of payment based on customer's past behavior and serves accordingly
 
 Payment methods:
+
 - **Bolt11 invoice**: Included in the `amount` tag of job results
 - **Zaps (NIP-57)**: Customer zaps the result event
 - Both methods should be monitored by service providers
@@ -683,6 +708,7 @@ Example: Podcast audio -> kind:5002 (transcription) -> kind:5001 (summarization)
 ### Encryption
 
 For sensitive inputs, NIP-04 encryption between customer and provider:
+
 - Encrypted `i` and `param` tags placed in event `content`
 - `encrypted` tag added to signal encryption
 - Provider decrypts with customer's public key
@@ -690,6 +716,7 @@ For sensitive inputs, NIP-04 encryption between customer and provider:
 ### Service Provider Discovery
 
 Providers advertise capabilities via NIP-89 (kind:31990) announcements:
+
 ```json
 {
   "kind": 31990,
@@ -703,6 +730,7 @@ Providers advertise capabilities via NIP-89 (kind:31990) announcements:
 ### DVM as Compute Marketplace
 
 DVMs serve as a natural compute marketplace because:
+
 - **Permissionless entry**: Anyone can run a DVM (no platform registration)
 - **Competitive pricing**: Multiple providers compete per job
 - **Micropayment native**: Lightning enables per-job payments in millisats
@@ -714,17 +742,17 @@ DVMs serve as a natural compute marketplace because:
 
 Some standardized kinds from the data-vending-machines registry:
 
-| Kind | Name | Description |
-|------|------|-------------|
-| 5000 | Text Extraction | Extract text from media |
-| 5001 | Summarization | Summarize text |
-| 5002 | Translation | Translate text |
-| 5003 | Text Generation | Generate text from prompt |
-| 5005 | Image Generation | Generate images |
-| 5050 | Text-to-Speech | Convert text to audio |
+| Kind | Name              | Description                      |
+| ---- | ----------------- | -------------------------------- |
+| 5000 | Text Extraction   | Extract text from media          |
+| 5001 | Summarization     | Summarize text                   |
+| 5002 | Translation       | Translate text                   |
+| 5003 | Text Generation   | Generate text from prompt        |
+| 5005 | Image Generation  | Generate images                  |
+| 5050 | Text-to-Speech    | Convert text to audio            |
 | 5100 | Content Discovery | Algorithmic feed/recommendations |
-| 5250 | Event Counting | Count events matching filter |
-| 5300 | Content Search | Search for content |
+| 5250 | Event Counting    | Count events matching filter     |
+| 5300 | Content Search    | Search for content               |
 
 ### Sources
 
@@ -747,6 +775,7 @@ The Crosstown Protocol occupies a unique position at the intersection of three e
 3. **Emerging agent standards** (A2A, x402, ERC-8004, MCP)
 
 No other project bridges all three. The closest competitors address subsets:
+
 - A2A + x402 handles agent communication + payments but lacks social trust
 - Nostr DVMs handle compute marketplace + Lightning payments but lack structured routing
 - ERC-8004 handles identity + reputation but not payments or social graph
@@ -755,19 +784,25 @@ No other project bridges all three. The closest competitors address subsets:
 ### Strategic Integration Opportunities
 
 #### 1. A2A Compatibility Layer
+
 Crosstown agents could publish A2A-compatible Agent Cards (at `/.well-known/agent.json`) that reference their Nostr pubkey and ILP address. This would make Crosstown agents discoverable by the broader A2A ecosystem while maintaining Nostr-native operation.
 
 #### 2. x402 as Settlement Rail
+
 The x402 facilitator architecture maps naturally to ILP settlement engines. An x402-based settlement engine would allow ILP connectors to settle via stablecoins on Base/Solana, connecting Crosstown to the 140M+ x402 transaction ecosystem.
 
 #### 3. ERC-8004 Reputation Bridge
+
 Crosstown's social-graph-based trust (NIP-02 follows, mutual connections, zap history) could be published to ERC-8004's Reputation Registry, creating a cross-ecosystem reputation that's legible to the broader agent economy. The Identity Registry's metadata system could store Nostr pubkeys for bidirectional linking.
 
 #### 4. NIP-90 DVMs as Service Layer
+
 ILP-peered agents could expose their capabilities as NIP-90 DVMs, enabling Nostr users to pay for agent services via Lightning while the agent-to-agent backbone uses ILP for routing. The DVMCP bridge already demonstrates MCP-to-DVM connectivity.
 
 #### 5. MCP as Agent Interface
+
 A composite MCP server could unify:
+
 - ILP connector management tools (add peer, check balance, route payment)
 - Nostr social graph resources (follow list, trust scores, peer discovery)
 - SPSP handshake tools (request/respond to payment setup)
@@ -776,6 +811,7 @@ A composite MCP server could unify:
 This would make Crosstown capabilities available to any MCP-compatible AI system (Claude, GPT, etc.).
 
 #### 6. AP2 Mandate Integration
+
 For human-agent commerce, AP2 mandates could authorize ILP-based agent payments with cryptographic user approval, combining AP2's trust model with ILP's micropayment efficiency.
 
 ### Key Architectural Decisions Informed by This Research

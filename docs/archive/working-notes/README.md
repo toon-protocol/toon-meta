@@ -5,6 +5,7 @@ These files are development working notes from the bootstrap and payment channel
 **⚠️ These documents are OUTDATED and kept for historical reference only.**
 
 For current testing information, see:
+
 - `/TESTING.md` - Complete testing guide
 - `/PAYMENT-CHANNELS-SUCCESS.md` - Final success documentation
 - `/PAYMENT-CHANNELS-PROGRESS.md` - Complete development journey
@@ -24,6 +25,7 @@ For current testing information, see:
 ## Why Archived?
 
 These documents:
+
 1. Contain outdated test results (e.g., `channelCount: 0` failures that are now fixed)
 2. Reference incomplete implementations
 3. Include troubleshooting for issues that are now resolved

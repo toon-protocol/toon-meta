@@ -14,14 +14,14 @@ waiver:
 quality_score: 98
 # Calculation: 100 - (minor observation worth -2 points for cleanliness)
 
-expires: '2026-03-06T14:04:00Z'  # 2 weeks from review
+expires: '2026-03-06T14:04:00Z' # 2 weeks from review
 
 evidence:
   tests_reviewed: 54
   risks_identified: 0
   trace:
-    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8]  # All ACs have test coverage
-    ac_gaps: []  # No coverage gaps
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8] # All ACs have test coverage
+    ac_gaps: [] # No coverage gaps
 
 nfr_validation:
   security:
@@ -63,7 +63,7 @@ nfr_validation:
       - 54 comprehensive tests provide safety net for future changes
 
 recommendations:
-  immediate: []  # No immediate actions required
+  immediate: [] # No immediate actions required
 
   future:
     - action: 'Export IlpSendResult from @crosstown/core package index to avoid deep import path'
@@ -92,5 +92,5 @@ architectural_notes: |
   - AbortController usage for timeout shows modern async patterns
 
 related_stories:
-  - '11.2'  # Next story in Epic 11
-  - '11.3'  # Subsequent story in Epic 11
+  - '11.2' # Next story in Epic 11
+  - '11.3' # Subsequent story in Epic 11

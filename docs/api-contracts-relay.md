@@ -13,6 +13,7 @@
 **Purpose:** ILP payment verification for Nostr event storage
 
 **Request Body:**
+
 ```typescript
 {
   amount: string;           // Payment amount (parsed to bigint)
@@ -23,6 +24,7 @@
 ```
 
 **Success Response (200):**
+
 ```typescript
 {
   accept: true;
@@ -35,6 +37,7 @@
 ```
 
 **Reject Response (400):**
+
 ```typescript
 {
   accept: false;
@@ -48,24 +51,28 @@
 ```
 
 **Error Response (500):**
+
 ```typescript
 {
   accept: false;
-  code: "T00";              // Internal error code
+  code: 'T00'; // Internal error code
   message: string;
 }
 ```
 
 **ILP Error Codes:**
+
 - `F00` - Bad Request (invalid data, malformed event, invalid signature)
 - `F06` - Insufficient Amount (payment < required price)
 - `T00` - Internal Error (storage failure, server error)
 
 **Payment Bypass Rules:**
+
 - Owner events (matching `ownerPubkey`) skip payment verification
 - SPSP requests (kind: 23194) can use `spspMinPrice` override (including 0 for free)
 
 **Pricing Logic:**
+
 ```
 price = toonBytes.length * basePricePerByte
 OR
@@ -82,10 +89,11 @@ If event.kind === 23194 AND spspMinPrice < price:
 **Purpose:** Health check endpoint
 
 **Response (200):**
+
 ```typescript
 {
-  status: "healthy";
-  timestamp: number;        // Unix timestamp (ms)
+  status: 'healthy';
+  timestamp: number; // Unix timestamp (ms)
 }
 ```
 
@@ -99,6 +107,7 @@ If event.kind === 23194 AND spspMinPrice < price:
 **Protocol:** NIP-01 compliant Nostr relay
 
 **Connection Limits:**
+
 - Max concurrent connections: Configurable (default: 100)
 - Max subscriptions per connection: Configurable (default: 20)
 - Max filters per subscription: Configurable (default: 10)
@@ -114,6 +123,7 @@ If event.kind === 23194 AND spspMinPrice < price:
 ```
 
 **Filter Format:**
+
 ```typescript
 {
   ids?: string[];           // Event ID prefixes
@@ -127,6 +137,7 @@ If event.kind === 23194 AND spspMinPrice < price:
 ```
 
 **Response Flow:**
+
 1. Server sends matching events: `["EVENT", <subscription_id>, <toon_string>]`
 2. Server sends end-of-stream: `["EOSE", <subscription_id>]`
 
@@ -141,6 +152,7 @@ If event.kind === 23194 AND spspMinPrice < price:
 ```
 
 **Event Format:** Standard Nostr event
+
 ```typescript
 {
   id: string;               // Event ID (sha256 hash)
@@ -154,10 +166,12 @@ If event.kind === 23194 AND spspMinPrice < price:
 ```
 
 **Response:** `["OK", <event_id>, <accepted>, <message>]`
+
 - `accepted: true` - Event stored successfully
 - `accepted: false` - Storage failed (see message for reason)
 
 **Event Types Supported:**
+
 - **Regular events** (kind < 10000 or kind >= 20000 but < 30000)
 - **Replaceable events** (kind 10000-19999) - Only latest per pubkey+kind
 - **Parameterized replaceable events** (kind 30000-39999) - Only latest per pubkey+kind+d-tag
@@ -205,6 +219,7 @@ Indicates all historical events matching the subscription have been sent.
 ```
 
 Sent in response to EVENT messages (NIP-20).
+
 - `accepted: true` - Event accepted and stored
 - `accepted: false` - Event rejected (see message)
 
@@ -219,6 +234,7 @@ Sent in response to EVENT messages (NIP-20).
 Human-readable server messages for errors or notifications.
 
 **Common Notices:**
+
 - `"error: invalid message format, expected JSON array"`
 - `"error: invalid JSON"`
 - `"error: unknown message type: <type>"`
@@ -295,7 +311,7 @@ CREATE INDEX idx_events_pubkey_kind ON events(pubkey, kind);
 
 ```typescript
 class RelayError extends Error {
-  code: string;                         // Error code (e.g., 'STORAGE_ERROR')
+  code: string; // Error code (e.g., 'STORAGE_ERROR')
 }
 ```
 
@@ -322,6 +338,7 @@ class PricingError extends RelayError {
 ### TOON Format
 
 Events are encoded/decoded using TOON (agent-friendly format):
+
 - `encodeEventToToon(event): Uint8Array` - Encode Nostr event to TOON bytes
 - `decodeEventFromToon(bytes): NostrEvent` - Decode TOON bytes to Nostr event
 - `encodeEventToToonString(event): string` - Encode to TOON string (for WebSocket)
@@ -329,10 +346,12 @@ Events are encoded/decoded using TOON (agent-friendly format):
 ### Event Replacement Logic
 
 **Replaceable Events (10000-19999):**
+
 - Keyed by `pubkey + kind`
 - New event replaces old if: `created_at > old.created_at` OR `(created_at === old.created_at AND id < old.id)`
 
 **Parameterized Replaceable Events (30000-39999):**
+
 - Keyed by `pubkey + kind + d_tag_value`
 - Same replacement logic as replaceable events
 - Empty d-tag (`["d", ""]` or no d-tag) treated as distinct key
@@ -344,7 +363,11 @@ Events are encoded/decoded using TOON (agent-friendly format):
 ### Start Relay with BLS
 
 ```typescript
-import { NostrRelayServer, SqliteEventStore, BusinessLogicServer } from '@crosstown/relay';
+import {
+  NostrRelayServer,
+  SqliteEventStore,
+  BusinessLogicServer,
+} from '@crosstown/relay';
 
 // Create event store
 const store = new SqliteEventStore('./events.db');
@@ -354,11 +377,14 @@ const relay = new NostrRelayServer({ port: 7000 }, store);
 await relay.start();
 
 // Create BLS
-const bls = new BusinessLogicServer({
-  basePricePerByte: 100n,
-  ownerPubkey: 'abc123...',  // Optional
-  spspMinPrice: 0n,           // Free SPSP requests
-}, store);
+const bls = new BusinessLogicServer(
+  {
+    basePricePerByte: 100n,
+    ownerPubkey: 'abc123...', // Optional
+    spspMinPrice: 0n, // Free SPSP requests
+  },
+  store
+);
 
 // BLS runs on separate HTTP port (configured separately)
 ```

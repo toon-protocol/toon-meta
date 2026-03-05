@@ -10,9 +10,9 @@ This document outlines the overall project architecture for **Crosstown Protocol
 
 ## 1.2 Change Log
 
-| Date | Version | Description | Author |
-|------|---------|-------------|--------|
-| 2026-02-05 | 0.1 | Initial architecture document | Architect |
-| 2026-02-17 | 0.2 | Major update: BLS package extraction, bootstrap/compose modules, embedded connector, agent runtime, settlement negotiation, layered peer discovery, Docker entrypoint, NIP adoption roadmap (Epics 12-17), tech stack version updates | Architect |
+| Date       | Version | Description                                                                                                                                                                                                                           | Author    |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 2026-02-05 | 0.1     | Initial architecture document                                                                                                                                                                                                         | Architect |
+| 2026-02-17 | 0.2     | Major update: BLS package extraction, bootstrap/compose modules, embedded connector, agent runtime, settlement negotiation, layered peer discovery, Docker entrypoint, NIP adoption roadmap (Epics 12-17), tech stack version updates | Architect |
 
 ---

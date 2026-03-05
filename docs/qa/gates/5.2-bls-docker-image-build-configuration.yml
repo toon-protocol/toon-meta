@@ -13,7 +13,7 @@ top_issues: []
 quality_score: 100
 
 evidence:
-  tests_reviewed: 0  # Infrastructure config — manual Docker CLI verification
+  tests_reviewed: 0 # Infrastructure config — manual Docker CLI verification
   risks_identified: 0
   trace:
     ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9]

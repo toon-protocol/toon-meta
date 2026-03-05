@@ -29,22 +29,13 @@ Build a multi-signal trust model combining ILP-backed zaps, agent capability lab
   2. BLS zap handler accepting ILP payments and publishing zap receipts with cryptographic proof-of-payment
   3. Zap-based reputation scoring: volume received, diversity of zappers, settlement reliability
 
-  **NIP-32 Labels (lightweight taxonomy):**
-  4. Agent capability self-labels on kind:0 profiles (e.g., `["l", "translation", "agent-skill"]`)
-  5. Quality labels (kind:1985) published after DVM job completion to rate service quality
-  6. Label namespaces: `agent-skill`, `agent-quality`, `agent-warning`, `agent-tier`
+  **NIP-32 Labels (lightweight taxonomy):** 4. Agent capability self-labels on kind:0 profiles (e.g., `["l", "translation", "agent-skill"]`) 5. Quality labels (kind:1985) published after DVM job completion to rate service quality 6. Label namespaces: `agent-skill`, `agent-quality`, `agent-warning`, `agent-tier`
 
-  **NIP-58 Badges (heavyweight credentials):**
-  7. Badge definitions (kind:30009) for settlement reliability, throughput, and operational milestones
-  8. Badge awards (kind:8) auto-issued when agents cross metric thresholds
-  9. Profile badges (kind:30008) for agents to curate displayed credentials
+  **NIP-58 Badges (heavyweight credentials):** 7. Badge definitions (kind:30009) for settlement reliability, throughput, and operational milestones 8. Badge awards (kind:8) auto-issued when agents cross metric thresholds 9. Profile badges (kind:30008) for agents to curate displayed credentials
 
-  **NIP-85 Trust Oracles (scalability):**
-  10. Pre-computed trust assertions (kind:30382) from oracle agents — multiple competing oracles
-  11. Fallback to local BFS computation when oracle data unavailable
+  **NIP-85 Trust Oracles (scalability):** 10. Pre-computed trust assertions (kind:30382) from oracle agents — multiple competing oracles 11. Fallback to local BFS computation when oracle data unavailable
 
-  **NIP-51 Lists (structured configuration):**
-  12. Curated lists: `crosstown-reviewers`, `crosstown-ci-providers`, relay sets, review queue bookmarks, trusted routes, mute lists
+  **NIP-51 Lists (structured configuration):** 12. Curated lists: `crosstown-reviewers`, `crosstown-ci-providers`, relay sets, review queue bookmarks, trusted routes, mute lists
 
 - **Trust Score Formula (comprehensive):**
   ```
@@ -104,6 +95,7 @@ Zapper Agent                        Zappee Agent
 **so that** the network has a standard for verifiable proof-of-payment events.
 
 **Acceptance Criteria:**
+
 1. `IlpZapRequest` type defined with fields: `p` tag (recipient), `e`/`a` tags (target event), `relays` tag (where to publish receipt), `ilp-amount` tag (amount + asset code + scale), optional `content` (zap comment)
 2. `IlpZapReceipt` type defined with fields: `p` tag (recipient), `P` tag (sender), `e`/`a` tags (target), `description` tag (embedded zap request JSON), `ilp-amount` tag, `fulfillment` tag (base64 SHA256 proof), `ilp-asset` tag (asset code + scale)
 3. `buildZapRequestEvent(params, secretKey): NostrEvent` creates kind:9734 events
@@ -120,6 +112,7 @@ Zapper Agent                        Zappee Agent
 **so that** I receive payments and the network gets public proof-of-payment events.
 
 **Acceptance Criteria:**
+
 1. BLS extended: when incoming TOON event is kind:9734, delegate to `ZapHandler`
 2. `ZapHandler` validates: zap request has valid structure, `p` tag matches the BLS agent's pubkey, amount meets minimum (configurable, default: 0 = any amount accepted)
 3. On valid payment: create kind:9735 receipt event with embedded zap request, fulfillment proof, and ILP amount tags
@@ -135,6 +128,7 @@ Zapper Agent                        Zappee Agent
 **so that** I make better routing and credit decisions based on economic reputation data.
 
 **Acceptance Criteria:**
+
 1. `zapVolumeReceived(pubkey: string, windowDays?: number): Promise<bigint>` method added — queries kind:9735 receipts where `p` tag = pubkey, sums `ilp-amount` values within time window
 2. `zapDiversity(pubkey: string, windowDays?: number): Promise<number>` method added — counts unique `P` tags (unique zappers) in kind:9735 receipts (Sybil resistance: 100 zaps from 1 sender < 10 zaps from 10 senders)
 3. `settlementReliability(pubkey: string): Promise<number>` method added — queries connector Admin API for settlement success rate
@@ -149,6 +143,7 @@ Zapper Agent                        Zappee Agent
 **so that** other agents can filter and discover me by skill type and rate my service quality.
 
 **Acceptance Criteria:**
+
 1. `AgentProfileBuilder` extended to accept `labels: LabelEntry[]` parameter
 2. `LabelEntry` type: `{ namespace: string, value: string }` (e.g., `{ namespace: "agent-skill", value: "translation" }`)
 3. Labels encoded as `["L", namespace]` + `["l", value, namespace]` tags on kind:0 events per NIP-32
@@ -166,6 +161,7 @@ Zapper Agent                        Zappee Agent
 **so that** the network has verifiable credentials for agent reliability and performance.
 
 **Acceptance Criteria:**
+
 1. `BadgeIssuer` class created with methods for the full badge lifecycle
 2. `defineBadge(definition: BadgeDefinition, secretKey): Promise<void>` publishes kind:30009 addressable events with `d` tag (badge ID), `name`, `description`, `image` tags per NIP-58
 3. `awardBadge(badgeDefRef: string, recipientPubkeys: string[], secretKey): Promise<void>` publishes kind:8 events with `a` tag (referencing definition) and `p` tags (recipients)
@@ -184,6 +180,7 @@ Zapper Agent                        Zappee Agent
 **so that** trust score computation scales to large networks.
 
 **Acceptance Criteria:**
+
 1. `TrustOracleClient` class created that queries kind:30382 trusted assertion events per NIP-85 spec
 2. Supports multiple competing oracles — agent configures a list of oracle pubkeys it trusts
 3. `getOracleTrustScore(oraclePubkey: string, targetPubkey: string): Promise<number | null>` queries oracle's assertion for a target
@@ -199,6 +196,7 @@ Zapper Agent                        Zappee Agent
 **so that** I can explicitly signal which peers I prefer or distrust for specific purposes.
 
 **Acceptance Criteria:**
+
 1. `publishList(listType: string, pubkeys: string[], secretKey, encrypted?: boolean): Promise<void>` publishes kind:30000 follow sets with custom `d` tags per NIP-51
 2. Supported list types: `crosstown-reviewers`, `crosstown-ci-providers`, `trusted-routes`, and custom `d` tags
 3. `publishMuteList(pubkeys: string[], secretKey): Promise<void>` publishes kind:10000 mute list per NIP-51

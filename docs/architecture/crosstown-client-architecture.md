@@ -28,6 +28,7 @@
 ### 1.1 Context
 
 **Current State:**
+
 - `@crosstown/core` provides excellent **building blocks** (NostrSpspClient, IlpSpspClient, BootstrapService, RelayMonitor)
 - **No unified client** exists - agents must manually compose components
 - Two integration modes: **embedded** (requires `@crosstown/connector`) or **HTTP** (requires external connector)
@@ -57,6 +58,7 @@ Create `@crosstown/client` - a high-level, full-featured Nostr client that:
 **Decision:** Move `createCrosstownNode` from `@crosstown/core` to `@crosstown/client` as `CrosstownClient`
 
 **Rationale:**
+
 - `createCrosstownNode` is already a client - it just has poor naming and placement
 - "CrosstownClient" is more intuitive than "CrosstownNode" for agent developers
 - Moving to dedicated package clarifies purpose and ownership
@@ -78,12 +80,14 @@ Create `@crosstown/client` - a high-level, full-featured Nostr client that:
 - **Peer discovery**: Automatic discovery via Nostr follows and ArDrive registry
 
 **Key Characteristics:**
+
 - **Event-driven architecture**: Observable lifecycle and network events
 - **TypeScript-first**: Full type safety with shared types from `@crosstown/core`
 - **Production-ready**: Replaces mock connectors with real ILP integration
 - **Lifecycle managed**: Simple `start()` / `stop()` API with automatic cleanup
 
 **Design Evolution from `createCrosstownNode`:**
+
 - ✅ Keeps all existing embedded-mode functionality
 - ✅ Adds HTTP mode support (new capability)
 - ✅ Adds full Nostr subscription API (read support)
@@ -172,48 +176,54 @@ graph TB
 ### 2.3 Key Components
 
 #### **CrosstownClient (Main Class)**
+
 **Responsibility:** Unified API for Crosstown network interaction
 
 **Key Methods:**
+
 ```typescript
 class CrosstownClient {
   // Lifecycle
-  async start(): Promise<StartResult>
-  async stop(): Promise<void>
+  async start(): Promise<StartResult>;
+  async stop(): Promise<void>;
 
   // Peer management
-  async peerWith(pubkey: string): Promise<void>
-  getPeers(): PeerInfo[]
+  async peerWith(pubkey: string): Promise<void>;
+  getPeers(): PeerInfo[];
 
   // Nostr subscriptions (READ - free)
-  subscribe(relays: string[], filters: Filter[], callbacks): NostrSubscription
-  subscribeToRelay(filters: Filter[], callbacks): NostrSubscription
-  queryEvents(relays: string[], filters: Filter[]): Promise<NostrEvent[]>
-  getEvent(relays: string[], eventId: string): Promise<NostrEvent | null>
+  subscribe(relays: string[], filters: Filter[], callbacks): NostrSubscription;
+  subscribeToRelay(filters: Filter[], callbacks): NostrSubscription;
+  queryEvents(relays: string[], filters: Filter[]): Promise<NostrEvent[]>;
+  getEvent(relays: string[], eventId: string): Promise<NostrEvent | null>;
 
   // Event publishing (WRITE - paid)
-  async publishEvent(event: NostrEvent, amount?: string): Promise<PublishResult>
-  async publishBatch(events: NostrEvent[]): Promise<PublishResult[]>
+  async publishEvent(
+    event: NostrEvent,
+    amount?: string
+  ): Promise<PublishResult>;
+  async publishBatch(events: NostrEvent[]): Promise<PublishResult[]>;
 
   // Payment channels
-  async openChannel(params: OpenChannelParams): Promise<OpenChannelResult>
-  getChannelState(channelId: string): Promise<ChannelState>
+  async openChannel(params: OpenChannelParams): Promise<OpenChannelResult>;
+  getChannelState(channelId: string): Promise<ChannelState>;
 
   // Event listeners
-  on(event: ClientEvent, listener: EventListener): void
-  off(event: ClientEvent, listener: EventListener): void
+  on(event: ClientEvent, listener: EventListener): void;
+  off(event: ClientEvent, listener: EventListener): void;
 
   // Advanced access
-  get pool(): SimplePool
-  get bootstrap(): BootstrapService
-  get relayMonitor(): RelayMonitor
-  get channels(): ConnectorChannelClient | null
+  get pool(): SimplePool;
+  get bootstrap(): BootstrapService;
+  get relayMonitor(): RelayMonitor;
+  get channels(): ConnectorChannelClient | null;
 }
 ```
 
 ### 2.4 Integration Patterns
 
 **Pattern 1: Embedded Mode (Original `createCrosstownNode` functionality)**
+
 ```typescript
 import { ConnectorNode } from '@agent-runtime/connector';
 import { CrosstownClient } from '@crosstown/client';
@@ -245,6 +255,7 @@ await client.publishEvent(myEvent);
 ```
 
 **Pattern 2: HTTP Mode (NEW capability)**
+
 ```typescript
 import { CrosstownClient } from '@crosstown/client';
 import { encodeEvent, decodeEvent } from '@crosstown/relay';
@@ -264,8 +275,11 @@ await client.start();
 ```
 
 **Pattern 3: Agent with Auto-Responder**
+
 ```typescript
-const client = new CrosstownClient({ /* ... */ });
+const client = new CrosstownClient({
+  /* ... */
+});
 await client.start();
 
 // Listen for mentions
@@ -274,14 +288,20 @@ client.subscribe(['wss://relay.damus.io'], [{ kinds: [1], '#p': [myPubkey] }], {
     console.log('Mentioned:', event.content);
 
     // Auto-reply
-    const reply = finalizeEvent({
-      kind: 1,
-      content: 'Thanks!',
-      tags: [['e', event.id], ['p', event.pubkey]],
-    }, secretKey);
+    const reply = finalizeEvent(
+      {
+        kind: 1,
+        content: 'Thanks!',
+        tags: [
+          ['e', event.id],
+          ['p', event.pubkey],
+        ],
+      },
+      secretKey
+    );
 
     await client.publishEvent(reply);
-  }
+  },
 });
 ```
 
@@ -300,7 +320,7 @@ client.subscribe(['wss://relay.damus.io'], [{ kinds: [1], '#p': [myPubkey] }], {
 
 ### 3.1 Main Class: CrosstownClient
 
-```typescript
+````typescript
 /**
  * Unified client for interacting with the Crosstown protocol.
  * Supports both embedded (in-process) and HTTP (external) connector modes.
@@ -559,7 +579,7 @@ export class CrosstownClient {
    */
   get pool(): SimplePool;
 }
-```
+````
 
 ### 3.2 Configuration Interface
 
@@ -798,9 +818,7 @@ export interface PeerInfo {
 /**
  * Result of publishEvent()
  */
-export type PublishEventResult =
-  | PublishEventSuccess
-  | PublishEventFailure;
+export type PublishEventResult = PublishEventSuccess | PublishEventFailure;
 
 export interface PublishEventSuccess {
   success: true;
@@ -972,6 +990,7 @@ export class PublishError extends CrosstownClientError {
 ### 3.6 Usage Examples
 
 **Example 1: Basic Agent with Read/Write**
+
 ```typescript
 import { CrosstownClient } from '@crosstown/client';
 import { finalizeEvent, generateSecretKey } from 'nostr-tools/pure';
@@ -982,7 +1001,7 @@ const secretKey = generateSecretKey();
 const client = new CrosstownClient({
   connectorUrl: 'http://localhost:3000',
   secretKey,
-  ilpInfo: { ilpAddress: 'g.agent.alice', /* ... */ },
+  ilpInfo: { ilpAddress: 'g.agent.alice' /* ... */ },
   toonEncoder: encodeEvent,
   toonDecoder: decodeEvent,
 });
@@ -990,27 +1009,30 @@ const client = new CrosstownClient({
 await client.start();
 
 // READ: Subscribe to mentions (free)
-client.subscribe(
-  ['wss://relay.damus.io'],
-  [{ kinds: [1], '#p': [myPubkey] }],
-  {
-    onevent: async (event) => {
-      console.log('Mentioned:', event.content);
+client.subscribe(['wss://relay.damus.io'], [{ kinds: [1], '#p': [myPubkey] }], {
+  onevent: async (event) => {
+    console.log('Mentioned:', event.content);
 
-      // WRITE: Auto-reply (paid)
-      const reply = finalizeEvent({
+    // WRITE: Auto-reply (paid)
+    const reply = finalizeEvent(
+      {
         kind: 1,
         content: 'Thanks!',
-        tags: [['e', event.id], ['p', event.pubkey]],
-      }, secretKey);
+        tags: [
+          ['e', event.id],
+          ['p', event.pubkey],
+        ],
+      },
+      secretKey
+    );
 
-      await client.publishEvent(reply);
-    }
-  }
-);
+    await client.publishEvent(reply);
+  },
+});
 ```
 
 **Example 2: Query Historical Events**
+
 ```typescript
 // Fetch recent notes from a specific user
 const events = await client.queryEvents(
@@ -1022,6 +1044,7 @@ console.log(`Found ${events.length} notes`);
 ```
 
 **Example 3: Multi-Relay Monitoring**
+
 ```typescript
 // Monitor multiple relays for hashtags
 const sub = client.subscribe(
@@ -1137,9 +1160,10 @@ export class CrosstownClient {
       const mode = this.config.connector ? 'embedded' : 'http';
 
       // Initialize mode-specific components
-      const initialization = mode === 'embedded'
-        ? await initializeEmbeddedMode(this.config, this.pool)
-        : await initializeHttpMode(this.config, this.pool);
+      const initialization =
+        mode === 'embedded'
+          ? await initializeEmbeddedMode(this.config, this.pool)
+          : await initializeHttpMode(this.config, this.pool);
 
       const {
         bootstrapService,
@@ -1155,12 +1179,15 @@ export class CrosstownClient {
       );
 
       // Determine default destination from first peer
-      const defaultDestination = bootstrapResults.length > 0
-        ? bootstrapResults[0].knownPeer.ilpAddress
-        : null;
+      const defaultDestination =
+        bootstrapResults.length > 0
+          ? bootstrapResults[0].knownPeer.ilpAddress
+          : null;
 
       // Extract bootstrapped peer pubkeys for relay monitor exclusion
-      const bootstrappedPubkeys = bootstrapResults.map(r => r.knownPeer.pubkey);
+      const bootstrappedPubkeys = bootstrapResults.map(
+        (r) => r.knownPeer.pubkey
+      );
 
       // Start relay monitor (excludes already-bootstrapped peers)
       const subscription = relayMonitor.start(bootstrappedPubkeys);
@@ -1184,7 +1211,7 @@ export class CrosstownClient {
       const result: CrosstownStartResult = {
         bootstrapResults,
         peerCount: bootstrapResults.length,
-        channelCount: bootstrapResults.filter(r => r.channelId).length,
+        channelCount: bootstrapResults.filter((r) => r.channelId).length,
         mode,
       };
 
@@ -1325,11 +1352,9 @@ export class CrosstownClient {
     relays: string | string[],
     eventId: string
   ): Promise<NostrEvent | null> {
-    const events = await this.queryEvents(
-      relays,
-      [{ ids: [eventId] }],
-      { timeout: 5000 }
-    );
+    const events = await this.queryEvents(relays, [{ ids: [eventId] }], {
+      timeout: 5000,
+    });
 
     return events.length > 0 ? events[0] : null;
   }
@@ -1381,29 +1406,33 @@ export class CrosstownClient {
 
     try {
       // Determine destination
-      const destination = options?.destination
-        ?? this.state!.defaultDestination
-        ?? this.throwNoDestination();
+      const destination =
+        options?.destination ??
+        this.state!.defaultDestination ??
+        this.throwNoDestination();
 
       // TOON-encode event
       const toonBytes = this.config.toonEncoder(event);
       const base64Data = Buffer.from(toonBytes).toString('base64');
 
       // Calculate price if not provided
-      const amount = options?.amount ?? calculatePrice(
-        toonBytes.length,
-        this.config.basePricePerByte,
-        this.config.fixedOverhead
-      ).toString();
+      const amount =
+        options?.amount ??
+        calculatePrice(
+          toonBytes.length,
+          this.config.basePricePerByte,
+          this.config.fixedOverhead
+        ).toString();
 
       // Send ILP packet with retry
       const result = await withRetry(
-        () => this.state!.runtimeClient.sendIlpPacket({
-          destination,
-          amount,
-          data: base64Data,
-          timeout: options?.timeout,
-        }),
+        () =>
+          this.state!.runtimeClient.sendIlpPacket({
+            destination,
+            amount,
+            data: base64Data,
+            timeout: options?.timeout,
+          }),
         {
           maxRetries: this.config.maxRetries,
           retryDelay: this.config.retryDelay,
@@ -1434,7 +1463,6 @@ export class CrosstownClient {
 
       this.emit('event:published', { result: success });
       return success;
-
     } catch (error) {
       const failure: PublishEventFailure = {
         success: false,
@@ -1457,10 +1485,12 @@ export class CrosstownClient {
 
     if (parallel) {
       return Promise.all(
-        events.map(event => this.publishEvent(event, {
-          destination: options?.destination,
-          timeout: options?.timeout,
-        }))
+        events.map((event) =>
+          this.publishEvent(event, {
+            destination: options?.destination,
+            timeout: options?.timeout,
+          })
+        )
       );
     } else {
       const results: PublishEventResult[] = [];
@@ -1598,6 +1628,7 @@ export class CrosstownClient {
 ### 4.3 Key Algorithms
 
 **Price Calculation (`src/pricing.ts`)**
+
 ```typescript
 /**
  * Calculate the price for an ILP packet containing a Nostr event.
@@ -1614,6 +1645,7 @@ export function calculatePrice(
 ```
 
 **Retry with Exponential Backoff (`src/utils/retry.ts`)**
+
 ```typescript
 export interface RetryOptions {
   maxRetries: number;
@@ -1647,7 +1679,7 @@ export async function withRetry<T>(
         ? Math.min(retryDelay * Math.pow(2, attempt), maxDelay)
         : retryDelay;
 
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
@@ -1674,6 +1706,7 @@ export async function withRetry<T>(
 **Coverage target: 90%+**
 
 Key areas:
+
 - CrosstownClient class methods
 - Config validation and defaults
 - Price calculation
@@ -1683,6 +1716,7 @@ Key areas:
 - Subscription management
 
 **Example Test:**
+
 ```typescript
 import { describe, it, expect, beforeEach } from 'vitest';
 import { CrosstownClient } from '../src/CrosstownClient';
@@ -1693,7 +1727,7 @@ describe('CrosstownClient', () => {
     const client = new CrosstownClient({
       connector: new MockConnector(),
       secretKey: new Uint8Array(32),
-      ilpInfo: { ilpAddress: 'g.test', /* ... */ },
+      ilpInfo: { ilpAddress: 'g.test' /* ... */ },
       toonEncoder: mockEncoder,
       toonDecoder: mockDecoder,
       handlePacket: async () => ({ accept: true, fulfillment: 'test' }),
@@ -1704,12 +1738,14 @@ describe('CrosstownClient', () => {
   });
 
   it('should manage subscriptions correctly', async () => {
-    const client = new CrosstownClient({ /* ... */ });
+    const client = new CrosstownClient({
+      /* ... */
+    });
     await client.start();
 
     const events: NostrEvent[] = [];
     const sub = client.subscribe(['wss://test'], [{ kinds: [1] }], {
-      onevent: (e) => events.push(e)
+      onevent: (e) => events.push(e),
     });
 
     expect(client['state']!.activeSubscriptions.size).toBe(1);
@@ -1723,6 +1759,7 @@ describe('CrosstownClient', () => {
 ### 5.3 Integration Tests
 
 Test full workflows across multiple components:
+
 - Bootstrap → peer discovery → SPSP handshake → channel opening
 - Event publishing with retry and backoff
 - Subscription with event delivery
@@ -1732,6 +1769,7 @@ Test full workflows across multiple components:
 ### 5.4 E2E Tests
 
 Test against real components:
+
 - Real Nostr relay (local test relay)
 - Real connector instance
 - Real TOON encoding/decoding
@@ -1740,16 +1778,16 @@ Test against real components:
 
 ### 5.5 Test Coverage Requirements
 
-| Component | Unit | Integration | E2E |
-|-----------|------|-------------|-----|
-| CrosstownClient | ✅ 95% | ✅ | ✅ |
-| Config validation | ✅ 100% | - | - |
-| Pricing | ✅ 100% | - | - |
-| Retry logic | ✅ 95% | ✅ | - |
-| Subscriptions | ✅ 90% | ✅ | ✅ |
-| Embedded mode | ✅ 90% | ✅ | ✅ |
-| HTTP mode | ✅ 90% | ✅ | ✅ |
-| Event system | ✅ 95% | ✅ | - |
+| Component         | Unit    | Integration | E2E |
+| ----------------- | ------- | ----------- | --- |
+| CrosstownClient   | ✅ 95%  | ✅          | ✅  |
+| Config validation | ✅ 100% | -           | -   |
+| Pricing           | ✅ 100% | -           | -   |
+| Retry logic       | ✅ 95%  | ✅          | -   |
+| Subscriptions     | ✅ 90%  | ✅          | ✅  |
+| Embedded mode     | ✅ 90%  | ✅          | ✅  |
+| HTTP mode         | ✅ 90%  | ✅          | ✅  |
+| Event system      | ✅ 95%  | ✅          | -   |
 
 ---
 
@@ -1772,11 +1810,7 @@ Test against real components:
       "import": "./dist/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "MIGRATION.md"
-  ],
+  "files": ["dist", "README.md", "MIGRATION.md"],
   "scripts": {
     "build": "tsup",
     "test": "vitest",
@@ -1828,6 +1862,7 @@ Test against real components:
 ### 7.1 From `createCrosstownNode` to `CrosstownClient`
 
 **Before (Old API):**
+
 ```typescript
 import { createCrosstownNode } from '@crosstown/core';
 
@@ -1844,6 +1879,7 @@ await node.start();
 ```
 
 **After (New API):**
+
 ```typescript
 import { CrosstownClient } from '@crosstown/client';
 
@@ -1930,14 +1966,14 @@ After migrating, you gain:
 
 ### 9.2 Naming Conventions
 
-| Element | Convention | Example |
-|---------|------------|---------|
-| Classes | PascalCase | `CrosstownClient` |
-| Interfaces | PascalCase | `CrosstownClientConfig` |
-| Methods | camelCase | `publishEvent()` |
-| Private fields | camelCase | `state` |
-| Constants | UPPER_SNAKE_CASE | `DEFAULT_RETRY_DELAY` |
-| Type aliases | PascalCase | `ClientEventType` |
+| Element        | Convention       | Example                 |
+| -------------- | ---------------- | ----------------------- |
+| Classes        | PascalCase       | `CrosstownClient`       |
+| Interfaces     | PascalCase       | `CrosstownClientConfig` |
+| Methods        | camelCase        | `publishEvent()`        |
+| Private fields | camelCase        | `state`                 |
+| Constants      | UPPER_SNAKE_CASE | `DEFAULT_RETRY_DELAY`   |
+| Type aliases   | PascalCase       | `ClientEventType`       |
 
 ---
 
@@ -1962,15 +1998,15 @@ After migrating, you gain:
 
 ### 10.2 Performance Targets
 
-| Operation | Target | Notes |
-|-----------|--------|-------|
-| `start()` | < 2s | With 5 bootstrap peers |
-| `publishEvent()` | < 500ms | Single event, embedded mode |
-| `publishEvent()` | < 1s | Single event, HTTP mode |
-| `subscribe()` | < 100ms | Connection establishment |
-| `queryEvents()` | < 2s | Query with 100 results |
-| Memory usage | < 50MB | Idle client |
-| Memory usage | < 100MB | With 100 peers + 10 subscriptions |
+| Operation        | Target  | Notes                             |
+| ---------------- | ------- | --------------------------------- |
+| `start()`        | < 2s    | With 5 bootstrap peers            |
+| `publishEvent()` | < 500ms | Single event, embedded mode       |
+| `publishEvent()` | < 1s    | Single event, HTTP mode           |
+| `subscribe()`    | < 100ms | Connection establishment          |
+| `queryEvents()`  | < 2s    | Query with 100 results            |
+| Memory usage     | < 50MB  | Idle client                       |
+| Memory usage     | < 100MB | With 100 peers + 10 subscriptions |
 
 ---
 
@@ -2001,6 +2037,7 @@ client.on('error', ({ error, context }) => {
 ### 11.2 Key Metrics
 
 **Client metrics:**
+
 - `client.started` - Client starts
 - `client.stopped` - Client stops
 - `peers.discovered` - Peers discovered
@@ -2009,17 +2046,20 @@ client.on('error', ({ error, context }) => {
 - `subscriptions.active` - Active subscription count
 
 **Publishing metrics:**
+
 - `events.published` - Successful publishes
 - `events.failed` - Failed publishes (by error code)
 - `publish.duration` - Publish latency histogram
 - `publish.amount` - Payment amounts
 
 **Subscription metrics:**
+
 - `subscriptions.created` - New subscriptions
 - `subscriptions.closed` - Closed subscriptions
 - `events.received` - Events received from subscriptions
 
 **Error metrics:**
+
 - `errors` - All errors (by type and context)
 - `retries` - Retry attempts
 
@@ -2027,12 +2067,12 @@ client.on('error', ({ error, context }) => {
 
 ## Appendix A: Decision Log
 
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| 2026-02-20 | Move `createCrosstownNode` to `@crosstown/client` | Better package organization, clearer naming |
-| 2026-02-20 | Add full subscription API | Clients need read capabilities, not just write |
-| 2026-02-20 | Use shared SimplePool | Efficient connection management |
-| 2026-02-20 | Class-based API over factory function | Better TypeScript ergonomics, clearer lifecycle |
+| Date       | Decision                                          | Rationale                                       |
+| ---------- | ------------------------------------------------- | ----------------------------------------------- |
+| 2026-02-20 | Move `createCrosstownNode` to `@crosstown/client` | Better package organization, clearer naming     |
+| 2026-02-20 | Add full subscription API                         | Clients need read capabilities, not just write  |
+| 2026-02-20 | Use shared SimplePool                             | Efficient connection management                 |
+| 2026-02-20 | Class-based API over factory function             | Better TypeScript ergonomics, clearer lifecycle |
 
 ---
 

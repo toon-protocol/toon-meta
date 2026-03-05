@@ -9,6 +9,7 @@
 **so that** clients can query events without payment.
 
 **Acceptance Criteria:**
+
 1. WebSocket server accepts connections on configurable port
 2. Server handles NIP-01 `REQ` messages with subscription filters
 3. Server responds with matching events from in-memory store
@@ -23,6 +24,7 @@
 **so that** events survive relay restarts.
 
 **Acceptance Criteria:**
+
 1. SQLite database created with events table (id, pubkey, kind, content, tags, created_at, sig)
 2. Events are stored on successful write
 3. REQ queries read from SQLite with proper filtering
@@ -37,6 +39,7 @@
 **so that** events can be embedded in ILP packets.
 
 **Acceptance Criteria:**
+
 1. `encodeEventToToon(event: NostrEvent): Uint8Array` function implemented
 2. `decodeEventFromToon(data: Uint8Array): NostrEvent` function implemented
 3. Encoding preserves all event fields including signature
@@ -50,6 +53,7 @@
 **so that** only paid events are stored.
 
 **Acceptance Criteria:**
+
 1. BLS HTTP endpoint accepts ILP STREAM packets
 2. BLS extracts TOON-encoded event from packet data
 3. BLS verifies payment amount meets pricing requirements
@@ -64,6 +68,7 @@
 **so that** I can set sustainable rates for my relay.
 
 **Acceptance Criteria:**
+
 1. `PricingConfig` interface with: `basePricePerByte`, `kindOverrides: Map<number, number>`
 2. `PricingService` class calculates price for given event
 3. Price = `eventSizeBytes * basePricePerByte` (or kind override if present)
@@ -77,6 +82,7 @@
 **so that** I don't pay myself to write to my own relay.
 
 **Acceptance Criteria:**
+
 1. Relay configured with owner pubkey
 2. Events signed by owner pubkey bypass payment verification
 3. Owner events still go through normal validation (valid signature, etc.)
@@ -89,6 +95,7 @@
 **so that** I can understand the end-to-end flow.
 
 **Acceptance Criteria:**
+
 1. Example in `packages/examples/ilp-gated-relay-demo`
 2. Example includes: agent setup, relay startup, payment flow, event verification
 3. README with step-by-step instructions

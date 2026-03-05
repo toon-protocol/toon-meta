@@ -1,0 +1,82 @@
+# generated: 2026-03-03
+# project: crosstown
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog -> in-progress: Automatically when first story is created (via create-story)
+#   - in-progress -> done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-03-03
+project: crosstown
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: ILP-Gated Service Node SDK
+  epic-1: done
+  1-0-extract-toon-codec-to-crosstown-core: done
+  1-1-unified-identity-from-seed-phrase: done
+  1-2-handler-registry-with-kind-based-routing: done
+  1-3-handlercontext-with-toon-passthrough-and-lazy-decode: done
+  1-4-schnorr-signature-verification-pipeline: done
+  1-5-pricing-validation-with-self-write-bypass: done
+  1-6-paymenthandler-bridge-with-transit-semantics: done
+  1-7-createnode-composition-with-embedded-connector-lifecycle: done
+  1-8-connector-direct-methods-api: done
+  1-9-network-discovery-and-bootstrap-integration: done
+  1-10-dev-mode: done
+  1-11-package-setup-and-npm-publish: done
+  epic-1-retrospective: done
+
+  # Epic 2: Nostr Relay Reference Implementation & SDK Validation
+  epic-2: backlog
+  2-1-relay-event-storage-handler: backlog
+  2-2-spsp-handshake-handler: backlog
+  2-3-e2e-test-validation: backlog
+  2-4-remove-git-proxy-and-document-reference-implementation: backlog
+  2-5-publish-crosstown-town-package: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: The Rig - ILP-Gated TypeScript Git Forge
+  epic-3: backlog
+  3-1-sdk-node-setup-and-repository-creation-handler: backlog
+  3-2-patch-handler: backlog
+  3-3-issue-and-comment-handlers: backlog
+  3-4-git-http-backend-for-clone-and-fetch: backlog
+  3-5-nostr-pubkey-native-git-identity: backlog
+  3-6-nip-34-status-events-and-pr-lifecycle: backlog
+  3-7-layout-and-repository-list-page: backlog
+  3-8-file-tree-and-blob-view: backlog
+  3-9-commit-log-and-diff-view: backlog
+  3-10-blame-view: backlog
+  3-11-issues-and-prs-from-nostr-events-on-relay: backlog
+  3-12-publish-crosstown-rig-package: backlog
+  epic-3-retrospective: optional

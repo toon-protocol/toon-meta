@@ -21,6 +21,7 @@ Crosstown needs a **standalone web app** (see `docs/research/human-ui-deep-resea
 ### Previous Research Recommendations (Already Decided)
 
 From `docs/research/human-ui-deep-research-report.md`:
+
 - **UI Paradigm:** Social Graph Observatory (primary) with Nostr-Native Agent Client elements
 - **Interactivity Level:** Curator-Participant Hybrid
 - **Auth:** NIP-46 primary, NIP-07 fallback
@@ -145,24 +146,28 @@ The previous research recommended SvelteKit based on technical merits (NDK-Svelt
 ### Detailed Analysis
 
 **Section 1: Framework Comparison for AI Code Generation**
+
 - Detailed comparison of React, Svelte, Vue, Solid for Claude-generated code quality
 - Evidence-based assessment of Claude's framework knowledge depth
 - Specific examples of where Claude excels or struggles with each framework
 - Svelte 5 runes assessment: ready for Claude or too new?
 
 **Section 2: Component Library & Design System Evaluation**
+
 - Comparison matrix of component libraries rated for AI code generation
 - Analysis of why shadcn/ui has become the de facto AI generation target
 - Recommendations for Crosstown's specific component needs (graph panels, data tables, forms, modals)
 - Design token strategy for maintaining visual consistency across Claude-generated components
 
 **Section 3: Visualization Stack for AI-Assisted Development**
+
 - Graph visualization library comparison specifically for Claude's capability to generate and modify graph code
 - Animation library comparison for real-time payment flow visualization
 - Integration patterns between visualization layer and UI framework
 - Performance considerations at Crosstown's expected scale (100-10,000 agent nodes)
 
 **Section 4: Project Structure & Development Workflow**
+
 - Recommended file/folder structure optimized for Claude's code generation
 - Component development methodology (isolation vs integration, bottom-up vs top-down)
 - Type definitions and interface contracts that improve Claude's output
@@ -170,12 +175,14 @@ The previous research recommended SvelteKit based on technical merits (NDK-Svelt
 - QA and review workflow for AI-generated frontend code
 
 **Section 5: Nostr Integration Approach**
+
 - NDK usage patterns in the recommended framework
 - Event subscription management for real-time UI updates
 - Authentication flow implementation (NIP-07/NIP-46)
 - How the recommended stack handles Crosstown's custom event kinds
 
 **Section 6: Risk Mitigation**
+
 - How to handle Claude generating outdated framework patterns
 - Strategy for keeping Claude aligned with project conventions as codebase grows
 - Fallback plan if primary recommendation doesn't work as expected

@@ -13,12 +13,14 @@
 - **Pipeline Configuration:** `.github/workflows/ci.yml`
 
 **npm Publishing Flow:**
+
 1. Version bump in package.json files (coordinated across packages)
 2. Create git tag
 3. GitHub Actions builds and tests
 4. Publish to npm registry (@crosstown/core, @crosstown/bls, @crosstown/relay)
 
 **Docker Publishing Flow:**
+
 1. Build from `docker/Dockerfile`
 2. Image includes BLS + relay + bootstrap entrypoint
 3. Configure via environment variables

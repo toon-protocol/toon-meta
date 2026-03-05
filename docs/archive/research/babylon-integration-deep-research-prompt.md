@@ -15,12 +15,14 @@ The research should produce actionable integration architectures, protocol inter
 **Nature:** Multiplayer prediction market game with autonomous AI agents and continuous RL training
 
 **Core Architecture:**
+
 - Monorepo (Bun/Turbo): `apps/web` (Next.js), `packages/engine`, `packages/agents`, `packages/a2a`, `packages/mcp`, `packages/db`, `packages/contracts`, `packages/training`
 - PostgreSQL (Neon) + Redis (Upstash) + Base L2 smart contracts (EIP-2535 Diamond pattern)
 - Game engine generates conspiracy-themed narrative worlds with NPCs, organizations, causal events
 - Tick-based simulation with LLM-driven content generation (OpenAI/Groq)
 
 **Key Subsystems:**
+
 1. **Prediction Markets** — Binary YES/NO contracts resolving in 1-7 days. Constant Product AMM pricing. On-chain settlement on Base.
 2. **Perpetual Futures** — 1-100x leverage on 32 in-game company tickers. 8-hour funding rate cycles. Liquidation engine.
 3. **Social Feed** — Twitter-like timeline with NPCs, AI agents, and human players posting. Feed content drives market prices.
@@ -33,6 +35,7 @@ The research should produce actionable integration architectures, protocol inter
 10. **Agent Templates** — Pre-built archetypes: degen, researcher, social-butterfly, perps-trader, scammer, super-predictor, information-trader.
 
 **Agent Capabilities:**
+
 - Autonomous trading (prediction markets + perpetual futures)
 - Social posting, commenting, DMs, group chats
 - A2A inter-agent communication
@@ -40,6 +43,7 @@ The research should produce actionable integration architectures, protocol inter
 - Portfolio management and risk assessment
 
 **Points Economy:**
+
 - In-game currency and reputation system
 - Earned through trading profit, profile completion, social account linking, referrals
 - Cannot be purchased, transferred, or lost below -100
@@ -50,11 +54,13 @@ The research should produce actionable integration architectures, protocol inter
 **Nature:** ElizaOS plugin enabling autonomous AI agents to operate on Babylon
 
 **Core Architecture:**
+
 - Full ElizaOS plugin: 14 actions (write operations), 14+ providers (multi-resolution read), 2 services, 2 background tasks, 3 routes
 - Two operating modes: Player Mode (conversational) and Autonomous Mode (independent decision-making)
 - Batch processing pipeline with global event pump (singleton per Babylon instance URL)
 
 **Key Innovations:**
+
 1. **Two-Phase Batch Pipeline** — Phase 1: Single LLM call routes ALL new posts to relevant agents (shared router). Phase 2a: Per-agent comment drafting (batched LLM). Phase 2b: Post-triggered trading evaluation.
 2. **Spartan Trader Pattern** — LLM sets exit conditions (stop-loss, take-profit, sentiment threshold) at position entry. Position monitoring is deterministic (no LLM) — runs every 2 minutes with simple numeric comparisons.
 3. **Sentiment System** — Keyword-based extraction (zero LLM cost), EMA-smoothed (alpha=0.1), minimum 3 posts before triggering exits.
@@ -64,6 +70,7 @@ The research should produce actionable integration architectures, protocol inter
 7. **A2A Service** — WebSocket-based Agent-to-Agent protocol for real-time inter-agent communication (80+ methods).
 
 **Token Efficiency:**
+
 - CSV format prompts (~60% savings vs JSON)
 - Batched LLM calls across multiple posts
 - NO-LLM position monitoring
@@ -77,6 +84,7 @@ The research should produce actionable integration architectures, protocol inter
 **Nature:** Nostr+ILP protocol library — social graphs become payment peer networks
 
 **Core Architecture:**
+
 - Monorepo: `@crosstown/core` (protocol library), `@crosstown/relay` (ILP-gated relay), `@crosstown/bls` (standalone Business Logic Server), `ui-prototypes` (React 19 + Tailwind v4), `examples`
 - Nostr event kinds: 10032 (ILP Peer Info), 23194/23195 (encrypted SPSP request/response)
 - NIP-44 encryption for SPSP parameter exchange
@@ -84,6 +92,7 @@ The research should produce actionable integration architectures, protocol inter
 - Docker container for bootstrap node (BLS + relay)
 
 **Key Subsystems:**
+
 1. **Peer Discovery** — NIP-02 follow lists → ILP peer candidates. `SocialPeerDiscovery` for graph traversal. `GenesisPeerLoader` for bootstrap. `ArDrivePeerRegistry` for decentralized lookup.
 2. **SPSP over Nostr** — `NostrSpspClient`/`NostrSpspServer` for encrypted SPSP parameter exchange with settlement negotiation. Fresh `sharedSecret` per payment session.
 3. **Social Trust Engine** — `SocialTrustManager` computes trust from: social distance (hops, weight 0.5), mutual followers (weight 0.3), reputation/zaps (weight 0.2). Maps to ILP credit limits (linear/exponential curves).
@@ -93,18 +102,19 @@ The research should produce actionable integration architectures, protocol inter
 
 **14-Epic Roadmap (Current State):**
 
-| Epic | Title | Status |
-|------|-------|--------|
-| 1-6 | Foundation, SPSP, Trust, Relay, Docker, Decentralized Discovery | Complete |
-| 7-8 | Settlement Negotiation & ILP-First Bootstrap | Mostly Complete (2 critical integration gaps) |
-| 9 | Social Fabric Foundation (UI prototypes) | In Progress |
-| 10 | Paid Computation Marketplace (Agent DVMs via NIP-90) | Planned |
-| 11 | ILP Zaps & Social Routing | Planned |
-| 12 | Agent Labels & Verifiable Credentials (NIP-32/58) | Planned |
-| 13 | Private Messaging & Content Layer | Planned |
-| 14 | Payment-Gated Agent Swarms (NIP-29) | Planned |
+| Epic | Title                                                           | Status                                        |
+| ---- | --------------------------------------------------------------- | --------------------------------------------- |
+| 1-6  | Foundation, SPSP, Trust, Relay, Docker, Decentralized Discovery | Complete                                      |
+| 7-8  | Settlement Negotiation & ILP-First Bootstrap                    | Mostly Complete (2 critical integration gaps) |
+| 9    | Social Fabric Foundation (UI prototypes)                        | In Progress                                   |
+| 10   | Paid Computation Marketplace (Agent DVMs via NIP-90)            | Planned                                       |
+| 11   | ILP Zaps & Social Routing                                       | Planned                                       |
+| 12   | Agent Labels & Verifiable Credentials (NIP-32/58)               | Planned                                       |
+| 13   | Private Messaging & Content Layer                               | Planned                                       |
+| 14   | Payment-Gated Agent Swarms (NIP-29)                             | Planned                                       |
 
 **Critical Integration Gaps:**
+
 - BLS `/handle-payment` missing settlement negotiation logic (Gap 1)
 - `ConnectorChannelClient` HTTP implementation never created (Gap 2)
 - Bootstrap phases 3-5 have integration gaps blocking multi-hop payments
@@ -115,6 +125,7 @@ The research should produce actionable integration architectures, protocol inter
 **Current State:** Interface exists in Crosstown (`AgentRuntimeClient` with `sendIlpPacket()` via `POST /ilp/send`). No standalone runtime implementation yet.
 
 **Intended Role:**
+
 - Routes ILP packets between peers
 - Manages BTP connections
 - Handles settlement channels (Base L2, XRP Ledger, Aptos)
@@ -123,12 +134,13 @@ The research should produce actionable integration architectures, protocol inter
 - Has NO Nostr knowledge — Crosstown populates it
 
 **Key Interface:**
+
 ```typescript
 interface AgentRuntimeClient {
   sendIlpPacket(params: {
     destination: string;
     amount: string;
-    data: string;  // base64 TOON-encoded Nostr events
+    data: string; // base64 TOON-encoded Nostr events
     timeout?: number;
   }): Promise<IlpSendResult>;
 }
@@ -192,6 +204,7 @@ interface AgentRuntimeClient {
 ### Information Sources
 
 **Primary Sources (Direct Analysis Required):**
+
 - Babylon Social codebase: https://github.com/babylonSocial/babylon/ (staging branch)
 - plugin-babylon codebase: https://github.com/elizaos-plugins/plugin-babylon/tree/odi-dev
 - Crosstown codebase: this repository (all packages, docs/epics, docs/stories, INTEGRATION-GAPS.md)
@@ -199,6 +212,7 @@ interface AgentRuntimeClient {
 - ElizaOS documentation and plugin architecture: https://elizaos.github.io/eliza/
 
 **Protocol Specifications:**
+
 - Nostr NIPs: NIP-01, NIP-02, NIP-05, NIP-29, NIP-44, NIP-47 (NWC), NIP-57 (Zaps), NIP-89, NIP-90
 - ILP RFCs: RFC-0009 (SPSP), RFC-0032 (Peering/Clearing/Settlement), RFC-0015 (ILP Addresses)
 - Google A2A Protocol specification
@@ -207,6 +221,7 @@ interface AgentRuntimeClient {
 - EIP-2535 Diamond Standard
 
 **Ecosystem Analysis:**
+
 - NEAR AI agent payment approaches
 - Fetch.ai / ASI Alliance agent marketplace
 - Autonolas (Olas) agent services
@@ -237,6 +252,7 @@ interface AgentRuntimeClient {
 ## Expected Deliverables
 
 ### Executive Summary
+
 - 1-page overview of the recommended integration architecture
 - Top 3 highest-value integration points with estimated effort
 - Critical risks and recommended mitigations
@@ -245,42 +261,49 @@ interface AgentRuntimeClient {
 ### Detailed Analysis
 
 #### Section 1: Protocol Interoperability Map
+
 - Complete matrix of protocol translations needed between all system pairs
 - Identity mapping architecture (Nostr keypairs ↔ EVM addresses ↔ Babylon user IDs ↔ ElizaOS agent IDs)
 - Message format translations (A2A JSON-RPC ↔ ILP PREPARE/FULFILL ↔ Nostr events ↔ ElizaOS actions)
 - Authentication flow for cross-system operations
 
 #### Section 2: Agent-Runtime Architecture
+
 - Recommended architecture for agent-runtime as the integration hub
 - Component diagram showing: ILP router, A2A client, Nostr relay connection, Babylon API client, Admin API
 - Decision: standalone service vs. ElizaOS-embedded vs. hybrid
 - Interface definitions for each integration surface
 
 #### Section 3: Trust Unification Model
+
 - How Babylon reputation signals (trading P&L, social engagement, points) map to Crosstown trust scores
 - How Crosstown trust scores (social distance, mutuals, zaps) map to Babylon agent reputation
 - Unified trust computation formula or mapping function
 - Credit limit implications for cross-system trust
 
 #### Section 4: Payment Integration Architecture
+
 - ILP payment flows for Babylon use cases (A2A payments, market settlement, content access)
 - Integration with Babylon's existing smart contract settlement
 - DVM compute marketplace bridging (Crosstown Epic 10 ↔ Babylon game engine)
 - Payment-gated swarm mapping to Alpha Groups (Crosstown Epic 14 ↔ Babylon groups)
 
 #### Section 5: ElizaOS Plugin Strategy
+
 - Architecture for `@elizaos/plugin-crosstown` (if recommended)
 - How it coexists with plugin-babylon in the same ElizaOS runtime
 - Shared vs. separate services, providers, and actions
 - Patterns to adopt from plugin-babylon (batch pipeline, Spartan trader, CSV optimization)
 
 #### Section 6: Implementation Roadmap
+
 - Phased integration plan (3 phases recommended: Foundation, Enhancement, Advanced)
 - Per-phase: scope, effort estimate, dependencies, value delivered
 - Quick wins (high value, low effort) highlighted
 - Prerequisites from each project's existing roadmap
 
 ### Supporting Materials
+
 - Protocol translation reference tables
 - Architecture diagrams (component, sequence, data flow)
 - Competitive landscape comparison matrix
@@ -301,6 +324,7 @@ The research achieves its objectives if:
 ## Constraints and Boundaries
 
 ### In Scope
+
 - Technical integration architecture between all three systems
 - agent-runtime design recommendations that serve both Crosstown and Babylon
 - Protocol interoperability (Nostr ↔ A2A ↔ ILP ↔ MCP ↔ EVM)
@@ -309,6 +333,7 @@ The research achieves its objectives if:
 - Patterns and lessons from plugin-babylon applicable to Crosstown
 
 ### Out of Scope
+
 - Babylon's internal game balance or narrative design changes
 - Crosstown's internal NIP proposals or Nostr protocol extensions (beyond what's in the 14-epic roadmap)
 - Smart contract modifications to Babylon's Diamond proxy
@@ -319,6 +344,7 @@ The research achieves its objectives if:
 ## Timeline and Priority
 
 **Priority Order for Research Depth:**
+
 1. Agent-runtime architecture (bridges everything; highest leverage)
 2. Protocol interoperability map (foundation for all integration)
 3. Trust unification model (unique compound value)

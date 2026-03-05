@@ -92,6 +92,7 @@ Shared Infrastructure:
 ## Service Endpoints
 
 ### Peer 1 (Genesis)
+
 - **Connector Admin**: http://localhost:8091
 - **Connector Health**: http://localhost:8081/health
 - **Explorer UI**: http://localhost:3011
@@ -99,6 +100,7 @@ Shared Infrastructure:
 - **Nostr Relay**: ws://localhost:7101
 
 ### Peer 2
+
 - **Connector Admin**: http://localhost:8092
 - **Connector Health**: http://localhost:8082/health
 - **Explorer UI**: http://localhost:3012
@@ -106,6 +108,7 @@ Shared Infrastructure:
 - **Nostr Relay**: ws://localhost:7102
 
 ### Peer 3
+
 - **Connector Admin**: http://localhost:8093
 - **Connector Health**: http://localhost:8083/health
 - **Explorer UI**: http://localhost:3013
@@ -113,6 +116,7 @@ Shared Infrastructure:
 - **Nostr Relay**: ws://localhost:7103
 
 ### Peer 4
+
 - **Connector Admin**: http://localhost:8094
 - **Connector Health**: http://localhost:8084/health
 - **Explorer UI**: http://localhost:3014
@@ -120,6 +124,7 @@ Shared Infrastructure:
 - **Nostr Relay**: ws://localhost:7104
 
 ### Shared Services
+
 - **Token Faucet**: http://localhost:3500
 - **Anvil RPC**: http://localhost:8545
 
@@ -128,10 +133,12 @@ Shared Infrastructure:
 ## Blockchain State
 
 ### Deployed Contracts
+
 - **AgentToken**: `0x5FbDB2315678afecb367f032d93F642f64180aa3`
 - **TokenNetwork (Registry)**: `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512`
 
 ### Activity
+
 - Starting block: 7
 - Ending block: 7
 - Blocks mined: 0
@@ -144,17 +151,18 @@ Shared Infrastructure:
 
 ### Route Statistics
 
-| Route | Packets | Success | Failed | Total Amount |
-|-------|---------|---------|--------|--------------|
-| peer1 → peer2 | 30 | 30 | 0 | 3,000 |
-| peer2 → peer1 | 30 | 30 | 0 | 3,000 |
-| peer2 → peer3 | 30 | 30 | 0 | 3,000 |
-| peer3 → peer2 | 30 | 30 | 0 | 3,000 |
-| peer3 → peer4 | 30 | 30 | 0 | 3,000 |
-| peer4 → peer3 | 30 | 30 | 0 | 3,000 |
-| **TOTAL** | **180** | **180** | **0** | **18,000** |
+| Route         | Packets | Success | Failed | Total Amount |
+| ------------- | ------- | ------- | ------ | ------------ |
+| peer1 → peer2 | 30      | 30      | 0      | 3,000        |
+| peer2 → peer1 | 30      | 30      | 0      | 3,000        |
+| peer2 → peer3 | 30      | 30      | 0      | 3,000        |
+| peer3 → peer2 | 30      | 30      | 0      | 3,000        |
+| peer3 → peer4 | 30      | 30      | 0      | 3,000        |
+| peer4 → peer3 | 30      | 30      | 0      | 3,000        |
+| **TOTAL**     | **180** | **180** | **0**  | **18,000**   |
 
 ### Delivery Method
+
 - **Current**: Local delivery (HTTP to BLS)
 - **Expected**: Peer-to-peer via payment channels
 - **Reason**: Peer connections not established
@@ -164,15 +172,17 @@ Shared Infrastructure:
 ## Next Steps to Enable Full Settlement
 
 ### 1. Fix Connector Configuration
+
 Update `config/connector-config-peer.yaml` to remove `${VAR}` syntax:
 
 ```yaml
 # Remove environment variable syntax from YAML
 # Let the connector read env vars directly from process.env
-nodeId: crosstown-peer  # Will be overridden by env
+nodeId: crosstown-peer # Will be overridden by env
 ```
 
 ### 2. Establish Peer Connections
+
 Manually configure peer relationships via Admin API:
 
 ```bash
@@ -197,9 +207,11 @@ curl -X POST http://localhost:8091/admin/routes \
 ```
 
 ### 3. Initialize Payment Channels
+
 Configure payment channel creation via Admin API or ensure proper env vars are loaded.
 
 ### 4. Re-run Settlement Test
+
 Once payment channels are active:
 
 ```bash
@@ -207,6 +219,7 @@ node test-multi-peer-settlement.mjs
 ```
 
 Expected outcome:
+
 - Packets routed via payment channels
 - Balances accumulate in settlement state
 - Settlement triggered at threshold (1,000 units)
@@ -242,6 +255,7 @@ Expected outcome:
 ## Verification Commands
 
 ### Check Peer Status
+
 ```bash
 # Health
 curl http://localhost:8081/health | jq .
@@ -257,6 +271,7 @@ curl http://localhost:8091/admin/settlement/states | jq .
 ```
 
 ### Check Blockchain
+
 ```bash
 # Block number
 cast block-number --rpc-url http://localhost:8545
@@ -272,6 +287,7 @@ cast call 0x5FbDB2315678afecb367f032d93F642f64180aa3 \
 ```
 
 ### Monitor Logs
+
 ```bash
 # All peers
 docker compose -f docker-compose-multi-peer.yml logs -f

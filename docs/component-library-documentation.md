@@ -13,6 +13,7 @@ This document covers the three library packages in the Crosstown monorepo: **cor
 ### Key Exports
 
 #### Event Kinds (Proposed NIPs)
+
 - `ILP_PEER_INFO_KIND` (10032) - ILP peer information event
 - `SPSP_REQUEST_KIND` (23194) - SPSP request event (encrypted)
 - `SPSP_RESPONSE_KIND` (23195) - SPSP response event (encrypted)
@@ -20,12 +21,14 @@ This document covers the three library packages in the Crosstown monorepo: **cor
 #### Core Modules
 
 **1. Peer Discovery (`discovery/`)**
+
 - `NostrPeerDiscovery` - Discover ILP peers via NIP-02 follows
 - `GenesisPeerLoader` - Load hardcoded genesis peers
 - `ArDrivePeerRegistry` - Peer registry backed by Arweave
 - `SocialPeerDiscovery` - Social graph-based peer discovery
 
 **2. SPSP (`spsp/`)**
+
 - `NostrSpspClient` - SPSP client using Nostr events
 - `NostrSpspServer` - SPSP server using Nostr events
 - `IlpSpspClient` - ILP SPSP client (HTTP-based)
@@ -33,6 +36,7 @@ This document covers the three library packages in the Crosstown monorepo: **cor
 - `negotiateAndOpenChannel()` - Complete channel opening flow
 
 **3. Bootstrap (`bootstrap/`)**
+
 - `BootstrapService` - Orchestrates joining Crosstown network
 - `RelayMonitor` - Monitor relay for peer announcements
 - `createHttpRuntimeClient()` - HTTP connector client factory
@@ -40,6 +44,7 @@ This document covers the three library packages in the Crosstown monorepo: **cor
 - `createDirectRuntimeClient()` - Direct connector client factory
 
 **4. Node Composition (`compose.ts`)**
+
 - `createCrosstownNode()` - Create complete Crosstown node
   - Manages embedded connector
   - Handles packet routing
@@ -82,6 +87,7 @@ interface BootstrapConfig {
 ```
 
 #### Error Classes
+
 - `CrosstownError` - Base error
 - `InvalidEventError` - Invalid Nostr event
 - `PeerDiscoveryError` - Peer discovery failures
@@ -126,12 +132,15 @@ console.log(`Peered with ${result.peeredCount} nodes`);
 #### Main Client
 
 **`CrosstownClient`**
+
 ```typescript
 class CrosstownClient {
   constructor(config: CrosstownClientConfig);
   async start(): Promise<CrosstownStartResult>;
   async publishEvent(event: NostrEvent): Promise<PublishEventResult>;
-  async signBalanceProof(params: BalanceProofParams): Promise<SignedBalanceProof>;
+  async signBalanceProof(
+    params: BalanceProofParams
+  ): Promise<SignedBalanceProof>;
   stop(): Promise<void>;
 }
 ```
@@ -145,14 +154,16 @@ interface CrosstownClientConfig {
   relay: string;
 
   // ILP Connector
-  connector: {
-    url: string;              // HTTP connector URL
-    ilpAddress: string;       // Client's ILP address
-  } | {
-    transport: 'btp';         // BTP transport
-    endpoint: string;
-    authToken: string;
-  };
+  connector:
+    | {
+        url: string; // HTTP connector URL
+        ilpAddress: string; // Client's ILP address
+      }
+    | {
+        transport: 'btp'; // BTP transport
+        endpoint: string;
+        authToken: string;
+      };
 
   // Settlement (optional)
   settlement?: {
@@ -161,7 +172,7 @@ interface CrosstownClientConfig {
     rpcUrl: string;
     privateKey: string;
     tokenAddress: string;
-    peerAddress?: string;     // For channel creation
+    peerAddress?: string; // For channel creation
   };
 }
 ```
@@ -207,7 +218,10 @@ const client = new CrosstownClient({
 await client.start();
 
 // Publish event (automatic payment)
-const event = finalizeEvent({ kind: 1, content: 'Hello!', tags: [], created_at: now }, secretKey);
+const event = finalizeEvent(
+  { kind: 1, content: 'Hello!', tags: [], created_at: now },
+  secretKey
+);
 const result = await client.publishEvent(event);
 
 console.log(`Event published: ${result.eventId}`);
@@ -229,6 +243,7 @@ console.log(`Payment: ${result.amountPaid}`);
 **Purpose:** Demonstrates the complete ILP payment flow for event publishing
 
 **What it demonstrates:**
+
 1. **Basic Payment Flow:**
    - Create Nostr event
    - Calculate payment amount
@@ -241,17 +256,20 @@ console.log(`Payment: ${result.amountPaid}`);
    - Non-owner events accepted with proper payment
 
 **Components:**
+
 - `index.ts` - Main demo orchestration
 - `relay.ts` - Relay server setup
 - `mock-connector.ts` - Mock ILP connector for testing
 
 **Run Demo:**
+
 ```bash
 cd packages/examples
 pnpm demo:ilp-gated-relay
 ```
 
 **Expected Output:**
+
 ```
 =================================
 DEMO 1: Basic Payment Flow
@@ -323,7 +341,11 @@ await client.publishEvent(event);
 Use core primitives for custom integrations:
 
 ```typescript
-import { NostrSpspClient, NostrPeerDiscovery, buildIlpPeerInfoEvent } from '@crosstown/core';
+import {
+  NostrSpspClient,
+  NostrPeerDiscovery,
+  buildIlpPeerInfoEvent,
+} from '@crosstown/core';
 
 const discovery = new NostrPeerDiscovery(pool, relays);
 const peers = await discovery.discoverPeersFromFollow(myPubkey);

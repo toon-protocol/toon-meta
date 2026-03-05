@@ -9,6 +9,7 @@
 **so that** I can develop, test, and publish the library packages.
 
 **Acceptance Criteria:**
+
 1. Monorepo structure created with `packages/core`, `packages/relay`, `packages/examples` directories
 2. TypeScript configured with strict mode in root `tsconfig.json` with package-level extensions
 3. Vitest configured for unit testing with coverage reporting
@@ -25,6 +26,7 @@
 **so that** I can work with strongly-typed event data.
 
 **Acceptance Criteria:**
+
 1. Constants exported for event kinds: `ILP_PEER_INFO = 10032`, `SPSP_INFO = 10047`, `SPSP_REQUEST = 23194`, `SPSP_RESPONSE = 23195`
 2. TypeScript interface `IlpPeerInfo` defined with fields: `ilpAddress`, `btpEndpoint`, `settlementEngine`, `assetCode`, `assetScale`
 3. TypeScript interface `SpspInfo` defined with fields: `destinationAccount`, `sharedSecret`
@@ -40,6 +42,7 @@
 **so that** I don't have to manually handle event serialization.
 
 **Acceptance Criteria:**
+
 1. `parseIlpPeerInfo(event: NostrEvent): IlpPeerInfo` parses kind:10032 events
 2. `buildIlpPeerInfoEvent(info: IlpPeerInfo, secretKey): NostrEvent` creates signed kind:10032 events
 3. `parseSpspInfo(event: NostrEvent): SpspInfo` parses kind:10047 events
@@ -54,6 +57,7 @@
 **so that** I can identify potential ILP peers.
 
 **Acceptance Criteria:**
+
 1. `NostrPeerDiscovery` class created with constructor accepting relay URLs and optional SimplePool
 2. `getFollows(pubkey: string): Promise<string[]>` method queries kind:3 events and returns followed pubkeys
 3. Method queries multiple relays and deduplicates results
@@ -68,6 +72,7 @@
 **so that** I can configure peering relationships.
 
 **Acceptance Criteria:**
+
 1. `discoverPeers(pubkey: string): Promise<Map<string, IlpPeerInfo>>` method added to `NostrPeerDiscovery`
 2. Method retrieves follow list, then queries kind:10032 events for each followed pubkey
 3. Returns Map of pubkey → IlpPeerInfo for peers with published ILP info
@@ -82,6 +87,7 @@
 **so that** my routing table stays current.
 
 **Acceptance Criteria:**
+
 1. `subscribeToPeerUpdates(pubkey: string, callback: (pubkey, info) => void): Subscription` method added
 2. Subscription receives callbacks when kind:10032 events are published by followed pubkeys
 3. `Subscription` object has `unsubscribe()` method to stop receiving updates

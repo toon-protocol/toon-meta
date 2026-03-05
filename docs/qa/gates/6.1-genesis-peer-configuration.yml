@@ -1,10 +1,10 @@
 schema: 1
-story: "6.1"
-story_title: "Genesis Peer Configuration"
+story: '6.1'
+story_title: 'Genesis Peer Configuration'
 gate: PASS
-status_reason: "All 7 acceptance criteria met with 32 unit tests. Clean implementation, no security or performance concerns. Only minor tech debt (PUBKEY_REGEX duplication) acknowledged in story."
-reviewer: "Quinn (Test Architect)"
-updated: "2026-02-07T22:23:00Z"
+status_reason: 'All 7 acceptance criteria met with 32 unit tests. Clean implementation, no security or performance concerns. Only minor tech debt (PUBKEY_REGEX duplication) acknowledged in story.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-02-07T22:23:00Z'
 
 waiver: { active: false }
 
@@ -15,10 +15,10 @@ risk_summary:
   recommendations:
     must_fix: []
     monitor:
-      - "PUBKEY_REGEX duplicated in 3 files — consolidate in future refactor"
+      - 'PUBKEY_REGEX duplicated in 3 files — consolidate in future refactor'
 
 quality_score: 95
-expires: "2026-02-21T22:23:00Z"
+expires: '2026-02-21T22:23:00Z'
 
 evidence:
   tests_reviewed: 32
@@ -30,19 +30,24 @@ evidence:
 nfr_validation:
   security:
     status: PASS
-    notes: "No network I/O, strict regex validation on all fields, no user-facing input"
+    notes: 'No network I/O, strict regex validation on all fields, no user-facing input'
   performance:
     status: PASS
-    notes: "One-time startup operation, Map-based dedup O(n), trivial peer list sizes"
+    notes: 'One-time startup operation, Map-based dedup O(n), trivial peer list sizes'
   reliability:
     status: PASS
-    notes: "Graceful degradation — invalid entries skipped with console.warn, malformed JSON returns empty array"
+    notes: 'Graceful degradation — invalid entries skipped with console.warn, malformed JSON returns empty array'
   maintainability:
     status: PASS
-    notes: "Clean code, exported validators for reuse, co-located tests, minor PUBKEY_REGEX duplication noted"
+    notes: 'Clean code, exported validators for reuse, co-located tests, minor PUBKEY_REGEX duplication noted'
 
 recommendations:
   immediate: []
   future:
-    - action: "Extract PUBKEY_REGEX to shared validation utility (duplicated in GenesisPeerLoader.ts, NostrPeerDiscovery.ts, bootstrap.ts)"
-      refs: ["packages/core/src/discovery/GenesisPeerLoader.ts:18", "packages/core/src/discovery/NostrPeerDiscovery.ts:13", "packages/core/src/bootstrap.ts:19"]
+    - action: 'Extract PUBKEY_REGEX to shared validation utility (duplicated in GenesisPeerLoader.ts, NostrPeerDiscovery.ts, bootstrap.ts)'
+      refs:
+        [
+          'packages/core/src/discovery/GenesisPeerLoader.ts:18',
+          'packages/core/src/discovery/NostrPeerDiscovery.ts:13',
+          'packages/core/src/bootstrap.ts:19',
+        ]

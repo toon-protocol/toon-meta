@@ -19,6 +19,7 @@ Traditional ILP infrastructure faces two fundamental challenges:
 **For autonomous AI agents**, these problems are even more acute. Agents need to transact with each other programmatically, discover new counterparties dynamically, and make trust decisions without human intervention.
 
 **Why now?** The convergence of:
+
 - Nostr's growth as decentralized identity/social infrastructure
 - Rising interest in autonomous AI agents that need to transact
 - ILP's maturity as a payment routing protocol
@@ -30,12 +31,12 @@ Traditional ILP infrastructure faces two fundamental challenges:
 
 The solution maps social relationships to payment relationships:
 
-| Nostr Concept | ILP Concept |
-|---------------|-------------|
-| Follow (NIP-02) | Peer relationship |
-| Social distance | Credit limit basis |
+| Nostr Concept    | ILP Concept             |
+| ---------------- | ----------------------- |
+| Follow (NIP-02)  | Peer relationship       |
+| Social distance  | Credit limit basis      |
 | Event publishing | SPSP parameter exchange |
-| Relay | Payment endpoint |
+| Relay            | Payment endpoint        |
 
 **Key innovations:**
 
@@ -54,6 +55,7 @@ The solution maps social relationships to payment relationships:
 ### Primary User Segment: AI Agent Developers
 
 Developers building autonomous agents that need to:
+
 - Transact with other agents (pay for services, receive payments)
 - Discover counterparties programmatically
 - Make trust decisions without human intervention
@@ -68,6 +70,7 @@ Developers building autonomous agents that need to:
 ### Secondary User Segment: Nostr Relay Operators
 
 Operators who want to:
+
 - Monetize relay infrastructure sustainably
 - Eliminate spam without centralized moderation
 - Integrate payment capabilities into their stack
@@ -124,6 +127,7 @@ Operators who want to:
 ### MVP Success Criteria
 
 The MVP is successful when:
+
 1. An agent can discover ILP peers solely from its Nostr follow list
 2. Two agents can complete an SPSP handshake over Nostr (no HTTPS)
 3. Credit limits can be computed from social graph data
@@ -144,6 +148,7 @@ The MVP is successful when:
 ### Long-term Vision
 
 In 1-2 years, Crosstown Protocol becomes the standard for how autonomous agents discover and trust each other for financial transactions. The Nostr social graph serves as a decentralized trust layer, enabling:
+
 - Agents to form ad-hoc payment networks based on social relationships
 - Spam-resistant, self-sustaining relay infrastructure
 - A new category of "social payments" where your network is your credit
@@ -198,10 +203,10 @@ In 1-2 years, Crosstown Protocol becomes the standard for how autonomous agents 
 
 ### Key Risks
 
-- **Relay Reliability:** If Nostr relays are unreliable, discovery fails. *Mitigation: Query multiple relays, implement fallbacks.*
-- **Adoption Chicken-and-Egg:** Library is useless without peers publishing ILP info. *Mitigation: Provide easy tooling, integrate with popular agent frameworks.*
-- **NIP Rejection:** Proposed event kinds may not be accepted as NIPs. *Mitigation: Design for standalone use; NIP is nice-to-have.*
-- **Social Graph Gaming:** Malicious actors could manipulate follow graphs to affect routing. *Mitigation: Combine multiple trust signals, limit credit exposure.*
+- **Relay Reliability:** If Nostr relays are unreliable, discovery fails. _Mitigation: Query multiple relays, implement fallbacks._
+- **Adoption Chicken-and-Egg:** Library is useless without peers publishing ILP info. _Mitigation: Provide easy tooling, integrate with popular agent frameworks._
+- **NIP Rejection:** Proposed event kinds may not be accepted as NIPs. _Mitigation: Design for standalone use; NIP is nice-to-have._
+- **Social Graph Gaming:** Malicious actors could manipulate follow graphs to affect routing. _Mitigation: Combine multiple trust signals, limit credit exposure._
 
 ### Open Questions
 
@@ -223,17 +228,20 @@ In 1-2 years, Crosstown Protocol becomes the standard for how autonomous agents 
 ### A. Research Summary
 
 **Design Conversation Insights** (from DESIGN-CONVERSATION.md):
+
 - Core insight: "Your Nostr follows become your ILP peers"
 - Architecture decision: Nostr populates, doesn't replace ILP routing
 - Proposed event kinds and their purposes documented
 
 **ILP-Gated Relay Specification** (from ILP-GATED-RELAY.md):
+
 - Every agent = relay + connector
 - Writes cost money (ILP payment), reads are free
 - TOON encoding for events in ILP packets
 - Pricing model: per-byte with per-kind overrides
 
 **Integration Patterns** (from AGENT-RUNTIME-INTEGRATION.md):
+
 - Business Logic Server pattern for handling payments
 - Admin API for dynamic peer/route management
 - Two architecture options: separate processes vs. embedded

@@ -26,6 +26,7 @@ CREATE INDEX idx_events_pubkey_kind ON events(pubkey, kind);
 ```
 
 **Design Notes:**
+
 - Tags stored as JSON for flexibility
 - `received_at` tracks when relay received event (for debugging/auditing)
 - Replaceable events handled in application layer (delete old, insert new)

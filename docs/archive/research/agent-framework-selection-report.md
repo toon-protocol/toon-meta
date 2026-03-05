@@ -18,13 +18,13 @@ Choose Mastra if the project evolves to require built-in workflow orchestration 
 
 ### Key Risks and Dealbreakers
 
-| Framework | Dealbreaker |
-|-----------|------------|
-| OpenAI Agents SDK | Requires Node 22+ (project targets 20+). Pre-1.0. Mandatory `openai` package even when using other providers. |
-| Anthropic Agent SDK | 80 MB package bundles Claude Code binary. Claude-only model support. Not suitable as a core event loop. |
-| LangChain.js | ~14 MB minimum install with mandatory `langsmith` dependency. Excessive abstraction layers for the required use case. |
-| ElizaOS | Pulls in PostgreSQL, Express, Socket.IO, Playwright. Requires Node 23+. Web3/crypto coupling. Version instability (293 releases). |
-| Build-from-scratch | Viable but requires reimplementing provider abstraction, structured output retry logic, and observability hooks that Vercel AI SDK already provides. |
+| Framework           | Dealbreaker                                                                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenAI Agents SDK   | Requires Node 22+ (project targets 20+). Pre-1.0. Mandatory `openai` package even when using other providers.                                        |
+| Anthropic Agent SDK | 80 MB package bundles Claude Code binary. Claude-only model support. Not suitable as a core event loop.                                              |
+| LangChain.js        | ~14 MB minimum install with mandatory `langsmith` dependency. Excessive abstraction layers for the required use case.                                |
+| ElizaOS             | Pulls in PostgreSQL, Express, Socket.IO, Playwright. Requires Node 23+. Web3/crypto coupling. Version instability (293 releases).                    |
+| Build-from-scratch  | Viable but requires reimplementing provider abstraction, structured output retry logic, and observability hooks that Vercel AI SDK already provides. |
 
 ---
 
@@ -32,15 +32,15 @@ Choose Mastra if the project evolves to require built-in workflow orchestration 
 
 Criteria are weighted per the research prompt specification.
 
-| Criteria (Weight) | Vercel AI SDK | OpenAI Agents | Anthropic Agent | LangChain.js | Mastra | ElizaOS | Build-Minimal |
-|---|---|---|---|---|---|---|---|
-| **Multi-model (25%)** | 5 | 2 | 1 | 5 | 5 | 3 | 4 |
-| **Structured output / Zod (20%)** | 5 | 5 | 5 | 4 | 5 | 2 | 3 |
-| **Composability (20%)** | 4 | 4 | 5 | 3 | 5 | 4 | 3 |
-| **Event-driven fit (15%)** | 5 | 4 | 2 | 4 | 4 | 3 | 5 |
-| **Integration burden (10%)** | 5 | 3 | 1 | 2 | 3 | 1 | 5 |
-| **Community & maintenance (10%)** | 5 | 4 | 3 | 4 | 4 | 2 | N/A |
-| **Weighted Score** | **4.75** | **3.55** | **2.80** | **3.75** | **4.50** | **2.65** | **3.85** |
+| Criteria (Weight)                 | Vercel AI SDK | OpenAI Agents | Anthropic Agent | LangChain.js | Mastra   | ElizaOS  | Build-Minimal |
+| --------------------------------- | ------------- | ------------- | --------------- | ------------ | -------- | -------- | ------------- |
+| **Multi-model (25%)**             | 5             | 2             | 1               | 5            | 5        | 3        | 4             |
+| **Structured output / Zod (20%)** | 5             | 5             | 5               | 4            | 5        | 2        | 3             |
+| **Composability (20%)**           | 4             | 4             | 5               | 3            | 5        | 4        | 3             |
+| **Event-driven fit (15%)**        | 5             | 4             | 2               | 4            | 4        | 3        | 5             |
+| **Integration burden (10%)**      | 5             | 3             | 1               | 2            | 3        | 1        | 5             |
+| **Community & maintenance (10%)** | 5             | 4             | 3               | 4            | 4        | 2        | N/A           |
+| **Weighted Score**                | **4.75**      | **3.55**      | **2.80**        | **3.75**     | **4.50** | **2.65** | **3.85**      |
 
 ### Scoring Rationale
 
@@ -136,16 +136,40 @@ const registry = createProviderRegistry({
 
 // Action schema matches existing action-schema.md
 const ActionSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('reply'), content: z.string().min(1), reply_to: z.string().length(64) }),
-  z.object({ action: z.literal('react'), emoji: z.string(), event_id: z.string().length(64) }),
+  z.object({
+    action: z.literal('reply'),
+    content: z.string().min(1),
+    reply_to: z.string().length(64),
+  }),
+  z.object({
+    action: z.literal('react'),
+    emoji: z.string(),
+    event_id: z.string().length(64),
+  }),
   z.object({ action: z.literal('ignore'), reason: z.string() }),
-  z.object({ action: z.literal('escalate'), reason: z.string(), event_id: z.string().length(64) }),
-  z.object({ action: z.literal('unwrap'), event_id: z.string().length(64), note: z.string() }),
-  z.object({ action: z.literal('fulfill_job'), job_id: z.string().length(64), result_content: z.string().min(1), result_kind: z.number().int().min(6000).max(6999) }),
+  z.object({
+    action: z.literal('escalate'),
+    reason: z.string(),
+    event_id: z.string().length(64),
+  }),
+  z.object({
+    action: z.literal('unwrap'),
+    event_id: z.string().length(64),
+    note: z.string(),
+  }),
+  z.object({
+    action: z.literal('fulfill_job'),
+    job_id: z.string().length(64),
+    result_content: z.string().min(1),
+    result_kind: z.number().int().min(6000).max(6999),
+  }),
   // ... remaining action types
 ]);
 
-export async function handleNostrEvent(event: NostrEvent, model = 'anthropic/claude-4-sonnet') {
+export async function handleNostrEvent(
+  event: NostrEvent,
+  model = 'anthropic/claude-4-sonnet'
+) {
   const kind = event.kind;
 
   // Step 1: Registry lookup (deterministic, not LLM-based)
@@ -474,10 +498,11 @@ const mastra = new Mastra({ agents: { nipAgent } });
 // In event loop
 pool.subscribeMany(relays, filters, {
   onevent: async (event) => {
-    const result = await mastra.getAgent('nipAgent').generate(
-      wrapUntrustedContent(event),
-      { runtimeContext: new RuntimeContext({ kind: event.kind }) },
-    );
+    const result = await mastra
+      .getAgent('nipAgent')
+      .generate(wrapUntrustedContent(event), {
+        runtimeContext: new RuntimeContext({ kind: event.kind }),
+      });
     await executeAction(result.object, event);
   },
 });
@@ -532,7 +557,7 @@ Use ElizaOS as **pattern inspiration**, not a runtime dependency. The Action (va
 // Inspired by ElizaOS Action pattern, implemented independently
 interface NipAction {
   name: string;
-  kinds: number[];  // Which event kinds this action handles
+  kinds: number[]; // Which event kinds this action handles
   validate: (event: NostrEvent, context: AgentContext) => Promise<boolean>;
   handle: (event: NostrEvent, context: AgentContext) => Promise<ActionResult>;
 }
@@ -552,7 +577,9 @@ const replyAction: NipAction = {
   },
   handle: async (event, ctx) => {
     const handlerRef = loadHandlerReference(event.kind);
-    const result = await generateText({ /* ... */ });
+    const result = await generateText({
+      /* ... */
+    });
     return result;
   },
 };
@@ -669,6 +696,7 @@ A full "build from scratch" approach using raw provider SDKs (`@anthropic-ai/sdk
 ### Migration Path / Incremental Adoption
 
 **Phase 1: Foundation (1-2 days)**
+
 - Add `packages/agent/` to the monorepo
 - Install `ai` and one provider package (e.g., `@ai-sdk/anthropic`)
 - Implement `KindRegistry` class: maps kind numbers to handler reference file paths
@@ -676,23 +704,27 @@ A full "build from scratch" approach using raw provider SDKs (`@anthropic-ai/sdk
 - Port existing Zod-style action schema from `action-schema.md` to actual Zod schemas
 
 **Phase 2: Core Loop (2-3 days)**
+
 - Implement `handleNostrEvent()` function (as shown in code sketch)
 - Wire into existing relay subscription via nostr-tools `SimplePool`
 - Implement `ActionExecutor`: takes validated action JSON, publishes appropriate Nostr events using existing event builders from `packages/core/src/events/`
 - Add rate limiting and audit logging (SQLite via `better-sqlite3`)
 
 **Phase 3: Handlers (1-2 days per handler)**
+
 - Migrate kind:1 text note handler (reply, react, repost, zap decisions)
 - Migrate kind:1059 gift wrap handler (unwrap and re-dispatch)
 - Migrate kind:5000-5999 DVM handler (fulfill or decline jobs)
 - Each migration: convert markdown handler reference to tested system prompt, define kind-specific action allowlist in Zod
 
 **Phase 4: Multi-model (1 day)**
+
 - Add `createProviderRegistry()` with multiple providers
 - Implement model selection logic (e.g., use cheaper models for simple kinds, stronger models for DVM/trust decisions)
 - Add Ollama support for local development
 
 **Phase 5: Production Hardening (2-3 days)**
+
 - OpenTelemetry integration for tracing
 - Error handling and retry policies per kind
 - Security defense stack validation (content isolation, allowlist enforcement)
@@ -700,13 +732,13 @@ A full "build from scratch" approach using raw provider SDKs (`@anthropic-ai/sdk
 
 ### Risks and Mitigation
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Vercel AI SDK v7 breaking changes | Medium | Medium | Pin to v6.x. The provider registry pattern is stable. Migration guides are historically thorough. |
-| Structured output unreliability with weaker models | Medium | High | Use `Output.object()` which leverages provider-native JSON mode where available. Implement kind-specific retry with escalation fallback. Test with each target model. |
-| Vercel corporate priorities shift away from SDK | Low | High | SDK is Apache-2.0 and could be forked. The actual provider protocol (`@ai-sdk/provider`) is a thin interface. Migration to raw SDKs is straightforward. |
-| Handler reference files too large for context window | Low | Medium | Monitor token usage per kind. Implement handler compression or section loading for large references. Use `js-tiktoken` for pre-flight token counting. |
-| Rate limiting on LLM APIs during event bursts | Medium | Medium | Implement queue with backpressure. Use local models (Ollama) for low-stakes decisions. Cache deterministic responses. |
+| Risk                                                 | Likelihood | Impact | Mitigation                                                                                                                                                            |
+| ---------------------------------------------------- | ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vercel AI SDK v7 breaking changes                    | Medium     | Medium | Pin to v6.x. The provider registry pattern is stable. Migration guides are historically thorough.                                                                     |
+| Structured output unreliability with weaker models   | Medium     | High   | Use `Output.object()` which leverages provider-native JSON mode where available. Implement kind-specific retry with escalation fallback. Test with each target model. |
+| Vercel corporate priorities shift away from SDK      | Low        | High   | SDK is Apache-2.0 and could be forked. The actual provider protocol (`@ai-sdk/provider`) is a thin interface. Migration to raw SDKs is straightforward.               |
+| Handler reference files too large for context window | Low        | Medium | Monitor token usage per kind. Implement handler compression or section loading for large references. Use `js-tiktoken` for pre-flight token counting.                 |
+| Rate limiting on LLM APIs during event bursts        | Medium     | Medium | Implement queue with backpressure. Use local models (Ollama) for low-stakes decisions. Cache deterministic responses.                                                 |
 
 ---
 
@@ -715,6 +747,7 @@ A full "build from scratch" approach using raw provider SDKs (`@anthropic-ai/sdk
 ### 6.1 Testing and Observability
 
 **Vercel AI SDK (recommended)**:
+
 - `MockLanguageModelV3` and `simulateReadableStream` in the `ai/test` module enable deterministic unit tests without LLM calls
 - Native OpenTelemetry integration via `experimental_telemetry` option on `generateText`
 - `@ai-sdk/devtools` for local development debugging
@@ -727,7 +760,11 @@ import { MockLanguageModelV3 } from 'ai/test';
 const mockModel = new MockLanguageModelV3({
   defaultObjectGenerationMode: 'json',
   doGenerate: async () => ({
-    text: JSON.stringify({ action: 'reply', content: 'test', reply_to: '0'.repeat(64) }),
+    text: JSON.stringify({
+      action: 'reply',
+      content: 'test',
+      reply_to: '0'.repeat(64),
+    }),
     usage: { promptTokens: 100, completionTokens: 50 },
   }),
 });
@@ -737,6 +774,7 @@ expect(result.action).toBe('reply');
 ```
 
 **Comparison across frameworks**:
+
 - **Mastra**: `@mastra/evals` package with LLM-based and code-based scoring. Best evaluation story. OpenTelemetry with 12+ exporters.
 - **LangChain.js**: `FakeChatModel` for testing. LangSmith auto-tracing (hosted SaaS, free tier available).
 - **OpenAI Agents SDK**: Built-in tracing but no mock model utilities. DIY mocking required.
@@ -745,16 +783,16 @@ expect(result.action).toBe('reply');
 
 ### 6.2 Community and Maintenance Trajectory
 
-| Framework | Stars | Weekly Downloads | Release Cadence | Corporate Backing | Risk Assessment |
-|-----------|-------|-----------------|-----------------|-------------------|-----------------|
-| Vercel AI SDK | ~21.8K | ~2.8M | Active (v6 current) | Vercel ($250M+ raised) | Low risk |
-| LangChain.js | ~17K | ~1.2M | Active (v1.0 GA) | LangChain Inc. (Sequoia) | Low risk |
-| Mastra | ~21.1K | ~300K | Very active (1.0→1.4 in 6 weeks) | YC W25, $13M seed | Medium risk (API churn) |
-| ElizaOS | ~17.5K | ~20.6K | Unstable (293 releases) | Community | High risk |
-| OpenAI Agents SDK | ~2.3K | ~341K | Pre-1.0, evolving | OpenAI | Medium risk |
-| Anthropic Agent SDK | ~800 | ~1.85M* | Pre-1.0 | Anthropic | Medium risk |
+| Framework           | Stars  | Weekly Downloads | Release Cadence                  | Corporate Backing        | Risk Assessment         |
+| ------------------- | ------ | ---------------- | -------------------------------- | ------------------------ | ----------------------- |
+| Vercel AI SDK       | ~21.8K | ~2.8M            | Active (v6 current)              | Vercel ($250M+ raised)   | Low risk                |
+| LangChain.js        | ~17K   | ~1.2M            | Active (v1.0 GA)                 | LangChain Inc. (Sequoia) | Low risk                |
+| Mastra              | ~21.1K | ~300K            | Very active (1.0→1.4 in 6 weeks) | YC W25, $13M seed        | Medium risk (API churn) |
+| ElizaOS             | ~17.5K | ~20.6K           | Unstable (293 releases)          | Community                | High risk               |
+| OpenAI Agents SDK   | ~2.3K  | ~341K            | Pre-1.0, evolving                | OpenAI                   | Medium risk             |
+| Anthropic Agent SDK | ~800   | ~1.85M\*         | Pre-1.0                          | Anthropic                | Medium risk             |
 
-*Anthropic Agent SDK downloads are inflated by Claude Code bundling.
+\*Anthropic Agent SDK downloads are inflated by Claude Code bundling.
 
 Vercel AI SDK has the strongest combination of adoption (2.8M weekly downloads), stability (v6 GA), and corporate backing (Vercel). Its provider protocol (`@ai-sdk/provider`) has become a de facto standard that other frameworks build on (Mastra, OpenCode).
 
@@ -763,6 +801,7 @@ Vercel AI SDK has the strongest combination of adoption (2.8M weekly downloads),
 The NIP Handler has a 10-layer defense stack defined in `security.md`. Framework support for safety:
 
 **Vercel AI SDK**:
+
 - `LanguageModelV3Middleware` for pre/post generation filtering (content moderation, PII detection)
 - `needsApproval` on tool definitions (human-in-the-loop for destructive actions)
 - Zod validation on all outputs (schema-level guardrail)
@@ -770,19 +809,23 @@ The NIP Handler has a 10-layer defense stack defined in `security.md`. Framework
 - The 10-layer defense stack is best implemented as application code wrapping `generateText`, not delegated to the framework
 
 **Mastra** (strongest guardrails):
+
 - Processor system with built-in components: `PromptInjectionDetector`, `PIIDetector`, `ModerationProcessor`, `SystemPromptScrubber`, `TokenLimiter`
 - Four strategies per processor: block, warn, detect, redact
 - These could be applied as middleware before the LLM call
 
 **OpenAI Agents SDK**:
+
 - 4-type guardrail system (input, output, tool input, tool output) running in parallel with agent execution
 - Guardrails can short-circuit agent execution
 
 **LangChain.js**:
+
 - Middleware hooks + graph validation nodes in LangGraph
 - No built-in content filtering framework
 
 **Anthropic Agent SDK**:
+
 - Strongest safety story: sandbox, permissions, budget limits, static analysis, `canUseTool` callback
 - Overkill for structured output decisions, appropriate for autonomous code execution
 
@@ -809,33 +852,39 @@ Future consideration: specialized agents for social interactions, DVM processing
 Token optimization matters for the NIP Handler given the volume of Nostr events processed.
 
 **Vercel AI SDK**:
+
 - Usage data returned per `generateText` call: `promptTokens`, `completionTokens`, `totalTokens`
 - Detailed breakdowns: cache read/write tokens, reasoning tokens (for models that support them)
 - No built-in tokenizer or cost calculator
 - Pair with `js-tiktoken` for pre-flight token counting and `better-sqlite3` for cost tracking
 
 **Mastra**:
+
 - `js-tiktoken` integration
 - `TokenLimiterProcessor` for context window management
 - Token usage captured in OpenTelemetry traces
 - No built-in cost calculator
 
 **LangChain.js**:
+
 - `js-tiktoken` built-in
 - `usage_metadata` on model responses
 - LangSmith tracks cost per trace
 - Context window summarization middleware (auto-compress long conversations)
 
 **OpenAI Agents SDK**:
+
 - Automatic token counting per run with per-request breakdown
 - No budget enforcement (track only)
 
 **Anthropic Agent SDK**:
+
 - Best cost tracking: per-query, per-model, per-message USD cost
 - `maxBudgetUsd` budget cap per query
 - Only works for Claude models
 
 **Recommendation**: Implement cost tracking in the application layer:
+
 1. Use Vercel AI SDK's `usage` return value from each `generateText` call
 2. Store per-kind, per-model cost data in SQLite
 3. Use `js-tiktoken` for pre-flight context window checks on large events

@@ -32,23 +32,13 @@ Enable cross-Town code collaboration via NIP-34. Towns contribute patches (kind:
   5. **PR updates** (kind:1619) — Update existing PRs (rebase, amend)
   6. **Status events** (kind:1630-1633) — Draft, open, applied/merged, closed
 
-  **NIP-32 Review Labels (`crosstown.review` namespace):**
-  7. Review labels: `approved`, `needs-work`, `tests-passing`, `tests-failing`, `security-concern`, `conflict-risk`, `blocked`
-  8. Trust-weighted review aggregation: `Σ trust(approving_towns) >= merge_threshold`
+  **NIP-32 Review Labels (`crosstown.review` namespace):** 7. Review labels: `approved`, `needs-work`, `tests-passing`, `tests-failing`, `security-concern`, `conflict-risk`, `blocked` 8. Trust-weighted review aggregation: `Σ trust(approving_towns) >= merge_threshold`
 
-  **NIP-29 Project Groups:**
-  9. Per-repository NIP-29 groups with trust-driven membership (admin/moderator/member)
-  10. Relay-enforced scoping — only group members can publish to project events
+  **NIP-29 Project Groups:** 9. Per-repository NIP-29 groups with trust-driven membership (admin/moderator/member) 10. Relay-enforced scoping — only group members can publish to project events
 
-  **NIP-77 Negentropy Sync:**
-  11. Efficient delta recovery after network partition (80-95% bandwidth reduction)
-  12. Agents sync missed patches/reviews without re-downloading entire history
+  **NIP-77 Negentropy Sync:** 11. Efficient delta recovery after network partition (80-95% bandwidth reduction) 12. Agents sync missed patches/reviews without re-downloading entire history
 
-  **Conflict Prevention & Merge Authority:**
-  13. `CrossTownReviewAggregator` — NIP-32 label aggregation with trust-weighted threshold
-  14. `MergeAuthoritySelector` — Highest-trust approver with push access applies patches
-  15. `ConflictDetectionDvm` — NIP-90 DVM (kind:5951/6951) for pre-merge conflict detection
-  16. `OwnershipClaimManager` — kind:30078 advisory file-level claims with NIP-40 expiration
+  **Conflict Prevention & Merge Authority:** 13. `CrossTownReviewAggregator` — NIP-32 label aggregation with trust-weighted threshold 14. `MergeAuthoritySelector` — Highest-trust approver with push access applies patches 15. `ConflictDetectionDvm` — NIP-90 DVM (kind:5951/6951) for pre-merge conflict detection 16. `OwnershipClaimManager` — kind:30078 advisory file-level claims with NIP-40 expiration
 
 - **Merge Trust Composition:**
   ```
@@ -75,6 +65,7 @@ Enable cross-Town code collaboration via NIP-34. Towns contribute patches (kind:
 **so that** other Towns can discover and contribute to shared codebases.
 
 **Acceptance Criteria:**
+
 1. `RepoAnnouncementBuilder` creates kind:30617 addressable events per NIP-34: `d` tag (repo identifier), `name`, `description`, `clone` tag (git URL), `web` tag (optional), `maintainers` (`p` tags), `relays` tags
 2. `RepoStatePublisher` creates kind:30618 addressable events tracking HEAD commit, branches, and tags
 3. `discoverRepos(filters?: RepoFilter): Promise<RepoAnnouncement[]>` queries kind:30617 events from configured relays
@@ -90,6 +81,7 @@ Enable cross-Town code collaboration via NIP-34. Towns contribute patches (kind:
 **so that** code changes can be proposed and tracked in a decentralized workflow.
 
 **Acceptance Criteria:**
+
 1. `submitPatch(patch: PatchParams, secretKey): Promise<NostrEvent>` creates kind:1617 events with git format-patch content, `a` tag (repo ref), `t` tags (commit hash, parent), optional `p` tags (reviewer suggestions)
 2. `createPullRequest(pr: PrParams, secretKey): Promise<NostrEvent>` creates kind:1618 events referencing patch set, `a` tag (repo ref), `subject` content
 3. `updatePullRequest(prRef: string, update: PrUpdate, secretKey): Promise<NostrEvent>` creates kind:1619 events for rebases and amendments
@@ -105,6 +97,7 @@ Enable cross-Town code collaboration via NIP-34. Towns contribute patches (kind:
 **so that** the network has structured, machine-readable code review signals.
 
 **Acceptance Criteria:**
+
 1. `publishReviewLabel(targetEvent: NostrEvent, label: ReviewLabel, secretKey, comment?: string): Promise<void>` creates kind:1985 events in `crosstown.review` namespace
 2. `ReviewLabel` enum: `approved`, `needs-work`, `tests-passing`, `tests-failing`, `security-concern`, `conflict-risk`, `blocked`
 3. Label event includes: `["L", "crosstown.review"]`, `["l", label, "crosstown.review"]`, `["e", targetEventId]`, `["p", targetPubkey]`
@@ -119,6 +112,7 @@ Enable cross-Town code collaboration via NIP-34. Towns contribute patches (kind:
 **so that** the highest-trust approver applies patches without a single point of failure.
 
 **Acceptance Criteria:**
+
 1. `CrossTownReviewAggregator` class computes `Σ trust(approving_towns) >= merge_threshold` from kind:1985 review labels
 2. Merge threshold configurable per repository (default: 0.7 — sum of trust scores of approvers must exceed this)
 3. `MergeAuthoritySelector` identifies the highest-trust approver with push access to apply the patch
@@ -134,6 +128,7 @@ Enable cross-Town code collaboration via NIP-34. Towns contribute patches (kind:
 **so that** conflicts are caught early and merge failures are minimized.
 
 **Acceptance Criteria:**
+
 1. `ConflictDetectionDvm` handler registered for kind:5951 job requests
 2. Input: patch event reference + target branch state → Output: conflict report (kind:6951) with conflicting files, merge-base, resolution hints
 3. DVM payment flow via ILP (reuses Epic 13 infrastructure)
@@ -149,6 +144,7 @@ Enable cross-Town code collaboration via NIP-34. Towns contribute patches (kind:
 **so that** concurrent work on the same files is coordinated across Towns.
 
 **Acceptance Criteria:**
+
 1. `OwnershipClaimManager` publishes kind:30078 advisory claims with `d` tag (file path), NIP-40 expiration (default: 1 hour), and project group `h` tag
 2. `getActiveClaims(repoRef: string): Promise<OwnershipClaim[]>` queries active (non-expired) claims for a repository
 3. Claims are advisory — they don't prevent patches but warn other agents of potential conflicts
@@ -164,6 +160,7 @@ Enable cross-Town code collaboration via NIP-34. Towns contribute patches (kind:
 **so that** partition recovery is fast and bandwidth-efficient.
 
 **Acceptance Criteria:**
+
 1. `NegentropySync` class implements NIP-77 negentropy protocol for efficient set reconciliation
 2. Agent stores local event fingerprints (id + timestamp) for project-related events
 3. Sync protocol: exchange fingerprint sets with relay → identify missing events → fetch only deltas

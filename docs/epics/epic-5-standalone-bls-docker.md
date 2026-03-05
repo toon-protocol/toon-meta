@@ -4,12 +4,12 @@
 
 ## Configuration
 
-| Setting | Value | Notes |
-|---------|-------|-------|
-| Docker Hub Organization | `di3twater` | |
-| Image Name | `crosstown-bls` | |
-| Default Port | `3100` | BLS HTTP API |
-| Data Volume | `/data` | SQLite database storage |
+| Setting                 | Value           | Notes                   |
+| ----------------------- | --------------- | ----------------------- |
+| Docker Hub Organization | `di3twater`     |                         |
+| Image Name              | `crosstown-bls` |                         |
+| Default Port            | `3100`          | BLS HTTP API            |
+| Data Volume             | `/data`         | SQLite database storage |
 
 ## Background
 
@@ -24,14 +24,15 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 
 ### Required Endpoints
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/health` | GET | Health check for container orchestration |
-| `/handle-payment` | POST | Verify ILP payment and process event storage |
+| Endpoint          | Method | Purpose                                      |
+| ----------------- | ------ | -------------------------------------------- |
+| `/health`         | GET    | Health check for container orchestration     |
+| `/handle-payment` | POST   | Verify ILP payment and process event storage |
 
 ### GET /health
 
 **Response (200 OK):**
+
 ```json
 {
   "status": "healthy",
@@ -45,6 +46,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 ### POST /handle-payment
 
 **Request Body:**
+
 ```json
 {
   "amount": "string (numeric, in base units)",
@@ -54,6 +56,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "accept": true,
@@ -66,6 +69,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 ```
 
 **Rejection Response (400/500):**
+
 ```json
 {
   "accept": false,
@@ -80,11 +84,11 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 
 ### ILP Error Codes
 
-| Code | Name | Description |
-|------|------|-------------|
-| F00 | BAD_REQUEST | Malformed request or invalid TOON data |
-| F06 | INSUFFICIENT_AMOUNT | Payment amount below required price |
-| T00 | INTERNAL_ERROR | Server-side error during processing |
+| Code | Name                | Description                            |
+| ---- | ------------------- | -------------------------------------- |
+| F00  | BAD_REQUEST         | Malformed request or invalid TOON data |
+| F06  | INSUFFICIENT_AMOUNT | Payment amount below required price    |
+| T00  | INTERNAL_ERROR      | Server-side error during processing    |
 
 ---
 
@@ -95,6 +99,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 **so that** it can be containerized without bundling the relay or bootstrap services.
 
 **Acceptance Criteria:**
+
 1. Create `/packages/bls/` directory with its own `package.json`
 2. Move/refactor `BusinessLogicServer` from `packages/relay/src/bls/` to new package
 3. BLS package has minimal dependencies (Hono, crypto, TOON decoder)
@@ -113,6 +118,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 **so that** the image is small, secure, and fast to pull.
 
 **Acceptance Criteria:**
+
 1. Create `/packages/bls/Dockerfile` with multi-stage build
 2. Base image: `node:20-alpine` (smaller than `node:20-slim`)
 3. Final image size < 150MB
@@ -132,6 +138,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 **so that** I can customize behavior without rebuilding the image.
 
 **Acceptance Criteria:**
+
 1. Environment variables documented in README:
    - `NODE_ID` (required): Unique node identifier
    - `NOSTR_SECRET_KEY` (required): 64-char hex Nostr secret key
@@ -153,6 +160,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 **so that** events survive container restarts.
 
 **Acceptance Criteria:**
+
 1. BLS uses SQLite database for event storage
 2. Database file stored at configurable path (default: `/data/events.db`)
 3. Container expects volume mount at `/data`
@@ -171,6 +179,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 **so that** agent-runtime can pull it without building locally.
 
 **Acceptance Criteria:**
+
 1. GitHub Actions workflow: `.github/workflows/publish-bls.yml`
 2. Workflow triggers on:
    - Push to `main` with changes in `packages/bls/`
@@ -195,6 +204,7 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 **so that** I can quickly add the BLS to my stack.
 
 **Acceptance Criteria:**
+
 1. Create `/packages/bls/examples/docker-compose.yml`
 2. Example shows BLS service configuration with all env vars
 3. Example includes volume mount for persistent storage
@@ -204,12 +214,13 @@ The agent-runtime is an external project that orchestrates ILP connectors and ag
 7. Example can be run standalone for testing: `docker compose up`
 
 **Example Structure:**
+
 ```yaml
 services:
   bls:
     image: di3twater/crosstown-bls:latest
     ports:
-      - "3100:3100"
+      - '3100:3100'
     volumes:
       - bls-data:/data
     environment:
@@ -217,7 +228,7 @@ services:
       NOSTR_SECRET_KEY: ${NOSTR_SECRET_KEY}
       ILP_ADDRESS: g.crosstown.my-node
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3100/health"]
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:3100/health']
       interval: 30s
       timeout: 5s
       retries: 3
@@ -236,6 +247,7 @@ volumes:
 **so that** I can deploy it alongside agent-runtime in a cluster.
 
 **Acceptance Criteria:**
+
 1. Create `/packages/bls/examples/k8s/` directory
 2. Manifests include:
    - `deployment.yaml` - BLS Deployment with resource limits and volume mount
@@ -264,6 +276,7 @@ volumes:
 **so that** I can implement my own BLS that works with agent-runtime.
 
 **Acceptance Criteria:**
+
 1. Create `/packages/bls/docs/BLS-CONTRACT.md`
 2. Document specifies:
    - Required endpoints with request/response schemas
@@ -307,6 +320,7 @@ volumes:
 ### Why Standalone Package?
 
 The current BLS in `packages/relay` is tightly coupled to the relay's event store. Extracting it allows:
+
 - Smaller Docker image (no relay code bundled)
 - Independent versioning
 - Clearer contract boundary

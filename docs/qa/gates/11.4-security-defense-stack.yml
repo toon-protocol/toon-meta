@@ -19,7 +19,8 @@ evidence:
   tests_reviewed: 59
   risks_identified: 0
   trace:
-    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    ac_covered:
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     ac_gaps: []
 
 nfr_validation:
@@ -44,4 +45,8 @@ recommendations:
     - action: 'Consider batch audit logging for high-throughput scenarios'
       refs: ['packages/agent/src/audit-log.ts']
     - action: 'Add performance benchmarks for rate limiter and audit logger'
-      refs: ['packages/agent/src/rate-limiter.test.ts', 'packages/agent/src/audit-log.test.ts']
+      refs:
+        [
+          'packages/agent/src/rate-limiter.test.ts',
+          'packages/agent/src/audit-log.test.ts',
+        ]

@@ -13,6 +13,7 @@
 Health check endpoint.
 
 **Response (200):**
+
 ```json
 {
   "status": "ok",
@@ -28,6 +29,7 @@ Health check endpoint.
 Get faucet configuration and balances.
 
 **Response (200):**
+
 ```json
 {
   "ethAmount": "100",
@@ -50,6 +52,7 @@ Get faucet configuration and balances.
 Request tokens from the faucet.
 
 **Request Body:**
+
 ```json
 {
   "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
@@ -57,6 +60,7 @@ Request tokens from the faucet.
 ```
 
 **Success Response (200):**
+
 ```json
 {
   "success": true,
@@ -77,6 +81,7 @@ Request tokens from the faucet.
 **Error Responses:**
 
 **400 - Invalid Address:**
+
 ```json
 {
   "error": "Invalid Ethereum address"
@@ -84,6 +89,7 @@ Request tokens from the faucet.
 ```
 
 **429 - Rate Limited:**
+
 ```json
 {
   "error": "Rate limit exceeded",
@@ -93,6 +99,7 @@ Request tokens from the faucet.
 ```
 
 **503 - Token Not Ready:**
+
 ```json
 {
   "error": "Token contract not yet deployed",
@@ -101,6 +108,7 @@ Request tokens from the faucet.
 ```
 
 **500 - Server Error:**
+
 ```json
 {
   "error": "Faucet request failed",
@@ -124,6 +132,7 @@ Request tokens from the faucet.
 - `RATE_LIMIT_HOURS` - Hours between requests per address (default: 1)
 
 ### Default Amounts
+
 - **ETH:** 100 ETH per request
 - **AGENT Tokens:** 10,000 tokens per request
 - **Rate Limit:** 1 request per address per hour
@@ -142,6 +151,7 @@ Request tokens from the faucet.
 ## Token Contract Interface
 
 Uses standard ERC20 ABI:
+
 - `transfer(address to, uint256 amount) returns (bool)`
 - `balanceOf(address account) view returns (uint256)`
 - `decimals() view returns (uint8)`

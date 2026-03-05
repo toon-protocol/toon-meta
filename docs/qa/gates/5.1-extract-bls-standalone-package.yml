@@ -13,7 +13,7 @@ top_issues: []
 quality_score: 100
 
 evidence:
-  tests_reviewed: 173  # 166 original BLS + 7 new fix tests
+  tests_reviewed: 173 # 166 original BLS + 7 new fix tests
   risks_identified: 0
   trace:
     ac_covered: [1, 2, 3, 4, 5, 6, 7, 8]

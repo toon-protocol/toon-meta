@@ -3,6 +3,7 @@
 ## 3.1 Repository Structure: Monorepo
 
 The project uses a pnpm monorepo with six packages plus a Docker entrypoint:
+
 - `@crosstown/core` - Main protocol library (discovery, SPSP, trust, bootstrap, compose)
 - `@crosstown/bls` - Standalone Business Logic Server (payment verification, TOON, pricing, storage)
 - `@crosstown/relay` - ILP-gated Nostr relay reference implementation

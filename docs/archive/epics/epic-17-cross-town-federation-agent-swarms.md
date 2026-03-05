@@ -31,6 +31,7 @@ Town-to-Town federation grounded in the Gas Town model. A Gas Town Town is an ag
   6. **MEOW/DVM Workflow Mapping** — Gas Town workflow primitives mapped to Nostr/ILP patterns
 
 - **Federation Lifecycle:**
+
   ```
   1. FORM:   Mayor creates federation group (kind:9007 create-group)
              Sets requirements: peering + min channel deposit + min trust score
@@ -90,6 +91,7 @@ Town-to-Town federation grounded in the Gas Town model. A Gas Town Town is an ag
 **so that** Towns can form, join, and leave federations with structured membership management.
 
 **Acceptance Criteria:**
+
 1. `FederationManager` class created with NIP-29 federation group lifecycle support
 2. `createFederation(params: FederationParams, secretKey): Promise<FederationGroup>` publishes kind:9007 (create-group) to relay with federation metadata
 3. `FederationParams` includes: `name`, `about`, access control (`restricted`/`closed`), membership requirements (`requirePeering`, `minDeposit`, `requiredBadges`, `minTrustScore`)
@@ -108,6 +110,7 @@ Town-to-Town federation grounded in the Gas Town model. A Gas Town Town is an ag
 **so that** only economically committed and trusted Towns can join the federation.
 
 **Acceptance Criteria:**
+
 1. `MembershipValidator` class created with configurable gating requirements
 2. On kind:9021 join request, validator checks:
    - Mutual NIP-02 follow exists between applicant and federation admin (peering prerequisite)
@@ -127,6 +130,7 @@ Town-to-Town federation grounded in the Gas Town model. A Gas Town Town is an ag
 **so that** intra-federation traffic is routed efficiently via hierarchical addressing.
 
 **Acceptance Criteria:**
+
 1. On federation creation, allocate ILP address prefix: `g.<federation-handle>` (configurable base prefix)
 2. On Town addition, register Town with connector under federation prefix: `g.<federation>.<town-handle>`
 3. Within a Town, Rigs and agents get sub-addresses: `g.<federation>.<town>.<rig>.<agent-role>`
@@ -144,6 +148,7 @@ Town-to-Town federation grounded in the Gas Town model. A Gas Town Town is an ag
 **so that** every cross-Town message is a paid transaction and federation communication uses the ILP network.
 
 **Acceptance Criteria:**
+
 1. `FederationMessenger` class created for sending federation-scoped events
 2. `sendToTown(federationId: string, targetTownPubkey: string, event: NostrEvent, amount: bigint, secretKey): Promise<FederationMessageResult>` sends TOON-encoded event as ILP PREPARE to target's federation address
 3. Events include `h` tag (federation ID) for group scoping per NIP-29
@@ -160,6 +165,7 @@ Town-to-Town federation grounded in the Gas Town model. A Gas Town Town is an ag
 **so that** existing Town data and relationships are preserved during the transition.
 
 **Acceptance Criteria:**
+
 1. `WastelandMigrator` class reads Wasteland DoltHub tables and produces Nostr event equivalents
 2. Town registry -> NIP-02 follow list entries + kind:10032 ILP Peer Info events
 3. Wanted work -> NIP-90 DVM job request events (kind:5xxx)
@@ -177,6 +183,7 @@ Town-to-Town federation grounded in the Gas Town model. A Gas Town Town is an ag
 **so that** existing Gas Town workflows can execute across federated Towns.
 
 **Acceptance Criteria:**
+
 1. `FormulaAdapter` converts Gas Town Formula definitions to NIP-90 DVM job requests (kind:5xxx)
 2. `MoleculeAdapter` converts Molecule (multi-step Formula sequences) to DvmJobChain (Epic 13, Story 13.5)
 3. `WispAdapter` maps Wisp (feedback/signal) to kind:7000 DVM feedback events

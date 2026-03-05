@@ -1,17 +1,17 @@
 schema: 1
-story: "1.1"
-story_title: "Project Setup and Build Infrastructure"
+story: '1.1'
+story_title: 'Project Setup and Build Infrastructure'
 gate: PASS
-status_reason: "All 8 acceptance criteria met. Build, test, and lint tooling verified working. Implementation follows all architecture and coding standards."
-reviewer: "Quinn (Test Architect)"
-updated: "2026-02-05T19:58:00Z"
+status_reason: 'All 8 acceptance criteria met. Build, test, and lint tooling verified working. Implementation follows all architecture and coding standards.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-02-05T19:58:00Z'
 
 waiver: { active: false }
 
 top_issues: []
 
 quality_score: 100
-expires: "2026-02-19T00:00:00Z"
+expires: '2026-02-19T00:00:00Z'
 
 evidence:
   tests_reviewed: 1
@@ -23,16 +23,16 @@ evidence:
 nfr_validation:
   security:
     status: PASS
-    notes: "No runtime code; engine constraints enforce supported versions"
+    notes: 'No runtime code; engine constraints enforce supported versions'
   performance:
     status: PASS
-    notes: "Build times sub-second per package"
+    notes: 'Build times sub-second per package'
   reliability:
     status: PASS
-    notes: "Standard tooling with wide ecosystem support"
+    notes: 'Standard tooling with wide ecosystem support'
   maintainability:
     status: PASS
-    notes: "Clean configuration, follows project structure guidelines"
+    notes: 'Clean configuration, follows project structure guidelines'
 
 recommendations:
   immediate: []

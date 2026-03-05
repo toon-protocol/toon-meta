@@ -52,11 +52,13 @@ The **connector's Admin API server-side** validates authToken and rejects empty 
 ### Location of Server-Side Validation
 
 The validation is in the **connector** project (separate repo):
+
 ```
 ../connector/packages/connector/src/http/admin-api.ts
 ```
 
 The connector's POST /admin/peers endpoint validates the request body and rejects:
+
 - Missing authToken
 - Empty authToken
 
@@ -68,12 +70,12 @@ Update the connector's Admin API to accept empty authToken for BTP peers that do
 // In connector/packages/connector/src/http/admin-api.ts
 // Change validation from:
 if (!authToken || authToken.trim() === '') {
-  throw new Error('authToken is required')
+  throw new Error('authToken is required');
 }
 
 // To:
 if (authToken === undefined || authToken === null) {
-  throw new Error('authToken must be provided (can be empty string)')
+  throw new Error('authToken must be provided (can be empty string)');
 }
 ```
 
@@ -105,16 +107,19 @@ if (authToken === undefined || authToken === null) {
 ## Next Steps
 
 ### Option 1: Fix Connector (Recommended)
+
 Update the connector's Admin API to accept empty authToken.
 
 **File:** `../connector/packages/connector/src/http/admin-api.ts`
 
 ### Option 2: Workaround (Temporary)
+
 Use a dummy authToken like `"no-auth"` instead of empty string.
 
 **Impact:** Not architecturally correct - BTP shouldn't require auth for Crosstown's use case.
 
 ### Option 3: Direct BTP Configuration
+
 Skip the Admin API and configure BTP peers directly via config file.
 
 **Impact:** Defeats the purpose of dynamic bootstrap.
@@ -122,6 +127,7 @@ Skip the Admin API and configure BTP peers directly via config file.
 ## Files Created
 
 ### Working Scripts
+
 - ✅ `run-local-bootstrap-test.sh` - Comprehensive test script
 - ✅ `dev-connector-peer1.sh` - Start connector peer1
 - ✅ `dev-connector-peer2.sh` - Start connector peer2
@@ -129,10 +135,12 @@ Skip the Admin API and configure BTP peers directly via config file.
 - ✅ `dev-peer2.sh` - Start crosstown peer2
 
 ### Configuration
+
 - ✅ `config/connector-peer1.yaml` - Connector peer1 config
 - ✅ `config/connector-peer2.yaml` - Connector peer2 config
 
 ### Documentation
+
 - ✅ `LOCAL-DEV-SETUP.md` - Local development guide
 - ✅ `ARCHITECTURE-FIX-SUMMARY.md` - Architecture explanation
 - ✅ `BOOTSTRAP-STATUS.md` - This file
@@ -163,29 +171,35 @@ tail -f /tmp/connector-peer2.log
 **Build Time:** ~5 seconds (vs 5-10 minutes with Docker)
 
 ### What Works
+
 ✅ All 4 processes start and run successfully:
-   - Connector Peer1 (ports 8081, 8091, 3051, 3011)
-   - Connector Peer2 (ports 8082, 8092, 3052)
-   - Crosstown Peer1 (ports 3101, 7101)
-   - Crosstown Peer2 (ports 3102, 7102)
+
+- Connector Peer1 (ports 8081, 8091, 3051, 3011)
+- Connector Peer2 (ports 8082, 8092, 3052)
+- Crosstown Peer1 (ports 3101, 7101)
+- Crosstown Peer2 (ports 3102, 7102)
 
 ✅ Discovery flow complete:
-   - Peer1 publishes kind:10032 event
-   - Peer2 discovers peer1 via Nostr relay
-   - Peer2 extracts ILP address and BTP endpoint
+
+- Peer1 publishes kind:10032 event
+- Peer2 discovers peer1 via Nostr relay
+- Peer2 extracts ILP address and BTP endpoint
 
 ✅ Infrastructure communication:
-   - Crosstown can reach connector Admin API
-   - No "fetch failed" errors
+
+- Crosstown can reach connector Admin API
+- No "fetch failed" errors
 
 ### What's Blocked
 
 ❌ **Peer Registration** - Connector Admin API returns:
+
 ```
 400 Bad Request - {"error":"Bad request","message":"Missing or invalid authToken"}
 ```
 
 This blocks the entire flow:
+
 - ❌ BTP connection can't be established (no peer registered)
 - ❌ SPSP handshake fails with "F02 No route to destination"
 - ❌ Payment channels can't be opened

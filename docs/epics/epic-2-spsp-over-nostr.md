@@ -9,6 +9,7 @@
 **so that** I can set up payments without a request/response handshake.
 
 **Acceptance Criteria:**
+
 1. `NostrSpspClient` class created with constructor accepting relay URLs and optional SimplePool
 2. `getSpspInfo(pubkey: string): Promise<SpspInfo | null>` method queries kind:10047 events
 3. Returns parsed SpspInfo or null if peer has no published SPSP info
@@ -22,6 +23,7 @@
 **so that** peers can discover my payment endpoint.
 
 **Acceptance Criteria:**
+
 1. `NostrSpspServer` class created with constructor accepting relay URLs, keypair, and optional SimplePool
 2. `publishSpspInfo(info: SpspInfo): Promise<void>` method publishes kind:10047 replaceable event
 3. Event is signed with provided secret key
@@ -36,6 +38,7 @@
 **so that** I can get a unique payment destination for my specific payment.
 
 **Acceptance Criteria:**
+
 1. `requestSpspInfo(recipientPubkey: string): Promise<SpspInfo>` method added to `NostrSpspClient`
 2. Method generates kind:23194 ephemeral event with NIP-44 encrypted payload
 3. Method subscribes for kind:23195 response from recipient
@@ -50,6 +53,7 @@
 **so that** I can provide unique payment destinations to requesters.
 
 **Acceptance Criteria:**
+
 1. `handleSpspRequests(generator: () => SpspInfo): Subscription` method added to `NostrSpspServer`
 2. Method subscribes to kind:23194 events addressed to the agent's pubkey
 3. Incoming requests are decrypted using NIP-44

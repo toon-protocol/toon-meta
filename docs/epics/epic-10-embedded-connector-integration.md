@@ -25,14 +25,14 @@ Eliminate the HTTP boundary between crosstown and agent-runtime by embedding the
 
 Full rename of methods, types, HTTP routes, and all source-code references to align with agent-runtime's naming (`setPacketHandler`, `PaymentHandler`, `POST /handle-packet`):
 
-| Old | New |
-|-----|-----|
-| `handlePayment()` | `handlePacket()` |
-| `HandlePaymentRequest` | `HandlePacketRequest` |
-| `HandlePaymentAcceptResponse` | `HandlePacketAcceptResponse` |
-| `HandlePaymentRejectResponse` | `HandlePacketRejectResponse` |
-| `HandlePaymentResponse` | `HandlePacketResponse` |
-| `/handle-payment` (HTTP route) | `/handle-packet` |
+| Old                            | New                          |
+| ------------------------------ | ---------------------------- |
+| `handlePayment()`              | `handlePacket()`             |
+| `HandlePaymentRequest`         | `HandlePacketRequest`        |
+| `HandlePaymentAcceptResponse`  | `HandlePacketAcceptResponse` |
+| `HandlePaymentRejectResponse`  | `HandlePacketRejectResponse` |
+| `HandlePaymentResponse`        | `HandlePacketResponse`       |
+| `/handle-payment` (HTTP route) | `/handle-packet`             |
 
 Affects: `packages/bls/`, `packages/relay/`, `docker/`, `packages/examples/`, integration docs.
 
@@ -75,17 +75,18 @@ The `handlePacket` callback in `createCrosstownNode()` is passed as a **function
 
 ## Stories
 
-| # | Story | Description | Size |
-|---|-------|-------------|------|
-| 10.1 | Rename handlePayment → handlePacket across codebase | Rename method, types, HTTP route, exports, and test references in bls, relay, docker, examples packages. Update integration docs. | M |
-| 10.2 | Create createDirectRuntimeClient() | In-process AgentRuntimeClient wrapping ConnectorNode.sendPacket(). Structural ConnectorNodeLike interface, TOON-aware execution condition computation, fulfill/reject mapping. Unit tests. | M |
-| 10.3 | Create createDirectConnectorAdmin() and make BLS handlePacket() public | In-process ConnectorAdminClient wrapping registerPeer()/removePeer(). Change BLS method visibility to public. Unit tests. | S |
-| 10.4 | Create createCrosstownNode() composition function | Wires connector ↔ BLS ↔ bootstrap ↔ relay monitor with start()/stop() lifecycle. handlePacket callback pattern. Integration tests with mocks. | L |
-| 10.5 | HTTP client rename and export updates | Rename createAgentRuntimeClient → createHttpRuntimeClient with alias. Add all new exports to bootstrap/index.ts and core/index.ts. Add optional peerDependency for @agent-runtime/connector. | S |
+| #    | Story                                                                  | Description                                                                                                                                                                                  | Size |
+| ---- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| 10.1 | Rename handlePayment → handlePacket across codebase                    | Rename method, types, HTTP route, exports, and test references in bls, relay, docker, examples packages. Update integration docs.                                                            | M    |
+| 10.2 | Create createDirectRuntimeClient()                                     | In-process AgentRuntimeClient wrapping ConnectorNode.sendPacket(). Structural ConnectorNodeLike interface, TOON-aware execution condition computation, fulfill/reject mapping. Unit tests.   | M    |
+| 10.3 | Create createDirectConnectorAdmin() and make BLS handlePacket() public | In-process ConnectorAdminClient wrapping registerPeer()/removePeer(). Change BLS method visibility to public. Unit tests.                                                                    | S    |
+| 10.4 | Create createCrosstownNode() composition function                      | Wires connector ↔ BLS ↔ bootstrap ↔ relay monitor with start()/stop() lifecycle. handlePacket callback pattern. Integration tests with mocks.                                                | L    |
+| 10.5 | HTTP client rename and export updates                                  | Rename createAgentRuntimeClient → createHttpRuntimeClient with alias. Add all new exports to bootstrap/index.ts and core/index.ts. Add optional peerDependency for @agent-runtime/connector. | S    |
 
 ## Files Changed Per Story
 
 ### Story 10.1 (Rename)
+
 - `packages/bls/src/bls/types.ts` — type interfaces
 - `packages/bls/src/bls/BusinessLogicServer.ts` — method, imports, route
 - `packages/bls/src/bls/BusinessLogicServer.test.ts` — route strings
@@ -105,20 +106,24 @@ The `handlePacket` callback in `createCrosstownNode()` is passed as a **function
 - `INTEGRATION-GAPS.md` — endpoint references
 
 ### Story 10.2 (Direct Runtime Client)
+
 - `packages/core/src/bootstrap/direct-runtime-client.ts` — **new**
 - `packages/core/src/bootstrap/direct-runtime-client.test.ts` — **new**
 
 ### Story 10.3 (Direct Admin + BLS Public)
+
 - `packages/core/src/bootstrap/direct-connector-admin.ts` — **new**
 - `packages/core/src/bootstrap/direct-connector-admin.test.ts` — **new**
 - `packages/bls/src/bls/BusinessLogicServer.ts` — private → public
 - `packages/relay/src/bls/BusinessLogicServer.ts` — private → public
 
 ### Story 10.4 (Composition Function)
+
 - `packages/core/src/compose.ts` — **new**
 - `packages/core/src/compose.test.ts` — **new**
 
 ### Story 10.5 (HTTP Rename + Exports)
+
 - `packages/core/src/bootstrap/agent-runtime-client.ts` — rename function
 - `packages/core/src/bootstrap/index.ts` — add new exports
 - `packages/core/src/index.ts` — add new exports

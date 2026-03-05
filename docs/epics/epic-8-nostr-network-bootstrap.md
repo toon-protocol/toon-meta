@@ -95,6 +95,7 @@ The key economic design: **the bootstrap node (peer1) earns routing fees** from 
 > 4. Peer responds with SPSP FULFILL (kind:23195) including channel details
 >
 > **Rationale for current design:**
+>
 > - Cleaner separation of concerns: relay event monitoring is decoupled from SPSP handling
 > - Independent retry on handshake failure without re-sending the announcement
 > - RelayMonitor can process events at its own pace (no blocking within ILP packet handling)

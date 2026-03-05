@@ -9,6 +9,7 @@
 **so that** I can use proximity in the social graph as a trust signal.
 
 **Acceptance Criteria:**
+
 1. `SocialTrustManager` class created with constructor accepting relay URLs and optional SimplePool
 2. `getSocialDistance(fromPubkey: string, toPubkey: string): Promise<number>` method implemented
 3. Returns 1 for direct follows, 2 for follows-of-follows, etc.
@@ -23,6 +24,7 @@
 **so that** I can use shared connections as a trust signal.
 
 **Acceptance Criteria:**
+
 1. `getMutualFollowers(pubkeyA: string, pubkeyB: string): Promise<string[]>` method added
 2. Returns array of pubkeys that follow both A and B
 3. Method efficiently queries follower lists for both pubkeys
@@ -35,6 +37,7 @@
 **so that** I can tune trust derivation for my use case.
 
 **Acceptance Criteria:**
+
 1. `TrustConfig` interface defined with weights for: `socialDistance`, `mutualFollowers`, `reputation`
 2. `computeTrustScore(fromPubkey, toPubkey, config?): Promise<TrustScore>` method added
 3. `TrustScore` type includes: `score` (0-1), `socialDistance`, `mutualFollowerCount`, `breakdown`
@@ -49,6 +52,7 @@
 **so that** I can automatically configure peer credit based on social trust.
 
 **Acceptance Criteria:**
+
 1. `CreditLimitConfig` interface defined with: `maxCredit`, `minCredit`, `curve` (linear/exponential)
 2. `calculateCreditLimit(trustScore: TrustScore, config?): number` function implemented
 3. Linear curve: `minCredit + (maxCredit - minCredit) * score`

@@ -28,6 +28,7 @@ Git Client → Git Proxy (payment gate) → Forgejo Server
 Health check endpoint.
 
 **Response (200):**
+
 ```json
 {
   "status": "healthy",
@@ -39,24 +40,28 @@ Health check endpoint.
 
 ---
 
-### ALL /* (Git HTTP Proxy)
+### ALL /\* (Git HTTP Proxy)
 
 Proxies all Git HTTP operations to upstream Forgejo server.
 
 **Supported Git Operations:**
+
 - `GET /<repo>.git/info/refs?service=git-upload-pack` - Clone/Pull initiation
 - `POST /<repo>.git/git-upload-pack` - Clone/Pull data transfer
 - `GET /<repo>.git/info/refs?service=git-receive-pack` - Push initiation
 - `POST /<repo>.git/git-receive-pack` - Push data transfer
 
 **Request Headers:**
+
 - `X-ILP-Payment-Proof` - ILP payment receipt (required for paid operations)
 - Standard Git HTTP headers (User-Agent, Content-Type, etc.)
 
 **Free Operations (No Payment Required):**
+
 - Read operations (clone, pull, fetch)
 
 **Paid Operations:**
+
 - Write operations (push)
 - Calculated based on: `writePrice + (contentLength * pricePerKb / 1024)`
 
@@ -67,12 +72,14 @@ Proxies all Git HTTP operations to upstream Forgejo server.
 ### Step 1: Initial Request (No Payment)
 
 **Request:**
+
 ```http
 POST /owner/repo.git/git-receive-pack HTTP/1.1
 Content-Length: 5000
 ```
 
 **Response (402 Payment Required):**
+
 ```json
 {
   "error": "Payment required",
@@ -86,6 +93,7 @@ Content-Length: 5000
 ### Step 2: Request with Payment
 
 **Request:**
+
 ```http
 POST /owner/repo.git/git-receive-pack HTTP/1.1
 Content-Length: 5000
@@ -93,6 +101,7 @@ X-ILP-Payment-Proof: <base64-encoded-ilp-receipt>
 ```
 
 **Response:**
+
 - **200-299:** Proxy successful, forwards Forgejo response
 - **402:** Payment invalid or insufficient
 - **403:** Rejected non-Git path
@@ -105,21 +114,24 @@ X-ILP-Payment-Proof: <base64-encoded-ilp-receipt>
 ### GitPaymentCalculator
 
 **Operation Types:**
+
 - `clone` - Free (readPrice = 0)
 - `pull` - Free (readPrice = 0)
 - `push` - Paid (writePrice + size-based fee)
 - `unknown` - Free (default)
 
 **Price Calculation:**
+
 ```typescript
 if (operation === 'push') {
-  price = writePrice + (contentLength * pricePerKb / 1024);
+  price = writePrice + (contentLength * pricePerKb) / 1024;
 } else {
-  price = 0n;  // Read operations are free
+  price = 0n; // Read operations are free
 }
 ```
 
 **Default Pricing:**
+
 - `readPrice`: 0 (free)
 - `writePrice`: 1000 (base fee for push)
 - `pricePerKb`: 100 (additional fee per KB pushed)
@@ -162,6 +174,7 @@ if (operation === 'push') {
 ### BLS Integration
 
 **Validation Request to BLS:**
+
 ```http
 POST <blsUrl>/validate-payment
 Content-Type: application/json
@@ -173,6 +186,7 @@ Content-Type: application/json
 ```
 
 **BLS Response:**
+
 ```json
 {
   "valid": true,
@@ -187,6 +201,7 @@ Content-Type: application/json
 ### 402 Payment Required
 
 Returned when:
+
 - No `X-ILP-Payment-Proof` header provided for paid operation
 - Payment proof validation fails
 - Payment amount insufficient
@@ -194,12 +209,14 @@ Returned when:
 ### 403 Forbidden
 
 Returned when:
+
 - `rejectNonGit` enabled and path is not a Git operation
 - Provides web UI redirect message
 
 ### 502 Bad Gateway
 
 Returned when:
+
 - Upstream Forgejo server unreachable
 - Proxy error during request forwarding
 
