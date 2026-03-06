@@ -57,7 +57,7 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: Nostr Relay Reference Implementation & SDK Validation
-  epic-2: backlog
+  epic-2: in-progress
   2-1-relay-event-storage-handler: backlog
   2-2-spsp-handshake-handler: backlog
   2-3-e2e-test-validation: backlog
