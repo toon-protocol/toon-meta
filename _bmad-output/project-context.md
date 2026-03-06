@@ -1,7 +1,7 @@
 ---
 project_name: 'crosstown'
 user_name: 'Jonathan'
-date: '2026-03-05'
+date: '2026-03-06'
 sections_completed:
   [
     'technology_stack',
@@ -75,10 +75,10 @@ crosstown/
 │   ├── bls/          # @crosstown/bls -- Business Logic Server (payment validation, event storage)
 │   ├── relay/        # @crosstown/relay -- Nostr relay + TOON encoding
 │   ├── client/       # @crosstown/client -- Client SDK with payment channel support
-│   ├── faucet/       # @crosstown/faucet -- Token distribution for testing (plain JS)
+│   ├── faucet/       # @crosstown/faucet -- Token distribution for dev testing (plain JS, dev-only)
 │   ├── examples/     # @crosstown/examples -- Demo applications
-│   ├── rig/          # @crosstown/rig -- (placeholder, Epic 3, not yet implemented)
-│   └── town/         # @crosstown/town -- (placeholder, Epic 2, not yet implemented)
+│   ├── rig/          # @crosstown/rig -- (placeholder, Epic 5, not yet implemented)
+│   └── town/         # @crosstown/town -- (placeholder, Epic 2, in progress)
 ├── docker/           # Container entrypoint (pnpm workspace member)
 ├── deploy-genesis-node.sh
 └── deploy-peers.sh
@@ -92,7 +92,7 @@ crosstown/
 @crosstown/bls    @crosstown/sdk    <-- siblings, both depend on core
                       ^
               +-------+--------+
-@crosstown/town (+ bls)    @crosstown/rig    <-- (future, Epic 2 & 3)
+@crosstown/town (+ bls)    @crosstown/rig    <-- (future, Epic 2 & 5)
 ```
 
 **Boundary Rules:**
@@ -101,6 +101,58 @@ crosstown/
 - Town and Rig import SDK -- never core/bls directly (except core types)
 - No package imports from town or rig (they are leaf nodes)
 - Connector accessed only through `EmbeddableConnectorLike` structural type
+
+## Epic Roadmap
+
+```
+Epic 1: SDK Package                              ✅ COMPLETE
+Epic 2: Relay Reference Implementation           🔄 IN PROGRESS (Story 2.1 in review)
+Epic 3: Production Protocol Economics             📋 PLANNED
+Epic 4: Marlin TEE Deployment                     📋 PLANNED
+Epic 5: The Rig — Git Forge                       📋 PLANNED (moved from Epic 3)
+```
+
+**Epic progression:** Build SDK → Prove it with relay → Make protocol production-grade → Make it verifiable → Build applications on top.
+
+## Production Architecture Decisions (Party Mode 2026-03-05/06)
+
+These decisions shape Epics 3-5 and future development. Full details in `_bmad-output/planning-artifacts/research/marlin-party-mode-decisions-2026-03-05.md`.
+
+**Payment Architecture:**
+- USDC is the sole user-facing payment token (AGENT token eliminated)
+- POND (Marlin) for operator staking only, invisible to relay users
+- Dual payment rail: ILP primary (power users), x402 optional (HTTP clients, AI agents)
+- Production chain: Arbitrum One. Dev: Anvil. Staging: Arbitrum Sepolia
+
+**x402 Integration:**
+- Crosstown nodes act as x402 facilitators via `/publish` HTTP endpoint on the node (not a separate gateway)
+- x402 constructs the same ILP PREPARE packets (with TOON data) that the network already routes
+- x402 replaces SPSP for HTTP-native clients; SPSP is for ILP-native clients
+- Both rails produce identical packets — the BLS and destination relay cannot distinguish them
+
+**Component Boundaries (Critical):**
+- The **Crosstown node** (entrypoint.ts) owns all public-facing endpoints: Nostr relay (WS), SPSP endpoint, `/publish` (x402), `/health`
+- The **BLS** handles only `/handle-packet` — ILP packet processing and pricing validation. No public-facing surface
+- The **Connector** routes ILP packets between peers
+
+**Network Topology:**
+- Genesis hub-and-spoke replaced by seed relay list model (kind:10036 on public Nostr relays)
+- TEE attestation (kind:10033) is the bootstrap trust anchor in production
+- Event kinds 10032-10099 reserved for Crosstown service advertisement
+
+**Nostr Event Kinds:**
+| Kind | Name | Status |
+|------|------|--------|
+| 10032 | ILP Peer Info | Existing |
+| 10033 | TEE Attestation | Proposed (Epic 4) |
+| 10034 | TEE Verification | Proposed (Epic 4) |
+| 10035 | x402 Service Discovery | Proposed (Epic 3) |
+| 10036 | Seed Relay List | Proposed (Epic 3) |
+
+**Terminology:**
+- "ILP client" not "ILP/SPSP client" — SPSP is a one-time handshake, not part of ongoing packet flow
+- "Crosstown node" not "BLS" when referring to public-facing capabilities
+- No STREAM protocol — Crosstown sends raw ILP PREPARE/FULFILL with TOON data payloads
 
 ## @crosstown/sdk (Epic 1 -- Complete)
 
@@ -387,13 +439,19 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Peer nodes:** `./deploy-peers.sh <count>` script for automated peer deployment
 - **Port allocation:** Genesis (BLS: 3100, Relay: 7100), Peers (BLS: 3100+N*10, Relay: 7100+N*10)
 
-**Contract Deployment (Anvil):**
+**Contract Deployment (Anvil — current dev environment):**
 
 - **Deterministic addresses** -- Anvil deployment produces consistent contract addresses
-- **AGENT Token:** `0x5FbDB2315678afecb367f032d93F642f64180aa3`
+- **AGENT Token (dev only, to be replaced with mock USDC in Epic 3):** `0x5FbDB2315678afecb367f032d93F642f64180aa3`
 - **TokenNetworkRegistry:** `0xe7f1725e7734ce288f8367e1bb143e90bb3f0512`
 - **TokenNetwork (AGENT):** `0xCafac3dD18aC6c6e92c921884f9E4176737C052c`
 - **Deployer Account:** `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (Anvil Account #0)
+
+**Production Contracts (Arbitrum One — Epic 3+):**
+
+- **USDC:** `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` (native Arbitrum USDC)
+- **Marlin Serverless Relay:** `0xD28179711eeCe385bc2096c5D199E15e6415A4f5` (Epic 4)
+- **TokenNetwork contracts:** To be deployed on Arbitrum One in Epic 3
 
 **npm Publishing (SDK):**
 
@@ -416,7 +474,9 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **NEVER use property access on index signatures** -- Use bracket notation `obj['key']` not `obj.key`
 - **NEVER return response objects from handlers** -- Use `ctx.accept()` / `ctx.reject()` methods
 - **NEVER decode TOON before verification** -- Shallow parse first, verify, then optionally decode (correctness requirement)
-- **NEVER use `exec()` for git operations** -- Use `execFile()` to prevent command injection (Rig, when implemented)
+- **NEVER use `exec()` for git operations** -- Use `execFile()` to prevent command injection (Rig, Epic 5)
+- **NEVER assume AGENT token in production** -- AGENT is dev-only; production uses USDC on Arbitrum One (Epic 3)
+- **NEVER call the BLS a public-facing component** -- BLS handles only `/handle-packet`; the Crosstown node owns all public endpoints
 
 **Critical Edge Cases:**
 
@@ -478,4 +538,4 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-03-05
+Last Updated: 2026-03-06

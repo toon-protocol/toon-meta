@@ -30,7 +30,7 @@ Epic 1 delivers 12 stories (1.0-1.11) producing `@crosstown/sdk` -- the develope
 **What this test plan does NOT cover:**
 
 - Epic 2 (Town relay reimplementation) -- covered by its own test design
-- Epic 3 (Rig git forge) -- covered by its own test design
+- Epic 5 (The Rig git forge) -- covered by its own test design
 - E2E tests against genesis node -- the SDK is tested via unit/integration; E2E validation happens in Epic 2 Story 2.3
 
 ---

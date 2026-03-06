@@ -166,12 +166,12 @@ All 24 FRs defined in the epics document have explicit story coverage:
 | FR-SDK-15    | E2E test validation                    | Epic 2, Story 2.3        | Covered |
 | FR-SDK-16    | Remove packages/git-proxy              | Epic 2, Story 2.4        | Covered |
 | FR-RELAY-1   | Publish @crosstown/town                | Epic 2, Story 2.5        | Covered |
-| FR-NIP34-1   | NIP-34 handlers + git HTTP backend     | Epic 3, Stories 3.1-3.4  | Covered |
-| FR-NIP34-2   | Nostr pubkey-native git identity       | Epic 3, Story 3.5        | Covered |
-| FR-NIP34-3   | Read-only code browsing web UI         | Epic 3, Stories 3.7-3.10 | Covered |
-| FR-NIP34-4   | PR lifecycle via NIP-34 status events  | Epic 3, Story 3.6        | Covered |
-| FR-NIP34-5   | Issues/PRs from Nostr events           | Epic 3, Story 3.11       | Covered |
-| FR-NIP34-6   | Publish @crosstown/rig                 | Epic 3, Story 3.12       | Covered |
+| FR-NIP34-1   | NIP-34 handlers + git HTTP backend     | Epic 5, Stories 5.1-5.4  | Covered |
+| FR-NIP34-2   | Nostr pubkey-native git identity       | Epic 5, Story 5.5        | Covered |
+| FR-NIP34-3   | Read-only code browsing web UI         | Epic 5, Stories 5.7-5.10 | Covered |
+| FR-NIP34-4   | PR lifecycle via NIP-34 status events  | Epic 5, Story 5.6        | Covered |
+| FR-NIP34-5   | Issues/PRs from Nostr events           | Epic 5, Story 5.11       | Covered |
+| FR-NIP34-6   | Publish @crosstown/rig                 | Epic 5, Story 5.12       | Covered |
 
 **Internal coverage: 24/24 FRs = 100%**
 
@@ -241,23 +241,23 @@ Since the PRD is outdated, this cross-reference shows how the old requirements m
 
 ### UX Implied in Current Scope
 
-While Epics 1-2 (SDK + Relay) are purely programmatic (no UI), **Epic 3 (The Rig) includes a significant web UI component**:
+While Epics 1-2 (SDK + Relay) are purely programmatic (no UI), **Epic 5 (The Rig) includes a significant web UI component**:
 
-- **Story 3.3**: Read-only code browsing web UI (mechanical port of Forgejo's Go HTML templates to EJS/Eta)
+- **Story 5.3**: Read-only code browsing web UI (mechanical port of Forgejo's Go HTML templates to EJS/Eta)
   - Repository list page
   - File tree / directory navigation
   - Blob view with syntax highlighting
   - Commit log
   - Commit diff view
   - Blame view
-- **Story 3.5**: Issues and PRs rendered in web UI from Nostr relay events
+- **Story 5.5**: Issues and PRs rendered in web UI from Nostr relay events
   - Issue list and detail pages
   - Pull request list and detail pages
   - Comment threads
 
 ### Alignment Issues
 
-1. **No UX specifications for The Rig web UI**: Story 3.3 describes a "mechanical port" of Forgejo templates, which provides implicit UX guidance (copy Forgejo's layout), but no explicit UX decisions are documented for:
+1. **No UX specifications for The Rig web UI**: Story 5.3 describes a "mechanical port" of Forgejo templates, which provides implicit UX guidance (copy Forgejo's layout), but no explicit UX decisions are documented for:
    - How pubkey-based identity is displayed (truncation, profile enrichment, avatar placement)
    - How the "participate via ILP/Nostr client" CTA is presented
    - Mobile responsiveness expectations
@@ -268,14 +268,14 @@ While Epics 1-2 (SDK + Relay) are purely programmatic (no UI), **Epic 3 (The Rig
 ### Warnings
 
 - **LOW RISK for Epics 1-2**: No UX implications (SDK/library packages).
-- **MEDIUM RISK for Epic 3**: The "mechanical port" approach mitigates UX risk (copying a proven UI), but pubkey-centric identity display and Nostr event sourcing are novel patterns that would benefit from UX thinking.
+- **MEDIUM RISK for Epic 5**: The "mechanical port" approach mitigates UX risk (copying a proven UI), but pubkey-centric identity display and Nostr event sourcing are novel patterns that would benefit from UX thinking.
 - **Recommendation**: A lightweight UX spec for The Rig's novel elements (pubkey display, Nostr event rendering, contribution CTA) would reduce implementation ambiguity. Not a blocker for Epics 1-2.
 
 ## 5. Epic Quality Review
 
 ### Best Practices Compliance Checklist
 
-| Criteria                    | Epic 1 (SDK) | Epic 2 (Town) |  Epic 3 (Rig)   |
+| Criteria                    | Epic 1 (SDK) | Epic 2 (Town) |  Epic 5 (Rig)   |
 | --------------------------- | :----------: | :-----------: | :-------------: |
 | Delivers user value         |     PASS     |     PASS      |      PASS       |
 | Can function independently  |    PASS\*    |     PASS      |      PASS       |
@@ -312,9 +312,9 @@ This is real work (move ~100 LOC from BLS to core, add shallow-parse.ts, update 
 
 ### Major Issues
 
-#### 2. Story 3.1 is Oversized
+#### 2. Story 5.1 is Oversized
 
-Story 3.1 "Git HTTP Backend and NIP-34 Handler Service Node" covers:
+Story 5.1 "Git HTTP Backend and NIP-34 Handler Service Node" covers:
 
 - SDK node creation with handlers for 8 NIP-34 kinds (30617, 1617, 1618, 1619, 1621, 1622, 1630-1633)
 - Repository creation from kind:30617 events (git init --bare + metadata)
@@ -327,14 +327,14 @@ This is effectively 4-5 stories bundled into one. Each NIP-34 handler type is a 
 
 **Recommendation:** Split into:
 
-- 3.1a: SDK node setup + kind:30617 repo creation handler + git init
-- 3.1b: kind:1617 patch handler + git am/apply
-- 3.1c: kind:1621/1622 issue/comment acknowledgment handlers
-- 3.1d: Git HTTP backend for clone/fetch (read-only CGI proxy)
+- 5.1a: SDK node setup + kind:30617 repo creation handler + git init
+- 5.1b: kind:1617 patch handler + git am/apply
+- 5.1c: kind:1621/1622 issue/comment acknowledgment handlers
+- 5.1d: Git HTTP backend for clone/fetch (read-only CGI proxy)
 
-#### 3. Story 3.3 is Oversized
+#### 3. Story 5.3 is Oversized
 
-Story 3.3 "Read-Only Code Browsing Web UI" covers 6 distinct pages:
+Story 5.3 "Read-Only Code Browsing Web UI" covers 6 distinct pages:
 
 - Repository list page
 - File tree view (directory navigation)
@@ -347,10 +347,10 @@ Each page requires: an Express route, an Eta template, git operations module fun
 
 **Recommendation:** Split into:
 
-- 3.3a: Layout + repo list page (foundation)
-- 3.3b: File tree + blob view
-- 3.3c: Commit log + commit diff
-- 3.3d: Blame view
+- 5.3a: Layout + repo list page (foundation)
+- 5.3b: File tree + blob view
+- 5.3c: Commit log + commit diff
+- 5.3d: Blame view
 
 #### 4. Undocumented Within-Epic Dependencies
 
@@ -369,11 +369,11 @@ Story dependencies within each epic are implicit but not documented. Key depende
 - Story 2.3 depends on 2.1, 2.2 (relay must work for E2E)
 - Story 2.5 depends on 2.1-2.3
 
-**Epic 3:**
+**Epic 5:**
 
-- Stories 3.3-3.5 depend on 3.1 (repos must exist)
-- Story 3.4 depends on 3.1 (patch handler must exist)
-- Story 3.6 depends on all others
+- Stories 5.3-5.5 depend on 5.1 (repos must exist)
+- Story 5.4 depends on 5.1 (patch handler must exist)
+- Story 5.6 depends on all others
 
 **Recommendation:** Add explicit dependency notation to each story.
 
@@ -417,7 +417,7 @@ PASS — appropriate for brownfield.
 | Severity | Count | Items                                                                           | Status                                                               |
 | -------- | :---: | ------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | Critical |   1   | Missing TOON codec extraction story                                             | **RESOLVED** — Story 1.0 added                                       |
-| Major    |   3   | Story 3.1 oversized, Story 3.3 oversized, undocumented within-epic dependencies | **RESOLVED** — Epic 3 decomposed, dependencies added                 |
+| Major    |   3   | Story 5.1 oversized, Story 5.3 oversized, undocumented within-epic dependencies | **RESOLVED** — Epic 5 decomposed, dependencies added                 |
 | Minor    |   3   | Soft metric in AC, technical epic title, stale dependency in NFR                | **2/3 RESOLVED** — soft metric reframed, NFR fixed; title kept as-is |
 
 **Overall Epic Quality:** Good across all 3 epics. All critical and major issues resolved.
@@ -435,8 +435,8 @@ The following issues were identified during the initial assessment and have sinc
 | #   | Severity | Issue                                 | Resolution                                                                        |
 | --- | -------- | ------------------------------------- | --------------------------------------------------------------------------------- |
 | 1   | Critical | Missing TOON codec extraction story   | **RESOLVED** — Story 1.0 added with 5 ACs, FR-SDK-0 added                         |
-| 2   | Major    | Story 3.1 oversized                   | **RESOLVED** — Epic 3 decomposed from 6 to 12 stories (3.1-3.12)                  |
-| 3   | Major    | Story 3.3 oversized                   | **RESOLVED** — Split into Stories 3.7-3.11 (layout, tree, commits, blame, issues) |
+| 2   | Major    | Story 5.1 oversized                   | **RESOLVED** — Epic 5 decomposed from 6 to 12 stories (5.1-5.12)                  |
+| 3   | Major    | Story 5.3 oversized                   | **RESOLVED** — Split into Stories 5.7-5.11 (layout, tree, commits, blame, issues) |
 | 4   | Major    | Undocumented within-epic dependencies | **RESOLVED** — Dependencies added to all 29 stories                               |
 | 5   | Minor    | Story 2.3 soft metric in AC           | **RESOLVED** — Reframed "<100 lines" as a note rather than pass/fail AC           |
 | 6   | Minor    | Technical epic title                  | Not addressed (cosmetic, kept as-is)                                              |
@@ -445,15 +445,15 @@ The following issues were identified during the initial assessment and have sinc
 **Additional improvements applied:**
 
 - Scope note added to epics document superseding outdated PRD
-- FR Coverage Map updated with FR-SDK-0 and renumbered Epic 3 references
-- Architecture document updated: story count 17→24, FR count 23→24, Epic 3 story references renumbered
+- FR Coverage Map updated with FR-SDK-0 and renumbered Epic 5 references
+- Architecture document updated: story count 17→24, FR count 23→24, Epic 5 story references renumbered
 - Test approach notes added to pipeline stories (1.2-1.7)
 
 ### Remaining Recommendations (Non-Blocking)
 
 1. **(Optional) Create a new PRD** or formally document the current project scope. The existing PRD is from an older version (v3.0, 2026-02-17). The current epics define 24 FRs that represent the actual scope. A scope note in the epics doc provides interim traceability.
 
-2. **(Optional) Create lightweight UX spec for The Rig** — Epic 3's web UI has novel elements (pubkey display, Nostr event sourcing, participation CTA) that would benefit from explicit UX decisions. Not a blocker for Epics 1-2.
+2. **(Optional) Create lightweight UX spec for The Rig** — Epic 5's web UI has novel elements (pubkey display, Nostr event sourcing, participation CTA) that would benefit from explicit UX decisions. Not a blocker for Epics 1-2.
 
 ### Readiness by Epic
 
@@ -461,7 +461,7 @@ The following issues were identified during the initial assessment and have sinc
 | ---------------- | ------ | ------------------------------- |
 | **Epic 1: SDK**  | Ready  | None                            |
 | **Epic 2: Town** | Ready  | Depends on Epic 1 completion    |
-| **Epic 3: Rig**  | Ready  | Depends on Epics 1-2 completion |
+| **Epic 5: The Rig**  | Ready  | Depends on Epics 1-2 completion |
 
 ### Architecture Alignment
 

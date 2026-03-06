@@ -43,7 +43,7 @@ The following P0/P1 risks should appear as epic-level quality gates:
 
 - R-006 (SDK replacement regression, score 6) - Gate: `genesis-bootstrap-with-channels.test.ts` passes against SDK-built relay
 
-**Epic 3 (Rig):**
+**Epic 5 (The Rig):**
 
 - R-004 (Git command injection, score 6) - Gate: No `child_process.exec` calls; input sanitization tests pass
 
@@ -55,8 +55,8 @@ The following P0/P1 risks should appear as epic-level quality gates:
 | Epic 1 | >80% line coverage for SDK public APIs            | NFR-SDK-3                       |
 | Epic 2 | E2E regression suite passes                       | genesis-bootstrap-with-channels |
 | Epic 2 | SDK-based relay entrypoint <100 LOC handler logic | Validation benchmark            |
-| Epic 3 | No exec() calls in packages/rig/                  | Security gate                   |
-| Epic 3 | Git input sanitization tests pass                 | P0-007, P0-008                  |
+| Epic 5 | No exec() calls in packages/rig/                  | Security gate                   |
+| Epic 5 | Git input sanitization tests pass                 | P0-007, P0-008                  |
 
 ## Story-Level Integration Guidance
 
@@ -71,8 +71,8 @@ The following P0/P1 risks should appear as epic-level quality gates:
 | 1.6   | P1-011: Transit fire-and-forget, P1-012: Transit await    | AC: isTransit behavior matches Crosstown Service Protocol |
 | 1.7   | P0-002: Full pipeline ordering                            | AC: Integration test validates stage sequence             |
 | 2.3   | P0-011: E2E regression                                    | AC: All genesis-bootstrap tests pass                      |
-| 3.1   | P1-024: Repo creation, P0-007: execFile                   | AC: git init via execFile only                            |
-| 3.2   | P1-025: Patch handler, P0-008: Input sanitization         | AC: Malicious patch content rejected                      |
+| 5.1   | P1-024: Repo creation, P0-007: execFile                   | AC: git init via execFile only                            |
+| 5.2   | P1-025: Patch handler, P0-008: Input sanitization         | AC: Malicious patch content rejected                      |
 
 ### Data-TestId Requirements
 
@@ -85,17 +85,17 @@ Not applicable for this project (backend SDK, no browser UI testing).
 | R-001   | TECH     | 2x3=9 | Story 1.6 (PaymentHandler bridge)      | Integration        |
 | R-002   | SEC      | 2x3=6 | Story 1.4 (Schnorr verification)       | Unit               |
 | R-003   | TECH     | 2x3=6 | Story 1.0 (TOON codec extraction)      | Unit + Integration |
-| R-004   | SEC      | 2x3=6 | Story 3.1, 3.2 (git operations)        | Unit               |
+| R-004   | SEC      | 2x3=6 | Story 5.1, 5.2 (git operations)        | Unit               |
 | R-005   | DATA     | 2x3=6 | Story 1.7, 1.9 (lifecycle + bootstrap) | Integration        |
 | R-006   | TECH     | 3x2=6 | Story 2.3 (E2E validation)             | E2E                |
 | R-007   | TECH     | 2x2=4 | Story 1.8 (connector methods)          | Integration        |
 | R-008   | TECH     | 1x3=3 | Story 1.6 (PaymentHandler bridge)      | Unit               |
-| R-009   | OPS      | 2x2=4 | Story 3.11 (issues/PRs from relay)     | Integration        |
+| R-009   | OPS      | 2x2=4 | Story 5.11 (issues/PRs from relay)     | Integration        |
 | R-010   | BUS      | 1x3=3 | Story 1.5 (pricing validation)         | Unit               |
 | R-011   | TECH     | 1x3=3 | Story 1.1 (unified identity)           | Unit               |
-| R-012   | BUS      | 1x2=2 | Stories 3.7-3.10 (web UI views)        | Integration        |
-| R-013   | DATA     | 1x2=2 | Story 3.1 (repo metadata)              | Unit               |
-| R-014   | OPS      | 1x1=1 | Stories 1.11, 2.5, 3.12 (publish)      | Unit               |
+| R-012   | BUS      | 1x2=2 | Stories 5.7-5.10 (web UI views)        | Integration        |
+| R-013   | DATA     | 1x2=2 | Story 5.1 (repo metadata)              | Unit               |
+| R-014   | OPS      | 1x1=1 | Stories 1.11, 2.5, 5.12 (publish)      | Unit               |
 
 ## Recommended BMAD -> TEA Workflow Sequence
 

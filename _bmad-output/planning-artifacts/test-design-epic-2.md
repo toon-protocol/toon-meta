@@ -33,7 +33,7 @@ Epic 2 delivers 5 stories (2.1-2.5) producing `@crosstown/town` -- a publishable
 **What this test plan does NOT cover:**
 
 - Epic 1 SDK internals (covered by `test-design-epic-1.md`)
-- Epic 3 (Rig git forge)
+- Epic 5 (The Rig git forge)
 - Marlin/TEE integration (separate epic per decision log)
 
 ---
