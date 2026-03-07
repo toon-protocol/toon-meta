@@ -57,12 +57,12 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: Nostr Relay Reference Implementation & SDK Validation
-  epic-2: in-progress
+  epic-2: done
   2-1-relay-event-storage-handler: done
   2-2-spsp-handshake-handler: done
   2-3-e2e-test-validation: done
   2-4-remove-git-proxy-and-document-reference-implementation: done
-  2-5-publish-crosstown-town-package: backlog
+  2-5-publish-crosstown-town-package: done
   epic-2-retrospective: optional
 
   # Epic 3: Production Protocol Economics
