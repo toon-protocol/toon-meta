@@ -1,7 +1,7 @@
 ---
 project_name: 'crosstown'
 user_name: 'Jonathan'
-date: '2026-03-06'
+date: '2026-03-07'
 sections_completed:
   [
     'technology_stack',
@@ -13,7 +13,7 @@ sections_completed:
     'critical_rules',
   ]
 status: 'complete'
-rule_count: 196
+rule_count: 223
 optimized_for_llm: true
 ---
 
@@ -47,7 +47,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Identity:** @scure/bip39 ^2.0 (mnemonic), @scure/bip32 ^2.0 (HD derivation)
 - **Database:** better-sqlite3 ^11.0
 - **WebSockets:** ws ^8.0
-- **Web Framework:** hono ^4.0 (BLS HTTP API)
+- **Web Framework:** hono ^4.0 (BLS HTTP API, Town HTTP API)
 - **Ethereum:** viem ^2.0 (client package)
 - **ILP Connector:** @agent-society/connector ^1.2.0 (optional peer dependency)
 
@@ -65,21 +65,24 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - TOON format is 1.x (critical for relay compatibility)
 - @noble/curves and @scure libraries share the same secp256k1 implementation as nostr-tools' @noble/curves dependency
 
-## Project Structure (Post-Epic 1)
+## Project Structure (Post-Epic 2)
 
 ```
 crosstown/
 ├── packages/
-│   ├── sdk/          # @crosstown/sdk -- SDK for building ILP-gated Nostr services (Epic 1 deliverable)
-│   ├── core/         # @crosstown/core -- Shared protocol logic, TOON codec, bootstrap, discovery, SPSP
-│   ├── bls/          # @crosstown/bls -- Business Logic Server (payment validation, event storage)
-│   ├── relay/        # @crosstown/relay -- Nostr relay + TOON encoding
-│   ├── client/       # @crosstown/client -- Client SDK with payment channel support
-│   ├── faucet/       # @crosstown/faucet -- Token distribution for dev testing (plain JS, dev-only)
-│   ├── examples/     # @crosstown/examples -- Demo applications
-│   ├── rig/          # @crosstown/rig -- (placeholder, Epic 5, not yet implemented)
-│   └── town/         # @crosstown/town -- (placeholder, Epic 2, in progress)
-├── docker/           # Container entrypoint (pnpm workspace member)
+│   ├── town/        # @crosstown/town -- SDK-based relay with startTown() API and CLI (Epic 2 deliverable)
+│   ├── sdk/         # @crosstown/sdk -- SDK for building ILP-gated Nostr services (Epic 1 deliverable)
+│   ├── core/        # @crosstown/core -- Shared protocol logic, TOON codec, bootstrap, discovery, SPSP
+│   ├── bls/         # @crosstown/bls -- Business Logic Server (payment validation, event storage)
+│   ├── relay/       # @crosstown/relay -- Nostr relay + TOON encoding
+│   ├── client/      # @crosstown/client -- Client SDK with payment channel support
+│   ├── faucet/      # @crosstown/faucet -- Token distribution for dev testing (plain JS, dev-only)
+│   ├── examples/    # @crosstown/examples -- Demo applications
+│   └── rig/         # @crosstown/rig -- (placeholder, Epic 5, not yet implemented)
+├── docker/          # Container entrypoint (pnpm workspace member)
+│   └── src/
+│       ├── entrypoint.ts       # Original relay entrypoint (manual wiring)
+│       └── entrypoint-town.ts  # SDK/Town reference implementation entrypoint
 ├── deploy-genesis-node.sh
 └── deploy-peers.sh
 ```
@@ -90,29 +93,34 @@ crosstown/
 @crosstown/core          <-- foundation (TOON codec, types, bootstrap, discovery, SPSP)
     ^          ^
 @crosstown/bls    @crosstown/sdk    <-- siblings, both depend on core
-                      ^
-              +-------+--------+
-@crosstown/town (+ bls)    @crosstown/rig    <-- (future, Epic 2 & 5)
+    ^                 ^
+    |           +-----+-------+
+    |     @crosstown/town     @crosstown/rig    <-- (Town: Epic 2 DONE, Rig: Epic 5)
+    |       (+ relay)
+    |
+@crosstown/relay   <-- Town depends on relay for EventStore + NostrRelayServer
 ```
 
 **Boundary Rules:**
 
 - SDK imports core only -- never relay or bls directly
-- Town and Rig import SDK -- never core/bls directly (except core types)
+- Town imports SDK, core, and relay -- the relay reference implementation
+- Rig will import SDK -- never core/bls directly (except core types)
 - No package imports from town or rig (they are leaf nodes)
 - Connector accessed only through `EmbeddableConnectorLike` structural type
+- Town handlers import from `@crosstown/sdk` (Handler, HandlerContext, HandlerResponse types) and `@crosstown/core` (SPSP, event builders, bootstrap)
 
 ## Epic Roadmap
 
 ```
-Epic 1: SDK Package                              ✅ COMPLETE
-Epic 2: Relay Reference Implementation           🔄 IN PROGRESS (Story 2.1 in review)
-Epic 3: Production Protocol Economics             📋 PLANNED
-Epic 4: Marlin TEE Deployment                     📋 PLANNED
-Epic 5: The Rig — Git Forge                       📋 PLANNED (moved from Epic 3)
+Epic 1: SDK Package                              COMPLETE
+Epic 2: Relay Reference Implementation           COMPLETE (5/5 stories, 18/18 ACs)
+Epic 3: Production Protocol Economics             PLANNED
+Epic 4: Marlin TEE Deployment                     PLANNED
+Epic 5: The Rig -- Git Forge                      PLANNED
 ```
 
-**Epic progression:** Build SDK → Prove it with relay → Make protocol production-grade → Make it verifiable → Build applications on top.
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build applications on top.
 
 ## Production Architecture Decisions (Party Mode 2026-03-05/06)
 
@@ -128,11 +136,11 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 - Crosstown nodes act as x402 facilitators via `/publish` HTTP endpoint on the node (not a separate gateway)
 - x402 constructs the same ILP PREPARE packets (with TOON data) that the network already routes
 - x402 replaces SPSP for HTTP-native clients; SPSP is for ILP-native clients
-- Both rails produce identical packets — the BLS and destination relay cannot distinguish them
+- Both rails produce identical packets -- the BLS and destination relay cannot distinguish them
 
 **Component Boundaries (Critical):**
-- The **Crosstown node** (entrypoint.ts) owns all public-facing endpoints: Nostr relay (WS), SPSP endpoint, `/publish` (x402), `/health`
-- The **BLS** handles only `/handle-packet` — ILP packet processing and pricing validation. No public-facing surface
+- The **Crosstown node** (entrypoint.ts / startTown()) owns all public-facing endpoints: Nostr relay (WS), SPSP endpoint, `/publish` (x402), `/health`
+- The **BLS** handles only `/handle-packet` -- ILP packet processing and pricing validation. No public-facing surface
 - The **Connector** routes ILP packets between peers
 
 **Network Topology:**
@@ -150,9 +158,9 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 | 10036 | Seed Relay List | Proposed (Epic 3) |
 
 **Terminology:**
-- "ILP client" not "ILP/SPSP client" — SPSP is a one-time handshake, not part of ongoing packet flow
+- "ILP client" not "ILP/SPSP client" -- SPSP is a one-time handshake, not part of ongoing packet flow
 - "Crosstown node" not "BLS" when referring to public-facing capabilities
-- No STREAM protocol — Crosstown sends raw ILP PREPARE/FULFILL with TOON data payloads
+- No STREAM protocol -- Crosstown sends raw ILP PREPARE/FULFILL with TOON data payloads
 
 ## @crosstown/sdk (Epic 1 -- Complete)
 
@@ -171,8 +179,8 @@ packages/sdk/src/
 ├── pricing-validator.ts        # Per-byte, per-kind pricing with self-write bypass
 ├── payment-handler-bridge.ts   # isTransit fire-and-forget vs await semantics
 ├── create-node.ts              # createNode() composition + ServiceNode lifecycle
-├── event-storage-handler.ts    # Stub -- for Epic 2 (Town)
-├── spsp-handshake-handler.ts   # Stub -- for Epic 2 (Town)
+├── event-storage-handler.ts    # Stub -- throws, directs users to @crosstown/town
+├── spsp-handshake-handler.ts   # Stub -- throws, directs users to @crosstown/town
 └── __integration__/
     ├── create-node.test.ts
     └── network-discovery.test.ts
@@ -217,6 +225,114 @@ ILP Packet -> ConnectorNode.setPacketHandler()
               -> HandlePacketResponse back to connector
 ```
 
+## @crosstown/town (Epic 2 -- Complete)
+
+The Town package is the main deliverable of Epic 2. It validates the SDK by reimplementing the Nostr relay as composable SDK handlers. Two deployment modes: programmatic API (`startTown(config)`) and CLI (`npx @crosstown/town`).
+
+**Town Source Files:**
+
+```
+packages/town/src/
+├── index.ts                    # Public API: startTown, createEventStorageHandler, createSpspHandshakeHandler
+├── town.ts                     # startTown() -- programmatic API (~720 lines including types, config resolution, lifecycle)
+├── cli.ts                      # CLI entrypoint (parseArgs + env vars + startTown delegation)
+└── handlers/
+    ├── event-storage-handler.ts        # Decode -> store -> accept (~15 lines of logic)
+    ├── event-storage-handler.test.ts   # Unit + pipeline tests (24K)
+    ├── spsp-handshake-handler.ts       # NIP-44 decrypt, SPSP params, settlement, peer reg (~160 lines)
+    ├── spsp-handshake-handler.test.ts  # Unit + pipeline tests (33K)
+    └── x402-publish-handler.test.ts    # ATDD RED phase stubs for Epic 3 Story 3.3
+```
+
+**Town Public API:**
+
+```typescript
+// Lifecycle API
+startTown(config: TownConfig): Promise<TownInstance>
+
+// TownConfig -- key fields (all have defaults except connectorUrl + identity)
+interface TownConfig {
+  mnemonic?: string;              // exactly one of mnemonic or secretKey
+  secretKey?: Uint8Array;
+  connectorUrl: string;           // REQUIRED -- external connector
+  relayPort?: number;             // default: 7100
+  blsPort?: number;               // default: 3100
+  basePricePerByte?: bigint;      // default: 10n
+  knownPeers?: KnownPeer[];
+  chainRpcUrls?: Record<string, string>;    // settlement
+  tokenNetworks?: Record<string, string>;   // settlement
+  preferredTokens?: Record<string, string>; // settlement
+  dataDir?: string;               // default: ./data
+  devMode?: boolean;              // default: false
+}
+
+// TownInstance -- lifecycle control
+interface TownInstance {
+  isRunning(): boolean;
+  stop(): Promise<void>;
+  pubkey: string;
+  evmAddress: string;
+  config: ResolvedTownConfig;
+  bootstrapResult: { peerCount: number; channelCount: number };
+}
+
+// Handler factories (also exported individually)
+createEventStorageHandler(config: EventStorageHandlerConfig): Handler
+createSpspHandshakeHandler(config: SpspHandshakeHandlerConfig): Handler
+```
+
+**Town CLI:**
+
+```bash
+# Via npx
+npx @crosstown/town --mnemonic "abandon abandon ..." --connector-url "http://localhost:8080"
+
+# Via env vars
+CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080" npx @crosstown/town
+
+# All flags: --mnemonic, --secret-key, --relay-port, --bls-port, --data-dir,
+#            --connector-url, --connector-admin-url, --known-peers, --dev-mode, --help
+```
+
+**Town Composition (14 Steps in startTown()):**
+
+```
+1. Validate identity (mnemonic XOR secretKey)
+2. Derive identity (fromMnemonic or fromSecretKey)
+3. Resolve config with defaults
+4. Create data directory
+5. EventStore (SqliteEventStore)
+6. Settlement configuration (optional)
+7. Connector admin client
+8. SDK pipeline (verifier + pricer + registry + handlePacket)
+9. Bootstrap service setup
+10. BLS HTTP server (Hono: /health, /handle-packet)
+11. WebSocket relay (NostrRelayServer)
+12. Running state tracking
+13. Bootstrap execution (wait for connector, bootstrap peers, publish ILP info, start relay monitor)
+14. Build TownInstance (isRunning, stop, pubkey, evmAddress, config, bootstrapResult)
+```
+
+**Key Epic 2 Design Decisions:**
+
+- **SDK stubs updated:** `createEventStorageHandler()` and `createSpspHandshakeHandler()` in SDK now throw with clear messages directing users to `@crosstown/town`
+- **Handler bypass for SPSP:** The SPSP handler returns `{ accept: true, fulfillment: 'default-fulfillment', data }` directly (bypasses `ctx.accept()`) because the TOON-encoded response must be in the top-level `data` field for the connector to relay it back
+- **External connector only:** `startTown()` requires `connectorUrl` -- embedded connector mode is deferred
+- **Reference implementation:** `docker/src/entrypoint-town.ts` demonstrates the same SDK composition with individual components (Approach A) instead of `startTown()` (Approach B), providing a Docker-native reference
+- **git-proxy removed:** `packages/git-proxy/` was deleted and removed from `pnpm-workspace.yaml`
+
+**Epic 2 Metrics:**
+
+| Metric | Value |
+|--------|-------|
+| Stories delivered | 5/5 (100%) |
+| Acceptance criteria | 18/18 (100%) |
+| Story-specific tests | ~103 |
+| Monorepo test count | 1,443 passing / 185 skipped |
+| Code review issues | 35 found, 35 fixed, 0 remaining |
+| Security scan findings | 2 real issues fixed |
+| Test regressions | 0 |
+
 ## Critical Implementation Rules
 
 ### Language-Specific Rules (TypeScript)
@@ -258,6 +374,7 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 **Handler Pattern:**
 
 - **Handlers use void return with `ctx` methods** -- Call `ctx.accept()` or `ctx.reject()`, do NOT return response objects
+- **Exception: SPSP handler** -- Returns `{ accept: true, fulfillment, data }` directly to put TOON response in top-level `data` field
 - **Handler signature:** `(ctx: HandlerContext) => Promise<HandlerResponse>`
 - **Handler registration is chainable** -- `createNode(config).on(kind1, h1).on(kind2, h2).onDefault(hd)`
 - **`node.on(number, ...)` = handler registration, `node.on(string, ...)` = lifecycle event listener** -- Disambiguated by first argument type
@@ -290,6 +407,31 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Max payload: 1MB base64** -- `MAX_PAYLOAD_BASE64_LENGTH = 1_048_576`, rejected before allocation (DoS mitigation)
 - **Dev mode log sanitization** -- User-controlled fields (amount, destination) are sanitized to prevent log injection
 
+### Town-Specific Rules (Epic 2)
+
+**Handler Implementation Pattern:**
+
+- **Event storage handler is ~15 lines of logic** -- Decode -> store -> accept. All cross-cutting concerns (verification, pricing, self-write bypass) handled by SDK pipeline
+- **SPSP handler is ~160 lines** -- NIP-44 decrypt, SPSP parameter generation, optional settlement negotiation, optional channel opening, NIP-44 encrypted response, optional peer registration
+- **Error propagation** -- Handler errors propagate to SDK dispatch error boundary, which converts to `{ accept: false, code: 'T00', message: 'Internal error' }`
+- **Graceful degradation** -- Settlement negotiation failure degrades to basic SPSP response (no settlement fields)
+- **Non-fatal peer registration** -- Peer registration errors are logged and do not prevent SPSP response
+
+**startTown() vs createNode():**
+
+- **startTown() is for relay operators** -- One-call API that starts a complete relay node with WebSocket relay, BLS HTTP server, bootstrap, and lifecycle management
+- **createNode() is for SDK developers** -- Lower-level composition that requires an embedded connector
+- **startTown() uses external connector** -- Requires `connectorUrl` pointing to a running connector
+- **createNode() uses embedded connector** -- Manages connector lifecycle internally
+- **Both compose the same 5-stage pipeline** -- Size check -> shallow parse -> verify -> price -> dispatch
+
+**Docker Reference Implementation:**
+
+- **entrypoint-town.ts** -- Uses individual SDK components (Approach A) instead of `startTown()` (Approach B)
+- **Approach A: individual components** -- `fromSecretKey()`, `createVerificationPipeline()`, `createPricingValidator()`, `HandlerRegistry`, `createHandlerContext()` wired manually
+- **Approach B: one-call API** -- `startTown(config)` handles all composition internally
+- **Known bug (A1 from retro):** `entrypoint-town.ts` line 338 uses `!body.amount` which fails for amount=0 (truthiness bug). `town.ts` has the correct fix using `=== undefined || === null`
+
 ### Framework-Specific Rules
 
 **Nostr (nostr-tools):**
@@ -302,9 +444,10 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 
 **Hono (Web Framework):**
 
-- **BLS uses Hono for HTTP endpoints** -- Business Logic Server exposes HTTP API using `@hono/node-server`
+- **BLS and Town use Hono for HTTP endpoints** -- Business Logic Server and Town both expose HTTP API using `@hono/node-server`
 - **CORS enabled by default** -- BLS accepts cross-origin requests
 - **JSON and TOON responses** -- API endpoints return both JSON metadata and TOON-encoded events
+- **CWE-209 mitigation** -- `/handle-packet` 500 handlers must return generic error messages, not internal error details
 
 **SQLite (better-sqlite3):**
 
@@ -327,8 +470,9 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Co-locate unit tests** -- `*.test.ts` files next to source files in same directory
 - **Integration tests in `__integration__/`** -- Multi-component tests go in `packages/*/src/__integration__/`
 - **SDK integration tests use separate vitest config** -- `vitest.integration.config.ts` with 30s timeout
-- **E2E tests use separate config** -- `vitest.e2e.config.ts` for end-to-end tests (e.g., `packages/client/tests/e2e/`)
+- **E2E tests use separate config** -- `vitest.e2e.config.ts` for end-to-end tests (e.g., `packages/client/tests/e2e/`, `packages/town/tests/e2e/`)
 - **Test file naming** -- Match source file name with `.test.ts` suffix (e.g., `handler-registry.test.ts`)
+- **Town E2E tests require genesis node infrastructure** -- Gracefully skip via `servicesReady`/`genesisReady` flags when infra is unavailable
 
 **Test Framework (Vitest):**
 
@@ -345,9 +489,20 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **In-memory databases for unit tests** -- Use SQLite `:memory:` for isolated, fast tests
 - **SDK tests mock connectors** -- Use structural `EmbeddableConnectorLike` mock with `vi.fn()` for sendPacket, registerPeer, etc.
 
+**Two-Approach Handler Testing (Epic 2 Pattern):**
+
+- **Approach A: Unit tests with `createTestContext`** -- Isolated handler logic testing, mocked EventStore and dependencies
+- **Approach B: Pipeline integration with `createNode().start()`** -- End-to-end handler behavior within the SDK pipeline
+- **Approach A catches handler-level issues, Approach B catches composition and lifecycle issues**
+
+**Static Analysis Tests (Epic 2 Pattern):**
+
+- **Tests that read source files and assert structural properties** -- E.g., "handler logic is under 100 lines", "Dockerfile CMD points to correct entrypoint", "package.json has correct exports"
+- **Fast, stable, and catch drift** -- These tests prevent invisible architectural regressions
+
 **Test Coverage:**
 
-- **Target >80% line coverage** -- Especially for core, BLS, and SDK packages
+- **Target >80% line coverage** -- Especially for core, BLS, SDK, and Town packages
 - **All public methods must have tests** -- Every exported function/class needs unit tests
 - **Edge cases and error conditions** -- Test failure paths, boundary conditions, invalid inputs
 - **Integration tests for bootstrap flows** -- Multi-peer bootstrap scenarios require integration tests
@@ -358,6 +513,7 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Cleanup resources in teardown** -- Close database connections, clear mocks with `vi.clearAllMocks()`
 - **Test isolation** -- Each test should be independent, no shared state between tests
 - **Deterministic test data** -- Use fixed timestamps, keys, and IDs (not random values)
+- **Lint-check ATDD stubs immediately after creation** -- Prevents deferred lint debt (learned from Epic 2 Story 2-2's 53 ESLint errors)
 
 ### Code Quality & Style Rules
 
@@ -369,7 +525,8 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Unused vars pattern** -- Prefix with underscore: `{ argsIgnorePattern: '^_', varsIgnorePattern: '^_' }`
 - **Consistent type imports** -- `@typescript-eslint/consistent-type-imports` with `prefer: 'type-imports'`
 - **No explicit return types** -- `@typescript-eslint/explicit-function-return-type: 'off'` (rely on inference)
-- **ESLint ignores** -- `dist/`, `node_modules/`, `coverage/`, `archive/`, `*.js`, `*.mjs`, `packages/rig/`, `packages/town/`
+- **ESLint ignores** -- `dist/`, `node_modules/`, `coverage/`, `archive/`, `*.js`, `*.mjs`, `packages/rig/`
+- **Relaxed rules for test/example/docker files** -- `no-explicit-any: warn`, `no-non-null-assertion: warn`, `no-empty-function: off`, `no-unsafe-finally: warn`, `ban-ts-comment: warn`
 
 **Prettier Configuration:**
 
@@ -384,14 +541,15 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 
 **Naming Conventions:**
 
-- **Files (source):** PascalCase for classes, kebab-case for utilities and SDK modules (`BusinessLogicServer.ts`, `handler-registry.ts`, `create-node.ts`)
-- **Files (test):** Match source with `.test.ts` suffix (`handler-registry.test.ts`)
+- **Files (source):** PascalCase for classes, kebab-case for utilities and SDK modules (`BusinessLogicServer.ts`, `handler-registry.ts`, `create-node.ts`, `town.ts`)
+- **Files (test):** Match source with `.test.ts` suffix (`handler-registry.test.ts`, `town.test.ts`)
 - **Classes:** PascalCase (`SocialPeerDiscovery`, `HandlerRegistry`)
-- **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`)
-- **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`)
-- **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`)
+- **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`)
+- **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`, `startTown`)
+- **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `createEventStorageHandler`, `createSpspHandshakeHandler`)
+- **Lifecycle functions:** `start*` prefix (`startTown`)
 - **Constants:** UPPER_SNAKE_CASE (`ILP_PEER_INFO_KIND`, `SPSP_REQUEST_KIND`, `MAX_PAYLOAD_BASE64_LENGTH`)
-- **Type aliases:** PascalCase (`TrustScore`, `BootstrapPhase`, `ToonRoutingMeta`)
+- **Type aliases:** PascalCase (`TrustScore`, `BootstrapPhase`, `ToonRoutingMeta`, `ResolvedTownConfig`)
 - **Event types:** Discriminated unions with `type` field (`BootstrapEvent`)
 
 **Code Organization:**
@@ -402,23 +560,26 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Type definitions** -- Define types in `types.ts` or alongside implementation
 - **Constants file** -- Event kinds and constants in `constants.ts`
 - **Error classes** -- Custom errors in `errors.ts` per package
-- **tsconfig.json excludes** -- Root tsconfig excludes `packages/rig` and `packages/town` (not yet implemented)
+- **Handler subdirectory** -- Town handlers organized in `src/handlers/` with co-located tests
+- **tsconfig.json excludes** -- Root tsconfig excludes `packages/rig` and `archive`
 
 **Documentation:**
 
 - **JSDoc for public APIs** -- Document exported functions, classes, and interfaces
 - **Inline comments for complex logic** -- Explain non-obvious implementation details (e.g., pipeline ordering rationale)
 - **No redundant comments** -- Don't comment obvious code
+- **Reference implementation comments** -- `entrypoint-town.ts` has comprehensive inline comments explaining each SDK pattern
 
 ### Development Workflow Rules
 
 **Git/Repository:**
 
 - **Main branch:** `main` (default for PRs)
-- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK)
+- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town)
 - **Monorepo with pnpm workspaces** -- All packages managed together
-- **Conventional commits** -- Use prefixes: `feat(story):`, `fix:`, `docs:`, `test:`, `refactor:`
-- **Story-scoped commits** -- `feat(1-7): implement createNode composition with embedded connector lifecycle`
+- **Conventional commits** -- Use prefixes: `feat(story):`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`
+- **Story-scoped commits** -- `feat(2-5): story complete`
+- **One commit per story** -- Clean history maps 1:1 to epic lifecycle events
 - **Co-authored commits for AI assistance** -- Add `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>` when AI helps
 - **Descriptive commit messages** -- Focus on "why" not just "what"
 
@@ -431,6 +592,7 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Format code:** `pnpm format` (write), `pnpm format:check` (check only)
 - **Package-level scripts:** Each package has its own `build`, `test`, `dev` scripts
 - **SDK integration tests:** `cd packages/sdk && pnpm test:integration`
+- **Town E2E tests:** `cd packages/town && pnpm test:e2e` (requires genesis node)
 
 **Deployment:**
 
@@ -439,7 +601,7 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Peer nodes:** `./deploy-peers.sh <count>` script for automated peer deployment
 - **Port allocation:** Genesis (BLS: 3100, Relay: 7100), Peers (BLS: 3100+N*10, Relay: 7100+N*10)
 
-**Contract Deployment (Anvil — current dev environment):**
+**Contract Deployment (Anvil -- current dev environment):**
 
 - **Deterministic addresses** -- Anvil deployment produces consistent contract addresses
 - **AGENT Token (dev only, to be replaced with mock USDC in Epic 3):** `0x5FbDB2315678afecb367f032d93F642f64180aa3`
@@ -447,18 +609,19 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **TokenNetwork (AGENT):** `0xCafac3dD18aC6c6e92c921884f9E4176737C052c`
 - **Deployer Account:** `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (Anvil Account #0)
 
-**Production Contracts (Arbitrum One — Epic 3+):**
+**Production Contracts (Arbitrum One -- Epic 3+):**
 
 - **USDC:** `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` (native Arbitrum USDC)
 - **Marlin Serverless Relay:** `0xD28179711eeCe385bc2096c5D199E15e6415A4f5` (Epic 4)
 - **TokenNetwork contracts:** To be deployed on Arbitrum One in Epic 3
 
-**npm Publishing (SDK):**
+**npm Publishing:**
 
-- **Package name:** `@crosstown/sdk`
-- **Access:** public (`publishConfig.access: "public"`)
+- **@crosstown/sdk:** Published, public access, `dist/` only
+- **@crosstown/town:** Build-ready, tested, not yet published (Epic 2 retro A3: manual `npm publish --access public` required)
+- **Package names:** `@crosstown/sdk`, `@crosstown/town`, `@crosstown/rig` (future)
 - **Files:** Only `dist/` directory is published
-- **Repository field:** Points to monorepo with `directory: "packages/sdk"`
+- **Repository field:** Points to monorepo with `directory: "packages/<name>"`
 
 ### Critical Don't-Miss Rules
 
@@ -472,11 +635,13 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **NEVER use relative imports without `.js` extension** -- ESM requires explicit extensions
 - **NEVER assume index access is safe** -- Due to `noUncheckedIndexedAccess`, always handle `undefined`
 - **NEVER use property access on index signatures** -- Use bracket notation `obj['key']` not `obj.key`
-- **NEVER return response objects from handlers** -- Use `ctx.accept()` / `ctx.reject()` methods
+- **NEVER return response objects from handlers** -- Use `ctx.accept()` / `ctx.reject()` methods (exception: SPSP handler returns directly for data field)
 - **NEVER decode TOON before verification** -- Shallow parse first, verify, then optionally decode (correctness requirement)
 - **NEVER use `exec()` for git operations** -- Use `execFile()` to prevent command injection (Rig, Epic 5)
 - **NEVER assume AGENT token in production** -- AGENT is dev-only; production uses USDC on Arbitrum One (Epic 3)
 - **NEVER call the BLS a public-facing component** -- BLS handles only `/handle-packet`; the Crosstown node owns all public endpoints
+- **NEVER use `!body.amount` for validation** -- Fails for amount=0 (truthiness bug). Use `=== undefined || === null`
+- **NEVER expose internal error details in HTTP responses** -- CWE-209: return generic messages, log full errors server-side
 
 **Critical Edge Cases:**
 
@@ -485,8 +650,9 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Payment amounts must match TOON length** -- `publishEvent` amount = `basePricePerByte * toonData.length` (not hardcoded)
 - **Relay WebSocket returns TOON strings** -- EVENT messages contain TOON strings, not JSON objects
 - **Channel nonce conflicts require retry** -- Payment channel operations may need retry logic for blockchain transaction conflicts
-- **SDK stubs for Epic 2** -- `createEventStorageHandler()` and `createSpspHandshakeHandler()` are stubs that throw; they will be implemented in Town (Epic 2)
+- **SDK stubs direct to Town** -- `createEventStorageHandler()` and `createSpspHandshakeHandler()` in SDK throw with message directing users to `@crosstown/town`
 - **Handler fulfillment is placeholder** -- `ctx.accept()` returns `fulfillment: 'default-fulfillment'`; in production BLS computes SHA-256(eventId)
+- **SPSP handler bypasses ctx.accept()** -- Returns response directly because `data` must be top-level for ILP FULFILL relay
 
 **Security Rules:**
 
@@ -494,10 +660,15 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Encrypt sensitive data in SPSP** -- SPSP parameters contain shared secrets, must use NIP-44 encryption
 - **No secrets in static events** -- Don't publish shared secrets as plaintext (use encrypted request/response)
 - **Sanitize user inputs** -- Validate and sanitize all external data at boundaries
-- **Log sanitization in dev mode** -- User-controlled fields are sanitized via regex to prevent log injection
+- **Log sanitization** -- User-controlled fields are sanitized via regex to prevent log injection
 - **Proper key management** -- Private keys for testing only (Anvil deterministic accounts)
 - **Payload size limits** -- 1MB base64 limit on incoming ILP packets (DoS mitigation)
 - **Pubkey validation** -- `peerWith()` validates 64-char lowercase hex before delegating to core
+- **CLI secret exposure** -- `--mnemonic`/`--secret-key` CLI flags expose secrets in `ps` output; prefer env vars (Epic 2 retro A8)
+- **Hex validation** -- `--secret-key` must validate hex format with regex before length check
+- **BTP URL validation** -- Validate `ws://` or `wss://` prefix before peer registration, sanitize in log output
+- **CWE-209 prevention** -- HTTP error handlers must not leak internal error messages (use generic "Internal server error")
+- **IlpPeerInfo runtime validation** -- Validate `btpEndpoint` and `ilpAddress` fields exist before peer registration (type assertion does not enforce this)
 
 **Performance Gotchas:**
 
@@ -516,8 +687,25 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - **Discovery != Peering** -- RelayMonitor discovers peers but doesn't auto-peer; use `peerWith()` explicitly
 - **Bootstrap creates payment channels** -- When settlement is enabled, bootstrap flow automatically opens channels
 - **Genesis node ports differ from peers** -- Genesis uses base ports (3100, 7100), peers use offset (3100+N*10)
-- **SDK depends on core only** -- SDK does NOT depend on BLS or relay; Town (Epic 2) will depend on SDK + BLS
+- **SDK depends on core only** -- SDK does NOT depend on BLS or relay; Town (Epic 2) depends on SDK + relay + core
 - **EmbeddableConnectorLike is in core, not SDK** -- The structural connector interface is defined in `packages/core/src/compose.ts`
+- **Town E2E tests use non-default ports** -- To avoid conflicts with running genesis node (e.g., 7200/3200 instead of 7100/3100)
+
+---
+
+## Known Action Items (From Epic 2 Retro)
+
+**Must-Do for Epic 3:**
+- A1: Fix `!body.amount` truthiness bug in `entrypoint-town.ts` (line 338)
+- A2: Set up genesis node in CI (carried from Epic 1)
+- A3: Publish `@crosstown/town` to npm (`npm publish --access public`)
+
+**Should-Do:**
+- A4: Clean up stale git-proxy references in root-level docs (README.md, SECURITY.md, etc.)
+- A5: Address transitive dependency vulnerabilities (33 findings, `fast-xml-parser` via AWS SDK)
+- A6: Replace `console.error` with structured logger (carried from Epic 1)
+- A7: Lint-check ATDD stubs immediately after creation
+- A8: Address CLI `--mnemonic`/`--secret-key` process listing exposure (CWE-214)
 
 ---
 
@@ -530,6 +718,8 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - When in doubt, prefer the more restrictive option
 - Update this file if new patterns emerge
 - Check CLAUDE.md and MEMORY.md for additional project-specific context
+- Use the two-approach handler testing pattern (Approach A + B) for all handler stories
+- Use static analysis tests for structural property assertions
 
 **For Humans:**
 
@@ -538,4 +728,4 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-03-06
+Last Updated: 2026-03-07
