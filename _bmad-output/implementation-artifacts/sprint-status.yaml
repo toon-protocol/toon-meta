@@ -61,9 +61,29 @@ development_status:
   2-1-relay-event-storage-handler: done
   2-2-spsp-handshake-handler: done
   2-3-e2e-test-validation: done
-  2-4-remove-git-proxy-and-document-reference-implementation: backlog
+  2-4-remove-git-proxy-and-document-reference-implementation: done
   2-5-publish-crosstown-town-package: backlog
   epic-2-retrospective: optional
+
+  # Epic 3: Production Protocol Economics
+  epic-3: backlog
+  3-1-usdc-token-migration: backlog
+  3-2-multi-environment-chain-configuration: backlog
+  3-3-x402-publish-endpoint: backlog
+  3-4-seed-relay-discovery: backlog
+  3-5-kind-10035-service-discovery-events: backlog
+  3-6-enriched-health-endpoint: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Marlin TEE Deployment
+  epic-4: backlog
+  4-1-oyster-cvm-packaging: backlog
+  4-2-tee-attestation-events: backlog
+  4-3-attestation-aware-peering: backlog
+  4-4-nautilus-kms-identity: backlog
+  4-5-nix-reproducible-builds: backlog
+  4-6-attestation-first-seed-relay-bootstrap: backlog
+  epic-4-retrospective: optional
 
   # Epic 5: The Rig - ILP-Gated TypeScript Git Forge
   epic-5: backlog

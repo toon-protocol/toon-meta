@@ -3,7 +3,7 @@
 **Project Type:** Monorepo (pnpm workspaces)
 **Architecture:** ILP-gated Nostr relay with payment channels
 **Primary Language:** TypeScript 5.3+ / Node.js v24
-**Last Updated:** 2026-02-26
+**Last Updated:** 2026-03-06
 
 ---
 
@@ -30,7 +30,8 @@
 | **@crosstown/relay**     | Backend  | ILP-gated Nostr relay (WebSocket + BLS) |
 | **@crosstown/bls**       | Backend  | Standalone Business Logic Server        |
 | **@crosstown/faucet**    | Backend  | Token faucet (ETH + AGENT tokens)       |
-| **@crosstown/git-proxy** | Backend  | ILP-gated Git HTTP proxy                |
+| **@crosstown/sdk**       | SDK      | SDK for building ILP-gated Nostr services |
+| **@crosstown/town**      | SDK      | Nostr relay reference implementation    |
 | **@crosstown/core**      | Library  | Core protocol implementation            |
 | **@crosstown/client**    | Library  | Client SDK with payment automation      |
 | **@crosstown/examples**  | Examples | Demo applications                       |
@@ -66,11 +67,6 @@
   - POST /api/request - Request ETH + AGENT tokens
   - GET /api/info - Faucet configuration
   - Rate limiting (1 hour default)
-
-- **[Git Proxy API Contracts](./api-contracts-git-proxy.md)** - ILP-gated Git operations
-  - Proxies Git HTTP operations to Forgejo
-  - Payment gate for push operations
-  - Free clone/pull, paid push
 
 ### Libraries
 
