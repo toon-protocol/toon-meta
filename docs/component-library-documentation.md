@@ -305,7 +305,7 @@ Use `createCrosstownNode()` to run an embedded connector:
 
 ```typescript
 import { createCrosstownNode } from '@crosstown/core';
-import { Connector } from '@agent-society/connector';
+import { Connector } from '@crosstown/connector';
 
 const connector = new Connector({ ilpAddress: 'g.crosstown.peer1' });
 const node = createCrosstownNode({

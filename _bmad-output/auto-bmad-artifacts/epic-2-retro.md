@@ -1,9 +1,9 @@
-# Epic 2 Retrospective: Nostr Relay Reference Implementation & SDK Validation
+# Epic 2 Retrospective: Nostr Relay Reference Implementation, Protocol Stabilization & SDK Validation
 
-**Date:** 2026-03-07
-**Epic:** 2 -- Nostr Relay Reference Implementation & SDK Validation
-**Package:** `@crosstown/town`
-**Status:** Done (5/5 stories complete)
+**Date:** 2026-03-07 (original), updated 2026-03-07 (scope change)
+**Epic:** 2 -- Nostr Relay Reference Implementation, Protocol Stabilization & SDK Validation
+**Package:** `@crosstown/town`, `@crosstown/sdk`, `@crosstown/core`
+**Status:** In Progress (6/8 stories complete — reopened for scope change)
 **Branch:** `epic-2`
 **Commits:** 7 (1 epic start, 1 planning, 5 story commits)
 **Git range:** `e7827c2..9dc7574`
@@ -317,3 +317,45 @@ Epic 2 delivered a complete, tested, npm-publish-ready `@crosstown/town` package
 Three action items are blockers for Epic 3 (entrypoint-town.ts bug fix, npm publish, CI planning). Five are quality improvements (stale docs, dep vulns, structured logger, ATDD lint, CLI secret exposure). Three are process optimizations (story splitting, test count automation, Prettier in review).
 
 The SDK + Town architecture is validated and ready for production economics (Epic 3) and application-layer development (Epic 5).
+
+---
+
+## 12. Scope Change Addendum (2026-03-07)
+
+### Stories Added
+
+Epic 2 has been expanded from 5 original stories (+1 Story 2-6 added post-retro) to 8 stories total. Two stories were moved from Epic 3:
+
+| New Story | Was | Title | Rationale |
+|-----------|-----|-------|-----------|
+| 2-7 | 3.7 | SPSP Removal and Peer Discovery Cleanup | Removes SPSP handshake handler from SDK, simplifies bootstrap phases (4→3), makes settlement info passthrough explicit in `addPeerToConnector()`. The SDK shouldn't ship with dead SPSP code that's immediately removed. |
+| 2-8 | 3.8 | Relay Subscription API on TownInstance | Adds `town.subscribe(relayUrl, filters)` API, replaces bespoke `RelayMonitor`. General-purpose relay subscription mechanism for peer discovery, seed relay lists, and future event kinds. |
+
+### Why the Move
+
+Stories 3.7 and 3.8 modify the SDK's public surface:
+- **3.7 removes** `spsp-handshake-handler.ts` from `@crosstown/sdk`, `createSpspHandshakeHandler()` from `@crosstown/town`, and all SPSP code from `@crosstown/core`
+- **3.7 changes** the bootstrap flow from 4 phases to 3 phases (handshaking eliminated)
+- **3.7 adds** a new AC for settlement info passthrough: `addPeerToConnector()` must populate `chainId`, `tokenNetworkAddress`, `tokenAddress` in the connector's `addPeer()` settlement config, enabling the connector to build self-describing BTP claims
+- **3.8 adds** a new API on `TownInstance` and potentially obsoletes `RelayMonitor`
+
+The original dependency of Story 3.7 on Story 3.1 (USDC migration) was a sequencing artifact, not a technical dependency — SPSP removal is token-agnostic.
+
+### Connector Dependency
+
+Story 2.7 requires `@crosstown/connector` to support self-describing BTP claims (extended `EVMClaimMessage` with `chainId`, `tokenNetworkAddress`, `tokenAddress`) and dynamic on-chain channel verification. See handoff doc: `docs/handoffs/connector-self-describing-claims.md`. This connector work is in progress and will be complete before Story 2.7 begins.
+
+### Impact on Epic 3
+
+Epic 3 shrinks from 8 stories to 6 (3.1-3.6). Its scope is now purely production economics: USDC migration, multi-chain config, x402 endpoint, seed relay discovery, service discovery events, and enriched health endpoint.
+
+### Retro Status
+
+This retrospective covers the original 5 stories (2.1-2.5). Story 2-6 (in progress) and Stories 2.7-2.8 (backlog) are not covered. The retrospective will be re-run when all 8 stories are complete. Sections 1-11 above remain valid as the record of the first phase of Epic 2.
+
+### Updated Action Items
+
+The Epic 3 preparation section (Section 7) is partially obsolete:
+- **x402 + SPSP interaction risk** (Section 7, Risk #2): No longer relevant — SPSP is removed in Epic 2 before x402 is implemented in Epic 3
+- **Epic 3 story count**: Updated from 8 to 6
+- All other action items (A1-A11) remain valid

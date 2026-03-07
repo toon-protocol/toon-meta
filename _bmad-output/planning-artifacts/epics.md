@@ -65,6 +65,8 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - FR-PROD-4: Peer discovery SHALL use a seed relay list model (kind:10036 events on public Nostr relays) instead of requiring a genesis node. Any relay in the seed list can bootstrap a new peer into the network
 - FR-PROD-5: Crosstown nodes SHALL publish kind:10035 (x402 Service Discovery) events advertising payment endpoint, pricing, and supported chains in a machine-readable format
 - FR-PROD-6: The `/health` endpoint SHALL return enriched JSON including peer count, channel count, pricing information, and service capabilities for both human and agent consumption
+- FR-PROD-7: The SPSP handshake (kind:23194/23195) SHALL be removed from the protocol. The peer discovery handshake phase SHALL be eliminated, with chain selection running locally against kind:10032 data and channels opened unilaterally
+- FR-PROD-8: The Town node SHALL expose a relay subscription API allowing developers to subscribe to other Nostr relays for any event kind, enabling extensible peer discovery, seed relay lists, and custom event subscriptions
 
 **Marlin TEE Deployment (derived from Party Mode Decisions 2026-03-05/06)**
 
@@ -164,6 +166,8 @@ FR-PROD-3: Epic 3, Story 3.3 - x402 /publish endpoint
 FR-PROD-4: Epic 3, Story 3.4 - Seed relay discovery
 FR-PROD-5: Epic 3, Story 3.5 - kind:10035 service discovery events
 FR-PROD-6: Epic 3, Story 3.6 - Enriched /health endpoint
+FR-PROD-7: Epic 2, Story 2.7 - SPSP removal and peer discovery cleanup
+FR-PROD-8: Epic 2, Story 2.8 - Relay subscription API on TownInstance
 FR-TEE-1: Epic 4, Story 4.1 - Oyster CVM packaging
 FR-TEE-2: Epic 4, Story 4.2 - Attestation server and kind:10033 events
 FR-TEE-3: Epic 4, Story 4.3 - Attestation-aware peering
@@ -184,10 +188,12 @@ FR-NIP34-6: Epic 5, Story 5.12 - Publish @crosstown/rig package
 A developer can create a working ILP-gated service node from a 12-word seed phrase in ~10 lines of code. The SDK provides unified secp256k1 identity (Nostr + EVM), TOON-native kind-based event handling with raw TOON passthrough for LLM consumption and lazy decode for code handlers, configurable pricing validation, embedded connector lifecycle management, network discovery, and dev mode. Includes the TOON codec extraction prerequisite. Published as `@crosstown/sdk`.
 **FRs covered:** FR-SDK-0, FR-SDK-1, FR-SDK-2, FR-SDK-3, FR-SDK-4, FR-SDK-5, FR-SDK-6, FR-SDK-7, FR-SDK-8, FR-SDK-9, FR-SDK-10, FR-SDK-11, FR-SDK-12, FR-SDK-13, FR-SDK-NEW-1
 
-### Epic 2: Nostr Relay Reference Implementation & SDK Validation
+### Epic 2: Nostr Relay Reference Implementation, Protocol Stabilization & SDK Validation
 
-The existing relay BLS is rebuilt using the SDK's handler registry, proving SDK completeness. Adds Nostr-specific handlers (event storage, SPSP handshake) as documented examples of code-based handlers that decode TOON to structured NostrEvent objects. Published as `@crosstown/town` so anyone can `npm install` and run their own relay to join the network. All existing E2E tests pass. Old experimental `packages/git-proxy/` removed.
-**FRs covered:** FR-SDK-14, FR-SDK-15, FR-SDK-16, FR-RELAY-1
+The existing relay BLS is rebuilt using the SDK's handler registry, proving SDK completeness. Adds Nostr-specific handlers (event storage) as documented examples of code-based handlers that decode TOON to structured NostrEvent objects. Published as `@crosstown/town` so anyone can `npm install` and run their own relay to join the network. All existing E2E tests pass. Old experimental `packages/git-proxy/` removed. Additionally, the SPSP handshake is removed from the protocol and the peer discovery flow is simplified (discover → register → announce), ensuring the SDK ships with a clean, stable protocol surface. A relay subscription API on TownInstance replaces bespoke internal components like `RelayMonitor`.
+**FRs covered:** FR-SDK-14, FR-SDK-15, FR-SDK-16, FR-RELAY-1, FR-PROD-7, FR-PROD-8
+**Stories:** 8 (2.1-2.8)
+**Scope change (2026-03-07):** Stories 3.7 (SPSP Removal) and 3.8 (Relay Subscription API) moved from Epic 3 into Epic 2. These stories modify the SDK's public surface (removing SPSP handler, simplifying bootstrap, replacing RelayMonitor) and should land before the SDK is considered stable. The dependency of Story 3.7 on Story 3.1 (USDC) was a sequencing artifact, not a technical dependency — SPSP removal is token-agnostic.
 
 ### Epic 3: Production Protocol Economics
 
@@ -195,6 +201,7 @@ Production-ready protocol economics — USDC payments, x402 HTTP payment on-ramp
 **FRs covered:** FR-PROD-1, FR-PROD-2, FR-PROD-3, FR-PROD-4, FR-PROD-5, FR-PROD-6
 **Stories:** 6
 **Decision source:** [Party Mode Decision Log](research/marlin-party-mode-decisions-2026-03-05.md) — Decisions 1, 2, 6, 7, 8, 12, 13
+**Scope change (2026-03-07):** Stories 3.7 and 3.8 moved to Epic 2 (see Epic 2 scope change note)
 
 ### Epic 4: Marlin TEE Deployment
 
@@ -511,24 +518,25 @@ So that my service participates in the Crosstown mesh without manual peer config
 **When** `node.start()` is called
 **Then** `BootstrapService` runs layered discovery (genesis peers, ArDrive, env var peers)
 **And** discovered peers are registered with the connector
-**And** SPSP handshakes are performed with each peer
 
 **Given** a started node
 **When** a new kind:10032 (ILP Peer Info) event appears on the monitored relay
 **Then** the `RelayMonitor` detects it and initiates peering with the new peer
 
-**Given** a node config with `settlementNegotiationConfig`
-**When** bootstrap performs SPSP handshakes
-**Then** payment channels are opened where settlement chains intersect
+**Given** a node config with settlement configuration
+**When** bootstrap registers peers
+**Then** payment channels are opened unilaterally using settlement info from the peer's kind:10032 event
 **And** `StartResult.channelCount` reflects opened channels
 
 **Given** a started node
 **When** I call `node.peerWith(pubkey)`
-**Then** the node initiates peering with the specified pubkey (register + SPSP handshake)
+**Then** the node initiates peering with the specified pubkey (register + channel opening using kind:10032 info)
 
 **Given** bootstrap or relay monitor events
 **When** I call `node.on('bootstrap', listener)` before `start()`
 **Then** I receive lifecycle events (phase changes, peer registered, channel opened, etc.)
+
+> _Note: SPSP handshake (kind:23194/23195) was originally part of this flow but is removed in Story 2.7. Settlement negotiation runs locally using kind:10032 data; BTP claims are self-describing with on-chain verification._
 
 ### Story 1.10: Dev Mode
 
@@ -582,9 +590,9 @@ So that I can start building immediately with TypeScript types and documentation
 
 ---
 
-## Epic 2: Nostr Relay Reference Implementation & SDK Validation
+## Epic 2: Nostr Relay Reference Implementation, Protocol Stabilization & SDK Validation
 
-The existing relay BLS is rebuilt using the SDK's handler registry, proving SDK completeness. Adds Nostr-specific handlers (event storage, SPSP handshake) as documented examples of code-based handlers that decode TOON to structured NostrEvent objects. Serves as the reference implementation for other developers building their own services. All existing E2E tests pass. Published as `@crosstown/town` so anyone can `npm install` and run their own relay to join the network. Old experimental `packages/git-proxy/` removed.
+The existing relay BLS is rebuilt using the SDK's handler registry, proving SDK completeness. Adds Nostr-specific handlers (event storage) as documented examples of code-based handlers that decode TOON to structured NostrEvent objects. Serves as the reference implementation for other developers building their own services. All existing E2E tests pass. Published as `@crosstown/town` so anyone can `npm install` and run their own relay to join the network. Old experimental `packages/git-proxy/` removed. The SPSP handshake is removed from the protocol and peer discovery is simplified, ensuring the SDK ships clean. A relay subscription API on TownInstance provides a general-purpose mechanism for subscribing to remote relays.
 
 ### Story 2.1: Relay Event Storage Handler
 
@@ -610,7 +618,9 @@ So that the existing relay functionality works on the SDK and serves as a refere
 **When** an event from the node's own pubkey arrives
 **Then** pricing is bypassed by the SDK (self-write) and the event is stored
 
-### Story 2.2: SPSP Handshake Handler
+### Story 2.2: SPSP Handshake Handler _(DEPRECATED — removed in Story 2.7)_
+
+> **Deprecation Notice:** This story was implemented as part of Epic 2 but the SPSP handshake (kind:23194/23195) is removed from the protocol in Story 2.7. The handshake is unnecessary because: (1) kind:10032 already publishes all settlement info publicly, (2) no STREAM protocol is used (TOON-over-ILP directly), (3) BTP claims can be made self-describing with chainId/tokenNetworkAddress/tokenAddress, and (4) connectors can verify payment channels on-chain dynamically. The `createSpspHandshakeHandler()` in `@crosstown/town` and all SPSP code in `@crosstown/core` are removed in Story 2.7.
 
 As a **relay operator**,
 I want SPSP request handling (kind:23194) reimplemented as an SDK handler,
@@ -683,7 +693,7 @@ So that the codebase is clean and developers have a clear example to follow.
 
 **Given** the SDK-based relay entrypoint
 **When** a developer reads the example
-**Then** it demonstrates: seed phrase identity, kind-based handler registration, `ctx.decode()` for code handlers, SPSP handling, settlement negotiation, and lifecycle management
+**Then** it demonstrates: seed phrase identity, kind-based handler registration, `ctx.decode()` for code handlers, settlement configuration, and lifecycle management
 **And** inline comments explain each SDK pattern
 
 **Given** the example code
@@ -696,7 +706,7 @@ As a **network operator**,
 I want to `npm install @crosstown/town` and deploy a relay with minimal configuration,
 So that I can join the Crosstown network by running a single command with my seed phrase.
 
-**Dependencies:** Stories 2.1, 2.2, 2.3 (relay handlers and E2E validation must pass)
+**Dependencies:** Stories 2.1, 2.3 (relay handler and E2E validation must pass)
 
 **Acceptance Criteria:**
 
@@ -724,6 +734,119 @@ So that I can join the Crosstown network by running a single command with my see
 **When** published to npm with `--access public`
 **Then** it is available as `@crosstown/town` with correct ESM exports and TypeScript declarations
 
+### Story 2.7: SPSP Removal and Peer Discovery Cleanup
+
+> **Moved from Epic 3 (was Story 3.7) on 2026-03-07.** The SPSP removal modifies the SDK's public surface and bootstrap flow — it belongs in Epic 2 to ensure the SDK ships with a clean, stable protocol. The original dependency on Story 3.1 (USDC) was a sequencing artifact; SPSP removal is token-agnostic.
+
+As a **protocol developer**,
+I want the SPSP handshake removed from the protocol and the peer discovery flow simplified,
+So that peers can transact immediately after discovery without a negotiation round-trip.
+
+**Dependencies:** Stories 2.1, 2.3 (relay handlers and E2E validation must pass first). Connector must support self-describing BTP claims (see below).
+
+**Background:**
+
+The SPSP handshake (kind:23194/23195) exists to negotiate settlement details between peers before they can exchange ILP packets. However, every piece of information SPSP negotiates is already published in kind:10032 (ILP Peer Info):
+
+- `destinationAccount` (ILP address) → kind:10032 `ilpAddress`
+- `sharedSecret` → Not needed (no STREAM protocol; TOON-over-ILP directly)
+- `negotiatedChain` → Deterministic from kind:10032 `supportedChains` intersection
+- `settlementAddress` → kind:10032 `settlementAddresses`
+- `tokenAddress` → kind:10032 `preferredTokens`
+- `tokenNetworkAddress` → kind:10032 `tokenNetworks`
+- `channelId` → Opened unilaterally by sender
+
+Since Crosstown uses TOON-over-ILP (not STREAM), there is no shared secret to negotiate. The sender reads the peer's kind:10032 from the relay, selects the best matching chain locally, and opens a channel unilaterally. The connector handles BTP claim signing and verification independently (see connector handoff doc).
+
+**Acceptance Criteria:**
+
+**Given** the peer discovery flow currently with phases: discovering → registering → handshaking → announcing
+**When** this story is completed
+**Then** the handshaking phase is removed
+**And** phases are: discovering → registering → announcing
+**And** channel opening happens during the registration phase using kind:10032 settlement data
+**And** chain selection runs locally against the peer's kind:10032 `supportedChains` (set intersection + token preference)
+
+**Given** `addPeerToConnector()` in `BootstrapService` currently passes only `id`, `url`, and `routes` to the connector
+**When** this story is completed
+**Then** `addPeerToConnector()` populates the `settlement` field in `ConnectorAdminClient.addPeer()` with the chain-selected data from the peer's kind:10032: `chainId`, `tokenNetworkAddress`, `tokenAddress`, `evmAddress` (peer's settlement address), and `channelId` (from unilateral channel opening)
+**And** this settlement info enables the connector to build self-describing BTP claims with `chainId`, `tokenNetworkAddress`, and `tokenAddress` fields
+
+**Given** `node.peerWith(pubkey)` currently performs connector registration + SPSP handshake
+**When** this story is completed
+**Then** `peerWith()` performs: read peer's kind:10032 from relay → select chain locally → register with connector (including settlement info) → open channel unilaterally → done
+**And** no kind:23194/23195 events are created or processed
+
+**Given** the SPSP code in `@crosstown/core` and `@crosstown/town`
+**When** this story is completed
+**Then** `NostrSpspServer`, `NostrSpspClient`, SPSP event builders/parsers are removed from `@crosstown/core`
+**And** `createSpspHandshakeHandler()` is removed from `@crosstown/town`
+**And** Event kinds 23194 and 23195 are no longer used by the protocol
+**And** The SDK stub `spsp-handshake-handler.ts` is removed from `@crosstown/sdk`
+**And** `SPSP_REQUEST_KIND` and `SPSP_RESPONSE_KIND` constants are removed
+
+**Given** the `RelayMonitor` component in `@crosstown/core`
+**When** this story is completed
+**Then** `RelayMonitor` is evaluated for removal or simplification, since the Town node's own relay subscriptions can serve the same purpose (see Story 2.8)
+
+**Given** all existing E2E tests
+**When** run against the updated peer discovery flow
+**Then** all tests pass with the simplified flow (no SPSP handshake)
+**And** payment channel creation works via unilateral opening
+
+**Connector dependency:** The `@crosstown/connector` must support self-describing BTP claims (extended `EVMClaimMessage` with `chainId`, `tokenNetworkAddress`, `tokenAddress`) and dynamic on-chain channel verification. See handoff doc: `docs/handoffs/connector-self-describing-claims.md`
+
+**Test Approach:** Integration tests for simplified peer discovery flow without SPSP, unilateral channel opening using kind:10032 data, and E2E validation of the complete discover → register → announce → transact flow.
+
+### Story 2.8: Relay Subscription API on TownInstance
+
+> **Moved from Epic 3 (was Story 3.8) on 2026-03-07.** This provides the general-purpose relay subscription API that replaces bespoke `RelayMonitor`, fitting naturally with Epic 2's protocol stabilization scope.
+
+As a **service developer**,
+I want the Town node to expose methods for subscribing to other Nostr relays,
+So that I can discover peers, seed relays, and custom event kinds through a programmable API rather than relying on hardcoded internal components.
+
+**Dependencies:** None (can be developed in parallel with other Epic 2 stories)
+
+**Background:**
+
+The Town node is a Nostr relay that can serve events and accept subscriptions. However, `TownInstance` currently exposes no methods for subscribing to *other* relays. Peer discovery (kind:10032), seed relay lists (kind:10036, Story 3.4), and future use cases (kind:10033 TEE attestation, custom service kinds) all require subscribing to remote relays. Rather than building separate internal components for each subscription type (e.g., `RelayMonitor`, `SeedRelayDiscovery`), the Town should expose a general-purpose relay subscription API that any of these features can use.
+
+**Acceptance Criteria:**
+
+**Given** a running `TownInstance`
+**When** I call `town.subscribe(relayUrl, filters)`
+**Then** the Town opens a WebSocket connection to the specified relay
+**And** subscribes with the provided Nostr filters (kinds, authors, etc.)
+**And** received events are stored in the Town's own EventStore
+**And** a `Subscription` handle is returned for lifecycle management
+
+**Given** an active subscription
+**When** I call `subscription.close()`
+**Then** the WebSocket subscription is cleanly closed
+**And** no further events are received from that relay
+
+**Given** a subscription to a relay that disconnects
+**When** the WebSocket connection drops
+**Then** the Town automatically reconnects with exponential backoff
+**And** resumes the subscription from the last seen event timestamp
+
+**Given** the Town is stopped via `town.stop()`
+**When** there are active outbound subscriptions
+**Then** all subscriptions are cleanly closed during shutdown
+
+**Given** Story 3.4 (Seed Relay Discovery)
+**When** implemented using this subscription API
+**Then** seed relay discovery is simply `town.subscribe(publicRelayUrl, [{ kinds: [10036] }])`
+**And** no separate `SeedRelayDiscovery` component is needed
+
+**Given** peer discovery for kind:10032
+**When** implemented using this subscription API
+**Then** peer discovery is simply `town.subscribe(peerRelayUrl, [{ kinds: [10032] }])`
+**And** the existing `RelayMonitor` can be replaced or simplified
+
+**Test Approach:** Unit tests for subscription lifecycle (open, receive events, close, reconnect). Integration test subscribing to a local relay and verifying events arrive in the EventStore.
+
 ---
 
 ## Epic 3: Production Protocol Economics
@@ -735,10 +858,10 @@ Production-ready protocol economics — USDC payments, x402 HTTP payment on-ramp
 **Key architectural decisions:**
 - USDC replaces AGENT token for all user-facing payments (Decision 1)
 - x402 `/publish` endpoint on the Crosstown node (not a separate gateway) constructs the same ILP PREPARE packets the network already routes (Decision 8)
-- SPSP is the handshake for ILP-native clients; x402 replaces SPSP for HTTP-native clients (Decision 12)
 - The BLS handles only `/handle-packet` — all public-facing endpoints belong to the node (Decision 13)
 - Seed relay list replaces genesis hub-and-spoke topology (Decision 7)
 - Arbitrum One is the production chain; Anvil for dev, Sepolia for staging (Decision 6)
+- SPSP removal and bootstrap simplification moved to Epic 2 (Decision 12, revised — see Epic 2 scope change note)
 
 ### Story 3.1: USDC Token Migration
 
@@ -833,7 +956,7 @@ So that I can interact with Crosstown without understanding ILP or running an IL
 
 **Given** the destination relay is multiple hops away
 **When** the node needs to price the request
-**Then** the node queries the destination's SPSP endpoint for ILP address and base pricing
+**Then** the node reads the destination's kind:10032 event from the relay for ILP address and pricing info
 **And** adds a routing buffer (configurable, default 5-10%) for multi-hop overhead
 **And** returns the all-in USDC price in the 402 response
 
@@ -1184,7 +1307,7 @@ As a **developer**,
 I want to browse a repository's file tree and view individual file contents,
 So that I can explore the codebase through the web UI.
 
-**Dependencies:** Story 3.7 (layout must exist)
+**Dependencies:** Story 5.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1210,7 +1333,7 @@ As a **developer**,
 I want to view commit history and individual commit diffs,
 So that I can understand the change history of a repository.
 
-**Dependencies:** Story 3.7 (layout must exist)
+**Dependencies:** Story 5.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1235,7 +1358,7 @@ As a **developer**,
 I want to view per-line blame information for any file,
 So that I can see who last modified each line and when.
 
-**Dependencies:** Story 3.7 (layout must exist)
+**Dependencies:** Story 5.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1254,7 +1377,7 @@ As a **developer**,
 I want to view issues, pull requests, and comments in the web UI,
 So that I can follow project discussions sourced from Nostr events without needing a Nostr client.
 
-**Dependencies:** Story 3.7 (layout must exist), Story 3.1 (repositories must exist)
+**Dependencies:** Story 5.7 (layout must exist), Story 5.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
