@@ -1,4 +1,4 @@
-# Deep Research Results: Signal-Grade NIP Use Cases for Agent-Runtime + Agent-Society
+# Deep Research Results: Signal-Grade NIP Use Cases for Agent-Runtime + Crosstown
 
 **Research Date:** 2026-02-09
 **Methodology:** Full NIP specification analysis against the Signal Test (Primitive Fit, Implementation Distance, Economic Model, Differentiation, Composability)
@@ -505,7 +505,7 @@ The use cases above (DVMs, zaps, labels, badges, swarms) assume a functioning so
 
 | NIP                               | Status      | Event Kinds                               | Implementation                                                                  |
 | --------------------------------- | ----------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
-| **NIP-01** (Basic Protocol)       | `mandatory` | 0 (metadata), 1 (text note) + kind ranges | Agent-society relay: full read/write, filter matching, event verification       |
+| **NIP-01** (Basic Protocol)       | `mandatory` | 0 (metadata), 1 (text note) + kind ranges | Crosstown relay: full read/write, filter matching, event verification       |
 | **NIP-02** (Follow Lists)         | `final`     | 3 (follow list, replaceable)              | SocialPeerDiscovery: kind:3 → query kind:10032 → SPSP handshake → register peer |
 | **NIP-44** (Versioned Encryption) | `draft`     | N/A (encryption primitive)                | SPSP negotiation encryption (kind:23194/23195)                                  |
 

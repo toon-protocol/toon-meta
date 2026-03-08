@@ -12,7 +12,7 @@ The key economic design: **the bootstrap node (peer1) earns routing fees** from 
 
 - Agent-runtime Epic 20 (bidirectional middleware — `POST /ilp/send`, settlement on `POST /admin/peers`)
 - Agent-runtime Epic 21 (payment channel Admin APIs — channel open/close/deposit/query, balance queries)
-- Agent-Society Epic 7 (settlement negotiation — chain matching, SPSP extensions)
+- Crosstown Epic 7 (settlement negotiation — chain matching, SPSP extensions)
 
 ## Existing System Context
 
@@ -341,7 +341,7 @@ The key economic design: **the bootstrap node (peer1) earns routing fees** from 
 
 1. `peerAddress` flows through from SPSP request to `channelClient.openChannel()`
 2. Agent-runtime changes documented: `POST /admin/channels` accepts `peerAddress`, `POST /admin/peers` made idempotent
-3. Agent-society side verified as correct (peerAddress already in interface)
+3. Crosstown side verified as correct (peerAddress already in interface)
 
 ---
 
@@ -379,8 +379,8 @@ The key economic design: **the bootstrap node (peer1) earns routing fees** from 
 
 ## Related Work
 
-- **Agent-Society Epic 6:** Decentralized peer discovery (provides discovery layer)
-- **Agent-Society Epic 7:** SPSP settlement negotiation (provides negotiation protocol)
+- **Crosstown Epic 6:** Decentralized peer discovery (provides discovery layer)
+- **Crosstown Epic 7:** SPSP settlement negotiation (provides negotiation protocol)
 - **Agent-Runtime Epic 20:** Bidirectional middleware (provides `POST /ilp/send` and settlement on `POST /admin/peers`)
 - **Agent-Runtime Epic 21:** Payment Channel Admin APIs (channel open/close/deposit/query, balance queries — used during SPSP)
 - **Agent-Runtime Epic 17:** BTP claim exchange (automatic claim exchange after channel opens)

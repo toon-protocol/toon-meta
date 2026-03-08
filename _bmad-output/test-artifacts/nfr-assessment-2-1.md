@@ -122,10 +122,10 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** CONCERNS
 - **Threshold:** 0 critical, <3 high vulnerabilities in direct dependencies
-- **Actual:** `pnpm audit` reports 33 vulnerabilities (2 critical, 12 high). All are in transitive dependencies of `@agent-society/connector` (specifically `fast-xml-parser` via AWS SDK).
-- **Evidence:** `pnpm audit` output -- 33 vulnerabilities: 11 low, 8 moderate, 12 high, 2 critical; all traced to `@agent-society/connector > @aws-sdk/* > fast-xml-parser`
+- **Actual:** `pnpm audit` reports 33 vulnerabilities (2 critical, 12 high). All are in transitive dependencies of `@crosstown/connector` (specifically `fast-xml-parser` via AWS SDK).
+- **Evidence:** `pnpm audit` output -- 33 vulnerabilities: 11 low, 8 moderate, 12 high, 2 critical; all traced to `@crosstown/connector > @aws-sdk/* > fast-xml-parser`
 - **Findings:** These vulnerabilities are NOT in the Town package or its direct dependencies. They are in the connector's transitive dependency chain (AWS SDK). The Town package (`@crosstown/town`) has no direct dependency on any vulnerable package. However, the monorepo-wide vulnerability count exceeds the threshold. Marked CONCERNS because this requires upstream action (connector package update) rather than Story 2.1 changes.
-- **Recommendation:** Track as a backlog item: update `@agent-society/connector` to a version with patched `fast-xml-parser`. This is outside Story 2.1 scope.
+- **Recommendation:** Track as a backlog item: update `@crosstown/connector` to a version with patched `fast-xml-parser`. This is outside Story 2.1 scope.
 
 ### Compliance (if applicable)
 
@@ -264,7 +264,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 2 quick wins identified for immediate implementation:
 
 1. **Update connector dependency** (Security) - MEDIUM - 1-2 hours
-   - Update `@agent-society/connector` to resolve transitive `fast-xml-parser` vulnerabilities
+   - Update `@crosstown/connector` to resolve transitive `fast-xml-parser` vulnerabilities
    - No code changes needed -- dependency version bump only
 
 2. **Add handler-level error logging** (Reliability) - LOW - 30 minutes
@@ -282,7 +282,7 @@ None. No CRITICAL or HIGH priority issues found for Story 2.1.
 ### Short-term (Next Milestone) - MEDIUM Priority
 
 1. **Resolve transitive dependency vulnerabilities** - MEDIUM - 2 hours - Dev
-   - Update `@agent-society/connector` to a version with patched AWS SDK dependencies
+   - Update `@crosstown/connector` to a version with patched AWS SDK dependencies
    - Run `pnpm audit` to verify 0 critical/high vulnerabilities
    - This is a monorepo-wide concern, not specific to Story 2.1
 

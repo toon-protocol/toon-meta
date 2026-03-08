@@ -213,7 +213,7 @@ Implemented the SPSP Handshake Handler (`createSpspHandshakeHandler`) in the `@c
 - **Traceability**: pass — all 3 ACs fully covered, all 7 test-design IDs implemented, all 4 risk IDs mitigated
 
 ## Known Risks & Gaps
-- **Transitive dependency vulnerabilities**: 33 findings (2 critical, 12 high) via `fast-xml-parser` in `@agent-society/connector` deps — project-wide, not story-specific
+- **Transitive dependency vulnerabilities**: 33 findings (2 critical, 12 high) via `fast-xml-parser` in `@crosstown/connector` deps — project-wide, not story-specific
 - **No CI pipeline**: NFR assessment flagged this as a project-level gap
 - **Branch coverage 77.77%**: Slightly below 80% target due to untested `adminClient.addPeer()` error catch path (addressed by code review #3 adding runtime validation test)
 - **E2E channel validation deferred**: On-chain channel state verification deferred to Story 2.3's `2.3-E2E-002` test

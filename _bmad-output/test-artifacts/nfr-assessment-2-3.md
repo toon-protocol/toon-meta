@@ -127,7 +127,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Threshold:** 0 critical, <3 high vulnerabilities in dependencies
 - **Actual:** 2 critical, 12 high, 8 moderate, 11 low vulnerabilities (33 total)
 - **Evidence:** `pnpm audit` output (2026-03-06)
-- **Findings:** Critical vulnerabilities include: (1) protobufjs Prototype Pollution, (2) Elliptic private key extraction in ECDSA. High vulnerabilities include ws DoS, secp256k1-node private key extraction, Axios prototype pollution, minimatch ReDoS (multiple), Rollup path traversal, @hono/node-server authorization bypass, and Hono arbitrary file access. Most are transitive dependencies from `@agent-society/connector`. The Hono and @hono/node-server vulnerabilities are particularly concerning as they are direct dependencies of the Docker entrypoint.
+- **Findings:** Critical vulnerabilities include: (1) protobufjs Prototype Pollution, (2) Elliptic private key extraction in ECDSA. High vulnerabilities include ws DoS, secp256k1-node private key extraction, Axios prototype pollution, minimatch ReDoS (multiple), Rollup path traversal, @hono/node-server authorization bypass, and Hono arbitrary file access. Most are transitive dependencies from `@crosstown/connector`. The Hono and @hono/node-server vulnerabilities are particularly concerning as they are direct dependencies of the Docker entrypoint.
 
 ### Compliance (if applicable)
 
@@ -285,7 +285,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 1. **Resolve critical dependency vulnerabilities** - CRITICAL - 2-4 hours - Dev
    - 2 critical vulnerabilities: protobufjs Prototype Pollution, Elliptic private key extraction in ECDSA
-   - Steps: (1) Check if @agent-society/connector has patched versions, (2) Use pnpm overrides for transitive dependencies, (3) Re-run `pnpm audit`
+   - Steps: (1) Check if @crosstown/connector has patched versions, (2) Use pnpm overrides for transitive dependencies, (3) Re-run `pnpm audit`
    - Validation: `pnpm audit` shows 0 critical vulnerabilities
 
 2. **Resolve high-severity Hono vulnerabilities** - HIGH - 1-2 hours - Dev
@@ -480,7 +480,7 @@ nfr_assessment:
 
 ## Recommendations Summary
 
-**Release Blocker:** None -- no release blockers identified. The 2 critical dependency vulnerabilities are in transitive dependencies of @agent-society/connector and should be addressed but are not blocking the SDK relay functionality.
+**Release Blocker:** None -- no release blockers identified. The 2 critical dependency vulnerabilities are in transitive dependencies of @crosstown/connector and should be addressed but are not blocking the SDK relay functionality.
 
 **High Priority:** (1) Resolve 2 critical + 12 high dependency vulnerabilities, (2) Update Hono/node-server direct dependencies
 

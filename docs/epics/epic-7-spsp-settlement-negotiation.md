@@ -327,6 +327,6 @@ interface SpspResponse {
 
 - **Agent-Runtime Epic 20:** Bidirectional middleware (`POST /ilp/send`, settlement on `POST /admin/peers`)
 - **Agent-Runtime Epic 21:** Payment Channel Admin APIs (channel CRUD, deposit, close, balance queries — used by this epic's SPSP negotiation)
-- **Agent-Society Epic 6:** Decentralized peer discovery (provides the discovery layer this epic's negotiation builds on)
-- **Agent-Society Epic 8:** Network bootstrap (uses this epic's settlement negotiation in the bootstrap flow)
+- **Crosstown Epic 6:** Decentralized peer discovery (provides the discovery layer this epic's negotiation builds on)
+- **Crosstown Epic 8:** Network bootstrap (uses this epic's settlement negotiation in the bootstrap flow)
 - **Reference:** `docs/architecture/payment-channel-reference.md` — Connector SDK interfaces (internal to connector, not called by BLS)
