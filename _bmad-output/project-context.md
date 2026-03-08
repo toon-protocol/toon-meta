@@ -135,7 +135,7 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 **x402 Integration:**
 - Crosstown nodes act as x402 facilitators via `/publish` HTTP endpoint on the node (not a separate gateway)
 - x402 constructs the same ILP PREPARE packets (with TOON data) that the network already routes
-- SPSP handshake (kind:23194/23195) removed from protocol (Epic 3 Story 3.7); kind:10032 provides all settlement info, BTP claims are self-describing with on-chain verification
+- SPSP handshake (kind:23194/23195) removed from protocol (Story 2.7); kind:10032 provides all settlement info, BTP claims are self-describing with on-chain verification
 - Both rails produce identical packets -- the BLS and destination relay cannot distinguish them
 
 **Component Boundaries (Critical):**
@@ -156,8 +156,8 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 | 10034 | TEE Verification | Proposed (Epic 4) |
 | 10035 | x402 Service Discovery | Proposed (Epic 3) |
 | 10036 | Seed Relay List | Proposed (Epic 3) |
-| ~~23194~~ | ~~SPSP Request~~ | Deprecated (removed in Epic 3 Story 3.7) |
-| ~~23195~~ | ~~SPSP Response~~ | Deprecated (removed in Epic 3 Story 3.7) |
+| ~~23194~~ | ~~SPSP Request~~ | Removed (Story 2.7) |
+| ~~23195~~ | ~~SPSP Response~~ | Removed (Story 2.7) |
 
 **Terminology:**
 - "ILP client" not "ILP/SPSP client" -- SPSP is not part of the protocol
@@ -182,7 +182,6 @@ packages/sdk/src/
 ├── payment-handler-bridge.ts   # isTransit fire-and-forget vs await semantics
 ├── create-node.ts              # createNode() composition + ServiceNode lifecycle
 ├── event-storage-handler.ts    # Stub -- throws, directs users to @crosstown/town
-├── spsp-handshake-handler.ts   # Stub -- to be removed in Epic 3 Story 3.7 (SPSP deprecated)
 └── __integration__/
     ├── create-node.test.ts
     └── network-discovery.test.ts
@@ -236,14 +235,12 @@ The Town package is the main deliverable of Epic 2. It validates the SDK by reim
 
 ```
 packages/town/src/
-├── index.ts                    # Public API: startTown, createEventStorageHandler (SPSP handler removed in Epic 3 Story 3.7)
+├── index.ts                    # Public API: startTown, createEventStorageHandler
 ├── town.ts                     # startTown() -- programmatic API (~720 lines including types, config resolution, lifecycle)
 ├── cli.ts                      # CLI entrypoint (parseArgs + env vars + startTown delegation)
 └── handlers/
     ├── event-storage-handler.ts        # Decode -> store -> accept (~15 lines of logic)
     ├── event-storage-handler.test.ts   # Unit + pipeline tests (24K)
-    ├── spsp-handshake-handler.ts       # NIP-44 decrypt, SPSP params, settlement, peer reg (~160 lines)
-    ├── spsp-handshake-handler.test.ts  # Unit + pipeline tests (33K)
     └── x402-publish-handler.test.ts    # ATDD RED phase stubs for Epic 3 Story 3.3
 ```
 
@@ -281,7 +278,6 @@ interface TownInstance {
 
 // Handler factories (also exported individually)
 createEventStorageHandler(config: EventStorageHandlerConfig): Handler
-createSpspHandshakeHandler(config: SpspHandshakeHandlerConfig): Handler
 ```
 
 **Town CLI:**
@@ -318,7 +314,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 
 **Key Epic 2 Design Decisions:**
 
-- **SDK stubs updated:** `createEventStorageHandler()` in SDK throws with clear message directing users to `@crosstown/town` (SPSP stub to be removed in Epic 3 Story 3.7)
+- **SDK stubs updated:** `createEventStorageHandler()` in SDK throws with clear message directing users to `@crosstown/town`
 - **Handler data bypass pattern:** Handlers that need to return data in the ILP FULFILL return `{ accept: true, fulfillment: 'default-fulfillment', data }` directly (bypasses `ctx.accept()`) because the response must be in the top-level `data` field for the connector to relay it back
 - **External connector only:** `startTown()` requires `connectorUrl` -- embedded connector mode is deferred
 - **Reference implementation:** `docker/src/entrypoint-town.ts` demonstrates the same SDK composition with individual components (Approach A) instead of `startTown()` (Approach B), providing a Docker-native reference
@@ -357,7 +353,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 
 **Error Handling:**
 
-- **Core errors:** `CrosstownError` (base), `InvalidEventError`, `PeerDiscoveryError` (SpspError/SpspTimeoutError deprecated, removed in Epic 3 Story 3.7)
+- **Core errors:** `CrosstownError` (base), `InvalidEventError`, `PeerDiscoveryError`
 - **SDK errors (extend CrosstownError):** `IdentityError`, `NodeError`, `HandlerError`, `VerificationError`, `PricingError`
 - **Error code mapping to ILP:** VerificationError -> F06, PricingError -> F04, HandlerError -> T00, No handler -> F00
 - **All async operations must handle errors** -- No unhandled promise rejections
@@ -377,7 +373,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 **Handler Pattern:**
 
 - **Handlers use void return with `ctx` methods** -- Call `ctx.accept()` or `ctx.reject()`, do NOT return response objects
-- **Exception: handlers returning data in ILP FULFILL** -- Return `{ accept: true, fulfillment, data }` directly to put response in top-level `data` field (previously used by SPSP handler, pattern still valid for future handlers)
+- **Exception: handlers returning data in ILP FULFILL** -- Return `{ accept: true, fulfillment, data }` directly to put response in top-level `data` field (pattern valid for handlers that need to relay data back via ILP FULFILL)
 - **Handler signature:** `(ctx: HandlerContext) => Promise<HandlerResponse>`
 - **Handler registration is chainable** -- `createNode(config).on(kind1, h1).on(kind2, h2).onDefault(hd)`
 - **`node.on(number, ...)` = handler registration, `node.on(string, ...)` = lifecycle event listener** -- Disambiguated by first argument type
@@ -415,7 +411,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 **Handler Implementation Pattern:**
 
 - **Event storage handler is ~15 lines of logic** -- Decode -> store -> accept. All cross-cutting concerns (verification, pricing, self-write bypass) handled by SDK pipeline
-- **SPSP handler (~160 lines) deprecated** -- Will be removed in Epic 3 Story 3.7. Settlement negotiation moves to bootstrap phase using kind:10032 data
+- **Settlement during registration** -- Settlement negotiation runs locally during peer registration using kind:10032 data (no separate handshake phase)
 - **Error propagation** -- Handler errors propagate to SDK dispatch error boundary, which converts to `{ accept: false, code: 'T00', message: 'Internal error' }`
 - **Non-fatal peer registration** -- Peer registration errors are logged and do not prevent handler response
 
@@ -440,8 +436,8 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 
 - **Always mock SimplePool in tests** -- Never connect to live relays in unit or integration tests (use `vi.mock('nostr-tools')`)
 - **Validate event signatures before processing** -- Never trust unsigned/unverified Nostr events
-- **Use proper event kinds** -- Kind 10032 (ILP Peer Info). Kinds 23194/23195 (SPSP) are deprecated and will be removed in Epic 3 Story 3.7
-- **NIP-44 encryption** -- Available for private event exchange when needed (SPSP use case removed)
+- **Use proper event kinds** -- Kind 10032 (ILP Peer Info). Kinds 23194/23195 (SPSP) have been removed (Story 2.7)
+- **NIP-44 encryption** -- Available for private event exchange when needed
 - **SimplePool `ReferenceError: window is not defined` is non-fatal** -- This error appears in Node.js but doesn't break functionality
 
 **Hono (Web Framework):**
@@ -548,7 +544,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Classes:** PascalCase (`SocialPeerDiscovery`, `HandlerRegistry`)
 - **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`)
 - **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`, `startTown`)
-- **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `createEventStorageHandler`, `createSpspHandshakeHandler`)
+- **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `createEventStorageHandler`)
 - **Lifecycle functions:** `start*` prefix (`startTown`)
 - **Constants:** UPPER_SNAKE_CASE (`ILP_PEER_INFO_KIND`, `MAX_PAYLOAD_BASE64_LENGTH`)
 - **Type aliases:** PascalCase (`TrustScore`, `BootstrapPhase`, `ToonRoutingMeta`, `ResolvedTownConfig`)
@@ -648,13 +644,13 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 **Critical Edge Cases:**
 
 - **SimplePool `window is not defined` error is non-fatal** -- This ReferenceError appears in Node.js but doesn't break functionality
-- **SPSP removed from protocol** -- Kinds 23194/23195 deprecated in Epic 3 Story 3.7; settlement negotiation uses kind:10032 public data + on-chain verification
+- **SPSP removed from protocol** -- Kinds 23194/23195 removed in Story 2.7; settlement negotiation uses kind:10032 public data + on-chain verification
 - **Payment amounts must match TOON length** -- `publishEvent` amount = `basePricePerByte * toonData.length` (not hardcoded)
 - **Relay WebSocket returns TOON strings** -- EVENT messages contain TOON strings, not JSON objects
 - **Channel nonce conflicts require retry** -- Payment channel operations may need retry logic for blockchain transaction conflicts
-- **SDK stubs direct to Town** -- `createEventStorageHandler()` in SDK throws with message directing users to `@crosstown/town` (SPSP stub removed in Epic 3 Story 3.7)
+- **SDK stubs direct to Town** -- `createEventStorageHandler()` in SDK throws with message directing users to `@crosstown/town`
 - **Handler fulfillment is placeholder** -- `ctx.accept()` returns `fulfillment: 'default-fulfillment'`; in production BLS computes SHA-256(eventId)
-- **Data-returning handlers bypass ctx.accept()** -- Return response directly because `data` must be top-level for ILP FULFILL relay (SPSP handler deprecated, pattern still valid)
+- **Data-returning handlers bypass ctx.accept()** -- Return response directly because `data` must be top-level for ILP FULFILL relay (pattern valid for future handlers)
 
 **Security Rules:**
 

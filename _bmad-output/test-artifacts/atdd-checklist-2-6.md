@@ -22,6 +22,7 @@ inputDocuments:
 **Date:** 2026-03-07
 **Author:** Jonathan
 **Primary Test Level:** Unit
+**TDD Phase:** GREEN (all 22 tests passing)
 
 ---
 
@@ -46,47 +47,129 @@ Add a `publishEvent(event, options)` method to the SDK's `ServiceNode` interface
 
 ---
 
-## Failing Tests Created (RED Phase)
+## Test Design Traceability
 
-### Unit Tests (9 tests)
+| ATDD Test ID | Test Name | AC | Priority | Level | Status |
+|---|---|---|---|---|---|
+| T-2.6-01 | publishEvent() TOON-encodes the event and sends via connector.sendPacket() with correct parameters | #1 | P0 | Unit | GREEN |
+| T-2.6-02 | publishEvent() computes correct amount as basePricePerByte * toonData.length | #1 | P0 | Unit | GREEN |
+| T-2.6-03 | publishEvent() returns { success: true, eventId, fulfillment } when connector accepts | #4 | P0 | Unit | GREEN |
+| T-2.6-04 | publishEvent() returns { success: false, eventId, code, message } when connector rejects | #4 | P0 | Unit | GREEN |
+| T-2.6-05 | publishEvent() throws NodeError when node not started | #3 | P1 | Unit | GREEN |
+| T-2.6-06 | publishEvent() throws NodeError when options is undefined | #2 | P1 | Unit | GREEN |
+| T-2.6-07 | publishEvent() throws NodeError when destination is empty string | #2 | P1 | Unit | GREEN |
+| T-2.6-08 | publishEvent() uses custom basePricePerByte from config when provided | #1 | P2 | Unit | GREEN |
+| T-2.6-09 | publishEvent() uses default basePricePerByte (10n) when not configured | #1 | P2 | Unit | GREEN |
+| T-2.6-10 | publishEvent() throws NodeError after node.stop() is called | #3 | P2 | Unit | GREEN |
+| T-2.6-11 | publishEvent() computes exact amount matching basePricePerByte * TOON byte length | #1 | P2 | Unit | GREEN |
+| T-2.6-12 | publishEvent() wraps TOON encoder errors in NodeError | #1 | P2 | Unit | GREEN |
+| T-2.6-13 | publishEvent() wraps connector sendPacket errors in NodeError | #1 | P1 | Unit | GREEN |
+| T-2.6-14 | publishEvent() wraps non-Error thrown values in NodeError with String() conversion | #1 | P2 | Unit | GREEN |
+| T-2.6-15 | publishEvent() propagates NodeError directly without re-wrapping | #1 | P1 | Unit | GREEN |
+| T-2.6-16 | publishEvent() scales amount proportionally with event content size | #1 | P2 | Unit | GREEN |
+| T-2.6-17 | publishEvent() uses the configured toonEncoder for encoding | #1 | P1 | Unit | GREEN |
+| T-2.6-18 | publishEvent() success result does not include code or message fields | #4 | P1 | Unit | GREEN |
+| T-2.6-19 | publishEvent() rejection result does not include fulfillment field | #4 | P1 | Unit | GREEN |
+| T-2.6-20 | publishEvent() sends TOON-encoded bytes that match the encoder output | #1 | P2 | Unit | GREEN |
+| T-2.6-21 | publishEvent() passes through empty code and message when connector rejects with empty strings | #4 | P2 | Unit | GREEN |
+| T-2.6-22 | publishEvent() returns empty fulfillment when connector fulfill omits it | #4 | P2 | Unit | GREEN |
 
-**File:** `packages/sdk/src/publish-event.test.ts` (374 lines)
+**Priority Distribution:** P0: 4, P1: 8, P2: 10
+**Test file location:** `packages/sdk/src/publish-event.test.ts` (22 tests)
+
+---
+
+## Tests (22 total -- 9 original ATDD + 7 code review + 4 review 4 + 2 test review)
+
+**File:** `packages/sdk/src/publish-event.test.ts` (22 tests)
 
 - **Test:** `[P0] publishEvent() TOON-encodes the event and sends via connector.sendPacket() with correct parameters (AC#1)`
-  - **Status:** RED - `TypeError: node.publishEvent is not a function`
+  - **Status:** GREEN
   - **Verifies:** Event is TOON-encoded, destination passed through, data is Uint8Array, amount is bigint > 0
 
 - **Test:** `[P0] publishEvent() computes correct amount as basePricePerByte * toonData.length (AC#1)`
-  - **Status:** RED - `TypeError: node.publishEvent is not a function`
+  - **Status:** GREEN
   - **Verifies:** Amount is a multiple of basePricePerByte and greater than zero
 
 - **Test:** `[P0] publishEvent() returns { success: true, eventId, fulfillment } when connector accepts (AC#4)`
-  - **Status:** RED - `TypeError: node.publishEvent is not a function`
+  - **Status:** GREEN
   - **Verifies:** Success result shape with eventId matching the input event and non-empty fulfillment string
 
 - **Test:** `[P0] publishEvent() returns { success: false, eventId, code, message } when connector rejects (AC#4)`
-  - **Status:** RED - `TypeError: node.publishEvent is not a function`
+  - **Status:** GREEN
   - **Verifies:** Rejection result shape with eventId, error code (F02), and error message
 
 - **Test:** `[P1] publishEvent() throws NodeError when node not started (AC#3)`
-  - **Status:** RED - `TypeError: node.publishEvent is not a function`
+  - **Status:** GREEN
   - **Verifies:** NodeError thrown with "Cannot publish: node not started" message
 
 - **Test:** `[P1] publishEvent() throws NodeError when options is undefined (AC#2)`
-  - **Status:** RED - `TypeError: node.publishEvent is not a function`
+  - **Status:** GREEN
   - **Verifies:** NodeError thrown with "destination is required" message when called without options
 
 - **Test:** `[P1] publishEvent() throws NodeError when destination is empty string (AC#2)`
-  - **Status:** RED - `TypeError: node.publishEvent is not a function`
+  - **Status:** GREEN
   - **Verifies:** NodeError thrown with "destination is required" message when destination is ""
 
 - **Test:** `[P2] publishEvent() uses custom basePricePerByte from config when provided (AC#1)`
-  - **Status:** RED - `TypeError: node.publishEvent is not a function`
+  - **Status:** GREEN
   - **Verifies:** Amount is a multiple of the custom basePricePerByte (50n)
 
 - **Test:** `[P2] publishEvent() uses default basePricePerByte (10n) when not configured (AC#1)`
-  - **Status:** RED - `TypeError: node.publishEvent is not a function`
+  - **Status:** GREEN
   - **Verifies:** Amount is a multiple of the default 10n basePricePerByte
+
+- **Test:** `[P2] publishEvent() throws NodeError after node.stop() is called (AC#3)` *(added in code review 2)*
+  - **Status:** GREEN
+  - **Verifies:** NodeError with "not started" message after stop() resets started flag
+
+- **Test:** `[P2] publishEvent() computes exact amount matching basePricePerByte * TOON byte length (AC#1)` *(added in code review 2)*
+  - **Status:** GREEN
+  - **Verifies:** Exact amount matches basePricePerByte * encodeEventToToon(event).length
+
+- **Test:** `[P2] publishEvent() wraps TOON encoder errors in NodeError (error path)` *(added in code review 3)*
+  - **Status:** GREEN
+  - **Verifies:** Custom TOON encoder failure wrapped in NodeError with "Failed to publish event:" prefix
+
+- **Test:** `[P1] publishEvent() wraps connector sendPacket errors in NodeError (AC#1 error path)` *(added in code review 3)*
+  - **Status:** GREEN
+  - **Verifies:** Generic Error from sendPacket wrapped in NodeError with "Failed to publish event:" prefix
+
+- **Test:** `[P2] publishEvent() wraps non-Error thrown values in NodeError with String() conversion` *(added in code review 3)*
+  - **Status:** GREEN
+  - **Verifies:** Non-Error values (e.g., raw strings) from sendPacket wrapped via String() in NodeError
+
+- **Test:** `[P1] publishEvent() propagates NodeError directly without re-wrapping` *(added in code review 3)*
+  - **Status:** GREEN
+  - **Verifies:** NodeError thrown inside try block propagates directly without "Failed to publish event:" prefix
+
+- **Test:** `[P2] publishEvent() scales amount proportionally with event content size` *(added in code review 3)*
+  - **Status:** GREEN
+  - **Verifies:** Larger event content produces proportionally larger amount; both amounts are multiples of basePricePerByte
+
+- **Test:** `[P1] publishEvent() uses the configured toonEncoder for encoding (AC#1)` *(added in review 4)*
+  - **Status:** GREEN
+  - **Verifies:** Custom toonEncoder is called with the event, data matches encoder output, amount computed from encoder output length
+
+- **Test:** `[P1] publishEvent() success result does not include code or message fields (AC#4)` *(added in review 4)*
+  - **Status:** GREEN
+  - **Verifies:** Success result has no code or message fields (undefined), only fulfillment
+
+- **Test:** `[P1] publishEvent() rejection result does not include fulfillment field (AC#4)` *(added in review 4)*
+  - **Status:** GREEN
+  - **Verifies:** Rejection result has no fulfillment field (undefined), only code and message
+
+- **Test:** `[P2] publishEvent() sends TOON-encoded bytes that match the encoder output (AC#1)` *(added in review 4)*
+  - **Status:** GREEN
+  - **Verifies:** Data bytes sent to connector match TOON encoding, decoded data matches original event
+
+- **Test:** `[P2] publishEvent() passes through empty code and message when connector rejects with empty strings (AC#4)` *(added in test review)*
+  - **Status:** GREEN
+  - **Verifies:** Connector reject with empty code/message passes through (documents nullish coalescing `??` behavior -- empty strings are not nullish)
+
+- **Test:** `[P2] publishEvent() returns empty fulfillment when connector fulfill omits it (AC#4)` *(added in test review)*
+  - **Status:** GREEN
+  - **Verifies:** Connector fulfill with empty fulfillment returns a string fulfillment (documents the ?? '' fallback)
 
 ---
 
@@ -173,6 +256,10 @@ N/A -- This story uses co-located inline test helpers following the existing pro
 ```
 
 **Notes:** The mock connector records all `sendPacket` calls in `connector.sendPacketCalls[]` for assertion. The `DirectRuntimeClient` created internally by `createCrosstownNode()` wraps `connector.sendPacket()`, so mocking at the connector level exercises the full chain: `publishEvent() -> sendIlpPacket() -> sendPacket()`.
+
+### nostr-tools Mock
+
+**Mock:** `vi.mock('nostr-tools')` -- prevents live relay connections via SimplePool (project convention: always mock nostr-tools in unit tests).
 
 ---
 
@@ -315,6 +402,49 @@ N/A -- This is a pure backend/SDK story with no UI components. No data-testid at
 
 ---
 
+### Test: publishEvent() throws after stop() (P2)
+
+**File:** `packages/sdk/src/publish-event.test.ts`
+
+**Tasks to make this test pass:**
+
+- [x] Verify `stop()` resets the `started` flag so the not-started guard fires
+- [x] Run test: `npx vitest run packages/sdk/src/publish-event.test.ts`
+- [x] Test passes (green phase)
+
+**Estimated Effort:** 0 hours (covered by existing stop() implementation)
+
+---
+
+### Test: publishEvent() exact amount verification (P2)
+
+**File:** `packages/sdk/src/publish-event.test.ts`
+
+**Tasks to make this test pass:**
+
+- [x] Import `encodeEventToToon` from `@crosstown/core/toon` and verify exact `basePricePerByte * BigInt(toonData.length)` match
+- [x] Run test: `npx vitest run packages/sdk/src/publish-event.test.ts`
+- [x] Test passes (green phase)
+
+**Estimated Effort:** 0 hours (covered by main implementation)
+
+---
+
+### Test: publishEvent() error wrapping tests (P1/P2)
+
+**File:** `packages/sdk/src/publish-event.test.ts`
+
+**Tasks to make this test pass:**
+
+- [x] Implement try/catch in `publishEvent()` that propagates `NodeError` directly and wraps other errors with "Failed to publish event:" prefix
+- [x] Handle non-Error thrown values via `String()` conversion
+- [x] Run test: `npx vitest run packages/sdk/src/publish-event.test.ts`
+- [x] All 4 error wrapping tests pass (T-2.6-12 through T-2.6-15)
+
+**Estimated Effort:** 0.25 hours
+
+---
+
 ### Additional: Export PublishEventResult type (AC#5)
 
 **File:** `packages/sdk/src/index.ts`
@@ -346,11 +476,7 @@ N/A -- This is a pure backend/SDK story with no UI components. No data-testid at
 ## Running Tests
 
 ```bash
-# IMPORTANT: Tests are excluded from normal pnpm test during RED phase.
-# To run them, first remove the exclusion from vitest.config.ts (root)
-# and packages/sdk/vitest.config.ts, then:
-
-# Run all failing tests for this story
+# Run all publishEvent tests for this story
 npx vitest run packages/sdk/src/publish-event.test.ts
 
 # Run all SDK unit tests (existing + new)
@@ -374,79 +500,50 @@ pnpm test:coverage
 
 **TEA Agent Responsibilities:**
 
-- All 9 tests written and failing
+- All 9 original ATDD tests written and failing with `TypeError: node.publishEvent is not a function`
 - Mock connector factory created with call recording
 - Test event factory created with overrides support
 - Implementation checklist created mapping tests to code tasks
 - No fixtures needed beyond inline helpers (project convention)
+- Test file excluded from vitest configs during RED phase
 
 **Verification:**
 
-- All 9 tests run and fail with `TypeError: node.publishEvent is not a function`
-- Failure messages are clear and actionable
-- Tests fail due to missing implementation, not test bugs
-- All 27 existing SDK tests continue to pass
+- All 9 original tests failed with clear, actionable error messages
+- Tests failed due to missing implementation, not test bugs
+- All 27 existing SDK tests continued to pass
 
 ---
 
-### GREEN Phase (DEV Team - Next Steps)
+### GREEN Phase (Complete)
 
-**DEV Agent Responsibilities:**
+**DEV Agent Responsibilities (All Complete):**
 
-1. **Task 1:** Expose `runtimeClient` from `CrosstownNode` in `packages/core/src/compose.ts`
-2. **Task 2:** Add `PublishEventResult` type and `publishEvent()` to `ServiceNode` interface + implementation in `packages/sdk/src/create-node.ts`
-3. **Task 3:** Update SDK exports in `packages/sdk/src/index.ts`
-4. **Task 4:** Remove exclusion (if any) from `packages/sdk/vitest.config.ts` for `publish-event.test.ts`
-5. **Task 5:** Run `pnpm build && pnpm test && pnpm lint && pnpm format:check` -- all pass
+1. Exposed `runtimeClient` from `CrosstownNode` in `packages/core/src/compose.ts`
+2. Added `PublishEventResult` type and `publishEvent()` to `ServiceNode` interface + implementation in `packages/sdk/src/create-node.ts`
+3. Updated SDK exports in `packages/sdk/src/index.ts`
+4. Removed exclusion from both `vitest.config.ts` (root) and `packages/sdk/vitest.config.ts`
+5. All 16 tests passing (9 original + 7 added during code review) at commit `ce161ef`
+6. `pnpm build && pnpm test && pnpm lint && pnpm format:check` all passed at commit `ce161ef`
+7. Test review added 6 more tests (T-2.6-17 through T-2.6-22), bringing total to 22
 
-**Key Principles:**
+**Final Test Counts (after test review):**
 
-- One test at a time (don't try to fix all at once)
-- Minimal implementation (don't over-engineer)
-- Run tests frequently (immediate feedback)
-- Use implementation checklist as roadmap
-
-**Progress Tracking:**
-
-- Check off tasks as you complete them
-- All 9 tests passing = GREEN phase complete
+- 22 publishEvent tests GREEN
+- 0 lint errors, format clean
 
 ---
 
-### REFACTOR Phase (DEV Team - After All Tests Pass)
+### REFACTOR Phase (Complete)
 
-**DEV Agent Responsibilities:**
+**Completed During Code Reviews:**
 
-1. **Verify all tests pass** (green phase complete)
-2. **Review code for quality** (readability, maintainability, performance)
-3. **Extract duplications** (DRY principle)
-4. **Ensure tests still pass** after each refactor
-5. **Verify no linting or formatting errors**
-
-**Key Principles:**
-
-- Tests provide safety net (refactor with confidence)
-- Make small refactors (easier to debug if tests fail)
-- Run tests after each change
-- Don't change test behavior (only implementation)
-
-**Completion:**
-
-- All 9 new tests pass
-- All 27 existing SDK tests pass
-- `pnpm build && pnpm test && pnpm lint && pnpm format:check` all pass
-- Ready for code review and story approval
-
----
-
-## Next Steps
-
-1. **Run failing tests** to confirm RED phase: `npx vitest run packages/sdk/src/publish-event.test.ts`
-2. **Begin implementation** using implementation checklist as guide
-3. **Work one test at a time** (red to green for each)
-4. **When all tests pass**, refactor code for quality
-5. **Run full suite**: `pnpm build && pnpm test && pnpm lint`
-6. **When complete**, update story status to 'done' in sprint-status.yaml
+1. All tests pass after each refactor
+2. Code quality verified: readability, maintainability, proper error handling
+3. No duplications or code smells
+4. Non-null assertions replaced with optional chains
+5. `afterEach` with `vi.clearAllMocks()` added per project convention
+6. Non-deterministic `generateSecretKey()` replaced with fixed test key
 
 ---
 
@@ -511,34 +608,35 @@ TypeError: node.publishEvent is not a function
 - Failing: 9 (expected)
 - Status: RED phase verified
 
-**Expected Failure Messages:**
+### GREEN Phase Verification (at commit ce161ef)
 
-All 9 tests fail with: `TypeError: node.publishEvent is not a function`
-This confirms tests fail because the feature is not implemented, not because of test bugs.
-
-### Existing Test Verification
-
-**Command:** `npx vitest run packages/sdk/src/create-node.test.ts --reporter=verbose`
+**Command:** `pnpm test`
 
 **Results:**
 
-```
- Test Files  1 passed (1)
-      Tests  27 passed (27)
-   Duration  1.19s
-```
+- Test Files: 1,454 passed, 185 skipped, 0 failures
+- publishEvent tests: 16 passed (9 original + 7 added during code review)
+- Lint: 0 errors (381 pre-existing warnings)
+- Format: all files clean
 
-All 27 existing SDK tests continue to pass -- new test file does not break any existing functionality.
+---
+
+## Risk Mitigations
+
+- **Amount conversion safety (score 2):** `publishEvent()` converts bigint amount to string via `String()` for `sendIlpPacket()`, and the `DirectRuntimeClient` converts back to bigint. Tests T-2.6-02, T-2.6-08, T-2.6-09, T-2.6-11 verify the full roundtrip.
+- **Error wrapping correctness (score 2):** `NodeError` is propagated directly (not double-wrapped), while non-`NodeError` exceptions are wrapped with "Failed to publish event:" prefix. Tests T-2.6-12 through T-2.6-15 cover all error paths.
 
 ---
 
 ## Notes
 
-- The test file is **excluded** from both `vitest.config.ts` (root) and `packages/sdk/vitest.config.ts` during the RED phase to avoid breaking `pnpm test`. When implementing Story 2.6, **remove the exclusion** from both configs to activate the tests. Run with `npx vitest run packages/sdk/src/publish-event.test.ts` to run the tests directly during development
 - Tests follow the co-located test file convention established by `create-node.test.ts`, `handler-registry.test.ts`, etc.
 - The mock connector factory records `sendPacket` calls in `sendPacketCalls[]` array, enabling precise assertion on the parameters passed through the full `publishEvent -> DirectRuntimeClient -> connector.sendPacket` chain
-- The `PublishEventResult` type export (AC#5) is verified implicitly -- the test file imports it from `./create-node.js`, so TypeScript compilation will fail if the type is not defined
-- Amount assertions verify mathematical properties (> 0, divisible by basePricePerByte) rather than exact values, making tests resilient to TOON encoding changes
+- The `PublishEventResult` type export (AC#5) is verified by a compile-time type import from the SDK index (`import type { PublishEventResult } from './index.js'`), so TypeScript compilation will fail if the type is not exported
+- Amount assertions verify both mathematical properties (> 0, divisible by basePricePerByte) and exact values (T-2.6-11), making tests resilient to TOON encoding changes while still verifying correctness
+- `vi.mock('nostr-tools')` is included per project convention to prevent live relay connections via SimplePool
+- Tests use a fixed 32-byte secret key (`'a'.repeat(64)` hex-decoded) for deterministic identity derivation
+- **Build note:** WIP commits for Stories 2-7/2-8 on the `epic-2` branch have removed SPSP files but not yet updated all references in `RelayMonitor.ts`, causing a build failure. This is unrelated to Story 2-6 and does not affect the validity of the publishEvent tests (which were verified GREEN at commit `ce161ef`)
 
 ---
 

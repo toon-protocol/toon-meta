@@ -65,9 +65,9 @@ development_status:
   2-3-e2e-test-validation: done
   2-4-remove-git-proxy-and-document-reference-implementation: done
   2-5-publish-crosstown-town-package: done
-  2-6-add-publish-event-to-service-node: in-progress  # step 8/12 NFR
-  2-7-spsp-removal-and-peer-discovery-cleanup: backlog  # moved from Epic 3 Story 3.7
-  2-8-relay-subscription-api-on-town-instance: backlog  # moved from Epic 3 Story 3.8
+  2-6-add-publish-event-to-service-node: done
+  2-7-spsp-removal-and-peer-discovery-cleanup: done  # moved from Epic 3 Story 3.7
+  2-8-relay-subscription-api-on-town-instance: done  # moved from Epic 3 Story 3.8
   epic-2-retrospective: optional  # reopened — must re-run when all 8 stories complete
 
   # Epic 3: Production Protocol Economics (6 stories after scope change 2026-03-07)

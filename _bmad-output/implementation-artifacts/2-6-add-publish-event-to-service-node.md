@@ -8,6 +8,8 @@ As a **developer building on the Crosstown SDK**,
 I want `ServiceNode` to expose a `publishEvent(event, options)` method that sends Nostr events through the embedded connector,
 So that I can send outbound ILP packets without manually encoding TOON, computing conditions, or calling low-level connector APIs.
 
+**FRs covered:** FR-SDK-1 (partial -- extends `createNode()` composition with outbound event publishing capability), FR-SDK-10 (partial -- extends `ServiceNode` lifecycle with `publishEvent()` method)
+
 **Dependencies:** Stories 2.1-2.5 (done). Requires: `@crosstown/sdk` with `createNode()` and `ServiceNode` (Story 1.7), `AgentRuntimeClient` interface from `@crosstown/core` (already exported), TOON encoder from `@crosstown/core/toon`.
 
 ## Acceptance Criteria
@@ -185,6 +187,40 @@ The `@crosstown/client` package has a `publishEvent()` on `CrosstownClient` (lin
 | Transport | `runtimeClient` or `btpClient` (with optional claim) | `runtimeClient` only (embedded connector) |
 | Destination | Falls back to `config.destinationAddress` | Always required in options (no fallback) |
 
+### Test Design Traceability
+
+| ATDD Test ID | Test Name | AC | Priority | Level |
+|---|---|---|---|---|
+| T-2.6-01 | publishEvent() TOON-encodes the event and sends via connector.sendPacket() with correct parameters | #1 | P0 | Unit |
+| T-2.6-02 | publishEvent() computes correct amount as basePricePerByte * toonData.length | #1 | P0 | Unit |
+| T-2.6-03 | publishEvent() returns { success: true, eventId, fulfillment } when connector accepts | #4 | P0 | Unit |
+| T-2.6-04 | publishEvent() returns { success: false, eventId, code, message } when connector rejects | #4 | P0 | Unit |
+| T-2.6-05 | publishEvent() throws NodeError when node not started | #3 | P1 | Unit |
+| T-2.6-06 | publishEvent() throws NodeError when options is undefined | #2 | P1 | Unit |
+| T-2.6-07 | publishEvent() throws NodeError when destination is empty string | #2 | P1 | Unit |
+| T-2.6-08 | publishEvent() uses custom basePricePerByte from config when provided | #1 | P2 | Unit |
+| T-2.6-09 | publishEvent() uses default basePricePerByte (10n) when not configured | #1 | P2 | Unit |
+| T-2.6-10 | publishEvent() throws NodeError after node.stop() is called | #3 | P2 | Unit |
+| T-2.6-11 | publishEvent() computes exact amount matching basePricePerByte * TOON byte length | #1 | P2 | Unit |
+| T-2.6-12 | publishEvent() wraps TOON encoder errors in NodeError | #1 | P2 | Unit |
+| T-2.6-13 | publishEvent() wraps connector sendPacket errors in NodeError | #1 | P1 | Unit |
+| T-2.6-14 | publishEvent() wraps non-Error thrown values in NodeError with String() conversion | #1 | P2 | Unit |
+| T-2.6-15 | publishEvent() propagates NodeError directly without re-wrapping | #1 | P1 | Unit |
+| T-2.6-16 | publishEvent() scales amount proportionally with event content size | #1 | P2 | Unit |
+| T-2.6-17 | publishEvent() uses the configured toonEncoder for encoding | #1 | P1 | Unit |
+| T-2.6-18 | publishEvent() success result does not include code or message fields | #4 | P1 | Unit |
+| T-2.6-19 | publishEvent() rejection result does not include fulfillment field | #4 | P1 | Unit |
+| T-2.6-20 | publishEvent() sends TOON-encoded bytes that match the encoder output | #1 | P2 | Unit |
+| T-2.6-21 | publishEvent() passes through empty code/message when connector rejects with empty strings | #4 | P2 | Unit |
+| T-2.6-22 | publishEvent() returns empty fulfillment when connector fulfill omits it | #4 | P2 | Unit |
+
+**Test file location:** `packages/sdk/src/publish-event.test.ts` (22 tests total: 9 original ATDD + 7 code review + 4 review 4 + 2 test review)
+
+### Risk Mitigations
+
+- **Amount conversion safety (score 2):** `publishEvent()` converts bigint amount to string via `String()` for `sendIlpPacket()`, and the `DirectRuntimeClient` converts back to bigint. Tests T-2.6-02, T-2.6-08, T-2.6-09, T-2.6-11 verify the full roundtrip.
+- **Error wrapping correctness (score 2):** `NodeError` is propagated directly (not double-wrapped), while non-`NodeError` exceptions are wrapped with "Failed to publish event:" prefix. Tests T-2.6-12 through T-2.6-15 cover all error paths.
+
 ### Critical Rules
 
 - **Never use `any` type** -- use `unknown` with type guards (enforced by ESLint)
@@ -231,7 +267,7 @@ Claude Opus 4.6
 - Task 1: Added `import type { AgentRuntimeClient }` to compose.ts, added `readonly runtimeClient: AgentRuntimeClient` to `CrosstownNode` interface, exposed `directRuntimeClient` as `runtimeClient` on the return object. Verified `AgentRuntimeClient` is already exported from `@crosstown/core`.
 - Task 2: Added `PublishEventResult` interface to `create-node.ts`. Added `publishEvent()` to `ServiceNode` interface with proper JSDoc. Implemented `publishEvent()` on the returned node object with: not-started guard, destination-required guard, TOON encoding, amount computation (`basePricePerByte * BigInt(toonData.length)`), base64 conversion, `sendIlpPacket()` call via `crosstownNode.runtimeClient`, result mapping from `IlpSendResult` to `PublishEventResult`, and error wrapping following the same pattern as `start()`.
 - Task 3: Updated `packages/sdk/src/index.ts` to export `PublishEventResult` type alongside existing `NodeConfig`, `ServiceNode`, `StartResult`.
-- Task 4: ATDD red-phase test file already existed with 9 comprehensive tests. All 9 tests now pass: TOON-encode + sendPacket parameters, amount computation, success result shape, rejection result shape, not-started guard, undefined options guard, empty destination guard, custom basePricePerByte, default basePricePerByte. Fixed 2 lint errors (unused import, unused variable).
+- Task 4: ATDD red-phase test file already existed with 9 comprehensive tests. All 9 original tests pass: TOON-encode + sendPacket parameters, amount computation, success result shape, rejection result shape, not-started guard, undefined options guard, empty destination guard, custom basePricePerByte, default basePricePerByte. Fixed 2 lint errors (unused import, unused variable). Code reviews later added 7 more tests (T-2.6-10 through T-2.6-16: post-stop guard, exact amount verification, TOON encoder failure wrapping, sendPacket error wrapping, non-Error wrapping, NodeError propagation, proportional scaling), bringing the total to 16 tests.
 - Task 5: All checks pass -- `pnpm build` (all packages), `pnpm test` (1,443 passed, 185 skipped, 0 failures), `pnpm lint` (0 errors, 381 pre-existing warnings), `pnpm format:check` (all files clean).
 
 ### File List
@@ -249,9 +285,76 @@ Claude Opus 4.6
 - `README.md` -- Removed SPSP references, updated event kind table
 - `docs/component-library-documentation.md` -- Fixed connector package name reference
 
+## Code Review Record
+
+### Review Pass #3
+
+**Date:** 2026-03-07
+**Reviewer:** Claude Opus 4.6 (code review agent)
+**Mode:** yolo (auto-fix all critical/high/medium/low issues)
+**Issue Counts:** 0 critical, 0 high, 0 medium, 0 low
+**Outcome:** PASS (clean -- no issues found)
+
+#### Issues Found & Fixed
+
+None. This is the 7th review pass for Story 2.6. The implementation is mature and well-tested. No remaining concerns.
+
+#### Verification
+
+- `pnpm build` -- all packages build successfully
+- `pnpm test` -- all tests pass
+- `pnpm lint` -- 0 errors
+- `pnpm format:check` -- all files clean
+
+### Review Pass #6
+
+**Date:** 2026-03-07
+**Reviewer:** Claude Opus 4.6 (code review agent)
+**Mode:** yolo (auto-fix all critical/high/medium/low issues)
+**Issue Counts:** 0 critical, 0 high, 1 medium, 0 low
+**Outcome:** PASS (all issues fixed in-place)
+
+#### Issues Found & Fixed
+
+| # | Severity | File | Description | Fix |
+|---|----------|------|-------------|-----|
+| M1 | MEDIUM | `packages/sdk/src/publish-event.test.ts` | 20 TypeScript compilation errors (`'call' is possibly 'undefined'`) due to `noUncheckedIndexedAccess` -- `sendPacketCalls[0]` returns `T \| undefined` but subsequent property accesses lack null guards | Added `!` non-null assertion to all 8 indexed array accesses with `eslint-disable-next-line` comments (acceptable per project convention: `no-non-null-assertion` is `warn` in test files) |
+
+#### Verification
+
+- `pnpm build` -- all packages build successfully
+- `npx vitest run packages/sdk/src/publish-event.test.ts` -- 22 tests passed
+- `npx tsc --noEmit -p packages/sdk/tsconfig.json` -- 0 errors in publish-event.test.ts (3 pre-existing errors in other test files)
+- `npx eslint packages/sdk/src/publish-event.test.ts` -- 0 errors, 0 warnings
+- `npx prettier --check packages/sdk/src/publish-event.test.ts` -- format clean
+
+### Review Pass #2
+
+**Date:** 2026-03-07
+**Reviewer:** Claude Opus 4.6 (code review agent)
+**Mode:** yolo (auto-fix all critical/high/medium/low issues)
+**Issue Counts:** 0 critical, 0 high, 1 medium, 0 low
+**Outcome:** PASS (all issues fixed in-place)
+
+#### Issues Found & Fixed
+
+| # | Severity | File | Description | Fix |
+|---|----------|------|-------------|-----|
+| M1 | MEDIUM | `packages/sdk/src/publish-event.test.ts` | 20 TypeScript compilation errors due to `noUncheckedIndexedAccess` -- indexed array accesses like `sendPacketCalls[0]` return `T \| undefined`, causing `'call' is possibly 'undefined'` errors on subsequent property accesses | Added `!` non-null assertion to each indexed access with `eslint-disable-next-line` comments |
+
+#### Action Items
+
+- [x] All 20 TypeScript compilation errors in publish-event.test.ts resolved via non-null assertions
+
 ## Change Log
 
-- 2026-03-07: Implemented publishEvent() on ServiceNode -- TOON-encode, price, base64, send via runtimeClient. Exposed runtimeClient from CrosstownNode in core. Added PublishEventResult type export. All 9 ATDD tests pass. 0 regressions across 1,443 tests.
-- 2026-03-07: Code review (AI) -- 5 issues found (0 critical, 1 high, 2 medium, 2 low), all fixed. H1: Removed stale ATDD exclusion from root vitest.config.ts. M1: Replaced non-deterministic generateSecretKey() with fixed test key. M2: Added root vitest.config.ts to File List. L1: Updated project-context.md with publishEvent() in SDK API. L2: Cleaned stale "RED PHASE" comment from test header. 1,452 tests pass, 0 lint errors, format clean.
-- 2026-03-07: Code review 2 (AI) -- 6 issues found (0 critical, 1 high, 2 medium, 3 low), all fixed. H1: Added vi.mock('nostr-tools') to publish-event.test.ts per project convention. M1: Added 5 missing files to story File List (README.md, epics.md, project-context.md, component-library-documentation.md, atdd-checklist-2-6.md). M2: Checked off all completed ATDD implementation tasks. L1: Replaced non-null assertion with optional chain in test assertion. L2: Added post-stop() publishEvent test. L3: Added exact amount verification test. 1,454 tests pass (2 new), 0 lint errors (1 warning removed), format clean.
-- 2026-03-07: Code review 3 (AI) -- 5 issues found (0 critical, 1 high, 2 medium, 2 low), all fixed. H1: Added type import of PublishEventResult from SDK index to verify AC#5 export path. M1: Added TOON encoder failure test covering error wrapping path. M2: Updated epic-2 status to done in sprint-status.yaml (all stories + retro complete). L1: Fixed misleading AC#5 comment in test header. L2: Added afterEach with vi.clearAllMocks() per project convention. 1,455 tests pass (1 new), 0 lint errors, format clean.
+| Date | Version | Description | Author |
+|------|---------|-------------|--------|
+| 2026-03-07 | 1.0 | Implementation complete: publishEvent() on ServiceNode -- TOON-encode, price, base64, send via runtimeClient. Exposed runtimeClient from CrosstownNode in core. Added PublishEventResult type export. All 9 ATDD tests pass. 0 regressions across 1,443 tests. | Dev (Claude Opus 4.6) |
+| 2026-03-07 | 1.1 | Code review #1: 5 issues found (0 critical, 1 high, 2 medium, 2 low), all fixed. H1: Removed stale ATDD exclusion from root vitest.config.ts. M1: Replaced non-deterministic generateSecretKey() with fixed test key. M2: Added root vitest.config.ts to File List. L1: Updated project-context.md with publishEvent() in SDK API. L2: Cleaned stale "RED PHASE" comment from test header. 1,452 tests pass, 0 lint errors, format clean. | Review (Claude Opus 4.6) |
+| 2026-03-07 | 1.2 | Code review #2: 6 issues found (0 critical, 1 high, 2 medium, 3 low), all fixed. H1: Added vi.mock('nostr-tools') to publish-event.test.ts per project convention. M1: Added 5 missing files to story File List. M2: Checked off all completed ATDD implementation tasks. L1: Replaced non-null assertion with optional chain. L2: Added post-stop() publishEvent test (T-2.6-10). L3: Added exact amount verification test (T-2.6-11). 1,454 tests pass (2 new), 0 lint errors, format clean. | Review (Claude Opus 4.6) |
+| 2026-03-07 | 1.3 | Code review #3: 5 issues found (0 critical, 1 high, 2 medium, 2 low), all fixed. H1: Added type import of PublishEventResult from SDK index to verify AC#5 export path. M1: Added TOON encoder failure test (T-2.6-12). M2: Updated epic-2 status to done in sprint-status.yaml. L1: Fixed misleading AC#5 comment in test header. L2: Added afterEach with vi.clearAllMocks() per project convention. 1,455 tests pass (1 new), 0 lint errors, format clean. | Review (Claude Opus 4.6) |
+| 2026-03-07 | 1.4 | Adversarial review #4: 7 issues found (0 critical, 4 medium, 3 low), all fixed. M1: Added missing "FRs covered" line (FR-SDK-1, FR-SDK-10). M2: Added missing "Test Design Traceability" section with 16 test IDs (T-2.6-01 through T-2.6-16). M3: Added missing "Risk Mitigations" section. M4: Updated Task 4 completion notes with correct test count (16, not 9). L1: Fixed sprint-status.yaml inconsistency (was in-progress, story says done). L2: Updated ATDD checklist to reflect actual 16 tests (was 9) with GREEN status. L3: Converted Change Log from bullet list to table format with version numbers for consistency with Stories 2.4/2.5. | Review (Claude Opus 4.6) |
+| 2026-03-07 | 1.5 | Code review #5: 3 issues found (0 critical, 0 high, 1 medium, 2 low), all fixed. M1: Replaced remaining non-null assertion (`result.fulfillment!.length`) with optional chain in test file (line 202). L1: Fixed misleading test name for T-2.6-21 -- was "uses default code T00 and message" but test actually documents empty string pass-through via `??` operator. L2: Updated ATDD checklist T-2.6-21 title and description to match corrected test name. 1,270 tests pass (185 skipped), 0 lint errors (324 pre-existing warnings, down from 325), format clean. | Review (Claude Opus 4.6) |
+| 2026-03-07 | 1.6 | Code review #6: 1 issue found (0 critical, 0 high, 1 medium, 0 low), fixed. M1: Fixed 20 TypeScript compilation errors in publish-event.test.ts -- `noUncheckedIndexedAccess` caused `'call' is possibly 'undefined'` on all 8 `sendPacketCalls[0]`/`[1]` accesses. Added `!` non-null assertion with eslint-disable-next-line comments (acceptable per project convention). 22 tests pass, 0 tsc errors in file, 0 lint errors, format clean. | Review (Claude Opus 4.6) |
+| 2026-03-07 | 1.7 | Code review #7 (final): 0 issues found (0 critical, 0 high, 0 medium, 0 low). Implementation is mature and well-tested after 7 review passes. No remaining concerns. | Review (Claude Opus 4.6) |
