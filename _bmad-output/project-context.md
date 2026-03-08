@@ -78,7 +78,7 @@ crosstown/
 │   ├── client/      # @crosstown/client -- Client SDK with payment channel support
 │   ├── faucet/      # @crosstown/faucet -- Token distribution for dev testing (plain JS, dev-only)
 │   ├── examples/    # @crosstown/examples -- Demo applications
-│   └── rig/         # @crosstown/rig -- (placeholder, Epic 5, not yet implemented)
+│   └── rig/         # @crosstown/rig -- (ATDD stubs only, Epic 5, not yet implemented)
 ├── docker/          # Container entrypoint (pnpm workspace member)
 │   └── src/
 │       ├── entrypoint.ts       # Original relay entrypoint (manual wiring)
@@ -114,7 +114,7 @@ crosstown/
 
 ```
 Epic 1: SDK Package                              COMPLETE
-Epic 2: Relay Reference Implementation           COMPLETE (5/5 stories, 18/18 ACs)
+Epic 2: Relay Reference Implementation           COMPLETE (8/8 stories, 40/40 ACs)
 Epic 3: Production Protocol Economics             PLANNED
 Epic 4: Marlin TEE Deployment                     PLANNED
 Epic 5: The Rig -- Git Forge                      PLANNED
@@ -236,11 +236,11 @@ The Town package is the main deliverable of Epic 2. It validates the SDK by reim
 ```
 packages/town/src/
 ├── index.ts                    # Public API: startTown, createEventStorageHandler
-├── town.ts                     # startTown() -- programmatic API (~720 lines including types, config resolution, lifecycle)
+├── town.ts                     # startTown() -- programmatic API (~800 lines including types, config resolution, lifecycle)
 ├── cli.ts                      # CLI entrypoint (parseArgs + env vars + startTown delegation)
 └── handlers/
     ├── event-storage-handler.ts        # Decode -> store -> accept (~15 lines of logic)
-    ├── event-storage-handler.test.ts   # Unit + pipeline tests (24K)
+    ├── event-storage-handler.test.ts   # Unit + pipeline tests
     └── x402-publish-handler.test.ts    # ATDD RED phase stubs for Epic 3 Story 3.3
 ```
 
@@ -270,10 +270,18 @@ interface TownConfig {
 interface TownInstance {
   isRunning(): boolean;
   stop(): Promise<void>;
+  subscribe(relayUrl: string, filter: Filter): TownSubscription;
   pubkey: string;
   evmAddress: string;
   config: ResolvedTownConfig;
   bootstrapResult: { peerCount: number; channelCount: number };
+}
+
+// TownSubscription -- outbound relay subscription handle
+interface TownSubscription {
+  close(): void;
+  relayUrl: string;
+  isActive(): boolean;
 }
 
 // Handler factories (also exported individually)
@@ -293,7 +301,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 #            --connector-url, --connector-admin-url, --known-peers, --dev-mode, --help
 ```
 
-**Town Composition (14 Steps in startTown()):**
+**Town Composition (15 Steps in startTown()):**
 
 ```
 1. Validate identity (mnemonic XOR secretKey)
@@ -309,7 +317,8 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 11. WebSocket relay (NostrRelayServer)
 12. Running state tracking
 13. Bootstrap execution (wait for connector, bootstrap peers, publish ILP info, start relay monitor)
-14. Build TownInstance (isRunning, stop, pubkey, evmAddress, config, bootstrapResult)
+14. Outbound subscription tracking (Set<TownSubscription>)
+15. Build TownInstance (isRunning, stop, subscribe, pubkey, evmAddress, config, bootstrapResult)
 ```
 
 **Key Epic 2 Design Decisions:**
@@ -319,17 +328,20 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **External connector only:** `startTown()` requires `connectorUrl` -- embedded connector mode is deferred
 - **Reference implementation:** `docker/src/entrypoint-town.ts` demonstrates the same SDK composition with individual components (Approach A) instead of `startTown()` (Approach B), providing a Docker-native reference
 - **git-proxy removed:** `packages/git-proxy/` was deleted and removed from `pnpm-workspace.yaml`
+- **SPSP removed:** kinds 23194/23195 removed from protocol in Story 2.7; settlement negotiation uses kind:10032 data + on-chain verification
+- **subscribe() API added:** `TownInstance.subscribe(relayUrl, filter)` provides general-purpose relay subscription for peer discovery, seed relay lists, and custom event kinds (Story 2.8)
+- **publishEvent() added:** `ServiceNode.publishEvent(event, options)` enables outbound event publishing via ILP (Story 2.6)
 
-**Epic 2 Metrics:**
+**Epic 2 Metrics (Final -- 8/8 stories):**
 
 | Metric | Value |
 |--------|-------|
-| Stories delivered | 5/5 (100%) |
-| Acceptance criteria | 18/18 (100%) |
-| Story-specific tests | ~103 |
-| Monorepo test count | 1,443 passing / 185 skipped |
-| Code review issues | 35 found, 35 fixed, 0 remaining |
-| Security scan findings | 2 real issues fixed |
+| Stories delivered | 8/8 (100%) |
+| Acceptance criteria | 40/40 (100%) |
+| Story-specific tests | ~193 |
+| Monorepo test count | 1,299 passing / 185 skipped (decrease from SPSP test deletion) |
+| Code review issues | 61 found, 61 fixed, 0 remaining |
+| Security scan findings | 2 real issues fixed + 2 code-review security fixes |
 | Test regressions | 0 |
 
 ## Critical Implementation Rules
@@ -406,6 +418,14 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Max payload: 1MB base64** -- `MAX_PAYLOAD_BASE64_LENGTH = 1_048_576`, rejected before allocation (DoS mitigation)
 - **Dev mode log sanitization** -- User-controlled fields (amount, destination) are sanitized to prevent log injection
 
+**publishEvent() (Story 2.6):**
+
+- **TOON-encodes the event** -- Uses the configured encoder (defaults to core's `encodeEventToToon`)
+- **Computes payment amount** -- `basePricePerByte * toonData.length` (not hardcoded)
+- **Sends via runtimeClient** -- `crosstownNode.runtimeClient.sendIlpPacket({ destination, amount, data })`
+- **Requires node to be started** -- Throws `NodeError` if called before `start()`
+- **Requires destination** -- Throws `NodeError` if `options.destination` is missing
+
 ### Town-Specific Rules (Epic 2)
 
 **Handler Implementation Pattern:**
@@ -422,6 +442,14 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **startTown() uses external connector** -- Requires `connectorUrl` pointing to a running connector
 - **createNode() uses embedded connector** -- Manages connector lifecycle internally
 - **Both compose the same 5-stage pipeline** -- Size check -> shallow parse -> verify -> price -> dispatch
+
+**TownInstance.subscribe() (Story 2.8):**
+
+- **General-purpose relay subscription** -- Opens WebSocket to remote relay, stores received events in local EventStore
+- **Validates WebSocket URL scheme** -- Rejects non-ws:// / non-wss:// URLs before connecting
+- **Uses RelaySubscriber from @crosstown/relay** -- Delegates to existing SimplePool-based subscriber
+- **Lifecycle integration** -- Active subscriptions tracked in `Set<TownSubscription>`, cleaned up on `town.stop()`
+- **Throws if town not running** -- `subscribe()` throws Error if called after stop
 
 **Docker Reference Implementation:**
 
@@ -497,6 +525,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 
 - **Tests that read source files and assert structural properties** -- E.g., "handler logic is under 100 lines", "Dockerfile CMD points to correct entrypoint", "package.json has correct exports"
 - **Fast, stable, and catch drift** -- These tests prevent invisible architectural regressions
+- **Verification by absence** -- Story 2-7 introduced `spsp-removal-verification.test.ts` (25 tests) that grep source files for forbidden patterns (e.g., removed SPSP references). Reuse for all removal stories.
 
 **Test Coverage:**
 
@@ -651,6 +680,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **SDK stubs direct to Town** -- `createEventStorageHandler()` in SDK throws with message directing users to `@crosstown/town`
 - **Handler fulfillment is placeholder** -- `ctx.accept()` returns `fulfillment: 'default-fulfillment'`; in production BLS computes SHA-256(eventId)
 - **Data-returning handlers bypass ctx.accept()** -- Return response directly because `data` must be top-level for ILP FULFILL relay (pattern valid for future handlers)
+- **Bootstrap phases simplified** -- discovering -> registering -> announcing (handshaking phase eliminated in Story 2.7)
 
 **Security Rules:**
 
@@ -690,19 +720,23 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 
 ---
 
-## Known Action Items (From Epic 2 Retro)
+## Known Action Items (From Epic 2 Final Retro)
 
 **Must-Do for Epic 3:**
-- A1: Fix `!body.amount` truthiness bug in `entrypoint-town.ts` (line 338)
+- ~~A1: Fix `!body.amount` truthiness bug in `entrypoint-town.ts`~~ -- DONE (Story 2-7)
 - A2: Set up genesis node in CI (carried from Epic 1)
 - A3: Publish `@crosstown/town` to npm (`npm publish --access public`)
 
 **Should-Do:**
-- A4: Clean up stale git-proxy references in root-level docs (README.md, SECURITY.md, etc.)
+- A4: Clean up stale git-proxy and SPSP references in root-level docs (README.md, SECURITY.md, etc.)
 - A5: Address transitive dependency vulnerabilities (33 findings, `fast-xml-parser` via AWS SDK)
 - A6: Replace `console.error` with structured logger (carried from Epic 1)
 - A7: Lint-check ATDD stubs immediately after creation
 - A8: Address CLI `--mnemonic`/`--secret-key` process listing exposure (CWE-214)
+
+**Nice-to-Have:**
+- A12: Clean up `docker/src/entrypoint.ts` legacy entrypoint (SPSP stubs, excluded from build)
+- A13: Add E2E test for `town.subscribe()` against a live relay
 
 ---
 
@@ -717,6 +751,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - Check CLAUDE.md and MEMORY.md for additional project-specific context
 - Use the two-approach handler testing pattern (Approach A + B) for all handler stories
 - Use static analysis tests for structural property assertions
+- Use "verification by absence" tests when removing protocol concepts
 
 **For Humans:**
 

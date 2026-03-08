@@ -59,7 +59,7 @@ development_status:
   # Epic 2: Nostr Relay Reference Implementation, Protocol Stabilization & SDK Validation
   # Scope change (2026-03-07): Stories 3.7/3.8 moved into Epic 2 as 2.7/2.8
   # Retro reopened — original retro covered 5/5 stories; epic now has 8 stories
-  epic-2: in-progress
+  epic-2: done
   2-1-relay-event-storage-handler: done
   2-2-spsp-handshake-handler: done  # DEPRECATED — will be removed by Story 2.7
   2-3-e2e-test-validation: done
@@ -68,7 +68,7 @@ development_status:
   2-6-add-publish-event-to-service-node: done
   2-7-spsp-removal-and-peer-discovery-cleanup: done  # moved from Epic 3 Story 3.7
   2-8-relay-subscription-api-on-town-instance: done  # moved from Epic 3 Story 3.8
-  epic-2-retrospective: optional  # reopened — must re-run when all 8 stories complete
+  epic-2-retrospective: done  # final retro covering all 8/8 stories
 
   # Epic 3: Production Protocol Economics (6 stories after scope change 2026-03-07)
   epic-3: backlog
