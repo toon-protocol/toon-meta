@@ -1,5 +1,7 @@
 # Bootstrap
 
+Bootstrap is a **one-time startup sequence** that runs when a node joins the network. It is not an ongoing loop — once complete, the node is connected and the bootstrap service's job is done. Ongoing peer discovery is handled separately by the DiscoveryTracker.
+
 When a new node starts, it goes through three phases to join the network.
 
 ## The Three Phases
@@ -44,22 +46,32 @@ The node pays to publish its own kind:10032 event to the network. BTP claims in 
 
 After announcement, other nodes can discover and peer with the new node.
 
+## Bootstrap vs Ongoing Discovery
+
+Bootstrap and ongoing discovery are separate concerns:
+
+| Concern | When | What |
+|---------|------|------|
+| **Bootstrap** | Node startup (once) | Discover known peers, register them, announce yourself |
+| **DiscoveryTracker** | After bootstrap, ongoing | Process incoming kind:10032 events delivered via ILP |
+
+Bootstrap uses the `knownPeers` list to find initial peers. Once bootstrap completes, the DiscoveryTracker takes over — it processes new kind:10032 events that arrive via ILP packets and auto-registers newly discovered peers with the local connector.
+
 ## Discovery Sources
 
-Four complementary mechanisms ensure a node can always find peers:
+Three complementary mechanisms provide the initial peer list for bootstrap:
 
 | Source | When | Purpose |
 |--------|------|---------|
 | `knownPeers` config | Bootstrap | Hardcoded seed nodes for initial connection |
 | Environment (`ADDITIONAL_PEERS`) | Runtime | JSON-formatted peer injection for Docker |
 | ArDrive Registry | Bootstrap | Decentralized peer list on Arweave |
-| DiscoveryTracker | Ongoing | Real-time subscription to kind:10032 events |
 
 **Bootstrap flow:**
 
 1. Merge peers from config + ArDrive + environment
-2. Connect to at least one seed node
-3. DiscoveryTracker continuously watches for new kind:10032 events
+2. For each known peer: discover (query relay) → register (open channel, add to connector) → announce (pay to publish kind:10032)
+3. Emit `bootstrap:ready` when complete
 
 ## Passive Discovery, Explicit Peering
 
