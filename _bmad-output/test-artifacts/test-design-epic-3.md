@@ -8,12 +8,12 @@ stepsCompleted:
     'step-05-generate-output',
   ]
 lastStep: 'step-05-generate-output'
-lastSaved: '2026-03-04'
+lastSaved: '2026-03-06'
 ---
 
-# Test Design: Epic 3 - The Rig (ILP-Gated TypeScript Git Forge)
+# Test Design: Epic 3 - Production Protocol Economics
 
-**Date:** 2026-03-04
+**Date:** 2026-03-06
 **Author:** Jonathan
 **Status:** Draft
 
@@ -21,32 +21,40 @@ lastSaved: '2026-03-04'
 
 ## Executive Summary
 
-**Scope:** Full test design for Epic 3 — The Rig, an ILP-gated TypeScript git forge built on the SDK. 12 stories covering NIP-34 event handlers, git HTTP backend, read-only web UI, Nostr pubkey identity, and package publishing.
+**Scope:** Epic-level test design for Epic 3
 
 **Risk Summary:**
 
-- Total risks identified: 13
-- High-priority risks (>=6): 5
-- Critical categories: SEC (4 risks), TECH (1 risk)
+- Total risks identified: 13 (11 epic-specific + 2 inherited)
+- High-priority risks (score >=6): 5 (E3-R001, E3-R002, E3-R003, E3-R004, E3-R005)
+- Critical categories: SEC (EIP-3009 forgery, gas griefing), TECH (settlement atomicity, packet equivalence), DATA (mock USDC fidelity)
 
 **Coverage Summary:**
 
-- P0 scenarios: 11 (~20-35 hours)
-- P1 scenarios: 13 (~18-30 hours)
-- P2/P3 scenarios: 15 (~10-19 hours)
-- **Total effort**: ~48-84 hours (~1.5-3 weeks)
+- P0 scenarios: 9 (~18-27 hours)
+- P1 scenarios: 12 (~12-24 hours)
+- P2 scenarios: 10 (~5-10 hours)
+- P3 scenarios: 3 (~3-6 hours)
+- **Total effort**: ~38-67 hours (~1-2 weeks, 1 engineer)
+
+**Party Mode Decisions (incorporated):**
+
+- **No refund on x402 REJECT** — payment is for routing attempt, not delivery guarantee; mirrors ILP semantics
+- **Layered pre-flight validation** — 6 free checks before any on-chain transaction to prevent gas griefing
+- **Shared `buildIlpPrepare()`** — x402 and SPSP paths MUST use a single shared function to construct ILP PREPARE packets
+- **Destination reachability pre-flight** — check destination connectivity before incurring gas costs
 
 ---
 
 ## Not in Scope
 
-| Item                             | Reasoning                                                                  | Mitigation                                                                                         |
-| -------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Admin panels / user settings** | Template port scope excludes non-code-browsing Forgejo features            | Not needed — Nostr pubkey identity replaces user management                                        |
-| **OAuth / notification system**  | Forgejo features irrelevant to Nostr-native identity model                 | Pubkey-based auth handles all access control                                                       |
-| **Performance / load testing**   | Rig is single-tenant, low-concurrency service; no SLA targets defined      | Monitor in production; add k6 tests if usage grows                                                 |
-| **Multi-relay redundancy**       | Deferred per architecture (post-MVP enhancement)                           | Single relay dependency is an accepted trade-off                                                   |
-| **E2E tests (full Rig + ILP)**   | Requires deployed SDK + connector + relay infrastructure not yet available | Integration tests with real git + SQLite :memory: cover handler flows; E2E deferred to post-Epic 3 |
+| Item | Reasoning | Mitigation |
+| --- | --- | --- |
+| **Epic 2 relay internals** | Prerequisite; tested separately | Epic 2 test design covers SDK-based relay |
+| **Epic 4 TEE attestation** | Different epic, different trust model | Covered by Epic 4 test design |
+| **Arbitrum One mainnet testing** | Requires real USDC, real gas costs | Mock USDC on Anvil provides full EIP-3009 fidelity (Decision 10) |
+| **Multi-node peering E2E** | Requires deploy-peers.sh infrastructure | Deferred to integration testing |
+| **ethers.js connector migration** | Explicit architectural debt (Decision 7) | viem for new code only; connector untouched |
 
 ---
 
@@ -54,37 +62,43 @@ lastSaved: '2026-03-04'
 
 ### High-Priority Risks (Score >=6)
 
-| Risk ID | Category | Description                                                                                                                                                        | Probability | Impact | Score | Mitigation                                                                                                     | Owner | Timeline              |
-| ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- | ------ | ----- | -------------------------------------------------------------------------------------------------------------- | ----- | --------------------- |
-| E3-R001 | SEC      | Git command injection — all git operations use `child_process` with inputs from Nostr events. Using `exec` instead of `execFile` enables shell injection.          | 2           | 3      | 6     | `execFile` only; input sanitization; reject shell metacharacters; lint rule blocking `exec` in `packages/rig/` | Dev   | Stories 3.1-3.4       |
-| E3-R002 | SEC      | Authorization bypass in PR lifecycle — maintainer permission checks rely on kind:30617 maintainer tags. Stale/spoofed events could grant unauthorized merge/close. | 2           | 3      | 6     | Verify maintainer list from freshest kind:30617 event; reject unauthorized pubkeys with F06                    | Dev   | Story 3.6             |
-| E3-R003 | SEC      | Path traversal in git operations — repo names and file paths from NIP-34 events could escape `repoDir` (e.g., `../../etc/passwd`).                                 | 2           | 3      | 6     | `path.resolve()` + verify within `repoDir`; reject `../` in names/paths                                        | Dev   | Stories 3.1, 3.4, 3.8 |
-| E3-R004 | SEC      | XSS via Nostr event content — issue bodies, comments, PR descriptions rendered in Eta templates. Unescaped content enables stored XSS.                             | 2           | 3      | 6     | Eta auto-escape; sanitize markdown; CSP headers on Express                                                     | Dev   | Stories 3.7-3.11      |
-| E3-R005 | TECH     | Malformed patch crashes git backend — patches from arbitrary Nostr events may be malformed, causing `git am`/`git apply` to fail or hang.                          | 3           | 2      | 6     | Timeout on child_process; catch git errors → `ctx.reject('F00')`; test with malformed inputs                   | Dev   | Story 3.2             |
+| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner | Timeline |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E3-R001 | SEC | EIP-3009 signature verification bypass — accepting forged `transferWithAuthorization` signatures drains the facilitator or credits unearned USDC | 2 | 3 | 6 | Real FiatTokenV2_2 on Anvil; test forged sigs rejected; test valid sigs accepted | Dev | Story 3.3 |
+| E3-R002 | TECH | Settlement atomicity — on-chain USDC transfer succeeds but ILP PREPARE rejected (or vice versa) leaves inconsistent state | 2 | 3 | 6 | Two sub-scenarios: (a) settlement reverts → no PREPARE, (b) PREPARE rejected → no refund, facilitator keeps USDC | Dev | Story 3.3 |
+| E3-R003 | TECH | Packet equivalence — x402 `/publish` constructs different ILP PREPARE than SPSP path, causing silent routing or storage failures | 2 | 3 | 6 | Shared `buildIlpPrepare()` function enforced; integration test comparing packet bytes from both paths | Dev | Story 3.3 |
+| E3-R004 | DATA | Chain config injection — wrong chainId in EIP-712 domain separator causes valid signatures to fail verification on wrong chain | 2 | 3 | 6 | Chain-aware EIP-712 signing tests across all 3 presets (Anvil 31337, Sepolia 421614, Arbitrum One 42161) | Dev | Story 3.2 |
+| E3-R005 | DATA | Mock USDC fidelity — mock ERC-20 on Anvil missing EIP-3009 support or different behavior than production USDC | 2 | 3 | 6 | Deploy Circle's real FiatTokenV2_2 on Anvil (Decision 10); test transferWithAuthorization works identically | Dev | Story 3.1 |
 
-### Medium-Priority Risks (Score 3-4)
+### Medium-Priority Risks (Score 3-5)
 
-| Risk ID | Category | Description                                                                                 | Probability | Impact | Score | Mitigation                                                     | Owner |
-| ------- | -------- | ------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | -------------------------------------------------------------- | ----- |
-| E3-R006 | TECH     | Relay unavailability breaks issue/PR pages — Rig queries relay at render time with no cache | 2           | 2      | 4     | Graceful degradation with "relay unavailable" message          | Dev   |
-| E3-R007 | DATA     | NIP-34 event validation — malformed events with missing `a` tags or invalid repo references | 2           | 2      | 4     | Validate required tags before processing; reject with F00      | Dev   |
-| E3-R008 | TECH     | Express route conflicts — overlapping patterns between repo, git-backend, and issues routes | 2           | 2      | 4     | Route mounting order; integration test all patterns            | Dev   |
-| E3-R009 | DATA     | SQLite repo metadata concurrent writes during simultaneous repo creation                    | 1           | 3      | 3     | better-sqlite3 WAL mode; serialize writes                      | Dev   |
-| E3-R010 | OPS      | Git binary missing at runtime — startup check skipped or version incompatible               | 1           | 3      | 3     | Startup verification with version check; exit with clear error | Dev   |
+| Risk ID | Category | Description | Probability | Impact | Score | Mitigation | Owner |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| E3-R006 | TECH | Seed relay liveness — all seed relays unreachable blocks network join; no fallback to genesis | 2 | 2 | 4 | Fallback test: seed list exhausted → clear error; backward compat test: genesis mode still works | Dev |
+| E3-R007 | TECH | Dual-protocol server conflicts — Express routes interfere with WebSocket upgrade on port 7100 | 2 | 2 | 4 | Integration test: concurrent HTTP + WS requests on same port | Dev |
+| E3-R008 | BUS | Multi-hop pricing opacity — routing buffer (5-10%) plus destination pricing makes final price unpredictable | 1 | 3 | 3 | Unit test: pricing = destination basePricePerByte * toonLength + routing buffer | Dev |
+| E3-R009 | TECH | viem/ethers coexistence — two EVM libraries with different provider patterns create import confusion | 1 | 3 | 3 | Static analysis: grep for ethers imports in Epic 3 code (must be zero); viem-only in new code | Dev |
+| E3-R013 | SEC | Gas griefing via x402 — bad actor spams x402 with deliberately-failing authorizations to drain facilitator ETH through gas fees | 1 | 3 | 3 | Layered pre-flight validation: free crypto checks before any on-chain tx; no-refund eliminates reject-based griefing | Dev |
 
 ### Low-Priority Risks (Score 1-2)
 
-| Risk ID | Category | Description                                                                        | Probability | Impact | Score | Action  |
-| ------- | -------- | ---------------------------------------------------------------------------------- | ----------- | ------ | ----- | ------- |
-| E3-R011 | BUS      | Eta template port fidelity — rendering differences from Forgejo Go HTML            | 1           | 2      | 2     | Monitor |
-| E3-R012 | OPS      | Package ESM/CLI/Docker configuration                                               | 1           | 1      | 1     | Monitor |
-| E3-R013 | BUS      | Pubkey profile enrichment failures — kind:0 fetch fails to truncated npub fallback | 1           | 1      | 1     | Monitor |
+| Risk ID | Category | Description | Probability | Impact | Score | Action |
+| --- | --- | --- | --- | --- | --- | --- |
+| E3-R010 | OPS | RPC endpoint reliability — Arbitrum One/Sepolia RPC unavailability | 1 | 2 | 2 | Monitor; env var override for custom RPC |
+| E3-R011 | DATA | NIP-33 replaceable event semantics — kind:10035 updates not correctly replacing previous | 1 | 2 | 2 | Monitor; unit test for replaceable event `d` tag |
+| E3-R012 | OPS | /health schema stability — response format changes break monitoring | 1 | 1 | 1 | Monitor; snapshot test for schema |
+
+### Inherited System-Level Risks
+
+| Risk ID | Category | Score | Epic 3 Relevance |
+| --- | --- | --- | --- |
+| R-001 | TECH | 9 | x402 PREPARE packets flow through same TOON pipeline; ordering invariant must hold |
+| R-005 | DATA | 6 | USDC channels must survive x402 settlement failures; channel state integrity critical |
 
 ### Risk Category Legend
 
 - **TECH**: Technical/Architecture (flaws, integration, scalability)
 - **SEC**: Security (access controls, auth, data exposure)
-- **PERF**: Performance (SLA violations, degradation, resource limits)
 - **DATA**: Data Integrity (loss, corruption, inconsistency)
 - **BUS**: Business Impact (UX harm, logic errors, revenue)
 - **OPS**: Operations (deployment, config, monitoring)
@@ -93,113 +107,112 @@ lastSaved: '2026-03-04'
 
 ## Entry Criteria
 
-- [ ] SDK (Epic 1) complete and published
-- [ ] `@crosstown/core` TOON codec extraction done (Story 1.0)
-- [ ] `git` binary available in development environment PATH
-- [ ] NIP-34 types available in `@crosstown/core/nip34`
-- [ ] Test fixtures: git repo factory function for creating test repos with commits
+- [ ] Epic 2 complete (@crosstown/town relay reference implementation functional)
+- [ ] @crosstown/sdk and @crosstown/town packages importable
+- [ ] Anvil running with deterministic contract addresses
+- [ ] Circle FiatTokenV2_2 (mock USDC) deployed on Anvil
+- [ ] Faucet distributing mock USDC (not AGENT token)
+- [ ] Genesis node deployable via deploy-genesis-node.sh
+- [ ] viem ^2.46 installed in workspace
 
 ## Exit Criteria
 
-- [ ] All P0 tests passing (100%)
-- [ ] All P1 tests passing (or failures triaged with waivers)
-- [ ] No open high-priority / high-severity bugs
-- [ ] All SEC-category risks (E3-R001 through E3-R004) have passing mitigation tests
-- [ ] Test coverage agreed as sufficient by team review
+- [ ] All P0 tests passing (9/9)
+- [ ] P1 tests >=95% passing or failures triaged
+- [ ] No open high-priority bugs (E3-R001 through E3-R005)
+- [ ] Pre-flight validation firewall: 100% branch coverage
+- [ ] Packet equivalence verified: x402 and SPSP produce identical ILP PREPARE bytes
+- [ ] No-refund on REJECT enforced and tested
+- [ ] EIP-712 domain separator chain-aware across all 3 presets
 
 ---
 
 ## Test Coverage Plan
 
-> **Note:** P0/P1/P2/P3 = priority classification based on risk severity, NOT execution timing. See Execution Strategy for when tests run.
+> **Note:** P0/P1/P2/P3 indicate priority based on risk and criticality, NOT execution timing. See Execution Strategy for timing.
 
 ### P0 (Critical)
 
-**Criteria:** Blocks core write path + High risk (>=6) + No workaround. Security mitigations are non-negotiable.
+**Criteria:** Blocks core functionality + High risk (score >=6) + No workaround
 
-| Test ID       | Requirement                                            | Test Level  | Risk Link | Notes                                                   |
-| ------------- | ------------------------------------------------------ | ----------- | --------- | ------------------------------------------------------- |
-| 3.1-UNIT-001  | All git operations use `execFile`, never `exec`        | Unit        | E3-R001   | Verify function signatures in git/operations.ts         |
-| 3.1-UNIT-002  | Path traversal rejected in repo names                  | Unit        | E3-R003   | `../`, absolute paths, null bytes, shell metacharacters |
-| 3.2-UNIT-001  | Malformed patch → `ctx.reject('F00')`                  | Unit        | E3-R005   | Empty, binary, oversized, timeout                       |
-| 3.2-UNIT-002  | Patch path traversal — diff referencing outside repo   | Unit        | E3-R003   | `diff --git a/../../etc/passwd`                         |
-| 3.4-UNIT-001  | HTTP push (receive-pack) rejected                      | Unit        | E3-R001   | Only upload-pack allowed                                |
-| 3.5-UNIT-001  | Unauthorized pubkey → `ctx.reject('F06')`              | Unit        | E3-R002   | Non-maintainer merge/close blocked                      |
-| 3.6-UNIT-001  | Merge only by maintainer pubkeys from kind:30617       | Unit        | E3-R002   | Maintainer list lookup + rejection                      |
-| 3.11-UNIT-001 | XSS payloads escaped in Eta templates                  | Unit        | E3-R004   | `<script>`, `onerror=`, `javascript:` in content        |
-| 3.1-INT-001   | Repo creation: kind:30617 → `git init --bare` → SQLite | Integration | E3-R001   | Real git + SQLite :memory:                              |
-| 3.2-INT-001   | Patch application: kind:1617 → `git am` succeeds       | Integration | E3-R005   | Real git repo on disk                                   |
-| 3.6-INT-001   | PR merge: kind:1631 → `git merge` on target branch     | Integration | E3-R002   | Authorized maintainer merge                             |
+| Test ID | Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3.3-INT-001 | FR-PROD-3: Pre-flight validation firewall | Integration | E3-R001, E3-R013 | 1 | Dev | 6 free checks: EIP-3009 sig, USDC balance, nonce, TOON parse, Schnorr verify, destination reachability — all before on-chain tx |
+| 3.3-INT-002 | FR-PROD-3: x402 happy path (402→payment→200) | Integration | E3-R001, E3-R002 | 1 | Dev | Real FiatTokenV2_2 on Anvil; full 402 negotiation→EIP-3009→settlement→ILP PREPARE→FULFILL |
+| 3.3-INT-003 | FR-PROD-3: Packet equivalence (x402 vs SPSP) | Integration | E3-R003 | 1 | Dev | Both paths call shared `buildIlpPrepare()`; compare serialized packet bytes |
+| 3.3-INT-004 | FR-PROD-3: Settlement atomicity — revert scenario | Integration | E3-R002 | 1 | Dev | Settlement tx reverts (insufficient balance) → no ILP PREPARE sent, HTTP 402 retry response |
+| 3.3-INT-005 | FR-PROD-3: No refund on REJECT | Integration | E3-R002, E3-R013 | 1 | Dev | Settlement succeeds → PREPARE rejected by destination → HTTP 200 with settlement hash, no refund initiated |
+| 3.3-INT-006 | FR-PROD-3: EIP-3009 forged signature rejection | Integration | E3-R001 | 1 | Dev | Invalid EIP-3009 sig → pre-flight rejects before settlement; valid sig → proceeds |
+| 3.1-INT-001 | FR-PROD-1: USDC channel creation on Anvil | Integration | E3-R005 | 1 | Dev | Real FiatTokenV2_2 supports tokenNetwork.openChannel() with USDC |
+| 3.2-UNIT-001 | FR-PROD-2: Chain preset correctness | Unit | E3-R004 | 1 | Dev | resolveChainConfig() returns correct chainId, rpcUrl, usdcAddress for all 3 presets |
+| 3.2-INT-001 | FR-PROD-2: EIP-712 chain-awareness | Integration | E3-R004, E3-R005 | 1 | Dev | EIP-712 domain separator uses resolved chainId, not hardcoded; test across Anvil (31337) and Arbitrum One (42161) |
 
-**Total P0**: 11 tests, ~20-35 hours
+**Total P0**: 9 tests, ~18-27 hours
 
 ### P1 (High)
 
-**Criteria:** Core read path + handler happy paths + git HTTP backend
+**Criteria:** Important features + Medium risk (3-5) + Common workflows
 
-| Test ID      | Requirement                             | Test Level  | Risk Link | Notes                                 |
-| ------------ | --------------------------------------- | ----------- | --------- | ------------------------------------- |
-| 3.3-UNIT-001 | Issue handler accepts valid kind:1621   | Unit        | —         | `ctx.accept()` happy path             |
-| 3.3-UNIT-002 | Comment handler accepts valid kind:1622 | Unit        | —         | `ctx.accept()` happy path             |
-| 3.3-UNIT-003 | Non-existent repo → `ctx.reject('F00')` | Unit        | E3-R007   | Invalid `a` tag reference             |
-| 3.1-UNIT-003 | Git startup verification                | Unit        | E3-R010   | Mock execFile → missing git → exit    |
-| 3.5-UNIT-002 | Pubkey as git author identity           | Unit        | —         | `GIT_AUTHOR_NAME`/`EMAIL` format      |
-| 3.6-UNIT-002 | Status events update repo metadata      | Unit        | —         | kind:1630/1632/1633 state transitions |
-| 3.4-INT-001  | Clone via HTTP (git-upload-pack)        | Integration | —         | Real git repo, Express route          |
-| 3.4-INT-002  | Fetch via HTTP returns updated refs     | Integration | —         | After patch applied                   |
-| 3.7-INT-001  | Repository list page renders            | Integration | —         | Express + SQLite + Eta                |
-| 3.8-INT-001  | File tree renders from `git ls-tree`    | Integration | —         | Express + real git repo               |
-| 3.8-INT-002  | Blob view renders file content          | Integration | —         | Syntax highlighting                   |
-| 3.9-INT-001  | Commit log renders from `git log`       | Integration | —         | Express + real git repo               |
-| 3.9-INT-002  | Commit diff renders from `git diff`     | Integration | —         | Diff formatting                       |
+| Test ID | Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3.2-UNIT-002 | FR-PROD-2: Env var override (CROSSTOWN_CHAIN) | Unit | E3-R004 | 1 | Dev | Env var overrides config file; CROSSTOWN_RPC_URL overrides preset RPC |
+| 3.2-UNIT-003 | FR-PROD-2: Invalid chain name | Unit | — | 1 | Dev | Unknown chain name → clear error message |
+| 3.3-INT-007 | FR-PROD-3: x402 disabled returns 404 | Integration | — | 1 | Dev | CROSSTOWN_X402_ENABLED=false → GET /publish → 404 |
+| 3.3-INT-008 | FR-PROD-3: Multi-hop pricing with routing buffer | Integration | E3-R008 | 1 | Dev | Price = destination basePricePerByte * toonLength + configurable buffer (5-10%) |
+| 3.3-INT-009 | FR-PROD-3: 402 response schema | Integration | — | 1 | Dev | HTTP 402 body contains amount, facilitatorAddress, paymentNetwork, chainId |
+| 3.4-INT-001 | FR-PROD-4: Seed relay discovery happy path | Integration | E3-R006 | 1 | Dev | Read kind:10036 → connect to seed → subscribe kind:10032 |
+| 3.4-INT-002 | FR-PROD-4: Seed relay fallback on failure | Integration | E3-R006 | 1 | Dev | First seed unreachable → try next; all exhausted → clear error |
+| 3.4-INT-003 | FR-PROD-4: Genesis mode backward compatibility | Integration | — | 1 | Dev | discovery: 'genesis' uses existing bootstrap flow unchanged |
+| 3.4-INT-004 | FR-PROD-4: Publish kind:10036 seed list event | Integration | — | 1 | Dev | Node publishes its own seed relay entry |
+| 3.5-INT-001 | FR-PROD-5: kind:10035 published on bootstrap | Integration | — | 1 | Dev | Service discovery event published after startup |
+| 3.5-INT-002 | FR-PROD-5: kind:10035 content correctness | Integration | — | 1 | Dev | Contains service type, ILP address, pricing, x402 endpoint (if enabled) |
+| 3.7-INT-001 | FR-PROD-3: Dual-protocol server (HTTP + WS) | Integration | E3-R007 | 1 | Dev | Concurrent HTTP GET /health + WS connection on port 7100 |
 
-**Total P1**: 13 tests, ~18-30 hours
+**Total P1**: 12 tests, ~12-24 hours
 
 ### P2 (Medium)
 
-**Criteria:** Secondary features + edge cases + relay-sourced data
+**Criteria:** Secondary features + Low risk (1-2) + Edge cases
 
-| Test ID      | Requirement                                         | Test Level  | Risk Link | Notes                     |
-| ------------ | --------------------------------------------------- | ----------- | --------- | ------------------------- |
-| 3.10-INT-001 | Blame view renders from `git blame`                 | Integration | —         | Express + real git repo   |
-| 3.11-INT-001 | Issues list from relay queries                      | Integration | E3-R006   | Mocked relay subscription |
-| 3.11-INT-002 | PR list from relay queries with status              | Integration | E3-R006   | Mocked relay              |
-| 3.11-INT-003 | Comment thread renders chronologically              | Integration | —         | Verify ordering           |
-| 3.5-UNIT-003 | kind:0 profile enrichment; missing → truncated npub | Unit        | E3-R013   | Graceful fallback         |
-| 3.7-UNIT-001 | Empty state when no repos exist                     | Unit        | —         | Template renders message  |
-| 3.8-UNIT-001 | 404 for non-existent path                           | Unit        | —         | Tree/blob error handling  |
-| 3.9-UNIT-001 | 404 for invalid commit SHA                          | Unit        | —         | Diff/log error handling   |
-| 3.11-INT-004 | Relay unavailable → graceful degradation            | Integration | E3-R006   | Mocked relay timeout      |
-| 3.1-UNIT-004 | Unsupported NIP-34 kind → `ctx.reject('F00')`       | Unit        | E3-R007   | Unknown kind rejection    |
+| Test ID | Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3.1-UNIT-001 | FR-PROD-1: Faucet distributes mock USDC | Unit | — | 1 | Dev | Faucet config updated from AGENT to USDC |
+| 3.1-UNIT-002 | FR-PROD-1: "AGENT" references removed | Unit | — | 1 | Dev | Static analysis: grep for AGENT token refs in config/types (must be zero) |
+| 3.2-UNIT-004 | FR-PROD-2: Preset type completeness | Unit | — | 1 | Dev | ChainPreset has chainId, rpcUrl, usdcAddress, tokenNetworkAddress, name |
+| 3.5-INT-003 | FR-PROD-5: kind:10035 omits x402 when disabled | Integration | — | 1 | Dev | x402 disabled → event advertises ILP-only |
+| 3.5-UNIT-001 | FR-PROD-5: kind:10035 replaceable (NIP-33) | Unit | E3-R011 | 1 | Dev | Event has `d` tag for NIP-33 replaceable pattern |
+| 3.6-UNIT-001 | FR-PROD-6: /health response schema | Unit | E3-R012 | 1 | Dev | Snapshot test: phase, peerCount, channelCount, pricing, x402, capabilities, chain, version |
+| 3.6-INT-001 | FR-PROD-6: /health reflects live state | Integration | — | 1 | Dev | peerCount and channelCount match actual state |
+| 3.9-UNIT-001 | FR-PROD-2: viem-only enforcement | Unit | E3-R009 | 1 | Dev | Static analysis: no ethers imports in packages/{core,sdk,town}/src for Epic 3 code |
+| 3.3-INT-010 | FR-PROD-3: Pre-flight: insufficient USDC balance | Integration | E3-R013 | 1 | Dev | Balance check fails → reject before settlement tx |
+| 3.3-INT-011 | FR-PROD-3: Pre-flight: destination unreachable | Integration | E3-R013 | 1 | Dev | Destination connectivity check fails → reject before settlement tx |
 
-**Total P2**: 10 tests, ~8-15 hours
+**Total P2**: 10 tests, ~5-10 hours
 
 ### P3 (Low)
 
-**Criteria:** Nice-to-have + package configuration + cosmetic
+**Criteria:** Nice-to-have + Exploratory + Full E2E
 
-| Test ID       | Requirement                                | Test Level  | Notes                       |
-| ------------- | ------------------------------------------ | ----------- | --------------------------- |
-| 3.12-UNIT-001 | Package exports `startRig`, `RigConfig`    | Unit        | Public API surface          |
-| 3.12-UNIT-002 | CLI entrypoint parses flags                | Unit        | `--mnemonic`, `--relay-url` |
-| 3.11-UNIT-002 | Contribution banner renders with docs link | Unit        | Banner text check           |
-| 3.10-UNIT-001 | 404 for non-existent blame file at ref     | Unit        | Error handling              |
-| 3.4-INT-003   | 404 for clone/fetch non-existent repo      | Integration | HTTP 404 response           |
+| Test ID | Requirement | Test Level | Test Count | Owner | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 3.3-E2E-001 | FR-PROD-3: x402 full E2E with genesis node | E2E | 1 | Dev | Real genesis infra: Anvil + Faucet + Connector + Relay; full 402→payment→store flow |
+| 3.4-E2E-001 | FR-PROD-4: Seed relay discovery E2E | E2E | 1 | Dev | Real genesis node + seed list → new peer bootstraps via seed |
+| 3.6-E2E-001 | FR-PROD-6: /health E2E with live node | E2E | 1 | Dev | Real genesis node → /health returns correct live state |
 
-**Total P3**: 5 tests, ~2-4 hours
+**Total P3**: 3 tests, ~3-6 hours
 
 ---
 
-## Execution Order
+## Execution Strategy
 
-**Philosophy:** Run everything on every PR. The Rig's tests use real git repos on disk + SQLite :memory: — no live infrastructure needed. Vitest parallelization keeps the full suite under 10 minutes.
+| Trigger | What Runs | Time Budget | Infrastructure |
+| --- | --- | --- | --- |
+| **Every PR** | All unit + integration tests (P0-P2) | < 10 min | Anvil (for USDC contract + EIP-3009 tests) |
+| **Nightly** | Full suite including E2E (P0-P3) | < 15 min | Genesis node (deploy-genesis-node.sh) |
 
-| Trigger      | What Runs                            | Duration  |
-| ------------ | ------------------------------------ | --------- |
-| **Every PR** | All 39 unit + integration tests      | < 10 min  |
-| **Manual**   | Exploratory template fidelity review | As needed |
+**Philosophy:** Run everything in PRs unless it requires the full genesis stack. Most tests run against Anvil directly (no relay/connector needed). Only the 3 E2E tests (P3) require the full genesis node and are deferred to nightly.
 
-No nightly or weekly cadence needed — all tests are fast and infrastructure-light (real git + in-memory SQLite only).
+**Note:** PR tests require Anvil running for EIP-3009 and channel tests. This is lighter than the full genesis stack (single Docker container vs. 5+ services).
 
 ---
 
@@ -207,131 +220,105 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 
 ### Test Development Effort
 
-| Priority  | Count  | Effort Range     | Notes                                      |
-| --------- | ------ | ---------------- | ------------------------------------------ |
-| P0        | 11     | ~20-35 hours     | Security input crafting, git repo fixtures |
-| P1        | 13     | ~18-30 hours     | Handler logic + Express route integration  |
-| P2        | 10     | ~8-15 hours      | Relay mocking, error states                |
-| P3        | 5      | ~2-4 hours       | Package config, simple assertions          |
-| **Total** | **39** | **~48-84 hours** | **~1.5-3 weeks, 1 engineer**               |
+| Priority | Count | Hours/Test | Total Hours | Notes |
+| --- | --- | --- | --- | --- |
+| P0 | 9 | 2.0-3.0 | ~18-27 | EIP-3009 crypto, settlement flows, packet comparison |
+| P1 | 12 | 1.0-2.0 | ~12-24 | Discovery, pricing, schema validation |
+| P2 | 10 | 0.5-1.0 | ~5-10 | Static analysis, config checks, snapshot tests |
+| P3 | 3 | 1.0-2.0 | ~3-6 | Full E2E with genesis node |
+| **Total** | **34** | **—** | **~38-67 hours** | **~1-2 weeks (1 engineer)** |
 
 ### Prerequisites
 
 **Test Data:**
 
-- Git repo factory function (creates bare repo with initial commit, configurable branches/files)
-- NIP-34 event factory functions (valid kind:30617, kind:1617, kind:1621, kind:1622, kind:1630-1633 events)
-- SQLite :memory: database factory for RepoMetadataStore
+- Nostr keypair factory (real nostr-tools)
+- TOON-encoded event factory (real @crosstown/core codec)
+- EIP-3009 authorization factory (viem signTypedData with FiatTokenV2_2 ABI)
+- Chain preset fixtures (Anvil, Sepolia, Arbitrum One configs)
 
 **Tooling:**
 
-- Vitest for unit + integration tests
-- Real `git` binary in PATH for integration tests
-- `child_process.execFile` for git operations under test
-- Mocked `nostr-tools` SimplePool for relay query tests
+- Vitest for all test levels
+- viem for EIP-3009 signing and on-chain interaction
+- Real FiatTokenV2_2 contract on Anvil (Decision 10)
+- Real TOON codec from @crosstown/core
 
 **Environment:**
 
-- Node.js 24.x with ESM
-- `git` >= 2.x in PATH
-- No Docker, no live relay, no blockchain required
-
----
-
-## Quality Gate Criteria
-
-### Pass/Fail Thresholds
-
-- **P0 pass rate**: 100% (no exceptions)
-- **P1 pass rate**: >= 95% (waivers required for failures)
-- **P2/P3 pass rate**: >= 90% (informational)
-- **SEC risk mitigations (E3-R001 through E3-R004)**: 100% complete
-
-### Coverage Targets
-
-- **Critical paths (write handlers)**: >= 80%
-- **Security scenarios**: 100%
-- **Business logic (handlers + routing)**: >= 70%
-- **Edge cases**: >= 50%
-
-### Non-Negotiable Requirements
-
-- [ ] All P0 tests pass
-- [ ] No high-risk (>=6) items unmitigated
-- [ ] Security tests (SEC category) pass 100%
-- [ ] Git command injection prevention verified (`execFile` only)
-- [ ] XSS prevention verified (Eta auto-escape)
-- [ ] Authorization boundary verified (maintainer-only merge/close)
+- CI/PR: Anvil container for EIP-3009 + channel tests
+- Nightly: Genesis node via deploy-genesis-node.sh (Anvil :8545, Faucet :3500, Relay :7100, BLS :3100, Connector :8080)
 
 ---
 
 ## Mitigation Plans
 
-### E3-R001: Git Command Injection (Score: 6)
+### E3-R001: EIP-3009 Signature Verification Bypass (Score: 6)
 
 **Mitigation Strategy:**
 
-1. All git operations in `packages/rig/src/git/operations.ts` use `child_process.execFile` exclusively
-2. Input sanitization for repo names (alphanumeric + hyphens only), file paths (no `../`, no absolute paths), and patch content (reject shell metacharacters)
-3. Lint rule or code review gate blocking `child_process.exec` in `packages/rig/`
+1. Pre-flight validation: verify EIP-3009 signature off-chain before submitting to contract
+2. Integration test with forged signature → pre-flight rejects (no gas spent)
+3. Integration test with valid signature → settlement proceeds
+4. Use real FiatTokenV2_2 on Anvil — same contract as production
 
 **Owner:** Dev
-**Timeline:** Stories 3.1-3.4
+**Timeline:** Story 3.3
 **Status:** Planned
-**Verification:** Unit tests 3.1-UNIT-001, 3.1-UNIT-002, 3.4-UNIT-001 with malicious inputs (path traversal `../`, shell injection `; rm -rf /`, null bytes)
+**Verification:** Forged EIP-3009 sig rejected at pre-flight; valid sig accepted and settles
 
-### E3-R002: Authorization Bypass in PR Lifecycle (Score: 6)
+### E3-R002: Settlement Atomicity (Score: 6)
 
 **Mitigation Strategy:**
 
-1. Maintainer list fetched from the most recent kind:30617 event for the repository on every authorization check
-2. Non-maintainer pubkeys receive `ctx.reject('F06', 'Unauthorized: pubkey lacks maintainer permissions')`
-3. Unit test the boundary: same pubkey authorized as maintainer → allowed; different pubkey → rejected
+1. Sub-scenario A: settlement tx reverts (insufficient balance) → no ILP PREPARE sent, HTTP response indicates payment needed
+2. Sub-scenario B: settlement succeeds, ILP PREPARE rejected by destination → NO refund, facilitator retains USDC, HTTP 200 with settlement hash
+3. No-refund design eliminates the refund-based gas griefing vector
 
 **Owner:** Dev
-**Timeline:** Story 3.6
+**Timeline:** Story 3.3
 **Status:** Planned
-**Verification:** Unit tests 3.5-UNIT-001, 3.6-UNIT-001; Integration test 3.6-INT-001
+**Verification:** Test both sub-scenarios; verify no refund queue/retry/tracking code exists
 
-### E3-R003: Path Traversal in Git Operations (Score: 6)
+### E3-R003: Packet Equivalence (Score: 6)
 
 **Mitigation Strategy:**
 
-1. All paths canonicalized via `path.resolve(repoDir, userInput)`
-2. Verify resolved path starts with `repoDir` prefix — reject otherwise
-3. Reject `../`, absolute paths, and null bytes in repo names and file paths
+1. Architectural constraint: single shared `buildIlpPrepare()` function used by both x402 and SPSP paths
+2. Integration test: construct ILP PREPARE via x402 path and SPSP path with identical event → compare serialized bytes
+3. If shared function not enforced, escalate risk score to 9
 
 **Owner:** Dev
-**Timeline:** Stories 3.1, 3.4, 3.8
+**Timeline:** Story 3.3
 **Status:** Planned
-**Verification:** Unit tests 3.1-UNIT-002, 3.2-UNIT-002 with path traversal payloads
+**Verification:** Byte-exact comparison of ILP PREPARE packets from both paths
 
-### E3-R004: XSS via Nostr Event Content (Score: 6)
+### E3-R004: Chain Config Injection (Score: 6)
 
 **Mitigation Strategy:**
 
-1. Eta template engine configured with auto-escape enabled for all interpolated values
-2. Markdown rendering sanitized (strip raw HTML or use allowlist)
-3. Content-Security-Policy headers on all Express responses
-4. Unit test with XSS payloads in issue/comment content
-
-**Owner:** Dev
-**Timeline:** Stories 3.7-3.11
-**Status:** Planned
-**Verification:** Unit test 3.11-UNIT-001 with `<script>alert(1)</script>`, `<img onerror=alert(1)>`, `javascript:` URI payloads
-
-### E3-R005: Malformed Patch Crashes Git Backend (Score: 6)
-
-**Mitigation Strategy:**
-
-1. Timeout on all `child_process.execFile` calls (default 30s)
-2. Catch all git errors gracefully → `ctx.reject('F00', errorMessage)`
-3. Test with empty patches, binary content, oversized patches, and patches that conflict
+1. EIP-712 domain separator MUST use the chainId from resolved chain preset, not hardcoded
+2. Unit test: resolveChainConfig() returns correct values for all 3 presets
+3. Integration test: EIP-712 signature verification with Anvil chainId (31337) and Arbitrum One chainId (42161) — signature on wrong chain must fail
 
 **Owner:** Dev
 **Timeline:** Story 3.2
 **Status:** Planned
-**Verification:** Unit test 3.2-UNIT-001; Integration test 3.2-INT-001
+**Verification:** Cross-chain signature rejection; correct-chain signature acceptance
+
+### E3-R005: Mock USDC Fidelity (Score: 6)
+
+**Mitigation Strategy:**
+
+1. Deploy Circle's real FiatTokenV2_2 on Anvil (Decision 10 — same contract code as production)
+2. Test `transferWithAuthorization()` (EIP-3009) works on Anvil deployment
+3. Test `permit()` (EIP-2612) if used
+4. Coupled with E3-R004: EIP-712 domain separator must include correct chainId
+
+**Owner:** Dev
+**Timeline:** Story 3.1
+**Status:** Planned
+**Verification:** EIP-3009 transferWithAuthorization succeeds on Anvil with same parameters that would work on Arbitrum One
 
 ---
 
@@ -339,51 +326,64 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 
 ### Assumptions
 
-1. SDK (Epic 1) is complete and stable before Rig development begins
-2. `@crosstown/core` TOON codec extraction (Story 1.0) is done
-3. NIP-34 types in `packages/core/src/nip34/` remain stable (no breaking changes during Epic 3)
-4. The `git` binary (>= 2.x) is available in all development and CI environments
-5. Eta template engine supports auto-escape by default (verified: Eta ^4.5 does)
+1. Epic 2 is complete and @crosstown/town relay is functional before Epic 3 starts
+2. Circle's FiatTokenV2_2 contract is deployable on Anvil without modifications
+3. viem ^2.46 provides full EIP-712 typed data signing support for EIP-3009
+4. Arbitrum One USDC contract address is `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` (per Story 3.2)
+5. The connector's ethers.js internals are not affected by viem introduction (coexistence per Decision 7)
 
 ### Dependencies
 
-1. `@crosstown/sdk` package — Required for `createNode()`, handler registry, `HandlerContext`. Required by: All stories.
-2. `@crosstown/core` NIP-34 types — Required for `RepositoryAnnouncement`, `PatchEvent`, `IssueEvent`, `StatusEvent`. Required by: All handler stories.
-3. System `git` binary — Required for all git operations (init, am, merge, ls-tree, show, log, diff, blame, http-backend). Required by: Stories 3.1-3.10.
-4. `better-sqlite3` — Required for `RepoMetadataStore`. Required by: Story 3.1.
-5. `express` ^5.2 + `eta` ^4.5 — Required for web UI. Required by: Stories 3.7-3.11.
+1. @crosstown/town package — Required before all Epic 3 stories
+2. Circle FiatTokenV2_2 contract source — Required for Story 3.1 (Anvil deployment)
+3. viem ^2.46 — Required for Story 3.2+ (chain config, EIP-3009)
+4. Genesis node infrastructure — Required for E2E tests (P3)
+5. Anvil container — Required for PR-level integration tests (EIP-3009, channels)
 
 ### Risks to Plan
 
-- **Risk**: SDK (Epic 1) delivery delayed
-  - **Impact**: All Epic 3 work blocked
-  - **Contingency**: Begin Rig git operations module and Express routes independently (they don't depend on SDK); integrate handler wiring later
+- **Risk**: FiatTokenV2_2 deployment on Anvil fails or behaves differently than production
+  - **Impact**: All x402 tests blocked; EIP-3009 cannot be validated locally
+  - **Contingency**: Fall back to simplified ERC-20 with `transferWithAuthorization` interface; document fidelity gap
 
-- **Risk**: NIP-34 types in core change during Epic 3
-  - **Impact**: Handler implementations need updating
-  - **Contingency**: Pin core dependency version; update handlers in a separate story
+- **Risk**: viem EIP-712 support incomplete for EIP-3009 domain separator
+  - **Impact**: Cannot sign gasless USDC authorizations in tests
+  - **Contingency**: Use raw signTypedData with manual domain construction
 
 ---
 
 ## Interworking & Regression
 
-| Service/Component            | Impact                                                            | Regression Scope                             |
-| ---------------------------- | ----------------------------------------------------------------- | -------------------------------------------- |
-| **@crosstown/sdk**           | Rig depends on `createNode()`, handler registry, `HandlerContext` | SDK unit + integration tests must pass       |
-| **@crosstown/core (NIP-34)** | Rig uses NIP-34 types, constants, `parseRepositoryReference()`    | Core NIP-34 tests must pass                  |
-| **@crosstown/core (TOON)**   | SDK pipeline uses TOON codec (shallow parse → verify → dispatch)  | Core TOON codec roundtrip tests must pass    |
-| **Relay (WebSocket)**        | Rig queries relay for issues/PRs/comments at render time          | Relay WebSocket subscription tests must pass |
-
----
-
-## Follow-on Workflows (Manual)
-
-- Run `*atdd` to generate failing P0 tests (separate workflow; not auto-run).
-- Run `*automate` for broader coverage once implementation exists.
+| Service/Component | Impact | Regression Scope |
+| --- | --- | --- |
+| **@crosstown/core** | Chain presets added (resolveChainConfig) | Core tests must pass; new preset tests |
+| **@crosstown/sdk** | NodeConfig extended with chain, x402 config | SDK tests must pass with new config fields |
+| **@crosstown/town** | Express routes added (/publish, /health) | Existing Town lifecycle tests must pass |
+| **@crosstown/connector** | Untouched (ethers.js, architectural debt) | Connector tests unaffected |
+| **Faucet** | Distributes mock USDC instead of AGENT | Faucet tests updated for USDC |
+| **genesis-bootstrap-with-channels.test.ts** | Must pass with USDC channels | E2E regression gate |
 
 ---
 
 ## Appendix
+
+### Party Mode Refinements (2026-03-06)
+
+The following refinements were made during party mode discussion with Murat (TEA), Winston (Architect), Amelia (Dev), and Quinn (QA):
+
+1. **E3-R003 conditional escalation**: Packet equivalence stays at score 6 IF shared `buildIlpPrepare()` function is enforced architecturally. If implementation allows separate construction paths, escalate to score 9.
+
+2. **E3-R004/R005 coupling**: Chain config injection and mock USDC fidelity are coupled through the EIP-712 domain separator. The chainId in the domain separator MUST come from `resolveChainConfig()`, not be hardcoded. Test added: 3.2-INT-001.
+
+3. **E3-R002 sub-scenarios**: Settlement atomicity split into two distinct failure modes:
+   - (a) Settlement tx reverts → no ILP PREPARE constructed
+   - (b) Settlement succeeds but ILP PREPARE rejected → no refund, facilitator retains USDC
+
+4. **Gas griefing attack vector** (user-identified): Bad actors could spam x402 with deliberately-failing EIP-3009 authorizations to drain facilitator ETH through gas fees. Mitigated by layered pre-flight validation: 6 free checks (EIP-3009 sig verify, USDC balance, nonce, TOON shallow parse, Schnorr verify, destination reachability) before any on-chain transaction. Risk E3-R013 scored at 3 with mitigations.
+
+5. **No-refund design decision** (user-identified): Payment is for routing attempt, not delivery guarantee. Mirrors ILP semantics where PREPARE rejection doesn't unwind payment channels. Eliminates refund-based gas griefing vector (attacker can't force double gas payment). Simplifies implementation (no refund queue/retry/tracking). New acceptance criterion added to Story 3.3.
+
+6. **Story 3.4 backward compatibility**: Both `discovery: 'seed-list'` and `discovery: 'genesis'` strategies must be tested.
 
 ### Knowledge Base References
 
@@ -394,21 +394,20 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 
 ### Related Documents
 
-- PRD: `docs/prd/2-requirements.md`
-- Epic: `_bmad-output/planning-artifacts/epics.md` (Epic 3)
-- Architecture: `_bmad-output/planning-artifacts/architecture.md`
+- Epic: `_bmad-output/planning-artifacts/epics.md` (Epic 3, Stories 3.1-3.6)
+- Architecture: `_bmad-output/planning-artifacts/architecture.md` (Decisions 7-10)
+- Party Mode Decisions: `_bmad-output/planning-artifacts/research/marlin-party-mode-decisions-2026-03-05.md`
 - System-Level Test Design: `_bmad-output/test-artifacts/test-design-architecture.md`
 
-### Inherited System-Level Risks
+---
 
-| System Risk                        | Epic 3 Risk | Status                                |
-| ---------------------------------- | ----------- | ------------------------------------- |
-| R-004 (Git command injection)      | E3-R001     | Scoped to stories 3.1-3.4             |
-| R-009 (Rig relay dependency)       | E3-R006     | Medium priority, graceful degradation |
-| R-012 (Eta template port fidelity) | E3-R011     | Low priority, monitor                 |
+## Follow-on Workflows (Manual)
+
+- Run `*atdd` to generate failing P0 tests (separate workflow; not auto-run).
+- Run `*automate` for broader coverage once implementation exists.
 
 ---
 
 **Generated by**: BMad TEA Agent - Test Architect Module
-**Workflow**: `_bmad/tea/testarch/test-design`
+**Workflow**: `_bmad/tea/workflows/testarch/test-design`
 **Version**: 4.0 (BMad v6)

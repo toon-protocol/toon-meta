@@ -97,7 +97,7 @@ inputDocuments:
 | **R-001** | **TECH** | TOON pipeline stage ordering — verifying after full decode trusts the decode; pricing before verify allows payment for forged events | 2           | 3      | **9** | Document invariant in ADR; unit test stage ordering; integration test full pipeline         | Architecture | Pre-impl  |
 | **R-002** | **SEC**  | Schnorr verification bypass — devMode toggle leaking to production skips all signature verification                                  | 2           | 3      | **6** | Config-only toggle, default false, no env var override; unit test devMode=false enforcement | Dev          | Story 1.4 |
 | **R-003** | **TECH** | TOON codec extraction regression — moving codec from BLS to core breaks encode/decode across packages                                | 2           | 3      | **6** | Roundtrip encode/decode tests in core; BLS + relay import validation after move             | Dev          | Story 1.0 |
-| **R-004** | **SEC**  | Git command injection — Rig spawns git via child_process; unsanitized inputs enable shell injection                                  | 2           | 3      | **6** | execFile only (no exec); input sanitization for paths, repo names, patch content            | Dev          | Epic 3    |
+| **R-004** | **SEC**  | Git command injection — Rig spawns git via child_process; unsanitized inputs enable shell injection                                  | 2           | 3      | **6** | execFile only (no exec); input sanitization for paths, repo names, patch content            | Dev          | Epic 5    |
 | **R-005** | **DATA** | Payment channel state integrity — nonce conflicts, race conditions in on-chain operations can lock funds                             | 2           | 3      | **6** | Nonce retry logic; channel lifecycle integration tests against Anvil                        | Dev          | Story 1.7 |
 | **R-006** | **TECH** | SDK replacement E2E regression — subtle pipeline differences break bootstrap/channels/publishing                                     | 3           | 2      | **6** | Existing E2E test suite as SDK completion gate (Story 2.3)                                  | Dev          | Epic 2    |
 
@@ -202,7 +202,7 @@ inputDocuments:
 3. Code review gate: no `child_process.exec` calls in `packages/rig/`
 
 **Owner:** Dev
-**Timeline:** Epic 3
+**Timeline:** Epic 5
 **Status:** Planned
 **Verification:** Unit tests with malicious inputs (path traversal `../`, shell injection `; rm -rf /`)
 
@@ -245,7 +245,7 @@ inputDocuments:
 
 1. **Anvil + Faucet containers** - Required for all payment channel and E2E tests. Uses `docker-compose-genesis.yml` with deterministic contract addresses (AGENT: `0x5FbDB...`, TokenNetwork: `0xCafac...`). Required by: Story 1.7, Epic 2. **Note**: `deploy-genesis-node.sh` currently deploys the pre-SDK relay/BLS. Once Town (Epic 2) replaces the relay, these scripts will need updating to use the `@crosstown/town` image.
 2. **Connector contracts repository** - Must be cloned to `../connector` for Anvil contract deployment (`DeployLocal.s.sol`). Required by: pre-Epic 1.
-3. **System `git` binary** - Required in PATH for Rig integration tests. Required by: Epic 3.
+3. **System `git` binary** - Required in PATH for Rig integration tests. Required by: Epic 5.
 
 ---
 

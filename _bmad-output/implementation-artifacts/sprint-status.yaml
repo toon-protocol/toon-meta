@@ -56,27 +56,52 @@ development_status:
   1-11-package-setup-and-npm-publish: done
   epic-1-retrospective: done
 
-  # Epic 2: Nostr Relay Reference Implementation & SDK Validation
-  epic-2: backlog
-  2-1-relay-event-storage-handler: backlog
-  2-2-spsp-handshake-handler: backlog
-  2-3-e2e-test-validation: backlog
-  2-4-remove-git-proxy-and-document-reference-implementation: backlog
-  2-5-publish-crosstown-town-package: backlog
-  epic-2-retrospective: optional
+  # Epic 2: Nostr Relay Reference Implementation, Protocol Stabilization & SDK Validation
+  # Scope change (2026-03-07): Stories 3.7/3.8 moved into Epic 2 as 2.7/2.8
+  # Retro reopened — original retro covered 5/5 stories; epic now has 8 stories
+  epic-2: done
+  2-1-relay-event-storage-handler: done
+  2-2-spsp-handshake-handler: done  # DEPRECATED — will be removed by Story 2.7
+  2-3-e2e-test-validation: done
+  2-4-remove-git-proxy-and-document-reference-implementation: done
+  2-5-publish-crosstown-town-package: done
+  2-6-add-publish-event-to-service-node: done
+  2-7-spsp-removal-and-peer-discovery-cleanup: done  # moved from Epic 3 Story 3.7
+  2-8-relay-subscription-api-on-town-instance: done  # moved from Epic 3 Story 3.8
+  epic-2-retrospective: done  # final retro covering all 8/8 stories
 
-  # Epic 3: The Rig - ILP-Gated TypeScript Git Forge
+  # Epic 3: Production Protocol Economics (6 stories after scope change 2026-03-07)
   epic-3: backlog
-  3-1-sdk-node-setup-and-repository-creation-handler: backlog
-  3-2-patch-handler: backlog
-  3-3-issue-and-comment-handlers: backlog
-  3-4-git-http-backend-for-clone-and-fetch: backlog
-  3-5-nostr-pubkey-native-git-identity: backlog
-  3-6-nip-34-status-events-and-pr-lifecycle: backlog
-  3-7-layout-and-repository-list-page: backlog
-  3-8-file-tree-and-blob-view: backlog
-  3-9-commit-log-and-diff-view: backlog
-  3-10-blame-view: backlog
-  3-11-issues-and-prs-from-nostr-events-on-relay: backlog
-  3-12-publish-crosstown-rig-package: backlog
+  3-1-usdc-token-migration: backlog
+  3-2-multi-environment-chain-configuration: backlog
+  3-3-x402-publish-endpoint: backlog
+  3-4-seed-relay-discovery: backlog
+  3-5-kind-10035-service-discovery-events: backlog
+  3-6-enriched-health-endpoint: backlog
   epic-3-retrospective: optional
+
+  # Epic 4: Marlin TEE Deployment
+  epic-4: backlog
+  4-1-oyster-cvm-packaging: backlog
+  4-2-tee-attestation-events: backlog
+  4-3-attestation-aware-peering: backlog
+  4-4-nautilus-kms-identity: backlog
+  4-5-nix-reproducible-builds: backlog
+  4-6-attestation-first-seed-relay-bootstrap: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: The Rig - ILP-Gated TypeScript Git Forge
+  epic-5: backlog
+  5-1-sdk-node-setup-and-repository-creation-handler: backlog
+  5-2-patch-handler: backlog
+  5-3-issue-and-comment-handlers: backlog
+  5-4-git-http-backend-for-clone-and-fetch: backlog
+  5-5-nostr-pubkey-native-git-identity: backlog
+  5-6-nip-34-status-events-and-pr-lifecycle: backlog
+  5-7-layout-and-repository-list-page: backlog
+  5-8-file-tree-and-blob-view: backlog
+  5-9-commit-log-and-diff-view: backlog
+  5-10-blame-view: backlog
+  5-11-issues-and-prs-from-nostr-events-on-relay: backlog
+  5-12-publish-crosstown-rig-package: backlog
+  epic-5-retrospective: optional

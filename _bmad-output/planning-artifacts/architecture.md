@@ -2,7 +2,8 @@
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 lastStep: 8
 status: 'complete'
-completedAt: '2026-03-03'
+completedAt: '2026-03-06'
+updatedAt: '2026-03-06'
 inputDocuments:
   - docs/prd/index.md
   - docs/prd/1-goals-and-background-context.md
@@ -44,12 +45,14 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 ### Requirements Overview
 
 **Functional Requirements:**
-The SDK epics introduce 24 FRs organized across three domains:
+The project introduces 36 FRs organized across five domains:
 
 - **TOON Codec Prerequisite (FR-SDK-0, 1 FR):** Extract TOON encoder, decoder, and shallow parser to @crosstown/core
 - **SDK Core (FR-SDK-1 to FR-SDK-NEW-1, 14 FRs):** Node composition, handler registry, TOON-native context, signature verification, pricing validation, PaymentHandler bridge, connector lifecycle, network discovery, dev mode, unified identity
 - **NIP-34 Git Forge (FR-NIP34-1 to FR-NIP34-6, 6 FRs):** Git HTTP backend, pubkey-native identity, read-only web UI, PR lifecycle, relay-sourced issues/PRs, package publishing
 - **Relay Publishing (FR-RELAY-1, 1 FR):** Publish @crosstown/town package
+- **Production Protocol Economics (FR-PROD-1 to FR-PROD-6, 6 FRs):** USDC token migration, multi-environment chain config, x402 /publish endpoint, seed relay discovery, service discovery events, enriched /health
+- **Marlin TEE Deployment (FR-TEE-1 to FR-TEE-6, 6 FRs):** Oyster CVM packaging, TEE attestation events, attestation-aware peering, Nautilus KMS identity, Nix reproducible builds, attestation-first bootstrap
 
 These build on the existing 66 FRs from the PRD (Epics 1-17), with the SDK replacing the manual composition patterns from Epics 5-10.
 
@@ -68,7 +71,7 @@ These build on the existing 66 FRs from the PRD (Epics 1-17), with the SDK repla
 - Primary domain: Backend protocol SDK with web UI rendering
 - Complexity level: High
 - Estimated architectural components: 8 packages (sdk, town, rig, core, bls, relay, client, connector)
-- Total stories: 24 across 3 epics (Epic 1: 12, Epic 2: 5, Epic 3: 12)
+- Total stories: 36+ across 5 epics (Epic 1: 12, Epic 2: 5, Epic 3: 6, Epic 4: 6, Epic 5: 12)
 - Validation benchmark: SDK-based relay entrypoint targets <100 lines of handler logic vs ~300 lines in current `docker/src/entrypoint.ts`
 
 ### Technical Constraints & Dependencies
@@ -112,6 +115,74 @@ The SDK introduces pipeline stages between connector and business logic. Each st
 | E2E         | Existing genesis-bootstrap test against SDK-built relay                         | Regression from replacement |
 
 Lower test levels first — the E2E test catches regressions but unit tests catch them faster and tell you _where_.
+
+## Project Context Analysis — Epics 3 & 4 Update (2026-03-06)
+
+### New Requirements Overview
+
+**New Functional Requirements (12 FRs):**
+
+Epic 3 (Production Protocol Economics) introduces 6 FRs:
+- FR-PROD-1: USDC token migration — replace AGENT dev token with mock USDC on Anvil, production USDC on Arbitrum One
+- FR-PROD-2: Multi-environment chain configuration — Anvil / Arbitrum Sepolia / Arbitrum One with env var overrides
+- FR-PROD-3: x402 /publish endpoint — HTTP-native payment rail, node acts as x402 facilitator, constructs ILP PREPARE packets
+- FR-PROD-4: Seed relay discovery — kind:10036 events on public Nostr relays, replaces genesis hub-and-spoke
+- FR-PROD-5: kind:10035 service discovery — machine-readable pricing, capabilities, and endpoint advertisement
+- FR-PROD-6: Enriched /health endpoint — comprehensive node status for monitoring and programmatic peering
+
+Epic 4 (Marlin TEE Deployment) introduces 6 FRs:
+- FR-TEE-1: Oyster CVM packaging — Docker image adapted for Marlin Oyster confidential computing
+- FR-TEE-2: TEE attestation events — kind:10033 with PCR values, enclave image hash, attestation doc
+- FR-TEE-3: Attestation-aware peering — BootstrapService verifies kind:10033, prefers attested peers
+- FR-TEE-4: Nautilus KMS identity — persistent enclave-bound keypairs, identity tied to code integrity
+- FR-TEE-5: Nix reproducible builds — deterministic PCR values, CI reproducibility verification
+- FR-TEE-6: Attestation-first seed relay bootstrap — kind:10033 verification integrated into seed relay flow
+
+**New Non-Functional Requirements:**
+- All user-facing payments in USDC (no custom tokens)
+- Autonomous agent readiness: deterministic bootstrap, programmatic deployment, self-describing economics
+- TEE attestation verification adds latency budget to bootstrap flow
+- Nix build determinism constrains Docker image construction
+
+**Updated Scale & Complexity:**
+- Total epics: 5 (was 3)
+- Total stories: 36+ (24 existing + 6 Epic 3 + 6 Epic 4)
+- Total FRs: 36 (24 existing + 12 new)
+- New domains: payment protocol economics, TEE/confidential computing, multi-chain EVM
+
+### New Technical Constraints & Dependencies
+
+**Epic 3 Constraints:**
+- EIP-3009 (transferWithAuthorization) support for gasless USDC transfers — requires USDC contract compatibility
+- Arbitrum One RPC access for on-chain settlement
+- SPSP destination query for multi-hop x402 pricing
+- Backward compatibility: genesis-based discovery must remain functional for dev mode
+- x402 disabled by default (opt-in per node via config)
+
+**Epic 4 Constraints:**
+- Marlin Oyster CVM runtime environment (AWS Nitro Enclaves)
+- Nautilus KMS SDK for enclave-bound key management
+- Nix package manager for reproducible Docker builds
+- PCR measurement verification requires known-good hash registry
+- Attestation document format defined by AWS Nitro Enclave specification
+
+**New External Dependencies:**
+
+| Dependency | Package/Context | Purpose |
+|------------|----------------|---------|
+| USDC contract (Arbitrum) | Epic 3 | Production payment token |
+| EIP-3009 | Epic 3, Story 3.3 | Gasless USDC authorization for x402 |
+| Marlin Oyster SDK | Epic 4, Story 4.1 | CVM deployment tooling |
+| Nautilus KMS | Epic 4, Story 4.4 | Enclave-bound key management |
+| Nix | Epic 4, Story 4.5 | Reproducible Docker builds |
+
+### New Cross-Cutting Concerns
+
+9. **Multi-Chain Configuration:** Chain-specific contract addresses, RPC URLs, and token configs must thread through SDK, connector, and node layers. Affects NodeConfig, settlement, and pricing.
+10. **x402 Facilitation:** The Crosstown node becomes an HTTP-to-ILP bridge. The `/publish` endpoint must query destination SPSP, construct ILP PREPARE with TOON data, route through connector, and return FULFILL results. Touches entrypoint, connector integration, and pricing.
+11. **Seed Relay Discovery:** kind:10036 events replace genesis-based bootstrap. Affects BootstrapService, node startup, and network topology assumptions.
+12. **TEE Attestation Lifecycle:** kind:10033 events must be published on startup, refreshed periodically, and verified by peers during bootstrap. Affects identity, bootstrap, and peering logic.
+13. **Autonomous Agent Readiness:** Three invariants (deterministic bootstrap, programmatic deployment, self-describing economics) affect every public interface — `/health`, kind:10035, kind:10036, and node startup behavior.
 
 ## Starter Template Evaluation
 
@@ -262,17 +333,121 @@ Each new package (sdk, town, rig) will be initialized with:
 | Affects   | SDK package                                                                                                          |
 | Version   | @scure/bip39 ^2.0, @scure/bip32 ^2.0                                                                                 |
 
+### Decision 7: EVM Library (Epic 3+)
+
+| Attribute | Value |
+|-----------|-------|
+| Decision | [viem](https://viem.sh/) ^2.46 for all new Crosstown EVM code |
+| Rationale | TypeScript-native, tree-shakeable, built-in Arbitrum chain definitions, EIP-712 typed data signing (needed for EIP-3009/x402), and ABI encoding. The standard for new TypeScript EVM projects. |
+| Affects | Epic 3 (chain config, x402 settlement, USDC interaction), Epic 4 (attestation contract verification) |
+| Version | viem ^2.46 |
+
+**Architectural Debt Note:** The existing `@crosstown/connector` uses ethers.js internally. viem is for NEW Crosstown code only — no migration of connector code. Two EVM libraries coexist in the monorepo. Consolidation deferred until connector is under Crosstown control. Document and accept this as explicit debt.
+
+### Decision 8: Multi-Chain Configuration Architecture (Epic 3)
+
+| Attribute | Value |
+|-----------|-------|
+| Decision | Chain presets in `@crosstown/core` with per-chain contract registries |
+| Rationale | `NodeConfig.chain` selects a preset (`'anvil'`, `'arbitrum-sepolia'`, `'arbitrum-one'`). Each preset bundles RPC URL, chain ID, USDC address, and TokenNetwork address. Env vars (`CROSSTOWN_CHAIN`, `CROSSTOWN_RPC_URL`) override for operators. |
+| Affects | core (chain presets), SDK (NodeConfig extension), connector (settlement config), town/rig (pass-through) |
+| Pattern | Config resolution: env vars > explicit config > chain preset defaults |
+
+**ChainPreset type must include:**
+- `chainId`: number (31337, 421614, 42161)
+- `rpcUrl`: string
+- `usdcAddress`: string (contract address)
+- `tokenNetworkAddress`: string (settlement contract)
+- `name`: string (display name)
+
+### Decision 9: Node HTTP Server — Dual Protocol on Relay Port (Epic 3)
+
+| Attribute | Value |
+|-----------|-------|
+| Decision | Express ^5.2 mounted on the same HTTP server as the WebSocket relay — dual-protocol on port 7100 |
+| Rationale | The relay's WebSocket server already attaches to an `http.createServer()` instance. Mounting Express on that same server provides `/publish`, `/health`, and SPSP as HTTP routes alongside the WebSocket upgrade. One port per node. Operationally simple, especially critical for Oyster CVM where port mapping is constrained. |
+| Affects | Node entrypoint, Epic 3 stories 3.3, 3.6 |
+| Port | 7100 (same as relay WebSocket) |
+
+**Endpoint map (single port):**
+```
+Port 7100:
+├── ws:// → Nostr relay (WebSocket upgrade)
+├── GET /publish → x402 facilitation (Story 3.3)
+├── GET /health → enriched node status (Story 3.6)
+└── GET /.well-known/pay → SPSP endpoint (existing)
+```
+
+### Decision 10: Mock USDC on Anvil (Epic 3)
+
+| Attribute | Value |
+|-----------|-------|
+| Decision | Deploy Circle's real FiatTokenV2_2 (USDC implementation) contract on Anvil |
+| Rationale | Circle's USDC contract is open source and includes native EIP-3009 (`transferWithAuthorization`) support. Deploying the real implementation on Anvil gives full fidelity for x402 testing with zero custom contract code. The same code that runs on Arbitrum One runs locally. |
+| Affects | Contract deployment scripts, faucet (distributes mock USDC), E2E tests |
+| Source | [centre-tokens](https://github.com/centrehq/centre-tokens) — Circle's official USDC contracts |
+| Note | Production USDC on Arbitrum One already supports EIP-3009 natively — no deployment needed there. |
+
+### Decision 11: Oyster CVM Packaging Approach (Epic 4)
+
+| Attribute | Value |
+|-----------|-------|
+| Decision | Docker Compose manifest adapted for Oyster CVM runtime, using existing Crosstown Docker image |
+| Rationale | Oyster CVM uses `docker-compose.yml` — downloads images at runtime into the enclave. The existing Crosstown Docker image is the base. Add `supervisord.conf` for multi-process orchestration (relay + connector + attestation server). |
+| Affects | Epic 4, Story 4.1 |
+| Dependency | `oyster-cvm` CLI tool for deployment |
+| Deferred | Nix reproducible builds (Story 4.5) — specific Nix configuration deferred to Epic 4 start when Marlin SDK version is known |
+
+**Forward Constraint — Dockerfile Determinism:** Nix reproducible builds (Epic 4, Story 4.5) require no non-deterministic build steps. This means: no `apt-get update`, no `npm install` without a lockfile, no `git clone` of moving targets. Apply this constraint from Epic 2 onwards in all Dockerfiles to avoid rewrites.
+
+### Decision 12: Attestation Lifecycle Architecture (Epic 4)
+
+| Attribute | Value |
+|-----------|-------|
+| Decision | Attestation as a node lifecycle phase — publish kind:10033 on startup, refresh on configurable interval, dual-channel exposure |
+| Rationale | Attestation is a trust primitive. It publishes to the Crosstown relay network AND exposes via the `/health` endpoint. Peers parse kind:10033 during `BootstrapService.discoverPeers()` and prefer attested relays. HTTP clients and autonomous agents read attestation status from `/health` without requiring Nostr subscription. |
+| Affects | Node startup sequence, BootstrapService, kind:10033 event format, `/health` endpoint |
+| Pattern | Attestation state: `valid` → `stale` (30s grace) → `unattested`. Trust degrades; money doesn't. Payment channels remain open regardless of attestation status. |
+
+**Dual-channel attestation exposure:**
+- **Nostr-native:** kind:10033 events on the relay network (for peer discovery)
+- **HTTP-native:** `/health` endpoint includes `tee` field (for monitoring, AI agents, HTTP clients)
+
+### Decision Priority Analysis — Epics 3 & 4
+
+**Critical Decisions (Block Epic 3 Implementation):**
+1. USDC token migration via Decision 10 (Mock USDC) — unblocks all Epic 3 stories
+2. Multi-chain configuration via Decision 8 — unblocks Story 3.2+
+3. Node HTTP server via Decision 9 — unblocks Stories 3.3, 3.6
+
+**Important Decisions (Shape Epic 3/4 Architecture):**
+4. EVM library via Decision 7 — shapes all new EVM interaction code
+5. Attestation lifecycle via Decision 12 — shapes Epic 4 design
+
+**Deferred Decisions (to Epic 4 start):**
+- Nautilus KMS integration specifics — depends on Marlin SDK version
+- Nix build configuration — depends on final Docker image structure
+- PCR measurement registry — depends on attestation verification contract
+
 ### Decision Impact Analysis
 
 **Implementation Sequence:**
 
-1. Extract TOON codec to core (unblocks everything)
-2. SDK identity module (Story 1.1, foundational)
-3. SDK handler registry + context (Stories 1.2-1.3)
-4. SDK verification + pricing pipelines (Stories 1.4-1.5)
-5. SDK PaymentHandler bridge + createNode (Stories 1.6-1.7)
-6. Town relay reimplementation (Epic 2, validates SDK)
-7. Rig HTTP + git backend + web UI (Epic 3)
+1. Extract TOON codec to core (done — Epic 1)
+2. SDK identity module (done — Epic 1)
+3. SDK handler registry + context + pipeline (done — Epic 1)
+4. Town relay reimplementation (in progress — Epic 2)
+5. USDC token migration — Decision 10 (Epic 3, Story 3.1)
+6. Multi-chain configuration — Decision 8 (Epic 3, Story 3.2)
+7. x402 /publish endpoint — Decision 9 (Epic 3, Story 3.3)
+8. Seed relay discovery (Epic 3, Story 3.4)
+9. Service discovery + /health — Decision 9 (Epic 3, Stories 3.5-3.6)
+10. Oyster CVM packaging — Decision 11 (Epic 4, Story 4.1)
+11. TEE attestation events — Decision 12 (Epic 4, Story 4.2)
+12. Attestation-aware peering (Epic 4, Story 4.3)
+13. Nautilus KMS + Nix builds (Epic 4, Stories 4.4-4.5)
+14. Attestation-first bootstrap (Epic 4, Story 4.6)
+15. Rig HTTP + git backend + web UI (Epic 5)
 
 **Cross-Component Dependencies:**
 
@@ -280,6 +455,12 @@ Each new package (sdk, town, rig) will be initialized with:
 - SDK identity (Decision 6) → used by Town and Rig for node identity
 - Express + Eta (Decisions 2-3) → isolated to Rig, no cross-package impact
 - SQLite for Rig metadata (Decision 5b) → same pattern as BLS, no new learning curve
+- viem (Decision 7) → used by Epic 3 chain config and x402, Epic 4 attestation contracts
+- Chain presets (Decision 8) → must complete before x402 (needs chain-specific USDC addresses)
+- Dual-protocol HTTP (Decision 9) → enables /publish and /health on same port as relay
+- Mock USDC (Decision 10) → unblocks all Epic 3 development and x402 E2E testing
+- Dockerfile determinism (Decision 11 constraint) → forward constraint, apply from Epic 2 onwards
+- Attestation lifecycle (Decision 12) → shapes Epic 4 integration with BootstrapService
 
 ## Implementation Patterns & Consistency Rules
 
@@ -508,6 +689,212 @@ export async function queryProfile(
 
 Returns decoded `NostrEvent` arrays (not TOON — the UI needs structured data). Uses `nostr-tools` SimplePool internally.
 
+### Production Economics Patterns (Epic 3)
+
+**Pattern 10: Chain Preset & Config Resolution**
+
+Chain presets live in `@crosstown/core`. One canonical type, one resolution function. Config resolution order: env vars > explicit config > preset defaults.
+
+```typescript
+// packages/core/src/chain/presets.ts
+
+interface ChainPreset {
+  chainId: number;
+  name: string;
+  rpcUrl: string;
+  usdcAddress: `0x${string}`;
+  tokenNetworkAddress: `0x${string}`;
+}
+
+const PRESETS: Record<string, ChainPreset> = {
+  anvil: {
+    chainId: 31337,
+    name: 'Anvil (Local)',
+    rpcUrl: 'http://127.0.0.1:8545',
+    usdcAddress: '0x...', // Deterministic from DeployLocal.s.sol
+    tokenNetworkAddress: '0xCafac3dD18aC6c6e92c921884f9E4176737C052c',
+  },
+  'arbitrum-sepolia': { /* ... */ },
+  'arbitrum-one': { /* ... */ },
+};
+
+// Resolution order: env vars > explicit config > preset defaults
+export function resolveChainConfig(
+  chain: string,
+  overrides?: Partial<ChainPreset>
+): ChainPreset;
+```
+
+Location: `packages/core/src/chain/presets.ts`. Exported from `@crosstown/core`.
+
+**Pattern 11: viem Client Factory**
+
+One factory function, chain-aware. Never create viem clients directly with hardcoded chains.
+
+```typescript
+// packages/core/src/chain/client.ts
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { anvil, arbitrumSepolia, arbitrum } from 'viem/chains';
+
+const CHAIN_MAP: Record<number, Chain> = {
+  31337: anvil,
+  421614: arbitrumSepolia,
+  42161: arbitrum,
+};
+
+// CORRECT — use factory, derive from ChainPreset
+export function createViemPublicClient(preset: ChainPreset) {
+  const chain = CHAIN_MAP[preset.chainId];
+  return createPublicClient({ chain, transport: http(preset.rpcUrl) });
+}
+
+// WRONG — hardcoded chain, scattered client creation
+const client = createPublicClient({
+  chain: arbitrum,
+  transport: http('https://arb1.arbitrum.io/rpc'),
+});
+```
+
+**Pattern 12: Dual-Protocol Server Setup**
+
+Express mounted on the same `http.Server` as the WebSocket relay. One port per node.
+
+```typescript
+// packages/town/src/server.ts (or docker/src/entrypoint.ts)
+import express from 'express';
+import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
+
+// CORRECT — single http.Server, dual protocol
+const app = express();
+const httpServer = createServer(app);
+const wss = new WebSocketServer({ server: httpServer });
+
+// Mount HTTP routes
+app.get('/publish', publishHandler);       // x402 (Story 3.3)
+app.get('/health', healthHandler);         // Enriched status (Story 3.6)
+app.get('/.well-known/pay', spspHandler);  // SPSP (existing)
+
+// WebSocket upgrade handled by WSS
+httpServer.listen(7100);
+
+// WRONG — separate servers on different ports
+const wsServer = createServer().listen(7100);
+const httpApp = express().listen(7101); // Don't do this
+```
+
+**Pattern 13: x402 /publish Request/Response**
+
+Canonical request/response format. The `/publish` handler constructs an ILP PREPARE from the x402 envelope and routes it through the SAME pipeline as SPSP-originated packets — no special path.
+
+```typescript
+// POST /publish
+interface PublishRequest {
+  event: string; // TOON-encoded Nostr event (base64)
+  payment: {
+    authorization: string; // EIP-3009 transferWithAuthorization signed payload
+    chainId: number;
+  };
+}
+
+// Response: mirrors ILP FULFILL/REJECT semantics
+interface PublishResponse {
+  accepted: boolean;
+  eventId?: string;  // On success
+  error?: {
+    code: string;    // ILP error code (F04, F06, T00)
+    message: string;
+  };
+}
+```
+
+### TEE Deployment Patterns (Epic 4)
+
+**Pattern 14: kind:10033 Attestation Event Format**
+
+Canonical attestation event structure. Content is always `JSON.stringify()` with the defined schema.
+
+```typescript
+// Attestation event (kind:10033)
+{
+  kind: 10033,
+  pubkey: '<node-pubkey>',
+  created_at: /* unix-timestamp */,
+  content: JSON.stringify({
+    enclave: 'marlin-oyster',
+    pcr0: '<measurement-hash>',     // Platform Configuration Register
+    pcr1: '<measurement-hash>',
+    pcr2: '<measurement-hash>',
+    attestationDoc: '<base64-encoded-aws-nitro-doc>',
+    version: 1,
+  }),
+  tags: [
+    ['relay', 'wss://node-address:7100'],  // Where to find this node
+    ['chain', '42161'],                     // Operating chain
+    ['expiry', '<unix-timestamp>'],         // When attestation goes stale
+  ],
+}
+```
+
+Location of builder: `packages/core/src/events/attestation.ts` (alongside existing event builders).
+
+**Pattern 15: /health Response Enrichment**
+
+Canonical `/health` response shape. The `tee` field is only present when the node is running inside a TEE — never fake attestation data.
+
+```typescript
+// GET /health response
+interface HealthResponse {
+  status: 'ok' | 'degraded' | 'error';
+  version: string;           // Package version
+  uptime: number;            // Seconds
+  relay: {
+    connections: number;     // Active WebSocket connections
+    eventsStored: number;    // Total events in SQLite
+  };
+  connector: {
+    peers: number;           // Connected ILP peers
+    ilpAddress: string;      // Node's ILP address
+  };
+  chain: {
+    id: number;              // Active chain ID
+    name: string;            // Chain display name
+    blockNumber: number;     // Latest known block
+  };
+  tee?: {                    // Only present when running in TEE
+    attested: boolean;
+    enclaveType: string;     // 'marlin-oyster'
+    lastAttestation: number; // Unix timestamp
+    pcr0: string;
+    state: 'valid' | 'stale' | 'unattested';
+  };
+}
+```
+
+**Pattern 16: Oyster CVM supervisord Process Map**
+
+Canonical multi-process layout for the TEE enclave. Process startup order: relay first (owns the port), then connector, then attestation server.
+
+```
+# docker/supervisord.conf
+[program:relay]
+command=node /app/town/dist/cli.js
+priority=10
+
+[program:connector]
+command=node /app/connector/dist/index.js
+priority=20
+autostart=true
+startsecs=5
+
+[program:attestation]
+command=/app/attestation-server
+priority=30
+depends_on=relay
+```
+
+Located at `docker/supervisord.conf`.
+
 ### Enforcement Guidelines
 
 **All AI Agents MUST:**
@@ -518,6 +905,12 @@ Returns decoded `NostrEvent` arrays (not TOON — the UI needs structured data).
 4. Extend `CrosstownError` for all new error classes
 5. Use feature-based route files for Rig Express routes
 6. Follow existing project-context rules for all naming, imports, types, and testing
+7. Use `resolveChainConfig()` from `@crosstown/core` for all chain configuration — never hardcode chain IDs or RPC URLs
+8. Create viem clients via the core factory function — never instantiate directly with hardcoded chains
+9. Mount Express on the same `http.Server` as the WebSocket relay — never create separate HTTP servers
+10. Use viem for all new EVM code — never ethers.js in new Crosstown packages (ethers.js is connector-only legacy)
+11. Follow the canonical kind:10033 event structure — content is always `JSON.stringify()` with the defined schema
+12. Include the `tee?` field in `/health` response only when the node is running inside a TEE — never fake attestation data
 
 ### Anti-Patterns
 
@@ -538,20 +931,51 @@ class SdkError extends Error { ... }  // Don't do this
 
 // WRONG: Returning response from handler
 node.on(1, async (ctx) => { return { accept: true }; });  // Use ctx.accept()
+
+// WRONG: Hardcoded chain config
+const usdcAddress = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'; // Mainnet!
+// CORRECT: const { usdcAddress } = resolveChainConfig('arbitrum-one');
+
+// WRONG: ethers.js in new code
+import { ethers } from 'ethers';
+const provider = new ethers.JsonRpcProvider(url);
+// CORRECT: import { createViemPublicClient } from '@crosstown/core';
+
+// WRONG: Separate HTTP server for /publish
+app.listen(3200); // New port for x402
+// CORRECT: Mount on existing relay HTTP server (port 7100)
+
+// WRONG: Attestation content as plain string
+content: 'pcr0=abc123,pcr1=def456'
+// CORRECT: JSON.stringify({ enclave, pcr0, pcr1, attestationDoc, version })
 ```
 
 ## Project Structure & Boundaries
 
-### Modified Package: @crosstown/core (TOON codec extraction)
+### Modified Package: @crosstown/core (TOON codec extraction + chain config)
 
 ```
 packages/core/src/
 ├── ... (existing modules unchanged)
-├── toon/                          # NEW — extracted from @crosstown/bls
+├── toon/                          # Extracted from @crosstown/bls (Epic 1)
 │   ├── index.ts                   # Re-exports encoder, decoder, shallow-parse
 │   ├── encoder.ts                 # Nostr event → TOON bytes (moved from bls)
 │   ├── decoder.ts                 # TOON bytes → Nostr event (moved from bls)
-│   └── shallow-parse.ts           # NEW — ToonRoutingMeta extraction without full decode
+│   └── shallow-parse.ts           # ToonRoutingMeta extraction without full decode
+├── chain/                         # NEW — Epic 3 multi-chain config
+│   ├── index.ts                   # Re-exports presets, client factory, types
+│   ├── presets.ts                 # Story 3.2: ChainPreset type, PRESETS map, resolveChainConfig()
+│   ├── presets.test.ts
+│   ├── client.ts                  # Story 3.2: createViemPublicClient(), createViemWalletClient()
+│   └── client.test.ts
+├── events/
+│   ├── ... (existing builders unchanged)
+│   ├── attestation.ts             # NEW Story 4.2: kind:10033 attestation event builder
+│   ├── attestation.test.ts
+│   ├── service-discovery.ts       # NEW Story 3.5: kind:10035 service discovery event builder
+│   ├── service-discovery.test.ts
+│   ├── seed-relay.ts              # NEW Story 3.4: kind:10036 seed relay list event builder
+│   └── seed-relay.test.ts
 ```
 
 ### New Package: @crosstown/sdk (Epic 1)
@@ -583,17 +1007,19 @@ packages/sdk/
 │       └── full-pipeline.test.ts  # Integration: TOON → parse → verify → price → dispatch
 ```
 
-### New Package: @crosstown/town (Epic 2)
+### New Package: @crosstown/town (Epics 2 + 3)
 
 ```
 packages/town/
-├── package.json                   # Depends on @crosstown/sdk, @crosstown/core
+├── package.json                   # Depends on @crosstown/sdk, @crosstown/core, viem
 ├── tsconfig.json
 ├── tsup.config.ts
 ├── src/
 │   ├── index.ts                   # Public API: startTown, TownConfig
-│   ├── types.ts                   # TownConfig
+│   ├── types.ts                   # TownConfig, HealthResponse, PublishRequest/Response
 │   ├── town.ts                    # startTown() — creates SDK node with relay handlers
+│   ├── server.ts                  # Story 3.3: Dual-protocol server (Express + WSS on port 7100)
+│   ├── server.test.ts
 │   ├── cli.ts                     # CLI entrypoint: npx @crosstown/town
 │   ├── handlers/
 │   │   ├── index.ts
@@ -601,12 +1027,24 @@ packages/town/
 │   │   ├── event-storage.test.ts
 │   │   ├── spsp-handshake.ts      # Story 2.2: decode → negotiate → channel → accept
 │   │   └── spsp-handshake.test.ts
+│   ├── http/                      # NEW — Epic 3 HTTP endpoints
+│   │   ├── index.ts
+│   │   ├── publish.ts             # Story 3.3: x402 /publish endpoint (EIP-3009 verification → ILP PREPARE)
+│   │   ├── publish.test.ts
+│   │   ├── health.ts              # Story 3.6: Enriched /health endpoint
+│   │   └── health.test.ts
+│   ├── discovery/                 # NEW — Epic 3 network discovery
+│   │   ├── index.ts
+│   │   ├── seed-relay.ts          # Story 3.4: kind:10036 seed relay discovery
+│   │   ├── seed-relay.test.ts
+│   │   ├── service-discovery.ts   # Story 3.5: kind:10035 service advertisement
+│   │   └── service-discovery.test.ts
 │   └── __integration__/
 │       └── relay-sdk.test.ts      # Story 2.3: SDK-based relay E2E validation
-├── Dockerfile                     # Docker image for container deployment
+├── Dockerfile                     # Docker image (deterministic — no apt-get update, lockfile pinned)
 ```
 
-### New Package: @crosstown/rig (Epic 3)
+### New Package: @crosstown/rig (Epic 5)
 
 ```
 packages/rig/
@@ -620,7 +1058,7 @@ packages/rig/
 │   ├── rig.ts                     # startRig() — creates SDK node + Express app
 │   ├── cli.ts                     # CLI entrypoint: npx @crosstown/rig
 │   ├── app.ts                     # Express app setup, middleware, route mounting
-│   ├── handlers/                  # NIP-34 ILP packet handlers (Story 3.1, 3.4)
+│   ├── handlers/                  # NIP-34 ILP packet handlers (Story 5.1, 5.4)
 │   │   ├── index.ts
 │   │   ├── repo-announcement.ts   # kind:30617 → git init --bare
 │   │   ├── repo-announcement.test.ts
@@ -630,31 +1068,31 @@ packages/rig/
 │   │   ├── issue.test.ts
 │   │   ├── comment.ts             # kind:1622 → acknowledge (stored on relay)
 │   │   ├── comment.test.ts
-│   │   ├── status.ts              # kinds 1630-1633 → PR lifecycle (Story 3.4)
+│   │   ├── status.ts              # kinds 1630-1633 → PR lifecycle (Story 5.4)
 │   │   └── status.test.ts
-│   ├── git/                       # Git operations (Story 3.1)
+│   ├── git/                       # Git operations (Story 5.1)
 │   │   ├── index.ts
 │   │   ├── operations.ts          # initRepo, applyPatch, merge, lsTree, showBlob, log, diff, blame
 │   │   ├── operations.test.ts
 │   │   ├── http-backend.ts        # Express middleware: git-http-backend CGI proxy
 │   │   └── http-backend.test.ts
-│   ├── routes/                    # Express routes (Story 3.3, 3.5)
+│   ├── routes/                    # Express routes (Story 5.3, 5.5)
 │   │   ├── repos.ts               # /{owner}/{repo}, tree, blob, blame
 │   │   ├── commits.ts             # /{owner}/{repo}/commits, /commit/{sha}
 │   │   ├── issues.ts              # /{owner}/{repo}/issues, /issues/{id}
 │   │   ├── pulls.ts               # /{owner}/{repo}/pulls, /pulls/{id}
 │   │   └── git-backend.ts         # /{owner}/{repo}.git/* (clone/fetch)
-│   ├── relay/                     # Relay queries for UI data (Story 3.5)
+│   ├── relay/                     # Relay queries for UI data (Story 5.5)
 │   │   ├── queries.ts             # queryIssues, queryPullRequests, queryComments, queryProfile
 │   │   └── queries.test.ts
-│   ├── identity/                  # Pubkey display (Story 3.2)
+│   ├── identity/                  # Pubkey display (Story 5.2)
 │   │   ├── pubkey-display.ts      # npub formatting, kind:0 profile enrichment
 │   │   └── pubkey-display.test.ts
 │   └── db/                        # Repository metadata SQLite (Decision 5b)
 │       ├── schema.ts              # CREATE TABLE repos, indexes
 │       ├── RepoMetadataStore.ts   # CRUD for repository metadata
 │       └── RepoMetadataStore.test.ts
-├── views/                         # Eta templates (Story 3.3, 3.5)
+├── views/                         # Eta templates (Story 5.3, 5.5)
 │   ├── layout.eta
 │   ├── repos/
 │   │   ├── list.eta
@@ -680,28 +1118,49 @@ packages/rig/
 ├── Dockerfile                     # Docker image
 ```
 
+### Deployment: docker/ (Epic 4)
+
+```
+docker/
+├── docker-compose-genesis.yml     # Existing genesis node compose
+├── docker-compose-oyster.yml      # NEW Story 4.1: Oyster CVM deployment manifest
+├── supervisord.conf               # NEW Story 4.1: Multi-process orchestrator (relay + connector + attestation)
+├── Dockerfile                     # Existing node image (deterministic builds from Epic 2 onwards)
+├── Dockerfile.nix                 # NEW Story 4.5: Nix-based reproducible build (deterministic PCR values)
+├── src/
+│   ├── entrypoint.ts              # Existing node entrypoint (updated for dual-protocol server in Epic 3)
+│   ├── attestation-server.ts      # NEW Story 4.2: TEE attestation publisher (kind:10033 on startup + refresh)
+│   └── attestation-server.test.ts
+└── scripts/
+    ├── deploy-usdc.ts             # NEW Story 3.1: Deploy FiatTokenV2_2 to Anvil
+    └── deploy-usdc.test.ts
+```
+
 ### Architectural Boundaries
 
 **Package Dependency Graph:**
 
 ```
-@crosstown/core          ← foundation (TOON codec, types, bootstrap, discovery, SPSP)
-    ↑
-@crosstown/bls           ← payment validation, event storage, pricing
-    ↑
-@crosstown/sdk           ← developer-facing abstraction (identity, handlers, pipeline)
+@crosstown/core          ← foundation (TOON codec, types, bootstrap, discovery, SPSP, chain config)
     ↑          ↑
-@crosstown/town    @crosstown/rig    ← concrete service nodes
+@crosstown/bls    @crosstown/sdk    ← siblings, both depend on core
+                      ↑
+              ┌───────┴────────┐
+@crosstown/town (+ bls)    @crosstown/rig
 ```
+
+Town depends on SDK + BLS (for EventStore) + viem (for x402/EIP-3009). Rig depends on SDK + core. SDK depends on core only.
 
 **Boundary Rules:**
 
-- SDK imports core and bls — never relay directly
-- Town and Rig import SDK — never core/bls directly (except core types)
+- SDK imports core only — never bls or relay directly
+- Town and Rig import SDK — never bls directly (except Town for EventStore)
 - No package imports from town or rig (they are leaf nodes)
 - Connector accessed only through `ConnectorNodeLike` structural type
+- viem used in core (chain config) and town (x402) — never ethers.js in new code
+- Chain config accessed via `resolveChainConfig()` from core — never hardcoded
 
-**Data Flow (SDK Pipeline):**
+**Data Flow — ILP Pipeline (existing):**
 
 ```
 ILP Packet → ConnectorNode.setPacketHandler()
@@ -713,6 +1172,21 @@ ILP Packet → ConnectorNode.setPacketHandler()
             → Handler(ctx) → ctx.accept()/reject()
               → HandlePacketResponse back to connector
 ```
+
+**Data Flow — x402 Pipeline (Epic 3, new):**
+
+```
+HTTP POST /publish → Express route (port 7100)
+  → Parse PublishRequest (TOON event + EIP-3009 authorization)
+    → Verify EIP-3009 signature (viem)
+      → Settle USDC on-chain (transferWithAuthorization)
+        → Construct ILP PREPARE packet (same as SPSP path)
+          → Route through connector to destination relay
+            → FULFILL → HTTP 200 { eventId, txHash }
+            → REJECT → HTTP 400 { error: { code, message } }
+```
+
+Both pipelines produce identical ILP PREPARE packets — the BLS cannot distinguish them.
 
 ### Requirements to Structure Mapping
 
@@ -737,19 +1211,33 @@ ILP Packet → ConnectorNode.setPacketHandler()
 | Story 2.3: E2E validation           | client  | `tests/e2e/` (existing)                                                                    |
 | Story 2.4: Remove git-proxy         | root    | Delete `packages/git-proxy/`                                                               |
 | Story 2.5: Publish town             | town    | `town.ts`, `cli.ts`, `Dockerfile`                                                          |
-| **Epic 3: Rig**                     |         |                                                                                            |
-| Story 3.1: SDK node + repo creation | rig     | `handlers/repo-announcement.ts`, `git/operations.ts` (initRepo)                            |
-| Story 3.2: Patch handler            | rig     | `handlers/patch.ts`, `git/operations.ts` (applyPatch)                                      |
-| Story 3.3: Issue + comment handlers | rig     | `handlers/issue.ts`, `handlers/comment.ts`                                                 |
-| Story 3.4: Git HTTP backend         | rig     | `git/http-backend.ts`, `routes/git-backend.ts`                                             |
-| Story 3.5: Pubkey identity          | rig     | `identity/pubkey-display.ts`                                                               |
-| Story 3.6: PR lifecycle             | rig     | `handlers/status.ts`                                                                       |
-| Story 3.7: Layout + repo list       | rig     | `routes/repos.ts` (list), `views/layout.eta`, `views/repos/list.eta`                       |
-| Story 3.8: File tree + blob view    | rig     | `routes/repos.ts` (tree/blob), `views/repos/tree.eta`, `views/repos/blob.eta`              |
-| Story 3.9: Commit log + diff        | rig     | `routes/commits.ts`, `views/commits/log.eta`, `views/commits/diff.eta`                     |
-| Story 3.10: Blame view              | rig     | `routes/repos.ts` (blame), `views/repos/blame.eta`                                         |
-| Story 3.11: Issues/PRs from relay   | rig     | `relay/queries.ts`, `routes/issues.ts`, `routes/pulls.ts`, `views/issues/`, `views/pulls/` |
-| Story 3.12: Publish rig             | rig     | `rig.ts`, `cli.ts`, `Dockerfile`                                                           |
+| **Epic 5: The Rig**                 |         |                                                                                            |
+| Story 5.1: SDK node + repo creation | rig     | `handlers/repo-announcement.ts`, `git/operations.ts` (initRepo)                            |
+| Story 5.2: Patch handler            | rig     | `handlers/patch.ts`, `git/operations.ts` (applyPatch)                                      |
+| Story 5.3: Issue + comment handlers | rig     | `handlers/issue.ts`, `handlers/comment.ts`                                                 |
+| Story 5.4: Git HTTP backend         | rig     | `git/http-backend.ts`, `routes/git-backend.ts`                                             |
+| Story 5.5: Pubkey identity          | rig     | `identity/pubkey-display.ts`                                                               |
+| Story 5.6: PR lifecycle             | rig     | `handlers/status.ts`                                                                       |
+| Story 5.7: Layout + repo list       | rig     | `routes/repos.ts` (list), `views/layout.eta`, `views/repos/list.eta`                       |
+| Story 5.8: File tree + blob view    | rig     | `routes/repos.ts` (tree/blob), `views/repos/tree.eta`, `views/repos/blob.eta`              |
+| Story 5.9: Commit log + diff        | rig     | `routes/commits.ts`, `views/commits/log.eta`, `views/commits/diff.eta`                     |
+| Story 5.10: Blame view              | rig     | `routes/repos.ts` (blame), `views/repos/blame.eta`                                         |
+| Story 5.11: Issues/PRs from relay   | rig     | `relay/queries.ts`, `routes/issues.ts`, `routes/pulls.ts`, `views/issues/`, `views/pulls/` |
+| Story 5.12: Publish rig             | rig     | `rig.ts`, `cli.ts`, `Dockerfile`                                                           |
+| **Epic 3: Production Economics**    |         |                                                                                            |
+| Story 3.1: USDC token migration     | docker  | `scripts/deploy-usdc.ts`, faucet updates                                                   |
+| Story 3.2: Multi-chain config       | core    | `chain/presets.ts`, `chain/client.ts`                                                      |
+| Story 3.3: x402 /publish endpoint   | town    | `http/publish.ts`, `server.ts`                                                             |
+| Story 3.4: Seed relay discovery     | town    | `discovery/seed-relay.ts`, core `events/seed-relay.ts`                                     |
+| Story 3.5: Service discovery events  | town    | `discovery/service-discovery.ts`, core `events/service-discovery.ts`                       |
+| Story 3.6: Enriched /health          | town    | `http/health.ts`                                                                           |
+| **Epic 4: Marlin TEE Deployment**   |         |                                                                                            |
+| Story 4.1: Oyster CVM packaging     | docker  | `docker-compose-oyster.yml`, `supervisord.conf`                                            |
+| Story 4.2: TEE attestation events   | docker  | `attestation-server.ts`, core `events/attestation.ts`                                      |
+| Story 4.3: Attestation-aware peering | core   | `bootstrap/` (BootstrapService extension)                                                  |
+| Story 4.4: Nautilus KMS identity    | docker  | `entrypoint.ts` (KMS integration)                                                         |
+| Story 4.5: Nix reproducible builds  | docker  | `Dockerfile.nix`                                                                           |
+| Story 4.6: Attestation-first bootstrap | core | `bootstrap/` (seed relay + attestation verification)                                       |
 
 ### Cross-Cutting Concerns Location
 
@@ -759,41 +1247,50 @@ ILP Packet → ConnectorNode.setPacketHandler()
 | Unified identity           | `packages/sdk/src/identity.ts`                                                                               |
 | Error hierarchy            | `packages/core/src/errors.ts` (base), `packages/sdk/src/errors.ts` (SDK), `packages/rig/src/errors.ts` (Rig) |
 | Bootstrap + discovery      | `packages/core/src/bootstrap/` (unchanged)                                                                   |
-| Event types + builders     | `packages/core/src/events/` (unchanged)                                                                      |
+| Event types + builders     | `packages/core/src/events/` (attestation, service-discovery, seed-relay added)                                |
 | NIP-34 types               | `packages/core/src/nip34/` (existing, used by Rig)                                                           |
+| Chain configuration        | `packages/core/src/chain/` (presets, viem client factory)                                                    |
+| x402 facilitation          | `packages/town/src/http/publish.ts` (EIP-3009 → ILP PREPARE)                                                |
+| TEE attestation lifecycle  | `docker/src/attestation-server.ts` + `packages/core/src/events/attestation.ts`                               |
+| Dual-protocol server       | `packages/town/src/server.ts` (Express + WSS on port 7100)                                                   |
 
 ## Architecture Validation Results
 
 ### Coherence Validation ✅
 
 **Decision Compatibility:**
-All 7 decisions are mutually compatible. Express ^5.2 + Eta ^4.5 integrate cleanly. TOON codec in core (Decision 1) unblocks the dependency graph without version conflicts. SQLite via better-sqlite3 for Rig repo metadata (Decision 5b) matches the existing BLS pattern. @scure/bip39 ^2.0 + @scure/bip32 ^2.0 share the secp256k1 curve implementation with nostr-tools' @noble/curves dependency — no cryptographic library conflicts.
+All 12 decisions are mutually compatible. Decisions 1–6 (Epics 1/2/5) remain unchanged. Decisions 7–12 (Epics 3/4) extend cleanly: viem ^2.46 (Decision 7) coexists with ethers.js in the connector as acknowledged architectural debt. Chain presets (Decision 8) provide the configuration foundation for x402 (Decision 9) and USDC deployment (Decision 10). Dual-protocol server (Decision 9) reuses the existing `http.Server` from the relay — no new port conflicts. Attestation lifecycle (Decision 12) integrates with BootstrapService's existing peer discovery.
 
 **Pattern Consistency:**
-All 9 implementation patterns align with their corresponding decisions. Pattern 3 (ToonRoutingMeta in core) supports Decision 1 (TOON codec in core). Pattern 6 (Express route organization) supports Decision 2. Pattern 8 (git operations via execFile) supports Decision 4. The handler signature pattern (void return + ctx methods) is consistently applied across all examples. Error hierarchy follows a clean tree from CrosstownError through SDK and Rig specializations.
+All 16 implementation patterns align with their corresponding decisions. Patterns 1–9 (original) support Decisions 1–6. Patterns 10–11 (chain config, viem factory) support Decisions 7–8. Pattern 12 (dual-protocol server) supports Decision 9. Pattern 13 (x402 request/response) supports Decisions 9–10. Patterns 14–16 (attestation, /health, supervisord) support Decisions 11–12. The enforcement guidelines (12 rules) cover all patterns.
 
 **Structure Alignment:**
-Package boundaries are well-defined. The dependency graph is acyclic. ConnectorNodeLike structural typing prevents direct connector imports. All 17 stories map to specific files within their designated packages. No file belongs to multiple stories (clean ownership).
+Package boundaries are well-defined. The dependency graph is acyclic. ConnectorNodeLike structural typing prevents direct connector imports. All 41 stories map to specific files within their designated packages. No file belongs to multiple stories (clean ownership). The docker/ directory provides clear separation for deployment concerns (Epics 3/4).
 
 ### Requirements Coverage Validation ✅
 
-**Epic/Feature Coverage (24 FRs):**
+**Epic/Feature Coverage (36 FRs):**
 
-| FR Range                                            | Stories          | Architecture Support                                      |
-| --------------------------------------------------- | ---------------- | --------------------------------------------------------- |
-| FR-SDK-0 (1 FR)                                     | Story 1.0        | TOON codec extraction to `packages/core/src/toon/`        |
-| FR-SDK-1 through FR-SDK-NEW-1 (14 FRs)              | Stories 1.1–1.11 | All mapped to specific files in `packages/sdk/src/`       |
-| FR-SDK-14, FR-SDK-15, FR-SDK-16, FR-RELAY-1 (4 FRs) | Stories 2.1–2.5  | Covered by `packages/town/` + existing E2E suite          |
-| FR-NIP34-1 through FR-NIP34-6 (6 FRs)               | Stories 3.1–3.12 | Covered by `packages/rig/` (handlers, git, routes, views) |
+| FR Range                                            | Stories          | Architecture Support                                              |
+| --------------------------------------------------- | ---------------- | ----------------------------------------------------------------- |
+| FR-SDK-0 (1 FR)                                     | Story 1.0        | TOON codec extraction to `packages/core/src/toon/`                |
+| FR-SDK-1 through FR-SDK-NEW-1 (14 FRs)              | Stories 1.1–1.11 | All mapped to specific files in `packages/sdk/src/`               |
+| FR-SDK-14, FR-SDK-15, FR-SDK-16, FR-RELAY-1 (4 FRs) | Stories 2.1–2.5  | Covered by `packages/town/` + existing E2E suite                  |
+| FR-PROD-1 through FR-PROD-6 (6 FRs)                 | Stories 3.1–3.6  | Covered by `packages/core/src/chain/`, `packages/town/src/http/`  |
+| FR-TEE-1 through FR-TEE-6 (6 FRs)                   | Stories 4.1–4.6  | Covered by `docker/`, `packages/core/src/events/`, `bootstrap/`   |
+| FR-NIP34-1 through FR-NIP34-6 (6 FRs)               | Stories 5.1–5.12 | Covered by `packages/rig/` (handlers, git, routes, views)         |
 
-All 24 FRs have direct architectural support. No gaps in functional coverage.
+All 36 FRs have direct architectural support. No gaps in functional coverage.
 
 **Cross-Epic Dependencies Handled:**
 
-- TOON codec extraction (Epic 0 prerequisite) → enables all three epics
-- SDK identity (Epic 1) → used by Town (Epic 2) and Rig (Epic 3)
+- TOON codec extraction (Epic 0 prerequisite) → enables all five epics
+- SDK identity (Epic 1) → used by Town (Epic 2), Rig (Epic 5), and Nautilus KMS (Epic 4)
 - SDK handler registry (Epic 1) → consumed by Town and Rig handler implementations
-- Implementation sequence (Decision Impact Analysis) explicitly orders these dependencies
+- Chain config in core (Epic 3) → consumed by Town (x402), Docker entrypoint, and Rig
+- Dual-protocol server (Epic 3) → prerequisite for /health enrichment (Epic 3) and TEE attestation exposure (Epic 4)
+- Seed relay discovery (Epic 3) → prerequisite for attestation-first bootstrap (Epic 4)
+- Implementation sequence (Decision Impact Analysis) explicitly orders all 15 steps
 
 **Non-Functional Requirements (7 NFRs):**
 
@@ -813,21 +1310,21 @@ All 7 NFRs are architecturally addressed.
 
 **Decision Completeness:**
 
-- All 7 decisions include version numbers, rationale, and affected packages
-- Decision Impact Analysis provides explicit implementation sequence
-- Cross-component dependencies are mapped
+- All 12 decisions include version numbers, rationale, and affected packages
+- Decision Impact Analysis provides explicit 15-step implementation sequence across all 5 epics
+- Cross-component dependencies are mapped (12 dependency chains)
 
 **Structure Completeness:**
 
-- 4 package structures fully defined (core modification + sdk + town + rig)
-- Every story maps to specific files (Requirements to Structure Mapping table)
-- Integration points specified (PaymentHandler bridge, ConnectorNodeLike, relay queries)
+- 4 package structures + docker/ deployment structure fully defined
+- Every story (41 total) maps to specific files (Requirements to Structure Mapping table)
+- Integration points specified (PaymentHandler bridge, ConnectorNodeLike, relay queries, x402 pipeline, attestation lifecycle)
 
 **Pattern Completeness:**
 
-- 9 patterns with code examples (correct and incorrect)
-- Anti-pattern section documents 5 common mistakes
-- Enforcement guidelines provide 6 mandatory rules for AI agents
+- 16 patterns with code examples (correct and incorrect)
+- Anti-pattern section documents 9 common mistakes
+- Enforcement guidelines provide 12 mandatory rules for AI agents
 - Disambiguation rule for `node.on(number)` vs `node.on(string)` prevents the most likely confusion
 
 ### Gap Analysis Results
@@ -861,65 +1358,72 @@ Town depends on SDK + BLS (for EventStore). Rig depends on SDK + core. SDK depen
 
 **✅ Requirements Analysis**
 
-- [x] Project context thoroughly analyzed (23 FRs, 7 NFRs, 148 existing AI rules)
-- [x] Scale and complexity assessed (3 epics, 24 stories, 8 packages)
-- [x] Technical constraints identified (TOON dependency, connector structural typing, system git)
-- [x] Cross-cutting concerns mapped (8 concerns)
+- [x] Project context thoroughly analyzed (36 FRs, 7 NFRs, 148 existing AI rules)
+- [x] Scale and complexity assessed (5 epics, 41 stories, 8 packages + docker/)
+- [x] Technical constraints identified (TOON dependency, connector structural typing, system git, Dockerfile determinism, dual-library EVM debt)
+- [x] Cross-cutting concerns mapped (13 concerns)
 
 **✅ Architectural Decisions**
 
-- [x] Critical decisions documented with versions (7 decisions)
-- [x] Technology stack fully specified (Express 5.2, Eta 4.5, better-sqlite3 11, @scure/\* 2.0)
-- [x] Integration patterns defined (PaymentHandler bridge, ConnectorNodeLike, relay queries)
-- [x] Performance considerations addressed (shallow TOON parse, lazy decode, relay query trade-off)
+- [x] Critical decisions documented with versions (12 decisions)
+- [x] Technology stack fully specified (Express 5.2, Eta 4.5, better-sqlite3 11, @scure/\* 2.0, viem ^2.46)
+- [x] Integration patterns defined (PaymentHandler bridge, ConnectorNodeLike, relay queries, x402 pipeline, attestation lifecycle)
+- [x] Performance considerations addressed (shallow TOON parse, lazy decode, relay query trade-off, dual-protocol server)
 
 **✅ Implementation Patterns**
 
 - [x] Naming conventions established (follows existing project-context 148 rules)
-- [x] Structure patterns defined (9 patterns with code examples)
-- [x] Communication patterns specified (handler context, lifecycle events, error hierarchy)
-- [x] Process patterns documented (anti-patterns, enforcement guidelines)
+- [x] Structure patterns defined (16 patterns with code examples)
+- [x] Communication patterns specified (handler context, lifecycle events, error hierarchy, attestation events, service discovery)
+- [x] Process patterns documented (anti-patterns, enforcement guidelines — 12 rules)
 
 **✅ Project Structure**
 
-- [x] Complete directory structure defined (4 packages, all files listed)
-- [x] Component boundaries established (dependency graph, boundary rules)
+- [x] Complete directory structure defined (4 packages + docker/, all files listed)
+- [x] Component boundaries established (dependency graph, boundary rules, dual data flow paths)
 - [x] Integration points mapped (requirements to structure mapping)
-- [x] Requirements to structure mapping complete (24 stories → specific files)
+- [x] Requirements to structure mapping complete (41 stories → specific files)
 
 ### Architecture Readiness Assessment
 
 **Overall Status:** READY FOR IMPLEMENTATION
 
-**Confidence Level:** High — all FRs covered, all NFRs addressed, no critical gaps, coherent decisions
+**Confidence Level:** High — all 36 FRs covered, all NFRs addressed, no critical gaps, 12 coherent decisions
 
 **Key Strengths:**
 
 - Clean dependency graph with no circular dependencies
-- Every story maps to specific files (implementation agents won't guess)
-- 9 patterns with code examples prevent style divergence
+- Every story (41 total) maps to specific files (implementation agents won't guess)
+- 16 patterns with code examples prevent style divergence across 5 epics
 - TOON pipeline ordering explicitly documented as a correctness requirement
-- Party Mode feedback (codec dependency, shallow parse ordering, test strategy) integrated
+- Dual data flow paths (ILP + x402) produce identical packets — clean architectural symmetry
+- Party Mode feedback integrated across both decision rounds (Epics 1/2/5 + Epics 3/4)
+- Acknowledged architectural debt (ethers.js in connector) with clear boundary
 
 **Areas for Future Enhancement:**
 
 - Rig event caching layer (deferred until relay latency becomes a UX problem)
 - Multi-relay redundancy for Rig queries
 - Rig offline mode
+- ethers.js → viem migration in connector (deferred until connector is under Crosstown control)
 
 ### Implementation Handoff
 
 **AI Agent Guidelines:**
 
-- Follow all architectural decisions exactly as documented with specified versions
-- Use implementation patterns consistently across all components
+- Follow all 12 architectural decisions exactly as documented with specified versions
+- Use implementation patterns consistently across all components (16 patterns, 12 enforcement rules)
 - Respect project structure and package boundaries (no circular imports)
 - Refer to this document for all architectural questions
 - Existing project-context rules (148 rules) remain in full effect
+- Use viem for new EVM code; ethers.js is connector-only legacy
 
-**First Implementation Priority:**
+**Implementation Sequence:**
 
-1. Extract TOON codec to `@crosstown/core` (unblocks all three epics)
-2. SDK identity module — Story 1.1 (`packages/sdk/src/identity.ts`)
-3. SDK handler registry + context — Stories 1.2–1.3
-4. Continue per Decision Impact Analysis sequence
+Follow the 15-step Decision Impact Analysis sequence:
+1. TOON codec extraction (done — Epic 1)
+2. SDK identity + handlers + pipeline (done — Epic 1)
+3. Town relay reimplementation (in progress — Epic 2)
+4. USDC migration → chain config → x402 → discovery → /health (Epic 3)
+5. Oyster CVM → attestation → peering → KMS → Nix → bootstrap (Epic 4)
+6. Rig HTTP + git + web UI (Epic 5)

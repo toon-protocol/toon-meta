@@ -124,7 +124,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** 0 critical, 0 high vulnerabilities in SDK direct dependencies
 - **Actual:** 0 critical, 0 high vulnerabilities in @crosstown/sdk direct dependencies
-- **Evidence:** `pnpm audit` -- all 29 reported vulnerabilities are in `packages/client > @agent-society/connector > @aws-sdk/*` (transitive AWS SDK deps), not in @crosstown/sdk. SDK deps (@noble/curves ^2.0, @noble/hashes ^2.0, @scure/bip32 ^2.0, @scure/bip39 ^2.0, nostr-tools ^2.20) are audited cryptographic libraries with no known vulnerabilities.
+- **Evidence:** `pnpm audit` -- all 29 reported vulnerabilities are in `packages/client > @crosstown/connector > @aws-sdk/*` (transitive AWS SDK deps), not in @crosstown/sdk. SDK deps (@noble/curves ^2.0, @noble/hashes ^2.0, @scure/bip32 ^2.0, @scure/bip39 ^2.0, nostr-tools ^2.20) are audited cryptographic libraries with no known vulnerabilities.
 - **Findings:** SDK dependency tree is clean. Monorepo-level vulnerabilities are in unrelated packages.
 
 ### Compliance (if applicable)

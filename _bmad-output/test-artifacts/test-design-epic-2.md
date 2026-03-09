@@ -45,7 +45,7 @@ lastSaved: '2026-03-04'
 | Item                         | Reasoning                                | Mitigation                      |
 | ---------------------------- | ---------------------------------------- | ------------------------------- |
 | **Epic 1 SDK internals**     | SDK is a prerequisite; tested separately | SDK has its own test design     |
-| **Epic 3 Rig/NIP-34**        | Different epic, different handlers       | Covered by Epic 3 test design   |
+| **Epic 5: The Rig (NIP-34)**  | Different epic, different handlers       | Covered by Epic 5 test design   |
 | **Performance/load testing** | No NFR-PERF requirements for Epic 2      | Monitor in production           |
 | **Multi-node peering E2E**   | Requires deploy-peers.sh infrastructure  | Deferred to integration testing |
 | **Docker image publishing**  | Build/CI concern, not functional         | Covered by CI pipeline          |

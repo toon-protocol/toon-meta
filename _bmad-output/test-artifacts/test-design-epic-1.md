@@ -45,7 +45,7 @@ lastSaved: '2026-03-04'
 | Item                         | Reasoning                                                   | Mitigation                                                     |
 | ---------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------- |
 | **Epic 2 Town handlers**     | SDK validation happens in Epic 2                            | Covered by Epic 2 test design                                  |
-| **Epic 3 Rig/NIP-34**        | Different epic, different handlers                          | Covered by Epic 3 test design                                  |
+| **Epic 5: The Rig (NIP-34)**  | Different epic, different handlers                          | Covered by Epic 5 test design                                  |
 | **E2E against genesis node** | SDK doesn't deploy standalone; validated via Town in Epic 2 | `genesis-bootstrap-with-channels.test.ts` remains the E2E gate |
 | **Performance/load testing** | No SLA targets defined for SDK internals                    | Monitor pipeline latency in integration tests                  |
 | **Multi-node peering**       | Requires deploy-peers.sh infrastructure                     | Deferred to Epic 2 E2E                                         |

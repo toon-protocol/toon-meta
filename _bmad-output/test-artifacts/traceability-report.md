@@ -15,14 +15,14 @@ inputDocuments:
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/test-artifacts/test-design-epic-1.md
   - _bmad-output/test-artifacts/test-design-epic-2.md
-  - _bmad-output/test-artifacts/test-design-epic-3.md
+  - _bmad-output/test-artifacts/test-design-epic-5.md
   - _bmad-output/test-artifacts/atdd-checklist-epic-1-sdk.md
   - _bmad-output/test-artifacts/nfr-assessment.md
 ---
 
 # Traceability Matrix & Gate Decision — All 3 Epics
 
-**Scope:** Epic 1 (SDK), Epic 2 (Town), Epic 3 (Rig)
+**Scope:** Epic 1 (SDK), Epic 2 (Town), Epic 5 (The Rig)
 **Date:** 2026-03-04
 **Evaluator:** Jonathan (TEA Master Test Architect)
 **Gate Type:** Epic (pre-implementation planning)
@@ -89,21 +89,21 @@ inputDocuments:
 
 ---
 
-#### Epic 3: The Rig — ILP-Gated TypeScript Git Forge
+#### Epic 5: The Rig — ILP-Gated TypeScript Git Forge
 
 | FR         | Story                         | Priority | Test Files                                                                                                          | Status | Test Count |
 | ---------- | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- | ------ | ---------- |
-| FR-NIP34-1 | 3.1 - Repo Creation           | P0       | `packages/rig/src/handlers/repo-creation-handler.test.ts`, `packages/rig/src/__integration__/repo-creation.test.ts` | RED    | 6          |
-| FR-NIP34-1 | 3.2 - Patch Handler           | P0       | `packages/rig/src/__integration__/patch-handler.test.ts`                                                            | RED    | 4          |
-| FR-NIP34-1 | 3.3 - Issue/Comment           | P1       | `packages/rig/src/handlers/issue-comment-handler.test.ts`                                                           | RED    | 4          |
-| FR-NIP34-1 | 3.4 - Git HTTP Backend        | P0       | `packages/rig/src/git/operations.test.ts`, `packages/rig/src/__integration__/git-http-backend.test.ts`              | RED    | 5          |
-| FR-NIP34-2 | 3.5 - Pubkey Identity         | P1       | `packages/rig/src/identity/pubkey-identity.test.ts`                                                                 | RED    | 4          |
-| FR-NIP34-4 | 3.6 - PR Lifecycle            | P1       | `packages/rig/src/handlers/pr-lifecycle-handler.test.ts`, `packages/rig/src/__integration__/pr-lifecycle.test.ts`   | RED    | 6          |
-| FR-NIP34-3 | 3.7-3.10 - Web UI             | P2       | `packages/rig/src/web/templates.test.ts`, `packages/rig/src/__integration__/web-routes.test.ts`                     | RED    | 5          |
-| FR-NIP34-5 | 3.11 - Issues from Relay      | P1       | `packages/rig/src/__integration__/relay-integration.test.ts`                                                        | RED    | 3          |
-| FR-NIP34-6 | 3.12 - Publish @crosstown/rig | P3       | `packages/rig/src/index.test.ts`                                                                                    | RED    | 2          |
+| FR-NIP34-1 | 5.1 - Repo Creation           | P0       | `packages/rig/src/handlers/repo-creation-handler.test.ts`, `packages/rig/src/__integration__/repo-creation.test.ts` | RED    | 6          |
+| FR-NIP34-1 | 5.2 - Patch Handler           | P0       | `packages/rig/src/__integration__/patch-handler.test.ts`                                                            | RED    | 4          |
+| FR-NIP34-1 | 5.3 - Issue/Comment           | P1       | `packages/rig/src/handlers/issue-comment-handler.test.ts`                                                           | RED    | 4          |
+| FR-NIP34-1 | 5.4 - Git HTTP Backend        | P0       | `packages/rig/src/git/operations.test.ts`, `packages/rig/src/__integration__/git-http-backend.test.ts`              | RED    | 5          |
+| FR-NIP34-2 | 5.5 - Pubkey Identity         | P1       | `packages/rig/src/identity/pubkey-identity.test.ts`                                                                 | RED    | 4          |
+| FR-NIP34-4 | 5.6 - PR Lifecycle            | P1       | `packages/rig/src/handlers/pr-lifecycle-handler.test.ts`, `packages/rig/src/__integration__/pr-lifecycle.test.ts`   | RED    | 6          |
+| FR-NIP34-3 | 5.7-5.10 - Web UI             | P2       | `packages/rig/src/web/templates.test.ts`, `packages/rig/src/__integration__/web-routes.test.ts`                     | RED    | 5          |
+| FR-NIP34-5 | 5.11 - Issues from Relay      | P1       | `packages/rig/src/__integration__/relay-integration.test.ts`                                                        | RED    | 3          |
+| FR-NIP34-6 | 5.12 - Publish @crosstown/rig | P3       | `packages/rig/src/index.test.ts`                                                                                    | RED    | 2          |
 
-**Epic 3 Totals:** 6 FRs covered, 11 test files, ~39 test cases (RED phase)
+**Epic 5 Totals:** 6 FRs covered, 11 test files, ~39 test cases (RED phase)
 
 ---
 
@@ -375,7 +375,7 @@ All 29 functional requirements have planned test coverage with RED-phase test sk
 - **Architecture:** `_bmad-output/planning-artifacts/architecture.md`
 - **Test Design (Epic 1):** `_bmad-output/test-artifacts/test-design-epic-1.md`
 - **Test Design (Epic 2):** `_bmad-output/test-artifacts/test-design-epic-2.md`
-- **Test Design (Epic 3):** `_bmad-output/test-artifacts/test-design-epic-3.md`
+- **Test Design (Epic 5):** `_bmad-output/test-artifacts/test-design-epic-5.md`
 - **ATDD Checklist (Epic 1):** `_bmad-output/test-artifacts/atdd-checklist-epic-1-sdk.md`
 - **NFR Assessment:** `_bmad-output/test-artifacts/nfr-assessment.md`
 - **CI Pipeline:** `.github/workflows/test.yml`

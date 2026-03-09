@@ -13,7 +13,7 @@ workflowType: 'testarch-test-review'
 inputDocuments:
   - _bmad-output/test-artifacts/test-design-epic-1.md
   - _bmad-output/test-artifacts/test-design-epic-2.md
-  - _bmad-output/test-artifacts/test-design-epic-3.md
+  - _bmad-output/test-artifacts/test-design-epic-5.md
   - _bmad-output/test-artifacts/atdd-checklist-epic-1-sdk.md
 ---
 
@@ -283,8 +283,8 @@ function createSignedToonPayload() {
 New SDK/Rig tests include risk links in comments:
 
 ```typescript
-// Test IDs: 3.1-UNIT-003, 3.1-UNIT-004
-// Risk links: E3-R010 (git missing at runtime), E3-R007 (unsupported NIP-34 kind)
+// Test IDs: 5.1-UNIT-003, 5.1-UNIT-004
+// Risk links: E5-R010 (git missing at runtime), E5-R007 (unsupported NIP-34 kind)
 ```
 
 **Use as Reference**: All new tests should link to risk IDs from test design documents.

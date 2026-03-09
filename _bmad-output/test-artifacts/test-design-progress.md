@@ -1,42 +1,34 @@
 ---
-stepsCompleted:
-  [
-    'step-01-detect-mode',
-    'step-02-load-context',
-    'step-03-risk-and-testability',
-    'step-04-coverage-plan',
-    'step-05-generate-output',
-  ]
+stepsCompleted: ['step-01-detect-mode', 'step-02-load-context', 'step-03-risk-and-testability', 'step-04-coverage-plan', 'step-05-generate-output']
 lastStep: 'step-05-generate-output'
-lastSaved: '2026-03-04'
+lastSaved: '2026-03-06'
 mode: 'epic-level'
 epic: 3
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
   - _bmad-output/planning-artifacts/architecture.md
+  - _bmad-output/planning-artifacts/research/marlin-party-mode-decisions-2026-03-05.md
   - _bmad-output/test-artifacts/test-design-architecture.md
-  - packages/core/src/nip34/types.ts
-  - packages/core/src/nip34/constants.ts
   - _bmad/tea/testarch/knowledge/risk-governance.md
   - _bmad/tea/testarch/knowledge/probability-impact.md
   - _bmad/tea/testarch/knowledge/test-levels-framework.md
   - _bmad/tea/testarch/knowledge/test-priorities-matrix.md
 ---
 
-# Test Design Progress — Epic 3: The Rig
+# Test Design Progress — Epic 3: Production Protocol Economics
 
 ## Step 1: Mode Detection
 
 **Mode:** Epic-Level (Phase 4)
-**Date:** 2026-03-04
+**Date:** 2026-03-06
 
-**Rationale:** User explicitly requested "epic 3". Epic-level test design produces a single test-design-epic-3.md document.
+**Rationale:** User explicitly requested "for epic 3". Epic-level test design produces a single test-design-epic-3.md document.
 
 **Prerequisites Verified:**
 
-- Requirements baseline: `_bmad-output/planning-artifacts/epics.md` (Epic 3: Stories 3.1-3.12, 6 FRs: FR-NIP34-1 through FR-NIP34-6)
-- Architecture: `_bmad-output/planning-artifacts/architecture.md` (complete — Express ^5.2, Eta ^4.5, git child_process, SQLite repo metadata, relay queries)
-- System-level test design: `_bmad-output/test-artifacts/test-design-architecture.md` (Phase 3 complete)
+- Requirements baseline: `_bmad-output/planning-artifacts/epics.md` (Epic 3: Stories 3.1–3.6, 6 FRs: FR-PROD-1 through FR-PROD-6)
+- Architecture: `_bmad-output/planning-artifacts/architecture.md` (Decisions 7–10, Patterns 10–13)
+- Decision source: `_bmad-output/planning-artifacts/research/marlin-party-mode-decisions-2026-03-05.md` (Decisions 1, 2, 6, 7, 8, 12, 13)
 
 ## Step 2: Context Loading
 
@@ -45,18 +37,17 @@ inputDocuments:
 
 **Authoritative Documents (4):**
 
-- `_bmad-output/planning-artifacts/epics.md` — Epic 3: 12 stories, 6 FRs
-- `_bmad-output/planning-artifacts/architecture.md` — ADR: Rig decisions (Express 5.2, Eta 4.5, git child_process, SQLite, relay queries), Patterns 6-9
-- `_bmad-output/test-artifacts/test-design-architecture.md` — System-level risk register (14 risks; R-004, R-009, R-012 Rig-scoped)
-- `packages/core/src/nip34/` — NIP-34 types, constants, helpers (existing foundation)
+- `_bmad-output/planning-artifacts/epics.md` — Epic 3: 6 stories, 6 FRs
+- `_bmad-output/planning-artifacts/architecture.md` — Decisions 7–10, Patterns 10–13
+- `_bmad-output/planning-artifacts/research/marlin-party-mode-decisions-2026-03-05.md` — Party Mode decisions (1, 2, 6, 7, 8, 12, 13)
+- `_bmad-output/test-artifacts/test-design-architecture.md` — System-level risk register (14 risks; R-001 and R-005 inherited)
 
-**Existing Tests:** None — packages/rig/ is greenfield (does not exist yet)
+**Existing Tests:** None — Epic 3 code is greenfield
 
-**Existing NIP-34 Foundation:**
+**Inherited System-Level Risks:**
 
-- types.ts: RepositoryAnnouncement, PatchEvent, IssueEvent, StatusEvent interfaces + parseRepositoryReference(), extractCommitMessage()
-- constants.ts: Kind constants (30617, 1617, 1618, 1621, 1630-1633) + isNIP34Event()
-- ForgejoClient.ts, NIP34Handler.ts: Legacy Forgejo integration (to be replaced by Rig)
+- R-001 (TECH, score 9): TOON pipeline ordering — x402 PREPARE packets flow through same ILP pipeline
+- R-005 (DATA, score 6): Payment channel state integrity — USDC channels must survive settlement failures
 
 **Knowledge Fragments (4 core):**
 
@@ -64,36 +55,29 @@ inputDocuments:
 
 ## Step 3: Risk & Testability Assessment
 
-**Risks Identified:** 13 total (epic-scoped)
+**Risks Identified:** 11 epic-specific + 2 inherited = 13 total
 
-- 5 high-priority (score >=6): E3-R001 through E3-R005
-- 5 medium (score 3-4): E3-R006 through E3-R010
-- 3 low (score 1-2): E3-R011, E3-R012, E3-R013
+- 5 high-priority (score >=6): E3-R001, E3-R002, E3-R003, E3-R004, E3-R005
+- 4 medium (score 3-5): E3-R006, E3-R007, E3-R008, E3-R009, E3-R013
+- 3 low (score 1-2): E3-R010, E3-R011, E3-R012
 
-**Top Risks:** 4 SEC-category risks (git injection, auth bypass, path traversal, XSS) — all score 6
-**Inherited from system-level:** R-004 → E3-R001, R-009 → E3-R006, R-012 → E3-R011
+**Party Mode Refinements:**
 
-## Step 4: Coverage Plan & Execution Strategy
+- Gas griefing vector identified → layered pre-flight validation (E3-R013, score 3 with mitigations)
+- No-refund on x402 REJECT → mirrors ILP semantics, eliminates reject-based griefing
+- Packet equivalence conditional escalation (E3-R003: score 6 IF shared buildIlpPrepare(), else 9)
+- E3-R004/R005 coupled through EIP-712 domain separator chain-awareness
+- E3-R002 split into two sub-scenarios (settlement revert vs PREPARE reject)
 
-**Coverage Matrix (Epic 3):**
+## Step 4: Coverage Plan
 
-- P0: 11 tests (security mitigations, core write path handlers + integration)
-- P1: 13 tests (core read path, handler happy paths, git HTTP backend, web UI routes)
-- P2: 10 tests (blame, relay-sourced data, error states, profile enrichment)
-- P3: 5 tests (package config, CLI, cosmetic)
-- Total: 39 tests
-
-**Execution Strategy:**
-
-- Every PR: All 39 unit + integration tests (< 10 min, real git + SQLite :memory:)
-- No nightly/weekly needed — all tests are fast and infrastructure-light
-
-**Effort Estimate:** ~48-84 hours (~1.5-3 weeks, 1 engineer)
+**Total Tests:** 34 (9 P0, 12 P1, 10 P2, 3 P3)
+**Execution:** PR (unit + integration <10min with Anvil), Nightly (full suite + E2E <15min with genesis node)
+**Resource Estimate:** ~38-67 hours (~1-2 weeks for 1 engineer)
+**Quality Gates:** P0=100%, P1>=95%, pre-flight firewall 100% branch coverage, packet equivalence verified, no-refund enforced, EIP-712 chain-aware
 
 ## Step 5: Generate Output
 
-**Document Generated:**
-
-- `_bmad-output/test-artifacts/test-design-epic-3.md` — Epic 3 test design (risk assessment, coverage matrix, execution strategy, resource estimates, quality gates)
-
-**Validation:** Checklist reviewed, all epic-level criteria satisfied.
+**Output:** `_bmad-output/test-artifacts/test-design-epic-3.md`
+**Validation:** Checklist validated — all epic-level criteria met
+**Status:** Complete

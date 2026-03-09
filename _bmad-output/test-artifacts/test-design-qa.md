@@ -249,9 +249,9 @@ describe('TOON shallow parse', () => {
 | **P1-021** | Dev mode skips verification + bypasses pricing + logs        | Unit        | -         | All three behaviors                |
 | **P1-022** | Town event storage handler: decode -> store -> accept        | Unit        | -         | Story 2.1                          |
 | **P1-023** | Town SPSP handshake handler: negotiate -> channel -> accept  | Unit        | -         | Story 2.2                          |
-| **P1-024** | Rig repo creation handler (kind:30617 -> git init --bare)    | Unit        | -         | Story 3.1                          |
-| **P1-025** | Rig patch handler (kind:1617 -> git am)                      | Unit        | -         | Story 3.2                          |
-| **P1-026** | Rig issue/comment handlers acknowledge (kind:1621/1622)      | Unit        | -         | Story 3.3                          |
+| **P1-024** | Rig repo creation handler (kind:30617 -> git init --bare)    | Unit        | -         | Story 5.1                          |
+| **P1-025** | Rig patch handler (kind:1617 -> git am)                      | Unit        | -         | Story 5.2                          |
+| **P1-026** | Rig issue/comment handlers acknowledge (kind:1621/1622)      | Unit        | -         | Story 5.3                          |
 | **P1-027** | Rig relay query renders issues/PRs in web UI                 | Integration | R-009     | Relay query + Eta render           |
 | **P1-028** | Bootstrap + relay monitor discovers and registers peers      | Integration | -         | Story 1.9                          |
 
@@ -272,7 +272,7 @@ describe('TOON shallow parse', () => {
 | **P2-005** | Rig git HTTP backend serves clone/fetch (read-only)    | Integration | -         | CGI proxy           |
 | **P2-006** | Rig git HTTP backend rejects push                      | Integration | -         | Write via ILP only  |
 | **P2-007** | Rig pubkey display with kind:0 profile enrichment      | Unit        | -         | npub formatting     |
-| **P2-008** | Rig PR status events (kinds 1630-1633) lifecycle       | Unit        | -         | Story 3.6           |
+| **P2-008** | Rig PR status events (kinds 1630-1633) lifecycle       | Unit        | -         | Story 5.6           |
 | **P2-009** | Rig unauthorized pubkey rejected for merge/close       | Unit        | -         | Maintainer check    |
 | **P2-010** | Rig web UI renders repo list, tree, blob, blame views  | Integration | R-012     | Eta templates       |
 | **P2-011** | node.peerWith(pubkey) manual peering                   | Integration | -         | Story 1.9           |
