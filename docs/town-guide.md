@@ -1,0 +1,181 @@
+# Town Guide
+
+`@crosstown/town` is a production-ready relay node built on `@crosstown/sdk`. It provides a complete Nostr relay with an embedded ILP connector, payment validation, SQLite storage, WebSocket serving, and automatic bootstrap — all in a single function call or CLI command.
+
+## Where Town Sits in the Stack
+
+```
+@crosstown/town
+├── startTown() / CLI          ← You configure here
+├── @crosstown/sdk             ← Verification, pricing, handlers
+│   └── @crosstown/core        ← Bootstrap, discovery
+├── @crosstown/relay           ← WebSocket relay, event store
+└── Embedded ILP Connector     ← Payment routing (included)
+```
+
+Town composes everything the SDK provides into an opinionated, ready-to-run relay. The ILP connector is embedded by default — no external connector needed. If you need custom handlers or different storage, use the [SDK](sdk-guide.md) directly.
+
+## Quick Start
+
+### CLI
+
+```bash
+npx @crosstown/town \
+  --mnemonic "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+```
+
+### Programmatic
+
+```typescript
+import { startTown } from '@crosstown/town';
+
+const town = await startTown({
+  mnemonic: 'abandon abandon abandon ...',
+});
+
+console.log(`Relay running on ws://localhost:${town.config.relayPort}`);
+console.log(`BLS running on http://localhost:${town.config.blsPort}`);
+console.log(`Pubkey: ${town.pubkey}`);
+console.log(`Peers: ${town.bootstrapResult.peerCount}`);
+
+// Later...
+await town.stop();
+```
+
+## Configuration
+
+### TownConfig
+
+| Option | Type | Default | Required | Purpose |
+|--------|------|---------|----------|---------|
+| `mnemonic` | `string` | — | One of two | BIP-39 mnemonic for identity |
+| `secretKey` | `Uint8Array` | — | One of two | Raw 32-byte secret key |
+| `relayPort` | `number` | `7100` | No | WebSocket relay port |
+| `blsPort` | `number` | `3100` | No | BLS HTTP server port |
+| `basePricePerByte` | `bigint` | `10n` | No | Price per byte of event data |
+| `knownPeers` | `KnownPeer[]` | `[]` | No | Seed peers for bootstrap |
+| `dataDir` | `string` | `./data` | No | SQLite database directory |
+| `devMode` | `boolean` | `false` | No | Skip verification and pricing |
+| `connectorUrl` | `string` | — | No | Use an external connector instead of embedded |
+| `connectorAdminUrl` | `string` | connectorUrl port+1 | No | Connector admin endpoint (external mode) |
+| `chainRpcUrls` | `Record<string, string>` | — | No | RPC URLs per chain |
+| `tokenNetworks` | `Record<string, string>` | — | No | TokenNetwork contract per chain |
+| `preferredTokens` | `Record<string, string>` | — | No | Preferred token per chain |
+
+Provide exactly one of `mnemonic` or `secretKey` — not both, not neither.
+
+### Environment Variables
+
+| Variable | Maps to |
+|----------|---------|
+| `CROSSTOWN_MNEMONIC` | `--mnemonic` |
+| `CROSSTOWN_SECRET_KEY` | `--secret-key` |
+| `CROSSTOWN_CONNECTOR_URL` | `--connector-url` |
+| `CROSSTOWN_RELAY_PORT` | `--relay-port` |
+| `CROSSTOWN_BLS_PORT` | `--bls-port` |
+| `CROSSTOWN_DATA_DIR` | `--data-dir` |
+| `CROSSTOWN_DEV_MODE` | `--dev-mode` |
+| `CROSSTOWN_KNOWN_PEERS` | `--known-peers` (JSON array) |
+
+### CLI Flags
+
+```
+npx @crosstown/town [options]
+
+Options:
+  --mnemonic <phrase>          BIP-39 mnemonic for node identity
+  --secret-key <hex>           64-char hex secret key (alternative to mnemonic)
+  --connector-url <url>        ILP connector HTTP endpoint (required)
+  --connector-admin-url <url>  Connector admin endpoint
+  --relay-port <port>          WebSocket relay port (default: 7100)
+  --bls-port <port>            BLS HTTP port (default: 3100)
+  --data-dir <path>            Data directory (default: ./data)
+  --known-peers <json>         JSON array of seed peers
+  --dev-mode                   Skip verification and pricing
+  --help                       Show help
+```
+
+## What Happens on Start
+
+When `startTown()` is called, it performs these steps in order:
+
+1. Validate identity (mnemonic XOR secretKey — exactly one required)
+2. Derive identity (Nostr pubkey + EVM address from key)
+3. Resolve config with defaults
+4. Create data directory
+5. Initialize SQLite event store
+6. Start embedded ILP connector (or connect to external if `connectorUrl` provided)
+7. Configure settlement (if chain info provided)
+8. Build SDK pipeline (verify → price → dispatch)
+9. Set up bootstrap service
+10. Start BLS HTTP server (Hono — `/health` and `/handle-packet`)
+11. Start WebSocket relay (NostrRelayServer — NIP-01)
+12. Track running state
+13. Execute bootstrap (discover peers, register, announce)
+14. Set up outbound subscription tracking
+15. Return `TownInstance`
+
+## TownInstance API
+
+### `isRunning(): boolean`
+
+Check if the town is currently running.
+
+### `stop(): Promise<void>`
+
+Gracefully shut down all services — close WebSocket connections, stop HTTP server, clean up subscriptions.
+
+### `subscribe(relayUrl, filter): TownSubscription`
+
+Open a WebSocket subscription to a remote relay. Received events are stored in the local event store.
+
+```typescript
+const sub = town.subscribe('ws://other-relay:7100', { kinds: [1] });
+console.log(sub.isActive());  // true
+sub.close();
+```
+
+Validates WebSocket URL scheme (must be `ws://` or `wss://`). Throws if town is not running.
+
+Subscriptions are tracked and cleaned up automatically when `town.stop()` is called.
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `pubkey` | `string` | Node's Nostr public key |
+| `evmAddress` | `string` | Node's EVM address |
+| `config` | `ResolvedTownConfig` | Resolved configuration with defaults |
+| `bootstrapResult` | `{ peerCount, channelCount }` | Bootstrap outcome |
+
+## Event Storage
+
+Town uses `createEventStorageHandler()` to handle incoming events:
+
+1. Decode TOON payload to NostrEvent
+2. Store in SQLite via EventStore
+3. Accept with event metadata
+
+All cross-cutting concerns — signature verification, pricing, self-write bypass — are handled by the SDK pipeline before the handler runs. The handler itself is ~15 lines of logic.
+
+## Health Endpoint
+
+`GET /health` on the BLS port returns:
+
+```json
+{
+  "phase": "running",
+  "peerCount": 3,
+  "discoveredPeerCount": 5,
+  "channelCount": 2
+}
+```
+
+Phases progress: `starting` → `bootstrapping` → `running`
+
+## Exposed Ports
+
+| Port | Service | Protocol | Purpose |
+|------|---------|----------|---------|
+| 7100 (default) | Nostr Relay | WebSocket | Event reads (NIP-01) — free |
+| 3100 (default) | BLS | HTTP | `/health` and `/handle-packet` — ILP validation |
