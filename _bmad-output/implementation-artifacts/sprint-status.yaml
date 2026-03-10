@@ -90,18 +90,38 @@ development_status:
   4-6-attestation-first-seed-relay-bootstrap: backlog
   epic-4-retrospective: optional
 
-  # Epic 5: The Rig - ILP-Gated TypeScript Git Forge
+  # Epic 5: DVM Compute Marketplace
+  # Decision source: Party Mode 2020117 Analysis (2026-03-10)
   epic-5: backlog
-  5-1-sdk-node-setup-and-repository-creation-handler: backlog
-  5-2-patch-handler: backlog
-  5-3-issue-and-comment-handlers: backlog
-  5-4-git-http-backend-for-clone-and-fetch: backlog
-  5-5-nostr-pubkey-native-git-identity: backlog
-  5-6-nip-34-status-events-and-pr-lifecycle: backlog
-  5-7-layout-and-repository-list-page: backlog
-  5-8-file-tree-and-blob-view: backlog
-  5-9-commit-log-and-diff-view: backlog
-  5-10-blame-view: backlog
-  5-11-issues-and-prs-from-nostr-events-on-relay: backlog
-  5-12-publish-crosstown-rig-package: backlog
+  5-1-dvm-event-kind-definitions: backlog
+  5-2-ilp-native-job-submission: backlog
+  5-3-job-result-delivery-and-compute-settlement: backlog
+  5-4-skill-descriptors-in-service-discovery: backlog
   epic-5-retrospective: optional
+
+  # Epic 6: Advanced DVM Coordination + TEE Integration
+  # Decision source: Party Mode 2020117 Analysis (2026-03-10)
+  # Dependencies: Epic 4 (TEE) + Epic 5 (base DVM)
+  epic-6: backlog
+  6-1-workflow-chains: backlog
+  6-2-agent-swarms: backlog
+  6-3-tee-attested-dvm-results: backlog
+  6-4-reputation-scoring-system: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: The Rig - ILP-Gated TypeScript Git Forge
+  # Renumbered from Epic 5 (2026-03-10) to accommodate DVM epics
+  epic-7: backlog
+  7-1-sdk-node-setup-and-repository-creation-handler: backlog
+  7-2-patch-handler: backlog
+  7-3-issue-and-comment-handlers: backlog
+  7-4-git-http-backend-for-clone-and-fetch: backlog
+  7-5-nostr-pubkey-native-git-identity: backlog
+  7-6-nip-34-status-events-and-pr-lifecycle: backlog
+  7-7-layout-and-repository-list-page: backlog
+  7-8-file-tree-and-blob-view: backlog
+  7-9-commit-log-and-diff-view: backlog
+  7-10-blame-view: backlog
+  7-11-issues-and-prs-from-nostr-events-on-relay: backlog
+  7-12-publish-crosstown-rig-package: backlog
+  epic-7-retrospective: optional

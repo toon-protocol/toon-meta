@@ -77,6 +77,20 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - FR-TEE-5: Docker builds SHALL use Nix for reproducible builds producing deterministic PCR values across build environments
 - FR-TEE-6: kind:10036 (Seed Relay List) bootstrap SHALL verify TEE attestation (kind:10033) as the trust anchor before trusting a seed relay's peer list
 
+**DVM Compute Marketplace (derived from Party Mode 2020117 Analysis 2026-03-10)**
+
+- FR-DVM-1: The protocol SHALL define DVM (Data Vending Machine) event kinds using NIP-90 compatible Nostr event kinds: Kind 5xxx for job requests, Kind 6xxx for job results, and Kind 7000 for job feedback, with full TOON encoding/decoding support
+- FR-DVM-2: Initiated agents (those with open ILP payment channels) SHALL publish DVM job requests and results via ILP PREPARE packets as the preferred path, with x402 /publish (FR-PROD-3) available as a fallback for non-initiated agents
+- FR-DVM-3: DVM compute settlement (customer paying provider for work performed) SHALL be routed through the ILP network using the provider's ILP address from their kind:10035 event, settling through existing EVM payment channels
+- FR-DVM-4: kind:10035 Service Discovery events SHALL include a structured skill descriptor schema declaring supported DVM kinds, capabilities, input parameters, pricing, and feature lists to enable programmatic agent-to-agent service discovery
+
+**Advanced DVM Coordination + TEE Integration (derived from Party Mode 2020117 Analysis 2026-03-10)**
+
+- FR-DVM-5: The protocol SHALL support workflow chains — multi-step DVM pipelines where each step's Kind 6xxx result output automatically becomes the next step's Kind 5xxx request input
+- FR-DVM-6: The protocol SHALL support agent swarms — competitive DVM job execution where multiple providers submit results and the customer selects the best submission for payment
+- FR-DVM-7: DVM job results (Kind 6xxx) from TEE-attested nodes SHALL include a reference to the node's kind:10033 attestation event, providing cryptographic proof that the computation ran in a verified enclave
+- FR-DVM-8: The protocol SHALL define a reputation scoring system combining ILP channel volume, Web of Trust declarations (Kind 30382), job completion statistics, and job reviews (Kind 31117) into a composite score visible in kind:10035 service discovery events
+
 **NIP-34 Git Forge — The Rig (derived from Crosstown Service Protocol + NIP-34)**
 
 - FR-NIP34-1: The Rig SHALL be an SDK-based service node that receives NIP-34 git events (kinds 30617, 1617, 1618, 1619, 1621, 1622, 1630-1633) via ILP packets and executes git operations via TypeScript-native git HTTP backend
@@ -174,12 +188,20 @@ FR-TEE-3: Epic 4, Story 4.3 - Attestation-aware peering
 FR-TEE-4: Epic 4, Story 4.4 - Nautilus KMS identity
 FR-TEE-5: Epic 4, Story 4.5 - Nix reproducible builds
 FR-TEE-6: Epic 4, Story 4.6 - Attestation-first seed relay bootstrap
-FR-NIP34-1: Epic 5, Stories 5.1-5.4 - Git HTTP backend and NIP-34 handlers (split across repo, patch, issue/comment, HTTP backend)
-FR-NIP34-2: Epic 5, Story 5.5 - Nostr pubkey-native git identity
-FR-NIP34-3: Epic 5, Stories 5.7-5.10 - Read-only code browsing web UI (split across layout+repo list, tree+blob, commits+diff, blame)
-FR-NIP34-4: Epic 5, Story 5.6 - PR lifecycle via NIP-34 status events
-FR-NIP34-5: Epic 5, Story 5.11 - Issues/PRs from Nostr events on relay
-FR-NIP34-6: Epic 5, Story 5.12 - Publish @crosstown/rig package
+FR-DVM-1: Epic 5, Story 5.1 - DVM event kind definitions (NIP-90 compatible, TOON-encoded)
+FR-DVM-2: Epic 5, Story 5.2 - ILP-native job submission for initiated agents
+FR-DVM-3: Epic 5, Story 5.3 - Job result delivery + ILP-routed compute settlement
+FR-DVM-4: Epic 5, Story 5.4 - Skill descriptors in kind:10035 service discovery events
+FR-DVM-5: Epic 6, Story 6.1 - Workflow chains (multi-step pipelines)
+FR-DVM-6: Epic 6, Story 6.2 - Agent swarms (competitive bidding)
+FR-DVM-7: Epic 6, Story 6.3 - TEE-attested DVM results
+FR-DVM-8: Epic 6, Story 6.4 - Reputation scoring system
+FR-NIP34-1: Epic 7, Stories 7.1-7.4 - Git HTTP backend and NIP-34 handlers (split across repo, patch, issue/comment, HTTP backend)
+FR-NIP34-2: Epic 7, Story 7.5 - Nostr pubkey-native git identity
+FR-NIP34-3: Epic 7, Stories 7.7-7.10 - Read-only code browsing web UI (split across layout+repo list, tree+blob, commits+diff, blame)
+FR-NIP34-4: Epic 7, Story 7.6 - PR lifecycle via NIP-34 status events
+FR-NIP34-5: Epic 7, Story 7.11 - Issues/PRs from Nostr events on relay
+FR-NIP34-6: Epic 7, Story 7.12 - Publish @crosstown/rig package
 
 ## Epic List
 
@@ -211,13 +233,29 @@ From repository to one-command *service* deployment on Marlin Oyster — startin
 **Decision source:** [Party Mode Decision Log](research/marlin-party-mode-decisions-2026-03-05.md) — Decisions 3, 4, 5, 9, 10, 11
 **Research source:** [Marlin Integration Technical Research](research/technical-marlin-integration-research-2026-03-05.md)
 
-### Epic 5: The Rig — ILP-Gated TypeScript Git Forge
+### Epic 5: DVM Compute Marketplace
 
-A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. Published as `@crosstown/rig` so operators can `npx @crosstown/rig` and add git collaboration to their node. No Go dependency, no Docker required. The Rig serves as the second SDK example and the first non-relay service on the emergent compute substrate, validating the platform generality thesis.
+NIP-90 compatible DVM (Data Vending Machine) compute marketplace on the Crosstown network. Agents post job requests (Kind 5xxx) and receive results (Kind 6xxx) through the existing ILP payment infrastructure. Initiated agents use ILP PREPARE packets as the preferred write path; non-initiated agents use x402 as an HTTP on-ramp. Compute settlement (paying the provider for work performed) routes through the ILP network, settling through EVM payment channels. Skill descriptors in kind:10035 events enable programmatic agent-to-agent service discovery. The DVM layer creates a two-tier access model: ILP-native for committed network participants, x402 for newcomers — with the marketplace providing the economic incentive to graduate from tier 2 to tier 1.
+**FRs covered:** FR-DVM-1, FR-DVM-2, FR-DVM-3, FR-DVM-4
+**Stories:** 4
+**Decision source:** [Party Mode 2020117 Analysis](research/party-mode-2020117-analysis-2026-03-10.md)
+**Inspiration:** [2020117](https://github.com/qingfeng/2020117) — Nostr-native agent network with NIP-90 DVM marketplace (Lightning payments, Cloudflare Workers)
+
+### Epic 6: Advanced DVM Coordination + TEE Integration
+
+Advanced DVM coordination patterns and TEE trust integration. Workflow chains enable multi-step compute pipelines where each step's output feeds into the next step's input automatically. Agent swarms enable competitive job execution where multiple providers bid and the best result wins. TEE-attested DVM results provide cryptographic proof that computation ran in a verified enclave. A reputation scoring system combines ILP channel volume, Web of Trust declarations, job completion stats, and reviews into a composite score for programmatic trust decisions.
+**FRs covered:** FR-DVM-5, FR-DVM-6, FR-DVM-7, FR-DVM-8
+**Stories:** 4
+**Dependencies:** Epic 4 (TEE attestation for Story 6.3), Epic 5 (base DVM for all stories)
+**Decision source:** [Party Mode 2020117 Analysis](research/party-mode-2020117-analysis-2026-03-10.md)
+
+### Epic 7: The Rig — ILP-Gated TypeScript Git Forge
+
+A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. Published as `@crosstown/rig` so operators can `npx @crosstown/rig` and add git collaboration to their node. No Go dependency, no Docker required. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis.
 **FRs covered:** FR-NIP34-1, FR-NIP34-2, FR-NIP34-3, FR-NIP34-4, FR-NIP34-5, FR-NIP34-6
 **Stories:** 12 (decomposed for proper sizing)
 **Reference:** [forgejo](https://codeberg.org/forgejo/forgejo) (Go, GPL-3.0) — source for mechanical template port
-**Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE) — the Rig exercises the complete stack
+**Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM) — the Rig exercises the complete stack
 
 ---
 
@@ -1091,9 +1129,378 @@ Integrate kind:10033 verification into the seed relay discovery flow (from Epic 
 
 ---
 
-## Epic 5: The Rig — ILP-Gated TypeScript Git Forge
+## Epic 5: DVM Compute Marketplace
 
-A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. The Rig serves as the second SDK example and the first non-relay service on the emergent compute substrate, validating the platform generality thesis.
+NIP-90 compatible DVM (Data Vending Machine) compute marketplace on the Crosstown network. Agents post job requests (Kind 5xxx) and receive results (Kind 6xxx) through the existing ILP payment infrastructure. The DVM layer provides a structured job lifecycle protocol — request, feedback, result, settlement — on top of Crosstown's pay-to-write relay and ILP routing mesh.
+
+**Decision source:** [Party Mode 2020117 Analysis](research/party-mode-2020117-analysis-2026-03-10.md)
+**Inspiration:** [2020117](https://github.com/qingfeng/2020117) — Nostr-native agent network with NIP-90 DVM marketplace
+
+**Key architectural decisions:**
+- NIP-90 event kinds (5xxx/6xxx/7000) for interoperability with the broader Nostr DVM ecosystem (2020117, DVMDash, etc.)
+- Two-tier access: ILP PREPARE packets for initiated agents (preferred), x402 /publish for non-initiated agents (fallback)
+- Compute settlement routes through ILP, not direct EVM transfer — every DVM job strengthens the payment channel network (flywheel)
+- Skill descriptors embedded in kind:10035 service discovery events (not a separate event kind)
+- Relay write fees (per-byte) are separate from compute fees (per-job) — both settle through ILP channels
+- Standard Nostr JSON in DVM events (TOON encoding is the relay's internal format; DVM protocol uses JSON for cross-network compatibility)
+
+**Two-tier access model:**
+```
+Tier 1: Initiated Agents (ILP-native) — preferred path
+  Agent → ILP PREPARE packet (TOON-encoded Kind 5xxx) → Relay stores → Provider reads free
+  Lower cost, no HTTP overhead, native ILP routing
+
+Tier 2: Non-Initiated Agents (x402 on-ramp) — fallback path
+  Agent → POST /publish → HTTP 402 → EIP-3009 USDC auth → Relay stores
+  Higher friction, but no payment channel required
+```
+
+**DVM job lifecycle on Crosstown:**
+```
+1. Customer → ILP PREPARE [Kind 5xxx job request]  → Relay (paid to write)
+2. Provider ← reads Kind 5xxx (free to read)
+3. Provider → ILP PREPARE [Kind 7000 feedback]     → Relay (paid to write)
+4. Provider → ILP PREPARE [Kind 6xxx result]        → Relay (paid to write)
+5. Customer ← reads Kind 6xxx (free to read)
+6. Customer → ILP payment to Provider               → Compute settlement (routed through ILP mesh)
+```
+
+### Story 5.1: DVM Event Kind Definitions
+
+As a **protocol developer**,
+I want NIP-90 compatible DVM event kinds defined for the Crosstown protocol with full TOON encoding support,
+So that agents can post structured job requests, receive feedback, and collect results using the standard DVM protocol.
+
+**Dependencies:** Epic 2 (relay must support event storage and subscriptions)
+
+**Acceptance Criteria:**
+
+**Given** the NIP-90 DVM protocol specification
+**When** this story is completed
+**Then** Kind 5xxx (Job Request) events are defined with required tags: `i` (input + type), `bid` (amount in USDC micro-units), `output` (expected output type), and optional tags: `p` (target specific provider), `param` (key-value parameters), `relays` (preferred relay URLs)
+**And** Kind 6xxx (Job Result) events are defined with required tags: `e` (request event ID), `p` (customer pubkey), `amount` (compute cost in USDC micro-units), and content containing the result data
+**And** Kind 7000 (Job Feedback) events are defined with required tags: `e` (request event ID), `p` (customer pubkey), `status` (processing/error/success/partial), and optional content with status details
+
+**Given** the Crosstown TOON format
+**When** DVM events are published via ILP PREPARE packets
+**Then** TOON encoder/decoder handles Kind 5xxx, 6xxx, and 7000 events correctly
+**And** the TOON shallow parser extracts kind, pubkey, and event ID without full decode for routing decisions
+
+**Given** a set of initially supported DVM job kinds
+**When** the protocol launches
+**Then** Kind 5100 (Text Generation) is supported as the reference DVM kind
+**And** additional kinds (5200 image generation, 5300 text-to-speech, 5302 translation) are defined but provider support is optional
+**And** the kind:10035 skill descriptor advertises which specific 5xxx kinds a node supports
+
+**Given** a Kind 5xxx event with a `p` tag targeting a specific provider
+**When** the event is published to the relay
+**Then** only the targeted provider should process it (direct request vs. open marketplace)
+**And** untargeted requests (no `p` tag) are available for any provider with matching capabilities
+
+**Test Approach:** Unit tests for TOON encoding/decoding of all three DVM event kinds. Validation tests for required tag presence and format. Roundtrip test: JSON → TOON → JSON preserves all DVM fields.
+
+### Story 5.2: ILP-Native Job Submission
+
+As an **initiated agent** (with an open ILP payment channel),
+I want to publish DVM job requests via ILP PREPARE packets as the preferred path,
+So that I can post jobs using the native payment rail with lower cost and no HTTP overhead.
+
+**Dependencies:** Story 5.1 (DVM event kinds must be defined), Epic 3 Story 3.3 (x402 exists as fallback)
+
+**Acceptance Criteria:**
+
+**Given** an initiated agent with an open ILP payment channel to a Crosstown relay
+**When** the agent publishes a Kind 5xxx job request
+**Then** the job request is TOON-encoded and sent as an ILP PREPARE packet (existing write path)
+**And** the relay stores the event and broadcasts to subscribers
+**And** the relay write fee is `basePricePerByte * toonData.length` (existing pricing model)
+
+**Given** a non-initiated agent without an ILP payment channel
+**When** the agent wants to publish a Kind 5xxx job request
+**Then** the agent uses the x402 /publish endpoint (FR-PROD-3, Story 3.3) as fallback
+**And** the resulting ILP PREPARE packet is indistinguishable from one sent via the ILP rail
+
+**Given** a provider agent subscribed to the relay
+**When** a Kind 5xxx job request is published
+**Then** the provider receives the event via WebSocket subscription (free to read)
+**And** the provider's SDK can filter incoming events by supported DVM kinds from its skill descriptor
+
+**Given** the SDK's handler registry
+**When** a provider registers DVM handlers
+**Then** `node.on(5100, myTextGenHandler)` routes Kind 5100 job requests to the handler
+**And** `ctx.decode()` returns the structured job request with input, bid, and parameters
+**And** `ctx.toon` provides raw TOON for direct LLM consumption (existing TOON-native pattern)
+
+**Given** a provider node
+**When** it starts and connects to the relay
+**Then** it subscribes to the relay for Kind 5xxx events matching its supported kinds (from skill descriptor)
+**And** subscription uses the Town relay subscription API (Story 2.8)
+
+**Test Approach:** Integration test: initiated agent publishes Kind 5100 job request via ILP → relay stores → provider receives via subscription. Unit test: SDK handler registration for DVM kinds. Verify x402 fallback produces identical relay-side behavior.
+
+### Story 5.3: Job Result Delivery + Compute Settlement
+
+As a **DVM provider agent**,
+I want to publish job results and receive compute payment through the ILP network,
+So that the complete job lifecycle (request → feedback → result → settlement) works end-to-end on Crosstown.
+
+**Dependencies:** Story 5.2 (job submission must work), Epic 3 Story 3.1 (USDC denomination)
+
+**Acceptance Criteria:**
+
+**Given** a provider processing a Kind 5xxx job request
+**When** the provider begins processing
+**Then** it publishes a Kind 7000 feedback event with `status: 'processing'` via ILP PREPARE
+**And** the relay stores the feedback and notifies the customer via subscription
+
+**Given** a provider that has completed processing a job
+**When** the provider publishes a Kind 6xxx result event
+**Then** the result is sent via ILP PREPARE with tags: `e` (request event ID), `p` (customer pubkey), `amount` (compute cost in USDC micro-units)
+**And** the relay stores the result and notifies the customer
+
+**Given** a customer that has received a Kind 6xxx result
+**When** the customer reads the result (free to read)
+**Then** the customer's SDK extracts the provider's ILP address from their kind:10035 event
+**And** the customer sends an ILP payment for the compute cost routed through the ILP mesh
+**And** the payment routes: customer → connector → [intermediate hops] → provider's connector → provider
+**And** settlement occurs through existing EVM payment channels (same infrastructure as relay write fees)
+
+**Given** a Kind 6xxx result from a provider whose ILP address is reachable via multi-hop routing
+**When** the customer sends the compute payment
+**Then** the payment routes through the ILP mesh (e.g., customer → relay node → provider node)
+**And** each intermediate connector earns routing fees (existing ILP economics)
+
+**Given** a provider that encounters an error during processing
+**When** the error occurs
+**Then** the provider publishes a Kind 7000 feedback event with `status: 'error'` and error details
+**And** no compute payment is expected
+
+**Given** the SDK
+**When** a DVM job lifecycle completes
+**Then** the SDK provides helper functions: `publishJobRequest(input, params, bid)`, `publishFeedback(requestId, status)`, `publishResult(requestId, result, amount)`, and `settleCompute(resultEvent)`
+**And** these helpers handle TOON encoding, ILP PREPARE construction, and payment routing
+
+**Test Approach:** Integration test: full lifecycle — customer posts job → provider sends feedback → provider sends result → customer settles compute payment via ILP. Unit test: helper functions for each DVM event type. Verify compute payment routes through ILP mesh (multi-hop test if SDK E2E infra available).
+
+### Story 5.4: Skill Descriptors in Service Discovery
+
+As an **agent or AI system**,
+I want to discover what DVM services a Crosstown node offers by reading structured skill descriptors in kind:10035 events,
+So that I can programmatically find compatible providers and construct valid job requests without documentation.
+
+**Dependencies:** Epic 3 Story 3.5 (kind:10035 service discovery events must exist)
+
+**Acceptance Criteria:**
+
+**Given** the kind:10035 (Service Discovery) event format from Story 3.5
+**When** a node supports DVM services
+**Then** the kind:10035 event includes a `skill` field with the structured skill descriptor
+**And** the skill descriptor contains: `name` (service identifier), `version` (schema version), `kinds` (array of supported DVM Kind 5xxx numbers), `features` (capability list), `inputSchema` (JSON Schema for job request parameters), `pricing` (per-kind cost in USDC micro-units), and `models` (available AI models, if applicable)
+
+**Given** a skill descriptor with `inputSchema`
+**When** an agent reads the schema
+**Then** the agent can construct a valid Kind 5xxx job request with correct `param` tags without prior knowledge of the provider's capabilities
+**And** the schema follows JSON Schema draft-07 for interoperability
+
+**Given** a node that starts with DVM handlers registered
+**When** bootstrap completes
+**Then** the node publishes its kind:10035 event with the skill descriptor populated from the registered DVM handlers
+**And** supported kinds are derived from `.on(kind, handler)` registrations
+**And** pricing is derived from the node's configured per-kind pricing (or `basePricePerByte` default)
+
+**Given** a node's DVM capabilities change (new handler registered, pricing update)
+**When** the change is detected
+**Then** a new kind:10035 event is published with the updated skill descriptor (NIP-33 replaceable event)
+
+**Given** an agent searching for a text generation provider
+**When** the agent queries the relay for kind:10035 events
+**Then** it can filter results by `skill.kinds` containing `5100`
+**And** compare pricing across providers
+**And** select the provider whose `skill.features` and `skill.models` best match the job requirements
+
+**Given** the skill descriptor format
+**When** compared to 2020117's skill JSON schema
+**Then** the Crosstown skill descriptor is a superset — it includes all fields from 2020117's format plus Crosstown-specific fields: `ilpAddress`, `x402Endpoint`, `supportedChains`, and `attestation` (for Epic 6 TEE integration)
+
+**Test Approach:** Unit test: skill descriptor generation from handler registrations. Integration test: node publishes kind:10035 with skill on startup → agent queries relay → parses skill descriptor → constructs valid job request. Validate JSON Schema compliance of inputSchema field.
+
+---
+
+## Epic 6: Advanced DVM Coordination + TEE Integration
+
+Advanced DVM coordination patterns — workflow chains and agent swarms — plus TEE trust integration and reputation scoring. These features layer on top of Epic 5's base DVM marketplace and Epic 4's TEE attestation infrastructure to create a differentiated compute marketplace with verifiable execution and programmatic trust.
+
+**Decision source:** [Party Mode 2020117 Analysis](research/party-mode-2020117-analysis-2026-03-10.md)
+**Dependencies:** Epic 4 (TEE attestation for Story 6.3), Epic 5 (base DVM marketplace for all stories)
+
+**Key architectural decisions:**
+- Workflow chains use Crosstown relay as the orchestration layer (no separate workflow engine)
+- Agent swarms settle only the winning submission — losers pay relay write fees but receive no compute payment
+- TEE-attested results reference kind:10033 attestation events (not inline attestation data)
+- Reputation formula adapted from 2020117: replaces zap_sats with ILP channel volume, keeps WoT and job stats
+- Reputation scores are published in kind:10035 events (self-reported, verifiable from on-chain + relay data)
+
+**Inspiration from 2020117:**
+- Kind 5117 (Workflow Chain) → adapted for ILP-routed multi-step pipelines
+- Kind 5118 (Agent Swarm) → adapted for competitive bidding with ILP settlement
+- Reputation scoring formula: `score = (trusted_by × 100) + (log10(channel_volume) × 10) + (jobs_completed × 5) + (avg_rating × 20)`
+- Kind 31117 (Job Review) → adopted directly for structured job reviews
+
+### Story 6.1: Workflow Chains
+
+As a **customer agent**,
+I want to define multi-step DVM pipelines where each step's output automatically feeds into the next step's input,
+So that I can compose complex compute tasks from simpler DVM jobs without manual orchestration.
+
+**Dependencies:** Epic 5 (base DVM lifecycle must work end-to-end)
+
+**Acceptance Criteria:**
+
+**Given** a customer that wants to chain multiple DVM jobs
+**When** the customer publishes a workflow definition event
+**Then** the event contains: an ordered list of steps (each with a DVM kind, description, and optional provider target), the initial input, and a total bid (split across steps)
+**And** the event uses a Crosstown-specific kind in the reserved 10032-10099 range (e.g., kind:10040 Workflow Chain)
+
+**Given** a published workflow definition
+**When** the relay receives it
+**Then** the relay (or an orchestrating node) creates a Kind 5xxx job request for step 1 with the workflow's initial input
+**And** publishes it via ILP PREPARE (standard DVM job submission)
+
+**Given** a step N in the workflow completes with a Kind 6xxx result
+**When** the orchestrating node detects the result
+**Then** it extracts the result content from step N
+**And** creates a Kind 5xxx job request for step N+1 with step N's result as the input
+**And** publishes the new request via ILP PREPARE
+**And** this continues until all steps are complete
+
+**Given** the final step in a workflow completes
+**When** the orchestrating node detects the final result
+**Then** the workflow status is marked as completed
+**And** the customer is notified (Kind 7000 feedback referencing the workflow event)
+**And** compute payments for each step settle individually through ILP
+
+**Given** any step in the workflow fails (Kind 7000 with `status: 'error'`)
+**When** the orchestrating node detects the failure
+**Then** the workflow is marked as failed at that step
+**And** subsequent steps are not executed
+**And** the customer is notified with the failure details
+
+**Test Approach:** Integration test: 2-step workflow (text input → translation Kind 5302 → summarization Kind 5303). Verify step advancement, input chaining, and individual compute settlement. Error handling test: step 1 fails → step 2 never executes.
+
+### Story 6.2: Agent Swarms
+
+As a **customer agent**,
+I want to post a competitive DVM job where multiple providers submit results and I select the best one for payment,
+So that I can get the highest quality result by leveraging competition between providers.
+
+**Dependencies:** Epic 5 (base DVM lifecycle must work end-to-end)
+
+**Acceptance Criteria:**
+
+**Given** a customer that wants competitive submissions
+**When** the customer publishes a swarm job request
+**Then** the event contains: the standard DVM Kind 5xxx fields, plus a `swarm` tag specifying the maximum number of providers, and a `judge` tag (default: `customer`)
+**And** a standard Kind 5xxx job request is also published (so non-swarm-aware providers can still participate)
+
+**Given** a published swarm request
+**When** providers submit Kind 6xxx results
+**Then** submissions are collected until the maximum provider count is reached
+**And** each submission is associated with the swarm via the `e` tag referencing the original request
+
+**Given** all submissions have been received (or a timeout is reached)
+**When** the customer reviews the submissions
+**Then** the customer selects the winning submission by publishing a selection event
+**And** only the winning provider receives the compute payment via ILP
+
+**Given** a swarm where fewer providers respond than the maximum
+**When** a configurable timeout expires (default: 10 minutes)
+**Then** the swarm proceeds to judging with whatever submissions have been received
+
+**Given** a provider whose submission was not selected
+**When** the swarm concludes
+**Then** the losing provider paid relay write fees for their Kind 6xxx result but receives no compute payment
+**And** the losing provider's submission is still stored on the relay for transparency
+
+**Test Approach:** Integration test: swarm with 2 providers, customer selects winner, verify only winner receives ILP payment. Timeout test: swarm with max_providers=3 but only 1 responds within timeout.
+
+### Story 6.3: TEE-Attested DVM Results
+
+As a **customer agent**,
+I want DVM job results to include proof that the computation ran in a TEE-attested enclave,
+So that I can cryptographically verify the integrity of the computation without trusting the provider's reputation.
+
+**Dependencies:** Epic 4 Story 4.2 (kind:10033 TEE attestation events must exist), Epic 5 Story 5.3 (job result delivery must work)
+
+**Acceptance Criteria:**
+
+**Given** a provider running inside a Marlin Oyster CVM with valid TEE attestation
+**When** the provider publishes a Kind 6xxx result event
+**Then** the result includes an `attestation` tag referencing the provider's latest kind:10033 event ID
+**And** the kind:10033 event contains PCR values, enclave image hash, and attestation document
+
+**Given** a customer receiving a Kind 6xxx result with an `attestation` tag
+**When** the customer wants to verify the computation integrity
+**Then** the customer reads the referenced kind:10033 event from the relay
+**And** verifies the PCR measurements against known-good values (from the provider's published Nix build hashes)
+**And** verifies the attestation document chain (AWS Nitro / Marlin attestation)
+
+**Given** a customer that requires TEE-attested results
+**When** the customer publishes a Kind 5xxx job request
+**Then** the request includes a `param` tag: `['param', 'require_attestation', 'true']`
+**And** non-TEE providers should not accept the job (their Kind 7000 feedback should indicate `status: 'error'` with reason)
+
+**Given** the kind:10035 skill descriptor
+**When** a TEE-attested node publishes its service discovery event
+**Then** the skill descriptor includes an `attestation` field with the latest kind:10033 event ID and enclave image hash
+**And** customers can filter providers by attestation status before submitting jobs
+
+**Test Approach:** Unit test: attestation tag injection in Kind 6xxx events. Integration test (requires Epic 4 infrastructure): full lifecycle with TEE verification. Mock test: customer verifies attestation reference against kind:10033 event data.
+
+### Story 6.4: Reputation Scoring System
+
+As a **network participant**,
+I want a composite reputation score for DVM providers based on verifiable on-chain and relay data,
+So that I can make programmatic trust decisions about which providers to send jobs to.
+
+**Dependencies:** Epic 5 (DVM job lifecycle for job completion stats), Epic 4 (optional — TEE attestation adds a trust signal)
+
+**Acceptance Criteria:**
+
+**Given** the reputation scoring formula adapted from 2020117
+**When** a provider's reputation is calculated
+**Then** the composite score is: `score = (trusted_by × 100) + (log10(channel_volume_usdc) × 10) + (jobs_completed × 5) + (avg_rating × 20)`
+**And** `trusted_by` is the count of Kind 30382 (NIP-85 Web of Trust) declarations targeting the provider
+**And** `channel_volume_usdc` is the total USDC settled through the provider's ILP payment channels (verifiable on-chain)
+**And** `jobs_completed` is the count of Kind 6xxx result events published by the provider
+**And** `avg_rating` is the mean of Kind 31117 (Job Review) ratings received by the provider
+
+**Given** the Kind 31117 (Job Review) event kind
+**When** a customer or provider submits a review after a DVM job
+**Then** the review contains: `d` tag (job request event ID), `p` tag (target pubkey), `rating` tag (1-5 integer), `role` tag (customer/provider), and optional content (text review)
+**And** one review per job per reviewer is enforced by the `d` tag (NIP-33 replaceable event)
+
+**Given** a provider's kind:10035 service discovery event
+**When** the provider publishes or updates their event
+**Then** it includes a `reputation` field with the self-reported composite score and individual signal values
+**And** all signals are independently verifiable: WoT from relay (Kind 30382), channel volume from on-chain data, job count from relay (Kind 6xxx), ratings from relay (Kind 31117)
+
+**Given** a customer posting a DVM job request
+**When** the customer wants to filter providers by reputation
+**Then** the customer can include a `param` tag: `['param', 'min_reputation', '<score>']`
+**And** providers with scores below the threshold should not accept the job
+
+**Given** a TEE-attested provider (Epic 4)
+**When** their reputation is displayed
+**Then** the attestation status is shown alongside the reputation score as an additional trust signal
+**And** TEE attestation is NOT factored into the numeric score (it's a separate, binary trust layer)
+
+**Test Approach:** Unit test: score calculation from mock signal data. Integration test: full flow — customer posts job → provider completes → customer submits Kind 31117 review → provider's reputation score updates. Verify on-chain channel volume extraction. Verify Kind 30382 WoT counting.
+
+---
+
+## Epic 7: The Rig — ILP-Gated TypeScript Git Forge
+
+A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis.
 
 **Reference:** [forgejo](https://codeberg.org/forgejo/forgejo) (Go, GPL-3.0) — source for mechanical template port
 
@@ -1108,9 +1515,9 @@ A TypeScript-native git forge built on the SDK, proving the full production stac
 - **Read path**: HTTP request → Express route → git binary (for code/tree/blob) + relay subscription (for issues/PRs) → Eta template → HTML response
 - **Template port scope**: repository list, file tree, blob viewer, commit log, commit diff, blame — NOT: admin panels, user settings, OAuth, notification system, dashboard
 - Existing `packages/core/src/nip34/` provides NIP34Handler, GitOperations as foundation (ForgejoClient to be replaced)
-- **Validates Epics 1-4**: The Rig exercises SDK handlers (Epic 1), relay event storage (Epic 2), USDC/x402 payments (Epic 3), and TEE attestation (Epic 4) in a single service
+- **Validates Epics 1-6**: The Rig exercises SDK handlers (Epic 1), relay event storage (Epic 2), USDC/x402 payments (Epic 3), TEE attestation (Epic 4), DVM marketplace (Epic 5), and advanced DVM coordination (Epic 6) in a single service
 
-### Story 5.1: SDK Node Setup and Repository Creation Handler
+### Story 7.1: SDK Node Setup and Repository Creation Handler
 
 As a **network operator**,
 I want a Rig service node built on the SDK that accepts kind:30617 (Repository Announcement) events via ILP and initializes git repositories,
@@ -1141,13 +1548,13 @@ So that repositories can be created through paid Nostr events.
 **When** the handler cannot process it
 **Then** `ctx.reject('F00', 'Unsupported NIP-34 kind')` is called
 
-### Story 5.2: Patch Handler
+### Story 7.2: Patch Handler
 
 As a **contributor**,
 I want to submit code patches as kind:1617 events via ILP,
 So that my patches are applied to the repository through the standard NIP-34 workflow.
 
-**Dependencies:** Story 3.1 (repositories must exist)
+**Dependencies:** Story 7.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1165,13 +1572,13 @@ So that my patches are applied to the repository through the standard NIP-34 wor
 **When** `git am` or `git apply` fails
 **Then** `ctx.reject('F00', 'Patch application failed')` is called with the git error message
 
-### Story 5.3: Issue and Comment Handlers
+### Story 7.3: Issue and Comment Handlers
 
 As a **contributor**,
 I want to submit issues (kind:1621) and comments (kind:1622) via ILP,
 So that my discussions are acknowledged by the Rig and stored on the relay for web UI rendering.
 
-**Dependencies:** Story 3.1 (repositories must exist)
+**Dependencies:** Story 7.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1187,13 +1594,13 @@ So that my discussions are acknowledged by the Rig and stored on the relay for w
 **When** the handler processes it
 **Then** `ctx.reject('F00', 'Repository not found')` is called
 
-### Story 5.4: Git HTTP Backend for Clone and Fetch
+### Story 7.4: Git HTTP Backend for Clone and Fetch
 
 As a **developer**,
 I want to clone and fetch repositories hosted on the Rig via standard git HTTP protocol,
 So that I can work with Rig repositories using any standard git client.
 
-**Dependencies:** Story 3.1 (repositories must exist)
+**Dependencies:** Story 7.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1214,7 +1621,7 @@ So that I can work with Rig repositories using any standard git client.
 **When** the HTTP server receives it
 **Then** the request is rejected (write operations go through ILP-gated NIP-34 events, not HTTP push)
 
-### Story 5.5: Nostr Pubkey-Native Git Identity
+### Story 7.5: Nostr Pubkey-Native Git Identity
 
 As a **contributor**,
 I want my Nostr pubkey to be my git identity on the Rig,
@@ -1244,13 +1651,13 @@ So that my commits, issues, and PRs are attributed to my cryptographic identity 
 **Then** the event's pubkey is checked against the repository's maintainer list (from the latest kind:30617 event's `maintainers` tags)
 **And** unauthorized pubkeys receive `ctx.reject('F06', 'Unauthorized')`
 
-### Story 5.6: NIP-34 Status Events and PR Lifecycle
+### Story 7.6: NIP-34 Status Events and PR Lifecycle
 
 As a **contributor**,
 I want my pull request status tracked through NIP-34 status events (kinds 1630-1633),
 So that the PR lifecycle (open, applied/merged, closed, draft) is managed through Nostr events with ILP payment.
 
-**Dependencies:** Stories 3.1, 3.2 (repositories and patches must exist)
+**Dependencies:** Stories 7.1, 7.2 (repositories and patches must exist)
 
 **Acceptance Criteria:**
 
@@ -1277,13 +1684,13 @@ So that the PR lifecycle (open, applied/merged, closed, draft) is managed throug
 **When** the handler checks authorization
 **Then** `ctx.reject('F06', 'Unauthorized: pubkey lacks maintainer permissions')` is called
 
-### Story 5.7: Layout and Repository List Page
+### Story 7.7: Layout and Repository List Page
 
 As a **developer**,
 I want to see a list of all repositories hosted on the Rig through a web UI,
 So that I can discover and navigate to projects without needing a specialized client.
 
-**Dependencies:** Story 3.1 (repositories must exist), Story 3.5 (pubkey display)
+**Dependencies:** Story 7.1 (repositories must exist), Story 7.5 (pubkey display)
 
 **Acceptance Criteria:**
 
@@ -1301,13 +1708,13 @@ So that I can discover and navigate to projects without needing a specialized cl
 **When** I visit the root
 **Then** an empty state message is displayed
 
-### Story 5.8: File Tree and Blob View
+### Story 7.8: File Tree and Blob View
 
 As a **developer**,
 I want to browse a repository's file tree and view individual file contents,
 So that I can explore the codebase through the web UI.
 
-**Dependencies:** Story 5.7 (layout must exist)
+**Dependencies:** Story 7.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1327,13 +1734,13 @@ So that I can explore the codebase through the web UI.
 **When** I navigate to it
 **Then** a 404 page is displayed
 
-### Story 5.9: Commit Log and Diff View
+### Story 7.9: Commit Log and Diff View
 
 As a **developer**,
 I want to view commit history and individual commit diffs,
 So that I can understand the change history of a repository.
 
-**Dependencies:** Story 5.7 (layout must exist)
+**Dependencies:** Story 7.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1352,13 +1759,13 @@ So that I can understand the change history of a repository.
 **When** I navigate to it
 **Then** a 404 page is displayed
 
-### Story 5.10: Blame View
+### Story 7.10: Blame View
 
 As a **developer**,
 I want to view per-line blame information for any file,
 So that I can see who last modified each line and when.
 
-**Dependencies:** Story 5.7 (layout must exist)
+**Dependencies:** Story 7.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1371,13 +1778,13 @@ So that I can see who last modified each line and when.
 **When** I navigate to its blame view
 **Then** a 404 page is displayed
 
-### Story 5.11: Issues and PRs from Nostr Events on Relay
+### Story 7.11: Issues and PRs from Nostr Events on Relay
 
 As a **developer**,
 I want to view issues, pull requests, and comments in the web UI,
 So that I can follow project discussions sourced from Nostr events without needing a Nostr client.
 
-**Dependencies:** Story 5.7 (layout must exist), Story 5.1 (repositories must exist)
+**Dependencies:** Story 7.7 (layout must exist), Story 7.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1407,13 +1814,13 @@ So that I can follow project discussions sourced from Nostr events without needi
 **Then** a banner explains that participation requires an ILP/Nostr client
 **And** includes a link to documentation on submitting NIP-34 events via `@crosstown/client`
 
-### Story 5.12: Publish @crosstown/rig Package
+### Story 7.12: Publish @crosstown/rig Package
 
 As a **network operator**,
 I want to `npm install @crosstown/rig` and deploy a TypeScript git forge alongside my relay,
 So that I can add git collaboration to my Crosstown node with a single command.
 
-**Dependencies:** Stories 3.1-3.11 (all Rig functionality must be complete)
+**Dependencies:** Stories 7.1-7.11 (all Rig functionality must be complete)
 
 **Acceptance Criteria:**
 
