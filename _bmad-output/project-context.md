@@ -631,9 +631,9 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 **Contract Deployment (Anvil -- current dev environment):**
 
 - **Deterministic addresses** -- Anvil deployment produces consistent contract addresses
-- **AGENT Token (dev only, to be replaced with mock USDC in Epic 3):** `0x5FbDB2315678afecb367f032d93F642f64180aa3`
+- **Mock USDC (dev only):** `0x5FbDB2315678afecb367f032d93F642f64180aa3` (same Anvil nonce-0 address, on-chain contract still uses 18 decimals until connector repo deploys FiatTokenV2_2)
 - **TokenNetworkRegistry:** `0xe7f1725e7734ce288f8367e1bb143e90bb3f0512`
-- **TokenNetwork (AGENT):** `0xCafac3dD18aC6c6e92c921884f9E4176737C052c`
+- **TokenNetwork (USDC):** `0xCafac3dD18aC6c6e92c921884f9E4176737C052c`
 - **Deployer Account:** `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (Anvil Account #0)
 
 **Production Contracts (Arbitrum One -- Epic 3+):**

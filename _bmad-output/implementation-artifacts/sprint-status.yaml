@@ -72,7 +72,7 @@ development_status:
 
   # Epic 3: Production Protocol Economics (6 stories after scope change 2026-03-07)
   epic-3: in-progress
-  3-1-usdc-token-migration: backlog
+  3-1-usdc-token-migration: done
   3-2-multi-environment-chain-configuration: backlog
   3-3-x402-publish-endpoint: backlog
   3-4-seed-relay-discovery: backlog
