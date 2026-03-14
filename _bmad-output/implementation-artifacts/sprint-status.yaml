@@ -71,14 +71,14 @@ development_status:
   epic-2-retrospective: done  # final retro covering all 8/8 stories
 
   # Epic 3: Production Protocol Economics (6 stories after scope change 2026-03-07)
-  epic-3: in-progress
+  epic-3: done
   3-1-usdc-token-migration: done
   3-2-multi-environment-chain-configuration: done
   3-3-x402-publish-endpoint: done
   3-4-seed-relay-discovery: done
   3-5-kind-10035-service-discovery-events: done
   3-6-enriched-health-endpoint: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   # Epic 4: Marlin TEE Deployment
   epic-4: backlog

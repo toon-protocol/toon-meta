@@ -1,7 +1,7 @@
 ---
 project_name: 'crosstown'
 user_name: 'Jonathan'
-date: '2026-03-07'
+date: '2026-03-14'
 sections_completed:
   [
     'technology_stack',
@@ -13,7 +13,7 @@ sections_completed:
     'critical_rules',
   ]
 status: 'complete'
-rule_count: 223
+rule_count: 278
 optimized_for_llm: true
 ---
 
@@ -48,7 +48,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Database:** better-sqlite3 ^11.0
 - **WebSockets:** ws ^8.0
 - **Web Framework:** hono ^4.0 (BLS HTTP API, Town HTTP API)
-- **Ethereum:** viem ^2.0 (client package)
+- **Ethereum:** viem ^2.47 (client package, x402 settlement, EIP-3009, EIP-712)
 - **ILP Connector:** @crosstown/connector ^1.4.0 (optional peer dependency)
 
 **TypeScript Compiler Options (Critical):**
@@ -64,15 +64,16 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - nostr-tools must stay at 2.x (breaking changes in 3.x)
 - TOON format is 1.x (critical for relay compatibility)
 - @noble/curves and @scure libraries share the same secp256k1 implementation as nostr-tools' @noble/curves dependency
+- viem 2.x required for EIP-3009 settlement and EIP-712 typed data verification
 
-## Project Structure (Post-Epic 2)
+## Project Structure (Post-Epic 3)
 
 ```
 crosstown/
 ├── packages/
-│   ├── town/        # @crosstown/town -- SDK-based relay with startTown() API and CLI (Epic 2 deliverable)
-│   ├── sdk/         # @crosstown/sdk -- SDK for building ILP-gated Nostr services (Epic 1 deliverable)
-│   ├── core/        # @crosstown/core -- Shared protocol logic, TOON codec, bootstrap, discovery
+│   ├── town/        # @crosstown/town -- SDK-based relay with x402, service discovery, health (Epic 2+3)
+│   ├── sdk/         # @crosstown/sdk -- SDK for building ILP-gated Nostr services (Epic 1)
+│   ├── core/        # @crosstown/core -- Protocol logic, TOON codec, chain config, x402, seed relay discovery
 │   ├── bls/         # @crosstown/bls -- Business Logic Server (payment validation, event storage)
 │   ├── relay/       # @crosstown/relay -- Nostr relay + TOON encoding
 │   ├── client/      # @crosstown/client -- Client SDK with payment channel support
@@ -81,8 +82,9 @@ crosstown/
 │   └── rig/         # @crosstown/rig -- (ATDD stubs only, Epic 5, not yet implemented)
 ├── docker/          # Container entrypoint (pnpm workspace member)
 │   └── src/
-│       ├── entrypoint.ts       # Original relay entrypoint (manual wiring)
-│       └── entrypoint-town.ts  # SDK/Town reference implementation entrypoint
+│       ├── shared.ts              # Config parsing, admin client, health check utilities
+│       ├── entrypoint-sdk.ts      # SDK-based Docker entrypoint (Approach A)
+│       └── entrypoint-town.ts     # Town-based Docker entrypoint (Approach B)
 ├── deploy-genesis-node.sh
 └── deploy-peers.sh
 ```
@@ -90,13 +92,13 @@ crosstown/
 **Package Dependency Graph:**
 
 ```
-@crosstown/core          <-- foundation (TOON codec, types, bootstrap, discovery)
+@crosstown/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402)
     ^          ^
 @crosstown/bls    @crosstown/sdk    <-- siblings, both depend on core
     ^                 ^
     |           +-----+-------+
-    |     @crosstown/town     @crosstown/rig    <-- (Town: Epic 2 DONE, Rig: Epic 5)
-    |       (+ relay)
+    |     @crosstown/town     @crosstown/rig    <-- (Town: Epic 2+3 DONE, Rig: Epic 5)
+    |       (+ relay + viem)
     |
 @crosstown/relay   <-- Town depends on relay for EventStore + NostrRelayServer
 ```
@@ -104,18 +106,19 @@ crosstown/
 **Boundary Rules:**
 
 - SDK imports core only -- never relay or bls directly
-- Town imports SDK, core, and relay -- the relay reference implementation
+- Town imports SDK, core, relay, and viem -- the relay reference implementation with x402 support
 - Rig will import SDK -- never core/bls directly (except core types)
 - No package imports from town or rig (they are leaf nodes)
 - Connector accessed only through `EmbeddableConnectorLike` structural type
-- Town handlers import from `@crosstown/sdk` (Handler, HandlerContext, HandlerResponse types) and `@crosstown/core` (event builders, bootstrap)
+- Town handlers import from `@crosstown/sdk` (Handler, HandlerContext, HandlerResponse types) and `@crosstown/core` (event builders, bootstrap, chain config)
+- Town x402 handler imports viem directly for EIP-3009 settlement and EIP-712 verification
 
 ## Epic Roadmap
 
 ```
 Epic 1: SDK Package                              COMPLETE
 Epic 2: Relay Reference Implementation           COMPLETE (8/8 stories, 40/40 ACs)
-Epic 3: Production Protocol Economics             PLANNED
+Epic 3: Production Protocol Economics            COMPLETE (6/6 stories, 26/26 ACs)
 Epic 4: Marlin TEE Deployment                     PLANNED
 Epic 5: The Rig -- Git Forge                      PLANNED
 ```
@@ -127,25 +130,29 @@ Epic 5: The Rig -- Git Forge                      PLANNED
 These decisions shape Epics 3-5 and future development. Full details in `_bmad-output/planning-artifacts/research/marlin-party-mode-decisions-2026-03-05.md`.
 
 **Payment Architecture:**
-- USDC is the sole user-facing payment token (AGENT token eliminated)
+- USDC is the sole user-facing payment token (AGENT token eliminated in Story 3.1)
 - POND (Marlin) for operator staking only, invisible to relay users
 - Dual payment rail: ILP primary (power users), x402 optional (HTTP clients, AI agents)
 - Production chain: Arbitrum One. Dev: Anvil. Staging: Arbitrum Sepolia
+- Chain presets: `resolveChainConfig('anvil' | 'arbitrum-sepolia' | 'arbitrum-one')` (Story 3.2)
 
-**x402 Integration:**
+**x402 Integration (Epic 3 -- Implemented):**
 - Crosstown nodes act as x402 facilitators via `/publish` HTTP endpoint on the node (not a separate gateway)
 - x402 constructs the same ILP PREPARE packets (with TOON data) that the network already routes
-- SPSP handshake (kind:23194/23195) removed from protocol (Story 2.7); kind:10032 provides all settlement info, BTP claims are self-describing with on-chain verification
-- Both rails produce identical packets -- the BLS and destination relay cannot distinguish them
+- Both rails produce identical packets via shared `buildIlpPrepare()` in `@crosstown/core` -- the BLS and destination relay cannot distinguish them
+- EIP-3009 `transferWithAuthorization` for gasless USDC transfers (user signs off-chain, facilitator pays gas)
+- 6-check pre-flight validation pipeline prevents gas griefing (no on-chain tx until all checks pass)
+- Opt-in via `x402Enabled: true` / `CROSSTOWN_X402_ENABLED=true` (disabled by default)
 
 **Component Boundaries (Critical):**
-- The **Crosstown node** (entrypoint.ts / startTown()) owns all public-facing endpoints: Nostr relay (WS), `/publish` (x402), `/health`
+- The **Crosstown node** (`startTown()` / entrypoint) owns all public-facing endpoints: Nostr relay (WS), `/publish` (x402), `/health`
 - The **BLS** handles only `/handle-packet` -- ILP packet processing and pricing validation. No public-facing surface
 - The **Connector** routes ILP packets between peers
 
 **Network Topology:**
-- Genesis hub-and-spoke replaced by seed relay list model (kind:10036 on public Nostr relays)
-- TEE attestation (kind:10033) is the bootstrap trust anchor in production
+- Genesis hub-and-spoke augmented by seed relay list model (kind:10036 on public Nostr relays, Story 3.4)
+- Discovery mode selectable: `discovery: 'genesis'` (default) or `discovery: 'seed-list'` (production)
+- TEE attestation (kind:10033) is the bootstrap trust anchor in production (Epic 4)
 - Event kinds 10032-10099 reserved for Crosstown service advertisement
 
 **Nostr Event Kinds:**
@@ -154,8 +161,8 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 | 10032 | ILP Peer Info | Existing |
 | 10033 | TEE Attestation | Proposed (Epic 4) |
 | 10034 | TEE Verification | Proposed (Epic 4) |
-| 10035 | x402 Service Discovery | Proposed (Epic 3) |
-| 10036 | Seed Relay List | Proposed (Epic 3) |
+| 10035 | Service Discovery | Implemented (Story 3.5) |
+| 10036 | Seed Relay List | Implemented (Story 3.4) |
 | ~~23194~~ | ~~SPSP Request~~ | Removed (Story 2.7) |
 | ~~23195~~ | ~~SPSP Response~~ | Removed (Story 2.7) |
 
@@ -163,6 +170,59 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 - "ILP client" not "ILP/SPSP client" -- SPSP is not part of the protocol
 - "Crosstown node" not "BLS" when referring to public-facing capabilities
 - No STREAM protocol -- Crosstown sends raw ILP PREPARE/FULFILL with TOON data payloads
+- "USDC" not "AGENT" -- AGENT token eliminated in Story 3.1
+
+## @crosstown/core (Post-Epic 3)
+
+Core now includes chain configuration, x402 support, seed relay discovery, and service discovery event builders/parsers.
+
+**New Core Modules (Epic 3):**
+
+```
+packages/core/src/
+├── chain/
+│   ├── chain-config.ts         # resolveChainConfig(), CHAIN_PRESETS, buildEip712Domain() (Story 3.2)
+│   ├── chain-config.test.ts
+│   ├── usdc.ts                 # MOCK_USDC_ADDRESS, USDC_DECIMALS, MOCK_USDC_CONFIG (Story 3.1)
+│   └── usdc-migration.test.ts
+├── x402/
+│   ├── index.ts                # Re-exports
+│   └── build-ilp-prepare.ts    # buildIlpPrepare() -- shared packet construction (Story 3.3)
+├── events/
+│   ├── seed-relay.ts           # buildSeedRelayListEvent(), parseSeedRelayList() (Story 3.4)
+│   └── service-discovery.ts    # buildServiceDiscoveryEvent(), parseServiceDiscovery() (Story 3.5)
+├── discovery/
+│   └── seed-relay-discovery.ts # SeedRelayDiscovery class, publishSeedRelayEntry() (Story 3.4)
+└── constants.ts                # ILP_PEER_INFO_KIND, SERVICE_DISCOVERY_KIND, SEED_RELAY_LIST_KIND
+```
+
+**Core Public API Additions (Epic 3):**
+
+```typescript
+// Chain configuration (Story 3.2)
+resolveChainConfig(chain?: ChainName | string): ChainPreset
+buildEip712Domain(config: ChainPreset): { name, version, chainId, verifyingContract }
+CHAIN_PRESETS: Record<ChainName, ChainPreset>  // anvil, arbitrum-sepolia, arbitrum-one
+type ChainName = 'anvil' | 'arbitrum-sepolia' | 'arbitrum-one'
+
+// USDC constants (Story 3.1)
+MOCK_USDC_ADDRESS, USDC_DECIMALS, USDC_SYMBOL, USDC_NAME, MOCK_USDC_CONFIG
+
+// x402 packet construction (Story 3.3)
+buildIlpPrepare(params: BuildIlpPrepareParams): IlpPreparePacket
+
+// Seed relay events (Story 3.4)
+buildSeedRelayListEvent(secretKey, entries): NostrEvent
+parseSeedRelayList(event): SeedRelayEntry[]
+SeedRelayDiscovery  // class: discover() + close()
+publishSeedRelayEntry(config): Promise<{ publishedTo, eventId }>
+
+// Service discovery events (Story 3.5)
+buildServiceDiscoveryEvent(content, secretKey): NostrEvent
+parseServiceDiscovery(event): ServiceDiscoveryContent | null
+SERVICE_DISCOVERY_KIND = 10035
+SEED_RELAY_LIST_KIND = 10036
+```
 
 ## @crosstown/sdk (Epic 1 -- Complete)
 
@@ -227,43 +287,83 @@ ILP Packet -> ConnectorNode.setPacketHandler()
               -> HandlePacketResponse back to connector
 ```
 
-## @crosstown/town (Epic 2 -- Complete)
+**SDK Changes in Epic 3:**
+- `NodeConfig.chain` field added (default: `'anvil'`): uses `resolveChainConfig()` from core for chain-aware settlement defaults
+- `NodeConfig.basePricePerByte` JSDoc updated: amounts are in USDC micro-units (6 decimals) for production
+- Default `basePricePerByte` is 10n = 10 micro-USDC per byte = $0.00001/byte
 
-The Town package is the main deliverable of Epic 2. It validates the SDK by reimplementing the Nostr relay as composable SDK handlers. Two deployment modes: programmatic API (`startTown(config)`) and CLI (`npx @crosstown/town`).
+## @crosstown/town (Epics 2+3 -- Complete)
 
-**Town Source Files:**
+The Town package is the main deliverable of Epics 2 and 3. It validates the SDK by reimplementing the Nostr relay as composable SDK handlers, with x402 HTTP payment on-ramp, service discovery, seed relay discovery, and enriched health endpoints added in Epic 3.
+
+**Town Source Files (Post-Epic 3):**
 
 ```
 packages/town/src/
-├── index.ts                    # Public API: startTown, createEventStorageHandler
-├── town.ts                     # startTown() -- programmatic API (~800 lines including types, config resolution, lifecycle)
+├── index.ts                    # Public API: startTown, handlers, health, x402 types
+├── town.ts                     # startTown() -- programmatic API (~1100 lines)
 ├── cli.ts                      # CLI entrypoint (parseArgs + env vars + startTown delegation)
+├── health.ts                   # createHealthResponse() -- enriched /health (Story 3.6)
+├── health.test.ts              # Health response tests
+├── town.test.ts                # startTown() unit tests
+├── cli.test.ts                 # CLI parsing tests
+├── sdk-entrypoint-validation.test.ts  # Static analysis tests
 └── handlers/
     ├── event-storage-handler.ts        # Decode -> store -> accept (~15 lines of logic)
     ├── event-storage-handler.test.ts   # Unit + pipeline tests
-    └── x402-publish-handler.test.ts    # ATDD RED phase stubs for Epic 3 Story 3.3
+    ├── x402-publish-handler.ts         # x402 /publish endpoint handler (Story 3.3)
+    ├── x402-publish-handler.test.ts    # x402 handler tests (57+ tests)
+    ├── x402-preflight.ts               # 6-check pre-flight validation pipeline (Story 3.3)
+    ├── x402-pricing.ts                 # calculateX402Price() with routing buffer (Story 3.3)
+    ├── x402-settlement.ts              # EIP-3009 on-chain settlement (Story 3.3)
+    └── x402-types.ts                   # EIP-3009 types, ABI, EIP-712 domain (Story 3.3)
 ```
 
-**Town Public API:**
+**Town Public API (Post-Epic 3):**
 
 ```typescript
 // Lifecycle API
 startTown(config: TownConfig): Promise<TownInstance>
 
-// TownConfig -- key fields (all have defaults except connectorUrl + identity)
+// TownConfig -- key fields (all have defaults except connector + identity)
 interface TownConfig {
-  mnemonic?: string;              // exactly one of mnemonic or secretKey
+  // Identity (exactly one required)
+  mnemonic?: string;
   secretKey?: Uint8Array;
-  connectorUrl: string;           // REQUIRED -- external connector
-  relayPort?: number;             // default: 7100
-  blsPort?: number;               // default: 3100
-  basePricePerByte?: bigint;      // default: 10n
+
+  // Connector (exactly one required)
+  connector?: EmbeddableConnectorLike;    // embedded mode (zero-latency)
+  connectorUrl?: string;                  // standalone mode (HTTP)
+
+  // Pricing
+  basePricePerByte?: bigint;              // default: 10n
+  routingBufferPercent?: number;          // default: 10 (for x402)
+
+  // x402
+  x402Enabled?: boolean;                  // default: false
+  facilitatorAddress?: string;            // default: node's EVM address
+
+  // Network
+  relayPort?: number;                     // default: 7100
+  blsPort?: number;                       // default: 3100
+  ilpAddress?: string;                    // default: g.crosstown.<pubkeyShort>
+  btpEndpoint?: string;                   // default: ws://localhost:3000
+
+  // Chain / Settlement
+  chain?: string;                         // default: 'anvil' (resolveChainConfig)
+  chainRpcUrls?: Record<string, string>;
+  tokenNetworks?: Record<string, string>;
+  preferredTokens?: Record<string, string>;
+
+  // Discovery
+  discovery?: 'seed-list' | 'genesis';    // default: 'genesis'
+  seedRelays?: string[];                  // public Nostr relay URLs
+  publishSeedEntry?: boolean;             // default: false
+  externalRelayUrl?: string;              // required if publishSeedEntry is true
+
   knownPeers?: KnownPeer[];
-  chainRpcUrls?: Record<string, string>;    // settlement
-  tokenNetworks?: Record<string, string>;   // settlement
-  preferredTokens?: Record<string, string>; // settlement
-  dataDir?: string;               // default: ./data
-  devMode?: boolean;              // default: false
+  dataDir?: string;                       // default: ./data
+  devMode?: boolean;                      // default: false
 }
 
 // TownInstance -- lifecycle control
@@ -275,20 +375,20 @@ interface TownInstance {
   evmAddress: string;
   config: ResolvedTownConfig;
   bootstrapResult: { peerCount: number; channelCount: number };
+  discoveryMode: 'seed-list' | 'genesis';  // NEW in Epic 3
 }
 
-// TownSubscription -- outbound relay subscription handle
-interface TownSubscription {
-  close(): void;
-  relayUrl: string;
-  isActive(): boolean;
-}
+// Health response (Story 3.6)
+createHealthResponse(config: HealthConfig): HealthResponse
 
-// Handler factories (also exported individually)
-createEventStorageHandler(config: EventStorageHandlerConfig): Handler
+// x402 handler (Story 3.3)
+createX402Handler(config: X402HandlerConfig): X402Handler
+calculateX402Price(config: X402PricingConfig, toonLength: number): bigint
+runPreflight(auth, toonData, destination, config): Promise<PreflightResult>
+settleEip3009(auth, config): Promise<X402SettlementResult>
 ```
 
-**Town CLI:**
+**Town CLI (Post-Epic 3):**
 
 ```bash
 # Via npx
@@ -298,50 +398,60 @@ npx @crosstown/town --mnemonic "abandon abandon ..." --connector-url "http://loc
 CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080" npx @crosstown/town
 
 # All flags: --mnemonic, --secret-key, --relay-port, --bls-port, --data-dir,
-#            --connector-url, --connector-admin-url, --known-peers, --dev-mode, --help
+#            --connector-url, --connector-admin-url, --known-peers, --dev-mode,
+#            --x402-enabled, --discovery, --seed-relays, --publish-seed-entry,
+#            --external-relay-url, --help
 ```
 
-**Town Composition (15 Steps in startTown()):**
+**Town Composition (Post-Epic 3 -- startTown() steps):**
 
 ```
 1. Validate identity (mnemonic XOR secretKey)
+1b. Validate connector mode (connector XOR connectorUrl)
 2. Derive identity (fromMnemonic or fromSecretKey)
 3. Resolve config with defaults
+3b. Resolve chain preset (resolveChainConfig)
 4. Create data directory
 5. EventStore (SqliteEventStore)
+5b. Auto-populate settlement defaults from chain preset
 6. Settlement configuration (optional)
-7. Connector admin client
+7. Connector admin client (direct or HTTP)
 8. SDK pipeline (verifier + pricer + registry + handlePacket)
 9. Bootstrap service setup
 10. BLS HTTP server (Hono: /health, /handle-packet)
+10b. ILP client (direct or HTTP)
+10c. x402 /publish route (createX402Handler + GET/POST /publish)
 11. WebSocket relay (NostrRelayServer)
 12. Running state tracking
-13. Bootstrap execution (wait for connector, bootstrap peers, publish ILP info, start relay monitor)
+13. Bootstrap execution (wait for connector, bootstrap peers, publish kind:10032 + kind:10035)
+13b. Seed relay discovery (when discovery: 'seed-list')
+13c. Publish seed relay entry (after bootstrap complete)
 14. Outbound subscription tracking (Set<TownSubscription>)
-15. Build TownInstance (isRunning, stop, subscribe, pubkey, evmAddress, config, bootstrapResult)
+15. Build TownInstance
 ```
 
-**Key Epic 2 Design Decisions:**
+**Key Epic 3 Design Decisions:**
 
-- **SDK stubs updated:** `createEventStorageHandler()` in SDK throws with clear message directing users to `@crosstown/town`
-- **Handler data bypass pattern:** Handlers that need to return data in the ILP FULFILL return `{ accept: true, fulfillment: 'default-fulfillment', data }` directly (bypasses `ctx.accept()`) because the response must be in the top-level `data` field for the connector to relay it back
-- **External connector only:** `startTown()` requires `connectorUrl` -- embedded connector mode is deferred
-- **Reference implementation:** `docker/src/entrypoint-town.ts` demonstrates the same SDK composition with individual components (Approach A) instead of `startTown()` (Approach B), providing a Docker-native reference
-- **git-proxy removed:** `packages/git-proxy/` was deleted and removed from `pnpm-workspace.yaml`
-- **SPSP removed:** kinds 23194/23195 removed from protocol in Story 2.7; settlement negotiation uses kind:10032 data + on-chain verification
-- **subscribe() API added:** `TownInstance.subscribe(relayUrl, filter)` provides general-purpose relay subscription for peer discovery, seed relay lists, and custom event kinds (Story 2.8)
-- **publishEvent() added:** `ServiceNode.publishEvent(event, options)` enables outbound event publishing via ILP (Story 2.6)
+- **Dual connector mode:** `startTown()` supports both embedded (`connector`) and standalone (`connectorUrl`) modes. Embedded mode provides zero-latency packet delivery via direct function calls. Standalone mode connects via HTTP.
+- **USDC replaces AGENT:** All references to AGENT token eliminated. USDC is the sole payment token (Story 3.1).
+- **Chain presets:** `resolveChainConfig()` resolves chain name to full config (chainId, rpcUrl, usdcAddress, tokenNetworkAddress). Environment variables `CROSSTOWN_CHAIN`, `CROSSTOWN_RPC_URL`, `CROSSTOWN_TOKEN_NETWORK` override presets (Story 3.2).
+- **x402 /publish endpoint:** HTTP-based event publishing with EIP-3009 gasless USDC authorization. Opt-in via `x402Enabled`. 6-check pre-flight pipeline. Shared `buildIlpPrepare()` ensures packet equivalence (Story 3.3).
+- **Seed relay discovery:** Decentralized peer bootstrap via kind:10036 events on public Nostr relays. Additive mode (`discovery: 'seed-list'`), not replacement for genesis (Story 3.4).
+- **Service discovery events:** kind:10035 events advertise node capabilities, pricing, x402 status, chain info. Published to local EventStore and optionally to peers (Story 3.5).
+- **Enriched health endpoint:** `/health` returns pricing, capabilities, chain, x402 status, and runtime state (phase, peerCount, channelCount). Pure function `createHealthResponse()` for testability (Story 3.6).
+- **Legacy entrypoint deleted:** `docker/src/entrypoint.ts` (943 lines) deleted. Only `entrypoint-sdk.ts` and `entrypoint-town.ts` remain.
+- **viem added to Town:** Town now depends on viem ^2.47 for EIP-3009 settlement and EIP-712 typed data verification (x402).
 
-**Epic 2 Metrics (Final -- 8/8 stories):**
+**Epic 3 Metrics (Final -- 6/6 stories):**
 
 | Metric | Value |
 |--------|-------|
-| Stories delivered | 8/8 (100%) |
-| Acceptance criteria | 40/40 (100%) |
-| Story-specific tests | ~193 |
-| Monorepo test count | 1,299 passing / 185 skipped (decrease from SPSP test deletion) |
-| Code review issues | 61 found, 61 fixed, 0 remaining |
-| Security scan findings | 2 real issues fixed + 2 code-review security fixes |
+| Stories delivered | 6/6 (100%) |
+| Acceptance criteria | 26/26 (100%) |
+| Story-specific tests | 244 (4.98x the 49 planned) |
+| Monorepo test count | 1,558 passing |
+| Code review issues | 62 found, 56 fixed, 6 remaining (informational) |
+| Security scan findings | 3 real vulnerabilities fixed (command injection in shell scripts) |
 | Test regressions | 0 |
 
 ## Critical Implementation Rules
@@ -359,7 +469,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 
 - **Always use `.js` extensions in imports** -- ESM requires explicit extensions: `import { foo } from './bar.js'` (not `.ts`)
 - **Export all public APIs from package `index.ts`** -- Every package must export its public interface through `src/index.ts`
-- **Use structural typing for cross-package interfaces** -- Suffix with `Like` (e.g., `EmbeddableConnectorLike`, `ConnectorNodeLike`, `ConnectorAdminLike`) to keep peer dependencies optional
+- **Use structural typing for cross-package interfaces** -- Suffix with `Like` (e.g., `EmbeddableConnectorLike`, `ConnectorNodeLike`, `ConnectorAdminLike`, `EventStoreLike`) to keep peer dependencies optional
 - **No re-exporting types from `nostr-tools`** -- Use nostr-tools types directly, don't redefine
 - **Core sub-path exports** -- `@crosstown/core/toon` and `@crosstown/core/nip34` are valid import paths (configured in core's package.json `exports`)
 
@@ -409,6 +519,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Per-kind overrides** -- `kindPricing` config allows custom pricing for specific event kinds
 - **Self-write bypass** -- Events from the node's own pubkey are free (no pricing check)
 - **Uses `Object.hasOwn()` for prototype-safe lookup** on kindPricing overrides
+- **USDC denomination** -- Default 10n = 10 micro-USDC per byte = $0.00001/byte; 1KB event costs ~$0.01
 
 **createNode() Composition:**
 
@@ -417,6 +528,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Config-based handler registration** -- `config.handlers` and `config.defaultHandler` are alternatives to post-creation `.on()`
 - **Max payload: 1MB base64** -- `MAX_PAYLOAD_BASE64_LENGTH = 1_048_576`, rejected before allocation (DoS mitigation)
 - **Dev mode log sanitization** -- User-controlled fields (amount, destination) are sanitized to prevent log injection
+- **Chain-aware settlement** -- `config.chain` resolves via `resolveChainConfig()` to populate default settlement fields (Epic 3)
 
 **publishEvent() (Story 2.6):**
 
@@ -426,7 +538,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Requires node to be started** -- Throws `NodeError` if called before `start()`
 - **Requires destination** -- Throws `NodeError` if `options.destination` is missing
 
-### Town-Specific Rules (Epic 2)
+### Town-Specific Rules (Epics 2+3)
 
 **Handler Implementation Pattern:**
 
@@ -437,11 +549,48 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 
 **startTown() vs createNode():**
 
-- **startTown() is for relay operators** -- One-call API that starts a complete relay node with WebSocket relay, BLS HTTP server, bootstrap, and lifecycle management
+- **startTown() is for relay operators** -- One-call API that starts a complete relay node with WebSocket relay, BLS HTTP server, x402, bootstrap, and lifecycle management
 - **createNode() is for SDK developers** -- Lower-level composition that requires an embedded connector
-- **startTown() uses external connector** -- Requires `connectorUrl` pointing to a running connector
-- **createNode() uses embedded connector** -- Manages connector lifecycle internally
+- **startTown() supports both embedded and standalone modes** -- `connector` (embedded, zero-latency) or `connectorUrl` (standalone, HTTP)
+- **createNode() supports both embedded and standalone modes** -- `connector` or `connectorUrl` + `handlerPort`
 - **Both compose the same 5-stage pipeline** -- Size check -> shallow parse -> verify -> price -> dispatch
+
+**x402 /publish Endpoint (Story 3.3):**
+
+- **Dual flow:** No `X-PAYMENT` header -> 402 pricing response; with `X-PAYMENT` header -> paid publish
+- **EIP-3009 authorization in X-PAYMENT header** -- JSON-encoded, validated with hex format checks
+- **6-check pre-flight pipeline (cheapest to most expensive):**
+  1. EIP-3009 signature verification (off-chain, ~1ms)
+  2. USDC balance check (eth_call, ~50ms)
+  3. Nonce freshness check (eth_call, ~50ms)
+  4. TOON shallow parse (pure computation, ~0.1ms)
+  5. Schnorr signature verification (pure crypto, ~2ms)
+  6. Destination reachability check (local lookup, ~0.1ms)
+- **Settlement atomicity:** If settlement fails, no ILP PREPARE. If settlement succeeds but ILP PREPARE is rejected, no refund.
+- **Routing buffer:** `calculateX402Price()` adds configurable buffer (default 10%) for multi-hop overhead
+- **Packet equivalence:** Uses `buildIlpPrepare()` from `@crosstown/core` -- identical to ILP-native rail
+
+**Seed Relay Discovery (Story 3.4):**
+
+- **`SeedRelayDiscovery` class** -- Queries public Nostr relays for kind:10036, connects to seed relays, subscribes to kind:10032
+- **Uses raw `ws` WebSocket** -- Avoids SimplePool `window is not defined` issue in Node.js containers
+- **Sequential fallback** -- Tries seed relays one at a time until one connects
+- **Signature verification** -- `verifyEvent()` called on both kind:10036 and kind:10032 events from untrusted relays (CWE-345)
+- **Additive discovery** -- Populates `knownPeers` and delegates to existing `BootstrapService`
+- **`publishSeedRelayEntry()`** -- Publishes this node as a seed relay entry to public relays
+
+**Service Discovery Events (Story 3.5):**
+
+- **kind:10035** -- NIP-16 replaceable event advertising capabilities, pricing, x402 status, chain info
+- **Published to local EventStore** and optionally to peers via ILP (fire-and-forget)
+- **x402 field omitted entirely when disabled** -- Not set to `{ enabled: false }`, omitted from JSON
+- **`parseServiceDiscovery()` validates all fields** -- Returns null for malformed content
+
+**Enriched Health Endpoint (Story 3.6):**
+
+- **`createHealthResponse(config)`** -- Pure function, no Hono dependency, easy to unit test
+- **Response includes:** status, phase, pubkey, ilpAddress, peerCount, discoveredPeerCount, channelCount, pricing, capabilities, x402 (if enabled), chain, version, sdk, timestamp
+- **x402 field omitted when disabled** -- Same omission semantics as kind:10035
 
 **TownInstance.subscribe() (Story 2.8):**
 
@@ -454,9 +603,35 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 **Docker Reference Implementation:**
 
 - **entrypoint-town.ts** -- Uses individual SDK components (Approach A) instead of `startTown()` (Approach B)
-- **Approach A: individual components** -- `fromSecretKey()`, `createVerificationPipeline()`, `createPricingValidator()`, `HandlerRegistry`, `createHandlerContext()` wired manually
-- **Approach B: one-call API** -- `startTown(config)` handles all composition internally
-- **Known bug (A1 from retro):** `entrypoint-town.ts` line 338 uses `!body.amount` which fails for amount=0 (truthiness bug). `town.ts` has the correct fix using `=== undefined || === null`
+- **entrypoint-sdk.ts** -- SDK-based entrypoint with direct component wiring
+- **shared.ts** -- Configuration parsing, admin client creation, health check utilities shared by both entrypoints
+- **shared.ts supports Epic 3 features:** `x402Enabled`, `discoveryMode`, `seedRelays`, `publishSeedEntry`, `externalRelayUrl`, `CROSSTOWN_CHAIN` convenience shorthand
+- **Legacy `entrypoint.ts` deleted** -- 943-line legacy entrypoint removed in Epic 3 start commit
+
+### Chain Configuration Rules (Epic 3)
+
+**resolveChainConfig() (Story 3.2):**
+
+- **Resolution order:** `CROSSTOWN_CHAIN` env var -> `chain` parameter -> `'anvil'` default
+- **Three presets:** `anvil` (31337, localhost), `arbitrum-sepolia` (421614), `arbitrum-one` (42161)
+- **Env var overrides:** `CROSSTOWN_RPC_URL` overrides rpcUrl, `CROSSTOWN_TOKEN_NETWORK` overrides tokenNetworkAddress
+- **Returns defensive copy** -- Callers can mutate the result without affecting shared preset objects
+- **Throws CrosstownError** for unrecognized chain names
+- **Auto-populates settlement** -- `startTown()` derives `chainRpcUrls`, `preferredTokens`, `tokenNetworks` from chain preset when not explicitly configured
+
+**Chain Presets:**
+
+| Name | Chain ID | USDC Address | TokenNetwork | RPC |
+|------|----------|-------------|-------------|-----|
+| anvil | 31337 | 0x5FbDB...aa3 (mock) | 0xCafac...52c | localhost:8545 |
+| arbitrum-sepolia | 421614 | 0x75faf...4d | (unset) | sepolia-rollup.arbitrum.io |
+| arbitrum-one | 42161 | 0xaf88d...831 | (unset) | arb1.arbitrum.io |
+
+**USDC Configuration (Story 3.1):**
+
+- **Production USDC uses 6 decimals** (not 18 like most ERC-20 tokens): 1 USDC = 1,000,000 micro-USDC
+- **Anvil mock USDC still uses 18 decimals** -- On-chain contract inherited from original AGENT ERC-20 deploy script. Constants in `usdc.ts` reflect production semantics (6 decimals). Pricing pipeline is denomination-agnostic (bigint math).
+- **No EIP-3009 on Anvil mock** -- Mock USDC does not implement `transferWithAuthorization`. x402 settlement tests use injectable mocks.
 
 ### Framework-Specific Rules
 
@@ -464,16 +639,26 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 
 - **Always mock SimplePool in tests** -- Never connect to live relays in unit or integration tests (use `vi.mock('nostr-tools')`)
 - **Validate event signatures before processing** -- Never trust unsigned/unverified Nostr events
-- **Use proper event kinds** -- Kind 10032 (ILP Peer Info). Kinds 23194/23195 (SPSP) have been removed (Story 2.7)
+- **Use proper event kinds** -- Kind 10032 (ILP Peer Info), Kind 10035 (Service Discovery), Kind 10036 (Seed Relay List). Kinds 23194/23195 (SPSP) have been removed (Story 2.7)
 - **NIP-44 encryption** -- Available for private event exchange when needed
 - **SimplePool `ReferenceError: window is not defined` is non-fatal** -- This error appears in Node.js but doesn't break functionality
+- **Use raw `ws` WebSocket for server-side relay communication** -- SeedRelayDiscovery avoids SimplePool for Node.js compatibility
 
 **Hono (Web Framework):**
 
 - **BLS and Town use Hono for HTTP endpoints** -- Business Logic Server and Town both expose HTTP API using `@hono/node-server`
 - **CORS enabled by default** -- BLS accepts cross-origin requests
 - **JSON and TOON responses** -- API endpoints return both JSON metadata and TOON-encoded events
-- **CWE-209 mitigation** -- `/handle-packet` 500 handlers must return generic error messages, not internal error details
+- **CWE-209 mitigation** -- `/handle-packet` and x402 500 handlers must return generic error messages, not internal error details
+- **x402 endpoint routes:** `/publish` registered for both GET and POST methods
+
+**viem (Ethereum):**
+
+- **Used in Town x402 handler** -- `verifyTypedData()` for EIP-3009 signature verification, `readContract()` for balance/nonce checks, `writeContract()` for settlement
+- **EIP-712 domains differ:** USDC's `transferWithAuthorization` uses `{ name: 'USD Coin', version: '2' }`, NOT the TokenNetwork domain
+- **WalletClient required for settlement** -- Facilitator pays gas via `walletClient.writeContract()`
+- **PublicClient optional** -- Used for pre-flight balance/nonce checks and transaction receipt waiting
+- **Not wired in startTown()** -- `walletClient` and `publicClient` are injected via `X402HandlerConfig` but not created by `startTown()` (production wiring deferred to Epic 4 A7)
 
 **SQLite (better-sqlite3):**
 
@@ -514,6 +699,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Factory functions for test data** -- Create helper functions for generating valid test events with proper signatures
 - **In-memory databases for unit tests** -- Use SQLite `:memory:` for isolated, fast tests
 - **SDK tests mock connectors** -- Use structural `EmbeddableConnectorLike` mock with `vi.fn()` for sendPacket, registerPeer, etc.
+- **x402 tests use injectable settlement** -- `config.settle` and `config.runPreflightFn` allow test-specific mocks without touching viem
 
 **Two-Approach Handler Testing (Epic 2 Pattern):**
 
@@ -521,11 +707,12 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Approach B: Pipeline integration with `createNode().start()`** -- End-to-end handler behavior within the SDK pipeline
 - **Approach A catches handler-level issues, Approach B catches composition and lifecycle issues**
 
-**Static Analysis Tests (Epic 2 Pattern):**
+**Static Analysis Tests (Epics 2+3 Pattern):**
 
 - **Tests that read source files and assert structural properties** -- E.g., "handler logic is under 100 lines", "Dockerfile CMD points to correct entrypoint", "package.json has correct exports"
 - **Fast, stable, and catch drift** -- These tests prevent invisible architectural regressions
 - **Verification by absence** -- Story 2-7 introduced `spsp-removal-verification.test.ts` (25 tests) that grep source files for forbidden patterns (e.g., removed SPSP references). Reuse for all removal stories.
+- **Verification by presence** -- Epic 3 extended the pattern to assert integration points exist in composition functions like `startTown()` (e.g., `createHealthResponse`, `publishSeedRelayEntry`, `buildServiceDiscoveryEvent`)
 
 **Test Coverage:**
 
@@ -533,6 +720,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **All public methods must have tests** -- Every exported function/class needs unit tests
 - **Edge cases and error conditions** -- Test failure paths, boundary conditions, invalid inputs
 - **Integration tests for bootstrap flows** -- Multi-peer bootstrap scenarios require integration tests
+- **Test amplification is expected** -- ATDD stubs average 5x amplification; cross-cutting stories reach 10-15x
 
 **Critical Testing Rules:**
 
@@ -568,15 +756,17 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 
 **Naming Conventions:**
 
-- **Files (source):** PascalCase for classes, kebab-case for utilities and SDK modules (`BusinessLogicServer.ts`, `handler-registry.ts`, `create-node.ts`, `town.ts`)
-- **Files (test):** Match source with `.test.ts` suffix (`handler-registry.test.ts`, `town.test.ts`)
-- **Classes:** PascalCase (`SocialPeerDiscovery`, `HandlerRegistry`)
-- **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`)
-- **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`, `startTown`)
-- **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `createEventStorageHandler`)
+- **Files (source):** PascalCase for classes, kebab-case for utilities and SDK modules (`BusinessLogicServer.ts`, `handler-registry.ts`, `create-node.ts`, `town.ts`, `x402-publish-handler.ts`)
+- **Files (test):** Match source with `.test.ts` suffix (`handler-registry.test.ts`, `town.test.ts`, `x402-publish-handler.test.ts`)
+- **Classes:** PascalCase (`SocialPeerDiscovery`, `HandlerRegistry`, `SeedRelayDiscovery`)
+- **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`, `ChainPreset`, `ServiceDiscoveryContent`)
+- **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`, `startTown`, `resolveChainConfig`, `buildIlpPrepare`)
+- **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `createEventStorageHandler`, `createX402Handler`, `createHealthResponse`)
 - **Lifecycle functions:** `start*` prefix (`startTown`)
-- **Constants:** UPPER_SNAKE_CASE (`ILP_PEER_INFO_KIND`, `MAX_PAYLOAD_BASE64_LENGTH`)
-- **Type aliases:** PascalCase (`TrustScore`, `BootstrapPhase`, `ToonRoutingMeta`, `ResolvedTownConfig`)
+- **Builder functions:** `build*` prefix (`buildIlpPrepare`, `buildSeedRelayListEvent`, `buildServiceDiscoveryEvent`, `buildEip712Domain`, `buildIlpPeerInfoEvent`)
+- **Parser functions:** `parse*` prefix (`parseSeedRelayList`, `parseServiceDiscovery`, `parseIlpPeerInfo`)
+- **Constants:** UPPER_SNAKE_CASE (`ILP_PEER_INFO_KIND`, `MAX_PAYLOAD_BASE64_LENGTH`, `SERVICE_DISCOVERY_KIND`, `SEED_RELAY_LIST_KIND`, `MOCK_USDC_ADDRESS`, `USDC_DECIMALS`)
+- **Type aliases:** PascalCase (`TrustScore`, `BootstrapPhase`, `ToonRoutingMeta`, `ResolvedTownConfig`, `ChainName`)
 - **Event types:** Discriminated unions with `type` field (`BootstrapEvent`)
 
 **Code Organization:**
@@ -584,28 +774,31 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Monorepo structure** -- Packages in `packages/*/` directory, docker in `docker/`
 - **pnpm workspace** -- `packages/*` and `docker` in `pnpm-workspace.yaml`
 - **Index exports** -- All public APIs exported from `packages/*/src/index.ts`
-- **Type definitions** -- Define types in `types.ts` or alongside implementation
+- **Type definitions** -- Define types in `types.ts` or alongside implementation (e.g., `x402-types.ts`)
 - **Constants file** -- Event kinds and constants in `constants.ts`
 - **Error classes** -- Custom errors in `errors.ts` per package
 - **Handler subdirectory** -- Town handlers organized in `src/handlers/` with co-located tests
+- **x402 module organization** -- Types (`x402-types.ts`), pricing (`x402-pricing.ts`), preflight (`x402-preflight.ts`), settlement (`x402-settlement.ts`), handler (`x402-publish-handler.ts`)
+- **Chain config subdirectory** -- Core chain configuration in `src/chain/` (usdc.ts, chain-config.ts)
 - **tsconfig.json excludes** -- Root tsconfig excludes `packages/rig` and `archive`
 
 **Documentation:**
 
 - **JSDoc for public APIs** -- Document exported functions, classes, and interfaces
-- **Inline comments for complex logic** -- Explain non-obvious implementation details (e.g., pipeline ordering rationale)
+- **Inline comments for complex logic** -- Explain non-obvious implementation details (e.g., pipeline ordering rationale, EIP-3009 flow)
 - **No redundant comments** -- Don't comment obvious code
 - **Reference implementation comments** -- `entrypoint-town.ts` has comprehensive inline comments explaining each SDK pattern
+- **`nosemgrep` comments for false positives** -- Suppress CWE-319 false positives for ws:// in validation/Docker contexts with explanation
 
 ### Development Workflow Rules
 
 **Git/Repository:**
 
 - **Main branch:** `main` (default for PRs)
-- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town)
+- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics)
 - **Monorepo with pnpm workspaces** -- All packages managed together
 - **Conventional commits** -- Use prefixes: `feat(story):`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`
-- **Story-scoped commits** -- `feat(2-5): story complete`
+- **Story-scoped commits** -- `feat(3-1): USDC token migration`
 - **One commit per story** -- Clean history maps 1:1 to epic lifecycle events
 - **Co-authored commits for AI assistance** -- Add `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>` when AI helps
 - **Descriptive commit messages** -- Focus on "why" not just "what"
@@ -624,7 +817,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 **Deployment:**
 
 - **Docker Compose for local deployment** -- Multiple compose files for different setups
-- **Genesis node:** `docker compose -p crosstown-genesis -f docker-compose-read-only-git.yml up -d`
+- **Genesis node:** `docker compose -p crosstown-genesis -f docker-compose-genesis.yml up -d`
 - **Peer nodes:** `./deploy-peers.sh <count>` script for automated peer deployment
 - **Port allocation:** Genesis (BLS: 3100, Relay: 7100), Peers (BLS: 3100+N*10, Relay: 7100+N*10)
 
@@ -636,16 +829,17 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **TokenNetwork (USDC):** `0xCafac3dD18aC6c6e92c921884f9E4176737C052c`
 - **Deployer Account:** `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (Anvil Account #0)
 
-**Production Contracts (Arbitrum One -- Epic 3+):**
+**Production Contracts (Arbitrum One -- Epic 4+):**
 
 - **USDC:** `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` (native Arbitrum USDC)
+- **USDC (Sepolia):** `0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d` (Circle testnet USDC)
 - **Marlin Serverless Relay:** `0xD28179711eeCe385bc2096c5D199E15e6415A4f5` (Epic 4)
-- **TokenNetwork contracts:** To be deployed on Arbitrum One in Epic 3
+- **TokenNetwork contracts:** To be deployed on Arbitrum One in Epic 4
 
 **npm Publishing:**
 
 - **@crosstown/sdk:** Published, public access, `dist/` only
-- **@crosstown/town:** Build-ready, tested, not yet published (Epic 2 retro A3: manual `npm publish --access public` required)
+- **@crosstown/town:** Build-ready, tested, not yet published (retro A14: manual `npm publish --access public` required)
 - **Package names:** `@crosstown/sdk`, `@crosstown/town`, `@crosstown/rig` (future)
 - **Files:** Only `dist/` directory is published
 - **Repository field:** Points to monorepo with `directory: "packages/<name>"`
@@ -665,10 +859,12 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **NEVER return response objects from handlers** -- Use `ctx.accept()` / `ctx.reject()` methods (exception: handlers returning data in ILP FULFILL return directly)
 - **NEVER decode TOON before verification** -- Shallow parse first, verify, then optionally decode (correctness requirement)
 - **NEVER use `exec()` for git operations** -- Use `execFile()` to prevent command injection (Rig, Epic 5)
-- **NEVER assume AGENT token in production** -- AGENT is dev-only; production uses USDC on Arbitrum One (Epic 3)
+- **NEVER reference AGENT token** -- AGENT eliminated in Story 3.1; production uses USDC on Arbitrum One
 - **NEVER call the BLS a public-facing component** -- BLS handles only `/handle-packet`; the Crosstown node owns all public endpoints
 - **NEVER use `!body.amount` for validation** -- Fails for amount=0 (truthiness bug). Use `=== undefined || === null`
 - **NEVER expose internal error details in HTTP responses** -- CWE-209: return generic messages, log full errors server-side
+- **NEVER submit on-chain transactions without pre-flight validation** -- x402 pre-flight pipeline prevents gas griefing (Story 3.3)
+- **NEVER trust kind:10036 or kind:10032 events without signature verification** -- CWE-345: always call `verifyEvent()` on events from untrusted relays
 
 **Critical Edge Cases:**
 
@@ -681,21 +877,29 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Handler fulfillment is placeholder** -- `ctx.accept()` returns `fulfillment: 'default-fulfillment'`; in production BLS computes SHA-256(eventId)
 - **Data-returning handlers bypass ctx.accept()** -- Return response directly because `data` must be top-level for ILP FULFILL relay (pattern valid for future handlers)
 - **Bootstrap phases simplified** -- discovering -> registering -> announcing (handshaking phase eliminated in Story 2.7)
+- **Anvil mock USDC has 18 decimals, not 6** -- On-chain mock differs from production USDC. Pricing pipeline is denomination-agnostic.
+- **x402 viem clients not wired in startTown()** -- `walletClient` and `publicClient` are injected in tests but not created by `startTown()` (deferred to Epic 4 A7)
+- **x402 routing buffer defaults to 10%** -- `calculateX402Price()` adds 10% buffer on top of `basePricePerByte * toonLength`
+- **x402 settlement is one-way** -- If settlement succeeds but ILP PREPARE is rejected, no refund per protocol design
 
 **Security Rules:**
 
-- **Validate all Nostr event signatures** -- Never trust unsigned/unverified events
+- **Validate all Nostr event signatures** -- Never trust unsigned/unverified events (especially from untrusted relays in seed discovery)
 - **No secrets in static events** -- Don't publish shared secrets as plaintext in Nostr events
 - **Sanitize user inputs** -- Validate and sanitize all external data at boundaries
 - **Log sanitization** -- User-controlled fields are sanitized via regex to prevent log injection
 - **Proper key management** -- Private keys for testing only (Anvil deterministic accounts)
 - **Payload size limits** -- 1MB base64 limit on incoming ILP packets (DoS mitigation)
 - **Pubkey validation** -- `peerWith()` validates 64-char lowercase hex before delegating to core
-- **CLI secret exposure** -- `--mnemonic`/`--secret-key` CLI flags expose secrets in `ps` output; prefer env vars (Epic 2 retro A8)
+- **CLI secret exposure** -- `--mnemonic`/`--secret-key` CLI flags expose secrets in `ps` output; prefer env vars (CWE-214). CLI now warns when secrets are passed via flags.
 - **Hex validation** -- `--secret-key` must validate hex format with regex before length check
 - **BTP URL validation** -- Validate `ws://` or `wss://` prefix before peer registration, sanitize in log output
 - **CWE-209 prevention** -- HTTP error handlers must not leak internal error messages (use generic "Internal server error")
 - **IlpPeerInfo runtime validation** -- Validate `btpEndpoint` and `ilpAddress` fields exist before peer registration (type assertion does not enforce this)
+- **EVM address validation** -- x402 handler validates facilitator address format (`/^0x[0-9a-fA-F]{40}$/`) at construction time
+- **EIP-3009 authorization validation** -- Parse and validate all fields (addresses, nonce, r, s, v) with hex format and length checks
+- **Pre-flight before settlement** -- Never call `transferWithAuthorization` without passing all 6 pre-flight checks
+- **Shell script input validation** -- `fund-peer-wallet.sh` validates hex address format and numeric amount (command injection fix, Story 3.1)
 
 **Performance Gotchas:**
 
@@ -705,6 +909,7 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Shallow TOON parse is cheaper** -- Use `shallowParseToon()` for routing; full decode only when handler needs it
 - **WebSocket connection limits** -- SimplePool manages connections, don't create multiple pools
 - **In-memory stores for unit tests** -- Use `:memory:` SQLite for fast tests, file-based only for integration
+- **x402 pre-flight ordering** -- Cheapest checks first (off-chain crypto, then RPC calls, then local lookups) to fail fast
 
 **Architecture-Specific Gotchas:**
 
@@ -714,29 +919,37 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - **Discovery != Peering** -- RelayMonitor discovers peers but doesn't auto-peer; use `peerWith()` explicitly
 - **Bootstrap creates payment channels** -- When settlement is enabled, bootstrap opens channels unilaterally using kind:10032 settlement data (no SPSP handshake)
 - **Genesis node ports differ from peers** -- Genesis uses base ports (3100, 7100), peers use offset (3100+N*10)
-- **SDK depends on core only** -- SDK does NOT depend on BLS or relay; Town (Epic 2) depends on SDK + relay + core
+- **SDK depends on core only** -- SDK does NOT depend on BLS or relay; Town depends on SDK + relay + core + viem
 - **EmbeddableConnectorLike is in core, not SDK** -- The structural connector interface is defined in `packages/core/src/compose.ts`
 - **Town E2E tests use non-default ports** -- To avoid conflicts with running genesis node (e.g., 7200/3200 instead of 7100/3100)
+- **Seed relay discovery is additive** -- `SeedRelayDiscovery` populates `knownPeers` and delegates to `BootstrapService`. It does not replace genesis mode.
+- **x402 and ILP produce identical packets** -- `buildIlpPrepare()` in core is the single source of truth. The BLS cannot distinguish between x402 and ILP-originated packets.
+- **kind:10035 x402 field omission** -- When x402 is disabled, the `x402` field is omitted entirely from kind:10035 events and `/health` responses (not set to `{ enabled: false }`)
+- **EIP-712 domain collision risk** -- USDC's `transferWithAuthorization` domain (`USD Coin`, version `2`) differs from TokenNetwork balance proof domain (`TokenNetwork`, version `1`). x402 handler must use the USDC domain.
 
 ---
 
-## Known Action Items (From Epic 2 Final Retro)
+## Known Action Items (From Epic 3 Final Retro)
 
-**Must-Do for Epic 3:**
-- ~~A1: Fix `!body.amount` truthiness bug in `entrypoint-town.ts`~~ -- DONE (Story 2-7)
-- A2: Set up genesis node in CI (carried from Epic 1)
-- A3: Publish `@crosstown/town` to npm (`npm publish --access public`)
+**Must-Do for Epic 4:**
+- A1: Deploy FiatTokenV2_2 on Anvil with 6 decimals and EIP-3009 (mock USDC still uses 18-decimal AGENT ERC-20)
+- A2: Set up genesis node in CI (carried from Epic 1, Epic 2, Epic 3 -- 3 full epics deferred)
+- A3: Research Marlin Oyster CVM deployment requirements
 
 **Should-Do:**
-- A4: Clean up stale git-proxy and SPSP references in root-level docs (README.md, SECURITY.md, etc.)
-- A5: Address transitive dependency vulnerabilities (33 findings, `fast-xml-parser` via AWS SDK)
+- A4: Create project-level semgrep configuration (suppress CWE-319 false positives for ws://)
+- A5: Address transitive dependency vulnerabilities (carried from Epic 2)
 - A6: Replace `console.error` with structured logger (carried from Epic 1)
-- A7: Lint-check ATDD stubs immediately after creation
-- A8: Address CLI `--mnemonic`/`--secret-key` process listing exposure (CWE-214)
+- A7: Wire viem clients in startTown() for production x402
+- A8: Set up facilitator ETH monitoring for x402 gas payments
+- A9: Refactor SDK publishEvent() to use shared buildIlpPrepare()
+- A10: Update Docker entrypoint-town.ts for new Epic 3 config fields
 
 **Nice-to-Have:**
-- A12: Clean up `docker/src/entrypoint.ts` legacy entrypoint (SPSP stubs, excluded from build)
-- A13: Add E2E test for `town.subscribe()` against a live relay
+- A11: Split large test files (seed-relay-discovery.test.ts, x402-publish-handler.test.ts)
+- A12: Implement deferred P3 E2E tests (T-3.4-12, 3.6-E2E-001)
+- A14: Publish @crosstown/town to npm (carried from Epic 2 A3)
+- A15: Ensure code review agents run Prettier before committing
 
 ---
 
@@ -750,8 +963,10 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - Update this file if new patterns emerge
 - Check CLAUDE.md and MEMORY.md for additional project-specific context
 - Use the two-approach handler testing pattern (Approach A + B) for all handler stories
-- Use static analysis tests for structural property assertions
+- Use static analysis tests for structural property assertions (verification by absence AND presence)
 - Use "verification by absence" tests when removing protocol concepts
+- Budget 5x test amplification for focused stories, 10-15x for cross-cutting stories
+- Use injectable dependencies for x402-related tests (settlement, preflight, viem clients)
 
 **For Humans:**
 
@@ -760,4 +975,4 @@ CROSSTOWN_MNEMONIC="abandon ..." CROSSTOWN_CONNECTOR_URL="http://localhost:8080"
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-03-07
+Last Updated: 2026-03-14
