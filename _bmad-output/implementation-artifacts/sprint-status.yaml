@@ -77,7 +77,7 @@ development_status:
   3-3-x402-publish-endpoint: done
   3-4-seed-relay-discovery: done
   3-5-kind-10035-service-discovery-events: done
-  3-6-enriched-health-endpoint: backlog
+  3-6-enriched-health-endpoint: done
   epic-3-retrospective: optional
 
   # Epic 4: Marlin TEE Deployment
