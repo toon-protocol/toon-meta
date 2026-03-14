@@ -400,7 +400,7 @@ No immediate actions required. All CRITICAL and HIGH items pass.
 
 2. **Test Data Strategy (3/3):** Segregation (PASS -- tests read files, no shared mutable state), Generation (PASS -- no production data needed, config files are test fixtures), Teardown (PASS -- read-only tests, no cleanup needed).
 
-3. **Scalability & Availability (3/4):** Statelessness (PASS -- enclave is ephemeral except /data volume), Bottlenecks (PASS -- single node per enclave, identified and by-design), SLA (CONCERNS -- no formal availability SLA defined), Circuit Breakers (PASS -- autorestart serves as recovery mechanism).
+3. **Scalability & Availability (3/4):** Statelessness (PASS -- enclave is ephemeral except /data volume), Bottlenecks (PASS -- single node per enclave, identified and by-design), SLA (CONCERNS -- no formal SLA defined for Oyster CVM packaging), Circuit Breakers (PASS -- autorestart serves as recovery mechanism).
 
 4. **Disaster Recovery (1/3):** RTO/RPO (CONCERNS -- undefined for enclave restarts), Failover (CONCERNS -- no multi-enclave failover strategy yet), Backups (PASS -- /data volume can be backed up).
 
