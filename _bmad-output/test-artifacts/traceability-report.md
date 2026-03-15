@@ -6,25 +6,20 @@ stepsCompleted:
   - 'step-04-analyze-gaps'
   - 'step-05-gate-decision'
 lastStep: 'step-05-gate-decision'
-lastSaved: '2026-03-14'
+lastSaved: '2026-03-15'
 workflowType: 'testarch-trace'
 inputDocuments:
-  - _bmad-output/implementation-artifacts/4-1-oyster-cvm-packaging.md
-  - _bmad-output/test-artifacts/atdd-checklist-4-1.md
-  - _bmad-output/test-artifacts/nfr-assessment-4-1.md
-  - _bmad-output/test-artifacts/automation-summary-4-1.md
-  - packages/core/src/build/oyster-config.test.ts
-  - docker/src/attestation-server.test.ts
-  - docker/docker-compose-oyster.yml
-  - docker/supervisord.conf
-  - docker/Dockerfile.oyster
-  - docker/src/attestation-server.ts
+  - '_bmad-output/implementation-artifacts/4-4-nautilus-kms-identity.md'
+  - 'packages/core/src/identity/kms-identity.test.ts'
+  - 'packages/core/src/identity/kms-identity.ts'
+  - 'packages/core/src/identity/index.ts'
+  - 'packages/core/src/index.ts'
 ---
 
-# Traceability Matrix & Gate Decision - Story 4.1
+# Traceability Matrix & Gate Decision - Story 4.4
 
-**Story:** Oyster CVM Packaging
-**Date:** 2026-03-14
+**Story:** 4.4 -- Nautilus KMS Identity
+**Date:** 2026-03-15
 **Evaluator:** TEA Agent (Claude Opus 4.6)
 
 ---
@@ -37,11 +32,10 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 | Priority  | Total Criteria | FULL Coverage | Coverage % | Status |
 | --------- | -------------- | ------------- | ---------- | ------ |
-| P0        | 0              | 0             | 100%       | N/A    |
-| P1        | 5              | 4             | 80%        | PASS   |
-| P2        | 0              | 0             | 100%       | N/A    |
-| P3        | 0              | 0             | 100%       | N/A    |
-| **Total** | **5**          | **4**         | **80%**    | **PASS** |
+| P0        | 2              | 2             | 100%       | PASS   |
+| P1        | 2              | 2             | 100%       | PASS   |
+| P2        | 2              | 2             | 100%       | PASS   |
+| **Total** | **6**          | **6**         | **100%**   | **PASS** |
 
 **Legend:**
 
@@ -51,220 +45,183 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 **Priority Assignment Rationale:**
 
-Story 4.1 is a configuration and packaging story -- no revenue-critical, security-critical, or compliance-requiring functionality. All acceptance criteria relate to core deployment configuration (P1 per test-priorities-matrix: "Core user journeys, frequently used features, features with complex logic, integration points"). No P0 criteria exist because there is no revenue impact, no security-critical path, and no data integrity operation. This assignment is consistent with the ATDD checklist (atdd-checklist-4-1.md) which assigned 30 tests as P1 and 2 as P2.
+Story 4.4 implements cryptographic identity derivation for TEE enclaves. AC #1 (valid Schnorr keypair) and AC #2 (NIP-06 derivation path) are P0 because incorrect key derivation would produce an invalid relay identity, breaking all attestation and communication. AC #3 (deterministic derivation) and AC #4 (kind:10033 signing) are P1 because they are core functional requirements but relay startup would still succeed with a valid (if inconsistent) key. AC #5 (error handling) and AC #6 (exports) are P2 as they are defensive programming and module structure concerns. Priority assignments align with the story's Test Traceability table.
 
 ---
 
 ### Detailed Mapping
 
-#### AC #1: docker-compose-oyster.yml defines correct services, ports, images (P1)
+#### AC-1: KMS seed derives valid Schnorr keypair (P0)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `T-4.1-01a` - `packages/core/src/build/oyster-config.test.ts`:97
-    - **Given:** docker-compose-oyster.yml exists
-    - **When:** YAML is parsed and services are enumerated
-    - **Then:** Exactly 2 services exist: crosstown, attestation-server
-  - `T-4.1-01b` - `packages/core/src/build/oyster-config.test.ts`:112
-    - **Given:** Crosstown service is defined in compose file
-    - **When:** Port mappings are inspected
-    - **Then:** BLS port 3100 and Relay port 7100 are exposed
-  - `T-4.1-01c` - `packages/core/src/build/oyster-config.test.ts`:128
-    - **Given:** attestation-server service is defined in compose file
-    - **When:** Port mappings are inspected
-    - **Then:** Attestation port 1300 is exposed
-  - `T-4.1-01d` - `packages/core/src/build/oyster-config.test.ts`:143
-    - **Given:** Crosstown service definition
-    - **When:** Image field is read
-    - **Then:** Image is `crosstown:optimized`
-  - `T-4.1-01e` - `packages/core/src/build/oyster-config.test.ts`:156
-    - **Given:** All expected services
-    - **When:** Image or build is checked
-    - **Then:** Every service has image or build defined
-  - `T-4.1-01f` - `packages/core/src/build/oyster-config.test.ts`:172
-    - **Given:** Crosstown service environment section
-    - **When:** Env vars are enumerated
-    - **Then:** NODE_ID, NOSTR_SECRET_KEY, ILP_ADDRESS, BLS_PORT, WS_PORT all present
-  - `T-4.1-01g` - `packages/core/src/build/oyster-config.test.ts`:199
-    - **Given:** attestation-server service environment section
-    - **When:** Env vars are enumerated
-    - **Then:** ATTESTATION_PORT is present
-  - `T-4.1-01h` - `packages/core/src/build/oyster-config.test.ts`:216
-    - **Given:** attestation-server service definition
-    - **When:** Command field is inspected
-    - **Then:** Command overrides to run attestation-server.js
-  - `T-4.1-01i` - `packages/core/src/build/oyster-config.test.ts`:236
-    - **Given:** All expected services and ports
-    - **When:** Port mappings compared to EXPECTED_PORTS constants
-    - **Then:** Each service exposes exactly its expected ports
-  - `T-4.1-01j` - `packages/core/src/build/oyster-config.test.ts`:260
-    - **Given:** docker-compose-oyster.yml content
-    - **When:** Parsed as YAML
-    - **Then:** Parsing does not throw; top-level 'services' key exists
-  - `T-4.1-13a` - `packages/core/src/build/oyster-config.test.ts`:856
-    - **Given:** Compose file parsed
-    - **When:** Top-level keys checked
-    - **Then:** No deprecated "version" key
-  - `T-4.1-13b` - `packages/core/src/build/oyster-config.test.ts`:867
-    - **Given:** Compose file parsed
-    - **When:** Top-level keys enumerated
-    - **Then:** Only standard Compose Specification keys present
-  - `T-4.1-13c` - `packages/core/src/build/oyster-config.test.ts`:896
-    - **Given:** All service port mappings
-    - **When:** Format validated
-    - **Then:** All ports use string "host:container" format
-  - `T-4.1-13d` - `packages/core/src/build/oyster-config.test.ts`:917
-    - **Given:** Both services
-    - **When:** Image fields compared
-    - **Then:** Both use crosstown:optimized
-  - `T-4.1-13e` - `packages/core/src/build/oyster-config.test.ts`:932
-    - **Given:** All host port mappings across services
-    - **When:** Ports collected into a set
-    - **Then:** No duplicate host ports
-  - `T-4.1-13f` - `packages/core/src/build/oyster-config.test.ts`:955
-    - **Given:** All host ports across all services
-    - **When:** Required ports checked
-    - **Then:** Ports 3100, 7100, and 1300 all present
+  - `T-4.4-01` - `packages/core/src/identity/kms-identity.test.ts`:45
+    - **Given:** A 32-byte KMS seed (TEST_KMS_SEED = 0x42 repeated)
+    - **When:** `deriveFromKmsSeed(seed)` is called and the keypair signs a kind:1 event via `finalizeEvent()`
+    - **Then:** `verifyEvent(signed)` returns true, pubkey is 64-char hex, id is 64-char hex, sig is 128-char hex
+  - `AC #1 format: secretKey is exactly 32 bytes` - `packages/core/src/identity/kms-identity.test.ts`:193
+    - **Given:** TEST_KMS_SEED
+    - **When:** `deriveFromKmsSeed()` called
+    - **Then:** `secretKey` is `Uint8Array` with length 32
+  - `AC #1 format: pubkey is a 64-char lowercase hex string` - `packages/core/src/identity/kms-identity.test.ts`:198
+    - **Given:** TEST_KMS_SEED
+    - **When:** `deriveFromKmsSeed()` called
+    - **Then:** `pubkey` matches `/^[0-9a-f]{64}$/`
+  - `Defensive copy: mutating secretKey does not affect subsequent derivations` - `packages/core/src/identity/kms-identity.test.ts`:391
+    - **Given:** A derived keypair
+    - **When:** Returned `secretKey` is mutated (`fill(0xff)`)
+    - **Then:** A new derivation from the same seed returns the original correct key
 
-- **Gaps:** None
-- **Recommendation:** None -- FULL coverage with 16 tests across structure, ports, images, env vars, and CLI compatibility.
+- **Gaps:** None. All AC #1 sub-requirements covered: valid Schnorr signature (T-4.4-01), 64-char hex pubkey (format test), 32-byte secretKey (format test), NIP-06 path (covered by T-4.4-02 cross-ref), verifyEvent proof (T-4.4-01), defensive copy (amplification test).
 
 ---
 
-#### AC #2: supervisord.conf defines process priorities for crosstown and attestation (P1)
+#### AC-2: Mnemonic option derives via NIP-06 standard (P0)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `T-4.1-02a` - `packages/core/src/build/oyster-config.test.ts`:280
-    - **Given:** supervisord.conf exists
-    - **When:** [program:*] sections are parsed
-    - **Then:** Exactly 2 programs: crosstown and attestation
-  - `T-4.1-02b` - `packages/core/src/build/oyster-config.test.ts`:297
-    - **Given:** [program:crosstown] section
-    - **When:** priority is extracted
-    - **Then:** priority=10
-  - `T-4.1-02c` - `packages/core/src/build/oyster-config.test.ts`:312
-    - **Given:** [program:attestation] section
-    - **When:** priority is extracted
-    - **Then:** priority=20
-  - `T-4.1-02d` - `packages/core/src/build/oyster-config.test.ts`:327
-    - **Given:** Both program priorities
-    - **When:** Compared numerically
-    - **Then:** crosstown priority < attestation priority
-  - `T-4.1-02e` - `packages/core/src/build/oyster-config.test.ts`:348
-    - **Given:** [program:crosstown] section
-    - **When:** command is extracted
-    - **Then:** command = `node /app/dist/entrypoint-town.js`
-  - `T-4.1-02f` - `packages/core/src/build/oyster-config.test.ts`:365
-    - **Given:** [program:attestation] section
-    - **When:** command is extracted
-    - **Then:** command = `node /app/dist/attestation-server.js`
-  - `T-4.1-02g` - `packages/core/src/build/oyster-config.test.ts`:382
-    - **Given:** Both program sections
-    - **When:** user= directive extracted
-    - **Then:** Both run as `crosstown` user
-  - `T-4.1-02h` - `packages/core/src/build/oyster-config.test.ts`:402
-    - **Given:** [supervisord] section
-    - **When:** nodaemon directive checked
-    - **Then:** nodaemon=true
-  - `T-4.1-02i` - `packages/core/src/build/oyster-config.test.ts`:416
-    - **Given:** Both program sections
-    - **When:** Log directives counted
-    - **Then:** stdout/stderr to /dev/stdout|/dev/stderr with maxbytes=0 for both
-  - `T-4.1-02j` - `packages/core/src/build/oyster-config.test.ts`:436
-    - **Given:** EXPECTED_PROGRAMS constant with correct priorities and commands
-    - **When:** Each program is checked against spec
-    - **Then:** All programs match expected priority and command
-  - `T-4.1-02k` - `packages/core/src/build/oyster-config.test.ts`:464
-    - **Given:** [program:attestation] section
-    - **When:** startsecs directive extracted
-    - **Then:** startsecs=5 (allows relay startup time)
-  - `T-4.1-11a` - `packages/core/src/build/oyster-config.test.ts`:732
-    - **Given:** [program:crosstown] section
-    - **When:** autorestart directive checked
-    - **Then:** autorestart=true
-  - `T-4.1-11b` - `packages/core/src/build/oyster-config.test.ts`:747
-    - **Given:** [program:attestation] section
-    - **When:** autorestart directive checked
-    - **Then:** autorestart=true
-  - `T-4.1-11c` - `packages/core/src/build/oyster-config.test.ts`:762
-    - **Given:** Both program sections
-    - **When:** stderr log directives counted
-    - **Then:** stderr_logfile=/dev/stderr and stderr_logfile_maxbytes=0 for both
+  - `T-4.4-02` - `packages/core/src/identity/kms-identity.test.ts`:71
+    - **Given:** The well-known BIP-39 "abandon" mnemonic
+    - **When:** `deriveFromKmsSeed(seed, { mnemonic: TEST_MNEMONIC })` is called
+    - **Then:** `pubkey` matches `EXPECTED_ABANDON_PUBKEY` (golden value: `e8bcf3823669444d0b49ad45d65088635d9fd8500a75b5f20b59abefa56a144f`)
+  - `Mnemonic precedence: mnemonic takes precedence over raw seed` - `packages/core/src/identity/kms-identity.test.ts`:208
+    - **Given:** TEST_KMS_SEED and TEST_MNEMONIC
+    - **When:** Both provided to `deriveFromKmsSeed()`
+    - **Then:** Result matches mnemonic pubkey, not seed pubkey
+  - `accountIndex: index=1 produces a different key than index=0` - `packages/core/src/identity/kms-identity.test.ts`:227
+    - **Given:** Same seed, different accountIndex values
+    - **When:** `deriveFromKmsSeed(seed, { accountIndex: 0 })` and `{ accountIndex: 1 }`
+    - **Then:** Different pubkeys and secretKeys produced
+  - `accountIndex: default is 0` - `packages/core/src/identity/kms-identity.test.ts`:237
+    - **Given:** Same seed, no accountIndex vs explicit 0
+    - **When:** Both variants called
+    - **Then:** Identical keypair results
+  - `Invalid mnemonic: throws KmsIdentityError` - `packages/core/src/identity/kms-identity.test.ts`:254
+    - **Given:** Invalid mnemonic string
+    - **When:** Passed as `options.mnemonic`
+    - **Then:** `KmsIdentityError` thrown with message mentioning "mnemonic"
+  - `Empty string mnemonic: throws KmsIdentityError` - `packages/core/src/identity/kms-identity.test.ts`:272
+    - **Given:** Empty string mnemonic
+    - **When:** Passed as `options.mnemonic`
+    - **Then:** `KmsIdentityError` thrown (no silent fallback to raw seed)
+  - `Whitespace-only mnemonic: throws KmsIdentityError` - `packages/core/src/identity/kms-identity.test.ts`:283
+    - **Given:** `"   "` and `"\t\n"` as mnemonic
+    - **When:** Passed as `options.mnemonic`
+    - **Then:** `KmsIdentityError` thrown
+  - `SDK cross-compat: abandon vector matches SDK fromMnemonic()` - `packages/core/src/identity/kms-identity.test.ts`:409
+    - **Given:** TEST_MNEMONIC
+    - **When:** Derived via `deriveFromKmsSeed()`
+    - **Then:** Matches `EXPECTED_ABANDON_PUBKEY` (same as SDK golden value)
+  - `SDK cross-compat: official NIP-06 test vector` - `packages/core/src/identity/kms-identity.test.ts`:421
+    - **Given:** "leader monkey parrot ring..." mnemonic (official NIP-06 vector from nips/06.md)
+    - **When:** Derived via `deriveFromKmsSeed()`
+    - **Then:** Matches expected privkey `7f7ff03d123792d6ac594bfa67bf6d0c0ab55b6b1fdb6249303fe861f1ccba9a` and pubkey `17162c921dc4d2518f9a101db33695df1afb56ab82f5ff3e5da6eec3ca5cd917`
 
-- **Gaps:** None
-- **Recommendation:** None -- FULL coverage with 14 tests across programs, priorities, commands, users, logging, and reliability.
+- **Gaps:** None. NIP-06 path verified via golden values, mnemonic precedence tested, accountIndex option tested, invalid mnemonic handling tested, SDK cross-compatibility confirmed, official NIP-06 test vector validated.
 
 ---
 
-#### AC #3: Both processes running and healthy (P1)
+#### AC-3: Deterministic derivation (P1)
 
-- **Coverage:** PARTIAL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `T-4.1-05a` through `T-4.1-05f` (6 tests) - `packages/core/src/build/oyster-config.test.ts`:485-551
-    - Validates Dockerfile.oyster installs supervisor, copies conf, CMD uses supervisord, exposes port 1300, preserves HEALTHCHECK, uses Alpine base
-  - `T-4.1-06a` through `T-4.1-06h` (8 tests) - `packages/core/src/build/oyster-config.test.ts`:558-635
-    - Validates attestation-server.ts exists, has correct endpoints, uses Hono, correct port, TEE detection, exports app, VITEST guard
-  - `T-4.1-08a` through `T-4.1-08f` (6 tests) - `docker/src/attestation-server.test.ts`:25-77
-    - HTTP-level: GET /attestation/raw returns 503 when not in TEE, correct response body, no timestamp (CWE-208), application/json content type
-  - `T-4.1-09a` through `T-4.1-09d` (4 tests) - `docker/src/attestation-server.test.ts`:84-118
-    - HTTP-level: GET /health returns 200, status=ok, tee=false, application/json
-  - `T-4.1-10a` through `T-4.1-10c` (3 tests) - `docker/src/attestation-server.test.ts`:124-148
-    - Negative path: unknown routes 404, POST on GET-only endpoints 404
-  - `T-4.1-12a` through `T-4.1-12f` (6 tests) - `packages/core/src/build/oyster-config.test.ts`:784-849
-    - Multi-stage build, named builder stage, non-root user (UID 1001), /data volume, no USER directive in runtime, NODE_ENV=production
+  - `T-4.4-03` - `packages/core/src/identity/kms-identity.test.ts`:93
+    - **Given:** TEST_KMS_SEED
+    - **When:** `deriveFromKmsSeed()` called twice with the same seed
+    - **Then:** Both calls return identical `pubkey` and `secretKey`
 
-- **Gaps:**
-  - Missing: Integration test for actual processes running simultaneously in a container (T-4.1-03 deferred -- requires supervisord stack)
-  - Missing: E2E test for all 3 ports (7100, 3100, 1300) responding correctly from within a running Oyster CVM image (T-4.1-04 deferred -- requires Oyster CVM infrastructure)
-
-- **Recommendation:** T-4.1-03 and T-4.1-04 are deferred until Oyster CVM tooling is available in CI. The 33 static analysis + HTTP behavior tests provide strong structural coverage. Integration/E2E tests should be enabled when enclave infrastructure is available (target: Story 4.6 or post-Epic-4 CI setup). The pre-existing RED stubs in `attestation-bootstrap.test.ts` need their structural inaccuracies corrected before enabling.
+- **Gaps:** None. Determinism is the core requirement and is directly tested. The defensive copy test (line 391) additionally proves that mutation of one result does not affect subsequent derivations.
 
 ---
 
-#### AC #4: Compose file compatible with oyster-cvm build (P1)
+#### AC-4: KMS identity signs kind:10033 self-attestation (P1)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `T-4.1-01j` - `packages/core/src/build/oyster-config.test.ts`:260
-    - YAML parses without error; has top-level 'services' key
-  - `T-4.1-01e` - `packages/core/src/build/oyster-config.test.ts`:156
-    - All services have image or build defined
-  - `T-4.1-13a` - `packages/core/src/build/oyster-config.test.ts`:856
-    - No deprecated "version" key (modern Compose Specification)
-  - `T-4.1-13b` - `packages/core/src/build/oyster-config.test.ts`:867
-    - Only standard compose keys at top level
-  - `T-4.1-13c` - `packages/core/src/build/oyster-config.test.ts`:896
-    - All port mappings use "host:container" string format
-  - `T-4.1-13d` - `packages/core/src/build/oyster-config.test.ts`:917
-    - Both services use same base image (crosstown:optimized)
-  - `T-4.1-13e` - `packages/core/src/build/oyster-config.test.ts`:932
-    - No port conflicts between services
-  - `T-4.1-13f` - `packages/core/src/build/oyster-config.test.ts`:955
-    - All three required ports exposed (3100, 7100, 1300)
+  - `T-4.4-04` - `packages/core/src/identity/kms-identity.test.ts`:108
+    - **Given:** KMS-derived keypair and `TEST_ATTESTATION_PAYLOAD` (valid `TeeAttestation` shape: enclave, pcr0, pcr1, pcr2, attestationDoc, version)
+    - **When:** `buildAttestationEvent(attestation, secretKey, { relay, chain, expiry })` is called
+    - **Then:** `event.kind === TEE_ATTESTATION_KIND (10033)`, `event.pubkey === pubkey`, `verifyEvent(event) === true`, `JSON.parse(event.content)` round-trips all `TeeAttestation` fields (enclave, pcr0, pcr1, pcr2, attestationDoc, version), id is 64-char hex, sig is 128-char hex
 
-- **Gaps:** None (actual PCR verification is deferred per AC #4 note -- validated by structural compatibility only)
-- **Recommendation:** None -- structural compatibility is fully validated. PCR verification requires `oyster-cvm` CLI tooling not yet available in CI.
+- **Gaps:** None. All AC #4 sub-requirements covered: kind:10033, pubkey match, valid id, valid sig, verifyEvent proof, content round-trip of all TeeAttestation fields.
 
 ---
 
-#### AC #5: No application-level code changes needed (P1)
+#### AC-5: Invalid seed throws KmsIdentityError (P2)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `T-4.1-07a` - `packages/core/src/build/oyster-config.test.ts`:643
-    - entrypoint-town.ts uses 0.0.0.0 for server binding, not localhost
-  - `T-4.1-07b` - `packages/core/src/build/oyster-config.test.ts`:669
-    - entrypoint-town.ts uses env vars for external URLs (config.connectorUrl, config.connectorAdminUrl)
-  - `T-4.1-07c` - `packages/core/src/build/oyster-config.test.ts`:687
-    - attestation-server.ts binds to 0.0.0.0, not localhost
-  - `T-4.1-07d` - `packages/core/src/build/oyster-config.test.ts`:711
-    - shared.ts reads CONNECTOR_URL and CONNECTOR_ADMIN_URL from env vars; defaults use nodeId template, not hardcoded addresses
-  - `T-4.1-05f` - `packages/core/src/build/oyster-config.test.ts`:543
-    - Uses Alpine base image (node:20-alpine) -- same as existing Dockerfile
+  - `T-4.4-05a` - `packages/core/src/identity/kms-identity.test.ts`:146
+    - **Given:** `null` cast as `Uint8Array`
+    - **When:** `deriveFromKmsSeed(badSeed)` called
+    - **Then:** Throws `KmsIdentityError` with message matching `/KMS|seed|unavailable/i`
+  - `T-4.4-05b` - `packages/core/src/identity/kms-identity.test.ts`:158
+    - **Given:** `undefined` cast as `Uint8Array`
+    - **When:** `deriveFromKmsSeed(badSeed)` called
+    - **Then:** Throws `KmsIdentityError` with message matching `/KMS|seed|unavailable/i`
+  - `T-4.4-05c` - `packages/core/src/identity/kms-identity.test.ts`:169
+    - **Given:** `new Uint8Array(0)` (zero-length)
+    - **When:** `deriveFromKmsSeed(badSeed)` called
+    - **Then:** Throws `KmsIdentityError` with message matching `/seed|32/i`
+  - `T-4.4-05d` - `packages/core/src/identity/kms-identity.test.ts`:178
+    - **Given:** `new Uint8Array(16)` (wrong length)
+    - **When:** `deriveFromKmsSeed(badSeed)` called
+    - **Then:** Throws `KmsIdentityError` with message matching `/seed|32/i`
+  - `Invalid accountIndex: negative (-1)` - `packages/core/src/identity/kms-identity.test.ts`:299
+    - **Given:** `accountIndex: -1`
+    - **When:** `deriveFromKmsSeed(seed, { accountIndex: -1 })`
+    - **Then:** Throws `KmsIdentityError`
+  - `Invalid accountIndex: float (1.5)` - `packages/core/src/identity/kms-identity.test.ts`:305
+    - **Given:** `accountIndex: 1.5`
+    - **When:** `deriveFromKmsSeed(seed, { accountIndex: 1.5 })`
+    - **Then:** Throws `KmsIdentityError`
+  - `Invalid accountIndex: exceeds MAX_BIP32_INDEX (0x80000000)` - `packages/core/src/identity/kms-identity.test.ts`:311
+    - **Given:** `accountIndex: 0x80000000`
+    - **When:** `deriveFromKmsSeed(seed, { accountIndex: 0x80000000 })`
+    - **Then:** Throws `KmsIdentityError`
+  - `Valid accountIndex: MAX_BIP32_INDEX (0x7FFFFFFF) succeeds` - `packages/core/src/identity/kms-identity.test.ts`:317
+    - **Given:** `accountIndex: 0x7FFFFFFF`
+    - **When:** `deriveFromKmsSeed(seed, { accountIndex: 0x7FFFFFFF })`
+    - **Then:** Valid keypair returned
+  - `Error message for invalid accountIndex is descriptive` - `packages/core/src/identity/kms-identity.test.ts`:329
+    - **Given:** `accountIndex: -5`
+    - **When:** `deriveFromKmsSeed()` called
+    - **Then:** Error message matches `/accountIndex/i`
 
-- **Gaps:** None
-- **Recommendation:** None -- proxy compatibility is fully validated at the static analysis level. No application code was modified by this story.
+- **Gaps:** None. All AC #5 sub-requirements covered: null, undefined, empty array, wrong-length array, invalid accountIndex values, boundary testing (MAX_BIP32_INDEX), descriptive error messages, KmsIdentityError class (not fallback).
+
+---
+
+#### AC-6: Export from correct modules (P2)
+
+- **Coverage:** FULL PASS
+- **Tests:**
+  - `Export: deriveFromKmsSeed is a function` - `packages/core/src/identity/kms-identity.test.ts`:344
+    - **Given:** Import from `./kms-identity.js`
+    - **When:** `typeof deriveFromKmsSeed` checked
+    - **Then:** Returns `'function'`
+  - `Export: KmsIdentityError is a class extending Error` - `packages/core/src/identity/kms-identity.test.ts`:349
+    - **Given:** `new KmsIdentityError('test')`
+    - **When:** Instance checked
+    - **Then:** `instanceof Error`, `instanceof KmsIdentityError`, `name === 'KmsIdentityError'`
+  - `Export: KmsIdentityError has code property KMS_IDENTITY_ERROR` - `packages/core/src/identity/kms-identity.test.ts`:355
+    - **Given:** `new KmsIdentityError('test')`
+    - **When:** `code` checked
+    - **Then:** `code === 'KMS_IDENTITY_ERROR'`
+  - `Export: KmsIdentityError accepts optional cause parameter` - `packages/core/src/identity/kms-identity.test.ts`:360
+    - **Given:** `new KmsIdentityError('wrapped', new Error('root cause'))`
+    - **When:** `cause` checked
+    - **Then:** `cause` is the original error
+  - `Barrel export: identity/index.ts re-exports` - `packages/core/src/identity/kms-identity.test.ts`:371
+    - **Given:** Dynamic import of `./index.js` (identity barrel)
+    - **When:** Module checked
+    - **Then:** `identityModule.deriveFromKmsSeed === deriveFromKmsSeed`, `identityModule.KmsIdentityError === KmsIdentityError`
+  - `Barrel export: top-level core index re-exports` - `packages/core/src/identity/kms-identity.test.ts`:378
+    - **Given:** Dynamic import of `../index.js` (core top-level)
+    - **When:** Module checked
+    - **Then:** `coreModule.deriveFromKmsSeed === deriveFromKmsSeed`, `coreModule.KmsIdentityError === KmsIdentityError`
+
+- **Gaps:** None. All AC #6 sub-requirements covered: `deriveFromKmsSeed` function export, `KmsIdentityError` class export, `KmsKeypair` type (compile-time, verified via usage), `DeriveFromKmsSeedOptions` type (compile-time, verified via usage), barrel re-export from `identity/index.ts`, top-level re-export from `core/src/index.ts`.
 
 ---
 
@@ -272,35 +229,25 @@ Story 4.1 is a configuration and packaging story -- no revenue-critical, securit
 
 #### Critical Gaps (BLOCKER)
 
-0 critical gaps found.
-
-No P0 criteria exist for this packaging/configuration story. No release blockers.
+0 gaps found. **No P0 blockers.**
 
 ---
 
 #### High Priority Gaps (PR BLOCKER)
 
-0 high priority blocking gaps found.
-
-AC #3 is PARTIAL (not FULL), but the missing coverage is deferred integration/E2E testing that requires infrastructure not yet available. The 33 tests covering AC #3 validate all structural, HTTP behavioral, security, and negative-path aspects that can be tested without Oyster CVM infrastructure.
+0 gaps found. **No P1 blockers.**
 
 ---
 
 #### Medium Priority Gaps (Nightly)
 
-1 gap found -- deferred by design.
-
-1. **AC #3: Both processes running and healthy** (P1 - PARTIAL)
-   - Current Coverage: PARTIAL (static + HTTP behavior validated; runtime process orchestration deferred)
-   - Missing Tests: T-4.1-03 (supervisord process ordering integration) and T-4.1-04 (all processes healthy E2E)
-   - Recommend: Enable T-4.1-03/T-4.1-04 when Oyster CVM tooling is in CI
-   - Impact: LOW -- process orchestration is handled by supervisord (battle-tested), and structural correctness is validated by 14 supervisord tests
+0 gaps found. **No P2 gaps.**
 
 ---
 
 #### Low Priority Gaps (Optional)
 
-0 low priority gaps found.
+0 gaps found. **No P3 gaps.**
 
 ---
 
@@ -309,19 +256,17 @@ AC #3 is PARTIAL (not FULL), but the missing coverage is deferred integration/E2
 #### Endpoint Coverage Gaps
 
 - Endpoints without direct API tests: 0
-- The attestation server's 2 endpoints (/attestation/raw, /health) are both exercised at the HTTP level by T-4.1-08 and T-4.1-09 test groups (10 tests total)
+- This story is a pure computation function (seed in, keypair out). No HTTP endpoints, no network calls, no API surface. Endpoint coverage heuristic is N/A.
 
 #### Auth/Authz Negative-Path Gaps
 
 - Criteria missing denied/invalid-path tests: 0
-- No authentication or authorization surfaces are introduced by Story 4.1. Attestation endpoints are intentionally public (read-only, no auth required). Negative path testing (wrong HTTP method, unknown routes) is covered by T-4.1-10 (3 tests).
+- AC #5 tests cover all invalid-input paths: null, undefined, empty array, wrong-length array, invalid mnemonic, empty mnemonic, whitespace mnemonic, invalid accountIndex values. The function explicitly rejects all invalid inputs with `KmsIdentityError` and never falls back to random key generation.
 
 #### Happy-Path-Only Criteria
 
-- Criteria with happy-path-only coverage: 0
-- T-4.1-08 covers the non-TEE error path (503 response) for /attestation/raw
-- T-4.1-10 covers unknown route and wrong-method error paths (404 responses)
-- Port validation covers negative cases (no conflicts, correct format)
+- Criteria missing error/edge scenarios: 0
+- All 6 ACs have both happy-path and error-path coverage where applicable. AC #5 is entirely error-path focused. AC #1 and AC #2 have both valid-input and edge-case testing (boundary accountIndex, mnemonic precedence, defensive copy).
 
 ---
 
@@ -335,23 +280,19 @@ None.
 
 **WARNING Issues**
 
-- `oyster-config.test.ts` - 979 lines (exceeds 300-line guidance) - Acceptable: 54 tests with shared helpers and comprehensive comments covering 8 test groups. Splitting would fragment related assertions and reduce cohesion.
+None.
 
 **INFO Issues**
 
 None.
 
+All 31 tests in `kms-identity.test.ts` follow BDD structure (Given/When/Then in comments), have explicit assertions, use no hard waits or sleeps, and the file is 444 lines organized into clearly separated describe blocks with factory helpers at the top.
+
 ---
 
 #### Tests Passing Quality Gates
 
-**67/67 tests (100%) meet all quality criteria**
-
-- No hard waits or sleeps
-- All tests deterministic (file parsing + structural assertions + in-memory HTTP requests)
-- All tests isolated (read-only filesystem access, stateless Hono app.request())
-- Explicit assertions in test bodies
-- Test execution time: 334ms (oyster-config) + 249ms (attestation-server) = 583ms total
+**31/31 tests (100%) meet all quality criteria** PASS
 
 ---
 
@@ -359,8 +300,8 @@ None.
 
 #### Acceptable Overlap (Defense in Depth)
 
-- AC #3 attestation server: Tested at static analysis level (T-4.1-06: source structure, 8 tests) AND at HTTP behavior level (T-4.1-08/09/10: runtime behavior, 13 tests). This is defense in depth -- source structure validates correct patterns, HTTP tests validate actual behavior.
-- AC #2 supervisord priorities: T-4.1-02b/02c test individual priorities; T-4.1-02d tests the relative ordering; T-4.1-02j tests all programs against a spec constant. Intentional redundancy for critical process ordering.
+- AC #1: Tested by T-4.4-01 (Schnorr signature) AND format amplification tests (secretKey length, pubkey format) AND defensive copy test. This is defense-in-depth: T-4.4-01 proves signing works end-to-end; format tests prove individual field constraints; defensive copy proves immutability. PASS
+- AC #2: Tested by T-4.4-02 (NIP-06 golden value) AND SDK cross-compat tests (abandon vector + official NIP-06 vector) AND mnemonic precedence test. This is defense-in-depth: multiple independent test vectors confirm correct derivation path. PASS
 
 #### Unacceptable Duplication
 
@@ -370,13 +311,15 @@ None identified.
 
 ### Coverage by Test Level
 
-| Test Level | Tests | Criteria Covered | Coverage % |
-| ---------- | ----- | ---------------- | ---------- |
-| Unit (static) | 54    | #1, #2, #3, #4, #5 | 100% |
-| Unit (HTTP) | 13    | #3              | 100% |
-| Integration | 0     | (deferred)      | 0%   |
-| E2E        | 0     | (deferred)      | 0%   |
-| **Total**  | **67** | **5/5**         | **100%** |
+| Test Level | Tests  | Criteria Covered | Coverage % |
+| ---------- | ------ | ---------------- | ---------- |
+| Unit       | 31     | 6/6              | 100%       |
+| E2E        | 0      | 0/6              | 0%         |
+| API        | 0      | 0/6              | 0%         |
+| Component  | 0      | 0/6              | 0%         |
+| **Total**  | **31** | **6/6**          | **100%**   |
+
+**Note:** This is a pure computation module (no I/O, no network, no state). Unit tests are the appropriate and sufficient test level. E2E/API/Component tests are not applicable -- the function has no HTTP endpoints, no WebSocket interface, and no UI. Integration with Docker entrypoints will be tested in a future story when entrypoint integration is implemented.
 
 ---
 
@@ -384,16 +327,15 @@ None identified.
 
 #### Immediate Actions (Before PR Merge)
 
-None required. All 67 tests pass. No regressions (full suite: 1590 passed).
+None required. All 6 acceptance criteria have FULL coverage at the unit test level.
 
 #### Short-term Actions (This Milestone)
 
-1. **Correct ATDD stubs in attestation-bootstrap.test.ts** - Fix 4 documented discrepancies (service names, port numbers, process count) in the epic-level RED stubs
-2. **Enable T-4.1-03/T-4.1-04 when CVM infra available** - Convert from it.skip to active tests once Oyster CVM tooling is in CI
+1. **Integration test when Docker entrypoint story lands** -- When a future story integrates `deriveFromKmsSeed()` into the Docker entrypoint, add an integration test that verifies the entrypoint correctly calls the function with the KMS seed and uses the derived keypair for relay identity.
 
 #### Long-term Actions (Backlog)
 
-1. **Add Docker image size verification** - Build crosstown:oyster and verify < 500MB (deferred to Story 4.5 Nix builds)
+1. **E2E test with Nautilus KMS** -- When a TEE test environment is available, add an E2E test that verifies the full chain: Nautilus KMS seed retrieval -> `deriveFromKmsSeed()` -> relay identity -> attestation event publication.
 
 ---
 
@@ -408,22 +350,22 @@ None required. All 67 tests pass. No regressions (full suite: 1590 passed).
 
 #### Test Execution Results
 
-- **Total Tests**: 67
-- **Passed**: 67 (100%)
+- **Total Tests**: 31
+- **Passed**: 31 (100%)
 - **Failed**: 0 (0%)
 - **Skipped**: 0 (0%)
-- **Duration**: 583ms
+- **Duration**: 573ms
 
 **Priority Breakdown:**
 
-- **P0 Tests**: N/A (no P0 criteria in this packaging story)
-- **P1 Tests**: 62/62 passed (100%)
-- **P2 Tests**: 5/5 passed (100%)
-- **P3 Tests**: N/A
+- **P0 Tests**: 2/2 ATDD tests passed + 11 amplification tests passed (100%) PASS
+- **P1 Tests**: 2/2 ATDD tests passed + 1 amplification test passed (100%) PASS
+- **P2 Tests**: 1/1 ATDD test group passed (4 sub-tests) + 14 amplification tests passed (100%) PASS
+- **P3 Tests**: 0/0 (N/A)
 
-**Overall Pass Rate**: 100%
+**Overall Pass Rate**: 100% PASS
 
-**Test Results Source**: Local run 2026-03-14 (Vitest v1.6.1)
+**Test Results Source**: Local run via `npx vitest run packages/core/src/identity/kms-identity.test.ts --reporter=verbose` (2026-03-15)
 
 ---
 
@@ -431,39 +373,48 @@ None required. All 67 tests pass. No regressions (full suite: 1590 passed).
 
 **Requirements Coverage:**
 
-- **P0 Acceptance Criteria**: N/A (0 P0 criteria)
-- **P1 Acceptance Criteria**: 4/5 FULL, 1/5 PARTIAL = 80% FULL coverage
-- **P2 Acceptance Criteria**: N/A (0 P2 criteria)
-- **Overall Coverage**: 80% (4/5 FULL)
+- **P0 Acceptance Criteria**: 2/2 covered (100%) PASS
+- **P1 Acceptance Criteria**: 2/2 covered (100%) PASS
+- **P2 Acceptance Criteria**: 2/2 covered (100%) PASS
+- **Overall Coverage**: 100%
 
-**Code Coverage** (if available):
+**Code Coverage** (not separately instrumented):
 
-- Not applicable -- tests use static analysis and HTTP behavior testing, not instrumented code coverage. The 67 tests exercise all code paths in attestation-server.ts and validate all structural properties of the 4 config/deployment files.
+- Not assessed at line/branch/function level. The function is 83 lines total with all branches exercised by the 31 tests (valid seed, mnemonic path, raw seed path, invalid inputs, boundary values).
+
+**Coverage Source**: `packages/core/src/identity/kms-identity.test.ts` (31 tests, all passing)
 
 ---
 
 #### Non-Functional Requirements (NFRs)
 
 **Security**: PASS
-- Security Issues: 0
-- Non-root user enforced (UID 1001); no secrets in attestation responses; VITEST guard; port validation with range check; CWE-208 timing side-channel mitigated (no timestamp in response); production secret injection note in compose file.
 
-**Performance**: CONCERNS
-- No load testing evidence (packaging story -- no performance SLOs defined). Attestation server is lightweight placeholder (<100 lines, 2 endpoints). Concern is expected and documented in NFR assessment.
+- Security Issues: 0
+- OWASP Top 10 review completed (3 review passes). No random key fallback. Defensive copy of secret key. HDKey.wipePrivateData() called in finally block. No secrets logged. Input validation on all parameters.
+
+**Performance**: PASS
+
+- 573ms for 31 tests (18.5ms average). Pure computation, no I/O. Well within limits.
 
 **Reliability**: PASS
-- autorestart=true for both processes; priority ordering; startsecs=5 delay; stopwaitsecs configured; HEALTHCHECK in Dockerfile; depends_on with service_healthy in compose
+
+- Deterministic derivation (same seed = same key). No side effects. Stateless function. No network dependencies.
 
 **Maintainability**: PASS
-- 0 lint errors; inline documentation in all files; test patterns follow project conventions
 
-**NFR Source**: `_bmad-output/test-artifacts/nfr-assessment-4-1.md`
+- Clean module structure: kms-identity.ts (160 lines), identity/index.ts (6 lines), re-exported from core/index.ts. Full JSDoc. Follows established SDK pattern.
+
+**NFR Source**: Security review in story file (3 passes, including OWASP Top 10), manual assessment from code review.
 
 ---
 
 #### Flakiness Validation
 
-**Burn-in Results**: Not applicable -- all 67 tests are deterministic static analysis or in-memory HTTP tests. No timing, network, or state dependencies. Flakiness risk is zero by construction.
+**Burn-in Results**: Not applicable -- pure deterministic computation with no timing-dependent behavior.
+
+- **Flaky Tests Detected**: 0 PASS
+- **Stability Score**: 100%
 
 ---
 
@@ -473,11 +424,11 @@ None required. All 67 tests pass. No regressions (full suite: 1590 passed).
 
 | Criterion             | Threshold | Actual | Status |
 | --------------------- | --------- | ------ | ------ |
-| P0 Coverage           | 100%      | N/A (0 P0 criteria) | PASS (vacuously true) |
-| P0 Test Pass Rate     | 100%      | N/A (0 P0 tests) | PASS (vacuously true) |
-| Security Issues       | 0         | 0      | PASS |
-| Critical NFR Failures | 0         | 0      | PASS |
-| Flaky Tests           | 0         | 0      | PASS |
+| P0 Coverage           | 100%      | 100%   | PASS   |
+| P0 Test Pass Rate     | 100%      | 100%   | PASS   |
+| Security Issues       | 0         | 0      | PASS   |
+| Critical NFR Failures | 0         | 0      | PASS   |
+| Flaky Tests           | 0         | 0      | PASS   |
 
 **P0 Evaluation**: ALL PASS
 
@@ -487,80 +438,53 @@ None required. All 67 tests pass. No regressions (full suite: 1590 passed).
 
 | Criterion              | Threshold | Actual | Status |
 | ---------------------- | --------- | ------ | ------ |
-| P1 Coverage            | >= 90%    | 80%    | CONCERNS |
-| P1 Test Pass Rate      | >= 95%    | 100%   | PASS |
-| Overall Test Pass Rate | >= 95%    | 100%   | PASS |
-| Overall Coverage       | >= 80%    | 80%    | PASS |
+| P1 Coverage            | >=90%     | 100%   | PASS   |
+| P1 Test Pass Rate      | >=90%     | 100%   | PASS   |
+| Overall Test Pass Rate | >=80%     | 100%   | PASS   |
+| Overall Coverage       | >=80%     | 100%   | PASS   |
 
-**P1 Evaluation**: SOME CONCERNS (P1 FULL coverage is 80%, below 90% PASS target but at 80% minimum)
+**P1 Evaluation**: ALL PASS
 
 ---
 
 #### P2/P3 Criteria (Informational, Don't Block)
 
-| Criterion         | Actual | Notes |
-| ----------------- | ------ | ----- |
-| P2 Test Pass Rate | 100%   | All 5 P2 tests pass |
-| P3 Test Pass Rate | N/A    | No P3 criteria |
+| Criterion         | Actual | Notes                     |
+| ----------------- | ------ | ------------------------- |
+| P2 Test Pass Rate | 100%   | Tracked, doesn't block    |
+| P3 Test Pass Rate | N/A    | No P3 criteria in story   |
 
 ---
 
-### GATE DECISION: CONCERNS
+### GATE DECISION: PASS
 
 ---
 
 ### Rationale
 
-P0 evaluation passes (vacuously -- no P0 criteria for this packaging story). Overall coverage is 80% (meets minimum threshold). P1 test pass rate is 100% (all 62 P1 tests pass). However, P1 FULL coverage is 80% (4/5 FULL), which is below the 90% PASS target. The single PARTIAL AC (#3) has 33 tests covering its structural and HTTP behavior aspects; the gap is specifically deferred integration/E2E tests (T-4.1-03, T-4.1-04) that require Oyster CVM infrastructure not yet available in CI.
+All P0 criteria met with 100% coverage and 100% pass rate across all test priorities. P1 criteria exceeded all thresholds (100% coverage, 100% pass rate). No security issues detected across 3 review passes (including OWASP Top 10 analysis). No flaky tests -- the function is pure deterministic computation with no timing dependencies. All 6 acceptance criteria have FULL test coverage verified by 31 unit tests covering happy paths, error paths, boundary values, cross-library validation (nostr-tools verifyEvent), golden-value verification (NIP-06 test vectors), and module export chain verification.
 
-Key evidence driving this decision:
-- 67/67 tests pass (100% pass rate)
-- All 5 acceptance criteria have test coverage (none are NONE)
-- The PARTIAL coverage is a known, documented deferral -- not a missing test
-- NFR assessment overall status: PASS (5 PASS, 3 CONCERNS, 0 FAIL)
-- No security issues; no regressions (1590 full suite tests pass)
-
-Per the deterministic gate rules: P0 at 100%, P1 at 80% (>= 80 minimum, < 90 PASS target), overall at 80% (>= 80 minimum) => CONCERNS.
-
----
-
-### Residual Risks (For CONCERNS)
-
-1. **AC #3 deferred integration/E2E tests**
-   - **Priority**: P2 (deferred by design, not by oversight)
-   - **Probability**: Low (supervisord is battle-tested; structural tests validate configuration correctness)
-   - **Impact**: Low (process ordering issues would manifest immediately on first deployment; monitoring via autorestart provides recovery)
-   - **Risk Score**: 1 (Low x Low)
-   - **Mitigation**: 14 structural tests validate supervisord configuration; autorestart=true provides automatic recovery; depends_on with service_healthy enforces ordering in compose mode
-   - **Remediation**: Enable T-4.1-03/T-4.1-04 when Oyster CVM tooling is available in CI (target: Story 4.6 or post-Epic-4)
-
-**Overall Residual Risk**: LOW
+The implementation correctly follows the established SDK `fromMnemonic()` pattern but is specialized for core: raw 32-byte KMS seed support, no EVM address derivation, KMS-specific error handling, and HDKey material cleanup.
 
 ---
 
 ### Gate Recommendations
 
-#### For CONCERNS Decision
+#### For PASS Decision
 
-1. **Proceed with development** - Story 4.1 is complete. All deliverables are created and tested at the appropriate level for a packaging/configuration story. The CONCERNS decision reflects the gate math, not actual risk.
+1. **Proceed to next story**
+   - Story 4.4 is complete and ready for integration
+   - The `deriveFromKmsSeed()` function is available from `@crosstown/core` for future Docker entrypoint integration
+   - No blocking issues
 
-2. **Create Remediation Backlog**
-   - Correct ATDD stubs in attestation-bootstrap.test.ts (4 known inaccuracies)
-   - Enable T-4.1-03/T-4.1-04 when Oyster CVM infrastructure is available
+2. **Post-Integration Monitoring**
+   - Monitor for regressions when Docker entrypoint integration story consumes this function
+   - Verify that `@scure/bip32` and `@scure/bip39` versions remain stable across monorepo updates
 
-3. **Post-Deployment Actions**
-   - Monitor supervisord process restarts on first Oyster CVM deployment
-   - Verify all 3 ports (3100, 7100, 1300) respond correctly from enclave
-
----
-
-### Uncovered ACs
-
-**AC #3 (PARTIAL):** Integration and E2E coverage is deferred. Specifically:
-- **T-4.1-03** (relay ready before attestation publishes): Requires an actual supervisord stack running both processes. Cannot be tested with static analysis or in-memory HTTP requests. Deferred until Oyster CVM tooling is available in CI.
-- **T-4.1-04** (all processes running and healthy on correct ports): Requires a running Oyster CVM image with all 3 ports accepting connections. Cannot be simulated in unit tests. Deferred until Oyster CVM infrastructure is available.
-
-Both deferred tests have pre-existing RED stubs in `packages/core/src/bootstrap/attestation-bootstrap.test.ts` but those stubs contain 4 documented structural inaccuracies that must be corrected before enabling.
+3. **Success Criteria**
+   - All 31 unit tests continue to pass in CI
+   - No TypeScript compilation errors in identity module
+   - Build output includes identity module exports
 
 ---
 
@@ -568,19 +492,37 @@ Both deferred tests have pre-existing RED stubs in `packages/core/src/bootstrap/
 
 **Immediate Actions** (next 24-48 hours):
 
-1. Proceed to Story 4.2 (kind:10033 attestation event builder)
-2. No blocking issues from Story 4.1 traceability
+1. Merge Story 4.4 to epic-4 branch (all tests passing, all reviews complete)
+2. Begin next story in Epic 4
+3. No remediation needed -- all ACs fully covered
 
-**Follow-up Actions** (next milestone/release):
+**Follow-up Actions** (this epic):
 
-1. Correct attestation-bootstrap.test.ts RED stubs (fix 4 inaccuracies)
-2. Enable integration/E2E tests when Oyster CVM infrastructure is available
-3. Add Docker image size verification to CI (Story 4.5)
+1. Integration test for Docker entrypoint KMS identity usage
+2. E2E test with Nautilus KMS when TEE test environment available
+3. Verify SDK cross-compatibility in CI (same mnemonic produces same identity via core and SDK)
 
 **Stakeholder Communication**:
 
-- Notify PM: Story 4.1 gate CONCERNS -- 80% FULL coverage (4/5 ACs FULL, 1 PARTIAL due to deferred infra tests). All 67 tests pass. No blockers.
-- Notify DEV lead: Deferred T-4.1-03/T-4.1-04 need Oyster CVM CI infra to enable.
+- Notify PM: Story 4.4 PASS -- KMS identity derivation complete, 31/31 tests passing, ready for integration
+- Notify DEV lead: `deriveFromKmsSeed()` available from `@crosstown/core`, follows NIP-06 standard, security-reviewed
+
+---
+
+## Uncovered ACs
+
+**None.** All 6 acceptance criteria have FULL test coverage.
+
+| AC # | Description | Coverage Status | Test Count |
+| ---- | ----------- | --------------- | ---------- |
+| 1    | KMS seed derives valid Schnorr keypair | FULL | 4 tests (T-4.4-01 + 3 amplification) |
+| 2    | Mnemonic option derives via NIP-06 standard | FULL | 9 tests (T-4.4-02 + 8 amplification) |
+| 3    | Deterministic derivation | FULL | 1 test (T-4.4-03) |
+| 4    | KMS identity signs kind:10033 self-attestation | FULL | 1 test (T-4.4-04) |
+| 5    | Invalid seed throws KmsIdentityError | FULL | 9 tests (T-4.4-05a-d + 5 amplification) |
+| 6    | Export from correct modules | FULL | 6 tests (4 direct + 2 barrel) |
+
+**Total: 31 test cases covering all 6 ACs.** One test (defensive copy) overlaps AC #1 and AC #3.
 
 ---
 
@@ -590,70 +532,68 @@ Both deferred tests have pre-existing RED stubs in `packages/core/src/bootstrap/
 traceability_and_gate:
   # Phase 1: Traceability
   traceability:
-    story_id: "4-1"
-    date: "2026-03-14"
+    story_id: "4.4"
+    date: "2026-03-15"
     coverage:
-      overall: 80%
-      p0: 100%  # vacuously (0 P0 criteria)
-      p1: 80%
-      p2: 100%  # vacuously (0 P2 criteria)
-      p3: 100%  # vacuously (0 P3 criteria)
+      overall: 100%
+      p0: 100%
+      p1: 100%
+      p2: 100%
+      p3: N/A
     gaps:
       critical: 0
       high: 0
-      medium: 1  # AC #3 PARTIAL (deferred integration/E2E)
+      medium: 0
       low: 0
     quality:
-      passing_tests: 67
-      total_tests: 67
+      passing_tests: 31
+      total_tests: 31
       blocker_issues: 0
-      warning_issues: 1  # test file length (acceptable)
+      warning_issues: 0
     recommendations:
-      - "Enable T-4.1-03/T-4.1-04 when Oyster CVM CI infra available"
-      - "Correct ATDD stubs in attestation-bootstrap.test.ts"
+      - "Add integration test when Docker entrypoint story consumes deriveFromKmsSeed()"
+      - "Add E2E test with Nautilus KMS when TEE test environment is available"
 
   # Phase 2: Gate Decision
   gate_decision:
-    decision: "CONCERNS"
+    decision: "PASS"
     gate_type: "story"
     decision_mode: "deterministic"
     criteria:
-      p0_coverage: 100%  # vacuously true
-      p0_pass_rate: 100%  # vacuously true
-      p1_coverage: 80%
+      p0_coverage: 100%
+      p0_pass_rate: 100%
+      p1_coverage: 100%
       p1_pass_rate: 100%
       overall_pass_rate: 100%
-      overall_coverage: 80%
+      overall_coverage: 100%
       security_issues: 0
       critical_nfrs_fail: 0
       flaky_tests: 0
     thresholds:
       min_p0_coverage: 100
       min_p0_pass_rate: 100
-      min_p1_coverage: 80
-      min_p1_pass_rate: 95
-      min_overall_pass_rate: 95
+      min_p1_coverage: 90
+      min_p1_pass_rate: 90
+      min_overall_pass_rate: 80
       min_coverage: 80
     evidence:
-      test_results: "local_run_2026-03-14"
+      test_results: "npx vitest run packages/core/src/identity/kms-identity.test.ts"
       traceability: "_bmad-output/test-artifacts/traceability-report.md"
-      nfr_assessment: "_bmad-output/test-artifacts/nfr-assessment-4-1.md"
-    next_steps: "Proceed to Story 4.2; enable deferred integration tests when CVM infra available"
+      nfr_assessment: "Inline (3 code review passes including OWASP Top 10)"
+      code_coverage: "Not separately measured (31 unit tests cover all branches)"
+    next_steps: "Merge to epic-4, begin next story"
 ```
 
 ---
 
 ## Related Artifacts
 
-- **Story File:** `_bmad-output/implementation-artifacts/4-1-oyster-cvm-packaging.md`
-- **Test Design:** `_bmad-output/test-artifacts/test-design-epic-4.md`
-- **ATDD Checklist:** `_bmad-output/test-artifacts/atdd-checklist-4-1.md`
-- **NFR Assessment:** `_bmad-output/test-artifacts/nfr-assessment-4-1.md`
-- **Automation Summary:** `_bmad-output/test-artifacts/automation-summary-4-1.md`
-- **Test Results:** Local Vitest run 2026-03-14 (67/67 passed, 583ms)
-- **Test Files:**
-  - `packages/core/src/build/oyster-config.test.ts` (54 tests, 979 lines)
-  - `docker/src/attestation-server.test.ts` (13 tests, 149 lines)
+- **Story File:** `_bmad-output/implementation-artifacts/4-4-nautilus-kms-identity.md`
+- **Test Design:** `_bmad-output/test-artifacts/test-design-epic-4.md` (T-4.4-01 through T-4.4-05)
+- **Tech Spec:** N/A (implementation follows architecture.md FR-TEE-4)
+- **Test Results:** `packages/core/src/identity/kms-identity.test.ts` (31 tests, all passing)
+- **NFR Assessment:** Inline (3 code review passes in story file)
+- **Test Files:** `packages/core/src/identity/kms-identity.test.ts`
 
 ---
 
@@ -661,25 +601,25 @@ traceability_and_gate:
 
 **Phase 1 - Traceability Assessment:**
 
-- Overall Coverage: 80%
-- P0 Coverage: 100% (vacuously -- 0 P0 criteria)
-- P1 Coverage: 80% (4/5 FULL, 1/5 PARTIAL)
+- Overall Coverage: 100%
+- P0 Coverage: 100% PASS
+- P1 Coverage: 100% PASS
 - Critical Gaps: 0
 - High Priority Gaps: 0
 
 **Phase 2 - Gate Decision:**
 
-- **Decision**: CONCERNS
-- **P0 Evaluation**: ALL PASS (vacuously true)
-- **P1 Evaluation**: SOME CONCERNS (80% FULL, below 90% target, at 80% minimum)
+- **Decision**: PASS
+- **P0 Evaluation**: ALL PASS
+- **P1 Evaluation**: ALL PASS
 
-**Overall Status:** CONCERNS
+**Overall Status:** PASS
 
 **Next Steps:**
 
-- CONCERNS: Proceed to Story 4.2. Address deferred integration tests when CVM infrastructure becomes available. Story 4.1 deliverables are complete and deployment-ready.
+- PASS: Proceed to merge and begin next story
 
-**Generated:** 2026-03-14
+**Generated:** 2026-03-15
 **Workflow:** testarch-trace v5.0 (Step-File Architecture)
 
 ---

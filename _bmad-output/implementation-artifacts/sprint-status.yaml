@@ -85,7 +85,7 @@ development_status:
   4-1-oyster-cvm-packaging: done
   4-2-tee-attestation-events: done
   4-3-attestation-aware-peering: done
-  4-4-nautilus-kms-identity: backlog
+  4-4-nautilus-kms-identity: done
   4-5-nix-reproducible-builds: backlog
   4-6-attestation-first-seed-relay-bootstrap: backlog
   epic-4-retrospective: optional
