@@ -87,7 +87,7 @@ development_status:
   4-3-attestation-aware-peering: done
   4-4-nautilus-kms-identity: done
   4-5-nix-reproducible-builds: done
-  4-6-attestation-first-seed-relay-bootstrap: backlog
+  4-6-attestation-first-seed-relay-bootstrap: done
   epic-4-retrospective: optional
 
   # Epic 5: DVM Compute Marketplace
