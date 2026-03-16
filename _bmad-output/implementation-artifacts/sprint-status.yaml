@@ -81,14 +81,14 @@ development_status:
   epic-3-retrospective: done
 
   # Epic 4: Marlin TEE Deployment
-  epic-4: in-progress
+  epic-4: done
   4-1-oyster-cvm-packaging: done
   4-2-tee-attestation-events: done
   4-3-attestation-aware-peering: done
   4-4-nautilus-kms-identity: done
   4-5-nix-reproducible-builds: done
   4-6-attestation-first-seed-relay-bootstrap: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 
   # Epic 5: DVM Compute Marketplace
   # Decision source: Party Mode 2020117 Analysis (2026-03-10)
