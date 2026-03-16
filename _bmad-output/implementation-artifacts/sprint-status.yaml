@@ -94,7 +94,7 @@ development_status:
   # Decision source: Party Mode 2020117 Analysis (2026-03-10)
   epic-5: in-progress
   5-1-dvm-event-kind-definitions: done
-  5-2-ilp-native-job-submission: backlog
+  5-2-ilp-native-job-submission: done
   5-3-job-result-delivery-and-compute-settlement: backlog
   5-4-skill-descriptors-in-service-discovery: backlog
   epic-5-retrospective: optional
