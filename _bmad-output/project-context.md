@@ -855,7 +855,7 @@ VALID (within validitySeconds, default 300s)
 - **EIP-712 domains differ:** USDC's `transferWithAuthorization` uses `{ name: 'USD Coin', version: '2' }`, NOT the TokenNetwork domain
 - **WalletClient required for settlement** -- Facilitator pays gas via `walletClient.writeContract()`
 - **PublicClient optional** -- Used for pre-flight balance/nonce checks and transaction receipt waiting
-- **Not wired in startTown()** -- `walletClient` and `publicClient` are injected via `X402HandlerConfig` but not created by `startTown()` (production wiring deferred)
+- **Wired in startTown() when x402Enabled is true** -- `walletClient` and `publicClient` are created conditionally from `identity.secretKey` and `chainConfig.rpcUrl` (Quick-Spec wire-viem-x402-town)
 
 **SQLite (better-sqlite3):**
 
@@ -1093,7 +1093,7 @@ VALID (within validitySeconds, default 300s)
 - **Data-returning handlers bypass ctx.accept()** -- Return response directly because `data` must be top-level for ILP FULFILL relay (pattern valid for future handlers)
 - **Bootstrap phases simplified** -- discovering -> registering -> announcing (handshaking phase eliminated in Story 2.7)
 - **Anvil mock USDC has 18 decimals, not 6** -- On-chain mock differs from production USDC. Pricing pipeline is denomination-agnostic.
-- **x402 viem clients not wired in startTown()** -- `walletClient` and `publicClient` are injected in tests but not created by `startTown()` (production wiring deferred)
+- **x402 viem clients wired in startTown() conditionally when x402Enabled** -- `walletClient` and `publicClient` created from node identity key and chain RPC (Quick-Spec wire-viem-x402-town)
 - **x402 routing buffer defaults to 10%** -- `calculateX402Price()` adds 10% buffer on top of `basePricePerByte * toonLength`
 - **x402 settlement is one-way** -- If settlement succeeds but ILP PREPARE is rejected, no refund per protocol design
 - **AttestationVerifier boundary: exactly at validity end is VALID** -- Inclusive <= comparison, not <
@@ -1173,7 +1173,7 @@ VALID (within validitySeconds, default 300s)
 **Should-Do:**
 - A4: Create project-level semgrep configuration (suppress CWE-319 false positives for ws://)
 - A6: Address transitive dependency vulnerabilities (carried from Epic 2)
-- A7: Wire viem clients in startTown() for production x402
+- ~~A7: Wire viem clients in startTown() for production x402~~ RESOLVED (Quick-Spec wire-viem-x402-town)
 - A8: Set up facilitator ETH monitoring for x402 gas payments
 - A9: Refactor SDK publishEvent() to use shared buildIlpPrepare()
 - A10: Update Docker entrypoint-town.ts for new Epic 3 config fields + migrate to createHealthResponse()
