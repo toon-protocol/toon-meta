@@ -75,6 +75,6 @@ These addresses are deterministic from the Anvil deployment:
 
 | Contract | Address |
 |----------|---------|
-| AGENT Token (ERC20) | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
+| Mock USDC (ERC20) | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
 | TokenNetworkRegistry | `0xe7f1725e7734ce288f8367e1bb143e90bb3f0512` |
-| TokenNetwork (AGENT) | `0xCafac3dD18aC6c6e92c921884f9E4176737C052c` |
+| TokenNetwork (USDC) | `0xCafac3dD18aC6c6e92c921884f9E4176737C052c` |

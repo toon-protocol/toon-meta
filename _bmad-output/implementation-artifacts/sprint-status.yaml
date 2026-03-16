@@ -71,28 +71,28 @@ development_status:
   epic-2-retrospective: done  # final retro covering all 8/8 stories
 
   # Epic 3: Production Protocol Economics (6 stories after scope change 2026-03-07)
-  epic-3: backlog
-  3-1-usdc-token-migration: backlog
-  3-2-multi-environment-chain-configuration: backlog
-  3-3-x402-publish-endpoint: backlog
-  3-4-seed-relay-discovery: backlog
-  3-5-kind-10035-service-discovery-events: backlog
-  3-6-enriched-health-endpoint: backlog
-  epic-3-retrospective: optional
+  epic-3: done
+  3-1-usdc-token-migration: done
+  3-2-multi-environment-chain-configuration: done
+  3-3-x402-publish-endpoint: done
+  3-4-seed-relay-discovery: done
+  3-5-kind-10035-service-discovery-events: done
+  3-6-enriched-health-endpoint: done
+  epic-3-retrospective: done
 
   # Epic 4: Marlin TEE Deployment
-  epic-4: backlog
-  4-1-oyster-cvm-packaging: backlog
-  4-2-tee-attestation-events: backlog
-  4-3-attestation-aware-peering: backlog
-  4-4-nautilus-kms-identity: backlog
-  4-5-nix-reproducible-builds: backlog
-  4-6-attestation-first-seed-relay-bootstrap: backlog
-  epic-4-retrospective: optional
+  epic-4: done
+  4-1-oyster-cvm-packaging: done
+  4-2-tee-attestation-events: done
+  4-3-attestation-aware-peering: done
+  4-4-nautilus-kms-identity: done
+  4-5-nix-reproducible-builds: done
+  4-6-attestation-first-seed-relay-bootstrap: done
+  epic-4-retrospective: done
 
   # Epic 5: DVM Compute Marketplace
   # Decision source: Party Mode 2020117 Analysis (2026-03-10)
-  epic-5: backlog
+  epic-5: in-progress
   5-1-dvm-event-kind-definitions: backlog
   5-2-ilp-native-job-submission: backlog
   5-3-job-result-delivery-and-compute-settlement: backlog
