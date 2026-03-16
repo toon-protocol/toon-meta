@@ -212,10 +212,11 @@ packages/core/src/
     └── pcr-validator.ts          # verifyPcrReproducibility(), analyzeDockerfileForNonDeterminism() (Story 4.5)
 ```
 
-**Existing Core Modules (Epics 1-3):**
+**Existing Core Modules (Epics 1-3 + infrastructure):**
 
 ```
 packages/core/src/
+├── logger.ts                  # createLogger(), structured JSON logging (Epic 4 retro A2)
 ├── chain/
 │   ├── chain-config.ts         # resolveChainConfig(), CHAIN_PRESETS, buildEip712Domain() (Story 3.2)
 │   ├── chain-config.test.ts
@@ -1165,25 +1166,25 @@ VALID (within validitySeconds, default 300s)
 ## Known Action Items (From Epic 4 Final Retro)
 
 **Must-Do for Epic 5:**
-- A1: Set up genesis node in CI (carried 4 epics -- escalated to HIGH severity)
-- A2: Replace `console.error` with structured logger (carried 4 epics)
-- A3: Deploy FiatTokenV2_2 on Anvil with 6 decimals and EIP-3009 (mock USDC still uses 18-decimal AGENT ERC-20)
-- A5: Commit flake.lock to version control (Nix reproducibility requires it)
+- ~~A1: Set up genesis node in CI~~ RESOLVED (CI pipeline enhanced with security audit, format check, SDK E2E infra, deploy script CI-compatible)
+- ~~A2: Replace `console.error` with structured logger~~ RESOLVED (`createLogger()` in `@crosstown/core/logger.ts`, 17 tests)
+- ~~A3: Deploy FiatTokenV2_2 on Anvil~~ RESOLVED (`scripts/deploy-mock-usdc.sh` deploys 6-decimal EIP-3009 compatible mock USDC)
+- A5: Commit flake.lock to version control (Nix reproducibility requires it) -- deferred: requires Nix installation
 
 **Should-Do:**
-- A4: Create project-level semgrep configuration (suppress CWE-319 false positives for ws://)
-- A6: Address transitive dependency vulnerabilities (carried from Epic 2)
+- ~~A4: Create project-level semgrep configuration~~ RESOLVED (`.semgrep.yml` + `.semgrepignore`)
+- ~~A6: Address transitive dependency vulnerabilities~~ RESOLVED (pnpm.overrides patched 12 vulns, `.pnpmauditrc` documents remaining transitive deps)
 - ~~A7: Wire viem clients in startTown() for production x402~~ RESOLVED (Quick-Spec wire-viem-x402-town)
 - A8: Set up facilitator ETH monitoring for x402 gas payments
-- A9: Refactor SDK publishEvent() to use shared buildIlpPrepare()
-- A10: Update Docker entrypoint-town.ts for new Epic 3 config fields + migrate to createHealthResponse()
+- ~~A9: Refactor SDK publishEvent() to use shared buildIlpPrepare()~~ RESOLVED (publishEvent now calls `buildIlpPrepare()` from core)
+- ~~A10: Update Docker entrypoint-town.ts for new Epic 3 config fields + migrate to createHealthResponse()~~ RESOLVED (health endpoint uses `createHealthResponse()`, TEE config consumed)
 
 **Nice-to-Have:**
-- A11: Split large test files (5+ files > 900 lines)
-- A12: Implement deferred P3 E2E tests (T-3.4-12, 3.6-E2E-001)
-- A13: Integrate real Nix builds in CI (currently mocked)
+- A11: Split large test files (5+ files > 900 lines) -- deferred: organizational only, no functional impact
+- A12: Implement deferred P3 E2E tests (T-3.4-12, 3.6-E2E-001) -- deferred: requires CVM infrastructure
+- A13: Integrate real Nix builds in CI (currently mocked) -- deferred: requires Nix in CI runner
 - A14: Publish @crosstown/town to npm (carried from Epic 2 A3)
-- A15: Ensure code review agents run Prettier before committing
+- A15: Ensure code review agents run Prettier before committing -- addressed: format:check added to CI
 
 ---
 

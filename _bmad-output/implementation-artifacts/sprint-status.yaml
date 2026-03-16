@@ -92,7 +92,7 @@ development_status:
 
   # Epic 5: DVM Compute Marketplace
   # Decision source: Party Mode 2020117 Analysis (2026-03-10)
-  epic-5: backlog
+  epic-5: in-progress
   5-1-dvm-event-kind-definitions: backlog
   5-2-ilp-native-job-submission: backlog
   5-3-job-result-delivery-and-compute-settlement: backlog
