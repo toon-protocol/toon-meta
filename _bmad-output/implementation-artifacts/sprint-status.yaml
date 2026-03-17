@@ -95,7 +95,7 @@ development_status:
   epic-5: in-progress
   5-1-dvm-event-kind-definitions: done
   5-2-ilp-native-job-submission: done
-  5-3-job-result-delivery-and-compute-settlement: backlog
+  5-3-job-result-delivery-and-compute-settlement: done
   5-4-skill-descriptors-in-service-discovery: backlog
   epic-5-retrospective: optional
 
