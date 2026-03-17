@@ -874,39 +874,49 @@ VALID (within validitySeconds, default 300s)
 
 ### Testing Rules
 
-**Test Organization:**
+**Test Organization (Three-Tier, No-Mock Integration Policy):**
 
-- **Co-locate unit tests** -- `*.test.ts` files next to source files in same directory
-- **Integration tests in `__integration__/`** -- Multi-component tests go in `packages/*/src/__integration__/`
+- **Co-locate unit tests** -- `*.test.ts` files next to source files in same directory. Mocks allowed here only.
+- **Integration tests in `__integration__/`** -- Multi-component tests go in `packages/*/src/__integration__/`. **MUST use real Docker container infrastructure — no mocks for ILP, BTP, relay, or EVM boundaries.** Uses `sdk-e2e-infra.sh` or genesis node.
+- **E2E tests use separate config** -- `vitest.e2e.config.ts` for full-lifecycle end-to-end tests (e.g., `packages/client/tests/e2e/`, `packages/town/tests/e2e/`, `packages/sdk/tests/e2e/`)
+- **Integration vs E2E distinction** -- Integration tests verify a *single boundary crossing* (e.g., SDK submits event via ILP, relay stores it). E2E tests verify *complete user journeys* (e.g., submit job → receive → result → settle → verify on-chain). Both use real Docker containers; the difference is scope, not infrastructure.
 - **SDK integration tests use separate vitest config** -- `vitest.integration.config.ts` with 30s timeout
-- **E2E tests use separate config** -- `vitest.e2e.config.ts` for end-to-end tests (e.g., `packages/client/tests/e2e/`, `packages/town/tests/e2e/`)
 - **Test file naming** -- Match source file name with `.test.ts` suffix (e.g., `handler-registry.test.ts`)
-- **Town E2E tests require genesis node infrastructure** -- Gracefully skip via `servicesReady`/`genesisReady` flags when infra is unavailable
+- **Graceful skip when infra unavailable** -- Integration and E2E tests check Docker service health at startup, skip gracefully via `servicesReady`/`genesisReady`/`skipIfNotReady()` flags when containers aren't running. Tests must document which infra they require (`sdk-e2e-infra.sh up` or `deploy-genesis-node.sh`).
 - **Static analysis tests for infrastructure files (Epic 4)** -- Tests read Docker compose, supervisord.conf, Dockerfile, and Nix flake files as strings, parse, and assert structural properties
 
 **Test Framework (Vitest):**
 
-- **Use Vitest built-in mocking** -- `vi.fn()`, `vi.mock()`, `vi.spyOn()` (not jest)
+- **Use Vitest built-in mocking in unit tests only** -- `vi.fn()`, `vi.mock()`, `vi.spyOn()` (not jest). Mocking is restricted to co-located unit tests (`*.test.ts`). Integration and E2E tests must not mock infrastructure boundaries.
 - **Follow AAA pattern** -- Arrange, Act, Assert structure in all tests
 - **Use describe/it blocks** -- Group related tests with `describe()`, individual tests with `it()`
 - **Async test handling** -- Use `async` functions, properly await all promises
 
-**Mock Usage:**
+**Mock Usage (Unit Tests ONLY):**
 
-- **Always mock SimplePool** -- Use `vi.mock('nostr-tools')` to prevent live relay connections
-- **Mock external dependencies** -- HTTP clients, file system, network calls must be mocked in unit tests
-- **Factory functions for test data** -- Create helper functions for generating valid test events with proper signatures
-- **In-memory databases for unit tests** -- Use SQLite `:memory:` for isolated, fast tests
-- **SDK tests mock connectors** -- Use structural `EmbeddableConnectorLike` mock with `vi.fn()` for sendPacket, registerPeer, etc.
-- **x402 tests use injectable settlement** -- `config.settle` and `config.runPreflightFn` allow test-specific mocks without touching viem
-- **TEE tests use DI callbacks** -- `AttestationBootstrap` uses injected `queryAttestation` and `subscribePeers` for testability
-- **Nix build tests mock child_process** -- `vi.mock('node:child_process')` to test NixBuilder without requiring Nix installation
+- **NEVER mock infrastructure in integration or E2E tests** -- No `MockEmbeddedConnector`, no `vi.mock()` for BTP, ILP, relay, or EVM in `__integration__/` or `tests/e2e/` directories. If a test needs ILP/BTP/relay/EVM, it uses real Docker containers.
+- **Mocks are restricted to co-located unit tests (`*.test.ts`)** -- Unit tests may mock external dependencies for speed and isolation
+- **Always mock SimplePool in unit tests** -- Use `vi.mock('nostr-tools')` to prevent live relay connections in unit tests only
+- **Mock external dependencies in unit tests** -- HTTP clients, file system, network calls must be mocked in unit tests
+- **Factory functions for test data** -- Create helper functions for generating valid test events with proper signatures (allowed in all test tiers)
+- **In-memory databases for unit tests** -- Use SQLite `:memory:` for isolated, fast unit tests
+- **x402 unit tests use injectable settlement** -- `config.settle` and `config.runPreflightFn` allow test-specific mocks without touching viem
+- **TEE unit tests use DI callbacks** -- `AttestationBootstrap` uses injected `queryAttestation` and `subscribePeers` for testability
+- **Nix build unit tests mock child_process** -- `vi.mock('node:child_process')` to test NixBuilder without requiring Nix installation
 
-**Two-Approach Handler Testing (Epic 2 Pattern):**
+**Docker Container Test Infrastructure:**
 
-- **Approach A: Unit tests with `createTestContext`** -- Isolated handler logic testing, mocked EventStore and dependencies
-- **Approach B: Pipeline integration with `createNode().start()`** -- End-to-end handler behavior within the SDK pipeline
-- **Approach A catches handler-level issues, Approach B catches composition and lifecycle issues**
+- **`sdk-e2e-infra.sh`** -- Provides Anvil (18545) + Peer1 (BTP:19000, BLS:19100, Relay:19700) + Peer2 (BTP:19010, BLS:19110, Relay:19710). Required for integration and E2E tests.
+- **`deploy-genesis-node.sh`** -- Alternative infra for Town E2E tests. Provides genesis stack (BLS:3100, Relay:7100, Anvil:8545, Faucet:3500).
+- **Integration tests follow the `docker-publish-event-e2e.test.ts` pattern** -- Real ConnectorNode, real BTP peering, real relay WebSocket, real Anvil settlement. See `packages/sdk/tests/e2e/docker-publish-event-e2e.test.ts` as the canonical example.
+- **Health check before test execution** -- All integration/E2E test suites must verify Docker service health in `beforeAll` and skip gracefully if unavailable.
+- **CI pipeline must start Docker infra** -- `sdk-e2e-infra.sh up` runs before integration test suite in CI.
+
+**Two-Approach Handler Testing (Epic 2 Pattern, Updated):**
+
+- **Approach A: Unit tests with `createTestContext`** -- Isolated handler logic testing, mocked EventStore and dependencies. Co-located `*.test.ts` files.
+- **Approach B: Integration tests against Docker infra** -- Handler behavior validated through real ILP packet delivery, real relay storage, real BTP connectors. Lives in `__integration__/` directory. No mocks for infrastructure boundaries.
+- **Approach A catches handler-level logic issues, Approach B proves the handler works in the real system**
 
 **Static Analysis Tests (Epics 2+3+4 Pattern):**
 
@@ -926,8 +936,10 @@ VALID (within validitySeconds, default 300s)
 
 **Critical Testing Rules:**
 
-- **No live relays in CI** -- Tests must pass without external network dependencies
-- **Cleanup resources in teardown** -- Close database connections, clear mocks with `vi.clearAllMocks()`
+- **NEVER use mocks in integration tests** -- If a test is in `__integration__/` or `tests/e2e/`, it must use real Docker containers. `MockEmbeddedConnector` and similar mock infrastructure classes are forbidden in integration/E2E tests. This is the single most important testing rule.
+- **No live external relays in CI** -- Tests use local Docker relay containers, not external network relays
+- **Docker infra required for integration + E2E** -- `sdk-e2e-infra.sh up` or `deploy-genesis-node.sh` must run before integration/E2E suites
+- **Cleanup resources in teardown** -- Close database connections, stop nodes, clear mocks with `vi.clearAllMocks()`
 - **Test isolation** -- Each test should be independent, no shared state between tests
 - **Deterministic test data** -- Use fixed timestamps, keys, and IDs (not random values)
 - **Lint-check ATDD stubs immediately after creation** -- Prevents deferred lint debt (learned from Epic 2 Story 2-2's 53 ESLint errors)
