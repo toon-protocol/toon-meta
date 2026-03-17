@@ -1,7 +1,7 @@
 ---
 project_name: 'crosstown'
 user_name: 'Jonathan'
-date: '2026-03-16'
+date: '2026-03-17'
 sections_completed:
   [
     'technology_stack',
@@ -13,7 +13,7 @@ sections_completed:
     'critical_rules',
   ]
 status: 'complete'
-rule_count: 369
+rule_count: 412
 optimized_for_llm: true
 ---
 
@@ -67,20 +67,20 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - @noble/curves and @scure libraries share the same secp256k1 implementation as nostr-tools' @noble/curves dependency
 - viem 2.x required for EIP-3009 settlement and EIP-712 typed data verification
 
-## Project Structure (Post-Epic 4)
+## Project Structure (Post-Epic 5)
 
 ```
 crosstown/
 ├── packages/
-│   ├── town/        # @crosstown/town -- SDK-based relay with x402, service discovery, health, TEE health (Epics 2+3+4)
-│   ├── sdk/         # @crosstown/sdk -- SDK for building ILP-gated Nostr services (Epic 1)
-│   ├── core/        # @crosstown/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds
+│   ├── town/        # @crosstown/town -- SDK-based relay with x402, service discovery, health, TEE health, DVM skill config (Epics 2+3+4+5)
+│   ├── sdk/         # @crosstown/sdk -- SDK for building ILP-gated Nostr services + DVM lifecycle (Epics 1+5)
+│   ├── core/        # @crosstown/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds
 │   ├── bls/         # @crosstown/bls -- Business Logic Server (payment validation, event storage)
 │   ├── relay/       # @crosstown/relay -- Nostr relay + TOON encoding
 │   ├── client/      # @crosstown/client -- Client SDK with payment channel support
 │   ├── faucet/      # @crosstown/faucet -- Token distribution for dev testing (plain JS, dev-only)
 │   ├── examples/    # @crosstown/examples -- Demo applications
-│   └── rig/         # @crosstown/rig -- (ATDD stubs only, Epic 5, not yet implemented)
+│   └── rig/         # @crosstown/rig -- (ATDD stubs only, Epic 7, not yet implemented)
 ├── docker/          # Container entrypoint (pnpm workspace member)
 │   ├── src/
 │   │   ├── shared.ts              # Config parsing, admin client, health check utilities
@@ -99,12 +99,12 @@ crosstown/
 **Package Dependency Graph:**
 
 ```
-@crosstown/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402, TEE attestation, KMS identity, Nix builds)
+@crosstown/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds)
     ^          ^
 @crosstown/bls    @crosstown/sdk    <-- siblings, both depend on core
     ^                 ^
     |           +-----+-------+
-    |     @crosstown/town     @crosstown/rig    <-- (Town: Epics 2+3+4 DONE, Rig: Epic 5)
+    |     @crosstown/town     @crosstown/rig    <-- (Town: Epics 2+3+4+5 DONE, Rig: Epic 7)
     |       (+ relay + viem)
     |
 @crosstown/relay   <-- Town depends on relay for EventStore + NostrRelayServer
@@ -124,14 +124,16 @@ crosstown/
 ## Epic Roadmap
 
 ```
-Epic 1: SDK Package                              COMPLETE
+Epic 1: SDK Package                              COMPLETE (12/12 stories, 75/75 ACs)
 Epic 2: Relay Reference Implementation           COMPLETE (8/8 stories, 40/40 ACs)
 Epic 3: Production Protocol Economics            COMPLETE (6/6 stories, 26/26 ACs)
 Epic 4: Marlin TEE Deployment                    COMPLETE (6/6 stories, 32/33 ACs)
-Epic 5: The Rig -- Git Forge / DVM Marketplace    PLANNED
+Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 ACs)
+Epic 6: Advanced DVM Coordination + TEE          PLANNED
+Epic 7: The Rig -- ILP-Gated Git Forge           PLANNED
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build applications on top.
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination -> Build applications on top.
 
 ## Production Architecture Decisions (Party Mode 2026-03-05/06)
 
@@ -176,10 +178,17 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 **Nostr Event Kinds:**
 | Kind | Name | Status |
 |------|------|--------|
+| 5000-5999 | DVM Job Request (NIP-90) | Implemented (Epic 5, Story 5.1) |
+| 5100 | Text Generation DVM | Reference kind (Story 5.1) |
+| 5200 | Image Generation DVM | Defined (Story 5.1) |
+| 5300 | Text-to-Speech DVM | Defined (Story 5.1) |
+| 5302 | Translation DVM | Defined (Story 5.1) |
+| 6000-6999 | DVM Job Result (NIP-90) | Implemented (Epic 5, Story 5.3) |
+| 7000 | DVM Job Feedback (NIP-90) | Implemented (Epic 5, Story 5.3) |
 | 10032 | ILP Peer Info | Existing |
 | 10033 | TEE Attestation | Implemented (Epic 4, Stories 4.2/4.3/4.6) |
 | 10034 | TEE Verification | Reserved |
-| 10035 | Service Discovery | Implemented (Story 3.5) |
+| 10035 | Service Discovery | Implemented (Story 3.5, extended Story 5.4 with skill descriptors) |
 | 10036 | Seed Relay List | Implemented (Story 3.4) |
 | ~~23194~~ | ~~SPSP Request~~ | Removed (Story 2.7) |
 | ~~23195~~ | ~~SPSP Response~~ | Removed (Story 2.7) |
@@ -191,12 +200,26 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 - "USDC" not "AGENT" -- AGENT token eliminated in Story 3.1
 - "Attestation" not "verification" when referring to TEE state publication (kind:10033 is an attestation event)
 - "PCR" (Platform Configuration Register) -- SHA-384 hashes measured by TEE hardware
+- "DVM" (Data Vending Machine) -- NIP-90 compute marketplace protocol
+- "Skill descriptor" -- Structured metadata in kind:10035 events advertising DVM capabilities
 
-## @crosstown/core (Post-Epic 4)
+## @crosstown/core (Post-Epic 5)
 
-Core now includes chain configuration, x402 support, seed relay discovery, service discovery, TEE attestation events, attestation verification, KMS identity derivation, and Nix reproducible build infrastructure.
+Core now includes chain configuration, x402 support, seed relay discovery, service discovery, TEE attestation events, attestation verification, KMS identity derivation, Nix reproducible build infrastructure, and NIP-90 DVM event builders/parsers.
 
-**New Core Modules (Epic 4):**
+**New Core Modules (Epic 5):**
+
+```
+packages/core/src/
+├── events/
+│   └── dvm.ts                    # buildJobRequestEvent(), buildJobResultEvent(), buildJobFeedbackEvent(),
+│                                 # parseJobRequest(), parseJobResult(), parseJobFeedback() (Story 5.1)
+└── constants.ts                  # +JOB_REQUEST_KIND_BASE, JOB_RESULT_KIND_BASE, JOB_FEEDBACK_KIND,
+                                  #  TEXT_GENERATION_KIND, IMAGE_GENERATION_KIND, TEXT_TO_SPEECH_KIND,
+                                  #  TRANSLATION_KIND (Story 5.1)
+```
+
+**Core Modules (Epic 4):**
 
 ```
 packages/core/src/
@@ -212,7 +235,7 @@ packages/core/src/
     └── pcr-validator.ts          # verifyPcrReproducibility(), analyzeDockerfileForNonDeterminism() (Story 4.5)
 ```
 
-**Existing Core Modules (Epics 1-3 + infrastructure):**
+**Core Modules (Epics 1-3 + infrastructure):**
 
 ```
 packages/core/src/
@@ -227,10 +250,10 @@ packages/core/src/
 │   └── build-ilp-prepare.ts    # buildIlpPrepare() -- shared packet construction (Story 3.3)
 ├── events/
 │   ├── seed-relay.ts           # buildSeedRelayListEvent(), parseSeedRelayList() (Story 3.4)
-│   └── service-discovery.ts    # buildServiceDiscoveryEvent(), parseServiceDiscovery() (Story 3.5)
+│   └── service-discovery.ts    # buildServiceDiscoveryEvent(), parseServiceDiscovery(), SkillDescriptor type (Stories 3.5 + 5.4)
 ├── discovery/
 │   └── seed-relay-discovery.ts # SeedRelayDiscovery class, publishSeedRelayEntry() (Story 3.4)
-└── constants.ts                # ILP_PEER_INFO_KIND, SERVICE_DISCOVERY_KIND, SEED_RELAY_LIST_KIND, TEE_ATTESTATION_KIND
+└── constants.ts                # ILP_PEER_INFO_KIND, SERVICE_DISCOVERY_KIND, SEED_RELAY_LIST_KIND, TEE_ATTESTATION_KIND, DVM kind constants
 ```
 
 **Core Public API Additions (Epic 4):**
@@ -289,6 +312,45 @@ type AttestationBootstrapResult = { mode: 'attested' | 'degraded', attestedSeedR
 type AttestationBootstrapEvent = { type: 'attestation:seed-connected' | 'attestation:verified' | 'attestation:verification-failed' | 'attestation:peers-discovered' | 'attestation:degraded', ... }
 ```
 
+**Core Public API Additions (Epic 5):**
+
+```typescript
+// DVM Event Kind Constants (Story 5.1)
+JOB_REQUEST_KIND_BASE = 5000   // Base for job request range (5000-5999)
+JOB_RESULT_KIND_BASE = 6000    // Base for job result range (6000-6999)
+JOB_FEEDBACK_KIND = 7000       // Single kind for all job feedback
+TEXT_GENERATION_KIND = 5100    // Reference DVM kind for text generation
+IMAGE_GENERATION_KIND = 5200   // Image generation
+TEXT_TO_SPEECH_KIND = 5300     // Text-to-speech
+TRANSLATION_KIND = 5302        // Translation
+
+// DVM Event Builders (Story 5.1)
+buildJobRequestEvent(params: JobRequestParams, secretKey: Uint8Array): NostrEvent
+buildJobResultEvent(params: JobResultParams, secretKey: Uint8Array): NostrEvent
+buildJobFeedbackEvent(params: JobFeedbackParams, secretKey: Uint8Array): NostrEvent
+
+// DVM Event Parsers (Story 5.1)
+parseJobRequest(event: NostrEvent): ParsedJobRequest | null
+parseJobResult(event: NostrEvent): ParsedJobResult | null
+parseJobFeedback(event: NostrEvent): ParsedJobFeedback | null
+
+// DVM Types (Story 5.1)
+type DvmJobStatus = 'processing' | 'error' | 'success' | 'partial'
+type JobRequestParams = { kind, input: { data, type, relay?, marker? }, bid, output, content?, targetProvider?, params?, relays? }
+type JobResultParams = { kind, requestEventId, customerPubkey, amount, content }
+type JobFeedbackParams = { requestEventId, customerPubkey, status, content? }
+type ParsedJobRequest = { kind, input, bid, output, content, targetProvider?, params, relays }
+type ParsedJobResult = { kind, requestEventId, customerPubkey, amount, content }
+type ParsedJobFeedback = { requestEventId, customerPubkey, status, content }
+
+// Skill Descriptor Type (Story 5.4 -- defined in service-discovery.ts)
+type SkillDescriptor = { name, version, kinds: number[], features: string[], inputSchema, pricing: Record<string, string>, models?, attestation? }
+
+// Service Discovery Extended (Story 5.4)
+// ServiceDiscoveryContent now includes optional `skill?: SkillDescriptor` field
+// parseServiceDiscovery() validates SkillDescriptor when present (lenient parse)
+```
+
 **Core Public API (Epics 1-3 -- unchanged):**
 
 ```typescript
@@ -317,30 +379,31 @@ SERVICE_DISCOVERY_KIND = 10035
 SEED_RELAY_LIST_KIND = 10036
 ```
 
-## @crosstown/sdk (Epic 1 -- Complete)
+## @crosstown/sdk (Epics 1+5 -- Complete)
 
-The SDK is the main deliverable of Epic 1. It provides a developer-facing abstraction for building ILP-gated Nostr services with the Crosstown protocol.
+The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities. It provides a developer-facing abstraction for building ILP-gated Nostr services with the Crosstown protocol.
 
-**SDK Source Files:**
+**SDK Source Files (Post-Epic 5):**
 
 ```
 packages/sdk/src/
-├── index.ts                    # Public API exports
+├── index.ts                    # Public API exports (+ skill descriptor, SkillDescriptor re-export)
 ├── identity.ts                 # generateMnemonic(), fromMnemonic(), fromSecretKey()
 ├── errors.ts                   # IdentityError, NodeError, HandlerError, VerificationError, PricingError
-├── handler-registry.ts         # HandlerRegistry: .on(kind), .onDefault(), dispatch()
+├── handler-registry.ts         # HandlerRegistry: .on(kind), .onDefault(), dispatch(), getDvmKinds() (Story 5.4)
 ├── handler-context.ts          # HandlerContext: toon, kind, pubkey, amount, decode(), accept(), reject()
 ├── verification-pipeline.ts    # Schnorr verification (or devMode skip)
 ├── pricing-validator.ts        # Per-byte, per-kind pricing with self-write bypass
 ├── payment-handler-bridge.ts   # isTransit fire-and-forget vs await semantics
-├── create-node.ts              # createNode() composition + ServiceNode lifecycle
+├── create-node.ts              # createNode() composition + ServiceNode lifecycle + DVM methods (Stories 5.3, 5.4)
+├── skill-descriptor.ts         # buildSkillDescriptor() -- computes SkillDescriptor from registry (Story 5.4)
 ├── event-storage-handler.ts    # Stub -- throws, directs users to @crosstown/town
 └── __integration__/
     ├── create-node.test.ts
     └── network-discovery.test.ts
 ```
 
-**SDK Public API:**
+**SDK Public API (Post-Epic 5):**
 
 ```typescript
 // Identity
@@ -351,7 +414,10 @@ fromSecretKey(secretKey: Uint8Array): NodeIdentity
 // Node composition
 createNode(config: NodeConfig): ServiceNode
 
-// ServiceNode interface
+// Skill descriptor builder (Story 5.4)
+buildSkillDescriptor(registry: HandlerRegistry, config?: BuildSkillDescriptorConfig): SkillDescriptor | undefined
+
+// ServiceNode interface (extended in Epic 5)
 interface ServiceNode {
   pubkey: string;
   evmAddress: string;
@@ -364,6 +430,17 @@ interface ServiceNode {
   stop(): Promise<void>;
   peerWith(pubkey: string): Promise<void>;
   publishEvent(event: NostrEvent, options?: { destination: string }): Promise<PublishEventResult>;
+
+  // DVM methods (Epic 5)
+  publishFeedback(requestEventId, customerPubkey, status, content?, options?): Promise<PublishEventResult>;  // Story 5.3
+  publishResult(requestEventId, customerPubkey, amount, content, options?): Promise<PublishEventResult>;      // Story 5.3
+  settleCompute(resultEvent, providerIlpAddress, options?): Promise<IlpSendResult>;                          // Story 5.3
+  getSkillDescriptor(): SkillDescriptor | undefined;                                                          // Story 5.4
+}
+
+// HandlerRegistry additions (Epic 5)
+class HandlerRegistry {
+  getDvmKinds(): number[];  // Returns registered kinds in 5000-5999 range (Story 5.4)
 }
 ```
 
@@ -385,11 +462,22 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - `NodeConfig.basePricePerByte` JSDoc updated: amounts are in USDC micro-units (6 decimals) for production
 - Default `basePricePerByte` is 10n = 10 micro-USDC per byte = $0.00001/byte
 
-## @crosstown/town (Epics 2+3+4 -- Complete)
+**SDK Changes in Epic 5 (DVM Compute Marketplace):**
+- `NodeConfig.skillConfig` field added: optional overrides for auto-derived skill descriptors (Story 5.4)
+- `HandlerRegistry.getDvmKinds()` added: returns registered kinds in 5000-5999 range (Story 5.4)
+- `ServiceNode.publishFeedback()` added: builds Kind 7000 feedback event, delegates to `publishEvent()` (Story 5.3)
+- `ServiceNode.publishResult()` added: builds Kind 6xxx result event, delegates to `publishEvent()` (Story 5.3)
+- `ServiceNode.settleCompute()` added: pure ILP value transfer for compute payment (Story 5.3)
+- `ServiceNode.getSkillDescriptor()` added: computed from handler registry and config (Story 5.4)
+- `buildSkillDescriptor()` exported: auto-populates `SkillDescriptor` from registry's DVM kinds and pricing config (Story 5.4)
+- Zero production code changes required for DVM job submission (Story 5.2): pipeline is kind-agnostic
+- `direct-ilp-client.ts` fix: empty-data guard enables pure value transfers for compute settlement (Story 5.3)
 
-The Town package is the main deliverable of Epics 2 and 3, extended in Epic 4 with TEE health integration. It validates the SDK by reimplementing the Nostr relay as composable SDK handlers, with x402 HTTP payment on-ramp, service discovery, seed relay discovery, enriched health endpoints, and TEE attestation state reporting.
+## @crosstown/town (Epics 2+3+4+5 -- Complete)
 
-**Town Source Files (Post-Epic 4):**
+The Town package is the main deliverable of Epics 2 and 3, extended in Epic 4 with TEE health integration and in Epic 5 with DVM skill descriptor propagation. It validates the SDK by reimplementing the Nostr relay as composable SDK handlers, with x402 HTTP payment on-ramp, service discovery, seed relay discovery, enriched health endpoints, TEE attestation state reporting, and DVM capability advertisement.
+
+**Town Source Files (Post-Epic 5):**
 
 ```
 packages/town/src/
@@ -412,7 +500,7 @@ packages/town/src/
     └── x402-types.ts                   # EIP-3009 types, ABI, EIP-712 domain (Story 3.3)
 ```
 
-**Town Public API (Post-Epic 4):**
+**Town Public API (Post-Epic 5):**
 
 ```typescript
 // Lifecycle API
@@ -453,6 +541,9 @@ interface TownConfig {
   seedRelays?: string[];                  // public Nostr relay URLs
   publishSeedEntry?: boolean;             // default: false
   externalRelayUrl?: string;              // required if publishSeedEntry is true
+
+  // DVM (Epic 5)
+  skill?: SkillDescriptor;                // optional DVM skill descriptor for service discovery (Story 5.4)
 
   knownPeers?: KnownPeer[];
   dataDir?: string;                       // default: ./data
@@ -632,6 +723,117 @@ VALID (within validitySeconds, default 300s)
 | Test regressions | 0 |
 | New runtime dependencies | @scure/bip32, @scure/bip39 |
 
+## DVM Compute Marketplace (Epic 5 -- Complete)
+
+Epic 5 delivered the DVM (Data Vending Machine) Compute Marketplace foundation for the Crosstown protocol, enabling ILP-native compute job submission, result delivery, settlement, and programmatic agent-to-agent service discovery.
+
+**Epic 5 Stories:**
+| Story | Title | Package | Deliverables |
+|-------|-------|---------|-------------|
+| 5-1 | DVM Event Kind Definitions | core | NIP-90 builders/parsers, kind constants (5xxx, 6xxx, 7000) |
+| 5-2 | ILP-Native Job Submission | sdk (tests only) | Validation that pipeline handles Kind 5xxx events with zero production code changes |
+| 5-3 | Job Result Delivery and Compute Settlement | sdk + core | publishFeedback(), publishResult(), settleCompute(), direct-ilp-client empty-data fix |
+| 5-4 | Skill Descriptors in Service Discovery | core + sdk + town | SkillDescriptor type, buildSkillDescriptor(), getDvmKinds(), kind:10035 skill field |
+
+**Key Architectural Insights:**
+
+- **Zero production code changes for job submission (Story 5.2):** The SDK pipeline is genuinely kind-agnostic. Kind 5xxx events flow through the same shallow parse -> verify -> price -> dispatch pipeline as all other events. This validates the Epic 1 architectural bet.
+- **Pure value transfers expand ILP's role (Story 5.3):** `settleCompute()` sends ILP packets with empty data -- payment without event payload. The `direct-ilp-client.ts` fix (`data.length > 0` guard) separates payment from data carriage: event publishing carries both, compute settlement carries payment alone.
+- **Skill descriptors enable automated agent marketplace (Story 5.4):** Agents discover providers via kind:10035, inspect `inputSchema` (JSON Schema draft-07), compare pricing, and construct valid job requests without human intermediation.
+
+**DVM Event Architecture (NIP-90):**
+
+```
+Customer                    Provider                    Customer
+   │                           │                           │
+   │  Kind 5xxx (Job Request)  │                           │
+   │  tags: i, bid, output     │                           │
+   │ ─────────────────────────►│                           │
+   │                           │                           │
+   │  Kind 7000 (Feedback)     │                           │
+   │  status: 'processing'     │                           │
+   │◄───────────────────────── │                           │
+   │                           │                           │
+   │  Kind 6xxx (Job Result)   │                           │
+   │  tags: e, p, amount       │                           │
+   │◄───────────────────────── │                           │
+   │                           │                           │
+   │  settleCompute()          │                           │
+   │  (pure ILP value transfer)│                           │
+   │ ─────────────────────────►│                           │
+```
+
+- **Kind 5xxx tags (required):** `['i', data, type, relay?, marker?]`, `['bid', amount, 'usdc']`, `['output', mimeType]`
+- **Kind 5xxx tags (optional):** `['p', targetProvider]`, `['param', key, value]`, `['relays', url1, ...]`
+- **Kind 6xxx tags (required):** `['e', requestEventId]`, `['p', customerPubkey]`, `['amount', cost, 'usdc']`
+- **Kind 7000 tags (required):** `['e', requestEventId]`, `['p', customerPubkey]`, `['status', statusValue]`
+- **Crosstown extension:** `bid` and `amount` tags include a third element `'usdc'` for explicit currency declaration (NIP-90 uses satoshis; Crosstown uses USDC micro-units)
+
+**Skill Descriptor (Story 5.4):**
+
+```typescript
+// Embedded in kind:10035 ServiceDiscoveryContent.skill field
+interface SkillDescriptor {
+  name: string;           // e.g., 'crosstown-dvm'
+  version: string;        // e.g., '1.0'
+  kinds: number[];        // supported DVM kinds, e.g., [5100, 5200]
+  features: string[];     // capability list, e.g., ['text-generation', 'streaming']
+  inputSchema: Record<string, unknown>;  // JSON Schema draft-07 for job request params
+  pricing: Record<string, string>;       // kind (as string) -> USDC micro-units cost (as string)
+  models?: string[];      // available AI models, e.g., ['gpt-4', 'claude-3']
+  attestation?: Record<string, unknown>; // placeholder for Epic 6 TEE attestation
+}
+```
+
+- **Auto-derived from registry:** `buildSkillDescriptor()` reads `registry.getDvmKinds()` and maps pricing from `kindPricing` overrides or `basePricePerByte` fallback
+- **Returns `undefined` when no DVM handlers registered:** Backward compatible with pre-DVM kind:10035 events
+- **`getSkillDescriptor()` reads live:** Computed on each call from current registry state. No auto-re-publication on handler change (deferred to Epic 6 A11).
+- **Town integration:** `TownConfig.skill` passes the descriptor to `buildServiceDiscoveryEvent()` which includes it in the `skill` field of the JSON content
+
+**Compute Settlement (Story 5.3):**
+
+```typescript
+// settleCompute() flow:
+// 1. parseJobResult(resultEvent) -> extract amount from 'amount' tag
+// 2. Validate amount is non-negative numeric string
+// 3. Optional E5-R005 bid validation: amount <= originalBid
+// 4. ilpClient.sendIlpPacket({ destination: providerIlpAddress, amount, data: '' })
+//    Empty data = pure value transfer (no TOON event payload)
+```
+
+- **Bid validation (E5-R005):** Optional `originalBid` parameter. If provided, `settleCompute()` rejects if `amount > originalBid` (overcharge protection)
+- **Direct ILP client fix:** `data.length > 0` guard in `createDirectIlpClient()` skips execution condition computation for empty-data packets
+- **publishFeedback() and publishResult()** are thin wrappers: build the appropriate event with `buildJobFeedbackEvent()`/`buildJobResultEvent()`, then delegate to `publishEvent()` for TOON encoding and ILP delivery
+
+**Docker E2E Test Infrastructure (Epic 5):**
+
+```
+packages/sdk/tests/e2e/
+├── docker-publish-event-e2e.test.ts      # Event publishing (migrated from mocks to Docker)
+├── docker-dvm-submission-e2e.test.ts     # DVM job submission (11 tests, Story 5.2)
+├── docker-dvm-lifecycle-e2e.test.ts      # DVM lifecycle (16 tests, Story 5.3)
+└── helpers/
+    └── docker-e2e-setup.ts               # Shared constants, ABIs, node factories, health checks
+```
+
+- **No-mock integration policy:** All SDK integration/E2E tests use real Docker containers via `sdk-e2e-infra.sh`. `MockEmbeddedConnector` eliminated.
+- **Shared helper module:** `docker-e2e-setup.ts` extracts contract ABIs, deterministic addresses, test key derivation, and node factory functions used across all Docker E2E test files.
+
+**Epic 5 Metrics (Final -- 4/4 stories):**
+
+| Metric | Value |
+|--------|-------|
+| Stories delivered | 4/4 (100%) |
+| Acceptance criteria | 27 total, 27 covered (100%) |
+| Story-specific tests | 279 |
+| Monorepo test count (start) | 1,843 passed / 79 skipped (1,922 total) |
+| Monorepo test count (end) | 2,095 passed / 79 skipped (2,174 total) |
+| Code review issues | 33 found, 24 fixed, 9 acknowledged, 0 remaining |
+| Security scan findings (production) | 0 |
+| NFR assessments | 4/4 PASS (second 100% consecutive epic) |
+| Test regressions | 0 |
+| New runtime dependencies | 0 |
+
 ## Critical Implementation Rules
 
 ### Language-Specific Rules (TypeScript)
@@ -718,7 +920,18 @@ VALID (within validitySeconds, default 300s)
 - **Requires node to be started** -- Throws `NodeError` if called before `start()`
 - **Requires destination** -- Throws `NodeError` if `options.destination` is missing
 
-### Town-Specific Rules (Epics 2+3+4)
+**DVM Lifecycle Methods (Epic 5):**
+
+- **`publishFeedback()` is a thin wrapper** -- Builds Kind 7000 event via `buildJobFeedbackEvent()`, delegates to `publishEvent()`. Standard relay write fee applies.
+- **`publishResult()` is a thin wrapper** -- Builds Kind 6xxx event via `buildJobResultEvent()`, delegates to `publishEvent()`. Default result kind is 6100 (text generation = 5100 + 1000).
+- **`settleCompute()` sends pure ILP value transfer** -- Extracts amount from result event via `parseJobResult()`, sends empty-data ILP packet. No TOON encoding, no relay write.
+- **`settleCompute()` validates amount format** -- Catches non-numeric amounts before they reach the ILP layer (throws `NodeError` instead of confusing `BootstrapError`)
+- **`settleCompute()` bid validation is optional** -- `options.originalBid` enables E5-R005 overcharge protection: rejects if `amount > originalBid`
+- **`getSkillDescriptor()` is computed on demand** -- Calls `buildSkillDescriptor(registry, config)` on each invocation. Not cached.
+- **`NodeConfig.skillConfig`** -- Optional overrides for auto-derived skill descriptor fields (name, version, features, inputSchema, models). Pricing fields are always derived from `basePricePerByte`/`kindPricing`.
+- **`HandlerRegistry.getDvmKinds()`** -- Filters `getRegisteredKinds()` to 5000-5999 range. Used by `buildSkillDescriptor()` to auto-populate the `kinds` field.
+
+### Town-Specific Rules (Epics 2+3+4+5)
 
 **Handler Implementation Pattern:**
 
@@ -810,6 +1023,47 @@ VALID (within validitySeconds, default 300s)
 - **Degraded mode is explicitly signaled** -- `console.warn()` + `attestation:degraded` event + `{ mode: 'degraded' }` result
 - **secretKey stored in config but not accessed by bootstrap()** -- Reserved for future subscription signing; maintained for API consistency
 
+### DVM-Specific Rules (Epic 5)
+
+**DVM Event Builders (Story 5.1):**
+
+- **Kind 5xxx request validation:** kind must be 5000-5999, input.data allows empty string (not undefined/null), input.type required, bid must be non-empty string, output MIME type required
+- **Kind 6xxx result validation:** kind must be 6000-6999, requestEventId must be 64-char hex, customerPubkey must be 64-char hex, amount must be non-empty string
+- **Kind 7000 feedback validation:** requestEventId/customerPubkey must be 64-char hex, status must be one of: processing, error, success, partial
+- **targetProvider validation in builders:** throws `CrosstownError` with `DVM_INVALID_PUBKEY` code for non-hex pubkeys
+- **Currency declaration:** Crosstown extends NIP-90 with `'usdc'` as third element in `bid` and `amount` tags (NIP-90 uses satoshis)
+- **All amounts are strings** -- USDC micro-units (6 decimals), bigint-compatible. Not numbers (precision loss), not BigInt (JSON incompatible).
+
+**DVM Event Parsers (Story 5.1):**
+
+- **Lenient parse pattern** -- Returns `null` for malformed events (consistent with `parseServiceDiscovery()`, `parseAttestation()`)
+- **`parseJobRequest()` validates targetProvider hex** -- Returns null (not throws) for non-64-char-hex provider pubkeys
+- **`parseJobRequest()` extracts all optional tags** -- params (array of key-value), relays (array of URLs), targetProvider
+- **`parseJobResult()` does NOT validate amount format** -- Non-numeric amounts pass parsing but are caught by `settleCompute()`'s BigInt guard (known gap, Epic 5 retro A7)
+- **`parseJobFeedback()` validates status enum** -- Returns null for unknown status values
+
+**DVM Pipeline Behavior (Story 5.2):**
+
+- **Kind 5xxx events use the standard pipeline** -- Shallow parse -> verify -> price -> dispatch. No DVM-specific pipeline stages.
+- **Per-kind pricing applies to DVM kinds** -- `kindPricing[5100]` overrides `basePricePerByte` for text generation requests
+- **Self-write bypass applies** -- Provider nodes don't pay to write their own kind:6xxx results
+
+**Compute Settlement (Story 5.3):**
+
+- **Empty-data ILP packets** -- `data: ''` in `sendIlpPacket()` signals pure value transfer. `createDirectIlpClient()` skips execution condition computation when `data.length === 0`.
+- **settleCompute() requires started node** -- Throws `NodeError` if called before `start()`
+- **settleCompute() validates providerIlpAddress** -- Non-empty, non-whitespace string required
+- **Bid validation is customer-side** -- Provider cannot override the check; customer's `originalBid` parameter controls whether overcharge is allowed
+
+**Skill Descriptors (Story 5.4):**
+
+- **`buildSkillDescriptor()` returns `undefined` when no DVM handlers** -- Backward compatible with pre-DVM nodes
+- **`SkillDescriptor.pricing` uses string keys and string values** -- Kind numbers as strings (JSON keys must be strings), amounts as strings (bigint-compatible)
+- **`Object.hasOwn()` for kindPricing lookup** -- Prototype-safe access pattern (consistent with pricing validator)
+- **`parseServiceDiscovery()` validates skill field** -- All SkillDescriptor fields validated with type guards; invalid skill field -> returns null
+- **Town propagation:** `TownConfig.skill` -> `serviceDiscoveryContent.skill` -> `buildServiceDiscoveryEvent()` -> kind:10035 event
+- **attestation field is placeholder** -- Reserved for Epic 6 Story 6.3 (TEE-attested DVM results)
+
 ### Chain Configuration Rules (Epic 3)
 
 **resolveChainConfig() (Story 3.2):**
@@ -835,7 +1089,7 @@ VALID (within validitySeconds, default 300s)
 
 - **Always mock SimplePool in tests** -- Never connect to live relays in unit or integration tests (use `vi.mock('nostr-tools')`)
 - **Validate event signatures before processing** -- Never trust unsigned/unverified Nostr events
-- **Use proper event kinds** -- Kind 10032 (ILP Peer Info), Kind 10033 (TEE Attestation), Kind 10035 (Service Discovery), Kind 10036 (Seed Relay List). Kinds 23194/23195 (SPSP) have been removed (Story 2.7)
+- **Use proper event kinds** -- Kind 10032 (ILP Peer Info), Kind 10033 (TEE Attestation), Kind 10035 (Service Discovery), Kind 10036 (Seed Relay List), Kinds 5000-5999 (DVM Job Request), Kinds 6000-6999 (DVM Job Result), Kind 7000 (DVM Job Feedback). Kinds 23194/23195 (SPSP) have been removed (Story 2.7)
 - **NIP-44 encryption** -- Available for private event exchange when needed
 - **SimplePool `ReferenceError: window is not defined` is non-fatal** -- This error appears in Node.js but doesn't break functionality
 - **Use raw `ws` WebSocket for server-side relay communication** -- SeedRelayDiscovery and attestation server avoid SimplePool for Node.js compatibility
@@ -874,39 +1128,50 @@ VALID (within validitySeconds, default 300s)
 
 ### Testing Rules
 
-**Test Organization:**
+**Test Organization (Three-Tier, No-Mock Integration Policy):**
 
-- **Co-locate unit tests** -- `*.test.ts` files next to source files in same directory
-- **Integration tests in `__integration__/`** -- Multi-component tests go in `packages/*/src/__integration__/`
+- **Co-locate unit tests** -- `*.test.ts` files next to source files in same directory. Mocks allowed here only.
+- **Integration tests in `__integration__/`** -- Multi-component tests go in `packages/*/src/__integration__/`. **MUST use real Docker container infrastructure — no mocks for ILP, BTP, relay, or EVM boundaries.** Uses `sdk-e2e-infra.sh` or genesis node.
+- **E2E tests use separate config** -- `vitest.e2e.config.ts` for full-lifecycle end-to-end tests (e.g., `packages/client/tests/e2e/`, `packages/town/tests/e2e/`, `packages/sdk/tests/e2e/`)
+- **Integration vs E2E distinction** -- Integration tests verify a *single boundary crossing* (e.g., SDK submits event via ILP, relay stores it). E2E tests verify *complete user journeys* (e.g., submit job → receive → result → settle → verify on-chain). Both use real Docker containers; the difference is scope, not infrastructure.
 - **SDK integration tests use separate vitest config** -- `vitest.integration.config.ts` with 30s timeout
-- **E2E tests use separate config** -- `vitest.e2e.config.ts` for end-to-end tests (e.g., `packages/client/tests/e2e/`, `packages/town/tests/e2e/`)
 - **Test file naming** -- Match source file name with `.test.ts` suffix (e.g., `handler-registry.test.ts`)
-- **Town E2E tests require genesis node infrastructure** -- Gracefully skip via `servicesReady`/`genesisReady` flags when infra is unavailable
+- **Graceful skip when infra unavailable** -- Integration and E2E tests check Docker service health at startup, skip gracefully via `servicesReady`/`genesisReady`/`skipIfNotReady()` flags when containers aren't running. Tests must document which infra they require (`sdk-e2e-infra.sh up` or `deploy-genesis-node.sh`).
 - **Static analysis tests for infrastructure files (Epic 4)** -- Tests read Docker compose, supervisord.conf, Dockerfile, and Nix flake files as strings, parse, and assert structural properties
 
 **Test Framework (Vitest):**
 
-- **Use Vitest built-in mocking** -- `vi.fn()`, `vi.mock()`, `vi.spyOn()` (not jest)
+- **Use Vitest built-in mocking in unit tests only** -- `vi.fn()`, `vi.mock()`, `vi.spyOn()` (not jest). Mocking is restricted to co-located unit tests (`*.test.ts`). Integration and E2E tests must not mock infrastructure boundaries.
 - **Follow AAA pattern** -- Arrange, Act, Assert structure in all tests
 - **Use describe/it blocks** -- Group related tests with `describe()`, individual tests with `it()`
 - **Async test handling** -- Use `async` functions, properly await all promises
 
-**Mock Usage:**
+**Mock Usage (Unit Tests ONLY):**
 
-- **Always mock SimplePool** -- Use `vi.mock('nostr-tools')` to prevent live relay connections
-- **Mock external dependencies** -- HTTP clients, file system, network calls must be mocked in unit tests
-- **Factory functions for test data** -- Create helper functions for generating valid test events with proper signatures
-- **In-memory databases for unit tests** -- Use SQLite `:memory:` for isolated, fast tests
-- **SDK tests mock connectors** -- Use structural `EmbeddableConnectorLike` mock with `vi.fn()` for sendPacket, registerPeer, etc.
-- **x402 tests use injectable settlement** -- `config.settle` and `config.runPreflightFn` allow test-specific mocks without touching viem
-- **TEE tests use DI callbacks** -- `AttestationBootstrap` uses injected `queryAttestation` and `subscribePeers` for testability
-- **Nix build tests mock child_process** -- `vi.mock('node:child_process')` to test NixBuilder without requiring Nix installation
+- **NEVER mock infrastructure in integration or E2E tests** -- No `MockEmbeddedConnector`, no `vi.mock()` for BTP, ILP, relay, or EVM in `__integration__/` or `tests/e2e/` directories. If a test needs ILP/BTP/relay/EVM, it uses real Docker containers.
+- **Mocks are restricted to co-located unit tests (`*.test.ts`)** -- Unit tests may mock external dependencies for speed and isolation
+- **Always mock SimplePool in unit tests** -- Use `vi.mock('nostr-tools')` to prevent live relay connections in unit tests only
+- **Mock external dependencies in unit tests** -- HTTP clients, file system, network calls must be mocked in unit tests
+- **Factory functions for test data** -- Create helper functions for generating valid test events with proper signatures (allowed in all test tiers)
+- **In-memory databases for unit tests** -- Use SQLite `:memory:` for isolated, fast unit tests
+- **x402 unit tests use injectable settlement** -- `config.settle` and `config.runPreflightFn` allow test-specific mocks without touching viem
+- **TEE unit tests use DI callbacks** -- `AttestationBootstrap` uses injected `queryAttestation` and `subscribePeers` for testability
+- **Nix build unit tests mock child_process** -- `vi.mock('node:child_process')` to test NixBuilder without requiring Nix installation
 
-**Two-Approach Handler Testing (Epic 2 Pattern):**
+**Docker Container Test Infrastructure:**
 
-- **Approach A: Unit tests with `createTestContext`** -- Isolated handler logic testing, mocked EventStore and dependencies
-- **Approach B: Pipeline integration with `createNode().start()`** -- End-to-end handler behavior within the SDK pipeline
-- **Approach A catches handler-level issues, Approach B catches composition and lifecycle issues**
+- **`sdk-e2e-infra.sh`** -- Provides Anvil (18545) + Peer1 (BTP:19000, BLS:19100, Relay:19700) + Peer2 (BTP:19010, BLS:19110, Relay:19710). Required for integration and E2E tests.
+- **`deploy-genesis-node.sh`** -- Alternative infra for Town E2E tests. Provides genesis stack (BLS:3100, Relay:7100, Anvil:8545, Faucet:3500).
+- **Integration tests follow the `docker-publish-event-e2e.test.ts` pattern** -- Real ConnectorNode, real BTP peering, real relay WebSocket, real Anvil settlement. See `packages/sdk/tests/e2e/docker-publish-event-e2e.test.ts` as the canonical example. DVM tests in `docker-dvm-submission-e2e.test.ts` and `docker-dvm-lifecycle-e2e.test.ts` extend this pattern.
+- **Shared Docker E2E helpers** -- `packages/sdk/tests/e2e/helpers/docker-e2e-setup.ts` extracts constants, ABIs, node factories, and health checks shared across all Docker E2E test files (Epic 5 migration).
+- **Health check before test execution** -- All integration/E2E test suites must verify Docker service health in `beforeAll` and skip gracefully if unavailable.
+- **CI pipeline must start Docker infra** -- `sdk-e2e-infra.sh up` runs before integration test suite in CI.
+
+**Two-Approach Handler Testing (Epic 2 Pattern, Updated):**
+
+- **Approach A: Unit tests with `createTestContext`** -- Isolated handler logic testing, mocked EventStore and dependencies. Co-located `*.test.ts` files.
+- **Approach B: Integration tests against Docker infra** -- Handler behavior validated through real ILP packet delivery, real relay storage, real BTP connectors. Lives in `__integration__/` directory. No mocks for infrastructure boundaries.
+- **Approach A catches handler-level logic issues, Approach B proves the handler works in the real system**
 
 **Static Analysis Tests (Epics 2+3+4 Pattern):**
 
@@ -926,8 +1191,10 @@ VALID (within validitySeconds, default 300s)
 
 **Critical Testing Rules:**
 
-- **No live relays in CI** -- Tests must pass without external network dependencies
-- **Cleanup resources in teardown** -- Close database connections, clear mocks with `vi.clearAllMocks()`
+- **NEVER use mocks in integration tests** -- If a test is in `__integration__/` or `tests/e2e/`, it must use real Docker containers. `MockEmbeddedConnector` and similar mock infrastructure classes are forbidden in integration/E2E tests. This is the single most important testing rule.
+- **No live external relays in CI** -- Tests use local Docker relay containers, not external network relays
+- **Docker infra required for integration + E2E** -- `sdk-e2e-infra.sh up` or `deploy-genesis-node.sh` must run before integration/E2E suites
+- **Cleanup resources in teardown** -- Close database connections, stop nodes, clear mocks with `vi.clearAllMocks()`
 - **Test isolation** -- Each test should be independent, no shared state between tests
 - **Deterministic test data** -- Use fixed timestamps, keys, and IDs (not random values)
 - **Lint-check ATDD stubs immediately after creation** -- Prevents deferred lint debt (learned from Epic 2 Story 2-2's 53 ESLint errors)
@@ -958,20 +1225,20 @@ VALID (within validitySeconds, default 300s)
 
 **Naming Conventions:**
 
-- **Files (source):** PascalCase for classes, kebab-case for utilities and SDK modules (`BusinessLogicServer.ts`, `handler-registry.ts`, `create-node.ts`, `town.ts`, `x402-publish-handler.ts`, `AttestationVerifier.ts`, `AttestationBootstrap.ts`, `nix-builder.ts`, `pcr-validator.ts`, `kms-identity.ts`)
-- **Files (test):** Match source with `.test.ts` suffix (`handler-registry.test.ts`, `town.test.ts`, `attestation.test.ts`, `kms-identity.test.ts`, `nix-reproducibility.test.ts`, `attestation-bootstrap.test.ts`)
+- **Files (source):** PascalCase for classes, kebab-case for utilities and SDK modules (`BusinessLogicServer.ts`, `handler-registry.ts`, `create-node.ts`, `town.ts`, `x402-publish-handler.ts`, `AttestationVerifier.ts`, `AttestationBootstrap.ts`, `nix-builder.ts`, `pcr-validator.ts`, `kms-identity.ts`, `dvm.ts`, `skill-descriptor.ts`)
+- **Files (test):** Match source with `.test.ts` suffix (`handler-registry.test.ts`, `town.test.ts`, `attestation.test.ts`, `kms-identity.test.ts`, `nix-reproducibility.test.ts`, `attestation-bootstrap.test.ts`, `dvm.test.ts`, `skill-descriptor.test.ts`, `dvm-handler-dispatch.test.ts`, `dvm-lifecycle.test.ts`)
 - **Classes:** PascalCase (`SocialPeerDiscovery`, `HandlerRegistry`, `SeedRelayDiscovery`, `AttestationVerifier`, `AttestationBootstrap`, `NixBuilder`)
-- **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`, `ChainPreset`, `ServiceDiscoveryContent`, `TeeAttestation`, `ParsedAttestation`, `AttestationVerifierConfig`, `KmsKeypair`, `NixBuildResult`, `PcrReproducibilityResult`, `TeeHealthInfo`)
+- **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`, `ChainPreset`, `ServiceDiscoveryContent`, `TeeAttestation`, `ParsedAttestation`, `AttestationVerifierConfig`, `KmsKeypair`, `NixBuildResult`, `PcrReproducibilityResult`, `TeeHealthInfo`, `JobRequestParams`, `JobResultParams`, `JobFeedbackParams`, `ParsedJobRequest`, `ParsedJobResult`, `ParsedJobFeedback`, `SkillDescriptor`, `BuildSkillDescriptorConfig`)
 - **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`, `startTown`, `resolveChainConfig`, `buildIlpPrepare`, `deriveFromKmsSeed`, `verifyPcrReproducibility`, `analyzeDockerfileForNonDeterminism`)
 - **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `createEventStorageHandler`, `createX402Handler`, `createHealthResponse`)
 - **Lifecycle functions:** `start*` prefix (`startTown`)
-- **Builder functions:** `build*` prefix (`buildIlpPrepare`, `buildSeedRelayListEvent`, `buildServiceDiscoveryEvent`, `buildEip712Domain`, `buildIlpPeerInfoEvent`, `buildAttestationEvent`)
-- **Parser functions:** `parse*` prefix (`parseSeedRelayList`, `parseServiceDiscovery`, `parseIlpPeerInfo`, `parseAttestation`)
+- **Builder functions:** `build*` prefix (`buildIlpPrepare`, `buildSeedRelayListEvent`, `buildServiceDiscoveryEvent`, `buildEip712Domain`, `buildIlpPeerInfoEvent`, `buildAttestationEvent`, `buildJobRequestEvent`, `buildJobResultEvent`, `buildJobFeedbackEvent`, `buildSkillDescriptor`)
+- **Parser functions:** `parse*` prefix (`parseSeedRelayList`, `parseServiceDiscovery`, `parseIlpPeerInfo`, `parseAttestation`, `parseJobRequest`, `parseJobResult`, `parseJobFeedback`)
 - **Derivation functions:** `derive*` prefix (`deriveFromKmsSeed`)
 - **Verification functions:** `verify*` prefix (`verifyPcrReproducibility`)
-- **Constants:** UPPER_SNAKE_CASE (`ILP_PEER_INFO_KIND`, `MAX_PAYLOAD_BASE64_LENGTH`, `SERVICE_DISCOVERY_KIND`, `SEED_RELAY_LIST_KIND`, `MOCK_USDC_ADDRESS`, `USDC_DECIMALS`, `TEE_ATTESTATION_KIND`)
+- **Constants:** UPPER_SNAKE_CASE (`ILP_PEER_INFO_KIND`, `MAX_PAYLOAD_BASE64_LENGTH`, `SERVICE_DISCOVERY_KIND`, `SEED_RELAY_LIST_KIND`, `MOCK_USDC_ADDRESS`, `USDC_DECIMALS`, `TEE_ATTESTATION_KIND`, `JOB_REQUEST_KIND_BASE`, `JOB_RESULT_KIND_BASE`, `JOB_FEEDBACK_KIND`, `TEXT_GENERATION_KIND`, `IMAGE_GENERATION_KIND`, `TEXT_TO_SPEECH_KIND`, `TRANSLATION_KIND`)
 - **Enums:** PascalCase names, string values (`AttestationState.VALID = 'valid'`)
-- **Type aliases:** PascalCase (`TrustScore`, `BootstrapPhase`, `ToonRoutingMeta`, `ResolvedTownConfig`, `ChainName`, `AttestationBootstrapEvent`)
+- **Type aliases:** PascalCase (`TrustScore`, `BootstrapPhase`, `ToonRoutingMeta`, `ResolvedTownConfig`, `ChainName`, `AttestationBootstrapEvent`, `DvmJobStatus`)
 - **Event types:** Discriminated unions with `type` field (`BootstrapEvent`, `AttestationBootstrapEvent`)
 
 **Code Organization:**
@@ -988,7 +1255,7 @@ VALID (within validitySeconds, default 300s)
 - **Identity subdirectory** -- Core identity derivation in `src/identity/` (kms-identity.ts)
 - **Build subdirectory** -- Core Nix build infrastructure in `src/build/` (nix-builder.ts, pcr-validator.ts)
 - **Bootstrap subdirectory** -- Core attestation classes in `src/bootstrap/` (AttestationVerifier.ts, AttestationBootstrap.ts alongside BootstrapService.ts)
-- **Events subdirectory** -- Core event builders/parsers in `src/events/` (attestation.ts alongside seed-relay.ts, service-discovery.ts)
+- **Events subdirectory** -- Core event builders/parsers in `src/events/` (attestation.ts, dvm.ts, seed-relay.ts, service-discovery.ts)
 - **tsconfig.json excludes** -- Root tsconfig excludes `packages/rig` and `archive`
 
 **Documentation:**
@@ -1005,7 +1272,7 @@ VALID (within validitySeconds, default 300s)
 **Git/Repository:**
 
 - **Main branch:** `main` (default for PRs)
-- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics, `epic-4` for TEE)
+- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics, `epic-4` for TEE, `epic-5` for DVM)
 - **Monorepo with pnpm workspaces** -- All packages managed together
 - **Conventional commits** -- Use prefixes: `feat(story):`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`
 - **Story-scoped commits** -- `feat(4-2): TEE attestation events`
@@ -1071,7 +1338,7 @@ VALID (within validitySeconds, default 300s)
 - **NEVER use property access on index signatures** -- Use bracket notation `obj['key']` not `obj.key`
 - **NEVER return response objects from handlers** -- Use `ctx.accept()` / `ctx.reject()` methods (exception: handlers returning data in ILP FULFILL return directly)
 - **NEVER decode TOON before verification** -- Shallow parse first, verify, then optionally decode (correctness requirement)
-- **NEVER use `exec()` for git operations** -- Use `execFile()` to prevent command injection (Rig, Epic 5)
+- **NEVER use `exec()` for git operations** -- Use `execFile()` to prevent command injection (Rig, Epic 7)
 - **NEVER reference AGENT token** -- AGENT eliminated in Story 3.1; production uses USDC on Arbitrum One
 - **NEVER call the BLS a public-facing component** -- BLS handles only `/handle-packet`; the Crosstown node owns all public endpoints
 - **NEVER use `!body.amount` for validation** -- Fails for amount=0 (truthiness bug). Use `=== undefined || === null`
@@ -1101,6 +1368,13 @@ VALID (within validitySeconds, default 300s)
 - **AttestationBootstrap: verification-failed event is overloaded** -- Same event type emitted for both attestation verification failures and subscribePeers errors (known simplification, Story 4.6 CR#3)
 - **NixBuilder PCR values for small images** -- When image <= 1MB, PCR1 === PCR0 and PCR2 uses domain separator prefix ('pcr2:')
 - **attestation-server reads TEE_ENABLED once at startup** -- Env var changes after process start are not reflected
+- **DVM amounts are strings, not numbers or BigInt** -- USDC micro-units as strings for bigint compatibility and JSON serialization safety
+- **parseJobResult() accepts non-numeric amounts** -- Known gap; settleCompute()'s BigInt guard catches them with NodeError (Epic 5 retro A7)
+- **settleCompute() sends empty-data ILP packets** -- `data: ''` signals pure value transfer; direct-ilp-client skips execution condition computation
+- **publishFeedback() and publishResult() delegate to publishEvent()** -- Standard relay write fee applies (basePricePerByte * toonData.length), NOT the DVM compute amount
+- **Default result kind is 6100** -- publishResult() defaults to 6100 (text generation result = 5100 + 1000) when `options.kind` is not specified
+- **getSkillDescriptor() is computed on each call** -- Not cached; reads live registry state. Callers should cache if needed.
+- **kind:10035 skill field is omitted for non-DVM nodes** -- Same omission semantics as x402 and TEE fields
 
 **Security Rules:**
 
@@ -1160,31 +1434,44 @@ VALID (within validitySeconds, default 300s)
 - **Nix flake requires x86_64-linux** -- Docker image output is system-specific (`packages.x86_64-linux.docker-image`)
 - **flake.lock pins all inputs** -- Must be committed to version control for reproducibility
 - **Connector is external in Oyster CVM** -- Accessed via CONNECTOR_URL and CONNECTOR_ADMIN_URL env vars
+- **DVM job events use standard SDK pipeline** -- Kind 5xxx events flow through the same pipeline as all other kinds (shallow parse -> verify -> price -> dispatch). No DVM-specific pipeline stages.
+- **ILP layer supports both data-bearing and data-free payments** -- Event publishing: payment + data together. Compute settlement: payment alone (empty data). The `direct-ilp-client.ts` `data.length > 0` guard enables this.
+- **Skill descriptors extend kind:10035, not a new event kind** -- DVM capabilities are embedded in the existing service discovery event type via the `skill` field
+- **NIP-90 currency extension** -- Crosstown adds `'usdc'` as third element in `bid` and `amount` tags. Standard NIP-90 uses satoshis. The currency tag enables cross-ecosystem interoperability.
+- **Docker E2E tests share helpers** -- `docker-e2e-setup.ts` contains shared constants, ABIs, node factories, and health checks used by all SDK E2E test files
 
 ---
 
-## Known Action Items (From Epic 4 Final Retro)
+## Known Action Items (From Epic 5 Final Retro)
 
-**Must-Do for Epic 5:**
-- ~~A1: Set up genesis node in CI~~ RESOLVED (CI pipeline enhanced with security audit, format check, SDK E2E infra, deploy script CI-compatible)
-- ~~A2: Replace `console.error` with structured logger~~ RESOLVED (`createLogger()` in `@crosstown/core/logger.ts`, 17 tests)
-- ~~A3: Deploy FiatTokenV2_2 on Anvil~~ RESOLVED (`scripts/deploy-mock-usdc.sh` deploys 6-decimal EIP-3009 compatible mock USDC)
-- A5: Commit flake.lock to version control (Nix reproducibility requires it) -- deferred: requires Nix installation
+**Must-Do for Epic 6:**
+- A1: Standardize test counting between pipeline steps -- Story 5-1 showed -16 discrepancy between post-dev and regression counts
+- ~~A2: Update project-context.md DVM event kinds table~~ RESOLVED (this regeneration)
+- A3: Enforce ATDD RED-phase discipline -- ATDD step should produce failing tests only, never production code (Story 5-4 deviation)
 
 **Should-Do:**
-- ~~A4: Create project-level semgrep configuration~~ RESOLVED (`.semgrep.yml` + `.semgrepignore`)
-- ~~A6: Address transitive dependency vulnerabilities~~ RESOLVED (pnpm.overrides patched 12 vulns, `.pnpmauditrc` documents remaining transitive deps)
-- ~~A7: Wire viem clients in startTown() for production x402~~ RESOLVED (Quick-Spec wire-viem-x402-town)
-- A8: Set up facilitator ETH monitoring for x402 gas payments
-- ~~A9: Refactor SDK publishEvent() to use shared buildIlpPrepare()~~ RESOLVED (publishEvent now calls `buildIlpPrepare()` from core)
-- ~~A10: Update Docker entrypoint-town.ts for new Epic 3 config fields + migrate to createHealthResponse()~~ RESOLVED (health endpoint uses `createHealthResponse()`, TEE config consumed)
+- A4: Split large test files -- 3 epics deferred. `dvm.test.ts` (2,704 lines) is now the largest. At minimum split by builder/parser/lifecycle.
+- A5: Add direct WebSocket subscription test for DVM events -- Indirect coverage via pipeline; direct test requires genesis infra in CI (now available)
+- A6: Implement multi-hop routing fee E2E test -- P3 nightly priority. Validates fee accumulation across ILP hops for compute settlement.
+- A7: Harden parseJobResult() numeric amount validation -- Non-numeric amount from malicious provider caught by settleCompute() BigInt guard but error message is confusing.
+- A8: Set up facilitator ETH monitoring -- 3 epics deferred (carried from Epic 3 A8). x402 facilitator account needs ETH monitoring.
+- A9: Commit flake.lock -- 2 epics deferred (carried from Epic 4 A5). Requires Nix installation. Needed for reproducible builds.
+- A10: Establish load testing infrastructure -- All Epic 5 NFRs flagged this. DVM compute workloads make performance baselines urgent.
 
 **Nice-to-Have:**
-- A11: Split large test files (5+ files > 900 lines) -- deferred: organizational only, no functional impact
-- A12: Implement deferred P3 E2E tests (T-3.4-12, 3.6-E2E-001) -- deferred: requires CVM infrastructure
-- A13: Integrate real Nix builds in CI (currently mocked) -- deferred: requires Nix in CI runner
-- A14: Publish @crosstown/town to npm (carried from Epic 2 A3)
-- A15: Ensure code review agents run Prettier before committing -- addressed: format:check added to CI
+- A11: Runtime re-publication of kind:10035 on handler change -- Story 5-4 stretch goal. `getSkillDescriptor()` reads live; no auto re-publish.
+- A12: Docker E2E for full schema-to-request agent path -- Story 5-4 T-INT-05. Unit-level composition test exists; Docker E2E deferred.
+- A13: Publish @crosstown/town to npm -- Carried from Epic 2 A3, 3 A14, 4 A14.
+- A14: Add real Nix integration tests -- Carried from Epic 4 A12. Requires Nix in CI runner.
+- A15: Implement deferred P3 E2E tests from Epics 3-5 -- T-3.4-12, 3.6-E2E-001, T-4.1-03, T-4.1-04, T-RISK-02.
+- A16: Fix NIP-33/NIP-16 doc discrepancy -- Carried from Epic 3 A13, 4 A16.
+
+**Resolved Action Items (from Epic 4 retro, resolved at Epic 5 start):**
+- ~~A1: Set up genesis node in CI~~ RESOLVED (CI pipeline enhanced with security audit, format check, SDK E2E infra)
+- ~~A2: Replace `console.error` with structured logger~~ RESOLVED (`createLogger()` in `@crosstown/core/logger.ts`, 17 tests)
+- ~~A3: Deploy FiatTokenV2_2 on Anvil~~ RESOLVED (`scripts/deploy-mock-usdc.sh`)
+- ~~A4: Create project-level semgrep configuration~~ RESOLVED (`.semgrep.yml` + `.semgrepignore`)
+- ~~A5: Address transitive dependency vulnerabilities~~ RESOLVED (pnpm.overrides patched 8 vulns)
 
 ---
 
@@ -1204,6 +1491,10 @@ VALID (within validitySeconds, default 300s)
 - Use injectable dependencies for x402-related tests (settlement, preflight, viem clients)
 - Use DI callbacks for orchestration classes (AttestationBootstrap pattern)
 - Use configurable validity/grace periods for time-sensitive state machines (AttestationVerifier pattern)
+- Use string amounts for DVM bid/cost values (bigint-compatible, JSON-safe)
+- Use lenient parse pattern (return null) for DVM event parsers (consistent with service-discovery and attestation parsers)
+- Use thin wrapper pattern for DVM lifecycle methods (publishFeedback/publishResult delegate to publishEvent)
+- Budget 1-2x test amplification for extension stories, 3-5x for novel stories (Epic 5 amplification was 1.1-1.8x)
 
 **For Humans:**
 
@@ -1212,4 +1503,4 @@ VALID (within validitySeconds, default 300s)
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-03-16
+Last Updated: 2026-03-17
