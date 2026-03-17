@@ -97,7 +97,7 @@ development_status:
   5-2-ilp-native-job-submission: done
   5-3-job-result-delivery-and-compute-settlement: done
   5-4-skill-descriptors-in-service-discovery: done
-  epic-5-retrospective: optional
+  epic-5-retrospective: done
 
   # Epic 6: Advanced DVM Coordination + TEE Integration
   # Decision source: Party Mode 2020117 Analysis (2026-03-10)
