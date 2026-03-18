@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Seed relay discovery for the Crosstown protocol, replacing the genesis hub-and-spoke topology with a decentralized peer discovery model. New nodes can bootstrap by reading kind:10036 (Seed Relay List) events from public Nostr relays, connecting to seed relays, and subscribing to kind:10032 events to discover the full network. The feature is opt-in (`discovery: 'seed-list'`) with backward-compatible `'genesis'` default.
+Seed relay discovery for the TOON protocol, replacing the genesis hub-and-spoke topology with a decentralized peer discovery model. New nodes can bootstrap by reading kind:10036 (Seed Relay List) events from public Nostr relays, connecting to seed relays, and subscribing to kind:10032 events to discover the full network. The feature is opt-in (`discovery: 'seed-list'`) with backward-compatible `'genesis'` default.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: Seed relay discovery flow — read kind:10036, connect seed, subscribe kind:10032 — covered by: `seed-relay-discovery.test.ts` (T-3.4-01, T-3.4-07, T-3.4-08), `town.test.ts` (static analysis)
@@ -34,7 +34,7 @@ Seed relay discovery for the Crosstown protocol, replacing the genesis hub-and-s
 - Modified: `cli.test.ts` — 10 new tests for CLI flags and Docker env vars
 
 ### `docker/src/` (modified)
-- Modified: `shared.ts` — CROSSTOWN_DISCOVERY, CROSSTOWN_SEED_RELAYS, CROSSTOWN_PUBLISH_SEED_ENTRY, CROSSTOWN_EXTERNAL_RELAY_URL env vars
+- Modified: `shared.ts` — TOON_DISCOVERY, TOON_SEED_RELAYS, TOON_PUBLISH_SEED_ENTRY, TOON_EXTERNAL_RELAY_URL env vars
 
 ### `_bmad-output/` (artifacts)
 - **Created**: `implementation-artifacts/3-4-seed-relay-discovery.md` — story spec
@@ -212,4 +212,4 @@ Seed relay discovery for the Crosstown protocol, replacing the genesis hub-and-s
 ---
 
 ## TL;DR
-Story 3-4 implements decentralized seed relay discovery for Crosstown, allowing new nodes to bootstrap from any relay in a kind:10036 seed list instead of depending on a specific genesis node. The pipeline completed successfully across all 22 steps with 100% acceptance criteria coverage (1639 tests, +38 from baseline). Three code review passes found and fixed 22 issues (0 critical, 2 high, 9 medium, 11 low) including event signature verification (CWE-345). No manual action items required.
+Story 3-4 implements decentralized seed relay discovery for TOON, allowing new nodes to bootstrap from any relay in a kind:10036 seed list instead of depending on a specific genesis node. The pipeline completed successfully across all 22 steps with 100% acceptance criteria coverage (1639 tests, +38 from baseline). Three code review passes found and fixed 22 issues (0 critical, 2 high, 9 medium, 11 low) including event signature verification (CWE-345). No manual action items required.

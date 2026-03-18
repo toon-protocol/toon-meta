@@ -1,4 +1,4 @@
-# Crosstown Protocol Content Strategy — 2026 Q1
+# TOON Protocol Content Strategy — 2026 Q1
 
 **Date:** 2026-03-12
 **Author:** Jonathan (with BMAD Party Mode collaboration)
@@ -9,7 +9,7 @@
 
 ## Strategic Objectives
 
-1. **Establish existence** — Make Crosstown known to Nostr operators and AI agent developers
+1. **Establish existence** — Make TOON known to Nostr operators and AI agent developers
 2. **Claim the narrative** — Own "ILP-gated relay" and "missing agent data layer" positioning
 3. **Build community trust** — Be seen as one of them by Nostr and ILP communities
 4. **Generate inbound** — Turn search/social discovery into developers using the protocol
@@ -19,8 +19,8 @@
 ## Platform Stack (Research-Validated)
 
 ### Tier 0: HOME BASE
-**Hashnode with custom domain** (e.g., blog.crosstown.dev)
-- Every article builds SEO equity for the Crosstown brand
+**Hashnode with custom domain** (e.g., blog.toon.dev)
+- Every article builds SEO equity for the TOON brand
 - Canonical URL ownership — syndicated content credits us via Google
 - Growing platform (+45% MoM), instant publish, Markdown-native, code syntax highlighting
 - Publish on YOUR domain for free while distributing through the Hashnode network
@@ -30,7 +30,7 @@
 |----------|---------|-------------|
 | **Nostr (Habla.news / Primal)** | Publish every article as NIP-23 event | NIP-23 articles propagate across all Nostr clients automatically. Dogfooding is non-negotiable for authenticity. |
 | **Stacker News** | Original deep-dives in `~nostr` and `~tech` territories | Original content gets 2.7x more engagement than link posts (22.1 vs 8.1 avg comments). Sats-based engagement = high signal. |
-| **Interledger Community** | Case study posts + community call demo | 2,514 members who build ILP infrastructure. Monthly calls (2nd Wednesday, 4pm UTC). Crosstown is a novel ILP use case. |
+| **Interledger Community** | Case study posts + community call demo | 2,514 members who build ILP infrastructure. Monthly calls (2nd Wednesday, 4pm UTC). TOON is a novel ILP use case. |
 
 ### Tier 2: REACH + SEO
 | Platform | Purpose | Key Insight |
@@ -48,7 +48,7 @@
 | Platform | Purpose | Key Insight |
 |----------|---------|-------------|
 | **The New Stack / InfoQ** | Pitch guest articles | Maximum credibility with senior engineers. Hard to get published, massive impact if accepted. |
-| **ILF Community Call** | Demo Crosstown live | One-time high-impact event. Schedule after Article 3 drops. |
+| **ILF Community Call** | Demo TOON live | One-time high-impact event. Schedule after Article 3 drops. |
 | **Podcasts** (Plebchain Radio, Bitcoin Fundamentals) | Guest appearances | High-leverage for awareness with Bitcoin/Nostr audience. |
 
 ### Deprioritized / Skip
@@ -93,7 +93,7 @@
 
 ### Article 1: "95% of Nostr Relays Can't Cover Costs. Here's Why That Matters."
 - **Week:** 1-2
-- **Angle:** Problem-first. No mention of Crosstown until the very end (or not at all). Establish credibility by naming the pain.
+- **Angle:** Problem-first. No mention of TOON until the very end (or not at all). Establish credibility by naming the pain.
 - **Audience:** Nostr relay operators, Nostr developers
 - **Platforms:** Habla.news (primary) → Stacker News (original) → X thread
 - **Narrative role:** Sets the stage. Creates the "something must change" tension.
@@ -105,11 +105,11 @@
 - **Angle:** MCP handles tools. A2A handles agent-agent communication. x402/ILP handle payments. But where do agents write things down? There's a hole in the stack.
 - **Audience:** AI agent developers, protocol engineers
 - **Platforms:** Hashnode (canonical) → Dev.to (condensed, AI-tagged) → HackerNoon (polished submit) → X thread
-- **Narrative role:** Names the gap. Positions Crosstown's category without selling it.
+- **Narrative role:** Names the gap. Positions TOON's category without selling it.
 - **Tone:** Architectural, thought-provoking. "Here's what nobody's talking about."
 - **Key data points:** $7.6B agent market at 40-46% CAGR, 1,445% surge in multi-agent inquiries, protocol stack diagram showing the gap
 
-### Article 3: "Introducing Crosstown: An ILP-Gated Nostr Relay"
+### Article 3: "Introducing TOON: An ILP-Gated Nostr Relay"
 - **Week:** 5-6
 - **Prereq:** README and docs must be polished before this drops
 - **Angle:** The reveal. Here's what we built and why. Technical overview with architecture diagrams.
@@ -130,7 +130,7 @@
 ### Article 5: "Building an Agent That Writes to a Nostr Relay via ILP" (Tutorial)
 - **Week:** 9-10
 - **Angle:** Hands-on walkthrough. Code examples. Getting started guide.
-- **Audience:** Developers who want to build on Crosstown
+- **Audience:** Developers who want to build on TOON
 - **Platforms:** Hashnode (canonical) → Dev.to (tutorials recovering on platform) → X thread
 - **Narrative role:** Activation. Turn readers into users.
 - **Tone:** Step-by-step, code-heavy. "Ship something in 30 minutes."
@@ -150,7 +150,7 @@
 
 ```
 Problem          Problem         Solution        Credibility    Activation     Vision
-(Nostr)          (Agents)        (Crosstown)     (ILP vs x402)  (Tutorial)     (Bridge)
+(Nostr)          (Agents)        (TOON)     (ILP vs x402)  (Tutorial)     (Bridge)
   [1] ────────────[2] ───────────[3] ────────────[4] ───────────[5] ──────────[6]
 
   Habla/SN        Dev.to/HN      EVERYWHERE      HN/Dev.to      Dev.to        EVERYWHERE

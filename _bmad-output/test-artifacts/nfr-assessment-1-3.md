@@ -117,7 +117,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** No new dependencies introduced
 - **Actual:** Story 1.3 adds zero new dependencies. Changes are limited to test file modifications (enabling skipped tests, adding 1 new test).
-- **Evidence:** `packages/sdk/package.json` unchanged by this story. No new imports in test file beyond existing `vitest`, `nostr-tools/pure`, and `@crosstown/core/toon`.
+- **Evidence:** `packages/sdk/package.json` unchanged by this story. No new imports in test file beyond existing `vitest`, `nostr-tools/pure`, and `@toon-protocol/core/toon`.
 - **Findings:** Zero attack surface increase. No dependency vulnerabilities introduced.
 
 ### Compliance (if applicable)

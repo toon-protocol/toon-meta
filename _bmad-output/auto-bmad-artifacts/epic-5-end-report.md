@@ -9,7 +9,7 @@
 - **Final test count**: 2,174 (2,095 passed, 79 skipped, 0 failures)
 
 ## What Was Built
-NIP-90 compatible DVM (Data Vending Machine) compute marketplace on the Crosstown network. Agents post job requests (Kind 5xxx) and receive results (Kind 6xxx) through the existing ILP payment infrastructure. The DVM layer provides a structured job lifecycle protocol — request, feedback, result, settlement — on top of Crosstown's pay-to-write relay and ILP routing mesh. Skill descriptors embedded in kind:10035 service discovery events enable programmatic provider selection.
+NIP-90 compatible DVM (Data Vending Machine) compute marketplace on the TOON network. Agents post job requests (Kind 5xxx) and receive results (Kind 6xxx) through the existing ILP payment infrastructure. The DVM layer provides a structured job lifecycle protocol — request, feedback, result, settlement — on top of TOON's pay-to-write relay and ILP routing mesh. Skill descriptors embedded in kind:10035 service discovery events enable programmatic provider selection.
 
 ## Stories Delivered
 | Story | Title | Status |

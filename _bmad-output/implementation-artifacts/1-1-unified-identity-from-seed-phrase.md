@@ -25,7 +25,7 @@ So that I have one keypair for Nostr event signing and EVM settlement with deter
 ## Tasks / Subtasks
 
 - [x] Task 1: Initialize SDK package infrastructure (AC: all -- prerequisite)
-  - [x] Create `packages/sdk/package.json` with `"name": "@crosstown/sdk"`, `"type": "module"`, workspace dependencies on `@crosstown/core` (`workspace:*`), peer dependency on `@crosstown/connector` (optional), dependencies on `nostr-tools`, `@scure/bip39` `^2.0`, `@scure/bip32` `^2.0`, `@noble/hashes` `^2.0` (for keccak256 -- listed as direct dependency for clarity, even though transitively available via `@scure/bip32`), `@noble/curves` `^2.0` (for secp256k1 uncompressed pubkey -- listed as direct dependency for clarity, even though transitively available via `nostr-tools`)
+  - [x] Create `packages/sdk/package.json` with `"name": "@toon-protocol/sdk"`, `"type": "module"`, workspace dependencies on `@toon-protocol/core` (`workspace:*`), peer dependency on `@toon-protocol/connector` (optional), dependencies on `nostr-tools`, `@scure/bip39` `^2.0`, `@scure/bip32` `^2.0`, `@noble/hashes` `^2.0` (for keccak256 -- listed as direct dependency for clarity, even though transitively available via `@scure/bip32`), `@noble/curves` `^2.0` (for secp256k1 uncompressed pubkey -- listed as direct dependency for clarity, even though transitively available via `nostr-tools`)
   - [x] Create `packages/sdk/tsconfig.json` extending root tsconfig
   - [x] Create `packages/sdk/tsup.config.ts` for ESM build with `.d.ts` type declarations
   - [x] Create `packages/sdk/vitest.config.ts` for per-package test execution -- follow the pattern established in Story 1.0 for core/bls/relay packages (use `defineConfig` from vitest with `test.include` pointing to `src/**/*.test.ts`)
@@ -34,12 +34,12 @@ So that I have one keypair for Nostr event signing and EVM settlement with deter
   - [x] Run `pnpm install` to wire workspace dependencies
 
 - [x] Task 2: Create SDK error classes (AC: #9)
-  - [x] Create `packages/sdk/src/errors.ts` with SDK-specific error hierarchy extending `CrosstownError` from `@crosstown/core`
-  - [x] Define `IdentityError extends CrosstownError` with code `'IDENTITY_ERROR'` for invalid mnemonics and key derivation failures
-  - [x] Define `NodeError extends CrosstownError` with code `'NODE_ERROR'` for lifecycle errors (used by later stories)
-  - [x] Define `HandlerError extends CrosstownError` with code `'HANDLER_ERROR'` for dispatch failures (used by later stories)
-  - [x] Define `VerificationError extends CrosstownError` with code `'VERIFICATION_ERROR'` for Schnorr failures (used by later stories)
-  - [x] Define `PricingError extends CrosstownError` with code `'PRICING_ERROR'` for payment validation failures (used by later stories)
+  - [x] Create `packages/sdk/src/errors.ts` with SDK-specific error hierarchy extending `ToonError` from `@toon-protocol/core`
+  - [x] Define `IdentityError extends ToonError` with code `'IDENTITY_ERROR'` for invalid mnemonics and key derivation failures
+  - [x] Define `NodeError extends ToonError` with code `'NODE_ERROR'` for lifecycle errors (used by later stories)
+  - [x] Define `HandlerError extends ToonError` with code `'HANDLER_ERROR'` for dispatch failures (used by later stories)
+  - [x] Define `VerificationError extends ToonError` with code `'VERIFICATION_ERROR'` for Schnorr failures (used by later stories)
+  - [x] Define `PricingError extends ToonError` with code `'PRICING_ERROR'` for payment validation failures (used by later stories)
 
 - [x] Task 3: Implement identity module (AC: #1, #2, #3, #4, #5, #6, #7, #8, #9, #10, #11)
   - [x] Create `packages/sdk/src/identity.ts`
@@ -147,7 +147,7 @@ This story also creates the SDK package skeleton. The package structure follows 
 
 ```
 packages/sdk/
-├── package.json            # @crosstown/sdk, ESM, workspace deps
+├── package.json            # @toon-protocol/sdk, ESM, workspace deps
 ├── tsconfig.json           # Extends root tsconfig
 ├── tsup.config.ts          # ESM build config
 ├── vitest.config.ts        # Per-package test execution
@@ -190,7 +190,7 @@ import { generateMnemonic, fromMnemonic, fromSecretKey } from './identity.js';
 - **Never use `any` type** -- use `unknown` with type guards (enforced by ESLint)
 - **Always use `.js` extensions in imports** -- ESM requires `import { foo } from './bar.js'`
 - **Use consistent type imports** -- `import type { X } from '...'` for type-only imports
-- **Error classes extend CrosstownError** -- from `@crosstown/core`, not `Error` directly
+- **Error classes extend ToonError** -- from `@toon-protocol/core`, not `Error` directly
 - **ALL identity tests use real crypto libraries** -- no mocked Schnorr, no mocked key derivation
 - **Use `@noble/hashes/sha3` for Keccak-256** -- NOT `sha3_256` (they are different algorithms)
 - **Return type is `NodeIdentity`** with `secretKey: Uint8Array` -- NOT hex string. Hex conversion is the caller's responsibility.
@@ -201,7 +201,7 @@ import { generateMnemonic, fromMnemonic, fromSecretKey } from './identity.js';
 
 - [Source: _bmad-output/planning-artifacts/epics.md#Story 1.1]
 - [Source: _bmad-output/planning-artifacts/architecture.md#Decision 6: Identity Module Location]
-- [Source: _bmad-output/planning-artifacts/architecture.md#New Package: @crosstown/sdk]
+- [Source: _bmad-output/planning-artifacts/architecture.md#New Package: @toon-protocol/sdk]
 - [Source: _bmad-output/planning-artifacts/test-design-epic-1.md#Story 1.1]
 - [Source: NIP-06 specification -- BIP-32 derivation path for Nostr keys]
 - [Source: EIP-55 -- Mixed-case checksum address encoding]
@@ -219,9 +219,9 @@ No debug logs generated -- all tasks completed successfully on first attempt.
 
 ### Completion Notes List
 
-1. **Task 1 (SDK package infrastructure)**: Verified `packages/sdk/package.json` exists with correct name `@crosstown/sdk`, type `module`, all required dependencies (`@scure/bip39 ^2.0`, `@scure/bip32 ^2.0`, `@noble/hashes ^2.0`, `@noble/curves ^2.0`, `nostr-tools ^2.20`, `@crosstown/core workspace:*`), optional peer dep on `@crosstown/connector`, and `build`/`test` scripts. `tsconfig.json` extends root. `tsup.config.ts` configured for ESM + dts. `vitest.config.ts` includes `src/**/*.test.ts` and excludes future-story test files. `pnpm install` already wired.
+1. **Task 1 (SDK package infrastructure)**: Verified `packages/sdk/package.json` exists with correct name `@toon-protocol/sdk`, type `module`, all required dependencies (`@scure/bip39 ^2.0`, `@scure/bip32 ^2.0`, `@noble/hashes ^2.0`, `@noble/curves ^2.0`, `nostr-tools ^2.20`, `@toon-protocol/core workspace:*`), optional peer dep on `@toon-protocol/connector`, and `build`/`test` scripts. `tsconfig.json` extends root. `tsup.config.ts` configured for ESM + dts. `vitest.config.ts` includes `src/**/*.test.ts` and excludes future-story test files. `pnpm install` already wired.
 
-2. **Task 2 (SDK error classes)**: Verified `packages/sdk/src/errors.ts` defines all 5 error classes (`IdentityError`, `NodeError`, `HandlerError`, `VerificationError`, `PricingError`), all extending `CrosstownError` from `@crosstown/core` with correct codes (`IDENTITY_ERROR`, `NODE_ERROR`, `HANDLER_ERROR`, `VERIFICATION_ERROR`, `PRICING_ERROR`).
+2. **Task 2 (SDK error classes)**: Verified `packages/sdk/src/errors.ts` defines all 5 error classes (`IdentityError`, `NodeError`, `HandlerError`, `VerificationError`, `PricingError`), all extending `ToonError` from `@toon-protocol/core` with correct codes (`IDENTITY_ERROR`, `NODE_ERROR`, `HANDLER_ERROR`, `VERIFICATION_ERROR`, `PRICING_ERROR`).
 
 3. **Task 3 (Identity module)**: Verified `packages/sdk/src/identity.ts` implements:
    - `generateMnemonic()` using `@scure/bip39` with English wordlist, 128-bit entropy

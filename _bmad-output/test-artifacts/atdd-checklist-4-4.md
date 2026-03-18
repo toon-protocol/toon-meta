@@ -29,9 +29,9 @@ inputDocuments:
 
 ## Story Summary
 
-Story 4.4 implements enclave-bound Nostr identity derivation from Nautilus KMS seeds. The `deriveFromKmsSeed()` function in `@crosstown/core` converts a 32-byte raw KMS seed (or BIP-39 mnemonic) into a Nostr-compatible secp256k1 keypair via the NIP-06 derivation path, enabling relay identity to be cryptographically bound to TEE code integrity.
+Story 4.4 implements enclave-bound Nostr identity derivation from Nautilus KMS seeds. The `deriveFromKmsSeed()` function in `@toon-protocol/core` converts a 32-byte raw KMS seed (or BIP-39 mnemonic) into a Nostr-compatible secp256k1 keypair via the NIP-06 derivation path, enabling relay identity to be cryptographically bound to TEE code integrity.
 
-**As a** Crosstown relay operator running in a TEE enclave
+**As a** TOON relay operator running in a TEE enclave
 **I want** the relay's Nostr identity to be derived from a Nautilus KMS seed inside the enclave using the NIP-06 derivation path
 **So that** the relay's identity is cryptographically bound to its code integrity -- if the enclave code changes, attestation fails, KMS seed becomes inaccessible, and the identity is lost, making impersonation impossible
 
@@ -49,7 +49,7 @@ Story 4.4 implements enclave-bound Nostr identity derivation from Nautilus KMS s
 
 5. **AC #5 -- Invalid seed error handling:** Given a null, undefined, or invalid seed, `deriveFromKmsSeed(badSeed)` throws a `KmsIdentityError` with a message matching `/KMS|seed|unavailable/i`. No random key fallback.
 
-6. **AC #6 -- Correct exports:** `deriveFromKmsSeed`, `KmsIdentityError`, `KmsKeypair` type, and `DeriveFromKmsSeedOptions` type are exported from `@crosstown/core` via `identity/kms-identity.ts` -> `identity/index.ts` -> `src/index.ts`.
+6. **AC #6 -- Correct exports:** `deriveFromKmsSeed`, `KmsIdentityError`, `KmsKeypair` type, and `DeriveFromKmsSeedOptions` type are exported from `@toon-protocol/core` via `identity/kms-identity.ts` -> `identity/index.ts` -> `src/index.ts`.
 
 ---
 
@@ -152,7 +152,7 @@ Not applicable. Story 4.4 is a backend-only pure function library with no UI com
 - [ ] Add `@scure/bip32` and `@scure/bip39` to `packages/core/package.json` dependencies
 - [ ] Run `pnpm install` to update lockfile
 - [ ] Create `packages/core/src/identity/kms-identity.ts`
-- [ ] Implement `KmsIdentityError` class extending `CrosstownError`
+- [ ] Implement `KmsIdentityError` class extending `ToonError`
 - [ ] Implement `KmsKeypair` interface and `DeriveFromKmsSeedOptions` type
 - [ ] Implement `deriveFromKmsSeed(seed, options?)` -- raw seed path using `HDKey.fromMasterSeed(seed).derive(path)`
 - [ ] Compute x-only pubkey via `getPublicKey(secretKey)` from `nostr-tools/pure`
@@ -237,8 +237,8 @@ Not applicable. Story 4.4 is a backend-only pure function library with no UI com
 
 - [ ] Create `packages/core/src/identity/index.ts` re-exporting `deriveFromKmsSeed`, `KmsIdentityError`, `KmsKeypair`, `DeriveFromKmsSeedOptions` from `./kms-identity.js`
 - [ ] Add re-export to `packages/core/src/index.ts`: `export { ... } from './identity/index.js'`
-- [ ] Verify: `import { deriveFromKmsSeed } from '@crosstown/core'` resolves correctly
-- [ ] Run full build: `pnpm build --filter=@crosstown/core`
+- [ ] Verify: `import { deriveFromKmsSeed } from '@toon-protocol/core'` resolves correctly
+- [ ] Run full build: `pnpm build --filter=@toon-protocol/core`
 
 **Estimated Effort:** 0.25 hours
 
@@ -324,7 +324,7 @@ npx vitest run packages/core/src/identity/kms-identity.test.ts --coverage
 
 1. **Verify all tests pass** (green phase complete)
 2. **Review code for quality** -- best-effort seed zeroing in `finally` blocks, defensive copies
-3. **Verify exports** -- `@crosstown/core` re-exports all public symbols
+3. **Verify exports** -- `@toon-protocol/core` re-exports all public symbols
 4. **Run full test suite** -- `pnpm test` to ensure no regressions
 5. **Run lint/format** -- `pnpm lint && pnpm format`
 
@@ -370,7 +370,7 @@ This ATDD workflow consulted the following knowledge fragments and reference fil
 **Results:**
 
 ```
- RUN  v1.6.1 /Users/jonathangreen/Documents/crosstown
+ RUN  v1.6.1 /Users/jonathangreen/Documents/toon
 
  ↓ packages/core/src/identity/kms-identity.test.ts  (8 tests | 8 skipped)
 

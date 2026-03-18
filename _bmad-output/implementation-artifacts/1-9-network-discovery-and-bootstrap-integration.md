@@ -6,11 +6,11 @@ Status: done
 
 As a **service developer**,
 I want my node to automatically discover peers, join the network, and monitor for new peers,
-So that my service participates in the Crosstown mesh without manual peer configuration.
+So that my service participates in the TOON mesh without manual peer configuration.
 
 **FRs covered:** FR-SDK-9 (BootstrapService + RelayMonitor integration for peer discovery and network join)
 
-**Dependencies:** Story 1.7 (createNode composition -- `createNode()` and `ServiceNode` must exist), Story 1.8 (connector direct methods API -- must be complete so vitest excludes are current). Uses existing `@crosstown/core` BootstrapService and RelayMonitor.
+**Dependencies:** Story 1.7 (createNode composition -- `createNode()` and `ServiceNode` must exist), Story 1.8 (connector direct methods API -- must be complete so vitest excludes are current). Uses existing `@toon-protocol/core` BootstrapService and RelayMonitor.
 
 ## Acceptance Criteria
 
@@ -23,7 +23,7 @@ So that my service participates in the Crosstown mesh without manual peer config
 ## Tasks / Subtasks
 
 - [x] Task 1: Extend `ServiceNode` interface and re-export types (AC: #4, #5)
-  - [x] In `packages/sdk/src/create-node.ts`, add `BootstrapEventListener` to one of the existing `import type { ... } from '@crosstown/core'` blocks at the top of the file (e.g., add to the `KnownPeer, BootstrapResult` import on line 18: `import type { KnownPeer, BootstrapResult, BootstrapEventListener } from '@crosstown/core'`)
+  - [x] In `packages/sdk/src/create-node.ts`, add `BootstrapEventListener` to one of the existing `import type { ... } from '@toon-protocol/core'` blocks at the top of the file (e.g., add to the `KnownPeer, BootstrapResult` import on line 18: `import type { KnownPeer, BootstrapResult, BootstrapEventListener } from '@toon-protocol/core'`)
   - [x] In the `ServiceNode` interface (lines 98-115), add two new members after the existing `on(kind: number, handler: Handler): ServiceNode` line:
     ```typescript
     /** Register a lifecycle event listener */
@@ -35,10 +35,10 @@ So that my service participates in the Crosstown mesh without manual peer config
   - [x] In `packages/sdk/src/index.ts`, add re-exports after the existing `NodeConfig`/`ServiceNode`/`StartResult` re-exports:
     ```typescript
     // Re-export bootstrap types for lifecycle event listeners
-    export type { BootstrapEvent, BootstrapEventListener } from '@crosstown/core';
+    export type { BootstrapEvent, BootstrapEventListener } from '@toon-protocol/core';
     ```
 
-- [x] Task 2: Implement `on('bootstrap', listener)` forwarding to `crosstownNode.bootstrapService` (AC: #5)
+- [x] Task 2: Implement `on('bootstrap', listener)` forwarding to `toonNode.bootstrapService` (AC: #5)
   - [x] In the `createNode()` function body, modify the `on()` method implementation to handle the string overload:
     ```typescript
     on(kindOrEvent: number | string, handlerOrListener: Handler | BootstrapEventListener): ServiceNode {
@@ -51,35 +51,35 @@ So that my service participates in the Crosstown mesh without manual peer config
       } else if (kindOrEvent === 'bootstrap') {
         // Lifecycle event listener -- forward to bootstrapService AND relayMonitor
         const listener = handlerOrListener as BootstrapEventListener;
-        crosstownNode.bootstrapService.on(listener);
-        crosstownNode.relayMonitor.on(listener);
+        toonNode.bootstrapService.on(listener);
+        toonNode.relayMonitor.on(listener);
       } else {
         throw new NodeError(`Unknown lifecycle event: '${kindOrEvent}'. Supported: 'bootstrap'`);
       }
       return node;
     }
     ```
-  - [x] This delegates to `crosstownNode.bootstrapService.on(listener)` AND `crosstownNode.relayMonitor.on(listener)` because both emit `BootstrapEvent` types (the relay monitor emits `bootstrap:peer-discovered` and `bootstrap:peer-deregistered`)
+  - [x] This delegates to `toonNode.bootstrapService.on(listener)` AND `toonNode.relayMonitor.on(listener)` because both emit `BootstrapEvent` types (the relay monitor emits `bootstrap:peer-discovered` and `bootstrap:peer-deregistered`)
 
-- [x] Task 3: Implement `peerWith(pubkey)` delegation to `crosstownNode.peerWith()` (AC: #4)
+- [x] Task 3: Implement `peerWith(pubkey)` delegation to `toonNode.peerWith()` (AC: #4)
   - [x] In the `createNode()` function body, add the `peerWith` method to the node object:
     ```typescript
     async peerWith(pubkey: string): Promise<void> {
       if (!started) {
         throw new NodeError('Cannot peer: node not started. Call start() first.');
       }
-      return crosstownNode.peerWith(pubkey);
+      return toonNode.peerWith(pubkey);
     }
     ```
   - [x] The `peerWith()` method requires the node to be started (relay monitor must be running to have discovered peers). Throw `NodeError` if not started.
-  - [x] The underlying `crosstownNode.peerWith()` already exists in `packages/core/src/compose.ts` (line 356-358) and delegates to `relayMonitor.peerWith(pubkey)`
+  - [x] The underlying `toonNode.peerWith()` already exists in `packages/core/src/compose.ts` (line 356-358) and delegates to `relayMonitor.peerWith(pubkey)`
 
 - [x] Task 4: Enable ATDD integration tests in `__integration__/network-discovery.test.ts` (AC: #1-#5)
   - [x] In `packages/sdk/src/__integration__/network-discovery.test.ts`:
     - [x] Remove the `// @ts-nocheck` pragma on line 1 (full text: `// @ts-nocheck — ATDD Red Phase: imports reference exports that don't exist yet` -- these exports now exist from Tasks 1-3)
     - [x] Change all 8 `it.skip(` calls to `it(` (remove `.skip`)
     - [x] Update the stale ATDD Red Phase comment (line 5) from `// ATDD Red Phase - tests will fail until SDK implementation exists` to `// ATDD tests for Story 1.9 -- network discovery and bootstrap integration`
-    - [x] Update the stale import comment (line 26) from `// --- Imports from @crosstown/sdk (DOES NOT EXIST YET) ---` to `// --- Imports from @crosstown/sdk ---`
+    - [x] Update the stale import comment (line 26) from `// --- Imports from @toon-protocol/sdk (DOES NOT EXIST YET) ---` to `// --- Imports from @toon-protocol/sdk ---`
     - [x] Remove `evmPrivateKey: TEST_ACCOUNT_PRIVATE_KEY,` from line 336 of test 3 (payment channels test). `evmPrivateKey` is NOT a field in `NodeConfig` and TypeScript strict mode will reject it. The settlement test uses `MockEmbeddedConnector` which does not perform real on-chain operations, so the EVM private key is not needed. The `settlementInfo` and `settlementNegotiationConfig` fields are sufficient for the bootstrap service to negotiate channels via mock paths.
   - [x] Fix priority labels to match test-design-epic-1.md:
     - ATDD test 1 `[P0]` -> test-design T-1.9-01 is P1. Update label to `[P1]`
@@ -103,8 +103,8 @@ So that my service participates in the Crosstown mesh without manual peer config
 
 - [x] Task 5: Verify ATDD test imports compile after `@ts-nocheck` removal (AC: #1-#5)
   - [x] The ATDD test file imports `type StartResult` from `../index.js` -- this export exists (from `create-node.ts` via `index.ts`). Verified.
-  - [x] The ATDD test file imports `type BootstrapEvent, EmbeddableConnectorLike, SendPacketParams, SendPacketResult, RegisterPeerParams` from `@crosstown/core` -- these are exported from core's index. Verified.
-  - [x] The ATDD test file imports `encodeEventToToon, decodeEventFromToon` from `@crosstown/relay` -- `@crosstown/relay` is already a devDependency in `packages/sdk/package.json` (line 59). Verified. **Note:** The ATDD test imports TOON functions from `@crosstown/relay` while `create-node.ts` imports from `@crosstown/core/toon`. Both re-export the same underlying codec; this is intentional (test uses relay's API surface, implementation uses core's).
+  - [x] The ATDD test file imports `type BootstrapEvent, EmbeddableConnectorLike, SendPacketParams, SendPacketResult, RegisterPeerParams` from `@toon-protocol/core` -- these are exported from core's index. Verified.
+  - [x] The ATDD test file imports `encodeEventToToon, decodeEventFromToon` from `@toon-protocol/relay` -- `@toon-protocol/relay` is already a devDependency in `packages/sdk/package.json` (line 59). Verified. **Note:** The ATDD test imports TOON functions from `@toon-protocol/relay` while `create-node.ts` imports from `@toon-protocol/core/toon`. Both re-export the same underlying codec; this is intentional (test uses relay's API surface, implementation uses core's).
   - [x] The `evmPrivateKey` issue is resolved in Task 4: the line is removed from the test file since it is not part of `NodeConfig`. No other import/type issues remain after that fix.
   - [x] Run `cd packages/sdk && npx tsc --noEmit` to confirm TypeScript compiles without errors after all changes
 
@@ -120,29 +120,29 @@ So that my service participates in the Crosstown mesh without manual peer config
 
 Extends the `ServiceNode` interface with two capabilities required by FR-SDK-9:
 1. **Lifecycle event forwarding**: `node.on('bootstrap', listener)` forwards bootstrap events from both `BootstrapService` and `RelayMonitor` to the SDK consumer
-2. **Manual peering**: `node.peerWith(pubkey)` delegates to the underlying `CrosstownNode.peerWith()` for on-demand peer registration + SPSP handshake
+2. **Manual peering**: `node.peerWith(pubkey)` delegates to the underlying `ToonNode.peerWith()` for on-demand peer registration + SPSP handshake
 
-The underlying bootstrap and relay monitor functionality already exists in `@crosstown/core` (wired by `createCrosstownNode()` in Story 1.7). This story exposes that functionality through the SDK's `ServiceNode` API surface.
+The underlying bootstrap and relay monitor functionality already exists in `@toon-protocol/core` (wired by `createToonNode()` in Story 1.7). This story exposes that functionality through the SDK's `ServiceNode` API surface.
 
 ### What Already Exists
 
 **Implementation (in `packages/sdk/src/create-node.ts`):**
 
 The `createNode()` function already:
-- Creates a `CrosstownNode` via `createCrosstownNode()` with bootstrap/relay monitor support (lines 261-279)
-- Passes `config.knownPeers`, `config.relayUrl`, `config.ardriveEnabled`, `config.settlementInfo`, `config.settlementNegotiationConfig` through to `CrosstownNodeConfig`
-- `node.start()` calls `crosstownNode.start()` which runs `bootstrapService.bootstrap()` + `relayMonitor.start()`
-- `node.stop()` calls `crosstownNode.stop()` which unsubscribes the relay monitor
+- Creates a `ToonNode` via `createToonNode()` with bootstrap/relay monitor support (lines 261-279)
+- Passes `config.knownPeers`, `config.relayUrl`, `config.ardriveEnabled`, `config.settlementInfo`, `config.settlementNegotiationConfig` through to `ToonNodeConfig`
+- `node.start()` calls `toonNode.start()` which runs `bootstrapService.bootstrap()` + `relayMonitor.start()`
+- `node.stop()` calls `toonNode.stop()` which unsubscribes the relay monitor
 
 **What's missing from `ServiceNode`:**
 - `on('bootstrap', listener)` -- the overloaded string signature for lifecycle events
-- `peerWith(pubkey)` -- delegation to `crosstownNode.peerWith()`
+- `peerWith(pubkey)` -- delegation to `toonNode.peerWith()`
 - Re-export of `BootstrapEvent` and `BootstrapEventListener` types from `index.ts`
 
-**CrosstownNode (in `packages/core/src/compose.ts`):**
-- `crosstownNode.bootstrapService` -- exposes `BootstrapService` with `.on(listener)` method
-- `crosstownNode.relayMonitor` -- exposes `RelayMonitor` with `.on(listener)` method
-- `crosstownNode.peerWith(pubkey)` -- delegates to `relayMonitor.peerWith(pubkey)` (line 356-358)
+**ToonNode (in `packages/core/src/compose.ts`):**
+- `toonNode.bootstrapService` -- exposes `BootstrapService` with `.on(listener)` method
+- `toonNode.relayMonitor` -- exposes `RelayMonitor` with `.on(listener)` method
+- `toonNode.peerWith(pubkey)` -- delegates to `relayMonitor.peerWith(pubkey)` (line 356-358)
 - Both `BootstrapService` and `RelayMonitor` emit `BootstrapEvent` discriminated union types
 
 **ATDD test file (in `packages/sdk/src/__integration__/network-discovery.test.ts`):**
@@ -169,8 +169,8 @@ The `createNode()` function already:
 - Unknown lifecycle event names throw `NodeError` with descriptive message
 
 **Package boundaries:**
-- SDK re-exports `BootstrapEvent` and `BootstrapEventListener` from `@crosstown/core` -- no type duplication
-- `peerWith()` delegates to core's `CrosstownNode.peerWith()` -- no logic duplication
+- SDK re-exports `BootstrapEvent` and `BootstrapEventListener` from `@toon-protocol/core` -- no type duplication
+- `peerWith()` delegates to core's `ToonNode.peerWith()` -- no logic duplication
 - Lifecycle listeners delegate to core's `BootstrapService.on()` and `RelayMonitor.on()` -- no event system duplication
 
 ### Key Implementation Detail: Method Overloading
@@ -198,8 +198,8 @@ on(kindOrEvent: number | string, handlerOrListener: Handler | BootstrapEventList
 
 | Element | Convention | Example |
 | --- | --- | --- |
-| Type import | `import type` | `import type { BootstrapEventListener } from '@crosstown/core'` |
-| Re-export | `export type` | `export type { BootstrapEvent, BootstrapEventListener } from '@crosstown/core'` |
+| Type import | `import type` | `import type { BootstrapEventListener } from '@toon-protocol/core'` |
+| Re-export | `export type` | `export type { BootstrapEvent, BootstrapEventListener } from '@toon-protocol/core'` |
 | Test file | co-located in `__integration__/` | `__integration__/network-discovery.test.ts` |
 | Priority prefix | matches test-design | `'[P1] node.start() runs...'` |
 | ESM extensions | `.js` | `import { createNode } from './create-node.js'` |
@@ -281,7 +281,7 @@ No new files need to be created. All changes are to existing files.
 - [Source: `_bmad-output/planning-artifacts/test-design-epic-1.md#Story 1.9`]
 - [Source: `_bmad-output/planning-artifacts/architecture.md#Pattern 4: Lifecycle Event Emission`]
 - [Source: `packages/sdk/src/create-node.ts` -- ServiceNode interface (lines 98-115), createNode() (lines 129-349)]
-- [Source: `packages/core/src/compose.ts` -- CrosstownNode interface (lines 217-250), peerWith (line 356-358)]
+- [Source: `packages/core/src/compose.ts` -- ToonNode interface (lines 217-250), peerWith (line 356-358)]
 - [Source: `packages/core/src/bootstrap/types.ts` -- BootstrapEvent union (lines 103-140), BootstrapEventListener (line 145)]
 - [Source: `_bmad-output/implementation-artifacts/1-8-connector-direct-methods-api.md`]
 
@@ -297,9 +297,9 @@ None required -- all changes compiled and tests passed on first run.
 
 ### Completion Notes List
 
-- **Task 1 (Extend ServiceNode interface):** Added `BootstrapEventListener` to import from `@crosstown/core`. Added `on(event: 'bootstrap', listener: BootstrapEventListener): ServiceNode` overload and `peerWith(pubkey: string): Promise<void>` to the `ServiceNode` interface.
-- **Task 2 (Implement on('bootstrap') forwarding):** Modified the `on()` method implementation to use `kindOrEvent: number | string` discriminant. When `typeof kindOrEvent === 'number'`, delegates to handler registry (existing behavior). When `kindOrEvent === 'bootstrap'`, forwards listener to both `crosstownNode.bootstrapService.on(listener)` and `crosstownNode.relayMonitor.on(listener)`. Throws `NodeError` for unknown lifecycle event names.
-- **Task 3 (Implement peerWith delegation):** Added `peerWith(pubkey)` method to the node object. Throws `NodeError` if node not started. Delegates to `crosstownNode.peerWith(pubkey)`.
+- **Task 1 (Extend ServiceNode interface):** Added `BootstrapEventListener` to import from `@toon-protocol/core`. Added `on(event: 'bootstrap', listener: BootstrapEventListener): ServiceNode` overload and `peerWith(pubkey: string): Promise<void>` to the `ServiceNode` interface.
+- **Task 2 (Implement on('bootstrap') forwarding):** Modified the `on()` method implementation to use `kindOrEvent: number | string` discriminant. When `typeof kindOrEvent === 'number'`, delegates to handler registry (existing behavior). When `kindOrEvent === 'bootstrap'`, forwards listener to both `toonNode.bootstrapService.on(listener)` and `toonNode.relayMonitor.on(listener)`. Throws `NodeError` for unknown lifecycle event names.
+- **Task 3 (Implement peerWith delegation):** Added `peerWith(pubkey)` method to the node object. Throws `NodeError` if node not started. Delegates to `toonNode.peerWith(pubkey)`.
 - **Task 4 (Enable ATDD integration tests):** Removed `@ts-nocheck` pragma. Changed all 8 `it.skip(` to `it(`. Updated stale ATDD Red Phase comments. Removed `evmPrivateKey: TEST_ACCOUNT_PRIVATE_KEY` from test 3. Fixed priority labels: tests 1-3 from `[P0]` to `[P1]`, tests 4-6 from `[P1]` to `[P2]`, tests 7-8 kept at `[P2]`. Fixed `MockEmbeddedConnector.setPacketHandler` type signature to use proper `HandlePacketRequest`/`HandlePacketResponse` types (added import).
 - **Task 5 (Verify TypeScript compilation):** `npx tsc --noEmit` passes with zero errors.
 - **Task 6 (Run tests and verify):** SDK unit tests: 113 passed (9 test files). Monorepo-wide tests: all packages pass with zero failures. TypeScript compiles cleanly.
@@ -307,7 +307,7 @@ None required -- all changes compiled and tests passed on first run.
 ### File List
 
 - `packages/sdk/src/create-node.ts` (modified) -- Extended ServiceNode interface with `on('bootstrap')` overload and `peerWith()`. Implemented both methods in `createNode()`.
-- `packages/sdk/src/index.ts` (modified) -- Added re-export of `BootstrapEvent` and `BootstrapEventListener` types from `@crosstown/core`.
+- `packages/sdk/src/index.ts` (modified) -- Added re-export of `BootstrapEvent` and `BootstrapEventListener` types from `@toon-protocol/core`.
 - `packages/sdk/src/__integration__/network-discovery.test.ts` (modified) -- Removed `@ts-nocheck`, enabled all 8 tests, fixed priority labels, removed invalid `evmPrivateKey` field, fixed `MockEmbeddedConnector` types, updated stale comments.
 
 ### Change Log

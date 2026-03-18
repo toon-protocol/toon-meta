@@ -14,7 +14,7 @@ To test signature verification, corrupt the signature at the **event object leve
 
 ```typescript
 import { finalizeEvent, generateSecretKey } from 'nostr-tools/pure';
-import { encodeEventToToon } from '@crosstown/core/toon';
+import { encodeEventToToon } from '@toon-protocol/core/toon';
 import type { NostrEvent } from 'nostr-tools/pure';
 
 // 1. Create a properly signed event

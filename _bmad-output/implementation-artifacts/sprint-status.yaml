@@ -1,5 +1,5 @@
 # generated: 2026-03-03
-# project: crosstown
+# project: toon
 # project_key: NOKEY
 # tracking_system: file-system
 # story_location: _bmad-output/implementation-artifacts
@@ -34,7 +34,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-03
-project: crosstown
+project: toon
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
@@ -42,7 +42,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   # Epic 1: ILP-Gated Service Node SDK
   epic-1: done
-  1-0-extract-toon-codec-to-crosstown-core: done
+  1-0-extract-toon-codec-to-toon-core: done
   1-1-unified-identity-from-seed-phrase: done
   1-2-handler-registry-with-kind-based-routing: done
   1-3-handlercontext-with-toon-passthrough-and-lazy-decode: done
@@ -64,7 +64,7 @@ development_status:
   2-2-spsp-handshake-handler: done  # DEPRECATED — will be removed by Story 2.7
   2-3-e2e-test-validation: done
   2-4-remove-git-proxy-and-document-reference-implementation: done
-  2-5-publish-crosstown-town-package: done
+  2-5-publish-toon-town-package: done
   2-6-add-publish-event-to-service-node: done
   2-7-spsp-removal-and-peer-discovery-cleanup: done  # moved from Epic 3 Story 3.7
   2-8-relay-subscription-api-on-town-instance: done  # moved from Epic 3 Story 3.8
@@ -123,5 +123,5 @@ development_status:
   7-9-commit-log-and-diff-view: backlog
   7-10-blame-view: backlog
   7-11-issues-and-prs-from-nostr-events-on-relay: backlog
-  7-12-publish-crosstown-rig-package: backlog
+  7-12-publish-toon-rig-package: backlog
   epic-7-retrospective: optional

@@ -9,12 +9,12 @@
 
 ## 1. Scope and Context
 
-Epic 1 delivers 12 stories (1.0-1.11) producing `@crosstown/sdk` -- the developer-facing abstraction for building ILP-gated service nodes. The SDK wraps TOON codec, handler registry, Schnorr verification, pricing validation, PaymentHandler bridge, unified identity, and embedded connector lifecycle into a `createNode()` composition function.
+Epic 1 delivers 12 stories (1.0-1.11) producing `@toon-protocol/sdk` -- the developer-facing abstraction for building ILP-gated service nodes. The SDK wraps TOON codec, handler registry, Schnorr verification, pricing validation, PaymentHandler bridge, unified identity, and embedded connector lifecycle into a `createNode()` composition function.
 
 **What exists today:**
 
 - TOON codec lives in `packages/bls/src/toon/` (encoder.ts, decoder.ts, toon.test.ts)
-- `createCrosstownNode()` composition exists in `packages/core/src/compose.ts` with `HandlePacketRequest`/`HandlePacketResponse` types
+- `createToonNode()` composition exists in `packages/core/src/compose.ts` with `HandlePacketRequest`/`HandlePacketResponse` types
 - `EmbeddableConnectorLike` structural type already defined in compose.ts
 - SDK package has ATDD Red Phase test files (`.test.ts` only, all tests `.skip`ped, no implementation)
 - No shallow TOON parser exists yet
@@ -153,7 +153,7 @@ Self-write bypass compares the event's pubkey against the node's own pubkey. The
 - **I** = Integration test (multiple real modules wired together)
 - **Real crypto** = Uses real @scure/bip39, @scure/bip32, nostr-tools -- no mocked crypto
 
-### Story 1.0: Extract TOON Codec to @crosstown/core
+### Story 1.0: Extract TOON Codec to @toon-protocol/core
 
 | ID       | Test                                                                   | Level | Risk   | Priority |
 | -------- | ---------------------------------------------------------------------- | ----- | ------ | -------- |
@@ -163,7 +163,7 @@ Self-write bypass compares the event's pubkey against the node's own pubkey. The
 | T-1.0-04 | Shallow parse extracts id from TOON bytes, matches full decode         | U     | E1-R02 | P0       |
 | T-1.0-05 | Shallow parse extracts sig from TOON bytes, matches full decode        | U     | E1-R02 | P0       |
 | T-1.0-06 | Shallow parse preserves rawBytes (byte-exact match with encoded input) | U     | E1-R02 | P0       |
-| T-1.0-07 | Re-export from `@crosstown/core` index.ts works (import validation)    | U     | E1-R01 | P1       |
+| T-1.0-07 | Re-export from `@toon-protocol/core` index.ts works (import validation)    | U     | E1-R01 | P1       |
 | T-1.0-08 | BLS tests pass after import path change (`pnpm -r test`)               | I     | E1-R01 | P0       |
 
 **Notes:**
@@ -321,7 +321,7 @@ Self-write bypass compares the event's pubkey against the node's own pubkey. The
 
 | ID        | Test                                             | Level | Risk   | Priority |
 | --------- | ------------------------------------------------ | ----- | ------ | -------- |
-| T-1.11-01 | All public APIs importable from `@crosstown/sdk` | U     | E1-R16 | P2       |
+| T-1.11-01 | All public APIs importable from `@toon-protocol/sdk` | U     | E1-R16 | P2       |
 | T-1.11-02 | TypeScript types exported correctly              | U     | -      | P3       |
 
 ---
@@ -442,7 +442,7 @@ This validates pubkey format consistency between identity derivation and pricing
 
 ### 6.5 Codec changes in Story 1.0 breaking downstream consumers
 
-**Risk:** After extracting the codec, BLS and relay packages import from `@crosstown/core` instead of local paths. If the codec behavior subtly changes during extraction (e.g., different error types, different handling of edge cases), downstream tests may fail.
+**Risk:** After extracting the codec, BLS and relay packages import from `@toon-protocol/core` instead of local paths. If the codec behavior subtly changes during extraction (e.g., different error types, different handling of edge cases), downstream tests may fail.
 
 **Mitigation:**
 

@@ -143,7 +143,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 - **Coverage:** FULL PASS
 - **Tests:**
   - `2.6-UNIT-TYPE` - packages/sdk/src/publish-event.test.ts:19-27 (compile-time)
-    - **Given:** The @crosstown/sdk package
+    - **Given:** The @toon-protocol/sdk package
     - **When:** `import type { PublishEventResult } from './index.js'` is used
     - **Then:** TypeScript compilation succeeds and the type resolves to the expected shape
 

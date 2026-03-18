@@ -47,12 +47,12 @@ inputDocuments:
 | 2.2   | SPSP Handshake Handler                         | P0       |
 | 2.3   | E2E Test Validation                            | P0       |
 | 2.4   | Remove packages/git-proxy & Document Reference | P2       |
-| 2.5   | Publish @crosstown/town Package                | P1       |
+| 2.5   | Publish @toon-protocol/town Package                | P1       |
 
 ### Key Source Context
 
 - `docker/src/entrypoint.ts` — Current relay BLS/SPSP wiring (1080 lines, to be replaced by SDK handlers)
-- `packages/core/src/compose.ts` — `createCrosstownNode()` composition function
+- `packages/core/src/compose.ts` — `createToonNode()` composition function
 - `packages/bls/src/bls/BusinessLogicServer.test.ts` — Existing BLS test patterns
 - `packages/client/tests/e2e/genesis-bootstrap-with-channels.test.ts` — Existing E2E pattern
 
@@ -78,7 +78,7 @@ inputDocuments:
 
 ### Red Phase Strategy
 
-All tests fail because `@crosstown/sdk` and `@crosstown/town` packages don't exist yet (Epic 1 prerequisite). Import failures = guaranteed RED.
+All tests fail because `@toon-protocol/sdk` and `@toon-protocol/town` packages don't exist yet (Epic 1 prerequisite). Import failures = guaranteed RED.
 
 ---
 
@@ -88,7 +88,7 @@ All tests fail because `@crosstown/sdk` and `@crosstown/town` packages don't exi
 
 - All skippable tests use `describe.skip()` (Vitest equivalent of `test.skip()`)
 - All tests assert expected behavior (zero placeholder assertions)
-- All tests will FAIL until `@crosstown/sdk` and `@crosstown/town` are implemented
+- All tests will FAIL until `@toon-protocol/sdk` and `@toon-protocol/town` are implemented
 
 ### File Summary
 
@@ -145,20 +145,20 @@ All tests fail because `@crosstown/sdk` and `@crosstown/town` packages don't exi
 | AC                          | Test                                                               | Priority |
 | --------------------------- | ------------------------------------------------------------------ | -------- |
 | git-proxy directory removed | `should not have packages/git-proxy directory`                     | P2       |
-| No dependency references    | `should not have any package depending on @crosstown/git-proxy`    | P2       |
-| Workspace config clean      | `should not reference @crosstown/git-proxy in pnpm-workspace.yaml` | P2       |
-| SDK package exists          | `SDK relay entrypoint should import from @crosstown/sdk`           | P2       |
+| No dependency references    | `should not have any package depending on @toon-protocol/git-proxy`    | P2       |
+| Workspace config clean      | `should not reference @toon-protocol/git-proxy in pnpm-workspace.yaml` | P2       |
+| SDK package exists          | `SDK relay entrypoint should import from @toon-protocol/sdk`           | P2       |
 
-#### Story 2.5 — Publish @crosstown/town (6 tests)
+#### Story 2.5 — Publish @toon-protocol/town (6 tests)
 
 | AC                                      | Test                                                                | Priority |
 | --------------------------------------- | ------------------------------------------------------------------- | -------- |
 | startTown() with mnemonic config        | `should start relay with minimal mnemonic config and accept events` | P0       |
-| Package exports (startTown, TownConfig) | `should export startTown() and TownConfig from @crosstown/town`     | P1       |
+| Package exports (startTown, TownConfig) | `should export startTown() and TownConfig from @toon-protocol/town`     | P1       |
 | Default ports (7100/3100)               | `should use default ports when not specified`                       | P1       |
 | Bootstrap + peer discovery on start     | `should run bootstrap and discover peers on start`                  | P1       |
 | Clean lifecycle stop                    | `should stop cleanly via lifecycle stop`                            | P1       |
-| Package dependencies correct            | `package.json should depend on @crosstown/sdk, relay, core`         | P2       |
+| Package dependencies correct            | `package.json should depend on @toon-protocol/sdk, relay, core`         | P2       |
 
 ### Mock Policy Summary
 
@@ -179,7 +179,7 @@ No shared fixture files needed for RED phase. Each test file contains self-conta
 - `createPacketRequest()` — ILP packet construction
 - `calculatePrice()` — Pricing calculation
 - `createKeypair()` — NIP-44 keypair generation
-- `createTestClient()` — CrosstownClient configuration
+- `createTestClient()` — ToonClient configuration
 - `waitForEventOnRelay()` — TOON-aware WebSocket subscriber
 - `getChannelState()` — On-chain viem queries
 
@@ -187,7 +187,7 @@ No shared fixture files needed for RED phase. Each test file contains self-conta
 
 ## Next Steps (TDD Green Phase)
 
-After implementing `@crosstown/sdk` (Epic 1) and Epic 2 stories:
+After implementing `@toon-protocol/sdk` (Epic 1) and Epic 2 stories:
 
 1. Remove `describe.skip()` from integration tests (2.1, 2.2)
 2. Remove `describe.skip()` from E2E tests (2.3, 2.5)
@@ -212,7 +212,7 @@ After implementing `@crosstown/sdk` (Epic 1) and Epic 2 stories:
 - `startTown(config: TownConfig): Promise<TownInstance>` — One-function relay startup
 - `TownConfig` type — mnemonic, ports, knownPeers, settlement config
 - `TownInstance` — isRunning(), stop(), pubkey, config, bootstrapResult
-- CLI binary entry — `npx @crosstown/town` support
+- CLI binary entry — `npx @toon-protocol/town` support
 
 ---
 
@@ -233,7 +233,7 @@ After implementing `@crosstown/sdk` (Epic 1) and Epic 2 stories:
 | No placeholder assertions                   | PASS   | 0 instances of `expect(true).toBe(true)`                |
 | Tests are isolated (no shared state)        | PASS   | Each test creates own keypairs, events, store           |
 | Tests are deterministic                     | PASS   | No timing-dependent assertions, random data from crypto |
-| RED phase verified                          | PASS   | `describe.skip` + missing `@crosstown/sdk` imports      |
+| RED phase verified                          | PASS   | `describe.skip` + missing `@toon-protocol/sdk` imports      |
 | Real infra preferred over mocks             | PASS   | SQLite, TOON, NIP-44, Anvil, WebSocket all real         |
 | No orphaned browser sessions                | N/A    | Backend stack, no browser tests                         |
 | Temp artifacts in test_artifacts/           | PASS   | Output at `_bmad-output/test-artifacts/`                |
@@ -253,7 +253,7 @@ The standard ATDD checklist is Playwright/Cypress-oriented. Adaptations for this
 
 | Risk                                                                       | Mitigation                                                                                       |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Epic 1 (@crosstown/sdk) must be completed before Epic 2 tests can go GREEN | Tests designed to be compatible with the SDK API surface defined in compose.ts                   |
+| Epic 1 (@toon-protocol/sdk) must be completed before Epic 2 tests can go GREEN | Tests designed to be compatible with the SDK API surface defined in compose.ts                   |
 | Integration tests mock channel/admin clients                               | Minimal mocking; all data transformation (TOON, NIP-44, signing) is real                         |
 | E2E tests require genesis node infrastructure                              | Health checks in beforeAll() skip gracefully if infra unavailable                                |
 | Town lifecycle tests bind to non-default ports                             | Uses 7200-7500 range to avoid conflicts with running genesis node                                |
@@ -283,4 +283,4 @@ The standard ATDD checklist is Playwright/Cypress-oriented. Adaptations for this
 
 **Output file:** `_bmad-output/test-artifacts/atdd-checklist-epic-2.md`
 
-**Next recommended workflow:** Implement Epic 1 (`@crosstown/sdk`), then run `bmad-bmm-dev-story` for each Epic 2 story to move tests from RED to GREEN.
+**Next recommended workflow:** Implement Epic 1 (`@toon-protocol/sdk`), then run `bmad-bmm-dev-story` for each Epic 2 story to move tests from RED to GREEN.

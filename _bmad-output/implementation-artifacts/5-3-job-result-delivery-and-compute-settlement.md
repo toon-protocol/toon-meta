@@ -8,11 +8,11 @@ Status: done
 
 As a **DVM provider agent**,
 I want to publish job results and receive compute payment through the ILP network,
-So that the complete job lifecycle (request -> feedback -> result -> settlement) works end-to-end on Crosstown.
+So that the complete job lifecycle (request -> feedback -> result -> settlement) works end-to-end on TOON.
 
 **FRs covered:** FR-DVM-3 (Providers SHALL publish Kind 7000 feedback and Kind 6xxx result events via ILP PREPARE packets, and customers SHALL settle compute costs via ILP payments routed through the mesh)
 
-**Dependencies:** Story 5.2 complete (ILP-native job submission -- validation tests prove pipeline handles Kind 5xxx events, commit `7aafad6` on `epic-5`). Story 5.1 complete (DVM event kind definitions -- builders, parsers, constants in `@crosstown/core`, commit `5556844` on `epic-5`). Epic 3 Story 3.1 (USDC denomination). Epic 3 Story 3.5 (kind:10035 service discovery with `ilpAddress` field). All infrastructure from Epics 1-4 is complete.
+**Dependencies:** Story 5.2 complete (ILP-native job submission -- validation tests prove pipeline handles Kind 5xxx events, commit `7aafad6` on `epic-5`). Story 5.1 complete (DVM event kind definitions -- builders, parsers, constants in `@toon-protocol/core`, commit `5556844` on `epic-5`). Epic 3 Story 3.1 (USDC denomination). Epic 3 Story 3.5 (kind:10035 service discovery with `ilpAddress` field). All infrastructure from Epics 1-4 is complete.
 
 **Decision sources:**
 - Decision 2 (party-mode-2020117-analysis): ILP-native as preferred path, x402 as fallback
@@ -44,7 +44,7 @@ So that the complete job lifecycle (request -> feedback -> result -> settlement)
 ## Tasks / Subtasks
 
 - [x] Task 1: Implement SDK helper methods for DVM lifecycle events (AC: #1, #2, #5, #6, #8)
-  - [x] 1.1 Add `publishFeedback(requestEventId, customerPubkey, status, content?)` method to `ServiceNode` interface in `packages/sdk/src/create-node.ts`. Internally calls `buildJobFeedbackEvent()` from `@crosstown/core` with the provider's `secretKey`, then `this.publishEvent(event, { destination })`. Returns `PublishEventResult`.
+  - [x] 1.1 Add `publishFeedback(requestEventId, customerPubkey, status, content?)` method to `ServiceNode` interface in `packages/sdk/src/create-node.ts`. Internally calls `buildJobFeedbackEvent()` from `@toon-protocol/core` with the provider's `secretKey`, then `this.publishEvent(event, { destination })`. Returns `PublishEventResult`.
   - [x] 1.2 Add `publishResult(requestEventId, customerPubkey, amount, content, options?)` method to `ServiceNode` interface. Internally calls `buildJobResultEvent()` with kind derived from the request (kind + 1000), then `this.publishEvent(event, { destination })`. The `options` parameter includes `{ destination: string, kind?: number }` where `kind` defaults to 6100 (text generation result). Returns `PublishEventResult`.
   - [x] 1.3 Add `settleCompute(resultEvent, providerIlpAddress, options?)` method to `ServiceNode` interface. Extracts `amount` from the result event's `amount` tag via `parseJobResult()`. When `options.originalBid` is provided, validates that `BigInt(amount) <= BigInt(originalBid)` and throws `NodeError` if exceeded (E5-R005 bid validation). Then sends an ILP payment via `ilpClient.sendIlpPacket({ destination: providerIlpAddress, amount, data: '' })`. Returns `IlpSendResult`. This is a **payment-only** operation -- no TOON encoding, no relay write. The empty `data` field signals a pure value transfer (no event payload). **Deviation from epics.md:** The epics.md shows `settleCompute(resultEvent)` (single param). This story uses `settleCompute(resultEvent, providerIlpAddress, options?)` because ILP address resolution is a caller concern (S5.3-R4), and bid validation requires the original bid amount (E5-R005).
   - [x] 1.4 Update `ServiceNode` interface type in `packages/sdk/src/create-node.ts` to include the three new method signatures.
@@ -84,7 +84,7 @@ So that the complete job lifecycle (request -> feedback -> result -> settlement)
 
 **Key insight: Story 5.3 introduces the first NEW production code in Epic 5.** Unlike Stories 5.1 (builders/parsers) and 5.2 (validation-only), Story 5.3 adds three new methods to the `ServiceNode` interface that compose existing primitives into DVM-specific SDK helpers. The implementation follows the established pattern: thin helper methods that delegate to existing infrastructure (`buildJobFeedbackEvent()`, `buildJobResultEvent()`, `publishEvent()`, `ilpClient.sendIlpPacket()`).
 
-**DVM lifecycle on Crosstown (recap from epics.md):**
+**DVM lifecycle on TOON (recap from epics.md):**
 ```
 1. Customer -> ILP PREPARE [Kind 5xxx job request]  -> Relay (paid to write)
 2. Provider <- reads Kind 5xxx (free to read)
@@ -130,7 +130,7 @@ So that the complete job lifecycle (request -> feedback -> result -> settlement)
    - `publishFeedback(requestEventId, customerPubkey, status, content?)` -- Builds feedback event and delegates to `publishEvent()`.
    - `publishResult(requestEventId, customerPubkey, amount, content, options?)` -- Builds result event and delegates to `publishEvent()`.
    - `settleCompute(resultEvent, providerIlpAddress, options?)` -- Extracts amount from result event, optionally validates against original bid (E5-R005), and sends ILP payment.
-   - **Import additions:** `buildJobFeedbackEvent`, `buildJobResultEvent`, `parseJobResult` from `@crosstown/core`.
+   - **Import additions:** `buildJobFeedbackEvent`, `buildJobResultEvent`, `parseJobResult` from `@toon-protocol/core`.
    - **Interface additions:** Add the three method signatures to the `ServiceNode` interface (line ~168). `settleCompute` includes `options?: { originalBid?: string }` for bid validation (E5-R005).
    - **Implementation location:** Inside the returned `node` object literal (after `publishEvent()` at line ~798).
 
@@ -215,7 +215,7 @@ So that the complete job lifecycle (request -> feedback -> result -> settlement)
 - **Always mock SimplePool** -- `vi.mock('nostr-tools')` to prevent live relay connections
 - **In-memory databases for unit tests** -- Use SQLite `:memory:` for fast, isolated tests
 - **Deterministic test data** -- Use fixed timestamps (e.g., `1700000000`), fixed keys, fixed event IDs (not `Date.now()` or `generateSecretKey()` in test assertions)
-- **Import from `@crosstown/core/toon`** for TOON encode/decode in SDK tests (not `@crosstown/relay`)
+- **Import from `@toon-protocol/core/toon`** for TOON encode/decode in SDK tests (not `@toon-protocol/relay`)
 - **Lint-check immediately after writing code** -- `pnpm lint` before marking any task complete
 
 ### Implementation Approach
@@ -247,7 +247,7 @@ So that the complete job lifecycle (request -> feedback -> result -> settlement)
 - [Source: `_bmad-output/planning-artifacts/epics.md` -- Epic 5 description, Story 5.3 definition, DVM lifecycle diagram, FR-DVM-3]
 - [Source: `_bmad-output/planning-artifacts/research/party-mode-2020117-analysis-2026-03-10.md` -- Decisions 2, 4, 6]
 - [Source: `_bmad-output/planning-artifacts/test-design-epic-5.md` -- DVM Compute Marketplace test design. Section 3 Story 5.3 tests (T-5.3-01 through T-5.3-16), Section 4 cross-story integration tests (T-INT-01 through T-INT-06), Section 7 risk mitigation for E5-R005 and E5-R007]
-- [Source: `_bmad-output/implementation-artifacts/5-1-dvm-event-kind-definitions.md` -- Story 5.1 completed (builders, parsers, constants in `@crosstown/core`)]
+- [Source: `_bmad-output/implementation-artifacts/5-1-dvm-event-kind-definitions.md` -- Story 5.1 completed (builders, parsers, constants in `@toon-protocol/core`)]
 - [Source: `_bmad-output/implementation-artifacts/5-2-ilp-native-job-submission.md` -- Story 5.2 completed (validation tests, pipeline handles Kind 5xxx, handler dispatch for DVM kinds)]
 - [Source: `_bmad-output/project-context.md` -- SDK Pipeline, publishEvent(), Handler Pattern, Testing Rules, Naming Conventions, Chain Configuration]
 - [Source: `packages/sdk/src/create-node.ts` -- ServiceNode interface (line ~168), publishEvent() implementation (line ~735), createNode() closure variables (config.secretKey at ~269, ilpClient at ~455)]
@@ -272,7 +272,7 @@ Claude Opus 4.6 (claude-opus-4-6)
   - `publishFeedback(requestEventId, customerPubkey, status, content?, options?)` -- builds Kind 7000 feedback event via `buildJobFeedbackEvent()` and delegates to `publishEvent()`.
   - `publishResult(requestEventId, customerPubkey, amount, content, options?)` -- builds Kind 6xxx result event via `buildJobResultEvent()` with configurable kind (default 6100) and delegates to `publishEvent()`.
   - `settleCompute(resultEvent, providerIlpAddress, options?)` -- extracts amount from result event via `parseJobResult()`, validates against original bid (E5-R005) when `options.originalBid` is provided, and sends pure ILP value transfer with `data: ''`.
-  - Added imports for `buildJobFeedbackEvent`, `buildJobResultEvent`, `parseJobResult` from `@crosstown/core` and type imports for `DvmJobStatus`, `IlpSendResult`.
+  - Added imports for `buildJobFeedbackEvent`, `buildJobResultEvent`, `parseJobResult` from `@toon-protocol/core` and type imports for `DvmJobStatus`, `IlpSendResult`.
   - ~80 lines of production code added to `create-node.ts` (interface + implementation).
 
 - **Task 2 (Unit tests updated to GREEN):** Updated `dvm-lifecycle.test.ts` from RED to GREEN phase: removed all `(node as any)` casts (now using typed `ServiceNode` method calls), updated implementation phase comment. All 20 unit tests pass.
@@ -281,7 +281,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 
 - **Task 4 (Validation):** Build, lint (0 errors), and full monorepo test suite pass. Total: 2083 unit tests + 52 SDK integration tests. No test regressions.
 
-- **Infrastructure fix (direct-ilp-client.ts):** The `createDirectIlpClient()` in `@crosstown/core` was unconditionally attempting to TOON-decode the `data` field of ILP packets. When `settleCompute()` sends an empty data field (pure value transfer), this caused a TOON decode error. Added a `data.length > 0` guard to skip TOON decoding for empty payloads. This is valid per IL-RFC-15 (the data field is optional in ILP PREPARE packets).
+- **Infrastructure fix (direct-ilp-client.ts):** The `createDirectIlpClient()` in `@toon-protocol/core` was unconditionally attempting to TOON-decode the `data` field of ILP packets. When `settleCompute()` sends an empty data field (pure value transfer), this caused a TOON decode error. Added a `data.length > 0` guard to skip TOON decoding for empty payloads. This is valid per IL-RFC-15 (the data field is optional in ILP PREPARE packets).
 
 ### Change Log
 
@@ -299,7 +299,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `packages/sdk/src/create-node.ts` | **MODIFY** | Added `publishFeedback()`, `publishResult()`, `settleCompute()` to ServiceNode interface and createNode() closure. Added imports for DVM builders/parsers from `@crosstown/core`. |
+| `packages/sdk/src/create-node.ts` | **MODIFY** | Added `publishFeedback()`, `publishResult()`, `settleCompute()` to ServiceNode interface and createNode() closure. Added imports for DVM builders/parsers from `@toon-protocol/core`. |
 | `packages/core/src/bootstrap/direct-ilp-client.ts` | **MODIFY** | Added `data.length > 0` guard to skip TOON decoding for empty data payloads (pure ILP value transfers from `settleCompute()`). |
 | `packages/sdk/src/dvm-lifecycle.test.ts` | **MODIFY** | Updated from RED to GREEN phase: removed `(node as any)` casts, updated comments. 20 unit tests pass. |
 | `packages/sdk/src/__integration__/dvm-lifecycle.test.ts` | **MODIFY** | Updated from RED to GREEN phase: removed `as any` casts, updated comments. 14 integration tests pass. |

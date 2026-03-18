@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-10
 **Participants:** Jonathan (user), Winston (architect), Mary (analyst), Victor (innovation strategist)
-**Subject:** Compare 2020117 Nostr-native agent network with Crosstown; extract value for Epic 5 (DVM Compute Marketplace) and Epic 6 (Advanced DVM + TEE Integration)
+**Subject:** Compare 2020117 Nostr-native agent network with TOON; extract value for Epic 5 (DVM Compute Marketplace) and Epic 6 (Advanced DVM + TEE Integration)
 
 ---
 
@@ -18,7 +18,7 @@
 
 ## Architectural Comparison
 
-| Dimension | Crosstown | 2020117 |
+| Dimension | TOON | 2020117 |
 |-----------|-----------|---------|
 | **Payment rail** | ILP + EVM channels | Lightning + NWC |
 | **Payment model** | Pay-per-byte to write | Pay-per-job (DVM) + pay-per-minute (P2P sessions) |
@@ -48,7 +48,7 @@ Compute payment (customer paying provider for work) routes through the ILP mesh,
 
 ### Decision 4: NIP-90 compatible event kinds
 Use standard NIP-90 kinds (5xxx/6xxx/7000) for cross-network interoperability.
-**Rationale:** Agents on 2020117's relay can discover and post jobs to Crosstown relays. Same protocol, different payment rail.
+**Rationale:** Agents on 2020117's relay can discover and post jobs to TOON relays. Same protocol, different payment rail.
 
 ### Decision 5: Skill descriptors in kind:10035, not a separate event kind
 Structured capability schema embedded in existing kind:10035 service discovery events.
@@ -68,7 +68,7 @@ Existing Epic 5 (The Rig) moves to Epic 7 to accommodate DVM epics in the depend
 
 ### Decision 9: Reputation replaces zap_sats with ILP channel volume
 Adapted formula: `score = (trusted_by × 100) + (log10(channel_volume_usdc) × 10) + (jobs_completed × 5) + (avg_rating × 20)`
-**Rationale:** Crosstown uses USDC/ILP, not Lightning. Channel volume is the equivalent economic signal, and it's verifiable on-chain.
+**Rationale:** TOON uses USDC/ILP, not Lightning. Channel volume is the equivalent economic signal, and it's verifiable on-chain.
 
 ### Decision 10: TEE attestation is a separate trust layer, not part of reputation score
 TEE attestation (kind:10033) is shown alongside reputation but not factored into the numeric score.
@@ -87,17 +87,17 @@ TEE attestation (kind:10033) is shown alongside reputation but not factored into
 | Kind 31117 job reviews | Adopted | Epic 6 |
 | Kind 30382 WoT declarations | Adopted | Epic 6 |
 | Reputation scoring formula | Adapted (ILP volume replaces zap_sats) | Epic 6 |
-| TEE-attested results (Crosstown-unique) | New (not in 2020117) | Epic 6 |
+| TEE-attested results (TOON-unique) | New (not in 2020117) | Epic 6 |
 
 ## What Was NOT Adopted
 
 | Feature | Reason |
 |---------|--------|
-| Lightning/NWC payment rail | Crosstown uses ILP/EVM |
-| Read-only cache platform architecture | Crosstown relay IS the product |
-| NIP-13 Proof of Work anti-spam | Crosstown uses payment gating |
+| Lightning/NWC payment rail | TOON uses ILP/EVM |
+| Read-only cache platform architecture | TOON relay IS the product |
+| NIP-13 Proof of Work anti-spam | TOON uses payment gating |
 | Proof of Zap reputation | Replaced by ILP channel volume |
 | Agent heartbeat (Kind 30333) | kind:10035 + /health serves this purpose |
 | Data escrow (Kind 21117) | Deferred; on-chain escrow via TokenNetwork is superior |
 | P2P sessions via Hyperswarm | Out of scope for current epics |
-| Cloudflare Workers architecture | Crosstown is Docker/self-hosted |
+| Cloudflare Workers architecture | TOON is Docker/self-hosted |

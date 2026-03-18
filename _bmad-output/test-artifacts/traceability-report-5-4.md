@@ -67,9 +67,9 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
     - **When:** parseServiceDiscovery is called
     - **Then:** Parses correctly with skill=undefined (backward compatible)
   - `T-5.4-09` - packages/core/src/events/service-discovery.test.ts:1501
-    - **Given:** kind:10035 event with skill AND Crosstown fields (ilpAddress, x402, chain)
+    - **Given:** kind:10035 event with skill AND TOON fields (ilpAddress, x402, chain)
     - **When:** parseServiceDiscovery is called
-    - **Then:** All Crosstown-specific fields and skill fields present
+    - **Then:** All TOON-specific fields and skill fields present
   - `T-5.4-11` - packages/core/src/events/service-discovery.test.ts:1536
     - **Given:** Skill descriptor with attestation placeholder
     - **When:** roundtrip through build/parse
@@ -205,14 +205,14 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ---
 
-#### AC-6: Crosstown superset of NIP-90 discovery (P2)
+#### AC-6: TOON superset of NIP-90 discovery (P2)
 
-**Acceptance Criterion:** Given the skill descriptor format, when compared to NIP-90 skill JSON schema, then the Crosstown skill descriptor is a superset -- it includes standard NIP-90 discovery fields plus Crosstown-specific fields (`ilpAddress`, `x402`, `chain`) and a new `attestation` placeholder field within the skill descriptor.
+**Acceptance Criterion:** Given the skill descriptor format, when compared to NIP-90 skill JSON schema, then the TOON skill descriptor is a superset -- it includes standard NIP-90 discovery fields plus TOON-specific fields (`ilpAddress`, `x402`, `chain`) and a new `attestation` placeholder field within the skill descriptor.
 
 - **Coverage:** FULL
 - **Tests:**
   - `T-5.4-09` - packages/core/src/events/service-discovery.test.ts:1501
-    - **Given:** kind:10035 event with skill AND Crosstown fields (ilpAddress, x402 with endpoint, chain)
+    - **Given:** kind:10035 event with skill AND TOON fields (ilpAddress, x402 with endpoint, chain)
     - **When:** parseServiceDiscovery roundtrip
     - **Then:** ilpAddress, x402.enabled, x402.endpoint, chain all present alongside skill descriptor
   - `T-5.4-11` - packages/core/src/events/service-discovery.test.ts:1536
@@ -239,7 +239,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
   - `T-5.4-06` (full feature) - packages/sdk/src/skill-descriptor.test.ts:850
     - **Given:** Node with x402 + DVM handlers
     - **When:** kind:10035 built with both x402 and skill
-    - **Then:** All Crosstown-specific fields and skill fields present together
+    - **Then:** All TOON-specific fields and skill fields present together
   - `T-5.4-06` (Town static analysis) - packages/town/src/town.test.ts:840
     - **Given:** TownConfig accepts optional skill?: SkillDescriptor
     - **When:** Source code is analyzed

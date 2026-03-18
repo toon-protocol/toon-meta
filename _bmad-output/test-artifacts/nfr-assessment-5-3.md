@@ -52,7 +52,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** DVM helper methods should add negligible latency over existing `publishEvent()` and `sendIlpPacket()` paths
 - **Actual:** 20 unit tests complete in 2682ms total (~134ms per test including node creation/start/stop). 14 integration tests complete in 3555ms total (~254ms per test including TOON encode/decode roundtrips and real Schnorr signing). The helper methods add only event building overhead (synchronous `buildJobFeedbackEvent()`/`buildJobResultEvent()` calls) before delegating to existing infrastructure.
-- **Evidence:** `pnpm --filter @crosstown/sdk test` (210 passed, 3.51s total); `pnpm --filter @crosstown/sdk test:integration` (52 passed, 3.96s total)
+- **Evidence:** `pnpm --filter @toon-protocol/sdk test` (210 passed, 3.51s total); `pnpm --filter @toon-protocol/sdk test:integration` (52 passed, 3.96s total)
 - **Findings:** `publishFeedback()` and `publishResult()` add one synchronous function call (event building with Schnorr signing) before `publishEvent()`. `settleCompute()` adds `parseJobResult()` (O(n) tag iteration) and optional `BigInt()` comparison before `sendIlpPacket()`. No measurable regression. The helper methods are thin wrappers -- all heavy lifting (TOON encoding, ILP packet construction, connector sendPacket) is in existing code.
 
 ### Throughput
@@ -145,9 +145,9 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** DVM helper methods must produce consistent, descriptive errors for all failure modes
-- **Actual:** Error messages are diagnostic and include the invalid values: `"Cannot settle compute: result amount (3000000) exceeds original bid (2000000). Potential provider overcharge."` (T-5.3-04 amplification validates regex `/amount.*exceed.*bid|bid.*exceed/i`). `"Cannot settle compute: failed to parse result event. Ensure the event is a valid Kind 6xxx with an amount tag."` for malformed events. Error type is consistently `NodeError` (extends `CrosstownError`).
+- **Actual:** Error messages are diagnostic and include the invalid values: `"Cannot settle compute: result amount (3000000) exceeds original bid (2000000). Potential provider overcharge."` (T-5.3-04 amplification validates regex `/amount.*exceed.*bid|bid.*exceed/i`). `"Cannot settle compute: failed to parse result event. Ensure the event is a valid Kind 6xxx with an amount tag."` for malformed events. Error type is consistently `NodeError` (extends `ToonError`).
 - **Evidence:** `dvm-lifecycle.test.ts` T-5.3-04, T-5.3-04 amplification, T-5.3-17; `create-node.ts` lines 923-926 (parse error), 935-938 (bid error)
-- **Findings:** All error paths are tested and produce descriptive messages. Error handling is consistent with the project's error hierarchy (`NodeError` extends `CrosstownError`).
+- **Findings:** All error paths are tested and produce descriptive messages. Error handling is consistent with the project's error hierarchy (`NodeError` extends `ToonError`).
 
 ### MTTR (Mean Time To Recovery)
 
@@ -170,7 +170,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** All Story 5.3 tests pass consistently; no flakiness
 - **Actual:** All 34 tests (20 unit + 14 integration) pass on first enable. Full monorepo suite: 2025 passed, 79 skipped, 0 failed. SDK package: 210/210 passed. SDK integration: 52/52 passed (includes 14 Story 5.3 tests + 14 Story 5.2 tests + existing). No test regressions.
-- **Evidence:** `pnpm --filter @crosstown/sdk test` (210 passed); `pnpm --filter @crosstown/sdk test:integration` (52 passed); `npx vitest run` (2025 passed, 79 skipped)
+- **Evidence:** `pnpm --filter @toon-protocol/sdk test` (210 passed); `pnpm --filter @toon-protocol/sdk test:integration` (52 passed); `npx vitest run` (2025 passed, 79 skipped)
 - **Findings:** Tests are deterministic: unit tests use fixed keys and mock connectors, integration tests use `generateSecretKey()` once per suite (in `beforeAll`) with deterministic assertions. No timing dependencies, no network calls, no shared mutable state. The background task monorepo test run confirms 0 regressions across all 86 test files.
 
 ### Disaster Recovery (if applicable)

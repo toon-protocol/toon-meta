@@ -1,14 +1,14 @@
 # Story 2-5 Report
 
 ## Overview
-- **Story file**: `_bmad-output/implementation-artifacts/2-5-publish-crosstown-town-package.md`
+- **Story file**: `_bmad-output/implementation-artifacts/2-5-publish-toon-town-package.md`
 - **Git start**: `7205a13090b88235637c1fc581e1c141be4fe279`
 - **Duration**: ~3 hours (approximate wall-clock pipeline time)
 - **Pipeline result**: success
 - **Migrations**: None
 
 ## What Was Built
-Story 2.5 is the capstone of Epic 2. It wraps the validated SDK-based relay handlers (event storage from Story 2.1, SPSP handshake from Story 2.2) into a publishable `@crosstown/town` npm package with a programmatic `startTown(config)` API, a CLI entrypoint (`npx @crosstown/town --mnemonic "..." --connector-url "..."`), and npm-ready packaging (bin entry, correct dependencies, ESM exports, TypeScript declarations).
+Story 2.5 is the capstone of Epic 2. It wraps the validated SDK-based relay handlers (event storage from Story 2.1, SPSP handshake from Story 2.2) into a publishable `@toon-protocol/town` npm package with a programmatic `startTown(config)` API, a CLI entrypoint (`npx @toon-protocol/town --mnemonic "..." --connector-url "..."`), and npm-ready packaging (bin entry, correct dependencies, ESM exports, TypeScript declarations).
 
 ## Acceptance Criteria Coverage
 - [x] AC1: package.json depends on sdk/relay/core, type:module, strict TS, bin entry -- covered by: `package-structure.test.ts` (9 tests), `town-lifecycle.test.ts` T-2.5-06
@@ -39,11 +39,11 @@ Story 2.5 is the capstone of Epic 2. It wraps the validated SDK-based relay hand
 - `town-lifecycle.test.ts` -- **modified** -- un-skipped describe block, added connectorUrl to all startTown() calls, fixed BLS port 3500->3550 conflict, removed stale RED-phase comments, removed unused _waitForEventOnRelay function, fixed import.meta.dirname relative path
 
 ### Root
-- `vitest.config.ts` -- **modified** -- added @crosstown/town alias
+- `vitest.config.ts` -- **modified** -- added @toon-protocol/town alias
 - `pnpm-lock.yaml` -- **modified** -- lockfile update for new dependencies
 
 ### _bmad-output/
-- `implementation-artifacts/2-5-publish-crosstown-town-package.md` -- **created** then **modified** -- story file with dev record, 3 code review passes, change log
+- `implementation-artifacts/2-5-publish-toon-town-package.md` -- **created** then **modified** -- story file with dev record, 3 code review passes, change log
 - `implementation-artifacts/sprint-status.yaml` -- **modified** -- story 2-5 and epic-2 set to "done"
 - `test-artifacts/atdd-checklist-2.5.md` -- **created** -- ATDD checklist with implementation roadmap
 - `test-artifacts/nfr-assessment.md` -- **modified** -- NFR assessment for story 2.5
@@ -209,7 +209,7 @@ Story 2.5 is the capstone of Epic 2. It wraps the validated SDK-based relay hand
 - **Traceability**: pass -- all 6 ACs fully covered, 55 tests across 4 files, 0 gaps
 
 ## Known Risks & Gaps
-1. **NFR FAIL items**: (a) 16 pre-existing test coverage timeouts under instrumentation, (b) `ws` not explicitly in runtime deps (transitive via @crosstown/relay), (c) CLI --mnemonic/--secret-key flags expose secrets in process listings -- env vars recommended
+1. **NFR FAIL items**: (a) 16 pre-existing test coverage timeouts under instrumentation, (b) `ws` not explicitly in runtime deps (transitive via @toon-protocol/relay), (c) CLI --mnemonic/--secret-key flags expose secrets in process listings -- env vars recommended
 2. **E2E tests require genesis infrastructure**: Tests T-2.5-01, T-2.5-03 (partial), T-2.5-04, T-2.5-05 gracefully skip when genesis node is not running. In CI without genesis deployment, only unit tests provide coverage.
 3. **Reference implementation divergence**: `docker/src/entrypoint-town.ts` line 338 has the same `!body.amount` truthiness pattern that was fixed in `town.ts`. Should be fixed separately for consistency.
 4. **Manual npm publish required**: The user noted they will manually publish the npm package. Run `cd packages/town && pnpm build && npm publish --access public` when ready.
@@ -217,4 +217,4 @@ Story 2.5 is the capstone of Epic 2. It wraps the validated SDK-based relay hand
 ---
 
 ## TL;DR
-Story 2.5 delivers the `@crosstown/town` npm package with a `startTown(config)` programmatic API (720 lines), CLI entrypoint (233 lines), and full npm publishability. The pipeline completed successfully across all 24 steps with 10 code issues fixed across 3 review passes, 1 security issue fixed (hex validation), and 55 story-specific tests achieving full coverage of all 6 acceptance criteria. Epic 2 is now complete. The package is ready for manual `npm publish --access public`.
+Story 2.5 delivers the `@toon-protocol/town` npm package with a `startTown(config)` programmatic API (720 lines), CLI entrypoint (233 lines), and full npm publishability. The pipeline completed successfully across all 24 steps with 10 code issues fixed across 3 review passes, 1 security issue fixed (hex validation), and 55 story-specific tests achieving full coverage of all 6 acceptance criteria. Epic 2 is now complete. The package is ready for manual `npm publish --access public`.

@@ -25,7 +25,7 @@ N/A — Epic 1 is the first epic. No previous retrospective to review.
 
 | Story ID | Title                                                      |
 | -------- | ---------------------------------------------------------- |
-| 1.0      | Extract TOON Codec to @crosstown/core                      |
+| 1.0      | Extract TOON Codec to @toon-protocol/core                      |
 | 1.1      | Unified Identity from Seed Phrase                          |
 | 1.2      | Handler Registry with Kind-Based Routing                   |
 | 1.3      | HandlerContext with TOON Passthrough and Lazy Decode       |
@@ -44,9 +44,9 @@ N/A — Epic 1 is the first epic. No previous retrospective to review.
   - **Cross-epic**: None — Epic 1 is the foundational epic
 - **Design patterns to establish early**:
   1. TOON pipeline ordering (raw -> shallow parse -> verify -> route -> lazy decode) — correctness-critical
-  2. Structural typing for ConnectorNode (`ConnectorNodeLike`) — SDK must not import @crosstown/connector
+  2. Structural typing for ConnectorNode (`ConnectorNodeLike`) — SDK must not import @toon-protocol/connector
   3. Handler context pattern (void return + ctx.accept()/ctx.reject())
-  4. Error hierarchy (CrosstownError -> NodeError, HandlerError, VerificationError, PricingError)
+  4. Error hierarchy (ToonError -> NodeError, HandlerError, VerificationError, PricingError)
   5. `node.on(number)` vs `node.on(string)` disambiguation
 - **Recommended story order**:
   - **Phase 1 (parallel)**: 1.0, 1.1, 1.2, 1.8, 1.9 — all zero-dependency stories
@@ -123,9 +123,9 @@ N/A — Epic 1 is the first epic. No previous retrospective to review.
 
 ## Next Steps
 
-First story to implement: **Story 1.0 — Extract TOON Codec to @crosstown/core**. This is the highest-priority story on the critical path. It introduces `ToonRoutingMeta` and the shallow parser, which 3 downstream stories (1.3, 1.4, 1.5) depend on. Stories 1.1, 1.2, 1.8, and 1.9 can be started in parallel if capacity allows.
+First story to implement: **Story 1.0 — Extract TOON Codec to @toon-protocol/core**. This is the highest-priority story on the critical path. It introduces `ToonRoutingMeta` and the shallow parser, which 3 downstream stories (1.3, 1.4, 1.5) depend on. Stories 1.1, 1.2, 1.8, and 1.9 can be started in parallel if capacity allows.
 
-**Preparation notes**: Existing TOON encoder/decoder in `@crosstown/bls` should be extracted (not duplicated). The test skeleton files in `packages/sdk/src/` should be validated against acceptance criteria when implementation begins.
+**Preparation notes**: Existing TOON encoder/decoder in `@toon-protocol/bls` should be extracted (not duplicated). The test skeleton files in `packages/sdk/src/` should be validated against acceptance criteria when implementation begins.
 
 ---
 

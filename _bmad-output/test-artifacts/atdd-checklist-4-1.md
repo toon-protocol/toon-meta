@@ -41,18 +41,18 @@ inputDocuments:
 
 ## Story Summary
 
-The Crosstown Docker image is packaged for deployment on Marlin Oyster CVM with attestation server configuration and proxy endpoint mapping. This is purely a configuration and packaging story -- no application code changes to the existing relay, BLS, or connector.
+The TOON Docker image is packaged for deployment on Marlin Oyster CVM with attestation server configuration and proxy endpoint mapping. This is purely a configuration and packaging story -- no application code changes to the existing relay, BLS, or connector.
 
 **As a** relay operator
-**I want** the Crosstown Docker image packaged for deployment on Marlin Oyster CVM with attestation server configuration and proxy endpoint mapping
-**So that** I can deploy a TEE-attested Crosstown relay to the Oyster marketplace with a single command
+**I want** the TOON Docker image packaged for deployment on Marlin Oyster CVM with attestation server configuration and proxy endpoint mapping
+**So that** I can deploy a TEE-attested TOON relay to the Oyster marketplace with a single command
 
 ---
 
 ## Acceptance Criteria
 
-1. **AC #1:** docker-compose-oyster.yml defines correct services (crosstown, attestation-server), ports (7100, 3100, 1300), and images for Oyster CVM deployment
-2. **AC #2:** supervisord.conf defines process priorities for crosstown (priority=10) and attestation (priority=20) with correct startup ordering
+1. **AC #1:** docker-compose-oyster.yml defines correct services (toon, attestation-server), ports (7100, 3100, 1300), and images for Oyster CVM deployment
+2. **AC #2:** supervisord.conf defines process priorities for toon (priority=10) and attestation (priority=20) with correct startup ordering
 3. **AC #3:** Both processes running and healthy -- relay (WS:7100), BLS (HTTP:3100), attestation (HTTP:1300)
 4. **AC #4:** Compose file compatible with `oyster-cvm build --docker-compose` (valid YAML, correct structure)
 5. **AC #5:** No application-level code changes needed -- existing relay, BLS, and connector work unmodified behind Marlin's dual-proxy architecture
@@ -91,10 +91,10 @@ The epic-level ATDD (atdd-checklist-epic-4.md) created RED stubs in `packages/co
 
 | Issue | Epic-Level Stub | Corrected in This ATDD |
 |-------|----------------|----------------------|
-| Service count | 3 services (relay, connector, attestation) | 2 services (crosstown, attestation-server) |
-| Service names | relay, connector, attestation | crosstown, attestation-server |
+| Service count | 3 services (relay, connector, attestation) | 2 services (toon, attestation-server) |
+| Service names | relay, connector, attestation | toon, attestation-server |
 | Port assignments | Connector port 8080 exposed | Connector is external, not in compose |
-| Supervisord programs | 3 programs (relay=10, connector=20, attestation=30) | 2 programs (crosstown=10, attestation=20) |
+| Supervisord programs | 3 programs (relay=10, connector=20, attestation=30) | 2 programs (toon=10, attestation=20) |
 | T-4.1-04 ports | Attestation on 3100, connector on 8080 | BLS on 3100, attestation on 1300 |
 
 The epic-level stubs remain in `attestation-bootstrap.test.ts` as-is (they will need correction when enabled for integration/E2E). This story's corrected tests are in the dedicated `packages/core/src/build/oyster-config.test.ts`.
@@ -109,19 +109,19 @@ The epic-level stubs remain in `attestation-bootstrap.test.ts` as-is (they will 
 
 #### T-4.1-01: docker-compose-oyster.yml structure (8 sub-tests)
 
-- `it.skip` **T-4.1-01a:** defines exactly 2 services: crosstown and attestation-server
+- `it.skip` **T-4.1-01a:** defines exactly 2 services: toon and attestation-server
   - **Status:** RED -- docker/docker-compose-oyster.yml does not exist
   - **Verifies:** AC #1 -- correct service count and names
 
-- `it.skip` **T-4.1-01b:** crosstown service exposes BLS port 3100 and Relay port 7100
+- `it.skip` **T-4.1-01b:** toon service exposes BLS port 3100 and Relay port 7100
   - **Status:** RED -- docker/docker-compose-oyster.yml does not exist
-  - **Verifies:** AC #1 -- Crosstown node port mapping
+  - **Verifies:** AC #1 -- TOON node port mapping
 
 - `it.skip` **T-4.1-01c:** attestation-server service exposes attestation port 1300
   - **Status:** RED -- docker/docker-compose-oyster.yml does not exist
   - **Verifies:** AC #1 -- attestation service port mapping
 
-- `it.skip` **T-4.1-01d:** crosstown service uses crosstown:optimized image
+- `it.skip` **T-4.1-01d:** toon service uses toon:optimized image
   - **Status:** RED -- docker/docker-compose-oyster.yml does not exist
   - **Verifies:** AC #1 -- correct image reference
 
@@ -129,7 +129,7 @@ The epic-level stubs remain in `attestation-bootstrap.test.ts` as-is (they will 
   - **Status:** RED -- docker/docker-compose-oyster.yml does not exist
   - **Verifies:** AC #4 -- compose file completeness
 
-- `it.skip` **T-4.1-01f:** crosstown service includes required environment variables
+- `it.skip` **T-4.1-01f:** toon service includes required environment variables
   - **Status:** RED -- docker/docker-compose-oyster.yml does not exist
   - **Verifies:** AC #1 -- NODE_ID, NOSTR_SECRET_KEY, ILP_ADDRESS, BLS_PORT, WS_PORT
 
@@ -143,23 +143,23 @@ The epic-level stubs remain in `attestation-bootstrap.test.ts` as-is (they will 
 
 #### T-4.1-02: supervisord.conf structure (10 sub-tests)
 
-- `it.skip` **T-4.1-02a:** defines exactly 2 programs: crosstown and attestation
+- `it.skip` **T-4.1-02a:** defines exactly 2 programs: toon and attestation
   - **Status:** RED -- docker/supervisord.conf does not exist
   - **Verifies:** AC #2 -- correct program count and names
 
-- `it.skip` **T-4.1-02b:** crosstown program has priority=10
+- `it.skip` **T-4.1-02b:** toon program has priority=10
   - **Status:** RED -- docker/supervisord.conf does not exist
-  - **Verifies:** AC #2 -- crosstown starts first
+  - **Verifies:** AC #2 -- toon starts first
 
 - `it.skip` **T-4.1-02c:** attestation program has priority=20
   - **Status:** RED -- docker/supervisord.conf does not exist
   - **Verifies:** AC #2 -- attestation starts second
 
-- `it.skip` **T-4.1-02d:** crosstown starts before attestation (lower priority number)
+- `it.skip` **T-4.1-02d:** toon starts before attestation (lower priority number)
   - **Status:** RED -- docker/supervisord.conf does not exist
   - **Verifies:** AC #2 -- startup ordering correctness
 
-- `it.skip` **T-4.1-02e:** crosstown command is node /app/dist/entrypoint-town.js
+- `it.skip` **T-4.1-02e:** toon command is node /app/dist/entrypoint-town.js
   - **Status:** RED -- docker/supervisord.conf does not exist
   - **Verifies:** AC #2 -- correct entrypoint command
 
@@ -167,7 +167,7 @@ The epic-level stubs remain in `attestation-bootstrap.test.ts` as-is (they will 
   - **Status:** RED -- docker/supervisord.conf does not exist
   - **Verifies:** AC #2 -- correct attestation command
 
-- `it.skip` **T-4.1-02g:** both programs run as crosstown user
+- `it.skip` **T-4.1-02g:** both programs run as toon user
   - **Status:** RED -- docker/supervisord.conf does not exist
   - **Verifies:** AC #2 -- non-root process execution
 
@@ -259,7 +259,7 @@ No separate data factory files needed for this story. Tests use static analysis 
 
 ### Constants (inline)
 
-- `EXPECTED_SERVICES` -- Correct service names: ['crosstown', 'attestation-server']
+- `EXPECTED_SERVICES` -- Correct service names: ['toon', 'attestation-server']
 - `EXPECTED_PORTS` -- Port mapping per service
 - `EXPECTED_PROGRAMS` -- Supervisord program names, priorities, and commands
 
@@ -291,9 +291,9 @@ Not applicable -- this story has no UI components.
 
 **Tasks to make these tests pass:**
 
-- [ ] Add `yaml` as devDependency to `packages/core/package.json`: `pnpm --filter @crosstown/core add -D yaml`
+- [ ] Add `yaml` as devDependency to `packages/core/package.json`: `pnpm --filter @toon-protocol/core add -D yaml`
 - [ ] Create `docker/docker-compose-oyster.yml` with:
-  - [ ] `crosstown` service: image `crosstown:optimized`, ports 3100 and 7100, env vars (NODE_ID, NOSTR_SECRET_KEY, ILP_ADDRESS, CONNECTOR_URL, CONNECTOR_ADMIN_URL, BTP_ENDPOINT, BLS_PORT, WS_PORT)
+  - [ ] `toon` service: image `toon:optimized`, ports 3100 and 7100, env vars (NODE_ID, NOSTR_SECRET_KEY, ILP_ADDRESS, CONNECTOR_URL, CONNECTOR_ADMIN_URL, BTP_ENDPOINT, BLS_PORT, WS_PORT)
   - [ ] `attestation-server` service: image reference, port 1300, env vars (ATTESTATION_PORT, ATTESTATION_REFRESH_INTERVAL)
   - [ ] Valid YAML format compatible with `oyster-cvm build --docker-compose`
   - [ ] Inline comments explaining Oyster CVM-specific configuration
@@ -313,8 +313,8 @@ Not applicable -- this story has no UI components.
 
 - [ ] Create `docker/supervisord.conf` with:
   - [ ] `[supervisord]` section: `nodaemon=true`, `user=root`
-  - [ ] `[program:crosstown]` section: priority=10, command=`node /app/dist/entrypoint-town.js`, user=crosstown, autorestart=true, stdout/stderr to /dev/stdout and /dev/stderr with maxbytes=0
-  - [ ] `[program:attestation]` section: priority=20, command=`node /app/dist/attestation-server.js`, user=crosstown, autorestart=true, startsecs=5, stdout/stderr to /dev/stdout and /dev/stderr with maxbytes=0
+  - [ ] `[program:toon]` section: priority=10, command=`node /app/dist/entrypoint-town.js`, user=toon, autorestart=true, stdout/stderr to /dev/stdout and /dev/stderr with maxbytes=0
+  - [ ] `[program:attestation]` section: priority=20, command=`node /app/dist/attestation-server.js`, user=toon, autorestart=true, startsecs=5, stdout/stderr to /dev/stdout and /dev/stderr with maxbytes=0
 - [ ] Remove `it.skip()` from T-4.1-02a through T-4.1-02j
 - [ ] Run test: `cd packages/core && pnpm test -- src/build/oyster-config.test.ts -t "T-4.1-02"`
 - [ ] All 10 sub-tests pass (green phase)
@@ -336,7 +336,7 @@ Not applicable -- this story has no UI components.
   - [ ] EXPOSE 1300 (in addition to 3100 and 7100)
   - [ ] Preserve HEALTHCHECK targeting port 3100
   - [ ] CMD changed to `supervisord -c /etc/supervisord.conf`
-  - [ ] Non-root `crosstown` user preserved
+  - [ ] Non-root `toon` user preserved
 - [ ] Remove `it.skip()` from T-4.1-05a through T-4.1-05f
 - [ ] Run test: `cd packages/core && pnpm test -- src/build/oyster-config.test.ts -t "T-4.1-05"`
 - [ ] All 6 sub-tests pass (green phase)
@@ -514,7 +514,7 @@ These require integration/E2E infrastructure and will be addressed when Oyster C
 **Results:**
 
 ```
- RUN  v1.6.1 /Users/jonathangreen/Documents/crosstown/packages/core
+ RUN  v1.6.1 /Users/jonathangreen/Documents/toon/packages/core
 
  ↓ src/build/oyster-config.test.ts  (32 tests | 32 skipped)
 
@@ -539,7 +539,7 @@ Status: RED phase verified -- all 32 Story 4.1 tests skip, no regressions to exi
 
 ## Notes
 
-- The `yaml` npm package must be added as a devDependency before T-4.1-01 tests can go GREEN: `pnpm --filter @crosstown/core add -D yaml`
+- The `yaml` npm package must be added as a devDependency before T-4.1-01 tests can go GREEN: `pnpm --filter @toon-protocol/core add -D yaml`
 - T-4.1-07 tests (proxy compatibility) verify existing code and should pass once `it.skip()` is removed -- no new implementation needed
 - The attestation server placeholder (T-4.1-06) is minimal -- real attestation document generation is Story 4.2 (kind:10033 event builder)
 - docker/tsconfig.json already includes `src/**/*` so `attestation-server.ts` will be compiled automatically

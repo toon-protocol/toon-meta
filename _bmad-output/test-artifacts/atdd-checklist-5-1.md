@@ -29,10 +29,10 @@ inputDocuments:
 
 ## Story Summary
 
-Define NIP-90 compatible DVM event kinds for the Crosstown protocol with full TOON encoding support, enabling agents to post structured job requests, receive feedback, and collect results using the standard DVM protocol.
+Define NIP-90 compatible DVM event kinds for the TOON protocol with full TOON encoding support, enabling agents to post structured job requests, receive feedback, and collect results using the standard DVM protocol.
 
 **As a** protocol developer
-**I want** NIP-90 compatible DVM event kinds defined for the Crosstown protocol with full TOON encoding support
+**I want** NIP-90 compatible DVM event kinds defined for the TOON protocol with full TOON encoding support
 **So that** agents can post structured job requests, receive feedback, and collect results using the standard DVM protocol
 
 ---
@@ -193,7 +193,7 @@ Define NIP-90 compatible DVM event kinds for the Crosstown protocol with full TO
 
 - **Test:** Export verification (T-5.1-23) -- 3 tests
   - **Status:** RED - Exports not defined
-  - **Verifies:** constants, builders, parsers importable from @crosstown/core
+  - **Verifies:** constants, builders, parsers importable from @toon-protocol/core
 
 ---
 
@@ -281,7 +281,7 @@ Not applicable. Story 5.1 is backend library code with no UI components.
 - [ ] Define `JobRequestParams` interface with fields: kind, input, bid, output, content?, targetProvider?, params?, relays?
 - [ ] Define `DvmJobStatus` type: `'processing' | 'error' | 'success' | 'partial'`
 - [ ] Implement `buildJobRequestEvent(params, secretKey)` using `finalizeEvent()`
-- [ ] Add kind range validation (5000-5999), throw `CrosstownError` for invalid range
+- [ ] Add kind range validation (5000-5999), throw `ToonError` for invalid range
 - [ ] Add required param validation: input, bid (non-empty), output (non-empty)
 - [ ] Construct tags: i, bid (with 'usdc'), output, optional p/param/relays
 - [ ] Run test: `npx vitest run packages/core/src/events/dvm.test.ts -t "buildJobRequestEvent"`
@@ -298,7 +298,7 @@ Not applicable. Story 5.1 is backend library code with no UI components.
 
 - [ ] Define `JobResultParams` interface with fields: kind, requestEventId, customerPubkey, amount, content
 - [ ] Implement `buildJobResultEvent(params, secretKey)` using `finalizeEvent()`
-- [ ] Add kind range validation (6000-6999), throw `CrosstownError`
+- [ ] Add kind range validation (6000-6999), throw `ToonError`
 - [ ] Add 64-char hex validation for requestEventId and customerPubkey
 - [ ] Add non-empty string validation for amount
 - [ ] Construct tags: e, p, amount (with 'usdc')
@@ -477,7 +477,7 @@ npx vitest run packages/core/src/events/dvm.test.ts --coverage
 
 - One builder/parser at a time (don't try to fix all at once)
 - Follow `attestation.ts` pattern exactly (finalizeEvent, tag construction, lenient parsing)
-- Use `CrosstownError` for validation errors (not generic Error)
+- Use `ToonError` for validation errors (not generic Error)
 - Handle `noUncheckedIndexedAccess`: tag elements are `string | undefined`
 - Use `.js` extensions in all imports
 
@@ -534,7 +534,7 @@ This ATDD workflow consulted the following knowledge fragments:
 ```
 FAIL  packages/core/src/events/dvm.test.ts [ packages/core/src/events/dvm.test.ts ]
 Error: Failed to load url ./dvm.js (resolved id: ./dvm.js) in
-/Users/jonathangreen/Documents/crosstown/packages/core/src/events/dvm.test.ts.
+/Users/jonathangreen/Documents/toon/packages/core/src/events/dvm.test.ts.
 Does the file exist?
 
  Test Files  1 failed (1)

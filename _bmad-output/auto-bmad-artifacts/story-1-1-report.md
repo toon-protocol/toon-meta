@@ -1,14 +1,14 @@
 # Story 1-1 Report
 
 ## Overview
-- **Story file**: `/Users/jonathangreen/Documents/crosstown/_bmad-output/implementation-artifacts/1-1-unified-identity-from-seed-phrase.md`
+- **Story file**: `/Users/jonathangreen/Documents/toon/_bmad-output/implementation-artifacts/1-1-unified-identity-from-seed-phrase.md`
 - **Git start**: `01e274e95717c3c3e38567bf4344215493c2a6ec`
 - **Duration**: ~90 minutes pipeline wall-clock time
 - **Pipeline result**: success
 - **Migrations**: None
 
 ## What Was Built
-Implemented the `@crosstown/sdk` identity module providing unified key derivation from BIP-39 seed phrases. A single secp256k1 private key produces both a Nostr x-only Schnorr public key and an EIP-55 checksummed EVM address via NIP-06 derivation paths. The module exports `generateMnemonic()`, `fromMnemonic()`, and `fromSecretKey()` with comprehensive input validation, error wrapping, and defensive memory handling.
+Implemented the `@toon-protocol/sdk` identity module providing unified key derivation from BIP-39 seed phrases. A single secp256k1 private key produces both a Nostr x-only Schnorr public key and an EIP-55 checksummed EVM address via NIP-06 derivation paths. The module exports `generateMnemonic()`, `fromMnemonic()`, and `fromSecretKey()` with comprehensive input validation, error wrapping, and defensive memory handling.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: `generateMnemonic()` returns valid 12-word BIP-39 mnemonic — covered by: `identity.test.ts` line 46
@@ -248,4 +248,4 @@ Implemented the `@crosstown/sdk` identity module providing unified key derivatio
 ---
 
 ## TL;DR
-Story 1-1 implements the `@crosstown/sdk` identity module with `generateMnemonic()`, `fromMnemonic()`, and `fromSecretKey()` functions that derive unified Nostr + EVM identities from BIP-39 seed phrases via NIP-06 paths. The pipeline completed cleanly with all 11 acceptance criteria covered by 32 passing tests, 9 code review issues found and fixed across 3 passes, zero semgrep findings, and full monorepo regression passing (1360 tests). No action items require human attention.
+Story 1-1 implements the `@toon-protocol/sdk` identity module with `generateMnemonic()`, `fromMnemonic()`, and `fromSecretKey()` functions that derive unified Nostr + EVM identities from BIP-39 seed phrases via NIP-06 paths. The pipeline completed cleanly with all 11 acceptance criteria covered by 32 passing tests, 9 code review issues found and fixed across 3 passes, zero semgrep findings, and full monorepo regression passing (1360 tests). No action items require human attention.

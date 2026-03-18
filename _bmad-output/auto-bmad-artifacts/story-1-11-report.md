@@ -1,19 +1,19 @@
 # Story 1-11 Report
 
 ## Overview
-- **Story file**: `/Users/jonathangreen/Documents/crosstown/_bmad-output/implementation-artifacts/1-11-package-setup-and-npm-publish.md`
+- **Story file**: `/Users/jonathangreen/Documents/toon/_bmad-output/implementation-artifacts/1-11-package-setup-and-npm-publish.md`
 - **Git start**: `7d4e95f3653a524ee635ff4347c978f8dbb8efc8`
 - **Duration**: ~45 minutes total pipeline execution
 - **Pipeline result**: success
 - **Migrations**: None
 
 ## What Was Built
-Story 1.11 was primarily a verification and audit story confirming that the `@crosstown/sdk` package is correctly configured for npm publish. The only code change needed was adding the `"engines": { "node": ">=20" }` field to `package.json` (done during ATDD step). The pipeline also expanded the test suite from 12 to 28 tests in `index.test.ts`, covering package.json structure (AC1), public API exports (AC2), and npm publish readiness (AC3). Code review pass #3 fixed 4 low-severity issues: information disclosure in error logging, undocumented placeholder fulfillment, prototype-unsafe property lookup, and corresponding test assertion updates.
+Story 1.11 was primarily a verification and audit story confirming that the `@toon-protocol/sdk` package is correctly configured for npm publish. The only code change needed was adding the `"engines": { "node": ">=20" }` field to `package.json` (done during ATDD step). The pipeline also expanded the test suite from 12 to 28 tests in `index.test.ts`, covering package.json structure (AC1), public API exports (AC2), and npm publish readiness (AC3). Code review pass #3 fixed 4 low-severity issues: information disclosure in error logging, undocumented placeholder fulfillment, prototype-unsafe property lookup, and corresponding test assertion updates.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: package.json has `"type": "module"`, `"engines"`, TypeScript strict mode, ESLint 9.x, Prettier 3.x, optional peer dep, correct dependencies — covered by: `packages/sdk/src/index.test.ts` (8 tests)
 - [x] AC2: All public APIs exported from `index.ts` (`createNode`, `fromMnemonic`, `fromSecretKey`, `generateMnemonic`, `HandlerContext`, `NodeConfig`, `ServiceNode`, type definitions) — covered by: `packages/sdk/src/index.test.ts` (12 tests + `tsc --noEmit` for type-only exports)
-- [x] AC3: Package published as `@crosstown/sdk` with correct ESM exports and TypeScript declarations — covered by: `packages/sdk/src/index.test.ts` (8 tests)
+- [x] AC3: Package published as `@toon-protocol/sdk` with correct ESM exports and TypeScript declarations — covered by: `packages/sdk/src/index.test.ts` (8 tests)
 
 ## Files Changed
 Consolidated list of all files created/modified/deleted:
@@ -192,4 +192,4 @@ None. The package is ready for `npm publish --access public`. All acceptance cri
 ---
 
 ## TL;DR
-Story 1.11 verified that the `@crosstown/sdk` package is correctly configured for npm publish. The only code change was adding the `"engines"` field to `package.json`. The pipeline expanded test coverage from 12 to 28 tests covering all acceptance criteria, and code review pass #3 hardened error logging, property lookups, and documentation. The pipeline completed cleanly with all 1,401 monorepo tests passing, zero security findings, and full traceability coverage. The epic-1 status has been updated to "done" as all 12 stories (1-0 through 1-11) are complete.
+Story 1.11 verified that the `@toon-protocol/sdk` package is correctly configured for npm publish. The only code change was adding the `"engines"` field to `package.json`. The pipeline expanded test coverage from 12 to 28 tests covering all acceptance criteria, and code review pass #3 hardened error logging, property lookups, and documentation. The pipeline completed cleanly with all 1,401 monorepo tests passing, zero security findings, and full traceability coverage. The epic-1 status has been updated to "done" as all 12 stories (1-0 through 1-11) are complete.

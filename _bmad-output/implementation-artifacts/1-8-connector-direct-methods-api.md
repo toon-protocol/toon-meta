@@ -77,7 +77,7 @@ Enables 4 skipped ATDD tests in `connector-api.test.ts` (fixing all 4 priority l
 
 The `createNode()` function already returns a `ServiceNode` with:
 - `node.connector` -- getter that returns `config.connector` (direct pass-through, line ~293)
-- `node.channelClient` -- getter that delegates to `crosstownNode.channelClient` (line ~296), which is `null` if the connector lacks `openChannel`/`getChannelState` methods (see `packages/core/src/compose.ts` lines 302-310)
+- `node.channelClient` -- getter that delegates to `toonNode.channelClient` (line ~296), which is `null` if the connector lacks `openChannel`/`getChannelState` methods (see `packages/core/src/compose.ts` lines 302-310)
 
 The `ServiceNode` interface (lines 98-115) already declares:
 ```typescript
@@ -116,14 +116,14 @@ Line 22: `'src/connector-api.test.ts',` in the exclude array, with comment on li
 
 - Story 1.7 explicitly noted: "Do NOT unskip `connector-api.test.ts` tests. These 4 tests are Story 1.8 scope."
 - `createNode()` passes `config.connector` through unchanged as `node.connector`
-- `channelClient` is delegated to `crosstownNode.channelClient` (from `@crosstown/core` compose)
+- `channelClient` is delegated to `toonNode.channelClient` (from `@toon-protocol/core` compose)
 - Story 1.7 added 100 unit tests and 16 integration tests -- all passing
 - `packages/sdk/vitest.config.ts` has `'src/connector-api.test.ts'` in the exclude array with comment: `//   connector-api.test.ts    -> Story 1.8 (uses createNode, available after 1.7)`
 
 ### Architecture Compliance
 
 - `connector` is a pass-through -- do NOT wrap or modify the connector object
-- `channelClient` detection happens in `@crosstown/core/compose.ts` via `createDirectChannelClient()` -- the SDK does not duplicate this logic
+- `channelClient` detection happens in `@toon-protocol/core/compose.ts` via `createDirectChannelClient()` -- the SDK does not duplicate this logic
 - All tests use mocks (no real connector or relay) -- consistent with unit test strategy (NFR-SDK-6)
 
 ### Coding Standards

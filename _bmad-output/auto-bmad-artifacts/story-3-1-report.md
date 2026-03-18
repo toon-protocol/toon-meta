@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Migrated the Crosstown protocol from the AGENT development token to USDC (USD Coin) for all user-facing payments. Created a new `usdc.ts` module in `@crosstown/core` with USDC constants and configuration, replaced AGENT token references across 33+ files (source, config, deploy scripts, examples, tests, documentation), updated faucet defaults to USDC/6 decimals, and added input validation to shell scripts to prevent command injection.
+Migrated the TOON protocol from the AGENT development token to USDC (USD Coin) for all user-facing payments. Created a new `usdc.ts` module in `@toon-protocol/core` with USDC constants and configuration, replaced AGENT token references across 33+ files (source, config, deploy scripts, examples, tests, documentation), updated faucet defaults to USDC/6 decimals, and added input validation to shell scripts to prevent command injection.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: Mock USDC ERC-20 deployed on Anvil at deterministic address; TokenNetwork configured for USDC — covered by: T-3.1-01, T-3.1-02, T-3.1-07, T-3.1-11
@@ -227,4 +227,4 @@ Migrated the Crosstown protocol from the AGENT development token to USDC (USD Co
 ---
 
 ## TL;DR
-Story 3.1 migrated the Crosstown protocol from AGENT to USDC across 33+ files, creating a new `usdc.ts` module and replacing all token references in source, config, deploy scripts, examples, tests, and documentation. The pipeline completed cleanly with all 22 steps passing (2 skipped as backend-only). Three code review passes found and fixed 7 issues (5 medium, 2 low), and the semgrep security scan caught 3 command injection vulnerabilities in shell scripts that were fixed with input validation. All 4 acceptance criteria are covered by 23 automated tests with no gaps.
+Story 3.1 migrated the TOON protocol from AGENT to USDC across 33+ files, creating a new `usdc.ts` module and replacing all token references in source, config, deploy scripts, examples, tests, and documentation. The pipeline completed cleanly with all 22 steps passing (2 skipped as backend-only). Three code review passes found and fixed 7 issues (5 medium, 2 low), and the semgrep security scan caught 3 command injection vulnerabilities in shell scripts that were fixed with input validation. All 4 acceptance criteria are covered by 23 automated tests with no gaps.

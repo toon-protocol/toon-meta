@@ -146,7 +146,7 @@ Error code `F04` (Insufficient Amount) is the standard ILP error for underpaymen
 
 ### Dependencies
 
-- **Upstream**: Story 1.0 (TOON codec in `@crosstown/core` provides `ToonRoutingMeta` type with `rawBytes` field for byte-length pricing). Already implemented and available.
+- **Upstream**: Story 1.0 (TOON codec in `@toon-protocol/core` provides `ToonRoutingMeta` type with `rawBytes` field for byte-length pricing). Already implemented and available.
 - **Cross-story boundary**: Story 1.1 (Identity module provides `ownPubkey` used for self-write bypass). The pricing validator receives `ownPubkey` as a config string -- no code dependency on the identity module, but the format must match. Both sides use lowercase hex pubkey strings. [Source: _bmad-output/planning-artifacts/test-design-epic-1.md#3.5 Story 1.5 -> Story 1.1 (Pricing -> Identity)]
 - **Downstream**: Story 1.7 (createNode) wires pricing into the full pipeline between verification and handler dispatch. Story 1.10 (Dev Mode) adds pricing bypass when `devMode: true`.
 
@@ -199,7 +199,7 @@ All 7 test-design IDs (T-1.5-01 through T-1.5-07) are covered by 7 tests (6 exis
 
 - PascalCase for interface names: `PricingValidatorConfig`, `PricingValidationResult`
 - camelCase for function names: `createPricingValidator`
-- No `any` -- uses typed `ToonRoutingMeta` from `@crosstown/core/toon`
+- No `any` -- uses typed `ToonRoutingMeta` from `@toon-protocol/core/toon`
 - Co-located tests: `pricing-validator.test.ts` next to `pricing-validator.ts`
 - AAA pattern in all tests (the existing ATDD tests already follow this)
 - ESM `.js` extensions in imports (already correct in existing files)
@@ -231,7 +231,7 @@ The last 5 commits follow a consistent pattern:
 54ec1b8 feat(1-3): enable HandlerContext with TOON passthrough and lazy decode
 85d68d4 feat(1-2): implement handler registry with kind-based routing
 5d41861 feat(1-1): implement unified identity from seed phrase
-01e274e refactor(1-0): extract TOON codec to @crosstown/core
+01e274e refactor(1-0): extract TOON codec to @toon-protocol/core
 ```
 
 **Commit message convention:** `feat(<story-id>): <description>` for new stories. The expected commit for this story: `feat(1-5): enable pricing validation with self-write bypass`

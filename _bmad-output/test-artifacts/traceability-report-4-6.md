@@ -168,7 +168,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 #### AC-6: Barrel exports (P1)
 
-**Requirement:** Given `AttestationBootstrap`, `AttestationBootstrapConfig`, `AttestationBootstrapResult`, and `AttestationBootstrapEvent`, when imported from `@crosstown/core`, then they are exported from `packages/core/src/bootstrap/AttestationBootstrap.ts` and re-exported via `packages/core/src/bootstrap/index.ts` and the top-level `packages/core/src/index.ts`.
+**Requirement:** Given `AttestationBootstrap`, `AttestationBootstrapConfig`, `AttestationBootstrapResult`, and `AttestationBootstrapEvent`, when imported from `@toon-protocol/core`, then they are exported from `packages/core/src/bootstrap/AttestationBootstrap.ts` and re-exported via `packages/core/src/bootstrap/index.ts` and the top-level `packages/core/src/index.ts`.
 
 - **Coverage:** FULL
 - **Tests:**

@@ -14,7 +14,7 @@
 |---|------------|----------|------------|
 | A1 | Fix `!body.amount` truthiness bug in entrypoint-town.ts | Critical | Already fixed (Story 2-7) |
 | A2 | Set up genesis node in CI for E2E tests | Critical | Deferred — workflow file exists (.github/workflows/test.yml) but infrastructure not validated |
-| A3 | Publish @crosstown/town to npm | Critical | Deferred — package verified ready (`publishConfig.access: "public"`, exports, bin all correct) |
+| A3 | Publish @toon-protocol/town to npm | Critical | Deferred — package verified ready (`publishConfig.access: "public"`, exports, bin all correct) |
 | A4 | Clean up stale git-proxy and SPSP refs in docs | Recommended | Fixed — removed SPSP refs from packages/core/README.md and packages/core/src/nip34/README.md |
 | A5 | Address transitive dependency vulnerabilities | Recommended | Partially fixed — bumped simple-git (critical RCE) and hono (timing). 42 transitive vulns remain (upstream) |
 | A6 | Replace console.error with structured logger | Recommended | Deferred |
@@ -132,7 +132,7 @@
 - **First story**: Story 3.1 (USDC Token Migration) — foundation for all other stories
 - **Parallel start**: Story 3.4 (Seed Relay Discovery) can begin immediately alongside 3.1
 - **Preparation**: Verify FiatTokenV2_2 deployment on Anvil early (highest technical risk)
-- **Deferred**: npm publish of @crosstown/town, CI E2E validation
+- **Deferred**: npm publish of @toon-protocol/town, CI E2E validation
 
 ---
 

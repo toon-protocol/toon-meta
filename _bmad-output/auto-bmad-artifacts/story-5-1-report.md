@@ -7,7 +7,7 @@
 - **Migrations**: None
 
 ## What Was Built
-NIP-90 compatible DVM (Data Vending Machine) event kind definitions for the Crosstown protocol. This includes 7 kind constants (job request base 5000, job result base 6000, job feedback 7000, plus specific kinds for text generation, image generation, text-to-speech, and translation), 3 builder functions (`buildJobRequestEvent`, `buildJobResultEvent`, `buildJobFeedbackEvent`), 3 parser functions (`parseJobRequest`, `parseJobResult`, `parseJobFeedback`), and full TypeScript type definitions. All builders validate inputs and throw `CrosstownError` on invalid data; all parsers follow the lenient pattern returning `null` for malformed events. TOON roundtrip compatibility confirmed.
+NIP-90 compatible DVM (Data Vending Machine) event kind definitions for the TOON protocol. This includes 7 kind constants (job request base 5000, job result base 6000, job feedback 7000, plus specific kinds for text generation, image generation, text-to-speech, and translation), 3 builder functions (`buildJobRequestEvent`, `buildJobResultEvent`, `buildJobFeedbackEvent`), 3 parser functions (`parseJobRequest`, `parseJobResult`, `parseJobFeedback`), and full TypeScript type definitions. All builders validate inputs and throw `ToonError` on invalid data; all parsers follow the lenient pattern returning `null` for malformed events. TOON roundtrip compatibility confirmed.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: buildJobRequestEvent creates valid kind 5xxx events with i, bid, output, optional p tags — covered by: `dvm.test.ts` (20+ tests)
@@ -42,7 +42,7 @@ NIP-90 compatible DVM (Data Vending Machine) event kind definitions for the Cros
 - **Status**: success
 - **Duration**: ~4 min
 - **What changed**: Created story file, updated sprint-status.yaml
-- **Key decisions**: DVM builders/parsers in `@crosstown/core` (protocol-level, shared across packages)
+- **Key decisions**: DVM builders/parsers in `@toon-protocol/core` (protocol-level, shared across packages)
 - **Issues found & fixed**: 0
 
 ### Step 2: Story 5-1 Validate
@@ -63,7 +63,7 @@ NIP-90 compatible DVM (Data Vending Machine) event kind definitions for the Cros
 - **Status**: success
 - **Duration**: ~15 min
 - **What changed**: Created `dvm.ts`, modified `constants.ts`, `events/index.ts`, `core/index.ts`
-- **Key decisions**: CrosstownError with specific error codes, empty relay placeholder for NIP-90 positional tags
+- **Key decisions**: ToonError with specific error codes, empty relay placeholder for NIP-90 positional tags
 - **Issues found & fixed**: 3 (ESLint array-type fixes)
 
 ### Step 5: Story 5-1 Post-Dev Artifact Verify
@@ -221,4 +221,4 @@ Key fixes across reviews:
 ---
 
 ## TL;DR
-Story 5.1 implements NIP-90 DVM event kind definitions in `@crosstown/core` with 7 constants, 3 builders, 3 parsers, and full TypeScript types. The pipeline completed cleanly across all 22 steps with 149 tests at 100% AC coverage, 0 critical/high issues across 3 code reviews, clean semgrep security scan (375 rules), and TOON roundtrip compatibility confirmed. One deferred item (update project-context.md event kinds table) is tracked for epic-level review.
+Story 5.1 implements NIP-90 DVM event kind definitions in `@toon-protocol/core` with 7 constants, 3 builders, 3 parsers, and full TypeScript types. The pipeline completed cleanly across all 22 steps with 149 tests at 100% AC coverage, 0 critical/high issues across 3 code reviews, clean semgrep security scan (375 rules), and TOON roundtrip compatibility confirmed. One deferred item (update project-context.md event kinds table) is tracked for epic-level review.

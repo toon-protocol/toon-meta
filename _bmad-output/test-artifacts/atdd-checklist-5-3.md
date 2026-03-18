@@ -32,7 +32,7 @@ Story 5.3 introduces the first NEW production code in Epic 5: three SDK helper m
 
 **As a** DVM provider agent
 **I want** to publish job results and receive compute payment through the ILP network
-**So that** the complete job lifecycle (request -> feedback -> result -> settlement) works end-to-end on Crosstown.
+**So that** the complete job lifecycle (request -> feedback -> result -> settlement) works end-to-end on TOON.
 
 ---
 
@@ -258,7 +258,7 @@ Not applicable (backend SDK project -- no UI components).
 **Tasks to make these tests pass:**
 - [ ] Add `publishFeedback()` method signature to `ServiceNode` interface (packages/sdk/src/create-node.ts ~line 168)
 - [ ] Add `publishResult()` method signature to `ServiceNode` interface
-- [ ] Import `buildJobFeedbackEvent`, `buildJobResultEvent` from `@crosstown/core` in create-node.ts
+- [ ] Import `buildJobFeedbackEvent`, `buildJobResultEvent` from `@toon-protocol/core` in create-node.ts
 - [ ] Implement `publishFeedback()` in createNode() closure: build feedback event with `buildJobFeedbackEvent()`, delegate to `this.publishEvent()`
 - [ ] Implement `publishResult()` in createNode() closure: build result event with `buildJobResultEvent()`, delegate to `this.publishEvent()`
 - [ ] Add lifecycle guard (not started check) in both methods
@@ -275,7 +275,7 @@ Not applicable (backend SDK project -- no UI components).
 
 **Tasks to make these tests pass:**
 - [ ] Add `settleCompute()` method signature to `ServiceNode` interface with `options?: { originalBid?: string }`
-- [ ] Import `parseJobResult` from `@crosstown/core` in create-node.ts
+- [ ] Import `parseJobResult` from `@toon-protocol/core` in create-node.ts
 - [ ] Implement `settleCompute()` in createNode() closure:
   - [ ] Parse result event with `parseJobResult()` to extract amount
   - [ ] Throw NodeError if parseJobResult returns null (malformed event, T-5.3-17)

@@ -29,7 +29,7 @@ inputDocuments:
 
 Implements attestation-first seed relay bootstrap flow (FR-TEE-6). When bootstrapping into the ILP network, the seed relay discovery flow verifies each seed relay's kind:10033 TEE attestation BEFORE trusting its kind:10032 peer list. This mitigates seed relay list poisoning (R-E4-004) by using attestation as the bootstrap trust anchor.
 
-**As a** Crosstown node operator bootstrapping into the ILP network
+**As a** TOON node operator bootstrapping into the ILP network
 **I want** seed relay discovery to verify TEE attestation before trusting peer lists
 **So that** seed relay list poisoning is mitigated and only peers from verified TEE-attested seed relays are added to my routing table
 
@@ -42,7 +42,7 @@ Implements attestation-first seed relay bootstrap flow (FR-TEE-6). When bootstra
 3. When attestation passes, the system proceeds to subscribe to kind:10032 peer events; result includes `discoveredPeers`, `attestedSeedRelay`, and `mode: 'attested'`
 4. When ALL relays lack valid attestation, the node starts in degraded mode (`mode: 'degraded'`), logs a warning containing "No attested seed relays found", does NOT crash
 5. Full bootstrap lifecycle events are emitted in order: `attestation:seed-connected` -> `attestation:verified` -> `attestation:peers-discovered`
-6. `AttestationBootstrap`, `AttestationBootstrapConfig`, `AttestationBootstrapResult`, `AttestationBootstrapEvent` are exported from `@crosstown/core`
+6. `AttestationBootstrap`, `AttestationBootstrapConfig`, `AttestationBootstrapResult`, `AttestationBootstrapEvent` are exported from `@toon-protocol/core`
 
 ---
 
@@ -226,7 +226,7 @@ The implementation is minimal and clean (204 lines). No refactoring needed:
 **Results:**
 
 ```
- RUN  v1.6.1 /Users/jonathangreen/Documents/crosstown/packages/core
+ RUN  v1.6.1 /Users/jonathangreen/Documents/toon/packages/core
 
  ✓ src/bootstrap/attestation-bootstrap.test.ts  (11 tests | 5 skipped) 149ms
 

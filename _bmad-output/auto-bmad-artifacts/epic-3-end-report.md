@@ -9,7 +9,7 @@
 - **Final test count**: 1558
 
 ## What Was Built
-Production-ready protocol economics — USDC payments, x402 HTTP payment on-ramp, multi-environment chain configuration, and decentralized peer discovery. After this epic, Crosstown nodes can be deployed on any infrastructure with real USDC on Arbitrum One, and the protocol works end-to-end without TEE. The epic also added enriched health endpoints and kind:10035 service discovery events for autonomous node advertisement.
+Production-ready protocol economics — USDC payments, x402 HTTP payment on-ramp, multi-environment chain configuration, and decentralized peer discovery. After this epic, TOON nodes can be deployed on any infrastructure with real USDC on Arbitrum One, and the protocol works end-to-end without TEE. The epic also added enriched health endpoints and kind:10035 service discovery events for autonomous node advertisement.
 
 ## Stories Delivered
 | Story | Title | Status |

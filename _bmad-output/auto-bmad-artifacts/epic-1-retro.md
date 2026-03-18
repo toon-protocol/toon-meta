@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-05
 **Epic:** 1 -- ILP-Gated Service Node SDK
-**Package:** `@crosstown/sdk`
+**Package:** `@toon-protocol/sdk`
 **Status:** Done (12/12 stories complete)
 **Branch:** `epic-1`
 **Commits:** 12 (one per story, squashed)
@@ -12,7 +12,7 @@
 
 ## 1. Executive Summary
 
-Epic 1 delivered the `@crosstown/sdk` package -- a developer-facing abstraction for building ILP-gated service nodes. From a 12-word seed phrase and ~10 lines of code, developers can create a fully wired node with unified secp256k1 identity (Nostr + EVM), TOON-native kind-based event handling, configurable pricing validation, embedded connector lifecycle management, network discovery, and dev mode. The package is ESM-only, TypeScript-strict, Node >=20, and npm-publish-ready.
+Epic 1 delivered the `@toon-protocol/sdk` package -- a developer-facing abstraction for building ILP-gated service nodes. From a 12-word seed phrase and ~10 lines of code, developers can create a fully wired node with unified secp256k1 identity (Nostr + EVM), TOON-native kind-based event handling, configurable pricing validation, embedded connector lifecycle management, network discovery, and dev mode. The package is ESM-only, TypeScript-strict, Node >=20, and npm-publish-ready.
 
 All 12 stories (1-0 through 1-11) shipped with 100% acceptance criteria coverage (75/75 ACs), 268+ story-specific tests, and zero remaining critical or high-severity issues. The codebase grew from 0 SDK tests at epic start to 1,401 total monorepo tests at close with zero regressions.
 
@@ -98,7 +98,7 @@ Every story achieved 100% AC-to-test traceability at the traceability gate step.
 
 ### 4.1. Story 1-1 Had Disproportionate Infrastructure Burden
 
-Story 1-1 (Unified Identity) was the first story to create the `@crosstown/sdk` package. It carried the weight of: creating the package scaffold, setting up `tsconfig.json`, `tsup.config.ts`, `vitest.config.ts`, `package.json`, the error hierarchy, stub files for all future stories, and fixing 433 TypeScript strict-mode errors across the monorepo. The actual identity implementation was ~100 lines but the infrastructure work was ~25 minutes of the 90-minute pipeline. Future epics should separate "create package scaffold" from "first feature story" when introducing a new package.
+Story 1-1 (Unified Identity) was the first story to create the `@toon-protocol/sdk` package. It carried the weight of: creating the package scaffold, setting up `tsconfig.json`, `tsup.config.ts`, `vitest.config.ts`, `package.json`, the error hierarchy, stub files for all future stories, and fixing 433 TypeScript strict-mode errors across the monorepo. The actual identity implementation was ~100 lines but the infrastructure work was ~25 minutes of the 90-minute pipeline. Future epics should separate "create package scaffold" from "first feature story" when introducing a new package.
 
 ### 4.2. Stale Test Counts in Story Artifacts
 
@@ -110,7 +110,7 @@ Stories 1-7 and 1-10 both encountered the same issue: flipping bytes in a TOON-e
 
 ### 4.4. Type Gap Between SDK and Core
 
-The `HandlePacketResponse` type in `@crosstown/core` and the SDK's internal handler response types don't perfectly align. Story 1-7 introduced an `as unknown as HandlePacketResponse` double-cast to bridge this gap. While accepted as an intentional design decision, this type unsafety could cause subtle bugs if the types diverge further. The gap should be closed before Epic 2's relay reimplementation exercises the full type chain end-to-end.
+The `HandlePacketResponse` type in `@toon-protocol/core` and the SDK's internal handler response types don't perfectly align. Story 1-7 introduced an `as unknown as HandlePacketResponse` double-cast to bridge this gap. While accepted as an intentional design decision, this type unsafety could cause subtle bugs if the types diverge further. The gap should be closed before Epic 2's relay reimplementation exercises the full type chain end-to-end.
 
 ### 4.5. Integration Tests Require Genesis Node
 
@@ -148,7 +148,7 @@ Across all 12 stories, Prettier formatting violations were the most frequently f
 
 | # | Action | Owner | Story Affected |
 |---|--------|-------|----------------|
-| A1 | **Align SDK/core `HandlePacketResponse` types** -- eliminate the `as unknown as` double-cast in `create-node.ts` by either: (a) widening core's type to accept SDK metadata, or (b) creating a shared response type in `@crosstown/core` | Dev | 2-1 (Relay Handler) |
+| A1 | **Align SDK/core `HandlePacketResponse` types** -- eliminate the `as unknown as` double-cast in `create-node.ts` by either: (a) widening core's type to accept SDK metadata, or (b) creating a shared response type in `@toon-protocol/core` | Dev | 2-1 (Relay Handler) |
 | A2 | **Set up genesis node in CI** -- Story 1-9's integration tests and all of Epic 2's E2E validation (Story 2-3) require a running genesis node. Document the Docker Compose-based CI setup | Dev | 2-3 (E2E Validation) |
 | A3 | **Document TOON byte-manipulation testing pattern** -- add a comment in the SDK test utilities explaining that TOON signature testing must use hex-level corruption, not binary byte-flipping | Dev | All Epic 2 stories |
 
@@ -180,7 +180,7 @@ Epic 2 (Nostr Relay Reference Implementation & SDK Validation) has 5 stories:
 | 2-2 | SPSP Handshake Handler | `ctx.decode()`, NIP-44, `node.connector.registerPeer()`, channels |
 | 2-3 | E2E Test Validation | Full pipeline end-to-end against genesis node |
 | 2-4 | Remove git-proxy, Document Reference | Cleanup + documentation |
-| 2-5 | Publish `@crosstown/town` | `startTown()` function, CLI, Docker image |
+| 2-5 | Publish `@toon-protocol/town` | `startTown()` function, CLI, Docker image |
 
 ### Preparation Checklist
 
@@ -188,7 +188,7 @@ Epic 2 (Nostr Relay Reference Implementation & SDK Validation) has 5 stories:
 - [ ] **Resolve A2** (genesis node CI) before Story 2-3 starts -- E2E tests cannot run without infrastructure
 - [ ] **Review existing relay BLS code** (`docker/src/entrypoint.ts`) to understand the ~300 lines that Story 2-1/2-2 will replace with SDK handlers
 - [ ] **Review existing E2E tests** (`packages/client/tests/e2e/`) to understand what Story 2-3 must validate
-- [ ] **Create ATDD stubs for `@crosstown/town`** package (Story 2-5) -- following the Epic 1 pattern of front-loading test stubs
+- [ ] **Create ATDD stubs for `@toon-protocol/town`** package (Story 2-5) -- following the Epic 1 pattern of front-loading test stubs
 - [ ] **Verify `packages/git-proxy/`** was already removed in Story 1-1 -- if so, Story 2-4 may be partially complete
 - [ ] **Create Epic 2 test design document** (`_bmad-output/planning-artifacts/test-design-epic-2.md`) following the same risk-based format as Epic 1
 
@@ -250,4 +250,4 @@ The "enable ATDD tests" pattern (Stories 1-2 through 1-5, 1-8) averaged 43 minut
 
 Epic 1 delivered a complete, well-tested, security-scanned SDK package with 100% acceptance criteria coverage, zero regressions, and npm-publish readiness. The ATDD red phase approach, risk-based test design, and three-pass code review model proved their value and should carry forward into Epic 2. Three action items are blockers for Epic 2 (type alignment, genesis node CI, TOON testing documentation), four are quality improvements, and two are process optimizations.
 
-The `@crosstown/sdk` is ready for real-world validation in Epic 2, where it will be exercised by reimplementing the relay BLS as SDK handlers.
+The `@toon-protocol/sdk` is ready for real-world validation in Epic 2, where it will be exercised by reimplementing the relay BLS as SDK handlers.

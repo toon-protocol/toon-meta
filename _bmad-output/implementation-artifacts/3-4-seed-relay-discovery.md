@@ -16,7 +16,7 @@ So that the network has no single point of failure for peer discovery.
 
 ## Acceptance Criteria
 
-1. Given a kind:10036 (Seed Relay List) event published to a public Nostr relay, when a new Crosstown node starts with `discovery: 'seed-list'` config, then the node reads kind:10036 events from configured public Nostr relays, connects to seed relays from the list, and subscribes to kind:10032 events to discover the full network.
+1. Given a kind:10036 (Seed Relay List) event published to a public Nostr relay, when a new TOON node starts with `discovery: 'seed-list'` config, then the node reads kind:10036 events from configured public Nostr relays, connects to seed relays from the list, and subscribes to kind:10032 events to discover the full network.
 
 2. Given the seed list contains multiple relay URLs, when the first seed relay is unreachable, then the node tries the next relay in the list, and continues until a connection is established or the list is exhausted (with a clear error message on exhaustion).
 
@@ -26,7 +26,7 @@ So that the network has no single point of failure for peer discovery.
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Define kind:10036 constant and event builder/parser in `@crosstown/core` (AC: #1, #3)
+- [x] Task 1: Define kind:10036 constant and event builder/parser in `@toon-protocol/core` (AC: #1, #3)
   - [x] Add `SEED_RELAY_LIST_KIND = 10036` to `packages/core/src/constants.ts` (alongside existing `ILP_PEER_INFO_KIND = 10032`).
   - [x] Create `packages/core/src/events/seed-relay.ts` with:
     ```typescript
@@ -46,7 +46,7 @@ So that the network has no single point of failure for peer discovery.
 
     /**
      * Builds a kind:10036 Seed Relay List event (NIP-16 replaceable).
-     * Uses 'd' tag with value 'crosstown-seed-list' for replaceable event pattern (NIP-16, kind 10000-19999).
+     * Uses 'd' tag with value 'toon-seed-list' for replaceable event pattern (NIP-16, kind 10000-19999).
      */
     function buildSeedRelayListEvent(
       secretKey: Uint8Array,
@@ -60,12 +60,12 @@ So that the network has no single point of failure for peer discovery.
     function parseSeedRelayList(event: NostrEvent): SeedRelayEntry[]
     ```
   - [x] The event content is JSON-serialized `SeedRelayEntry[]`.
-  - [x] The event uses replaceable event pattern (NIP-16, kind 10000-19999): tags include `['d', 'crosstown-seed-list']`.
+  - [x] The event uses replaceable event pattern (NIP-16, kind 10000-19999): tags include `['d', 'toon-seed-list']`.
   - [x] URL validation: reject entries without `ws://` or `wss://` prefix.
   - [x] Pubkey validation: reject entries without valid 64-char lowercase hex pubkeys.
   - [x] Export from `packages/core/src/events/index.ts` and `packages/core/src/index.ts`.
 
-- [x] Task 2: Create `SeedRelayDiscovery` class in `@crosstown/core` (AC: #1, #2)
+- [x] Task 2: Create `SeedRelayDiscovery` class in `@toon-protocol/core` (AC: #1, #2)
   - [x] Create `packages/core/src/discovery/seed-relay-discovery.ts`:
     ```typescript
     interface SeedRelayDiscoveryConfig {
@@ -114,7 +114,7 @@ So that the network has no single point of failure for peer discovery.
     6. If a seed relay connection fails, log warning and try next.
     7. If all seed relays fail, throw `PeerDiscoveryError` with message `All seed relays exhausted — unable to bootstrap. Tried N seed relays from M kind:10036 events.`
     8. Collect kind:10032 events from the connected seed relay, parse content into `IlpPeerInfo` via `parseIlpPeerInfo()`, and set `info.pubkey = event.pubkey` (the parser does NOT populate pubkey from event content -- it comes from the Nostr event's outer pubkey field).
-  - [x] **WebSocket handling:** Use raw `ws` WebSocket (not `SimplePool` — per project memory: SimplePool crashes in Node.js containers with `ReferenceError: window is not defined`). Note: `RelaySubscriber` from `@crosstown/relay` uses `SimplePool` internally and is NOT a suitable pattern here. Instead, use raw `ws` directly with Nostr protocol messages (`["REQ", subId, filter]`, `["EVENT", ...]`, `["EOSE", ...]`).
+  - [x] **WebSocket handling:** Use raw `ws` WebSocket (not `SimplePool` — per project memory: SimplePool crashes in Node.js containers with `ReferenceError: window is not defined`). Note: `RelaySubscriber` from `@toon-protocol/relay` uses `SimplePool` internally and is NOT a suitable pattern here. Instead, use raw `ws` directly with Nostr protocol messages (`["REQ", subId, filter]`, `["EVENT", ...]`, `["EOSE", ...]`).
   - [x] **IMPORTANT:** Use `PeerDiscoveryError` from `packages/core/src/errors.ts` for all discovery failures.
   - [x] Export from `packages/core/src/discovery/index.ts` and `packages/core/src/index.ts`.
 
@@ -165,10 +165,10 @@ So that the network has no single point of failure for peer discovery.
     externalRelayUrl?: string;
     ```
   - [x] Add corresponding env vars in `docker/src/shared.ts`:
-    - `CROSSTOWN_DISCOVERY` — `'seed-list'` or `'genesis'` (default: `'genesis'`)
-    - `CROSSTOWN_SEED_RELAYS` — comma-separated list of public Nostr relay URLs
-    - `CROSSTOWN_PUBLISH_SEED_ENTRY` — `'true'` or `'false'`
-    - `CROSSTOWN_EXTERNAL_RELAY_URL` — external WebSocket URL
+    - `TOON_DISCOVERY` — `'seed-list'` or `'genesis'` (default: `'genesis'`)
+    - `TOON_SEED_RELAYS` — comma-separated list of public Nostr relay URLs
+    - `TOON_PUBLISH_SEED_ENTRY` — `'true'` or `'false'`
+    - `TOON_EXTERNAL_RELAY_URL` — external WebSocket URL
   - [x] Add corresponding CLI flags in `packages/town/src/cli.ts`:
     - `--discovery` — discovery mode
     - `--seed-relays` — comma-separated relay URLs
@@ -223,14 +223,14 @@ So that the network has no single point of failure for peer discovery.
 
 ### Seed Relay List Event (kind:10036)
 
-The kind:10036 event is a NIP-16 replaceable event (kind 10000-19999) published to public Nostr relays. Relays store only the latest event per `pubkey + kind`. The `d` tag with value `crosstown-seed-list` is included as a content marker for filtering but is not used for replacement semantics (that is NIP-33 for kinds 30000-39999). It advertises relay nodes that can serve as bootstrap entry points for new network participants.
+The kind:10036 event is a NIP-16 replaceable event (kind 10000-19999) published to public Nostr relays. Relays store only the latest event per `pubkey + kind`. The `d` tag with value `toon-seed-list` is included as a content marker for filtering but is not used for replacement semantics (that is NIP-33 for kinds 30000-39999). It advertises relay nodes that can serve as bootstrap entry points for new network participants.
 
 **Event structure:**
 ```json
 {
   "kind": 10036,
-  "content": "[{\"url\":\"wss://relay1.crosstown.example\",\"pubkey\":\"aa...\",\"metadata\":{\"region\":\"us-east\"}}]",
-  "tags": [["d", "crosstown-seed-list"]],
+  "content": "[{\"url\":\"wss://relay1.toon.example\",\"pubkey\":\"aa...\",\"metadata\":{\"region\":\"us-east\"}}]",
+  "tags": [["d", "toon-seed-list"]],
   "created_at": 1709000000,
   "pubkey": "<signer's pubkey>",
   "id": "<event id>",
@@ -272,7 +272,7 @@ This design ensures:
 
 Use raw `ws` WebSocket connections instead of nostr-tools `SimplePool` for seed relay discovery. SimplePool has known issues in Node.js containers (`ReferenceError: window is not defined` -- see project memory).
 
-**Important:** `RelaySubscriber` from `@crosstown/relay` uses `SimplePool` internally and is NOT a suitable pattern for this story. Instead, use the `ws` package directly with raw Nostr protocol messages:
+**Important:** `RelaySubscriber` from `@toon-protocol/relay` uses `SimplePool` internally and is NOT a suitable pattern for this story. Instead, use the `ws` package directly with raw Nostr protocol messages:
 - `["REQ", subscriptionId, filter]` -- subscribe to events
 - `["EVENT", subscriptionId, event]` -- receive events
 - `["EOSE", subscriptionId]` -- end of stored events signal
@@ -310,7 +310,7 @@ const knownPeers: KnownPeer[] = discoveryResult.discoveredPeers
 - `packages/core/src/index.ts` -- Export new public API
 - `packages/town/src/town.ts` -- Add `discovery`, `seedRelays`, `publishSeedEntry`, `externalRelayUrl` to `TownConfig`; integrate into `startTown()`
 - `packages/town/src/cli.ts` -- Add `--discovery`, `--seed-relays`, `--publish-seed-entry`, `--external-relay-url` CLI flags
-- `docker/src/shared.ts` -- Add `CROSSTOWN_DISCOVERY`, `CROSSTOWN_SEED_RELAYS`, `CROSSTOWN_PUBLISH_SEED_ENTRY`, `CROSSTOWN_EXTERNAL_RELAY_URL` env vars
+- `docker/src/shared.ts` -- Add `TOON_DISCOVERY`, `TOON_SEED_RELAYS`, `TOON_PUBLISH_SEED_ENTRY`, `TOON_EXTERNAL_RELAY_URL` env vars
 
 **Modified files (tests):**
 - `packages/core/src/discovery/seed-relay-discovery.test.ts` -- Enable ATDD tests, add unit tests
@@ -349,17 +349,17 @@ import {
   type SeedRelayDiscoveryConfig,
   type SeedRelayDiscoveryResult,
   type SeedRelayEntry,
-} from '@crosstown/core';
+} from '@toon-protocol/core';
 
 // New seed relay event builder/parser
 import {
   buildSeedRelayListEvent,
   parseSeedRelayList,
   SEED_RELAY_LIST_KIND,
-} from '@crosstown/core';
+} from '@toon-protocol/core';
 
 // Existing bootstrap infrastructure (unchanged)
-import { BootstrapService, PeerDiscoveryError } from '@crosstown/core';
+import { BootstrapService, PeerDiscoveryError } from '@toon-protocol/core';
 ```
 
 ### Critical Rules
@@ -367,7 +367,7 @@ import { BootstrapService, PeerDiscoveryError } from '@crosstown/core';
 - **Never use `SimplePool` for seed relay discovery** -- use raw `ws` WebSocket (SimplePool crashes in Node.js containers).
 - **Discovery defaults to 'genesis'** -- seed-list mode is opt-in. Dev mode and existing deployments are unaffected.
 - **Seed relay discovery populates `knownPeers`, then `BootstrapService` handles registration** -- discovery and registration remain separate concerns.
-- **kind:10036 uses NIP-16 replaceable event semantics** -- As a kind in the 10000-19999 range, relays store only the latest event per `pubkey + kind`. The `d` tag with value `crosstown-seed-list` is included as a content marker but does not affect replacement logic (NIP-33 parameterized replacement applies only to kinds 30000-39999).
+- **kind:10036 uses NIP-16 replaceable event semantics** -- As a kind in the 10000-19999 range, relays store only the latest event per `pubkey + kind`. The `d` tag with value `toon-seed-list` is included as a content marker but does not affect replacement logic (NIP-33 parameterized replacement applies only to kinds 30000-39999).
 - **URL validation required** -- reject seed relay entries without `ws://` or `wss://` prefix (CWE-20: Improper Input Validation).
 - **Pubkey validation required** -- reject entries without valid 64-char lowercase hex pubkeys.
 - **Never use `any` type** -- use `unknown` with type guards.
@@ -406,7 +406,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 - **Task 1**: Added `SEED_RELAY_LIST_KIND = 10036` constant to `packages/core/src/constants.ts`. Created `packages/core/src/events/seed-relay.ts` with `SeedRelayEntry` interface, `buildSeedRelayListEvent()` builder, and `parseSeedRelayList()` parser with URL validation (ws:// or wss://), pubkey validation (64-char lowercase hex), and graceful degradation for malformed entries. Exported from `events/index.ts` and `core/index.ts`.
 - **Task 2**: Created `packages/core/src/discovery/seed-relay-discovery.ts` with `SeedRelayDiscovery` class using raw `ws` WebSocket (not SimplePool). Implements full discovery flow: query public relays for kind:10036, parse seed entries, connect to seeds sequentially with fallback, subscribe to kind:10032, parse IlpPeerInfo with pubkey from event envelope.
 - **Task 3**: Added `publishSeedRelayEntry()` function in the same module. Builds kind:10036 event from node identity, publishes to configured public relays via raw WebSocket, returns publish count and event ID.
-- **Task 4**: Added `discovery`, `seedRelays`, `publishSeedEntry`, `externalRelayUrl` to `TownConfig`. Added corresponding env vars (`CROSSTOWN_DISCOVERY`, `CROSSTOWN_SEED_RELAYS`, `CROSSTOWN_PUBLISH_SEED_ENTRY`, `CROSSTOWN_EXTERNAL_RELAY_URL`) to `docker/src/shared.ts`. Added CLI flags (`--discovery`, `--seed-relays`, `--publish-seed-entry`, `--external-relay-url`) to `packages/town/src/cli.ts`. Integrated seed-list discovery into `startTown()`: when `discovery: 'seed-list'`, runs `SeedRelayDiscovery.discover()` before bootstrap to populate knownPeers. After bootstrap, optionally publishes own seed entry.
+- **Task 4**: Added `discovery`, `seedRelays`, `publishSeedEntry`, `externalRelayUrl` to `TownConfig`. Added corresponding env vars (`TOON_DISCOVERY`, `TOON_SEED_RELAYS`, `TOON_PUBLISH_SEED_ENTRY`, `TOON_EXTERNAL_RELAY_URL`) to `docker/src/shared.ts`. Added CLI flags (`--discovery`, `--seed-relays`, `--publish-seed-entry`, `--external-relay-url`) to `packages/town/src/cli.ts`. Integrated seed-list discovery into `startTown()`: when `discovery: 'seed-list'`, runs `SeedRelayDiscovery.discover()` before bootstrap to populate knownPeers. After bootstrap, optionally publishes own seed entry.
 - **Task 5**: Added `discovery`, `seedRelays`, `publishSeedEntry`, `externalRelayUrl` to `ResolvedTownConfig`. Added `discoveryMode` to `TownInstance` for introspection.
 - **Task 6**: Updated all 5 ATDD tests (T-3.4-01 through T-3.4-05) with proper WebSocket mocking. Mock infrastructure simulates Nostr relay protocol (REQ/EVENT/EOSE/OK messages). All 12 test cases pass (23 enabled + 1 skipped E2E stub). Tests cover: happy path discovery, fallback on seed failure, all-seeds-exhausted error, genesis backward compatibility, seed entry publishing, static analysis (no SimplePool), event builder/parser validation, URL/pubkey validation, malformed entry handling, constant value verification.
 - **Task 7**: Updated sprint-status.yaml. Build passes (`pnpm build`). Lint has no new errors (1 pre-existing error in x402-publish-handler.test.ts). Full test suite: 74 test files passed, 1445 tests passing, 156 skipped, 0 failures.
@@ -424,7 +424,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 - `packages/core/src/index.ts` -- Export new public API (constant, events, discovery)
 - `packages/town/src/town.ts` -- Added discovery config to TownConfig, ResolvedTownConfig, TownInstance; integrated seed-list discovery into startTown()
 - `packages/town/src/cli.ts` -- Added --discovery, --seed-relays, --publish-seed-entry, --external-relay-url CLI flags
-- `docker/src/shared.ts` -- Added CROSSTOWN_DISCOVERY, CROSSTOWN_SEED_RELAYS, CROSSTOWN_PUBLISH_SEED_ENTRY, CROSSTOWN_EXTERNAL_RELAY_URL env vars
+- `docker/src/shared.ts` -- Added TOON_DISCOVERY, TOON_SEED_RELAYS, TOON_PUBLISH_SEED_ENTRY, TOON_EXTERNAL_RELAY_URL env vars
 
 **Modified files (tests):**
 - `packages/core/src/discovery/seed-relay-discovery.test.ts` -- Enabled ATDD tests with WebSocket mocking, added unit tests
@@ -444,7 +444,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 | 2026-03-13 | Story 3.4 file created (yolo mode). |
 | 2026-03-13 | Adversarial review (Claude Opus 4.6, yolo mode): 13 issues found and fixed. Removed incorrect Story 3.1/3.2 dependencies (story is independent per test design). Fixed contradictory RelaySubscriber WebSocket reference (uses SimplePool, not raw ws). Removed incorrect E3-R007 risk mitigation (belongs to Story 3.3). Added missing tests T-3.4-06 (static analysis), T-3.4-12 (E2E stub) from test design. Corrected NIP-33 to NIP-16 replaceable event semantics (kind 10036 is in 10000-19999 range). Fixed IlpPeerInfo.pubkey population note (parseIlpPeerInfo does not set pubkey from content). Added authoritative test-artifacts references. Renumbered test traceability table. Added pubkey derivation note to publishSeedRelayEntry. |
 | 2026-03-13 | Implementation complete (Claude Opus 4.6, yolo mode). All 7 tasks implemented. 23 tests passing (1 E2E skipped). Full monorepo: 1445 tests passing, 0 failures, 0 regressions. 2 new files created, 9 files modified. |
-| 2026-03-13 | Code review (Claude Opus 4.6, yolo mode): 8 issues found (0 critical, 1 high, 4 medium, 3 low). 7 issues fixed: consolidated duplicate imports (M1), closed WebSocket on error in connectWebSocket (M2), updated story File List (M3), validated CROSSTOWN_DISCOVERY env var in shared.ts (M4), replaced hardcoded timeouts with named constants (H1), cleaned up message handler on timeout (L1), validated seed relay URLs in shared.ts (L3). 1 issue downgraded to informational (L2: dual SeedRelayEntry export is intentional pattern). All tests still passing. |
+| 2026-03-13 | Code review (Claude Opus 4.6, yolo mode): 8 issues found (0 critical, 1 high, 4 medium, 3 low). 7 issues fixed: consolidated duplicate imports (M1), closed WebSocket on error in connectWebSocket (M2), updated story File List (M3), validated TOON_DISCOVERY env var in shared.ts (M4), replaced hardcoded timeouts with named constants (H1), cleaned up message handler on timeout (L1), validated seed relay URLs in shared.ts (L3). 1 issue downgraded to informational (L2: dual SeedRelayEntry export is intentional pattern). All tests still passing. |
 | 2026-03-13 | Code review #2 (Claude Opus 4.6, yolo mode): 7 issues found (0 critical, 0 high, 3 medium, 4 low). 6 issues fixed. CLI seed relay URL validation added (M1), knownPeers array copy to prevent caller mutation (M2), warning for missing externalRelayUrl (M3), publishSeedRelayEntry timeout cleanup (L1), test import consolidation (L2), removed redundant hardcoded timeouts (L4). 1 issue noted as informational (L3: Docker entrypoint-town.ts not wired, outside story scope). All 1481 tests passing. |
 | 2026-03-13 | Code review #3 (Claude Opus 4.6, yolo mode, OWASP + security focus): 7 issues found (0 critical, 1 high, 2 medium, 4 low). 4 issues fixed. Added event signature verification for kind:10036 and kind:10032 events (H1/CWE-345), added CLOSE on EOSE in subscribeAndCollect (M2), reordered timer/WebSocket creation in connectWebSocket (L3), removed closed public relay sockets from openSockets tracking (L4). 2 new tests added for CWE-345 verification. 3 issues noted as informational (M3: error message URL exposure acceptable for server-side logging, L1: publish failure WebSocket cleanup already correct, L2: timeout silent resolution acceptable). All 1483 tests passing. |
 
@@ -503,7 +503,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 | MEDIUM | M1 | Duplicate imports from same modules on separate lines | `seed-relay-discovery.ts` | Consolidated into single import statements |
 | MEDIUM | M2 | `connectWebSocket()` error handler does not close WebSocket (resource leak) | `seed-relay-discovery.ts` | Added `ws.close()` in error handler |
 | MEDIUM | M3 | Story File List missing 6 changed files documented by git | `3-4-seed-relay-discovery.md` | Updated File List with all changed files |
-| MEDIUM | M4 | `CROSSTOWN_DISCOVERY` env var not validated in Docker entrypoint (unsafe `as` cast) | `docker/src/shared.ts` | Added validation with descriptive error message |
+| MEDIUM | M4 | `TOON_DISCOVERY` env var not validated in Docker entrypoint (unsafe `as` cast) | `docker/src/shared.ts` | Added validation with descriptive error message |
 | LOW | L1 | `subscribeAndCollect` message handler not removed on timeout | `seed-relay-discovery.ts` | Added `ws.removeListener()` before resolving |
 | LOW | L2 | Dual `SeedRelayEntry` type export from events and discovery modules | `discovery/index.ts` | Informational -- intentional convenience re-export, no change needed |
-| LOW | L3 | No URL scheme validation for `CROSSTOWN_SEED_RELAYS` env var | `docker/src/shared.ts` | Added ws:// / wss:// validation loop |
+| LOW | L3 | No URL scheme validation for `TOON_SEED_RELAYS` env var | `docker/src/shared.ts` | Added ws:// / wss:// validation loop |

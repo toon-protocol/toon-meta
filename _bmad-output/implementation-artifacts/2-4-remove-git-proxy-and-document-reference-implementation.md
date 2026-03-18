@@ -8,7 +8,7 @@ As a **SDK developer**,
 I want the obsolete `packages/git-proxy/` removed and the SDK-based relay documented as the reference implementation,
 So that the codebase is clean and developers have a clear example to follow.
 
-**FRs covered:** FR-SDK-16 (The `packages/git-proxy/` package SHALL be removed as it is superseded by the Crosstown Service Protocol pattern)
+**FRs covered:** FR-SDK-16 (The `packages/git-proxy/` package SHALL be removed as it is superseded by the TOON Service Protocol pattern)
 
 **Dependencies:** AC #1 (cleanup) has no blocking dependencies -- git-proxy was removed before Epic 2 and can be verified independently. AC #2 and #3 (documentation) depend on Story 2.3 (E2E Test Validation -- done) which created `docker/src/entrypoint-town.ts`, the SDK-based entrypoint that serves as the reference implementation to be documented.
 
@@ -22,23 +22,23 @@ So that the codebase is clean and developers have a clear example to follow.
 
 - [x] Task 1: Verify packages/git-proxy removal (AC: #1)
   - [x] Confirm `packages/git-proxy/` directory does not exist on the filesystem (**STATUS: already removed** -- cleanup tests pass since Epic 2 start)
-  - [x] Confirm no package in the workspace depends on `@crosstown/git-proxy` (verified by existing `cleanup.test.ts` tests -- T-2.4-01, T-2.4-02, T-2.4-03)
+  - [x] Confirm no package in the workspace depends on `@toon-protocol/git-proxy` (verified by existing `cleanup.test.ts` tests -- T-2.4-01, T-2.4-02, T-2.4-03)
   - [x] Confirm `pnpm-workspace.yaml` does not reference `git-proxy` (uses glob `packages/*`, no explicit listing -- verified by T-2.4-03)
   - [x] Run existing cleanup tests: `cd packages/town && pnpm test -- cleanup.test.ts` -- all 4 tests must pass
 
 - [x] Task 2: Remove stale git-proxy documentation (AC: #1)
   - [x] Delete `docs/api-contracts-git-proxy.md` -- this documents the obsolete package's HTTP proxy API
   - [x] Update `docs/project-scan-report.json` to remove git-proxy references:
-    - Remove the `git-proxy` entry from `project_types` array (lines 53-57: `{ "part_id": "git-proxy", "project_type_id": "backend", "display_name": "@crosstown/git-proxy" }`)
+    - Remove the `git-proxy` entry from `project_types` array (lines 53-57: `{ "part_id": "git-proxy", "project_type_id": "backend", "display_name": "@toon-protocol/git-proxy" }`)
     - Remove `"api-contracts-git-proxy.md"` from `outputs_generated` array (line 79)
     - Remove the `packages/git-proxy/src` batch entry from `batches_completed` array (lines 104-108)
     - Update `project_classification` string (line 33) from `"Monorepo with 7 packages: 4 backend services (relay, bls, faucet, git-proxy), 3 libraries (core, client, examples)"` to `"Monorepo with 8 packages: 3 backend services (relay, bls, faucet), 2 SDK packages (sdk, town), 3 libraries (core, client, examples)"`
     - Update `technology_stack` string (line 35) to remove `git-proxy` mention -- change `"Backend: Hono+SQLite (relay,bls,git-proxy)"` to `"Backend: Hono+SQLite (relay,bls)"`
     - Update `completed_steps[0].summary` (line 16) from `"Classified as monorepo with 7 parts (4 backend, 3 library)"` to `"Classified as monorepo with 8 parts (3 backend, 2 sdk, 3 library)"`
   - [x] Update `docs/index.md` to remove git-proxy references:
-    - Line 33: Remove the `@crosstown/git-proxy` row from the package table (`| **@crosstown/git-proxy** | Backend  | ILP-gated Git HTTP proxy                |`)
+    - Line 33: Remove the `@toon-protocol/git-proxy` row from the package table (`| **@toon-protocol/git-proxy** | Backend  | ILP-gated Git HTTP proxy                |`)
     - Line 70: Remove the git-proxy API contracts link (`- **[Git Proxy API Contracts](./api-contracts-git-proxy.md)** - ILP-gated Git operations`)
-    - Optionally add `@crosstown/sdk` and `@crosstown/town` entries to the package table if they are not already present
+    - Optionally add `@toon-protocol/sdk` and `@toon-protocol/town` entries to the package table if they are not already present
   - [x] Leave `archive/compose-experiments/docker-compose-with-local.yml` unchanged -- the commented-out git-proxy service definition (lines 250-295) is acceptable as archived historical reference
 
 - [x] Task 3: Add reference implementation documentation to entrypoint-town.ts (AC: #2, #3)
@@ -136,7 +136,7 @@ The reference implementation (`docker/src/entrypoint-town.ts`) exercises these S
 - Lines 104-108: `batches_completed` has packages/git-proxy/src entry
 
 **docs/index.md:**
-- Line 33: Package table row for `@crosstown/git-proxy`
+- Line 33: Package table row for `@toon-protocol/git-proxy`
 - Line 70: API contracts link for git-proxy
 
 **archive/compose-experiments/docker-compose-with-local.yml:**
@@ -148,15 +148,15 @@ The reference implementation (`docker/src/entrypoint-town.ts`) exercises these S
 | ATDD Test ID | Test Name | AC | Test-Design ID | Priority | Level | Status |
 |---|---|---|---|---|---|---|
 | T-2.4-01 | should not have packages/git-proxy directory | #1 | 2.4-UNIT-001 | P2 | Unit | GREEN (passing) |
-| T-2.4-02 | should not have any package depending on @crosstown/git-proxy | #1 | 2.4-UNIT-002 | P2 | Unit | GREEN (passing) |
-| T-2.4-03 | should not reference @crosstown/git-proxy in pnpm-workspace.yaml | #1 | 2.4-UNIT-003 | P2 | Unit | GREEN (passing) |
-| T-2.4-04 | SDK relay entrypoint should import from @crosstown/sdk | #1 | 2.4-UNIT-004 | P2 | Unit | GREEN (passing) |
+| T-2.4-02 | should not have any package depending on @toon-protocol/git-proxy | #1 | 2.4-UNIT-002 | P2 | Unit | GREEN (passing) |
+| T-2.4-03 | should not reference @toon-protocol/git-proxy in pnpm-workspace.yaml | #1 | 2.4-UNIT-003 | P2 | Unit | GREEN (passing) |
+| T-2.4-04 | SDK relay entrypoint should import from @toon-protocol/sdk | #1 | 2.4-UNIT-004 | P2 | Unit | GREEN (passing) |
 
 **Test file locations:**
 - `packages/town/src/cleanup.test.ts` -- 4 tests (T-2.4-01 through T-2.4-04 above)
 - `packages/town/src/sdk-entrypoint-validation.test.ts` -- 7 tests (created in Story 2.3, used for verification only in this story; these test SDK pipeline composition, handler imports from Town not SDK, `sdk: true` health field, Docker dependencies, Dockerfile CMD, and entrypoint line count)
 
-**NOTE on T-2.4-04:** This test validates that `@crosstown/sdk` package exists and has the correct name. It was written before the SDK was implemented (RED phase assertion) and now passes. While mapped to AC #1 in the ATDD checklist, it more broadly validates the SDK-based architecture rather than git-proxy removal specifically.
+**NOTE on T-2.4-04:** This test validates that `@toon-protocol/sdk` package exists and has the correct name. It was written before the SDK was implemented (RED phase assertion) and now passes. While mapped to AC #1 in the ATDD checklist, it more broadly validates the SDK-based architecture rather than git-proxy removal specifically.
 
 All existing tests are already GREEN. This story adds no new test files -- it verifies existing tests pass and adds documentation to the reference implementation.
 
@@ -202,7 +202,7 @@ _None -- no debugging issues encountered._
 
 - `docs/api-contracts-git-proxy.md` -- **deleted** (stale git-proxy API contracts)
 - `docs/project-scan-report.json` -- **modified** (removed 6 git-proxy references, updated project classification, added SDK/Town to project_types, fixed duplicate timestamps key)
-- `docs/index.md` -- **modified** (removed git-proxy package table row and API contracts link, added @crosstown/sdk and @crosstown/town to package table)
+- `docs/index.md` -- **modified** (removed git-proxy package table row and API contracts link, added @toon-protocol/sdk and @toon-protocol/town to package table)
 - `docker/src/entrypoint-town.ts` -- **modified** (added SDK Reference Implementation JSDoc and inline section comments, no functional changes)
 - `packages/town/src/doc-cleanup-and-reference.test.ts` -- **created** (7 tests for AC #1 doc cleanup and AC #2/#3 reference implementation documentation)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` -- **modified** (updated story 2-4 status from review to done)
@@ -224,7 +224,7 @@ Claude Opus 4.6 (claude-opus-4-6) -- Adversarial Code Review
 
 1. **M1: Story File List missing test file** -- `packages/town/src/doc-cleanup-and-reference.test.ts` was created by the dev agent but not listed in the Dev Agent Record File List. Fixed by adding the file to the File List.
 2. **M2: project-scan-report.json project_types inconsistent with classification** -- `project_classification` says "8 packages" but `project_types` array only had 6 entries (missing `sdk` and `town`). Fixed by adding both entries to the array.
-3. **M3: docs/index.md Package Structure table missing SDK and Town** -- The Package Structure table in `docs/index.md` only listed 6 packages after git-proxy removal, but the classification now says 8. The story Task 2 said "Optionally add @crosstown/sdk and @crosstown/town" -- the dev agent chose not to add them, creating an inconsistency. Fixed by adding both rows.
+3. **M3: docs/index.md Package Structure table missing SDK and Town** -- The Package Structure table in `docs/index.md` only listed 6 packages after git-proxy removal, but the classification now says 8. The story Task 2 said "Optionally add @toon-protocol/sdk and @toon-protocol/town" -- the dev agent chose not to add them, creating an inconsistency. Fixed by adding both rows.
 
 #### LOW Issues (all fixed)
 
@@ -298,6 +298,6 @@ No new vulnerabilities introduced. This story makes no functional code changes (
 | 2026-03-06 | 0.1 | Initial story draft via BMAD create-story (yolo mode) | SM (Claude Opus 4.6) |
 | 2026-03-06 | 0.2 | Adversarial review: (1) Fixed Dependencies section -- AC #1 has no blocking dependencies (cleanup is independent per epics.md), AC #2-#3 depend on Story 2.3 for entrypoint-town.ts. (2) Expanded AC #1 to explicitly include stale documentation cleanup ("all stale documentation referencing it is removed or updated"). (3) Fixed project-scan-report.json Task 2 with accurate line references verified against current file: corrected array names (`project_types` not `project_parts`, `outputs_generated` not `api_contracts`, `batches_completed` not `api_source_directories`) and updated proposed classification text to correctly categorize SDK as an SDK package not a backend service. (4) Expanded docs/index.md guidance from vague "check and update if present" to specific line references and actions (line 33 package table row, line 70 API contracts link). (5) Clarified archive file policy -- explicitly state "leave unchanged" instead of contradictory "add a comment" directive. (6) Added note that SDK features table line numbers are approximate and should be verified by dev agent. (7) Renamed "What NOT to Do" to "Critical Rules" for consistency with Stories 2.1/2.3 format. (8) Added missing "Risk Mitigations" section referencing E2-R011. (9) Added Task 4 note about running `pnpm format` after adding JSDoc comments (Prettier compliance). (10) Added note to Test Design Traceability about T-2.4-04 AC mapping nuance. (11) Added sdk-entrypoint-validation.test.ts file location and test summary to traceability section. (12) Added docs/index.md to Stale Doc References section with confirmed line numbers. (13) Updated References with risk ID, docs/index.md with line numbers, and entrypoint-town.ts line count. (14) Added `completed_steps[0].summary` (line 16) to project-scan-report.json update list. | Review (Claude Opus 4.6) |
 | 2026-03-06 | 1.0 | Implementation complete: Deleted stale git-proxy docs (api-contracts-git-proxy.md), updated project-scan-report.json and index.md to remove git-proxy references, added comprehensive SDK Reference Implementation documentation to entrypoint-town.ts with inline section comments. All 18 story-specific tests pass: 11 Story 2.4 tests (T-2.4-01 through T-2.4-11 in cleanup.test.ts and doc-cleanup-and-reference.test.ts) plus 7 Story 2.3 verification tests (sdk-entrypoint-validation.test.ts, T-2.3-XX IDs). Build, lint, format all clean. | Dev (Claude Opus 4.6) |
-| 2026-03-06 | 1.1 | Code review: 7 issues found and fixed (0 critical, 0 high, 3 medium, 4 low). M1: Added missing doc-cleanup-and-reference.test.ts to File List. M2: Added @crosstown/sdk and @crosstown/town entries to project-scan-report.json project_types array (was 6, now 8 matching classification). M3: Added SDK and Town rows to docs/index.md Package Structure table. L1: Fixed duplicate timestamps key in project-scan-report.json. L2: Corrected test count from 16 to 18 in Completion Notes. L3: Updated docs/index.md Last Updated date. L4: Updated project-scan-report.json last_updated timestamp. All ACs verified IMPLEMENTED. Story approved. | Review (Claude Opus 4.6) |
+| 2026-03-06 | 1.1 | Code review: 7 issues found and fixed (0 critical, 0 high, 3 medium, 4 low). M1: Added missing doc-cleanup-and-reference.test.ts to File List. M2: Added @toon-protocol/sdk and @toon-protocol/town entries to project-scan-report.json project_types array (was 6, now 8 matching classification). M3: Added SDK and Town rows to docs/index.md Package Structure table. L1: Fixed duplicate timestamps key in project-scan-report.json. L2: Corrected test count from 16 to 18 in Completion Notes. L3: Updated docs/index.md Last Updated date. L4: Updated project-scan-report.json last_updated timestamp. All ACs verified IMPLEMENTED. Story approved. | Review (Claude Opus 4.6) |
 | 2026-03-06 | 1.2 | Second code review: 1 issue found and fixed (0 critical, 0 high, 0 medium, 1 low). L1: Added missing blank line between verification pipeline and pricing validator section comments in docker/src/entrypoint-town.ts (formatting consistency). All ACs re-validated IMPLEMENTED. All 18 tests pass. Full suite 1394 tests green. Approved. | Review (Claude Opus 4.6) |
 | 2026-03-06 | 1.3 | Third code review (with OWASP/security analysis): 2 issues found and fixed (0 critical, 0 high, 1 medium, 1 low). M1: Added missing sprint-status.yaml to File List. L1: Clarified Change Log v1.0 test count phrasing (11 T-2.4 tests + 7 T-2.3 tests = 18 total). Full OWASP Top 10 security assessment: no vulnerabilities introduced. All ACs re-validated IMPLEMENTED. All 18 tests pass. Full suite 1394 tests green. Approved. | Review (Claude Opus 4.6) |

@@ -10,7 +10,7 @@ lastStep: 'step-04-validate-and-summary'
 lastSaved: '2026-03-04'
 ---
 
-# CI Pipeline Setup: Crosstown Monorepo
+# CI Pipeline Setup: TOON Monorepo
 
 **Date:** 2026-03-04
 **Author:** Jonathan (TEA Master Test Architect)
@@ -26,7 +26,7 @@ lastSaved: '2026-03-04'
 
 | Check           | Result                 | Details                                                                                             |
 | --------------- | ---------------------- | --------------------------------------------------------------------------------------------------- |
-| Git repository  | PASS                   | `.git/` exists, remote configured (github.com/ALLiDoizCode/crosstown)                               |
+| Git repository  | PASS                   | `.git/` exists, remote configured (github.com/toon-protocol/town)                               |
 | Test stack type | **backend**            | No frontend indicators; Node.js monorepo with Vitest                                                |
 | Test framework  | **Vitest**             | 6 configs detected (root unit, root integration, client unit, client e2e, core integration, docker) |
 | CI platform     | **github-actions**     | `.github/workflows/publish-bls.yml` exists                                                          |

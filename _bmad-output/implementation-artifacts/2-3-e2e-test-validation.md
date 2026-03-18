@@ -10,7 +10,7 @@ So that the SDK is proven to be a complete replacement for the manual wiring.
 
 **FRs covered:** FR-SDK-15 (All existing E2E tests SHALL pass when running against a relay built with the SDK)
 
-**Dependencies:** Stories 2.1 (Event Storage Handler -- done), 2.2 (SPSP Handshake Handler -- done). Requires: `@crosstown/town` package with both handlers implemented, `@crosstown/sdk` pipeline (Epic 1 -- done), Docker image build capability, genesis node deployment infrastructure (Anvil + Connector + Relay). The `@crosstown/client` package (where E2E tests live) must have `@crosstown/relay` as a dependency for TOON codec access in tests.
+**Dependencies:** Stories 2.1 (Event Storage Handler -- done), 2.2 (SPSP Handshake Handler -- done). Requires: `@toon-protocol/town` package with both handlers implemented, `@toon-protocol/sdk` pipeline (Epic 1 -- done), Docker image build capability, genesis node deployment infrastructure (Anvil + Connector + Relay). The `@toon-protocol/client` package (where E2E tests live) must have `@toon-protocol/relay` as a dependency for TOON codec access in tests.
 
 ## Acceptance Criteria
 
@@ -22,30 +22,30 @@ So that the SDK is proven to be a complete replacement for the manual wiring.
 
 - [x] Task 1: Create SDK-based Docker entrypoint (AC: #1, #2, #3)
   - [x]Create `docker/src/entrypoint-town.ts` -- new SDK-based entrypoint that replaces `docker/src/entrypoint.ts`
-  - [x]Wire SDK pipeline components from `@crosstown/sdk` (Approach A: individual components, NOT `createNode()` since docker uses external connector mode). The pipeline must be composed manually: size check -> shallow TOON parse -> Schnorr verify -> pricing validate -> kind-based dispatch via `HandlerRegistry`
-  - [x]Import `createEventStorageHandler` from `@crosstown/town` (NOT from `@crosstown/sdk` which exports a throwing stub) and register as the default handler
-  - [x]Import `createSpspHandshakeHandler` from `@crosstown/town` (NOT from `@crosstown/sdk` which exports a throwing stub) and register for kind:23194
-  - [x]Start NostrRelayServer (WebSocket) from `@crosstown/relay`
+  - [x]Wire SDK pipeline components from `@toon-protocol/sdk` (Approach A: individual components, NOT `createNode()` since docker uses external connector mode). The pipeline must be composed manually: size check -> shallow TOON parse -> Schnorr verify -> pricing validate -> kind-based dispatch via `HandlerRegistry`
+  - [x]Import `createEventStorageHandler` from `@toon-protocol/town` (NOT from `@toon-protocol/sdk` which exports a throwing stub) and register as the default handler
+  - [x]Import `createSpspHandshakeHandler` from `@toon-protocol/town` (NOT from `@toon-protocol/sdk` which exports a throwing stub) and register for kind:23194
+  - [x]Start NostrRelayServer (WebSocket) from `@toon-protocol/relay`
   - [x]Start BLS HTTP server (Hono) with `/health` and `/handle-packet` endpoints
-  - [x]Wire bootstrap with BootstrapService and RelayMonitor from `@crosstown/core`
+  - [x]Wire bootstrap with BootstrapService and RelayMonitor from `@toon-protocol/core`
   - [x]Publish the node's own kind:10032 ILP Peer Info event (self-write bypass)
   - [x]**Target: <100 lines of handler logic** (AC #2). Count non-blank, non-comment, non-import lines
   - [x]Preserve ALL existing environment variable configuration (Config interface from entrypoint.ts)
   - [x]Add `sdk: true` field to `/health` response so E2E tests can detect SDK mode
-  - [x]**IMPORTANT -- Pipeline wiring:** The SDK's `create-node.ts` contains the full pipeline as the `handlePacket` callback inside `createNode()`. Since this story uses Approach A (no `createNode()`), the pipeline logic must be reimplemented in the entrypoint using the exported SDK components (`createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `HandlerRegistry`). Check if `@crosstown/sdk` exports a standalone `createPipeline()` function; if not, the dev agent must compose the pipeline from individual components following the same logic as `create-node.ts`
+  - [x]**IMPORTANT -- Pipeline wiring:** The SDK's `create-node.ts` contains the full pipeline as the `handlePacket` callback inside `createNode()`. Since this story uses Approach A (no `createNode()`), the pipeline logic must be reimplemented in the entrypoint using the exported SDK components (`createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `HandlerRegistry`). Check if `@toon-protocol/sdk` exports a standalone `createPipeline()` function; if not, the dev agent must compose the pipeline from individual components following the same logic as `create-node.ts`
 
 - [x] Task 2: Update Docker build to include Town and SDK packages (AC: #1)
   - [x]Update `docker/Dockerfile` to copy `packages/sdk/` and `packages/town/` source and dist in the builder stage (add COPY lines for both `package.json` manifests AND source directories)
-  - [x]Update `docker/package.json` to add `@crosstown/sdk: "workspace:*"` and `@crosstown/town: "workspace:*"` as dependencies (note: `@crosstown/bls`, `@crosstown/core`, `@crosstown/relay` are already present)
+  - [x]Update `docker/package.json` to add `@toon-protocol/sdk: "workspace:*"` and `@toon-protocol/town: "workspace:*"` as dependencies (note: `@toon-protocol/bls`, `@toon-protocol/core`, `@toon-protocol/relay` are already present)
   - [x]Update the builder stage `RUN pnpm -r build` to ensure SDK and Town packages are built BEFORE the docker package. Build order must be: core -> relay -> bls -> sdk -> town -> docker (pnpm handles this via workspace dependency graph, but verify)
   - [x]Update the production deployment stage to copy SDK and Town package artifacts: add `mkdir -p /prod/packages/sdk /prod/packages/town` and corresponding `cp` commands for `package.json` and `dist/` directories
-  - [x]Verify `docker build -f docker/Dockerfile -t crosstown:sdk .` succeeds
+  - [x]Verify `docker build -f docker/Dockerfile -t toon:sdk .` succeeds
 
 - [x] Task 3: Update docker-compose to use SDK-based entrypoint (AC: #1, #3)
   - [x]Update `docker/Dockerfile` CMD to point to the new SDK-based entrypoint (either change CMD to `node /app/dist/entrypoint-town.js` or rename entrypoint-town to entrypoint)
   - [x]OR create `docker/Dockerfile.sdk` as an alternative Dockerfile for SDK mode
   - [x]Verify `deploy-genesis-node.sh` works with the updated image (uses `docker-compose-genesis.yml`)
-  - [x]Verify all services start: Anvil, Faucet, Connector, Crosstown (SDK)
+  - [x]Verify all services start: Anvil, Faucet, Connector, TOON (SDK)
 
 - [x] Task 4: Enable `sdk-relay-validation.test.ts` E2E tests (AC: #1, #3)
   - [x]In `packages/client/tests/e2e/sdk-relay-validation.test.ts`:
@@ -59,7 +59,7 @@ So that the SDK is proven to be a complete replacement for the manual wiring.
       - T-2.3-06: SPSP handshake through SDK handler
       - T-2.3-07: Entrypoint < 100 lines of handler code
   - [x]Fix any test assertions that need updating for SDK behavioral differences (e.g., error codes F04 vs F06). The existing tests test happy paths only and should not need error code changes
-  - [x]**Optional:** Update `sdk-relay-validation.test.ts` TOON codec import from `@crosstown/relay` to `@crosstown/core/toon` for consistency with project convention (Story 1.0 extracted TOON codec to core). The import from `@crosstown/relay` is functionally correct since relay re-exports from core, but `@crosstown/core/toon` is the canonical source
+  - [x]**Optional:** Update `sdk-relay-validation.test.ts` TOON codec import from `@toon-protocol/relay` to `@toon-protocol/core/toon` for consistency with project convention (Story 1.0 extracted TOON codec to core). The import from `@toon-protocol/relay` is functionally correct since relay re-exports from core, but `@toon-protocol/core/toon` is the canonical source
   - [x]**NOTE:** The line count test (T-2.3-07) reads `packages/town/src/index.ts` to count handler lines. If the entrypoint is `docker/src/entrypoint-town.ts` instead of `packages/town/src/index.ts`, the test file path in T-2.3-07 may need updating to point to the actual SDK-based entrypoint
 
 - [x] Task 5: Verify existing `genesis-bootstrap-with-channels.test.ts` passes (AC: #1, #3)
@@ -88,7 +88,7 @@ So that the SDK is proven to be a complete replacement for the manual wiring.
 This is the **E2E equivalence proof** for the SDK. Stories 2.1 and 2.2 implemented the Town handlers (EventStorageHandler and SpspHandshakeHandler) with comprehensive unit tests. This story proves they work end-to-end by:
 
 1. Creating an SDK-based Docker entrypoint that replaces `docker/src/entrypoint.ts`
-2. Building a Docker image that includes `@crosstown/sdk` and `@crosstown/town`
+2. Building a Docker image that includes `@toon-protocol/sdk` and `@toon-protocol/town`
 3. Deploying it as the genesis node
 4. Running the existing E2E test suite against it
 5. Enabling the SDK-specific E2E tests (`sdk-relay-validation.test.ts`)
@@ -112,7 +112,7 @@ docker/src/entrypoint-town.ts (NEW):
   4. Start NostrRelayServer (WebSocket)
   5. Start BLS HTTP server (Hono) with /health + /handle-packet
      - /handle-packet composes pipeline: size check -> shallow parse -> verify -> price -> dispatch
-  6. Bootstrap with BootstrapService and RelayMonitor from @crosstown/core
+  6. Bootstrap with BootstrapService and RelayMonitor from @toon-protocol/core
   7. Publish own kind:10032 event (self-write)
 ```
 
@@ -124,8 +124,8 @@ docker/src/entrypoint-town.ts (NEW):
 - `Config` interface and `parseConfig()` function -- env var parsing is unchanged
 - `createConnectorAdminClient()` -- HTTP admin client for connector
 - `createConnectorChannelClient()` -- HTTP channel client for Anvil
-- `NostrRelayServer` from `@crosstown/relay` -- WebSocket relay
-- `SqliteEventStore` from `@crosstown/relay` -- event storage
+- `NostrRelayServer` from `@toon-protocol/relay` -- WebSocket relay
+- `SqliteEventStore` from `@toon-protocol/relay` -- event storage
 - Docker compose configuration, env vars, ports, volumes
 - Anvil contract addresses (deterministic)
 - Faucet, Connector services (unchanged)
@@ -158,7 +158,7 @@ docker/src/entrypoint-town.ts (NEW):
 
 ### BLS /handle-packet Endpoint
 
-The SDK-based entrypoint still needs a BLS HTTP server with `/handle-packet` endpoint. The connector delivers packets to `LOCAL_DELIVERY_URL` (http://crosstown:3100) via HTTP POST. The BLS receives the packet and delegates to the SDK pipeline.
+The SDK-based entrypoint still needs a BLS HTTP server with `/handle-packet` endpoint. The connector delivers packets to `LOCAL_DELIVERY_URL` (http://toon:3100) via HTTP POST. The BLS receives the packet and delegates to the SDK pipeline.
 
 ```typescript
 // BLS server (Hono)
@@ -221,12 +221,12 @@ This is different from the SDK's `createNode()` which assumes embedded connector
 ### Approach A Implementation Pattern
 
 ```typescript
-import { HandlerRegistry, createVerificationPipeline, createPricingValidator, createHandlerContext } from '@crosstown/sdk';
-import { createEventStorageHandler } from '@crosstown/town';
-import { createSpspHandshakeHandler } from '@crosstown/town';
-import { shallowParseToon, decodeEventFromToon } from '@crosstown/core/toon';
-import { SPSP_REQUEST_KIND } from '@crosstown/core';
-import type { HandlePacketRequest, HandlePacketAcceptResponse, HandlePacketRejectResponse } from '@crosstown/core';
+import { HandlerRegistry, createVerificationPipeline, createPricingValidator, createHandlerContext } from '@toon-protocol/sdk';
+import { createEventStorageHandler } from '@toon-protocol/town';
+import { createSpspHandshakeHandler } from '@toon-protocol/town';
+import { shallowParseToon, decodeEventFromToon } from '@toon-protocol/core/toon';
+import { SPSP_REQUEST_KIND } from '@toon-protocol/core';
+import type { HandlePacketRequest, HandlePacketAcceptResponse, HandlePacketRejectResponse } from '@toon-protocol/core';
 
 // Wire SDK pipeline components manually
 const handlerRegistry = new HandlerRegistry();
@@ -307,11 +307,11 @@ The dev agent should inspect `packages/sdk/src/index.ts` and `packages/sdk/src/c
 - `createPricingValidator` (from `pricing-validator.ts`)
 - `createPaymentHandlerBridge` (from `payment-handler-bridge.ts`)
 - `fromSecretKey` (from `identity.ts`)
-- `shallowParseToon` -- available from `@crosstown/core/toon` (NOT from `@crosstown/sdk`)
+- `shallowParseToon` -- available from `@toon-protocol/core/toon` (NOT from `@toon-protocol/sdk`)
 
-**CONFIRMED:** All pipeline components are exported from `@crosstown/sdk`. The entrypoint can compose them manually without any SDK changes.
+**CONFIRMED:** All pipeline components are exported from `@toon-protocol/sdk`. The entrypoint can compose them manually without any SDK changes.
 
-**WARNING:** The SDK also exports `createEventStorageHandler` and `createSpspHandshakeHandler` as **stubs that throw "not yet implemented"**. The entrypoint must import the real implementations from `@crosstown/town`, NOT from `@crosstown/sdk`. See Import Patterns section below.
+**WARNING:** The SDK also exports `createEventStorageHandler` and `createSpspHandshakeHandler` as **stubs that throw "not yet implemented"**. The entrypoint must import the real implementations from `@toon-protocol/town`, NOT from `@toon-protocol/sdk`. See Import Patterns section below.
 
 ### Docker Build Changes
 
@@ -334,9 +334,9 @@ packages/town/    (NEW -- package.json + source)
 ```json
 {
   "dependencies": {
-    "@crosstown/bls": "workspace:*",
-    "@crosstown/core": "workspace:*",
-    "@crosstown/relay": "workspace:*",
+    "@toon-protocol/bls": "workspace:*",
+    "@toon-protocol/core": "workspace:*",
+    "@toon-protocol/relay": "workspace:*",
     "@hono/node-server": "^1.13.7",
     "hono": "^4.0.0",
     "nostr-tools": "^2.10.4",
@@ -348,8 +348,8 @@ packages/town/    (NEW -- package.json + source)
 **Must add to dependencies:**
 ```json
 {
-  "@crosstown/sdk": "workspace:*",
-  "@crosstown/town": "workspace:*"
+  "@toon-protocol/sdk": "workspace:*",
+  "@toon-protocol/town": "workspace:*"
 }
 ```
 
@@ -394,7 +394,7 @@ The SDK-based relay publishes its own kind:10032 event during bootstrap. The SDK
 - `HandlePacketAcceptResponse` in `packages/core/src/compose.ts` now has `data?: string` field (backward-compatible)
 - Peer registration happens BEFORE the return statement (non-fatal, try/catch)
 - Settlement negotiation delegates to `negotiateAndOpenChannel()` from core
-- Import from `@crosstown/core` main export for SPSP functions (no `@crosstown/core/spsp` sub-path)
+- Import from `@toon-protocol/core` main export for SPSP functions (no `@toon-protocol/core/spsp` sub-path)
 - 16 SPSP handler tests pass, 31 total town tests pass (15 skipped for future stories)
 
 ### Test Design Traceability
@@ -420,7 +420,7 @@ The SDK-based relay publishes its own kind:10032 event during bootstrap. The SDK
 
 ### Project Structure Notes
 
-- The Docker entrypoint lives in `docker/src/` (workspace member `@crosstown/docker`)
+- The Docker entrypoint lives in `docker/src/` (workspace member `@toon-protocol/docker`)
 - The entrypoint is built by `cd docker && pnpm run build` (TypeScript compilation, produces `docker/dist/entrypoint.js`)
 - The Docker image CMD is `node /app/dist/entrypoint.js` (from `/prod/docker/dist/`)
 - If creating a new entrypoint file (`entrypoint-town.ts`), the Dockerfile CMD must be updated to `node /app/dist/entrypoint-town.js`
@@ -437,30 +437,30 @@ import {
   createPricingValidator,
   createHandlerContext,
   fromSecretKey,
-} from '@crosstown/sdk';
-import type { Handler, HandlerContext, HandlerResponse } from '@crosstown/sdk';
+} from '@toon-protocol/sdk';
+import type { Handler, HandlerContext, HandlerResponse } from '@toon-protocol/sdk';
 
-// Town imports (real handler implementations -- NOT from @crosstown/sdk which has stubs!)
-import { createEventStorageHandler, createSpspHandshakeHandler } from '@crosstown/town';
-import type { EventStorageHandlerConfig, SpspHandshakeHandlerConfig } from '@crosstown/town';
+// Town imports (real handler implementations -- NOT from @toon-protocol/sdk which has stubs!)
+import { createEventStorageHandler, createSpspHandshakeHandler } from '@toon-protocol/town';
+import type { EventStorageHandlerConfig, SpspHandshakeHandlerConfig } from '@toon-protocol/town';
 
 // Core imports
-import { BootstrapService, RelayMonitor, buildIlpPeerInfoEvent, SPSP_REQUEST_KIND } from '@crosstown/core';
-import { shallowParseToon, decodeEventFromToon, encodeEventToToon } from '@crosstown/core/toon';
-import type { ConnectorAdminClient, ConnectorChannelClient, SettlementNegotiationConfig } from '@crosstown/core';
+import { BootstrapService, RelayMonitor, buildIlpPeerInfoEvent, SPSP_REQUEST_KIND } from '@toon-protocol/core';
+import { shallowParseToon, decodeEventFromToon, encodeEventToToon } from '@toon-protocol/core/toon';
+import type { ConnectorAdminClient, ConnectorChannelClient, SettlementNegotiationConfig } from '@toon-protocol/core';
 
 // Relay imports
-import { SqliteEventStore, NostrRelayServer } from '@crosstown/relay';
-import type { EventStore, HandlePacketRequest, HandlePacketAcceptResponse, HandlePacketRejectResponse } from '@crosstown/relay';
+import { SqliteEventStore, NostrRelayServer } from '@toon-protocol/relay';
+import type { EventStore, HandlePacketRequest, HandlePacketAcceptResponse, HandlePacketRejectResponse } from '@toon-protocol/relay';
 
 // BLS HTTP
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 ```
 
-**IMPORTANT:** `PricingService` from `@crosstown/relay` is NOT needed in the SDK-based entrypoint. The SDK's `createPricingValidator()` replaces it. Remove any import of `PricingService`.
+**IMPORTANT:** `PricingService` from `@toon-protocol/relay` is NOT needed in the SDK-based entrypoint. The SDK's `createPricingValidator()` replaces it. Remove any import of `PricingService`.
 
-**IMPORTANT:** Import handlers from `@crosstown/town`, NOT from `@crosstown/sdk`. The SDK exports `createEventStorageHandler` and `createSpspHandshakeHandler` as stubs that throw "not yet implemented." The real implementations are in `@crosstown/town`.
+**IMPORTANT:** Import handlers from `@toon-protocol/town`, NOT from `@toon-protocol/sdk`. The SDK exports `createEventStorageHandler` and `createSpspHandshakeHandler` as stubs that throw "not yet implemented." The real implementations are in `@toon-protocol/town`.
 
 ### Critical Rules
 
@@ -475,7 +475,7 @@ import { Hono } from 'hono';
 - **SPSP minimum price uses kindPricing** -- `{ [SPSP_REQUEST_KIND]: config.spspMinPrice ?? 5n }`
 - **Docker image must include SDK and Town packages** -- update Dockerfile COPY and deploy commands
 - **E2E tests require deployed genesis node** -- `./deploy-genesis-node.sh` must work with SDK image
-- **Import handlers from `@crosstown/town`** -- NOT from `@crosstown/sdk` (SDK has throwing stubs)
+- **Import handlers from `@toon-protocol/town`** -- NOT from `@toon-protocol/sdk` (SDK has throwing stubs)
 - **Build order matters** -- core -> relay -> bls -> sdk -> town -> docker (pnpm workspace handles this)
 
 ### References
@@ -512,8 +512,8 @@ None -- clean implementation, no debugging sessions required.
 
 ### Completion Notes List
 
-- **Task 1 (SDK-based Docker entrypoint):** Created `docker/src/entrypoint-town.ts` using Approach A (individual SDK components). Reuses `parseConfig()`, `createConnectorAdminClient()`, `createChannelClient()`, and `waitForAgentRuntime()` from the existing `entrypoint.ts`. The `createPipelineHandler()` function wires the full SDK pipeline: size check -> shallow TOON parse -> Schnorr verify -> pricing validate -> kind-based dispatch via `HandlerRegistry`. Handlers imported from `@crosstown/town` (not SDK stubs). Health endpoint includes `sdk: true`. Handler logic is 73 lines (well under 100 limit).
-- **Task 2 (Docker build updates):** Updated `docker/package.json` to add `@crosstown/sdk` and `@crosstown/town` as workspace dependencies. Updated `docker/Dockerfile` to COPY `packages/sdk/` and `packages/town/` source and manifests in the builder stage, and to copy their `dist/` and `package.json` to the production deployment stage.
+- **Task 1 (SDK-based Docker entrypoint):** Created `docker/src/entrypoint-town.ts` using Approach A (individual SDK components). Reuses `parseConfig()`, `createConnectorAdminClient()`, `createChannelClient()`, and `waitForAgentRuntime()` from the existing `entrypoint.ts`. The `createPipelineHandler()` function wires the full SDK pipeline: size check -> shallow TOON parse -> Schnorr verify -> pricing validate -> kind-based dispatch via `HandlerRegistry`. Handlers imported from `@toon-protocol/town` (not SDK stubs). Health endpoint includes `sdk: true`. Handler logic is 73 lines (well under 100 limit).
+- **Task 2 (Docker build updates):** Updated `docker/package.json` to add `@toon-protocol/sdk` and `@toon-protocol/town` as workspace dependencies. Updated `docker/Dockerfile` to COPY `packages/sdk/` and `packages/town/` source and manifests in the builder stage, and to copy their `dist/` and `package.json` to the production deployment stage.
 - **Task 3 (Docker CMD update):** Updated `docker/Dockerfile` CMD from `node /app/dist/entrypoint.js` to `node /app/dist/entrypoint-town.js` to use the SDK-based entrypoint.
 - **Task 4 (Enable E2E tests):** Changed `describe.skip(...)` to `describe(...)` in `sdk-relay-validation.test.ts`. Updated the T-2.3-07 line count test to correctly measure only the `createPipelineHandler()` function body (handler logic) rather than the entire entrypoint file which also includes bootstrap/lifecycle code identical to the old entrypoint. The test uses proper brace-depth tracking to extract the function body.
 - **Task 5 (Existing E2E test):** The existing `genesis-bootstrap-with-channels.test.ts` is unchanged and will pass against the SDK-based relay once deployed (requires `./deploy-genesis-node.sh`). No modifications needed.
@@ -522,7 +522,7 @@ None -- clean implementation, no debugging sessions required.
 ### File List
 
 - `docker/src/entrypoint-town.ts` -- **created** -- SDK-based Docker entrypoint (Approach A)
-- `docker/package.json` -- **modified** -- Added `@crosstown/sdk` and `@crosstown/town` workspace dependencies
+- `docker/package.json` -- **modified** -- Added `@toon-protocol/sdk` and `@toon-protocol/town` workspace dependencies
 - `docker/Dockerfile` -- **modified** -- Added SDK/Town COPY stages, updated CMD to `entrypoint-town.js`
 - `packages/client/tests/e2e/sdk-relay-validation.test.ts` -- **modified** -- Enabled tests (describe.skip -> describe), updated T-2.3-07 line count logic
 - `_bmad-output/implementation-artifacts/2-3-e2e-test-validation.md` -- **modified** -- Filled Dev Agent Record
@@ -541,7 +541,7 @@ None -- clean implementation, no debugging sessions required.
   - Medium: 1
   - Low: 1
 - **Medium Issues (all fixed):**
-  1. **`any` type usage in `publishOwnIlpInfo`** (`docker/src/entrypoint-town.ts` line 458): Parameter `results: any[]` with eslint-disable comment violated project rule "Never use `any` type." Fixed by replacing with `BootstrapResult[]` from `@crosstown/core` and removing the eslint-disable comment. The `BootstrapResult` type is already exported from core and accurately describes the return value of `bootstrapService.bootstrap()`.
+  1. **`any` type usage in `publishOwnIlpInfo`** (`docker/src/entrypoint-town.ts` line 458): Parameter `results: any[]` with eslint-disable comment violated project rule "Never use `any` type." Fixed by replacing with `BootstrapResult[]` from `@toon-protocol/core` and removing the eslint-disable comment. The `BootstrapResult` type is already exported from core and accurately describes the return value of `bootstrapService.bootstrap()`.
 - **Low Issues (all fixed):**
   1. **Inconsistent package.json entry points** (`docker/package.json`): The `main` field pointed to `dist/entrypoint.js` (old entrypoint) and the `start` script ran `node dist/entrypoint.js`, while the Dockerfile CMD and production runtime use `dist/entrypoint-town.js`. Fixed by updating both `main` and `start` to point to `dist/entrypoint-town.js`.
 - **Outcome:** PASS -- 1 medium and 1 low issue resolved in-place. No follow-up tasks required.
@@ -549,12 +549,12 @@ None -- clean implementation, no debugging sessions required.
 - **What Was Reviewed:**
   1. **`docker/src/entrypoint-town.ts`** -- Full line-by-line review of the SDK-based Docker entrypoint:
      - Verified all imports are used (no dead imports)
-     - Verified SDK pipeline component API usage matches actual function signatures in `@crosstown/sdk` source
+     - Verified SDK pipeline component API usage matches actual function signatures in `@toon-protocol/sdk` source
      - Verified `createVerificationPipeline().verify(meta, data)` signature matches SDK source (async, returns `VerificationResult`)
      - Verified `createPricingValidator().validate(meta, amount)` signature matches SDK source (sync, returns `PricingValidationResult`)
      - Verified `HandlerRegistry.dispatch(ctx)` takes `HandlerContext` not kind+ctx (matches SDK source)
      - Verified `createHandlerContext()` options match `CreateHandlerContextOptions` interface
-     - Verified handlers imported from `@crosstown/town` (real implementations), NOT from `@crosstown/sdk` (stubs)
+     - Verified handlers imported from `@toon-protocol/town` (real implementations), NOT from `@toon-protocol/sdk` (stubs)
      - Verified `HandlePacketAcceptResponse`/`HandlePacketRejectResponse` types re-exported from SDK match core definitions
      - Verified `HandlePacketRequest` from core matches relay's structural equivalent
      - Verified `DockerConnectorAdminClient` (extends `ConnectorAdminClient`) is structurally compatible with `SpspHandshakeHandlerConfig.adminClient`
@@ -570,27 +570,27 @@ None -- clean implementation, no debugging sessions required.
      - Production deployment copies `dist/` and `package.json` for SDK and Town
      - CMD points to `node /app/dist/entrypoint-town.js`
   3. **`docker/package.json`** -- Verified:
-     - `@crosstown/sdk` and `@crosstown/town` workspace dependencies added
+     - `@toon-protocol/sdk` and `@toon-protocol/town` workspace dependencies added
      - Entry points updated to SDK entrypoint
   4. **`packages/client/tests/e2e/sdk-relay-validation.test.ts`** -- Verified:
      - `describe.skip` changed to `describe` (tests enabled)
      - T-2.3-07 line count test correctly targets `createPipelineHandler()` function body via brace-depth tracking
      - Health check properly validates `sdk: true` field
      - Self-write test queries kind:10032 by genesis pubkey
-     - TOON codec imports from `@crosstown/relay` (functionally correct via re-export, noted as optional improvement)
+     - TOON codec imports from `@toon-protocol/relay` (functionally correct via re-export, noted as optional improvement)
   5. **`packages/town/src/handlers/event-storage-handler.ts`** and **`packages/town/src/handlers/spsp-handshake-handler.ts`** -- Verified handler implementations are correctly used by the entrypoint.
   6. **Cross-cutting concerns verified:**
      - No `.ts` extension imports (all use `.js` per ESM rule)
      - No `any` type usage after fix
      - Type imports use `import type` syntax
      - Pipeline order is correct: size check -> shallow parse -> verify -> price -> dispatch
-     - `@crosstown/core/toon` sub-path export is configured in core's package.json
+     - `@toon-protocol/core/toon` sub-path export is configured in core's package.json
 - **Positive Observations:**
   - Entrypoint correctly uses Approach A (individual SDK components), avoiding `createNode()` which requires embedded connector mode
   - Handler logic is 73 lines, well under the 100-line AC #2 target
   - SDK pipeline security improvement: Schnorr signature verification added (old entrypoint had none)
   - All E2E test assertions are compatible with SDK behavioral differences (properly signed events pass Schnorr verify)
-  - Clean separation: handlers from `@crosstown/town`, pipeline components from `@crosstown/sdk`, infrastructure from `@crosstown/core` and `@crosstown/relay`
+  - Clean separation: handlers from `@toon-protocol/town`, pipeline components from `@toon-protocol/sdk`, infrastructure from `@toon-protocol/core` and `@toon-protocol/relay`
 
 ### Review Pass #2
 
@@ -611,7 +611,7 @@ None -- clean implementation, no debugging sessions required.
 - **What Was Reviewed:**
   1. **`docker/src/entrypoint-town.ts`** -- Full line-by-line review covering:
      - All SDK component API signatures verified against source (`createVerificationPipeline`, `createPricingValidator`, `createHandlerContext`, `HandlerRegistry.dispatch`)
-     - Handler imports verified from `@crosstown/town` (not SDK stubs)
+     - Handler imports verified from `@toon-protocol/town` (not SDK stubs)
      - Type imports use `import type` syntax consistently
      - `.js` extension on all relative imports (ESM compliance)
      - No `any` types, no `eslint-disable` comments
@@ -635,10 +635,10 @@ None -- clean implementation, no debugging sessions required.
      - `stateNames[state] || 'unknown'` handles `noUncheckedIndexedAccess` correctly
      - All health check and self-write assertions verified correct
   5. **Cross-package type compatibility verified:**
-     - `HandlePacketRequest` from `@crosstown/core` used in both entrypoint HTTP handler and pipeline function
+     - `HandlePacketRequest` from `@toon-protocol/core` used in both entrypoint HTTP handler and pipeline function
      - `HandlePacketAcceptResponse`/`HandlePacketRejectResponse` re-exported from SDK match core definitions
      - `ConnectorAdminClient` structural typing compatible between core, SDK, and docker implementations
-     - `EventStore` from `@crosstown/relay` used by both entrypoint and Town handlers
+     - `EventStore` from `@toon-protocol/relay` used by both entrypoint and Town handlers
 
 ### Review Pass #3
 
@@ -659,6 +659,6 @@ None -- clean implementation, no debugging sessions required.
 |------|---------|-------------|--------|
 | 2026-03-06 | 0.1 | Initial story draft via BMAD create-story (yolo mode) | SM |
 | 2026-03-06 | 1.0 | Implementation complete: Created SDK-based Docker entrypoint (entrypoint-town.ts) using Approach A with individual SDK components wired to BLS HTTP endpoint. Updated Dockerfile and package.json for SDK/Town packages. Enabled sdk-relay-validation.test.ts E2E tests. All unit tests pass (1380/1380), 0 lint errors, formatting clean. Handler logic is 73 lines (<100 AC target). | Dev (Claude Opus 4.6) |
-| 2026-03-06 | 0.2 | Adversarial review: (1) Fixed AC #2 to explicitly state "< 100 lines" target instead of subjective "significantly shorter." (2) Corrected architecture diagram to use Approach A (individual SDK components) instead of `createNode()` which assumes embedded connector mode incompatible with Docker's external connector. (3) Added explicit warnings that handlers must be imported from `@crosstown/town` (real implementations), NOT from `@crosstown/sdk` (throwing stubs). (4) Expanded Approach A code example from skeleton with `// ...` comments to a complete pipeline implementation showing all 5 stages (size check, shallow parse, verify, price, dispatch). (5) Fixed Docker Build Changes section to accurately reflect current `docker/package.json` dependencies -- removed misleading suggestion to add `@crosstown/bls` which is already present; clarified only `@crosstown/sdk` and `@crosstown/town` need adding. (6) Added production deployment stage copy commands for SDK and Town packages in Dockerfile guidance. (7) Removed stale `PricingService` from Import Patterns (SDK's `createPricingValidator()` replaces it). (8) Added note about T-2.3-07 line count test file path potentially needing update if entrypoint is in `docker/src/` not `packages/town/src/`. (9) Fixed Dev Agent Record placeholder from `{{agent_model_name_version}}` to descriptive text. (10) Added missing `## Code Review Record` section (per BMAD standard established in Stories 2.1/2.2). (11) Added ATDD checklist to References section. (12) Added `docker/package.json` and `deploy-genesis-node.sh` to References with specific details. (13) Added note about priority discrepancy between ATDD checklist and test design for T-2.3-05. (14) Added critical rule about importing handlers from Town not SDK. (15) Added critical rule about build order. (16) Added Task 1 subtask about pipeline wiring guidance referencing `create-node.ts`. (17) Clarified Task 2 build order requirement. (18) Added Task 4 note about line count test file path. (19) Added dependency note about `@crosstown/client` needing `@crosstown/relay` for test imports. | Review (Claude Opus 4.6) |
+| 2026-03-06 | 0.2 | Adversarial review: (1) Fixed AC #2 to explicitly state "< 100 lines" target instead of subjective "significantly shorter." (2) Corrected architecture diagram to use Approach A (individual SDK components) instead of `createNode()` which assumes embedded connector mode incompatible with Docker's external connector. (3) Added explicit warnings that handlers must be imported from `@toon-protocol/town` (real implementations), NOT from `@toon-protocol/sdk` (throwing stubs). (4) Expanded Approach A code example from skeleton with `// ...` comments to a complete pipeline implementation showing all 5 stages (size check, shallow parse, verify, price, dispatch). (5) Fixed Docker Build Changes section to accurately reflect current `docker/package.json` dependencies -- removed misleading suggestion to add `@toon-protocol/bls` which is already present; clarified only `@toon-protocol/sdk` and `@toon-protocol/town` need adding. (6) Added production deployment stage copy commands for SDK and Town packages in Dockerfile guidance. (7) Removed stale `PricingService` from Import Patterns (SDK's `createPricingValidator()` replaces it). (8) Added note about T-2.3-07 line count test file path potentially needing update if entrypoint is in `docker/src/` not `packages/town/src/`. (9) Fixed Dev Agent Record placeholder from `{{agent_model_name_version}}` to descriptive text. (10) Added missing `## Code Review Record` section (per BMAD standard established in Stories 2.1/2.2). (11) Added ATDD checklist to References section. (12) Added `docker/package.json` and `deploy-genesis-node.sh` to References with specific details. (13) Added note about priority discrepancy between ATDD checklist and test design for T-2.3-05. (14) Added critical rule about importing handlers from Town not SDK. (15) Added critical rule about build order. (16) Added Task 1 subtask about pipeline wiring guidance referencing `create-node.ts`. (17) Clarified Task 2 build order requirement. (18) Added Task 4 note about line count test file path. (19) Added dependency note about `@toon-protocol/client` needing `@toon-protocol/relay` for test imports. | Review (Claude Opus 4.6) |
 | 2026-03-06 | 1.1 | Code review (yolo mode): Fixed 1 medium issue (`any[]` -> `BootstrapResult[]` in `publishOwnIlpInfo`) and 1 low issue (docker/package.json `main`/`start` script pointing to old entrypoint). 0 critical, 0 high issues. All tests pass (1387/1387), 0 lint errors, formatting clean. Story status set to complete. | Code Review (Claude Opus 4.6) |
 | 2026-03-06 | 1.2 | Code review pass #2 (yolo mode): Fixed 1 medium issue (SPSP pricing fallback `5n` -> `basePricePerByte / 2n` to match original entrypoint) and 1 low issue (redundant `parseBootstrapPeers` call). 0 critical, 0 high issues. All tests pass (1387/1387), 0 lint errors, formatting clean. | Code Review (Claude Opus 4.6) |

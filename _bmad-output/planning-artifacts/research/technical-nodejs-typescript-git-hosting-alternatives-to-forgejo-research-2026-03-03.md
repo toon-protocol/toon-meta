@@ -5,7 +5,7 @@ workflowType: 'research'
 lastStep: 1
 research_type: 'technical'
 research_topic: 'Node.js/TypeScript alternatives to Forgejo for self-hosted Git'
-research_goals: 'Identify strong Node.js/TypeScript self-hosted Git hosting solutions that could replace Forgejo in the Crosstown stack'
+research_goals: 'Identify strong Node.js/TypeScript self-hosted Git hosting solutions that could replace Forgejo in the TOON stack'
 user_name: 'Jonathan'
 date: '2026-03-03'
 web_research_enabled: true
@@ -29,7 +29,7 @@ source_verification: true
 ## Technical Research Scope Confirmation
 
 **Research Topic:** Node.js/TypeScript alternatives to Forgejo for self-hosted Git
-**Research Goals:** Identify strong Node.js/TypeScript self-hosted Git hosting solutions that could replace Forgejo in the Crosstown stack
+**Research Goals:** Identify strong Node.js/TypeScript self-hosted Git hosting solutions that could replace Forgejo in the TOON stack
 
 **Technical Research Scope:**
 

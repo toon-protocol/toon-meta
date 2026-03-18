@@ -5,28 +5,28 @@ Status: done
 ## Story
 
 As a **network participant or AI agent**,
-I want to discover what services a Crosstown node offers and at what price,
+I want to discover what services a TOON node offers and at what price,
 So that I can programmatically find and consume services without documentation.
 
-**FRs covered:** FR-PROD-5 (Crosstown nodes publish kind:10035 service discovery events advertising payment endpoint, pricing, and supported chains in a machine-readable format)
+**FRs covered:** FR-PROD-5 (TOON nodes publish kind:10035 service discovery events advertising payment endpoint, pricing, and supported chains in a machine-readable format)
 
 **Dependencies:** Story 3.1 (USDC pricing must be complete -- pricing model and currency are USDC-denominated). Story 3.3 (x402 /publish endpoint implementation provides the x402 config fields). Story 3.2 (chain config provides the `chain` field via `resolveChainConfig()`).
 
-**Decision source:** Party Mode Decision 8 -- "x402 /publish endpoint on the Crosstown node" and Decision 13 -- "Crosstown node owns all public-facing endpoints". The kind:10035 event is the machine-readable advertisement of the node's public capabilities.
+**Decision source:** Party Mode Decision 8 -- "x402 /publish endpoint on the TOON node" and Decision 13 -- "TOON node owns all public-facing endpoints". The kind:10035 event is the machine-readable advertisement of the node's public capabilities.
 
 ## Acceptance Criteria
 
-1. Given a Crosstown node that starts successfully, when bootstrap completes, then the node publishes a kind:10035 (Service Discovery) event to the relay network.
+1. Given a TOON node that starts successfully, when bootstrap completes, then the node publishes a kind:10035 (Service Discovery) event to the relay network.
 
 2. Given the kind:10035 event, when parsed by any client, then it contains: service type (e.g., "relay", "rig"), x402 endpoint URL (if enabled), ILP address, pricing model (`basePricePerByte`, currency), supported event kinds, and node capabilities.
 
 3. Given a node with x402 disabled, when it publishes kind:10035, then the x402 field is entirely omitted from the event content (not set to `{ enabled: false }`), and the event advertises ILP-only access.
 
-4. Given a node that uses NIP-16 replaceable event semantics (kind 10000-19999), when a kind:10035 event is published, then it includes a `d` tag with value `crosstown-service-discovery` as a content marker, and relays store only the latest event per pubkey + kind. (**Note:** Dynamic re-publishing on pricing/capability changes is deferred to a future story -- the initial implementation publishes once at startup. This AC verifies the replaceability mechanism is in place.)
+4. Given a node that uses NIP-16 replaceable event semantics (kind 10000-19999), when a kind:10035 event is published, then it includes a `d` tag with value `toon-service-discovery` as a content marker, and relays store only the latest event per pubkey + kind. (**Note:** Dynamic re-publishing on pricing/capability changes is deferred to a future story -- the initial implementation publishes once at startup. This AC verifies the replaceability mechanism is in place.)
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Define kind:10035 constant and ServiceDiscoveryContent type in `@crosstown/core` (AC: #2, #4)
+- [x] Task 1: Define kind:10035 constant and ServiceDiscoveryContent type in `@toon-protocol/core` (AC: #2, #4)
   - [x]Add `SERVICE_DISCOVERY_KIND = 10035` to `packages/core/src/constants.ts`.
   - [x]Create `packages/core/src/events/service-discovery.ts` with:
     ```typescript
@@ -71,7 +71,7 @@ So that I can programmatically find and consume services without documentation.
      * Builds a kind:10035 Service Discovery event (NIP-16 replaceable).
      * Kind 10035 is in the 10000-19999 replaceable range (NIP-16).
      * Relays store only the latest event per pubkey + kind.
-     * Includes 'd' tag with value 'crosstown-service-discovery' as a content marker.
+     * Includes 'd' tag with value 'toon-service-discovery' as a content marker.
      *
      * @param content - The service discovery payload.
      * @param secretKey - The secret key to sign the event with.
@@ -85,7 +85,7 @@ So that I can programmatically find and consume services without documentation.
   - [x]Use `finalizeEvent()` from `nostr-tools/pure` (same pattern as `buildIlpPeerInfoEvent` and `buildSeedRelayListEvent` in `packages/core/src/events/seed-relay.ts`).
   - [x]Set `kind: SERVICE_DISCOVERY_KIND` (10035).
   - [x]Set `content: JSON.stringify(content)`.
-  - [x]Set `tags: [['d', 'crosstown-service-discovery']]` for NIP-16 content marker.
+  - [x]Set `tags: [['d', 'toon-service-discovery']]` for NIP-16 content marker.
   - [x]Set `created_at: Math.floor(Date.now() / 1000)`.
 
 - [x] Task 3: Create `parseServiceDiscovery()` parser function (AC: #2, #3)
@@ -105,7 +105,7 @@ So that I can programmatically find and consume services without documentation.
   - [x]The `x402` field is optional. When present, validate `enabled` (boolean) and optional `endpoint` (string). When absent, the parsed result should not include `x402`.
   - [x]Return `null` for malformed content (graceful degradation, same pattern as `parseSeedRelayList`).
 
-- [x] Task 4: Export from `@crosstown/core` (AC: all)
+- [x] Task 4: Export from `@toon-protocol/core` (AC: all)
   - [x]Export `SERVICE_DISCOVERY_KIND` from `packages/core/src/constants.ts`.
   - [x]Export `buildServiceDiscoveryEvent`, `parseServiceDiscovery`, `type ServiceDiscoveryContent` from `packages/core/src/events/index.ts`.
   - [x]Export all new public APIs from `packages/core/src/index.ts`.
@@ -139,7 +139,7 @@ So that I can programmatically find and consume services without documentation.
   - [x]Store locally via `eventStore.store(event)`.
   - [x]Publish to peers via ILP (fire-and-forget, same pattern as kind:10032 publishing on lines 926-943 of town.ts).
   - [x]**IMPORTANT:** The `chainConfig` variable is currently resolved at line 502 (inside `startTown()`) but the `resolvedConfig` object is constructed at line 471 -- before `chainConfig` is available. For Task 6, the `chain` field must be added to `resolvedConfig` after `chainConfig` is resolved, either by reordering the resolution or by adding it after the fact.
-  - [x]Import `VERSION` from `@crosstown/core` (existing constant, already exported from `packages/core/src/index.ts`).
+  - [x]Import `VERSION` from `@toon-protocol/core` (existing constant, already exported from `packages/core/src/index.ts`).
 
 - [x] Task 6: Add `chain` field to `ResolvedTownConfig` (AC: #1)
   - [x]Add `chain: string` to `ResolvedTownConfig` interface in `packages/town/src/town.ts`.
@@ -178,7 +178,7 @@ So that I can programmatically find and consume services without documentation.
 
 ### Service Discovery Event (kind:10035)
 
-Kind 10035 is a NIP-16 replaceable event (kind 10000-19999) published to the local relay and optionally to peers. Relays store only the latest event per `pubkey + kind`. The `d` tag with value `crosstown-service-discovery` is included as a content marker for filtering. This is the same pattern used by kind:10036 (Seed Relay List) with its `crosstown-seed-list` d tag.
+Kind 10035 is a NIP-16 replaceable event (kind 10000-19999) published to the local relay and optionally to peers. Relays store only the latest event per `pubkey + kind`. The `d` tag with value `toon-service-discovery` is included as a content marker for filtering. This is the same pattern used by kind:10036 (Seed Relay List) with its `toon-seed-list` d tag.
 
 **IMPORTANT -- ATDD stubs contain two bugs that must be fixed during implementation:**
 
@@ -190,8 +190,8 @@ Kind 10035 is a NIP-16 replaceable event (kind 10000-19999) published to the loc
 ```json
 {
   "kind": 10035,
-  "content": "{\"serviceType\":\"relay\",\"ilpAddress\":\"g.crosstown.abc123\",\"pricing\":{\"basePricePerByte\":10,\"currency\":\"USDC\"},\"x402\":{\"enabled\":true,\"endpoint\":\"/publish\"},\"supportedKinds\":[1,10032,10036],\"capabilities\":[\"relay\",\"x402\"],\"chain\":\"arbitrum-one\",\"version\":\"0.1.0\"}",
-  "tags": [["d", "crosstown-service-discovery"]],
+  "content": "{\"serviceType\":\"relay\",\"ilpAddress\":\"g.toon.abc123\",\"pricing\":{\"basePricePerByte\":10,\"currency\":\"USDC\"},\"x402\":{\"enabled\":true,\"endpoint\":\"/publish\"},\"supportedKinds\":[1,10032,10036],\"capabilities\":[\"relay\",\"x402\"],\"chain\":\"arbitrum-one\",\"version\":\"0.1.0\"}",
+  "tags": [["d", "toon-service-discovery"]],
   "created_at": 1709000000,
   "pubkey": "<signer's pubkey>",
   "id": "<event id>",
@@ -232,7 +232,7 @@ For the initial implementation, the event is published once at startup. Dynamic 
 
 ### Config Resolution Ordering in town.ts
 
-The `resolvedConfig` object is constructed at line 471 of `town.ts`, but `resolveChainConfig()` is called at line 502 (after the resolved config). To add the `chain` field to `ResolvedTownConfig`, the `resolveChainConfig()` call should be moved before the `resolvedConfig` construction. The chain resolution depends only on `config.chain` and environment variables (`CROSSTOWN_CHAIN`), not on other resolved values, so this reordering is safe.
+The `resolvedConfig` object is constructed at line 471 of `town.ts`, but `resolveChainConfig()` is called at line 502 (after the resolved config). To add the `chain` field to `ResolvedTownConfig`, the `resolveChainConfig()` call should be moved before the `resolvedConfig` construction. The chain resolution depends only on `config.chain` and environment variables (`TOON_CHAIN`), not on other resolved values, so this reordering is safe.
 
 ### Files Changed (Anticipated)
 
@@ -254,7 +254,7 @@ The `resolvedConfig` object is constructed at line 471 of `town.ts`, but `resolv
 
 ### Risk Mitigations
 
-- **E3-R011 (NIP-16 replaceable event semantics, score 2):** The d tag with value `crosstown-service-discovery` is a content marker, not NIP-33 parameterized replacement. Kind 10035 uses NIP-16 semantics (10000-19999 range). Test T-3.5-UNIT-001 verifies the d tag is present and non-empty. Note: The risk description in `test-design-epic-3.md` says "NIP-33" but this is a legacy label -- the correct designation is NIP-16.
+- **E3-R011 (NIP-16 replaceable event semantics, score 2):** The d tag with value `toon-service-discovery` is a content marker, not NIP-33 parameterized replacement. Kind 10035 uses NIP-16 semantics (10000-19999 range). Test T-3.5-UNIT-001 verifies the d tag is present and non-empty. Note: The risk description in `test-design-epic-3.md` says "NIP-33" but this is a legacy label -- the correct designation is NIP-16.
 
 ### Test Design Traceability
 
@@ -281,10 +281,10 @@ import {
   parseServiceDiscovery,
   SERVICE_DISCOVERY_KIND,
   type ServiceDiscoveryContent,
-} from '@crosstown/core';
+} from '@toon-protocol/core';
 
 // Existing infrastructure (unchanged)
-import { buildIlpPeerInfoEvent, VERSION } from '@crosstown/core';
+import { buildIlpPeerInfoEvent, VERSION } from '@toon-protocol/core';
 ```
 
 ### Critical Rules

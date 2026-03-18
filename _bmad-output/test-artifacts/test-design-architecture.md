@@ -13,17 +13,17 @@ workflowType: 'testarch-test-design'
 inputDocuments:
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/epics.md
-  - docs/architecture/crosstown-service-protocol.md
+  - docs/architecture/toon-service-protocol.md
 ---
 
-# Test Design for Architecture: Crosstown SDK
+# Test Design for Architecture: TOON SDK
 
 **Purpose:** Architectural concerns, testability gaps, and risk assessment for review by Architecture/Dev teams. Serves as a contract between QA and Engineering on what must be addressed before test development begins.
 
 **Date:** 2026-03-03
 **Author:** TEA Master Test Architect
 **Status:** Architecture Review Pending
-**Project:** Crosstown
+**Project:** TOON
 **ADR Reference:** `_bmad-output/planning-artifacts/architecture.md`
 **Requirements Reference:** `_bmad-output/planning-artifacts/epics.md`
 
@@ -31,11 +31,11 @@ inputDocuments:
 
 ## Executive Summary
 
-**Scope:** System-level test design for Crosstown SDK (3 epics, 29 stories, 8 packages). Covers the ILP-Gated Service Node SDK, Nostr Relay reference implementation (Town), and NIP-34 Git Forge (Rig).
+**Scope:** System-level test design for TOON SDK (3 epics, 29 stories, 8 packages). Covers the ILP-Gated Service Node SDK, Nostr Relay reference implementation (Town), and NIP-34 Git Forge (Rig).
 
 **Architecture:**
 
-- **Decision 1:** TOON codec extracted to `@crosstown/core` (unblocks dependency graph)
+- **Decision 1:** TOON codec extracted to `@toon-protocol/core` (unblocks dependency graph)
 - **Decision 2-3:** Express 5.2 + Eta 4.5 for Rig web UI
 - **Decision 4:** `child_process.execFile` for git operations (no exec)
 - **Decision 6:** Identity module in SDK (BIP-39 + NIP-06 derivation)
@@ -185,7 +185,7 @@ inputDocuments:
 
 **Mitigation Strategy:**
 
-1. Roundtrip encode/decode test in `@crosstown/core` after extraction
+1. Roundtrip encode/decode test in `@toon-protocol/core` after extraction
 2. Run full `pnpm -r test` after codec move to verify no regressions
 
 **Owner:** Dev
@@ -243,7 +243,7 @@ inputDocuments:
 
 #### Dependencies
 
-1. **Anvil + Faucet containers** - Required for all payment channel and E2E tests. Uses `docker-compose-genesis.yml` with deterministic contract addresses (AGENT: `0x5FbDB...`, TokenNetwork: `0xCafac...`). Required by: Story 1.7, Epic 2. **Note**: `deploy-genesis-node.sh` currently deploys the pre-SDK relay/BLS. Once Town (Epic 2) replaces the relay, these scripts will need updating to use the `@crosstown/town` image.
+1. **Anvil + Faucet containers** - Required for all payment channel and E2E tests. Uses `docker-compose-genesis.yml` with deterministic contract addresses (AGENT: `0x5FbDB...`, TokenNetwork: `0xCafac...`). Required by: Story 1.7, Epic 2. **Note**: `deploy-genesis-node.sh` currently deploys the pre-SDK relay/BLS. Once Town (Epic 2) replaces the relay, these scripts will need updating to use the `@toon-protocol/town` image.
 2. **Connector contracts repository** - Must be cloned to `../connector` for Anvil contract deployment (`DeployLocal.s.sol`). Required by: pre-Epic 1.
 3. **System `git` binary** - Required in PATH for Rig integration tests. Required by: Epic 5.
 

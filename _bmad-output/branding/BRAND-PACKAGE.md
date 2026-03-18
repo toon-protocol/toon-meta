@@ -93,4 +93,4 @@ All generated concepts: `_bmad-output/branding/toon-protocol-logos/`
 - [ ] Hand `08-towns-a.png` to vector designer for SVG conversion
 - [ ] Build wordmark lockup (08-a mark + 06-d wordmark)
 - [ ] Landing page at toonprotocol.xyz
-- [ ] Codebase migration: crosstown → toon-protocol
+- [ ] Codebase migration: toon → toon-protocol

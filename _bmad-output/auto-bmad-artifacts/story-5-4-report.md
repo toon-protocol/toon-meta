@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Story 5.4 extends kind:10035 (Service Discovery) NIP-16 replaceable events with an optional `skill` field containing structured DVM skill descriptors. This enables programmatic agent-to-agent service discovery: agents can read a node's kind:10035 event to discover what DVM services it offers, construct valid job requests from the `inputSchema`, and compare pricing across providers. The implementation spans three packages: `@crosstown/core` (SkillDescriptor interface + parser), `@crosstown/sdk` (buildSkillDescriptor builder + HandlerRegistry methods + ServiceNode integration), and `@crosstown/town` (TownConfig wiring).
+Story 5.4 extends kind:10035 (Service Discovery) NIP-16 replaceable events with an optional `skill` field containing structured DVM skill descriptors. This enables programmatic agent-to-agent service discovery: agents can read a node's kind:10035 event to discover what DVM services it offers, construct valid job requests from the `inputSchema`, and compare pricing across providers. The implementation spans three packages: `@toon-protocol/core` (SkillDescriptor interface + parser), `@toon-protocol/sdk` (buildSkillDescriptor builder + HandlerRegistry methods + ServiceNode integration), and `@toon-protocol/town` (TownConfig wiring).
 
 ## Acceptance Criteria Coverage
 - [x] AC1: SkillDescriptor type with all required fields (name, version, kinds, features, inputSchema, pricing, models) + optional skill field on ServiceDiscoveryContent + backward compatibility — covered by: `service-discovery.test.ts` (T-5.4-01, T-5.4-10, T-5.4-12), `skill-descriptor.test.ts` (T-5.4-20, T-5.4-21)
@@ -16,7 +16,7 @@ Story 5.4 extends kind:10035 (Service Discovery) NIP-16 replaceable events with 
 - [x] AC3: Auto-population of kinds from HandlerRegistry, pricing from kindPricing/basePricePerByte — covered by: `handler-registry.test.ts` (T-5.4-04, T-5.4-17, T-5.4-18, T-5.4-19), `skill-descriptor.test.ts` (T-5.4-05)
 - [x] AC4: Runtime re-publication (stretch goal — documented limitation) — covered by: `skill-descriptor.test.ts` (T-5.4-07 — verifies getSkillDescriptor() reads live from registry, documents no auto re-publication)
 - [x] AC5: Agent discovery flow (filter by kinds, compare pricing) — covered by: `skill-descriptor.test.ts` (T-5.4-08)
-- [x] AC6: Crosstown-specific fields (ilpAddress, x402, chain) coexist with skill descriptor — covered by: `service-discovery.test.ts` (T-5.4-09), `skill-descriptor.test.ts` (T-5.4-06)
+- [x] AC6: TOON-specific fields (ilpAddress, x402, chain) coexist with skill descriptor — covered by: `service-discovery.test.ts` (T-5.4-09), `skill-descriptor.test.ts` (T-5.4-06)
 
 ## Files Changed
 
@@ -212,4 +212,4 @@ Story 5.4 extends kind:10035 (Service Discovery) NIP-16 replaceable events with 
 ---
 
 ## TL;DR
-Story 5.4 adds structured DVM skill descriptors to kind:10035 service discovery events, enabling programmatic agent-to-agent discovery across the Crosstown network. The implementation spans core (types + parser), SDK (builder + registry + node integration), and town (config wiring) with 61 new tests achieving 100% acceptance criteria coverage. The pipeline passed cleanly with 1 medium code review finding (variable shadowing, fixed), 0 security vulnerabilities across 217 semgrep rules, and no test regressions (+14 tests from baseline). Epic 5 is now complete — all 4 stories done.
+Story 5.4 adds structured DVM skill descriptors to kind:10035 service discovery events, enabling programmatic agent-to-agent discovery across the TOON network. The implementation spans core (types + parser), SDK (builder + registry + node integration), and town (config wiring) with 61 new tests achieving 100% acceptance criteria coverage. The pipeline passed cleanly with 1 medium code review finding (variable shadowing, fixed), 0 security vulnerabilities across 217 semgrep rules, and no test regressions (+14 tests from baseline). Epic 5 is now complete — all 4 stories done.

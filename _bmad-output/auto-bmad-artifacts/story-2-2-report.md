@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Implemented the SPSP Handshake Handler (`createSpspHandshakeHandler`) in the `@crosstown/town` package. This handler processes kind:23194 SPSP requests through the SDK's kind-based routing pipeline, performing NIP-44 decryption, fresh SPSP parameter generation, settlement chain negotiation, payment channel opening, peer registration, and NIP-44 encrypted response encoding to TOON format.
+Implemented the SPSP Handshake Handler (`createSpspHandshakeHandler`) in the `@toon-protocol/town` package. This handler processes kind:23194 SPSP requests through the SDK's kind-based routing pipeline, performing NIP-44 decryption, fresh SPSP parameter generation, settlement chain negotiation, payment channel opening, peer registration, and NIP-44 encrypted response encoding to TOON format.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: Kind:23194 handler processes SPSP request with NIP-44 encryption, fresh params, settlement negotiation, channel opening, encrypted response — covered by: T-2.2-01, T-2.2-02, T-2.2-03, T-2.2-04, T-2.2-05, + 4 edge case tests
@@ -30,7 +30,7 @@ Implemented the SPSP Handshake Handler (`createSpspHandshakeHandler`) in the `@c
 - `compose.ts` (modified) — Added `data?: string` field to `HandlePacketAcceptResponse` interface
 
 ### packages/sdk/src/
-- `spsp-handshake-handler.ts` (modified) — Updated JSDoc to point to `@crosstown/town`
+- `spsp-handshake-handler.ts` (modified) — Updated JSDoc to point to `@toon-protocol/town`
 
 ### packages/core/src/ (lint fixes — pre-existing RED-phase test files)
 - `bootstrap/AttestationVerifier.test.ts` (modified)
@@ -67,7 +67,7 @@ Implemented the SPSP Handshake Handler (`createSpspHandshakeHandler`) in the `@c
 - **Status**: success
 - **Duration**: ~8 minutes
 - **What changed**: Modified story file (350 lines, up from 319)
-- **Key decisions**: Used Story 2.1 as gold standard, verified `@crosstown/core/spsp` doesn't exist
+- **Key decisions**: Used Story 2.1 as gold standard, verified `@toon-protocol/core/spsp` doesn't exist
 - **Issues found & fixed**: 14 (2 critical, 2 high, 5 medium, 5 low)
 
 ### Step 3: Story 2-2 ATDD
@@ -213,7 +213,7 @@ Implemented the SPSP Handshake Handler (`createSpspHandshakeHandler`) in the `@c
 - **Traceability**: pass — all 3 ACs fully covered, all 7 test-design IDs implemented, all 4 risk IDs mitigated
 
 ## Known Risks & Gaps
-- **Transitive dependency vulnerabilities**: 33 findings (2 critical, 12 high) via `fast-xml-parser` in `@crosstown/connector` deps — project-wide, not story-specific
+- **Transitive dependency vulnerabilities**: 33 findings (2 critical, 12 high) via `fast-xml-parser` in `@toon-protocol/connector` deps — project-wide, not story-specific
 - **No CI pipeline**: NFR assessment flagged this as a project-level gap
 - **Branch coverage 77.77%**: Slightly below 80% target due to untested `adminClient.addPeer()` error catch path (addressed by code review #3 adding runtime validation test)
 - **E2E channel validation deferred**: On-chain channel state verification deferred to Story 2.3's `2.3-E2E-002` test
@@ -221,4 +221,4 @@ Implemented the SPSP Handshake Handler (`createSpspHandshakeHandler`) in the `@c
 ---
 
 ## TL;DR
-Story 2-2 implements the SPSP Handshake Handler in `@crosstown/town`, replacing the legacy BLS entrypoint logic with an SDK handler that processes kind:23194 requests through NIP-44 encryption, settlement negotiation, payment channel opening, and peer registration. The pipeline completed cleanly across all 22 steps with 16 passing tests covering all 3 acceptance criteria. Three code review passes found 6 total issues (1 medium, 5 low) — all fixed. No action items require human attention.
+Story 2-2 implements the SPSP Handshake Handler in `@toon-protocol/town`, replacing the legacy BLS entrypoint logic with an SDK handler that processes kind:23194 requests through NIP-44 encryption, settlement negotiation, payment channel opening, and peer registration. The pipeline completed cleanly across all 22 steps with 16 passing tests covering all 3 acceptance criteria. Three code review passes found 6 total issues (1 medium, 5 low) — all fixed. No action items require human attention.

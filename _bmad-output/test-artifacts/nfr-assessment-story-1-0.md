@@ -12,7 +12,7 @@ lastSaved: '2026-03-04'
 workflowType: 'testarch-nfr-assess'
 inputDocuments:
   [
-    '_bmad-output/implementation-artifacts/1-0-extract-toon-codec-to-crosstown-core.md',
+    '_bmad-output/implementation-artifacts/1-0-extract-toon-codec-to-toon-core.md',
     '_bmad-output/test-artifacts/test-design-epic-1.md',
     '_bmad-output/planning-artifacts/architecture.md',
     '_bmad/tea/testarch/knowledge/adr-quality-readiness-checklist.md',
@@ -23,10 +23,10 @@ inputDocuments:
   ]
 ---
 
-# NFR Assessment - Story 1.0: Extract TOON Codec to @crosstown/core
+# NFR Assessment - Story 1.0: Extract TOON Codec to @toon-protocol/core
 
 **Date:** 2026-03-04
-**Story:** 1.0 - Extract TOON Codec to @crosstown/core
+**Story:** 1.0 - Extract TOON Codec to @toon-protocol/core
 **Overall Status:** PASS
 
 ---
@@ -111,7 +111,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Threshold:** No data leakage introduced
 - **Actual:** Error messages do not leak event content
 - **Evidence:** `ToonEncodeError` and `ToonError` messages contain generic failure descriptions (`"Failed to encode event to TOON"`, `"Invalid event id: must be a 64-character hex string"`) -- no raw event data, no private keys, no content exposed in error messages.
-- **Findings:** Error classes properly use standard Error cause chaining (`CrosstownError(message, code, cause)`) without exposing sensitive data. Reviewed `encoder.ts:30-34`, `decoder.ts:104-112`, `shallow-parse.ts:47-50`.
+- **Findings:** Error classes properly use standard Error cause chaining (`ToonError(message, code, cause)`) without exposing sensitive data. Reviewed `encoder.ts:30-34`, `decoder.ts:104-112`, `shallow-parse.ts:47-50`.
 
 ### Vulnerability Management
 
@@ -147,7 +147,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Threshold:** Zero test failures across all packages after extraction
 - **Actual:** 0 failures across 959 tests (core: 510, BLS: 233, relay: 216)
 - **Evidence:** Test execution 2026-03-04: `pnpm test` in packages/core (24 files, 510 tests passed, 3.65s), packages/bls (10 files, 233 tests passed, 0.80s), packages/relay (9 files, 216 tests passed, 0.74s)
-- **Findings:** Zero regressions. All existing BLS and relay tests pass with updated import paths (thin re-exports from `@crosstown/core`).
+- **Findings:** Zero regressions. All existing BLS and relay tests pass with updated import paths (thin re-exports from `@toon-protocol/core`).
 
 ### MTTR (Mean Time To Recovery)
 
@@ -162,8 +162,8 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** Error handling preserves existing behavior
 - **Actual:** Error classes properly chain causes, error boundaries preserved
-- **Evidence:** `ToonEncodeError` and `ToonError` extend `CrosstownError` which uses standard `Error` cause chaining (`super(message, { cause })`). Error type hierarchy: `ToonError instanceof CrosstownError instanceof Error`. The `instanceof` checks in `SqliteEventStore.ts` (both BLS and relay) check against `BlsBaseError`/`RelayError`, NOT `ToonError`, so the error class migration is transparent.
-- **Findings:** Error handling behavior is preserved. The constructor signature change from `BlsBaseError(message, code)` + manual `this.cause = cause` to `CrosstownError(message, code, cause?)` is functionally equivalent -- both produce errors with proper cause chains.
+- **Evidence:** `ToonEncodeError` and `ToonError` extend `ToonError` which uses standard `Error` cause chaining (`super(message, { cause })`). Error type hierarchy: `ToonError instanceof ToonError instanceof Error`. The `instanceof` checks in `SqliteEventStore.ts` (both BLS and relay) check against `BlsBaseError`/`RelayError`, NOT `ToonError`, so the error class migration is transparent.
+- **Findings:** Error handling behavior is preserved. The constructor signature change from `BlsBaseError(message, code)` + manual `this.cause = cause` to `ToonError(message, code, cause?)` is functionally equivalent -- both produce errors with proper cause chains.
 
 ### CI Burn-In (Stability)
 
@@ -213,7 +213,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Threshold:** No new technical debt introduced
 - **Actual:** Technical debt reduced -- eliminated code duplication between BLS and relay
 - **Evidence:** Before: identical TOON encoder/decoder in `packages/bls/src/toon/` AND `packages/relay/src/toon/` (duplicated code). After: single implementation in `packages/core/src/toon/` with thin re-exports. Deleted 6 files (encoder.ts, decoder.ts, toon.test.ts from both BLS and relay).
-- **Findings:** Story 1.0 is a net reduction in technical debt. The consolidation eliminates the risk of the two copies drifting apart. BLS and relay now use thin re-export files (`packages/bls/src/toon/index.ts`, `packages/relay/src/toon/index.ts`) that point to `@crosstown/core`, minimizing import path changes in consumer files.
+- **Findings:** Story 1.0 is a net reduction in technical debt. The consolidation eliminates the risk of the two copies drifting apart. BLS and relay now use thin re-export files (`packages/bls/src/toon/index.ts`, `packages/relay/src/toon/index.ts`) that point to `@toon-protocol/core`, minimizing import path changes in consumer files.
 
 ### Documentation Completeness
 
@@ -384,7 +384,7 @@ For Story 1.0 specifically: all testability, test data, security, and deployabil
 nfr_assessment:
   date: '2026-03-04'
   story_id: '1.0'
-  feature_name: 'Extract TOON Codec to @crosstown/core'
+  feature_name: 'Extract TOON Codec to @toon-protocol/core'
   adr_checklist_score: '21/29'
   categories:
     testability_automation: 'PASS'
@@ -413,7 +413,7 @@ nfr_assessment:
 
 ## Related Artifacts
 
-- **Story File:** `_bmad-output/implementation-artifacts/1-0-extract-toon-codec-to-crosstown-core.md`
+- **Story File:** `_bmad-output/implementation-artifacts/1-0-extract-toon-codec-to-toon-core.md`
 - **Test Design:** `_bmad-output/test-artifacts/test-design-epic-1.md`
 - **Evidence Sources:**
   - Test Results: `packages/core/src/toon/toon.test.ts` (52 tests, all passing)

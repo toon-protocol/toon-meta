@@ -60,7 +60,7 @@ The relay BLS is reimplemented as an SDK handler that stores Nostr events via th
 These tests build a `HandlerContext` via `createTestContext()` helper and call the handler directly. They exercise handler logic in isolation, bypassing the SDK pipeline.
 
 - **T-2.1-01** `should store event when payment meets price`
-  - **Status:** RED - `createEventStorageHandler` does not exist in `@crosstown/town` yet
+  - **Status:** RED - `createEventStorageHandler` does not exist in `@toon-protocol/town` yet
   - **Verifies:** AC1 -- paid ILP packet -> ctx.decode() -> SQLite store -> ctx.accept()
   - **Priority:** P0 | **Risk:** E2-R001, E2-R005
 
@@ -92,7 +92,7 @@ These tests build a `HandlerContext` via `createTestContext()` helper and call t
 These tests wire a full `createNode()` with the handler registered as `defaultHandler`, then send packets through the SDK pipeline via `mockConnector.packetHandler()`. Required for testing pricing (F04) and signature (F06) validation since those happen in the SDK pipeline, not the handler.
 
 - **T-2.1-03** `should bypass pricing for node own pubkey (self-write)`
-  - **Status:** RED - `createEventStorageHandler` does not exist in `@crosstown/town` yet
+  - **Status:** RED - `createEventStorageHandler` does not exist in `@toon-protocol/town` yet
   - **Verifies:** AC3 -- own pubkey writes with amount=0 through full SDK pipeline (self-write bypass in pricing validator)
   - **Priority:** P0 | **Risk:** E2-R005, E2-R006
 
@@ -132,7 +132,7 @@ These tests wire a full `createNode()` with the handler registered as `defaultHa
 **Exports (inline functions):**
 
 - `createValidSignedEvent(overrides?, secretKey?)` -- Create properly signed Nostr event using real nostr-tools (`finalizeEvent`). Deterministic timestamp (`TEST_CREATED_AT = 1767225600`).
-- `eventToBase64Toon(event)` -- Encode event to base64 TOON wire format using real codec from `@crosstown/core/toon`
+- `eventToBase64Toon(event)` -- Encode event to base64 TOON wire format using real codec from `@toon-protocol/core/toon`
 - `calculatePrice(event, basePricePerByte)` -- Compute exact price (`toonBytes.length * basePricePerByte`)
 
 ### Test Context Helper (Approach A)
@@ -166,8 +166,8 @@ Tests use a mock connector (`createMockConnector()`) that implements `Embeddable
 
 **No external service mocks required.** Tests use:
 
-- Real SQLite `:memory:` (`SqliteEventStore` from `@crosstown/relay`)
-- Real TOON codec (`encodeEventToToon`/`decodeEventFromToon`/`shallowParseToon` from `@crosstown/core/toon`)
+- Real SQLite `:memory:` (`SqliteEventStore` from `@toon-protocol/relay`)
+- Real TOON codec (`encodeEventToToon`/`decodeEventFromToon`/`shallowParseToon` from `@toon-protocol/core/toon`)
 - Real nostr-tools signatures (`generateSecretKey`/`getPublicKey`/`finalizeEvent`)
 - Real SDK pipeline (`createNode`, `createHandlerContext`, `createPricingValidator`, `createVerificationPipeline`)
 
@@ -181,11 +181,11 @@ N/A -- Backend integration tests. No UI elements.
 
 ## Implementation Checklist
 
-### Task 1: Set up `@crosstown/town` package infrastructure
+### Task 1: Set up `@toon-protocol/town` package infrastructure
 
 **Prerequisite for all tests.**
 
-- [ ] Create `packages/town/package.json` with `@crosstown/town`, workspace deps
+- [ ] Create `packages/town/package.json` with `@toon-protocol/town`, workspace deps
 - [ ] Create `packages/town/tsconfig.json` extending root
 - [ ] Create `packages/town/tsup.config.ts` for ESM build
 - [ ] Create `packages/town/vitest.config.ts` for per-package test execution
@@ -193,7 +193,7 @@ N/A -- Backend integration tests. No UI elements.
 - [ ] Update root `tsconfig.json` to include `packages/town`
 - [ ] Update root `eslint.config.js` to include `packages/town`
 - [ ] Run `pnpm install` to wire workspace dependencies
-- [ ] Verify `pnpm -r list` shows `@crosstown/town`
+- [ ] Verify `pnpm -r list` shows `@toon-protocol/town`
 
 **Estimated Effort:** 1-2 hours
 
@@ -240,7 +240,7 @@ N/A -- Backend integration tests. No UI elements.
 
 **File:** `packages/sdk/src/event-storage-handler.ts`
 
-- [ ] Update JSDoc on SDK stub to say "See `@crosstown/town` for the relay implementation"
+- [ ] Update JSDoc on SDK stub to say "See `@toon-protocol/town` for the relay implementation"
 - [ ] Do NOT move the real implementation into SDK (keep boundary: SDK = framework, Town = application)
 
 **Estimated Effort:** 0.25 hours
@@ -292,8 +292,8 @@ pnpm test
 - Test architecture updated from RED-phase prototype to match real SDK API:
   - Handler receives `HandlerContext` (not raw `HandlePacketRequest`)
   - Handler config simplified to `{ eventStore }` (not `{ eventStore, basePricePerByte, ownerPubkey, toonDecoder, toonEncoder }`)
-  - TOON codec imported from `@crosstown/core/toon` (not `@crosstown/relay`)
-  - Handler imported from local `../event-storage-handler.js` (not `@crosstown/sdk`)
+  - TOON codec imported from `@toon-protocol/core/toon` (not `@toon-protocol/relay`)
+  - Handler imported from local `../event-storage-handler.js` (not `@toon-protocol/sdk`)
   - `describe.skip` removed -- tests are enabled
 - Inline factories and helpers created with real crypto and TOON codec
 - Mock connector follows SDK test patterns (captures `packetHandler` for pipeline tests)
@@ -302,7 +302,7 @@ pnpm test
 
 **Verification:**
 
-- Tests fail because `createEventStorageHandler` does not exist in `@crosstown/town` yet
+- Tests fail because `createEventStorageHandler` does not exist in `@toon-protocol/town` yet
 - Failure is due to missing implementation, not test bugs
 - All assertions target expected behavior
 
@@ -312,7 +312,7 @@ pnpm test
 
 **Implementation Order (recommended):**
 
-1. Set up `@crosstown/town` package infrastructure (Task 1)
+1. Set up `@toon-protocol/town` package infrastructure (Task 1)
 2. Implement `createEventStorageHandler` (Task 2) -- passes all 5 unit tests
 3. Verify pipeline tests pass (Task 3) -- should pass automatically once Task 2 is done
 4. Update SDK stub JSDoc (Task 4)
@@ -330,7 +330,7 @@ pnpm test
 
 1. Verify all 8 tests pass (green phase complete)
 2. Review handler code for quality
-3. Ensure handler follows `Handler` type signature from `@crosstown/sdk`
+3. Ensure handler follows `Handler` type signature from `@toon-protocol/sdk`
 4. Verify no regressions across all packages (`pnpm test`)
 5. Extract any shared test helpers if Story 2.2 needs similar patterns
 
@@ -338,12 +338,12 @@ pnpm test
 
 ## Notes
 
-- The handler lives in `@crosstown/town`, NOT `@crosstown/sdk`. SDK has stubs, Town has implementations.
+- The handler lives in `@toon-protocol/town`, NOT `@toon-protocol/sdk`. SDK has stubs, Town has implementations.
 - The handler config is intentionally minimal (`{ eventStore }` only). The SDK pipeline handles pricing, verification, and self-write bypass.
 - Pipeline tests (Approach B) exercise the full SDK pipeline: shallow parse -> Schnorr verify -> pricing validate -> handler dispatch. These tests validate end-to-end behavior through `createNode()` + `mockConnector.packetHandler()`.
 - Unit tests (Approach A) use `createTestContext()` to build a `HandlerContext` directly, bypassing the pipeline. These test handler logic in isolation.
 - The `createMockConnector()` pattern matches the SDK's own `create-node.test.ts` pattern: expose `packetHandler` field, not override `sendPacket`.
-- TOON codec imports updated from `@crosstown/relay` to `@crosstown/core/toon` per Story 1.0.
+- TOON codec imports updated from `@toon-protocol/relay` to `@toon-protocol/core/toon` per Story 1.0.
 - Total estimated effort: ~4-7 hours for all 8 tests to pass.
 
 ---
@@ -365,7 +365,7 @@ pnpm test
 **Expected Results:**
 
 ```
-Tests fail because createEventStorageHandler does not exist in @crosstown/town yet.
+Tests fail because createEventStorageHandler does not exist in @toon-protocol/town yet.
 Import error: Cannot find module '../event-storage-handler.js'
 ```
 

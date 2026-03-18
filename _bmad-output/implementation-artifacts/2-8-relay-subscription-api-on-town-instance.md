@@ -48,9 +48,9 @@ So that I can discover peers, seed relays, and custom event kinds through a prog
   - [x] Export `TownSubscription` type from `packages/town/src/index.ts`
 
 - [x] Task 2: Implement `subscribe()` inside `startTown()` (AC: #1, #2, #3, #4, #7, #8)
-  - [x] Import `RelaySubscriber` from `@crosstown/relay` at top of `town.ts`:
+  - [x] Import `RelaySubscriber` from `@toon-protocol/relay` at top of `town.ts`:
     ```typescript
-    import { SqliteEventStore, NostrRelayServer, RelaySubscriber } from '@crosstown/relay';
+    import { SqliteEventStore, NostrRelayServer, RelaySubscriber } from '@toon-protocol/relay';
     ```
   - [x] Create an internal `activeSubscriptions` set (type `Set<{ close(): void }>`) initialized before the TownInstance return block (after step 13, before step 14)
   - [x] Implement `subscribe()` on the TownInstance object:
@@ -110,8 +110,8 @@ So that I can discover peers, seed relays, and custom event kinds through a prog
       return { ...actual, verifyEvent: (...args) => mockVerifyEvent(...args) };
     });
     ```
-  - [x] **EventStore in tests:** Use `InMemoryEventStore` from `@crosstown/relay` for event storage verification (fast, isolated, no filesystem).
-  - [x] **Testing approach:** Since `subscribe()` is implemented inside `startTown()` and `startTown()` has heavy setup requirements (connector, SQLite, etc.), the tests should mock `RelaySubscriber` at the module level (`vi.mock('@crosstown/relay', ...)`) and test the `subscribe()` wrapper logic in isolation. Alternatively, extract `subscribe()` logic into a testable helper function that accepts `eventStore` and `activeSubscriptions` as arguments.
+  - [x] **EventStore in tests:** Use `InMemoryEventStore` from `@toon-protocol/relay` for event storage verification (fast, isolated, no filesystem).
+  - [x] **Testing approach:** Since `subscribe()` is implemented inside `startTown()` and `startTown()` has heavy setup requirements (connector, SQLite, etc.), the tests should mock `RelaySubscriber` at the module level (`vi.mock('@toon-protocol/relay', ...)`) and test the `subscribe()` wrapper logic in isolation. Alternatively, extract `subscribe()` logic into a testable helper function that accepts `eventStore` and `activeSubscriptions` as arguments.
 
 - [x] Task 5: Update `TownInstance` type exports (AC: #1)
   - [x] Add `TownSubscription` to the type export in `packages/town/src/index.ts`:
@@ -134,7 +134,7 @@ Adds a `subscribe()` method to `TownInstance` that allows programmatic subscript
 
 ### Architecture
 
-The subscription API is a thin wrapper around the existing `RelaySubscriber` class in `@crosstown/relay`. `RelaySubscriber` already:
+The subscription API is a thin wrapper around the existing `RelaySubscriber` class in `@toon-protocol/relay`. `RelaySubscriber` already:
 - Accepts relay URLs and a single Nostr `Filter`
 - Uses `SimplePool.subscribeMany()` for WebSocket management
 - Verifies event signatures before storing (via `verifyEvent` from `nostr-tools/pure`)
@@ -212,7 +212,7 @@ town.subscribe(relayUrl, filter)
 
 The `subscribe()` method is implemented inside `startTown()`, which has heavy setup requirements (connector, SQLite, ports, bootstrap). Two approaches for testing:
 
-**Recommended: Mock `@crosstown/relay` module** -- Mock the `RelaySubscriber` class constructor and its `start()` return value at the module level. This isolates the `subscribe()` wrapper logic from the full `startTown()` lifecycle. However, this requires a `startTown()` mock or a way to get a `TownInstance` without full infrastructure.
+**Recommended: Mock `@toon-protocol/relay` module** -- Mock the `RelaySubscriber` class constructor and its `start()` return value at the module level. This isolates the `subscribe()` wrapper logic from the full `startTown()` lifecycle. However, this requires a `startTown()` mock or a way to get a `TownInstance` without full infrastructure.
 
 **Alternative: Extract helper** -- Extract the subscription logic into a testable helper function (e.g., `createSubscriptionManager(eventStore)`) that can be tested independently, then call it from `startTown()`. This is cleaner for testing but adds a function that is only used once.
 
@@ -243,7 +243,7 @@ The `subscribe()` method is implemented inside `startTown()`, which has heavy se
 - Alignment with `packages/town/src/` structure -- `subscribe.test.ts` alongside `town.ts` and `cli.ts`
 - `TownSubscription` type defined in `town.ts` alongside `TownInstance` and `TownConfig` (related types co-located)
 - `Filter` type comes from `nostr-tools/filter` -- consumers import it directly from nostr-tools, not re-exported from Town (consistent with how Town handles other nostr-tools types)
-- `RelaySubscriber` imported from `@crosstown/relay` (already a dependency of `@crosstown/town`)
+- `RelaySubscriber` imported from `@toon-protocol/relay` (already a dependency of `@toon-protocol/town`)
 
 ### Verified Source References
 
@@ -267,10 +267,10 @@ None required.
 
 ### Completion Notes List
 
-- **Task 1**: Added `TownSubscription` interface and `subscribe(relayUrl, filter)` method to `TownInstance` interface in `town.ts`. Added `import type { Filter } from 'nostr-tools/filter'` and imported `RelaySubscriber` from `@crosstown/relay`.
+- **Task 1**: Added `TownSubscription` interface and `subscribe(relayUrl, filter)` method to `TownInstance` interface in `town.ts`. Added `import type { Filter } from 'nostr-tools/filter'` and imported `RelaySubscriber` from `@toon-protocol/relay`.
 - **Task 2**: Extracted `createSubscription()` helper function (exported for testability) that wraps `RelaySubscriber` with lifecycle integration. Implemented `subscribe()` on `TownInstance` with running-state guard. Added `activeSubscriptions` Set tracking. Updated `stop()` to close all active subscriptions before relay/BLS cleanup.
 - **Task 3**: `lastSeenTimestamp` tracked as `const` (initialized to 0) in `createSubscription()` for future reconnection enhancement. SimplePool handles reconnection internally.
-- **Task 4**: Wrote 15 unit tests in `subscribe.test.ts` covering all 8 ACs. Mock strategy: mock `@crosstown/relay` to replace `RelaySubscriber` (not `nostr-tools/pool`) because relay package is pre-bundled from `dist/`. Tests verify: subscription creation, isActive(), relayUrl, close() lifecycle, idempotent close, activeSubscriptions management, stop() pattern, kind:10032/10036 filters, running-state guard, and type exports.
+- **Task 4**: Wrote 15 unit tests in `subscribe.test.ts` covering all 8 ACs. Mock strategy: mock `@toon-protocol/relay` to replace `RelaySubscriber` (not `nostr-tools/pool`) because relay package is pre-bundled from `dist/`. Tests verify: subscription creation, isActive(), relayUrl, close() lifecycle, idempotent close, activeSubscriptions management, stop() pattern, kind:10032/10036 filters, running-state guard, and type exports.
 - **Task 5**: Added `TownSubscription` to type exports in `index.ts`. `Filter` type NOT re-exported (consistent with project convention).
 - **Task 6**: ESM build succeeds. 15 new tests pass. 0 lint errors on story files. Format check passes. Pre-existing failures (SPSP removal, DTS build) are from other story work.
 

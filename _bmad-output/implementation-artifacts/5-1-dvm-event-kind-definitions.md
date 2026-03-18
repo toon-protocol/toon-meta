@@ -7,12 +7,12 @@ Status: done
 ## Story
 
 As a **protocol developer**,
-I want NIP-90 compatible DVM event kinds defined for the Crosstown protocol with full TOON encoding support,
+I want NIP-90 compatible DVM event kinds defined for the TOON protocol with full TOON encoding support,
 So that agents can post structured job requests, receive feedback, and collect results using the standard DVM protocol.
 
 **FRs covered:** FR-DVM-1 (The protocol SHALL define DVM event kinds using NIP-90 compatible Nostr event kinds: Kind 5xxx for job requests, Kind 6xxx for job results, and Kind 7000 for job feedback, with full TOON encoding/decoding support)
 
-**Dependencies:** Epic 4 complete (all 6 stories, commit `9e057c3` on `main`). Specifically requires: TOON codec in `@crosstown/core/toon` (Story 1.0), `finalizeEvent()` from `nostr-tools/pure` (used since Story 1.0), event builder/parser pattern from `attestation.ts` (Story 4.2), `service-discovery.ts` (Story 3.5), `seed-relay.ts` (Story 3.4), constants pattern in `packages/core/src/constants.ts`. No new package dependencies required -- all infrastructure exists in `@crosstown/core`.
+**Dependencies:** Epic 4 complete (all 6 stories, commit `9e057c3` on `main`). Specifically requires: TOON codec in `@toon-protocol/core/toon` (Story 1.0), `finalizeEvent()` from `nostr-tools/pure` (used since Story 1.0), event builder/parser pattern from `attestation.ts` (Story 4.2), `service-discovery.ts` (Story 3.5), `seed-relay.ts` (Story 3.4), constants pattern in `packages/core/src/constants.ts`. No new package dependencies required -- all infrastructure exists in `@toon-protocol/core`.
 
 **Decision sources:**
 - Decision 4 (party-mode-2020117-analysis): NIP-90 compatible event kinds for cross-network interoperability
@@ -24,23 +24,23 @@ So that agents can post structured job requests, receive feedback, and collect r
 
 ## Acceptance Criteria
 
-1. Given a Crosstown developer importing from `@crosstown/core`, when they call `buildJobRequestEvent(params, secretKey)` with a valid `JobRequestParams` containing a DVM kind (e.g., 5100), input data, bid amount, and output MIME type, then a signed Kind 5xxx Nostr event is produced with required NIP-90 tags: `['i', data, type, relay?, marker?]`, `['bid', amount, 'usdc']`, `['output', mimeType]`, and optional tags `['p', providerPubkey]`, `['param', key, value]`, `['relays', url1, ...]` when provided. The event has a valid Schnorr signature verifiable by `nostr-tools`.
+1. Given a TOON developer importing from `@toon-protocol/core`, when they call `buildJobRequestEvent(params, secretKey)` with a valid `JobRequestParams` containing a DVM kind (e.g., 5100), input data, bid amount, and output MIME type, then a signed Kind 5xxx Nostr event is produced with required NIP-90 tags: `['i', data, type, relay?, marker?]`, `['bid', amount, 'usdc']`, `['output', mimeType]`, and optional tags `['p', providerPubkey]`, `['param', key, value]`, `['relays', url1, ...]` when provided. The event has a valid Schnorr signature verifiable by `nostr-tools`.
 
-2. Given a Crosstown developer importing from `@crosstown/core`, when they call `buildJobResultEvent(params, secretKey)` with a valid `JobResultParams` containing a result kind (e.g., 6100 = request kind + 1000), request event ID, customer pubkey, compute cost, and result content, then a signed Kind 6xxx Nostr event is produced with required NIP-90 tags: `['e', requestEventId]`, `['p', customerPubkey]`, `['amount', computeCost, 'usdc']`, and the content field containing the result data.
+2. Given a TOON developer importing from `@toon-protocol/core`, when they call `buildJobResultEvent(params, secretKey)` with a valid `JobResultParams` containing a result kind (e.g., 6100 = request kind + 1000), request event ID, customer pubkey, compute cost, and result content, then a signed Kind 6xxx Nostr event is produced with required NIP-90 tags: `['e', requestEventId]`, `['p', customerPubkey]`, `['amount', computeCost, 'usdc']`, and the content field containing the result data.
 
-3. Given a Crosstown developer importing from `@crosstown/core`, when they call `buildJobFeedbackEvent(params, secretKey)` with a valid `JobFeedbackParams` containing a request event ID, customer pubkey, and status value (`'processing'` | `'error'` | `'success'` | `'partial'`), then a signed Kind 7000 Nostr event is produced with required NIP-90 tags: `['e', requestEventId]`, `['p', customerPubkey]`, `['status', statusValue]`, and optional content with status details.
+3. Given a TOON developer importing from `@toon-protocol/core`, when they call `buildJobFeedbackEvent(params, secretKey)` with a valid `JobFeedbackParams` containing a request event ID, customer pubkey, and status value (`'processing'` | `'error'` | `'success'` | `'partial'`), then a signed Kind 7000 Nostr event is produced with required NIP-90 tags: `['e', requestEventId]`, `['p', customerPubkey]`, `['status', statusValue]`, and optional content with status details.
 
 4. Given a DVM event (Kind 5xxx, 6xxx, or 7000) built with the builder functions, when it is TOON-encoded via `encodeEventToToon()` and then decoded via `decodeEventFromToon()`, then ALL tags (including multi-value tags like `i` with type+relay+marker, `param` with key-value, and `bid` with amount+currency), content, and metadata survive the roundtrip with identical values and tag order preserved.
 
 5. Given a TOON-encoded DVM event (Kind 5100, 6100, or 7000), when `shallowParseToon()` is called, then it correctly extracts `kind`, `pubkey`, `id`, and `sig` without full decode -- enabling routing decisions. (**Note:** This is a validation AC. The existing shallow parser already handles arbitrary integer kinds. No code changes expected -- only roundtrip tests proving DVM kinds work correctly.)
 
-6. Given the DVM kind constants exported from `@crosstown/core`, when a developer inspects the exports, then `TEXT_GENERATION_KIND = 5100` is defined as the reference DVM kind, and `IMAGE_GENERATION_KIND = 5200`, `TEXT_TO_SPEECH_KIND = 5300`, `TRANSLATION_KIND = 5302` are defined as additional kinds with optional provider support. Base constants `JOB_REQUEST_KIND_BASE = 5000`, `JOB_RESULT_KIND_BASE = 6000`, `JOB_FEEDBACK_KIND = 7000` are also exported.
+6. Given the DVM kind constants exported from `@toon-protocol/core`, when a developer inspects the exports, then `TEXT_GENERATION_KIND = 5100` is defined as the reference DVM kind, and `IMAGE_GENERATION_KIND = 5200`, `TEXT_TO_SPEECH_KIND = 5300`, `TRANSLATION_KIND = 5302` are defined as additional kinds with optional provider support. Base constants `JOB_REQUEST_KIND_BASE = 5000`, `JOB_RESULT_KIND_BASE = 6000`, `JOB_FEEDBACK_KIND = 7000` are also exported.
 
 7. Given a Kind 5xxx job request event, when a provider parses it via `parseJobRequest()`, then a `p` tag presence indicates a targeted request to a specific provider, and absence of a `p` tag indicates an open marketplace request available to any provider.
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Define DVM event kind constants and type definitions in `@crosstown/core` (AC: #1, #2, #3, #6)
+- [x] Task 1: Define DVM event kind constants and type definitions in `@toon-protocol/core` (AC: #1, #2, #3, #6)
   - [x] 1.1 Add DVM kind constants to `packages/core/src/constants.ts`:
     - `JOB_REQUEST_KIND_BASE = 5000` -- NIP-90 job request range (5000-5999)
     - `JOB_RESULT_KIND_BASE = 6000` -- NIP-90 job result range (6000-6999), result kind = request kind + 1000
@@ -79,7 +79,7 @@ So that agents can post structured job requests, receive feedback, and collect r
     - Construct tags: `['e', requestEventId]`, `['p', customerPubkey]`, `['status', status]`
     - Content: `params.content ?? ''`
     - Sign with `finalizeEvent()`
-  - [x] 2.4 Validate `bid` and `amount` values as non-empty string representations of USDC micro-units (bigint-compatible). Throw `CrosstownError` on empty string or non-string values.
+  - [x] 2.4 Validate `bid` and `amount` values as non-empty string representations of USDC micro-units (bigint-compatible). Throw `ToonError` on empty string or non-string values.
 
 - [x] Task 3: Implement DVM event parsers (AC: #1, #2, #3, #7)
   - [x] 3.1 Implement `parseJobRequest(event: NostrEvent): ParsedJobRequest | null`:
@@ -110,7 +110,7 @@ So that agents can post structured job requests, receive feedback, and collect r
 
 - [x] Task 5: NIP-90 compatibility validation (AC: #1, #2, #3, #7)
   - [x] 5.1 Validate `i` tag format matches NIP-90: `['i', data, type, relay?, marker?]` -- covers T-5.1-09
-  - [x] 5.2 Validate `bid` tag format includes currency element: `['bid', amountString, 'usdc']` -- Crosstown extension to NIP-90 (NIP-90 uses satoshis; Crosstown uses USDC micro-units)
+  - [x] 5.2 Validate `bid` tag format includes currency element: `['bid', amountString, 'usdc']` -- TOON extension to NIP-90 (NIP-90 uses satoshis; TOON uses USDC micro-units)
   - [x] 5.3 Validate `output` tag format: `['output', mimeType]`
   - [x] 5.4 Validate `amount` tag format includes currency element: `['amount', costString, 'usdc']`
   - [x] 5.5 Validate targeted request detection: Kind 5xxx with `p` tag = targeted; without = open marketplace -- covers T-5.1-10
@@ -132,9 +132,9 @@ So that agents can post structured job requests, receive feedback, and collect r
 
 ### Architecture and Constraints
 
-**Package:** `@crosstown/core` -- DVM event definitions belong in core because they are protocol-level constructs used by SDK, Town, and future packages. Follow the exact pattern established by `attestation.ts`, `service-discovery.ts`, and `seed-relay.ts` in `packages/core/src/events/`.
+**Package:** `@toon-protocol/core` -- DVM event definitions belong in core because they are protocol-level constructs used by SDK, Town, and future packages. Follow the exact pattern established by `attestation.ts`, `service-discovery.ts`, and `seed-relay.ts` in `packages/core/src/events/`.
 
-**NIP-90 DVM Protocol:** Standard Nostr DVM protocol. Event kinds 5000-5999 are job requests, 6000-6999 are results (kind = request kind + 1000), and 7000 is feedback. Crosstown adopts these kinds for interoperability with the broader Nostr DVM ecosystem (2020117, DVMDash, etc.).
+**NIP-90 DVM Protocol:** Standard Nostr DVM protocol. Event kinds 5000-5999 are job requests, 6000-6999 are results (kind = request kind + 1000), and 7000 is feedback. TOON adopts these kinds for interoperability with the broader Nostr DVM ecosystem (2020117, DVMDash, etc.).
 
 **Key Architectural Decisions (from Party Mode 2020117 Analysis):**
 - Decision 4: NIP-90 compatible event kinds for cross-network interoperability
@@ -144,7 +144,7 @@ So that agents can post structured job requests, receive feedback, and collect r
 
 **TOON Encoding:** DVM events are just Nostr events with specific kinds. The existing TOON codec already handles arbitrary Nostr events. No TOON codec changes should be needed -- this story validates that DVM events survive the roundtrip, not modifies the codec. If tags are corrupted, escalate to Score 9 and investigate TOON format extension for ordered tag support (conditional escalation from E5-R001).
 
-**USDC Denomination:** `bid` and `amount` tag values are in USDC micro-units (6 decimals). This matches the Epic 3 convention. Use string representation for bigint compatibility in Nostr event tags (tags are always string arrays). The `bid` and `amount` tags include a third element `'usdc'` to explicitly declare the currency (Crosstown extension to NIP-90 which uses satoshis).
+**USDC Denomination:** `bid` and `amount` tag values are in USDC micro-units (6 decimals). This matches the Epic 3 convention. Use string representation for bigint compatibility in Nostr event tags (tags are always string arrays). The `bid` and `amount` tags include a third element `'usdc'` to explicitly declare the currency (TOON extension to NIP-90 which uses satoshis).
 
 **Two-Tier Access:** DVM events enter the relay through the same write paths as all other events (ILP PREPARE or x402 /publish). This story does NOT implement submission -- it defines the event structure. Stories 5.2 and 5.3 handle submission and settlement.
 
@@ -152,13 +152,13 @@ So that agents can post structured job requests, receive feedback, and collect r
 
 ### What Already Exists (DO NOT Recreate)
 
-- **TOON codec** in `@crosstown/core/toon`: `encodeEventToToon()`, `decodeEventFromToon()`, `shallowParseToon()` -- already handles arbitrary event kinds including DVM ranges (5000-7000). The shallow parser validates `kind` as any integer, `pubkey`/`id` as 64-char hex, `sig` as 128-char hex. Source: `packages/core/src/toon/shallow-parse.ts`.
+- **TOON codec** in `@toon-protocol/core/toon`: `encodeEventToToon()`, `decodeEventFromToon()`, `shallowParseToon()` -- already handles arbitrary event kinds including DVM ranges (5000-7000). The shallow parser validates `kind` as any integer, `pubkey`/`id` as 64-char hex, `sig` as 128-char hex. Source: `packages/core/src/toon/shallow-parse.ts`.
 - **Event builders** in `packages/core/src/events/`: `attestation.ts`, `service-discovery.ts`, `seed-relay.ts` -- follow their pattern exactly (import `finalizeEvent`, define types, builder function, parser function, re-export constants)
 - **Constants** in `packages/core/src/constants.ts`: `ILP_PEER_INFO_KIND = 10032`, `SERVICE_DISCOVERY_KIND = 10035`, `SEED_RELAY_LIST_KIND = 10036`, `TEE_ATTESTATION_KIND = 10033`
 - **Export chain**: `packages/core/src/events/index.ts` re-exports from event modules, `packages/core/src/index.ts` re-exports from `events/index.ts`
 - **nostr-tools types**: `NostrEvent` from `nostr-tools/pure` -- use directly, do not redefine
 - **`finalizeEvent()`** from `nostr-tools/pure` -- use for event signing (same as attestation.ts and service-discovery.ts)
-- **Handler registry** in `@crosstown/sdk`: `HandlerRegistry.on(kind, handler)` -- already routes by numeric kind, no changes needed for DVM kinds (Story 5.2 concern, not this story)
+- **Handler registry** in `@toon-protocol/sdk`: `HandlerRegistry.on(kind, handler)` -- already routes by numeric kind, no changes needed for DVM kinds (Story 5.2 concern, not this story)
 
 ### What to Create (New Files)
 
@@ -324,7 +324,7 @@ parseJobFeedback(event: NostrEvent): ParsedJobFeedback | null
 
 **E5-R001 (Score 6): TOON encoding corruption of DVM event tags** -- This is the highest risk. DVM events have complex multi-value tags (`i` with type+relay+marker, `param` with key-value). Roundtrip tests (T-5.1-01 through T-5.1-03) are P0 gating tests. If tag structure is corrupted, ALL downstream stories (5.2, 5.3, 5.4) are blocked. **Conditional escalation:** If TOON encoder does not preserve tag ordering or corrupts multi-value tags, escalate to Score 9 and investigate TOON format extension for ordered tag support.
 
-**E5-R002 (Score 4): NIP-90 compatibility drift** -- Validate DVM event tag structures against NIP-90 spec. Required tags must match NIP-90 format exactly. T-5.1-09 is the gating NIP-90 compliance test. **Note:** Crosstown's `bid` and `amount` tags extend NIP-90 with a third element (`'usdc'`) for currency declaration. This is documented but does not break NIP-90 parsers (extra tag elements are ignored per Nostr convention).
+**E5-R002 (Score 4): NIP-90 compatibility drift** -- Validate DVM event tag structures against NIP-90 spec. Required tags must match NIP-90 format exactly. T-5.1-09 is the gating NIP-90 compliance test. **Note:** TOON's `bid` and `amount` tags extend NIP-90 with a third element (`'usdc'`) for currency declaration. This is documented but does not break NIP-90 parsers (extra tag elements are ignored per Nostr convention).
 
 ### Coding Standards Reminders
 
@@ -337,7 +337,7 @@ parseJobFeedback(event: NostrEvent): ParsedJobFeedback | null
 - **Vitest** with `describe/it` blocks, AAA pattern (Arrange, Act, Assert)
 - **Factory functions** for test fixtures (deterministic data, fixed timestamps/keys -- do NOT use random values)
 - **JSDoc** for all exported functions and types
-- **`CrosstownError`** for validation errors in builders (not generic `Error`)
+- **`ToonError`** for validation errors in builders (not generic `Error`)
 
 ### References
 
@@ -366,11 +366,11 @@ None -- implementation was clean, no debugging sessions required.
 ### Completion Notes List
 
 - **Task 1 (Constants):** Added 7 DVM kind constants to `packages/core/src/constants.ts`: `JOB_REQUEST_KIND_BASE=5000`, `JOB_RESULT_KIND_BASE=6000`, `JOB_FEEDBACK_KIND=7000`, `TEXT_GENERATION_KIND=5100`, `IMAGE_GENERATION_KIND=5200`, `TEXT_TO_SPEECH_KIND=5300`, `TRANSLATION_KIND=5302`. Each constant has JSDoc explaining NIP-90 semantics.
-- **Task 2 (Builders):** Implemented `buildJobRequestEvent()`, `buildJobResultEvent()`, `buildJobFeedbackEvent()` in `packages/core/src/events/dvm.ts`. All builders validate required params, kind ranges, and hex format for event IDs and pubkeys. Builders throw `CrosstownError` with descriptive codes (`DVM_INVALID_KIND`, `DVM_INVALID_BID`, etc.). Events are signed with `finalizeEvent()` from `nostr-tools/pure`.
+- **Task 2 (Builders):** Implemented `buildJobRequestEvent()`, `buildJobResultEvent()`, `buildJobFeedbackEvent()` in `packages/core/src/events/dvm.ts`. All builders validate required params, kind ranges, and hex format for event IDs and pubkeys. Builders throw `ToonError` with descriptive codes (`DVM_INVALID_KIND`, `DVM_INVALID_BID`, etc.). Events are signed with `finalizeEvent()` from `nostr-tools/pure`.
 - **Task 3 (Parsers):** Implemented `parseJobRequest()`, `parseJobResult()`, `parseJobFeedback()` in `packages/core/src/events/dvm.ts`. All parsers follow the lenient parse pattern (return `null` for malformed events). Handles `noUncheckedIndexedAccess` by checking tag elements for `undefined`. Uses bracket notation for all index signature access.
 - **Task 4 (TOON roundtrip):** ATDD test stubs (created during epic-5 baseline) validated that DVM events survive TOON encode/decode roundtrip with all tags preserved. No TOON codec changes were needed -- existing codec handles DVM kinds correctly. Tag order preservation confirmed. Shallow parser extracts DVM kinds (5100, 6100, 7000) without full decode.
-- **Task 5 (NIP-90 compatibility):** Validated `i` tag format `['i', data, type, relay?, marker?]` with empty relay placeholder when marker is set without relay. Validated `bid` and `amount` tags include `'usdc'` third element (Crosstown NIP-90 extension). Validated targeted request detection via `p` tag presence/absence.
-- **Task 6 (Unit tests):** 86 tests in existing ATDD stub file now pass green. All tests cover: builder validation, parser validation, TOON roundtrip (T-5.1-01 through T-5.1-04), kind constants, NIP-90 tag format, targeted vs open marketplace, USDC micro-units format, edge cases (empty content, >20 tags, >10KB payload), export verification from `@crosstown/core`.
+- **Task 5 (NIP-90 compatibility):** Validated `i` tag format `['i', data, type, relay?, marker?]` with empty relay placeholder when marker is set without relay. Validated `bid` and `amount` tags include `'usdc'` third element (TOON NIP-90 extension). Validated targeted request detection via `p` tag presence/absence.
+- **Task 6 (Unit tests):** 86 tests in existing ATDD stub file now pass green. All tests cover: builder validation, parser validation, TOON roundtrip (T-5.1-01 through T-5.1-04), kind constants, NIP-90 tag format, targeted vs open marketplace, USDC micro-units format, edge cases (empty content, >20 tags, >10KB payload), export verification from `@toon-protocol/core`.
 - **Lint fix:** Fixed 3 ESLint errors (`Array<T>` -> `T[]` per `@typescript-eslint/array-type` rule) in `dvm.ts`.
 - **Build/Test results:** Full monorepo build succeeds. 1929 tests pass, 79 skipped, 0 failures. Lint: 0 errors, 526 warnings (all pre-existing).
 
@@ -378,7 +378,7 @@ None -- implementation was clean, no debugging sessions required.
 
 | Date | Author | Change |
 |------|--------|--------|
-| 2026-03-16 | Claude Opus 4.6 (adversarial review) | Added FR coverage declaration (FR-DVM-1). Added explicit dependency declaration with commit reference. Added decision sources section. Expanded ACs to Given/When/Then testability format with explicit tag formats including `'usdc'` currency element. Added validation note to AC #5 (shallow parser is existing behavior). Added explicit export list to Task 1.5. Added CrosstownError reference in Task 2.4. Added kind range validation to builder tasks. Added test ID to task mapping in test table. Added conditional escalation to E5-R001 risk. Added NIP-90 currency extension note to E5-R002. Added `noUncheckedIndexedAccess` reminder to parser implementation notes. Added downstream dependencies section. Added pipeline invariant note. Added ATDD stub status note. Added `amount` tag currency element to Task 5.4. Added 3 additional test subtasks (6.6, 6.7, 6.8) for edge cases and error paths. |
+| 2026-03-16 | Claude Opus 4.6 (adversarial review) | Added FR coverage declaration (FR-DVM-1). Added explicit dependency declaration with commit reference. Added decision sources section. Expanded ACs to Given/When/Then testability format with explicit tag formats including `'usdc'` currency element. Added validation note to AC #5 (shallow parser is existing behavior). Added explicit export list to Task 1.5. Added ToonError reference in Task 2.4. Added kind range validation to builder tasks. Added test ID to task mapping in test table. Added conditional escalation to E5-R001 risk. Added NIP-90 currency extension note to E5-R002. Added `noUncheckedIndexedAccess` reminder to parser implementation notes. Added downstream dependencies section. Added pipeline invariant note. Added ATDD stub status note. Added `amount` tag currency element to Task 5.4. Added 3 additional test subtasks (6.6, 6.7, 6.8) for edge cases and error paths. |
 | 2026-03-16 | Claude Opus 4.6 (implementation) | Implemented all 6 tasks: DVM kind constants, type definitions, builder functions (buildJobRequestEvent, buildJobResultEvent, buildJobFeedbackEvent), parser functions (parseJobRequest, parseJobResult, parseJobFeedback), TOON roundtrip validation, NIP-90 compatibility validation. 86 tests passing. 0 lint errors. Full monorepo build and test pass. |
 | 2026-03-16 | Claude Opus 4.6 (code review) | Code review: 0 critical, 0 high, 2 medium, 4 low issues found. Fixed M1: added missing `dvm.test.ts` to File List. Fixed M2: clarified misleading input data validation condition in `buildJobRequestEvent` (replaced double-negative truthiness pattern with explicit `=== undefined \|\| === null` check). Fixed L3: updated Task 1.2 to reflect actual interface names (JobRequestParams/ParsedJobRequest etc. instead of DvmJobRequest etc.). L1/L4 (non-deterministic test keys) acknowledged as style concern. L2 (project-context.md event kinds table) deferred to epic-level review. |
 | 2026-03-16 | Claude Opus 4.6 (code review #2) | Code review #2: 0 critical, 0 high, 1 medium, 3 low issues found. Fixed M1: `buildJobRequestEvent` now validates `targetProvider` hex format with `HEX_64_REGEX` (matching `customerPubkey` validation in result/feedback builders). Added test. L1 (non-deterministic test keys), L2 (project-context.md update), L3 (currency metadata not exposed by parsers) acknowledged. 143 tests passing. |
@@ -428,7 +428,7 @@ None -- implementation was clean, no debugging sessions required.
 | Critical | 0 | -- |
 | High | 0 | -- |
 | Medium | 1 (fixed) | M1: `buildJobRequestEvent` did not validate `targetProvider` hex format -- inconsistent with `buildJobResultEvent` and `buildJobFeedbackEvent` which validate `customerPubkey` via `HEX_64_REGEX`. Added validation + test. |
-| Low | 3 (all acknowledged) | L1: Non-deterministic test keys (carried from review #1, acknowledged style concern). L2: `project-context.md` event kinds table not updated (carried from review #1, deferred to epic-level). L3: `ParsedJobRequest.bid` and `ParsedJobResult.amount` do not expose currency metadata from the `'usdc'` third tag element (defensible: Crosstown is USDC-only by protocol design). |
+| Low | 3 (all acknowledged) | L1: Non-deterministic test keys (carried from review #1, acknowledged style concern). L2: `project-context.md` event kinds table not updated (carried from review #1, deferred to epic-level). L3: `ParsedJobRequest.bid` and `ParsedJobResult.amount` do not expose currency metadata from the `'usdc'` third tag element (defensible: TOON is USDC-only by protocol design). |
 
 ### Review Pass #3
 
@@ -444,7 +444,7 @@ None -- implementation was clean, no debugging sessions required.
 | Critical | 0 | -- |
 | High | 0 | -- |
 | Medium | 2 (both fixed) | M1: `parseJobResult` and `parseJobFeedback` did not validate hex format of `requestEventId` and `customerPubkey` -- builders validate via `HEX_64_REGEX` but parsers only checked for empty string. Added `HEX_64_REGEX.test()` validation in both parsers + 4 new tests. M2: `parseJobRequest` did not validate `targetProvider` hex format when `p` tag present -- added `HEX_64_REGEX` validation + 2 new tests. |
-| Low | 3 (1 fixed, 2 acknowledged) | L1: Non-deterministic test keys (`generateSecretKey()` in builder tests) -- **fixed**: replaced all 53 occurrences with deterministic `FIXED_BUILDER_SECRET_KEY`, removed unused `generateSecretKey` import. L2: `project-context.md` event kinds table not updated (carried from reviews #1/#2, deferred to epic-level). L3: CrosstownError code verification tests use verbose try/catch pattern instead of `expect().toThrowError()` (stylistic, tests function correctly, acknowledged). |
+| Low | 3 (1 fixed, 2 acknowledged) | L1: Non-deterministic test keys (`generateSecretKey()` in builder tests) -- **fixed**: replaced all 53 occurrences with deterministic `FIXED_BUILDER_SECRET_KEY`, removed unused `generateSecretKey` import. L2: `project-context.md` event kinds table not updated (carried from reviews #1/#2, deferred to epic-level). L3: ToonError code verification tests use verbose try/catch pattern instead of `expect().toThrowError()` (stylistic, tests function correctly, acknowledged). |
 
 **Security Assessment (OWASP Top 10):**
 

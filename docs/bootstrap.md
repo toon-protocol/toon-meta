@@ -75,7 +75,7 @@ Three complementary mechanisms provide the initial peer list for bootstrap:
 
 ## Passive Discovery, Explicit Peering
 
-Crosstown separates *seeing* peers from *connecting* to them:
+TOON separates *seeing* peers from *connecting* to them:
 
 - **Discovery is automatic** — The DiscoveryTracker maintains a live list of all available peers
 - **Peering is explicit** — You call `node.peerWith(pubkey)` when you're ready to establish a payment channel

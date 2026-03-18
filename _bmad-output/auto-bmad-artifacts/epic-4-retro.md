@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-16
 **Epic:** 4 -- TEE Integration (Marlin Oyster CVM)
-**Packages:** `@crosstown/core`, `@crosstown/town`, `docker/`
+**Packages:** `@toon-protocol/core`, `@toon-protocol/town`, `docker/`
 **Status:** Done (6/6 stories complete)
 **Branch:** `epic-4`
 **Commits:** 6 story commits + 1 traceability gate commit (4fbef06..eb173bb)
@@ -13,7 +13,7 @@
 
 ## 1. Executive Summary
 
-Epic 4 delivered the TEE (Trusted Execution Environment) integration layer for the Crosstown protocol, enabling verifiable code integrity guarantees for relay operators and users. The epic introduced six stories across four architectural layers: enclave packaging (Story 4.1), attestation event protocol (Story 4.2), attestation verification and peer trust (Stories 4.3, 4.6), enclave-bound identity (Story 4.4), and reproducible build infrastructure (Story 4.5).
+Epic 4 delivered the TEE (Trusted Execution Environment) integration layer for the TOON protocol, enabling verifiable code integrity guarantees for relay operators and users. The epic introduced six stories across four architectural layers: enclave packaging (Story 4.1), attestation event protocol (Story 4.2), attestation verification and peer trust (Stories 4.3, 4.6), enclave-bound identity (Story 4.4), and reproducible build infrastructure (Story 4.5).
 
 The most architecturally significant deliverable is the **attestation trust chain** spanning Stories 4.2, 4.3, and 4.6. A TEE relay publishes kind:10033 attestation events containing PCR measurements. The `AttestationVerifier` class provides a state machine (VALID -> STALE -> UNATTESTED) that other components consume. The `AttestationBootstrap` class enforces attestation-first trust during seed relay discovery, verifying kind:10033 events *before* subscribing to a relay's kind:10032 peer list -- mitigating seed relay list poisoning (R-E4-004). This trust chain follows Decision 12: "Trust degrades; money doesn't." -- attestation state changes never trigger payment channel closure.
 
@@ -168,7 +168,7 @@ Unlike Epic 3 (which resolved 6 of 13 action items from the Epic 2 retro in its 
 | A11: Split large test files | NOT ADDRESSED |
 | A12: Deferred P3 E2E tests | NOT ADDRESSED |
 | A13: NIP-33/NIP-16 doc discrepancy | NOT ADDRESSED |
-| A14: Publish @crosstown/town to npm | NOT ADDRESSED |
+| A14: Publish @toon-protocol/town to npm | NOT ADDRESSED |
 | A15: Prettier before committing | NOT ADDRESSED |
 
 While A3 was implicitly addressed by the epic's implementation work, the absence of a dedicated epic start pass means 14 of 15 action items carry forward unresolved. Several of these (A2: CI genesis node, A6: structured logger) have now been deferred for 4 consecutive epics. This is the most significant process regression in Epic 4.
@@ -277,7 +277,7 @@ All 6 NFR assessments passed, but every assessment flagged the same 2 pre-existi
 
 | # | Action | Owner | Reason |
 |---|--------|-------|--------|
-| A14 | **Publish @crosstown/town to npm** | Dev | Carried from Epic 2 A3, 3 A14 |
+| A14 | **Publish @toon-protocol/town to npm** | Dev | Carried from Epic 2 A3, 3 A14 |
 | A15 | **Ensure code review agents run Prettier** | Tooling | Carried from Epic 1 A9, 2 A11, 3 A15 |
 | A16 | **Fix NIP-33/NIP-16 doc discrepancy** | Dev | Carried from Epic 3 A13 |
 | A17 | **Set up facilitator ETH monitoring** | Dev | Carried from Epic 3 A8 |
@@ -421,7 +421,7 @@ R1 has been escalated to High severity. Four epics without CI infrastructure mea
 
 ## 11. Conclusion
 
-Epic 4 delivered a complete TEE integration layer for the Crosstown protocol: Oyster CVM packaging, kind:10033 attestation events, PCR verification with lifecycle state machine, KMS-derived enclave identity, Nix reproducible builds, and attestation-first seed relay bootstrap. The central architectural thesis -- that attestation should be a trust gradient with cryptographic enforcement through identity binding -- was implemented and tested across 275 tests with zero regressions.
+Epic 4 delivered a complete TEE integration layer for the TOON protocol: Oyster CVM packaging, kind:10033 attestation events, PCR verification with lifecycle state machine, KMS-derived enclave identity, Nix reproducible builds, and attestation-first seed relay bootstrap. The central architectural thesis -- that attestation should be a trust gradient with cryptographic enforcement through identity binding -- was implemented and tested across 275 tests with zero regressions.
 
 The epic's technical execution was strong: zero production security findings, all 6 NFR assessments passed for the first time, average story velocity improved over Epic 3, and the layered architecture (events -> verification -> orchestration) demonstrates clean separation of concerns. The `AttestationVerifier` as single source of truth and `AttestationBootstrap` with DI callbacks establish patterns that future orchestration code should follow.
 

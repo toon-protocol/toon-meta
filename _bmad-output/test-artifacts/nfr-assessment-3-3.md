@@ -131,7 +131,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Threshold:** UNKNOWN -- no formal vulnerability scanning threshold defined
 - **Actual:** UNKNOWN -- no SAST/DAST/dependency scan results available for the x402 modules
 - **Evidence:** No scan results in `_bmad-output/test-artifacts/`
-- **Findings:** viem was added as a new dependency to `@crosstown/town`. No `npm audit` or Snyk scan results available to confirm the dependency is free of known vulnerabilities. The USDC ABI is a minimal subset (3 functions) which reduces attack surface.
+- **Findings:** viem was added as a new dependency to `@toon-protocol/town`. No `npm audit` or Snyk scan results available to confirm the dependency is free of known vulnerabilities. The USDC ABI is a minimal subset (3 functions) which reduces attack surface.
 
 ### Compliance (if applicable)
 
@@ -259,7 +259,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** x402 and ILP paths must produce byte-identical ILP PREPARE packets
-- **Actual:** Both paths use `buildIlpPrepare()` from `@crosstown/core`. Test T-3.3-03 validates identical output. Test T-3.3-13 validates amount correctness.
+- **Actual:** Both paths use `buildIlpPrepare()` from `@toon-protocol/core`. Test T-3.3-03 validates identical output. Test T-3.3-13 validates amount correctness.
 - **Evidence:** `packages/core/src/x402/build-ilp-prepare.ts`, T-3.3-03, T-3.3-13
 - **Findings:** The shared function is deliberately simple (string conversion, base64 encoding, destination passthrough). This simplicity makes the equivalence guarantee robust.
 
@@ -469,7 +469,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - 6.1 Tracing: CONCERNS -- No correlation IDs or distributed tracing for x402 requests
 - 6.2 Logs: PASS -- Console logging with `[x402]` prefix; structured error handling
 - 6.3 Metrics: CONCERNS -- No `/metrics` endpoint or RED metrics for x402
-- 6.4 Config: PASS -- Externalized via env vars (CROSSTOWN_X402_ENABLED) and CLI flags
+- 6.4 Config: PASS -- Externalized via env vars (TOON_X402_ENABLED) and CLI flags
 
 **7. QoS & QoE (1/4)**
 - 7.1 Latency: CONCERNS -- No p95/p99 latency targets defined
@@ -480,7 +480,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 **8. Deployability (3/3)**
 - 8.1 Zero Downtime: PASS -- Feature flag (x402Enabled) enables zero-downtime rollout
 - 8.2 Backward Compatibility: PASS -- x402 is opt-in; disabled by default; no breaking changes to existing endpoints
-- 8.3 Rollback: PASS -- Set `CROSSTOWN_X402_ENABLED=false` to instantly disable without code deployment
+- 8.3 Rollback: PASS -- Set `TOON_X402_ENABLED=false` to instantly disable without code deployment
 
 ---
 

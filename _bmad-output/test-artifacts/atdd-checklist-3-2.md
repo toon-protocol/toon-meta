@@ -48,7 +48,7 @@ Create a multi-environment chain configuration system that allows relay operator
 1. **AC #1 (Anvil preset):** Given `chain: 'anvil'` (or no chain config), the node connects to `http://localhost:8545`, uses mock USDC at `0x5FbDB2315678afecb367f032d93F642f64180aa3`, chainId `31337`, and TokenNetwork at `0xCafac3dD18aC6c6e92c921884f9E4176737C052c`.
 2. **AC #2 (Arbitrum Sepolia preset):** Given `chain: 'arbitrum-sepolia'`, the node uses chainId `421614`, public RPC, and testnet USDC address.
 3. **AC #3 (Arbitrum One preset):** Given `chain: 'arbitrum-one'`, the node uses chainId `42161`, public RPC, and production USDC at `0xaf88d065e77c8cC2239327C5EDb3A432268e5831`.
-4. **AC #4 (Env var overrides):** `CROSSTOWN_CHAIN` overrides config, `CROSSTOWN_RPC_URL` overrides RPC, `CROSSTOWN_TOKEN_NETWORK` overrides TokenNetwork address.
+4. **AC #4 (Env var overrides):** `TOON_CHAIN` overrides config, `TOON_RPC_URL` overrides RPC, `TOON_TOKEN_NETWORK` overrides TokenNetwork address.
 
 ---
 
@@ -61,7 +61,7 @@ Create a multi-environment chain configuration system that allows relay operator
 | Test framework | vitest (packages/core/vitest.config.ts) |
 | Existing test file | packages/core/src/chain/chain-config.test.ts (updated to 13 tests) |
 | Existing source dependency | packages/core/src/chain/usdc.ts (MOCK_USDC_ADDRESS) |
-| Error class available | CrosstownError in packages/core/src/errors.ts |
+| Error class available | ToonError in packages/core/src/errors.ts |
 | Knowledge fragments loaded | data-factories, test-quality, test-levels-framework, test-healing-patterns |
 
 ---
@@ -95,17 +95,17 @@ Create a multi-environment chain configuration system that allows relay operator
   - **Status:** RED - `it.skip()` + placeholder assertion
   - **Verifies:** AC #1 - Default behavior (no chain config = anvil)
 
-- **Test:** `[P1] CROSSTOWN_CHAIN env var overrides config file chain selection`
+- **Test:** `[P1] TOON_CHAIN env var overrides config file chain selection`
   - **Status:** RED - `it.skip()` + placeholder assertion
-  - **Verifies:** AC #4 - Env var CROSSTOWN_CHAIN takes precedence over config
+  - **Verifies:** AC #4 - Env var TOON_CHAIN takes precedence over config
 
-- **Test:** `[P1] CROSSTOWN_RPC_URL env var overrides preset RPC endpoint`
+- **Test:** `[P1] TOON_RPC_URL env var overrides preset RPC endpoint`
   - **Status:** RED - `it.skip()` + placeholder assertion
-  - **Verifies:** AC #4 - Env var CROSSTOWN_RPC_URL overrides preset rpcUrl
+  - **Verifies:** AC #4 - Env var TOON_RPC_URL overrides preset rpcUrl
 
-- **Test:** `[P1] CROSSTOWN_TOKEN_NETWORK env var overrides preset tokenNetworkAddress`
+- **Test:** `[P1] TOON_TOKEN_NETWORK env var overrides preset tokenNetworkAddress`
   - **Status:** RED - `it.skip()` + placeholder assertion
-  - **Verifies:** AC #4 - Env var CROSSTOWN_TOKEN_NETWORK overrides preset tokenNetworkAddress
+  - **Verifies:** AC #4 - Env var TOON_TOKEN_NETWORK overrides preset tokenNetworkAddress
 
 - **Test:** `[P1] unknown chain name throws clear error message`
   - **Status:** RED - `it.skip()` + placeholder assertion
@@ -144,14 +144,14 @@ Create a multi-environment chain configuration system that allows relay operator
 | T-3.2-01 | `resolveChainConfig("anvil") returns local Anvil preset` | #1 | 3.2-UNIT-001 | E3-R004 | P0 | Unit |
 | T-3.2-02 | `resolveChainConfig("arbitrum-sepolia") returns testnet preset` | #2 | 3.2-UNIT-001 | E3-R004 | P0 | Unit |
 | T-3.2-03 | `resolveChainConfig("arbitrum-one") returns production preset` | #3 | 3.2-UNIT-001 | E3-R004 | P0 | Unit |
-| T-3.2-04 | `CROSSTOWN_CHAIN env var overrides config file chain selection` | #4 | 3.2-UNIT-002 | -- | P1 | Unit |
-| T-3.2-05 | `CROSSTOWN_RPC_URL env var overrides preset RPC endpoint` | #4 | 3.2-UNIT-002 | -- | P1 | Unit |
+| T-3.2-04 | `TOON_CHAIN env var overrides config file chain selection` | #4 | 3.2-UNIT-002 | -- | P1 | Unit |
+| T-3.2-05 | `TOON_RPC_URL env var overrides preset RPC endpoint` | #4 | 3.2-UNIT-002 | -- | P1 | Unit |
 | T-3.2-06 | `unknown chain name throws clear error message` | #1,#2,#3 | 3.2-UNIT-003 | -- | P1 | Unit |
 | T-3.2-07 | `ChainPreset has all required fields` | #1,#2,#3 | 3.2-UNIT-004 | -- | P2 | Unit |
 | T-3.2-08 | `no ethers imports in Epic 3 code` | -- | 3.9-UNIT-001 | E3-R009 | P2 | Unit (static) |
 | T-3.2-09a | `EIP-712 domain separator uses resolved chainId` | #1 | 3.2-INT-001 | E3-R004,R005 | P0 | Integration |
 | T-3.2-09b | `EIP-3009 signature signed on wrong chain fails verification` | #1 | 3.2-INT-001 | E3-R004,R005 | P0 | Integration |
-| T-3.2-10 | `CROSSTOWN_TOKEN_NETWORK env var overrides preset tokenNetworkAddress` | #4 | 3.2-UNIT-002 | -- | P1 | Unit |
+| T-3.2-10 | `TOON_TOKEN_NETWORK env var overrides preset tokenNetworkAddress` | #4 | 3.2-UNIT-002 | -- | P1 | Unit |
 | T-3.2-11 | `resolveChainConfig() defaults to anvil when no argument provided` | #1 | 3.2-UNIT-001 | -- | P1 | Unit |
 | T-3.2-12 | `resolveChainConfig() returns defensive copy (not shared reference)` | #1,#2,#3 | 3.2-UNIT-004 | -- | P2 | Unit |
 
@@ -221,9 +221,9 @@ N/A -- Backend-only story. No UI components.
 
 **Tasks to make these tests pass:**
 
-- [ ] In `resolveChainConfig()`, check `process.env.CROSSTOWN_CHAIN` and override chain parameter
-- [ ] Check `process.env.CROSSTOWN_RPC_URL` and override preset rpcUrl
-- [ ] Check `process.env.CROSSTOWN_TOKEN_NETWORK` and override preset tokenNetworkAddress
+- [ ] In `resolveChainConfig()`, check `process.env.TOON_CHAIN` and override chain parameter
+- [ ] Check `process.env.TOON_RPC_URL` and override preset rpcUrl
+- [ ] Check `process.env.TOON_TOKEN_NETWORK` and override preset tokenNetworkAddress
 - [ ] Uncomment assertions and remove `it.skip()`
 - [ ] Run test: `npx vitest run packages/core/src/chain/chain-config.test.ts`
 
@@ -237,8 +237,8 @@ N/A -- Backend-only story. No UI components.
 
 **Tasks to make this test pass:**
 
-- [ ] In `resolveChainConfig()`, throw `CrosstownError` with message `Unknown chain "${name}". Valid chains: anvil, arbitrum-sepolia, arbitrum-one`
-- [ ] Import `CrosstownError` from `../errors.js`
+- [ ] In `resolveChainConfig()`, throw `ToonError` with message `Unknown chain "${name}". Valid chains: anvil, arbitrum-sepolia, arbitrum-one`
+- [ ] Import `ToonError` from `../errors.js`
 - [ ] Uncomment assertions and remove `it.skip()`
 - [ ] Run test: `npx vitest run packages/core/src/chain/chain-config.test.ts`
 
@@ -435,7 +435,7 @@ See `tea-index.csv` for complete knowledge fragment mapping.
 **Results:**
 
 ```
- RUN  v1.6.1 /Users/jonathangreen/Documents/crosstown
+ RUN  v1.6.1 /Users/jonathangreen/Documents/toon
 
  ↓ packages/core/src/chain/chain-config.test.ts  (13 tests | 13 skipped)
 
@@ -466,7 +466,7 @@ See `tea-index.csv` for complete knowledge fragment mapping.
 
 ## Notes
 
-- The existing test file had 10 tests from the epic-level ATDD. This ATDD run added 3 new tests: T-3.2-10 (CROSSTOWN_TOKEN_NETWORK env var), T-3.2-11 (default-to-anvil), T-3.2-12 (defensive copy). These were identified by gap analysis against AC #4 and the story's defensive copy requirement.
+- The existing test file had 10 tests from the epic-level ATDD. This ATDD run added 3 new tests: T-3.2-10 (TOON_TOKEN_NETWORK env var), T-3.2-11 (default-to-anvil), T-3.2-12 (defensive copy). These were identified by gap analysis against AC #4 and the story's defensive copy requirement.
 - The `buildEip712Domain` import was added to the commented-out import block (was missing from the original test file).
 - The `_ANVIL_TOKEN_NETWORK` constant was added for the EIP-712 integration test assertions.
 - Test T-3.2-09b (cross-chain signature rejection) may need EIP-3009 signing infrastructure from Story 3.3. The test documents the expected behavior; the dev agent may simplify to domain separator comparison if full signing is not yet available.

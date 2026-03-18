@@ -8,14 +8,14 @@
 - **Migrations**: None
 
 ## What Was Built
-Nix reproducible builds for Crosstown Docker images (FR-TEE-5). Implemented `NixBuilder` class that shells out to `nix build` and returns deterministic image hashes + PCR values, `verifyPcrReproducibility()` for CI verification, `analyzeDockerfileForNonDeterminism()` for static Dockerfile analysis, and a Nix flake (`flake.nix`) + Nix expression (`Dockerfile.nix`) that produces a deterministic Docker image equivalent to the existing `Dockerfile.oyster`.
+Nix reproducible builds for TOON Docker images (FR-TEE-5). Implemented `NixBuilder` class that shells out to `nix build` and returns deterministic image hashes + PCR values, `verifyPcrReproducibility()` for CI verification, `analyzeDockerfileForNonDeterminism()` for static Dockerfile analysis, and a Nix flake (`flake.nix`) + Nix expression (`Dockerfile.nix`) that produces a deterministic Docker image equivalent to the existing `Dockerfile.oyster`.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: Deterministic image hashes from `NixBuilder.build()` — covered by: T-4.5-01a through T-4.5-01e (5 tests)
 - [x] AC2: Identical PCR values across builds, divergence on source changes — covered by: T-4.5-02a through T-4.5-02c (3 tests)
 - [x] AC3: Dockerfile static analysis detecting non-deterministic patterns — covered by: T-4.5-03a through T-4.5-03m (13 tests)
 - [x] AC4: `verifyPcrReproducibility()` structured result — covered by: T-4.5-04a through T-4.5-04j (10 tests)
-- [x] AC5: Public API exports from `@crosstown/core` — covered by: T-4.5-05a through T-4.5-05f (6 tests; type-only exports verified by source inspection)
+- [x] AC5: Public API exports from `@toon-protocol/core` — covered by: T-4.5-05a through T-4.5-05f (6 tests; type-only exports verified by source inspection)
 - [x] AC6: `flake.nix`, `dockerTools.buildLayeredImage`, runtime parity, `.gitignore` — covered by: T-4.5-06a through T-4.5-06k (11 tests)
 
 ## Files Changed
@@ -56,7 +56,7 @@ Nix reproducible builds for Crosstown Docker images (FR-TEE-5). Implemented `Nix
 - **Status**: success
 - **Duration**: ~12 min
 - **What changed**: Modified story file (10 fixes)
-- **Key decisions**: Added AC #6 for flake/gitignore, changed error base class to CrosstownError
+- **Key decisions**: Added AC #6 for flake/gitignore, changed error base class to ToonError
 - **Issues found & fixed**: 10 (5 medium, 5 low)
 
 ### Step 3: ATDD
@@ -212,4 +212,4 @@ Nix reproducible builds for Crosstown Docker images (FR-TEE-5). Implemented `Nix
 ---
 
 ## TL;DR
-Story 4-5 implements Nix reproducible builds for Crosstown Docker images (FR-TEE-5), including `NixBuilder` class, PCR verification utilities, Dockerfile static analysis, and a Nix flake producing deterministic images equivalent to the existing `Dockerfile.oyster`. The pipeline completed cleanly: 48 tests covering all 6 acceptance criteria, 3 code review passes finding 17 issues (11 fixed, 6 noted as acceptable), clean semgrep security scan, and NFR pass at 93%. The main operational gap is that `flake.lock` generation and real Nix builds require Nix tooling not yet available in CI.
+Story 4-5 implements Nix reproducible builds for TOON Docker images (FR-TEE-5), including `NixBuilder` class, PCR verification utilities, Dockerfile static analysis, and a Nix flake producing deterministic images equivalent to the existing `Dockerfile.oyster`. The pipeline completed cleanly: 48 tests covering all 6 acceptance criteria, 3 code review passes finding 17 issues (11 fixed, 6 noted as acceptable), clean semgrep security scan, and NFR pass at 93%. The main operational gap is that `flake.lock` generation and real Nix builds require Nix tooling not yet available in CI.

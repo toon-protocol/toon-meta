@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-14
 **Epic:** 3 -- Production Protocol Economics
-**Packages:** `@crosstown/core`, `@crosstown/town`, `@crosstown/sdk`
+**Packages:** `@toon-protocol/core`, `@toon-protocol/town`, `@toon-protocol/sdk`
 **Status:** Done (6/6 stories complete)
 **Branch:** `epic-3`
 **Commits:** 7 (1 epic start, 6 story commits)
@@ -13,11 +13,11 @@
 
 ## 1. Executive Summary
 
-Epic 3 transformed the Crosstown protocol from a development-token prototype into a production-ready USDC-denominated payment system. The epic delivered six stories across three dependency waves: USDC migration and chain configuration (Wave 1-2), x402 HTTP payment on-ramp and seed relay discovery (Wave 2-3), and service discovery with enriched health reporting (Wave 3).
+Epic 3 transformed the TOON protocol from a development-token prototype into a production-ready USDC-denominated payment system. The epic delivered six stories across three dependency waves: USDC migration and chain configuration (Wave 1-2), x402 HTTP payment on-ramp and seed relay discovery (Wave 2-3), and service discovery with enriched health reporting (Wave 3).
 
-The most architecturally significant deliverable was Story 3.3 (x402 /publish endpoint), which introduced a second payment rail -- HTTP-based event publishing with EIP-3009 gasless USDC authorization -- alongside the existing ILP WebSocket rail. The shared `buildIlpPrepare()` function in `@crosstown/core` ensures packet equivalence between both rails, meaning the BLS and destination relay cannot distinguish x402-originated packets from ILP-originated ones. This dual-rail architecture positions Crosstown for both power-user ILP clients and lightweight HTTP clients (including AI agents).
+The most architecturally significant deliverable was Story 3.3 (x402 /publish endpoint), which introduced a second payment rail -- HTTP-based event publishing with EIP-3009 gasless USDC authorization -- alongside the existing ILP WebSocket rail. The shared `buildIlpPrepare()` function in `@toon-protocol/core` ensures packet equivalence between both rails, meaning the BLS and destination relay cannot distinguish x402-originated packets from ILP-originated ones. This dual-rail architecture positions TOON for both power-user ILP clients and lightweight HTTP clients (including AI agents).
 
-Story 3.4 (Seed Relay Discovery) was the most topologically significant change, replacing the genesis hub-and-spoke bootstrap model with a decentralized peer discovery model using kind:10036 events on public Nostr relays. Combined with Story 3.5's kind:10035 service discovery events, Crosstown nodes can now advertise their capabilities, pricing, and payment rails to the network without depending on a specific genesis node.
+Story 3.4 (Seed Relay Discovery) was the most topologically significant change, replacing the genesis hub-and-spoke bootstrap model with a decentralized peer discovery model using kind:10036 events on public Nostr relays. Combined with Story 3.5's kind:10035 service discovery events, TOON nodes can now advertise their capabilities, pricing, and payment rails to the network without depending on a specific genesis node.
 
 All 6 stories shipped with 100% acceptance criteria coverage (26/26 ACs), 244 story-specific tests (4.98x the 49 planned), 62 code review issues found and fixed (6 remaining as informational only), 3 real security vulnerabilities fixed (command injection in shell scripts), and zero test regressions. The monorepo test count grew from 1,320 at epic start to 1,558 at close (+238 net, with 244 story-specific tests written).
 
@@ -98,7 +98,7 @@ The epic's test plan called for 49 tests across 6 stories. The pipeline produced
 
 ### 3.2. Shared buildIlpPrepare() Preserved Packet Equivalence
 
-The highest-risk design decision in Epic 3 was ensuring that x402-originated ILP packets are indistinguishable from ILP-originated ones (risk E3-R007, score 8). This was achieved by extracting packet construction into a shared `buildIlpPrepare()` function in `@crosstown/core`. Both the SDK's `publishEvent()` and the x402 handler call this function, guaranteeing identical TOON encoding, amount computation, and destination formatting. The test suite includes explicit equivalence tests (T-3.3-03, T-3.3-13) that construct packets via both paths and assert byte-level identity.
+The highest-risk design decision in Epic 3 was ensuring that x402-originated ILP packets are indistinguishable from ILP-originated ones (risk E3-R007, score 8). This was achieved by extracting packet construction into a shared `buildIlpPrepare()` function in `@toon-protocol/core`. Both the SDK's `publishEvent()` and the x402 handler call this function, guaranteeing identical TOON encoding, amount computation, and destination formatting. The test suite includes explicit equivalence tests (T-3.3-03, T-3.3-13) that construct packets via both paths and assert byte-level identity.
 
 ### 3.3. Three-Pass Code Review Continued to Find Distinct Issue Classes
 
@@ -130,7 +130,7 @@ Story 3.1's semgrep scan identified 3 command injection vulnerabilities in `fund
 
 ### 3.7. Story 3.3 Was the Most Complex Story Yet -- and Delivered Clean
 
-Story 3.3 (x402 /publish endpoint) was the most architecturally complex story in the project's history: 7 new files, a 6-check pre-flight validation pipeline, EIP-3009 on-chain settlement via viem, shared packet construction, configurable pricing with routing buffer, and 4.5 hours of pipeline time. Despite this complexity, the story shipped with 57 active tests, all 8 ACs covered, 16 code review issues found and fixed, and 0 security findings. The opt-in feature flag (`CROSSTOWN_X402_ENABLED`, disabled by default) de-risks deployment.
+Story 3.3 (x402 /publish endpoint) was the most architecturally complex story in the project's history: 7 new files, a 6-check pre-flight validation pipeline, EIP-3009 on-chain settlement via viem, shared packet construction, configurable pricing with routing buffer, and 4.5 hours of pipeline time. Despite this complexity, the story shipped with 57 active tests, all 8 ACs covered, 16 code review issues found and fixed, and 0 security findings. The opt-in feature flag (`TOON_X402_ENABLED`, disabled by default) de-risks deployment.
 
 ---
 
@@ -176,7 +176,7 @@ Story 3.4's `seed-relay-discovery.test.ts` reached 1,401 lines, and Story 3.3's 
 ### 5.1. Dual Payment Rails Enable Different Client Populations
 
 The most important architectural insight from Epic 3 is that the dual ILP + x402 payment architecture serves fundamentally different client populations:
-- **ILP rail**: Power users running their own Crosstown nodes, opening persistent payment channels, routing multi-hop packets. Requires WebSocket connectivity and channel management.
+- **ILP rail**: Power users running their own TOON nodes, opening persistent payment channels, routing multi-hop packets. Requires WebSocket connectivity and channel management.
 - **x402 rail**: Lightweight HTTP clients, AI agents, one-shot publishers. Single POST request with EIP-3009 authorization. No WebSocket, no channel, no ILP knowledge required.
 
 Both rails produce identical ILP PREPARE packets via `buildIlpPrepare()`, so the rest of the protocol (BLS processing, relay storage, peer routing) is rail-agnostic. This separation of entry points from packet processing is a pattern worth preserving and documenting for future payment rails (e.g., Lightning, Solana).
@@ -187,7 +187,7 @@ Story 3.4's seed relay discovery is designed as an additive mode (`discovery: 's
 
 ### 5.3. Chain Configuration Enables Multi-Environment Deployment Without Code Changes
 
-Story 3.2's `resolveChainConfig()` and `CHAIN_PRESETS` map means switching between Anvil, Arbitrum Sepolia, and Arbitrum One requires only a single config change (`chain: 'arbitrum-one'`) or environment variable (`CROSSTOWN_CHAIN=arbitrum-one`). All dependent values -- RPC URL, USDC address, TokenNetwork address, chain ID, EIP-712 domain -- resolve from the preset. This eliminates the entire class of "wrong chain" configuration errors and will be essential for Epic 4's TEE deployment where enclave configuration must be minimal and deterministic.
+Story 3.2's `resolveChainConfig()` and `CHAIN_PRESETS` map means switching between Anvil, Arbitrum Sepolia, and Arbitrum One requires only a single config change (`chain: 'arbitrum-one'`) or environment variable (`TOON_CHAIN=arbitrum-one`). All dependent values -- RPC URL, USDC address, TokenNetwork address, chain ID, EIP-712 domain -- resolve from the preset. This eliminates the entire class of "wrong chain" configuration errors and will be essential for Epic 4's TEE deployment where enclave configuration must be minimal and deterministic.
 
 ### 5.4. Pre-Flight Validation Pattern Is Reusable
 
@@ -243,7 +243,7 @@ Stories with broader surface areas (3-4 and 3-5 touch multiple packages) and dee
 | A11 | **Split large test files** -- `seed-relay-discovery.test.ts` (1,401 lines) and `x402-publish-handler.test.ts` are unwieldy. Consider splitting by test category. | Dev | Maintainability |
 | A12 | **Implement deferred P3 E2E tests** -- T-3.4-12 (seed relay E2E) and 3.6-E2E-001 (health E2E) deferred due to no infrastructure. | Dev | Test coverage |
 | A13 | **Fix NIP-33/NIP-16 documentation discrepancy** -- test-design-epic-3.md references "NIP-33" for test 3.5-UNIT-001; implementation uses NIP-16 correctly. | Dev | Documentation accuracy |
-| A14 | **Publish @crosstown/town to npm** (carried from Epic 2 A3) -- Package verified ready but manual publish not executed. | Dev | Distribution |
+| A14 | **Publish @toon-protocol/town to npm** (carried from Epic 2 A3) -- Package verified ready but manual publish not executed. | Dev | Distribution |
 | A15 | **Ensure code review agents run Prettier before committing** (carried from Epic 1 A9, Epic 2 A11) | Tooling | Eliminate recurring format fixes |
 
 ---
@@ -307,7 +307,7 @@ Based on Epic 3 learnings (all 6 stories), the following agreements carry forwar
 
 9. **Resolve retro action items at epic start.** Epic 3 resolved 6 of 13 action items from Epic 2 in the epic start commit. Four items carry forward (CI, structured logger, dependency audit, npm publish). Repeat for Epic 4 with emphasis on CI (A2), which has been deferred for 3 epics.
 
-10. **Opt-in feature flags for high-risk features.** New for Epic 3: the x402 endpoint is disabled by default (`CROSSTOWN_X402_ENABLED`). This pattern de-risks deployment and allows incremental rollout. Apply to TEE features in Epic 4 where enclave-specific behavior should be opt-in until validated.
+10. **Opt-in feature flags for high-risk features.** New for Epic 3: the x402 endpoint is disabled by default (`TOON_X402_ENABLED`). This pattern de-risks deployment and allows incremental rollout. Apply to TEE features in Epic 4 where enclave-specific behavior should be opt-in until validated.
 
 11. **Shared functions for cross-rail consistency.** New for Epic 3: `buildIlpPrepare()` ensures packet equivalence between ILP and x402 rails. Any future payment rail must use this shared function. Extend this pattern to other cross-cutting concerns (e.g., attestation verification in Epic 4).
 
@@ -378,7 +378,7 @@ The following 12 risks are documented from Epic 3. None are blocking, but severa
 
 ## 11. Conclusion
 
-Epic 3 delivered a production-grade payment architecture for the Crosstown protocol: USDC denomination, multi-chain configuration, dual ILP/x402 payment rails, decentralized peer discovery, service capability advertising, and comprehensive health reporting. The central architectural thesis -- that x402 HTTP payments can produce packets identical to ILP payments via a shared construction function -- was proven and tested.
+Epic 3 delivered a production-grade payment architecture for the TOON protocol: USDC denomination, multi-chain configuration, dual ILP/x402 payment rails, decentralized peer discovery, service capability advertising, and comprehensive health reporting. The central architectural thesis -- that x402 HTTP payments can produce packets identical to ILP payments via a shared construction function -- was proven and tested.
 
 The test pipeline matured significantly: the 4.98x test amplification ratio (49 planned to 244 actual) demonstrates that the multi-stage approach (ATDD -> automate -> review -> trace -> gap-fill) systematically finds coverage gaps that initial test planning misses. This amplification should be expected and budgeted for in future epics.
 

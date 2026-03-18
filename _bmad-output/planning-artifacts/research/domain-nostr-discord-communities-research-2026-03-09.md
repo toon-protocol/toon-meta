@@ -5,7 +5,7 @@ workflowType: 'research'
 lastStep: 1
 research_type: 'domain'
 research_topic: 'Most Active Nostr Discord Communities (Developer Ecosystem)'
-research_goals: 'Market research, Partnership opportunities for Crosstown Protocol'
+research_goals: 'Market research, Partnership opportunities for TOON Protocol'
 user_name: 'Jonathan'
 date: '2026-03-09'
 web_research_enabled: true
@@ -22,9 +22,9 @@ source_verification: true
 
 ## Research Overview
 
-This report provides a comprehensive analysis of the most active Nostr-related Discord communities and the broader developer ecosystem, with a focus on market dynamics, competitive positioning, and partnership opportunities for Crosstown Protocol. The research was conducted on 2026-03-09 using multi-source web search verification across 30+ targeted queries spanning community platforms, protocol development, regulatory frameworks, and technical innovation trends.
+This report provides a comprehensive analysis of the most active Nostr-related Discord communities and the broader developer ecosystem, with a focus on market dynamics, competitive positioning, and partnership opportunities for TOON Protocol. The research was conducted on 2026-03-09 using multi-source web search verification across 30+ targeted queries spanning community platforms, protocol development, regulatory frameworks, and technical innovation trends.
 
-**Core finding**: The Nostr Discord community (~429 members) is small by design — Nostr developers intentionally dogfood their own protocol for communication. The real developer ecosystem spans Nostr itself, Matrix (nostrdev), Telegram, Stacker News, and GitHub, with 376+ contributors and $10M+ in OpenSats funding. Critically, **relay monetization remains the #1 unsolved problem** in the Nostr ecosystem — positioning Crosstown's ILP-gated "pay to write, free to read" model as a direct solution to the community's most pressing need.
+**Core finding**: The Nostr Discord community (~429 members) is small by design — Nostr developers intentionally dogfood their own protocol for communication. The real developer ecosystem spans Nostr itself, Matrix (nostrdev), Telegram, Stacker News, and GitHub, with 376+ contributors and $10M+ in OpenSats funding. Critically, **relay monetization remains the #1 unsolved problem** in the Nostr ecosystem — positioning TOON's ILP-gated "pay to write, free to read" model as a direct solution to the community's most pressing need.
 
 For the full executive summary and strategic recommendations, see the [Research Synthesis](#research-synthesis) section at the end of this document.
 
@@ -33,7 +33,7 @@ For the full executive summary and strategic recommendations, see the [Research 
 ## Domain Research Scope Confirmation
 
 **Research Topic:** Most Active Nostr Discord Communities (Developer Ecosystem)
-**Research Goals:** Market research, Partnership opportunities for Crosstown Protocol
+**Research Goals:** Market research, Partnership opportunities for TOON Protocol
 
 **Domain Research Scope:**
 
@@ -41,7 +41,7 @@ For the full executive summary and strategic recommendations, see the [Research 
 - Developer Ecosystem - tooling, protocol discussions, what's being built
 - Key Players & Influencers - community leaders, active contributors, notable projects
 - Technology Trends - NIP discussions, relay implementations, client development
-- Partnership & Integration Opportunities - alignment with Crosstown's ILP-gated relay model
+- Partnership & Integration Opportunities - alignment with TOON's ILP-gated relay model
 
 **Research Methodology:**
 
@@ -129,7 +129,7 @@ _Source: [awesome-nostr](https://github.com/aljazceru/awesome-nostr), [Nostr Rel
 
 **Technology Integration:**
 - Deep Bitcoin/Lightning integration via zaps (NIP-57) and NWC
-- EVM chain integration emerging (projects like Crosstown with ILP-gated relays)
+- EVM chain integration emerging (projects like TOON with ILP-gated relays)
 - EU regulatory compliance driving adoption
 
 _Source: [Nostr Protocol Explained](https://dasroot.net/posts/2025/12/nostr-protocol-decentralized-social-media/), [Nostr Weekly Recap Oct 2025](https://medium.com/@nomishkadilshan4/%EF%B8%8F-the-latest-in-nostr-weekly-nostr-recap-13th-october-2025-0fe9fa99f0c7)_
@@ -203,7 +203,7 @@ _Source: [Discord Nostr search](https://discord.com/servers?query=nostr), [NWC D
 | **Farcaster** | ~800K+ | Unknown | Hub-based, onchain identity | Warpcast channels, dev-focused |
 | **Mastodon (ActivityPub)** | ~10M+ | Various | Federated instances | Instance-specific Discords |
 
-**Key Insight:** Bluesky's Discord is ~600x larger than Nostr's — but this reflects Nostr's philosophy, not weakness. Nostr developers intentionally use Nostr itself for coordination (dogfooding), while Bluesky developers centralize on Discord. **For Crosstown's purposes, the Nostr Discord's small size means a focused, high-signal community where partnership discussions would be noticed.**
+**Key Insight:** Bluesky's Discord is ~600x larger than Nostr's — but this reflects Nostr's philosophy, not weakness. Nostr developers intentionally use Nostr itself for coordination (dogfooding), while Bluesky developers centralize on Discord. **For TOON's purposes, the Nostr Discord's small size means a focused, high-signal community where partnership discussions would be noticed.**
 
 _Source: [Bluesky Stats](https://sproutsocial.com/insights/bluesky-statistics/), [Bluesky Discord](https://discord.com/invite/bluesky-social-1100501016090267749), [Farcaster 2026](https://dspyt.com/farcaster-2026)_
 
@@ -230,16 +230,16 @@ _Source: [awesome-nostr community section](https://github.com/aljazceru/awesome-
 
 ### Business Models and Value Propositions
 
-**Relay Monetization Models (Direct Crosstown Relevance):**
+**Relay Monetization Models (Direct TOON Relevance):**
 
 | Model | Description | Status | Example |
 |-------|-------------|--------|---------|
 | **Pay-per-pubkey** | One-time fee to whitelist a public key | Most common | fiatjaf's expensive-relay |
 | **Subscription** | Flat monthly fee (e.g., $2/mo in sats) | Emerging | Kollider Relay |
-| **Pay-per-event (micropayments)** | Charge per post/read based on resource use | Experimental | **Crosstown's ILP model fits here** |
+| **Pay-per-event (micropayments)** | Charge per post/read based on resource use | Experimental | **TOON's ILP model fits here** |
 | **Free + donations** | Community-supported, no direct revenue | Dominant today | Most public relays |
 
-**Critical Finding:** No relay has successfully achieved sustainable monetization. This is the **#1 unsolved problem** in the Nostr ecosystem. Crosstown's ILP-gated "pay to write, free to read" model directly addresses this gap.
+**Critical Finding:** No relay has successfully achieved sustainable monetization. This is the **#1 unsolved problem** in the Nostr ecosystem. TOON's ILP-gated "pay to write, free to read" model directly addresses this gap.
 
 _Source: [The Rise of Paid Nostr Relays](https://andreneves.xyz/p/the-rise-of-paid-nostr-relays), [Nasdaq - Nostr Relay Incentives](https://www.nasdaq.com/articles/nostr-will-only-scale-if-it-can-incentivize-users-to-run-relays), [Stacker News](https://stacker.news/items/142693)_
 
@@ -274,12 +274,12 @@ _Source: [OpenSats Nostr Fund](https://opensats.org/funds/nostr), [14th Wave Gra
 | **chachi.chat** | Group chat | NIP-29 | Active |
 | **n_cord** | Discord-inspired chat | Standard notes | Active |
 
-**Key Partnership Opportunities for Crosstown:**
+**Key Partnership Opportunities for TOON:**
 
-1. **Flotilla/Coracle ecosystem** — Crosstown's ILP-gated relay could serve as a monetized backend for Flotilla communities
-2. **Alby/NWC team** — Payment infrastructure alignment; NWC uses Lightning while Crosstown uses ILP, but the "pay for relay access" use case overlaps
-3. **OpenSats grant funding** — Crosstown could apply for Nostr Fund grants as a relay monetization solution
-4. **Relay operators** — The ~850 relay operators represent potential adopters of Crosstown's pay-to-write model
+1. **Flotilla/Coracle ecosystem** — TOON's ILP-gated relay could serve as a monetized backend for Flotilla communities
+2. **Alby/NWC team** — Payment infrastructure alignment; NWC uses Lightning while TOON uses ILP, but the "pay for relay access" use case overlaps
+3. **OpenSats grant funding** — TOON could apply for Nostr Fund grants as a relay monetization solution
+4. **Relay operators** — The ~850 relay operators represent potential adopters of TOON's pay-to-write model
 
 _Source: [Flotilla](https://github.com/coracle-social/flotilla), [Coracle Apps](https://stuff.coracle.social/), [Comparing Nostr Groups](https://nostrbook.dev/groups), [OpenSats](https://opensats.org/funds/nostr)_
 
@@ -287,7 +287,7 @@ _Source: [Flotilla](https://github.com/coracle-social/flotilla), [Coracle Apps](
 
 ### Applicable Regulations
 
-The Nostr ecosystem and its Discord communities operate in a largely unregulated grey area, but several regulatory frameworks are relevant — especially for Crosstown's ILP-gated relay model which involves payment processing:
+The Nostr ecosystem and its Discord communities operate in a largely unregulated grey area, but several regulatory frameworks are relevant — especially for TOON's ILP-gated relay model which involves payment processing:
 
 **Decentralized Social Media Regulation:**
 - Nostr's architecture makes it largely immune to platform-level regulation. Regulators target centralized platforms with structured account systems; Nostr relays lack the gatekeeping mechanisms regulators rely on.
@@ -332,7 +332,7 @@ _Source: [Discord Community Guidelines](https://discord.com/guidelines), [Discor
 - GDPR "right to deletion" is technically supported (deletion requests can be sent to relays) but enforcement is impractical across distributed systems
 - No central authority designates a "data controller" under GDPR — this is an open legal question
 
-**For Crosstown (ILP-Gated Relay):**
+**For TOON (ILP-Gated Relay):**
 - Payment processing adds compliance obligations beyond standard relay operation
 - May need to consider: AML/KYC depending on payment volume and jurisdiction, money transmission licensing, FATF travel rule compliance for cross-border payments
 - ILP's ISO 20022 approval provides a standards compliance pathway
@@ -364,7 +364,7 @@ _Source: [Nostr Security & Privacy](https://ron.stoner.com/nostr_Security_and_Pr
 
 **No licensing required** for operating a Nostr relay or participating in Nostr Discord communities.
 
-**Potential licensing considerations for Crosstown:**
+**Potential licensing considerations for TOON:**
 - Money Services Business (MSB) registration may be required if ILP payments are classified as money transmission
 - State-by-state licensing in the US (BitLicense in New York, etc.)
 - EU Payment Services Directive (PSD2/PSD3) may apply if operating payment infrastructure in the EU
@@ -379,12 +379,12 @@ _Confidence: Medium — regulatory classification of ILP micropayments for relay
 - Follow Discord Community Guidelines and server-specific rules
 - Use a consistent identity (or pseudonym) across communities for partnership credibility
 
-**For Crosstown partnership outreach:**
+**For TOON partnership outreach:**
 - Nostr's open protocol philosophy means no gatekeeping for technical integration
 - OpenSats grants have a formal application process but no regulatory pre-requirements
 - Payment integration partnerships (Alby, NWC) may require technical compatibility rather than regulatory compliance
 
-**For Crosstown relay operation:**
+**For TOON relay operation:**
 - Monitor evolving EU DSA enforcement scope for decentralized protocols
 - Consider voluntary compliance with GDPR data handling best practices
 - Track ILP regulatory developments through the Interledger Foundation
@@ -400,7 +400,7 @@ _Confidence: Medium — regulatory classification of ILP micropayments for relay
 | Regulatory crackdown on decentralized social | Low | Medium | Protocol-level resilience by design |
 | Payment regulations blocking cross-border ILP | Medium | High | ISO 20022 compliance, Interledger Foundation guidance |
 
-_Overall regulatory risk: **Low-Medium** for community participation, **Medium** for Crosstown's payment-enabled relay operation._
+_Overall regulatory risk: **Low-Medium** for community participation, **Medium** for TOON's payment-enabled relay operation._
 
 ## Technical Trends and Innovation
 
@@ -413,7 +413,7 @@ DVMs are one of the most significant innovations in the Nostr ecosystem. They tu
 - Kind range 5000-7000 reserved for DVM use
 - Job results use kind number 1000 higher than request
 - Multiple service providers can compete on price and quality
-- **Crosstown relevance**: ILP could serve as an alternative/complementary payment rail for DVMs, especially for cross-chain payments
+- **TOON relevance**: ILP could serve as an alternative/complementary payment rail for DVMs, especially for cross-chain payments
 
 _Source: [NIP-90 DVM Spec](https://nips.nostr.com/90), [DVM Documentation](https://github.com/nostr-protocol/data-vending-machines), [NobsBitcoin DVM Article](https://www.nobsbitcoin.com/data-vending-machine-implementation-open-sourced/)_
 
@@ -433,7 +433,7 @@ Range-Based Set Reconciliation protocol that allows two parties to synchronize t
 - Implemented in C++, JavaScript, Rust, Go
 - Works for both client-relay and relay-relay scenarios
 - strfry relay pioneered this — now standardized as NIP-77
-- **Crosstown relevance**: Could enable Crosstown relays to efficiently sync with other Nostr relays, reducing storage/bandwidth costs
+- **TOON relevance**: Could enable TOON relays to efficiently sync with other Nostr relays, reducing storage/bandwidth costs
 
 _Source: [NIP-77 Spec](https://nips.nostr.com/77), [strfry Negentropy Docs](https://github.com/hoytech/strfry/blob/master/docs/negentropy.md)_
 
@@ -512,23 +512,23 @@ _Source: [Lyn Alden - Power of Nostr](https://www.lynalden.com/the-power-of-nost
 
 ### Implementation Opportunities
 
-**For Crosstown Protocol — Immediate Opportunities:**
+**For TOON Protocol — Immediate Opportunities:**
 
-1. **Join the Nostr Discord** (discord.com/invite/Pxkcgt9sMj) — 429 members, high-signal, introduce Crosstown's ILP-gated relay concept
+1. **Join the Nostr Discord** (discord.com/invite/Pxkcgt9sMj) — 429 members, high-signal, introduce TOON's ILP-gated relay concept
 2. **Join Alby Discord** (discord.getalby.com) — explore payment infrastructure alignment
-3. **Engage on Nostr itself** — create a Crosstown npub, post on protocol topics, join Flotilla communities
+3. **Engage on Nostr itself** — create a TOON npub, post on protocol topics, join Flotilla communities
 4. **Post on Stacker News ~nostr** — Bitcoin-aligned dev community with sat incentives for quality content
 
-**For Crosstown Protocol — Technical Integration:**
+**For TOON Protocol — Technical Integration:**
 
 5. **DVM payment rail**: Position ILP as an alternative to Lightning for DVM job payments (cross-chain advantage)
-6. **Flotilla backend**: Offer Crosstown as a monetized community relay for Flotilla groups (NIP-29 compatible)
+6. **Flotilla backend**: Offer TOON as a monetized community relay for Flotilla groups (NIP-29 compatible)
 7. **Negentropy sync**: Implement NIP-77 for efficient syncing with the broader Nostr relay network
 8. **OpenSats grant application**: Apply to The Nostr Fund for relay monetization research
 
 ### Challenges and Risks
 
-| Challenge | Impact | Mitigation for Crosstown |
+| Challenge | Impact | Mitigation for TOON |
 |-----------|--------|--------------------------|
 | Community migrating off Discord | Medium | Engage on-protocol (Nostr, Flotilla) simultaneously |
 | Lightning-centric payment culture | High | Position ILP as complementary, not competing |
@@ -542,16 +542,16 @@ _Source: [Lyn Alden - Power of Nostr](https://www.lynalden.com/the-power-of-nost
 
 1. **Phase 1 — Community Presence (Week 1-2)**
    - Join Nostr Discord, Alby Discord, NWC Discord
-   - Create Crosstown npub on Nostr; post introduction
+   - Create TOON npub on Nostr; post introduction
    - Monitor Stacker News ~nostr for relay monetization discussions
 
 2. **Phase 2 — Technical Demonstration (Week 3-6)**
-   - Publish a post on Stacker News explaining Crosstown's ILP-gated relay model
+   - Publish a post on Stacker News explaining TOON's ILP-gated relay model
    - Engage with Flotilla/Coracle community about relay monetization
    - Submit an OpenSats grant application to The Nostr Fund
 
 3. **Phase 3 — Integration (Month 2-3)**
-   - Implement NIP-77 (Negentropy sync) for Crosstown relay
+   - Implement NIP-77 (Negentropy sync) for TOON relay
    - Explore NIP-29 compatibility for Flotilla group support
    - Prototype DVM job payment via ILP as alternative to Lightning
 
@@ -566,7 +566,7 @@ _Source: [Lyn Alden - Power of Nostr](https://www.lynalden.com/the-power-of-nost
 
 - **Don't position ILP vs Lightning** — frame as "complementary cross-chain payment layer"
 - **Maintain multi-platform presence** — Discord now, Nostr-native increasingly
-- **Focus on the unsolved problem** — relay monetization is the gap Crosstown fills
+- **Focus on the unsolved problem** — relay monetization is the gap TOON fills
 - **Build credibility through code** — open-source contributions speak louder than marketing in this community
 
 ---
@@ -575,9 +575,9 @@ _Source: [Lyn Alden - Power of Nostr](https://www.lynalden.com/the-power-of-nost
 
 ### Executive Summary
 
-The Nostr protocol ecosystem has grown from a niche experiment to a 50-million-user decentralized social network backed by $10M+ in OpenSats grant funding, 850+ relays across 40+ countries, and 450+ applications. Yet its most critical challenge remains unsolved: **no relay operator has achieved sustainable monetization**. Crosstown Protocol's ILP-gated "pay to write, free to read" model addresses this gap directly — making it uniquely positioned among the dozens of relay projects in the ecosystem.
+The Nostr protocol ecosystem has grown from a niche experiment to a 50-million-user decentralized social network backed by $10M+ in OpenSats grant funding, 850+ relays across 40+ countries, and 450+ applications. Yet its most critical challenge remains unsolved: **no relay operator has achieved sustainable monetization**. TOON Protocol's ILP-gated "pay to write, free to read" model addresses this gap directly — making it uniquely positioned among the dozens of relay projects in the ecosystem.
 
-The Nostr **Discord community is deliberately small** (~429 members on the main server) because the developer community practices what it preaches: they use Nostr itself, Matrix, Telegram, and GitHub for coordination. This is a feature, not a bug. For Crosstown, it means the Discord is a focused, high-signal entry point where partnership proposals will get noticed — but real engagement must extend to on-protocol presence (a Crosstown npub, Stacker News posts, Flotilla communities).
+The Nostr **Discord community is deliberately small** (~429 members on the main server) because the developer community practices what it preaches: they use Nostr itself, Matrix, Telegram, and GitHub for coordination. This is a feature, not a bug. For TOON, it means the Discord is a focused, high-signal entry point where partnership proposals will get noticed — but real engagement must extend to on-protocol presence (a TOON npub, Stacker News posts, Flotilla communities).
 
 The research identifies four high-value partnership targets: **Flotilla/Coracle** (community relay infrastructure), **Alby/NWC** (payment infrastructure), **OpenSats** (grant funding for relay monetization), and the **850+ relay operator community** (potential adopters). The window for Discord-based engagement is narrowing as the community migrates to Nostr-native tools like Flotilla, making immediate action valuable.
 
@@ -585,16 +585,16 @@ The research identifies four high-value partnership targets: **Flotilla/Coracle*
 
 - The main Nostr Discord has ~429 members — small but high-signal, with active protocol developers
 - Bluesky's Discord is ~600x larger, but reflects centralized vs. decentralized community philosophy
-- Relay monetization (pay-per-key, subscription, micropayment) has no proven model — Crosstown's ILP approach is novel
+- Relay monetization (pay-per-key, subscription, micropayment) has no proven model — TOON's ILP approach is novel
 - Data Vending Machines (NIP-90) are creating a compute marketplace where ILP could serve as a cross-chain payment rail
 - ILP's ISO 20022 approval provides a regulatory compliance pathway that Lightning Network lacks
 - The community is migrating from Discord/Telegram to Nostr-native tools (Flotilla, 0xChat) — engage now
 
 **Strategic Recommendations:**
 
-1. **Join Nostr Discord + Alby Discord immediately** — introduce Crosstown's relay monetization concept
-2. **Create a Crosstown npub on Nostr** — establish on-protocol presence; post on relay economics
-3. **Apply to OpenSats Nostr Fund** — position Crosstown as relay monetization research/infrastructure
+1. **Join Nostr Discord + Alby Discord immediately** — introduce TOON's relay monetization concept
+2. **Create a TOON npub on Nostr** — establish on-protocol presence; post on relay economics
+3. **Apply to OpenSats Nostr Fund** — position TOON as relay monetization research/infrastructure
 4. **Implement NIP-77 (Negentropy sync)** — technical credibility through protocol compatibility
 5. **Prototype ILP as a DVM payment rail** — differentiate from Lightning-only ecosystem
 
@@ -621,10 +621,10 @@ The research identifies four high-value partnership targets: **Flotilla/Coracle*
 **Goal 1 — Market Research**: Achieved. Comprehensive mapping of the Nostr developer ecosystem across all communication platforms (Discord, Matrix, Telegram, Nostr-native, GitHub, Stacker News). Identified ecosystem scale (50M users, 850+ relays, 450+ apps, $10M+ funding), growth trajectory (1,607% YoY event growth), and the critical gap of relay monetization.
 
 **Goal 2 — Partnership Opportunities**: Achieved. Identified four high-priority partnership targets ranked by strategic alignment:
-1. **Flotilla/Coracle** — Crosstown as monetized community relay backend (NIP-29 compatible)
+1. **Flotilla/Coracle** — TOON as monetized community relay backend (NIP-29 compatible)
 2. **Alby/NWC** — Payment infrastructure alignment (ILP as complement to Lightning)
 3. **OpenSats Nostr Fund** — Grant funding for relay monetization research ($10M+ allocated)
-4. **Relay operators** — 850+ potential adopters of Crosstown's pay-to-write model
+4. **Relay operators** — 850+ potential adopters of TOON's pay-to-write model
 
 **Bonus Insight**: The DVM (Data Vending Machine) marketplace presents a longer-term opportunity for ILP as a cross-chain payment rail for decentralized compute — a market that doesn't yet exist but is rapidly emerging.
 
@@ -670,11 +670,11 @@ The research identifies four high-value partnership targets: **Flotilla/Coracle*
 
 The Nostr developer community is among the most decentralized open-source communities in existence — they deliberately avoid centralizing on any single platform, including Discord. The main Nostr Discord (~429 members) serves as a useful entry point but is not where the deepest technical discussions happen. Those occur on Nostr itself, Matrix (nostrdev), and GitHub.
 
-For Crosstown Protocol, the strategic opportunity is clear: relay monetization is the ecosystem's biggest unsolved problem, and Crosstown's ILP-gated model is a novel approach that no other project offers. The community is receptive to experimentation in this space, as evidenced by multiple paid relay attempts (pay-per-key, subscription, micropayment) — none of which have achieved sustainability.
+For TOON Protocol, the strategic opportunity is clear: relay monetization is the ecosystem's biggest unsolved problem, and TOON's ILP-gated model is a novel approach that no other project offers. The community is receptive to experimentation in this space, as evidenced by multiple paid relay attempts (pay-per-key, subscription, micropayment) — none of which have achieved sustainability.
 
 ### Strategic Impact Assessment
 
-**High Impact**: Crosstown could become a reference implementation for relay monetization if properly positioned within the Nostr ecosystem. The combination of ILP's cross-chain payments + ISO 20022 compliance + Nostr's open relay model creates a differentiated value proposition that neither Lightning-only solutions nor centralized platforms can match.
+**High Impact**: TOON could become a reference implementation for relay monetization if properly positioned within the Nostr ecosystem. The combination of ILP's cross-chain payments + ISO 20022 compliance + Nostr's open relay model creates a differentiated value proposition that neither Lightning-only solutions nor centralized platforms can match.
 
 **Medium Risk**: The Nostr community's Bitcoin-maximalist culture may resist non-Lightning payment rails. Framing ILP as complementary (not competing) with Lightning is essential.
 
@@ -683,7 +683,7 @@ For Crosstown Protocol, the strategic opportunity is clear: relay monetization i
 | Priority | Action | Timeline | Effort |
 |----------|--------|----------|--------|
 | 1 | Join Nostr Discord (discord.com/invite/Pxkcgt9sMj) | This week | Low |
-| 2 | Create Crosstown npub on Nostr | This week | Low |
+| 2 | Create TOON npub on Nostr | This week | Low |
 | 3 | Join Alby Discord (discord.getalby.com) | This week | Low |
 | 4 | Post relay monetization discussion on Stacker News ~nostr | Week 2 | Medium |
 | 5 | Apply to OpenSats Nostr Fund | Week 3-4 | High |
@@ -698,4 +698,4 @@ For Crosstown Protocol, the strategic opportunity is clear: relay monetization i
 **Source Verification:** All factual claims cited with URLs
 **Confidence Level:** High — based on multiple authoritative and cross-validated sources
 
-_This comprehensive research document serves as an authoritative reference on the Nostr Discord developer ecosystem and provides strategic insights for Crosstown Protocol's community engagement and partnership strategy._
+_This comprehensive research document serves as an authoritative reference on the Nostr Discord developer ecosystem and provides strategic insights for TOON Protocol's community engagement and partnership strategy._

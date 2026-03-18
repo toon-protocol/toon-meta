@@ -12,7 +12,7 @@ So that I can post jobs using the native payment rail with lower cost and no HTT
 
 **FRs covered:** FR-DVM-2 (Initiated agents SHALL publish DVM job requests and results via ILP PREPARE packets as the preferred path, with x402 /publish available as a fallback for non-initiated agents)
 
-**Dependencies:** Story 5.1 complete (DVM event kind definitions -- builders, parsers, constants in `@crosstown/core`, commit `5556844` on `epic-5`). Epic 3 Story 3.3 (x402 `/publish` endpoint exists as fallback). Epic 2 Story 2.8 (Town relay subscription API exists for provider-side event subscription). All infrastructure from Epics 1-4 is complete.
+**Dependencies:** Story 5.1 complete (DVM event kind definitions -- builders, parsers, constants in `@toon-protocol/core`, commit `5556844` on `epic-5`). Epic 3 Story 3.3 (x402 `/publish` endpoint exists as fallback). Epic 2 Story 2.8 (Town relay subscription API exists for provider-side event subscription). All infrastructure from Epics 1-4 is complete.
 
 **Decision sources:**
 - Decision 2 (party-mode-2020117-analysis): ILP-native as preferred path, x402 as fallback
@@ -25,9 +25,9 @@ So that I can post jobs using the native payment rail with lower cost and no HTT
 
 ## Acceptance Criteria
 
-1. Given an initiated agent with an open ILP payment channel to a Crosstown relay, when the agent calls `node.publishEvent(jobRequestEvent, { destination })` with a Kind 5xxx event built by `buildJobRequestEvent()`, then the event is TOON-encoded and sent as an ILP PREPARE packet via the existing `publishEvent()` write path, and the relay stores the event and broadcasts to subscribers, and the relay write fee is `basePricePerByte * toonData.length` (standard pricing model -- no DVM-specific pricing).
+1. Given an initiated agent with an open ILP payment channel to a TOON relay, when the agent calls `node.publishEvent(jobRequestEvent, { destination })` with a Kind 5xxx event built by `buildJobRequestEvent()`, then the event is TOON-encoded and sent as an ILP PREPARE packet via the existing `publishEvent()` write path, and the relay stores the event and broadcasts to subscribers, and the relay write fee is `basePricePerByte * toonData.length` (standard pricing model -- no DVM-specific pricing).
 
-2. Given a non-initiated agent without an ILP payment channel, when the agent sends a Kind 5xxx job request to the x402 `/publish` endpoint with a valid `X-PAYMENT` header, then the resulting ILP PREPARE packet is indistinguishable from one sent via the ILP rail (packet equivalence via shared `buildIlpPrepare()` from `@crosstown/core`), and the relay stores and broadcasts the event identically to AC #1.
+2. Given a non-initiated agent without an ILP payment channel, when the agent sends a Kind 5xxx job request to the x402 `/publish` endpoint with a valid `X-PAYMENT` header, then the resulting ILP PREPARE packet is indistinguishable from one sent via the ILP rail (packet equivalence via shared `buildIlpPrepare()` from `@toon-protocol/core`), and the relay stores and broadcasts the event identically to AC #1.
 
 3. Given a provider agent subscribed to the relay, when a Kind 5xxx job request is published (via either ILP or x402 rail), then the provider receives the event via WebSocket subscription (free to read), and the provider's SDK can filter incoming events by kind to match its supported DVM kinds.
 
@@ -48,7 +48,7 @@ So that I can post jobs using the native payment rail with lower cost and no HTT
 - [x] Task 2: Validate x402 fallback produces identical relay-side behavior (AC: #2)
   - [x] 2.1 Write integration test proving x402 `/publish` with a Kind 5100 event produces identical relay-side storage as ILP-native `publishEvent()` -- covers T-5.2-02
   - [x] 2.2 Write packet equivalence test: ILP-submitted and x402-submitted Kind 5100 events use shared `buildIlpPrepare()`, producing identical ILP PREPARE packet structure (same TOON data, same amount calculation) -- covers T-5.2-03, T-INT-04
-  - [x] 2.3 **Validation note:** No production code changes expected. The x402 handler in `packages/town/src/handlers/x402-publish-handler.ts` already uses `buildIlpPrepare()` from `@crosstown/core`, the same function used by `publishEvent()`. Packet equivalence is architectural, not DVM-specific.
+  - [x] 2.3 **Validation note:** No production code changes expected. The x402 handler in `packages/town/src/handlers/x402-publish-handler.ts` already uses `buildIlpPrepare()` from `@toon-protocol/core`, the same function used by `publishEvent()`. Packet equivalence is architectural, not DVM-specific.
 
 - [x] Task 3: Validate SDK handler registration and dispatch for DVM kinds (AC: #4, #5)
   - [x] 3.1 Write unit test: `node.on(5100, handler)` routes Kind 5100 to the registered handler -- covers T-5.2-04
@@ -70,9 +70,9 @@ So that I can post jobs using the native payment rail with lower cost and no HTT
 
 ### Architecture and Constraints
 
-**Key insight: Story 5.2 is primarily a validation story.** The existing Crosstown infrastructure already supports DVM job submission end-to-end:
-- `publishEvent()` in `@crosstown/sdk` sends any Nostr event via ILP PREPARE
-- `buildIlpPrepare()` in `@crosstown/core` constructs packets identically for both ILP and x402 rails
+**Key insight: Story 5.2 is primarily a validation story.** The existing TOON infrastructure already supports DVM job submission end-to-end:
+- `publishEvent()` in `@toon-protocol/sdk` sends any Nostr event via ILP PREPARE
+- `buildIlpPrepare()` in `@toon-protocol/core` constructs packets identically for both ILP and x402 rails
 - `HandlerRegistry.on(kind, handler)` routes any numeric kind to a handler
 - The Town relay stores and broadcasts any event kind via WebSocket subscription
 - The SDK pipeline (shallow parse -> verify -> price -> dispatch) processes all event kinds uniformly
@@ -244,26 +244,26 @@ No debug issues encountered. All ATDD stubs passed on first enable (no productio
 | Critical | 0 | -- |
 | High | 0 | -- |
 | Medium | 0 | -- |
-| Low | 4 (all fixed) | L1: Prettier formatting violation in test file. L2: Unconsolidated imports in integration test. L3: Boundary rule violation (`@crosstown/relay` -> `@crosstown/core/toon`). L4: Inaccurate test counts in story doc. |
+| Low | 4 (all fixed) | L1: Prettier formatting violation in test file. L2: Unconsolidated imports in integration test. L3: Boundary rule violation (`@toon-protocol/relay` -> `@toon-protocol/core/toon`). L4: Inaccurate test counts in story doc. |
 
 **Issues Found and Fixed:**
 
 | # | Severity | File | Issue | Fix |
 |---|----------|------|-------|-----|
 | L1 | Low | `packages/sdk/src/dvm-handler-dispatch.test.ts` | Prettier formatting violation: function call split across 3 lines when it fits on 1 line. CI `format:check` would fail. | Ran `prettier --write` to fix formatting. |
-| L2 | Low | `packages/sdk/src/__integration__/dvm-job-submission.test.ts` | Three separate `import type` statements from `@crosstown/core` (lines 41-47) instead of consolidated imports. Style issue only. | Consolidated into two import statements (one `import type`, one value import). |
-| L3 | Low | `packages/sdk/src/__integration__/dvm-job-submission.test.ts` | Import from `@crosstown/relay` instead of `@crosstown/core/toon`. Project rules say "SDK imports core only -- never relay or bls directly." Pre-existing pattern in other SDK integration tests, but this new test should use the canonical source. | Changed to `import { encodeEventToToon, decodeEventFromToon } from '@crosstown/core/toon'`. |
+| L2 | Low | `packages/sdk/src/__integration__/dvm-job-submission.test.ts` | Three separate `import type` statements from `@toon-protocol/core` (lines 41-47) instead of consolidated imports. Style issue only. | Consolidated into two import statements (one `import type`, one value import). |
+| L3 | Low | `packages/sdk/src/__integration__/dvm-job-submission.test.ts` | Import from `@toon-protocol/relay` instead of `@toon-protocol/core/toon`. Project rules say "SDK imports core only -- never relay or bls directly." Pre-existing pattern in other SDK integration tests, but this new test should use the canonical source. | Changed to `import { encodeEventToToon, decodeEventFromToon } from '@toon-protocol/core/toon'`. |
 | L4 | Low | `5-2-ilp-native-job-submission.md` | Story completion notes claim "21 ATDD stub tests (10 unit + 11 integration)" and "2002 tests pass" but actual counts are 24 tests (10 unit + 14 integration) and 2070 monorepo tests. The file list also says "11 integration tests" but 14 exist. | Updated test counts to 24 (10+14) and monorepo count to 2070. Updated file list to note 14 integration tests including 3 `node.on()` chaining API tests. |
 
 **Issues Observed (Not Fixed -- Pre-existing):**
 
 | # | Severity | Observation |
 |---|----------|-------------|
-| 1 | Low | Other SDK integration test files (`create-node.test.ts`, `network-discovery.test.ts`) also import from `@crosstown/relay` instead of `@crosstown/core/toon`. This is a pre-existing pattern across the codebase, not introduced by Story 5.2. Consider a follow-up cleanup story. |
+| 1 | Low | Other SDK integration test files (`create-node.test.ts`, `network-discovery.test.ts`) also import from `@toon-protocol/relay` instead of `@toon-protocol/core/toon`. This is a pre-existing pattern across the codebase, not introduced by Story 5.2. Consider a follow-up cleanup story. |
 
 **Review Follow-ups (AI):**
 
-- [ ] Consolidate `@crosstown/relay` -> `@crosstown/core/toon` imports in existing SDK integration tests (`create-node.test.ts`, `network-discovery.test.ts`) -- pre-existing boundary rule violation, deferred to future cleanup
+- [ ] Consolidate `@toon-protocol/relay` -> `@toon-protocol/core/toon` imports in existing SDK integration tests (`create-node.test.ts`, `network-discovery.test.ts`) -- pre-existing boundary rule violation, deferred to future cleanup
 
 **Verification:**
 
@@ -304,7 +304,7 @@ No debug issues encountered. All ATDD stubs passed on first enable (no productio
 | 1 | `createTestSecretKey()` wrapper at line 116-118 of integration test just calls `generateSecretKey()` -- trivial wrapper, not a problem but generates non-deterministic keys. Acceptable for crypto tests that need valid keys but not specific values. Pre-existing pattern in `create-node.test.ts`. |
 | 2 | Mock `sendPacket` in DVM tests stores calls in `sendPacketCalls` array. The `publishEvent()` path is: `publishEvent -> buildIlpPrepare -> ilpClient.sendIlpPacket -> directIlpClient -> connector.sendPacket`. The mock correctly captures `sendPacket`-level parameters (bigint amount, Uint8Array data). Test assertions at lines 247-253 are type-correct. |
 | 3 | Unit test `createMockDvmContext()` at line 84 manually constructs a HandlerContext with `vi.fn()` mocks for `decode`, `accept`, `reject`. This is valid for registry dispatch tests that only need to verify routing, not decode behavior. Real context tests use `createHandlerContext()` factory. |
-| 4 | Pre-existing boundary violation in `create-node.test.ts` and `network-discovery.test.ts` importing from `@crosstown/relay` confirmed still present. Not introduced by this story. |
+| 4 | Pre-existing boundary violation in `create-node.test.ts` and `network-discovery.test.ts` importing from `@toon-protocol/relay` confirmed still present. Not introduced by this story. |
 
 **Verification:**
 

@@ -4,13 +4,13 @@ Status: done
 
 ## Story
 
-As a **Crosstown relay operator deploying to Marlin Oyster CVM**,
+As a **TOON relay operator deploying to Marlin Oyster CVM**,
 I want Docker builds to produce deterministic images with identical PCR (Platform Configuration Register) values across independent builds,
 So that remote attestation verification can compare PCR measurements against a known-good registry, and any code tampering is detectable by a PCR mismatch — closing the trust loop between enclave code integrity and attestation verification.
 
 **FRs covered:** FR-TEE-5 (Docker builds SHALL use Nix for reproducible builds producing deterministic PCR values across build environments)
 
-**Dependencies:** Story 4.1 complete (confirmed — commit `4fbef06`). The `docker/Dockerfile.oyster` and `docker/docker-compose-oyster.yml` exist. Story 4.2 complete (confirmed — commit `864bb49`). The attestation event builder (`buildAttestationEvent()`) and `TEE_ATTESTATION_KIND` constant are available from `@crosstown/core`. Story 4.3 complete (confirmed — commit `aeb2b8b`). The `AttestationVerifier` class with PCR registry verification is available. Story 4.4 complete (confirmed — commit `81d3f4d`). The `deriveFromKmsSeed()` function is available.
+**Dependencies:** Story 4.1 complete (confirmed — commit `4fbef06`). The `docker/Dockerfile.oyster` and `docker/docker-compose-oyster.yml` exist. Story 4.2 complete (confirmed — commit `864bb49`). The attestation event builder (`buildAttestationEvent()`) and `TEE_ATTESTATION_KIND` constant are available from `@toon-protocol/core`. Story 4.3 complete (confirmed — commit `aeb2b8b`). The `AttestationVerifier` class with PCR registry verification is available. Story 4.4 complete (confirmed — commit `81d3f4d`). The `deriveFromKmsSeed()` function is available.
 
 **Critical dependency detail:** The existing `docker/Dockerfile.oyster` uses Alpine-based `node:20-alpine` as its base image. Nix reproducible builds require a fundamentally different approach: building the Docker image via Nix flake outputs (`dockerTools.buildLayeredImage`) rather than traditional Dockerfile instructions. The `Dockerfile.nix` is a Nix expression, not a traditional Dockerfile — it defines the image contents declaratively using Nix derivations, ensuring every byte of the output is content-addressed and deterministic.
 
@@ -31,9 +31,9 @@ So that remote attestation verification can compare PCR measurements against a k
 
 4. Given two `NixBuildResult` objects (from two independent CI builds), when `verifyPcrReproducibility(buildA, buildB)` is called, then it returns a structured result `{ reproducible: boolean, pcr0Match, pcr1Match, pcr2Match, imageHashMatch, details, summary }`. For identical builds, `reproducible` is true. For divergent builds, `reproducible` is false with detailed mismatch info. When called with `{ throwOnMismatch: true }`, it throws a `PcrReproducibilityError` containing both PCR values in the error message. The `summary` field is a human-readable string suitable for CI log output.
 
-5. Given `NixBuilder`, `NixBuildResult`, `NixBuilderConfig`, `verifyPcrReproducibility`, `readDockerfileNix`, `analyzeDockerfileForNonDeterminism`, `PcrReproducibilityError`, `PcrReproducibilityResult`, `VerifyOptions`, `DeterminismReport`, `Violation`, and `ForbiddenPattern`, when imported from `@crosstown/core`, then they are exported from `packages/core/src/build/nix-builder.ts` and `packages/core/src/build/pcr-validator.ts` and re-exported via `packages/core/src/build/index.ts` and the top-level `packages/core/src/index.ts`.
+5. Given `NixBuilder`, `NixBuildResult`, `NixBuilderConfig`, `verifyPcrReproducibility`, `readDockerfileNix`, `analyzeDockerfileForNonDeterminism`, `PcrReproducibilityError`, `PcrReproducibilityResult`, `VerifyOptions`, `DeterminismReport`, `Violation`, and `ForbiddenPattern`, when imported from `@toon-protocol/core`, then they are exported from `packages/core/src/build/nix-builder.ts` and `packages/core/src/build/pcr-validator.ts` and re-exported via `packages/core/src/build/index.ts` and the top-level `packages/core/src/index.ts`.
 
-6. Given the project root, when `flake.nix` is present, then it defines a `docker-image` output that invokes `dockerTools.buildLayeredImage` with all inputs pinned via `flake.lock`. Given `nix build .#docker-image` is run, then the resulting image contains the same runtime components as `Dockerfile.oyster` (Node.js 20, supervisord, non-root crosstown user, ports 3100/7100/1300). Given `.gitignore`, then it contains `/result` to exclude the Nix build output symlink.
+6. Given the project root, when `flake.nix` is present, then it defines a `docker-image` output that invokes `dockerTools.buildLayeredImage` with all inputs pinned via `flake.lock`. Given `nix build .#docker-image` is run, then the resulting image contains the same runtime components as `Dockerfile.oyster` (Node.js 20, supervisord, non-root toon user, ports 3100/7100/1300). Given `.gitignore`, then it contains `/result` to exclude the Nix build output symlink.
 
 ## Tasks / Subtasks
 
@@ -41,20 +41,20 @@ So that remote attestation verification can compare PCR measurements against a k
   - [x]Create a Nix expression file (not a traditional Dockerfile) at `docker/Dockerfile.nix`
   - [x]Use Nix `dockerTools.buildLayeredImage` pattern for deterministic Docker image construction
   - [x]Pin the Node.js runtime version (20.x) via Nix nixpkgs pinned to a specific commit hash
-  - [x]Include only production dependencies: the built `@crosstown/docker` dist output + node_modules (production only)
+  - [x]Include only production dependencies: the built `@toon-protocol/docker` dist output + node_modules (production only)
   - [x]Include `supervisord` for Oyster CVM multi-process orchestration
   - [x]Set `NODE_ENV=production`, expose ports 3100, 7100, 1300
-  - [x]Create non-root `crosstown` user (uid 1001, gid 1001)
+  - [x]Create non-root `toon` user (uid 1001, gid 1001)
   - [x]Set CMD to `supervisord -c /etc/supervisord.conf` (matching Dockerfile.oyster)
   - [x]Ensure NO non-deterministic patterns: no `apt-get update`, no unpinned deps, digest-pinned references only
   - [x]Add inline comments explaining the reproducibility constraints
   - [x]**Note:** This Nix expression is consumed by the `flake.nix` (Task 2) as the image definition. The flake orchestrates the build; this file declares the image contents.
 
 - [x] Task 2: Create `flake.nix` and update `.gitignore` (AC: #1, #6)
-  - [x]Define a Nix flake with `docker-image` output that builds the Crosstown Docker image
+  - [x]Define a Nix flake with `docker-image` output that builds the TOON Docker image
   - [x]Pin nixpkgs to a specific commit hash for full reproducibility
   - [x]Include Node.js 20.x and pnpm from nixpkgs
-  - [x]Define the build derivation: copy source, `pnpm install --frozen-lockfile`, `pnpm -r build`, `pnpm --filter @crosstown/docker deploy --prod`
+  - [x]Define the build derivation: copy source, `pnpm install --frozen-lockfile`, `pnpm -r build`, `pnpm --filter @toon-protocol/docker deploy --prod`
   - [x]Output a layered Docker image via `dockerTools.buildLayeredImage`
   - [x]Create `flake.lock` to pin all flake inputs (generated by `nix flake lock`)
   - [x]Add `/result` to `.gitignore` (Nix build output symlink must not be committed)
@@ -147,11 +147,11 @@ So that remote attestation verification can compare PCR measurements against a k
       options?: VerifyOptions
     ): Promise<PcrReproducibilityResult> { ... }
     ```
-  - [x]Implement `PcrReproducibilityError` class (extends `CrosstownError` per project convention):
+  - [x]Implement `PcrReproducibilityError` class (extends `ToonError` per project convention):
     ```typescript
-    import { CrosstownError } from '../errors.js';
+    import { ToonError } from '../errors.js';
 
-    export class PcrReproducibilityError extends CrosstownError {
+    export class PcrReproducibilityError extends ToonError {
       constructor(buildA: NixBuildResult, buildB: NixBuildResult) {
         super(
           `PCR reproducibility check failed: pcr0 buildA=${buildA.pcr0} buildB=${buildB.pcr0}`,
@@ -196,7 +196,7 @@ So that remote attestation verification can compare PCR measurements against a k
   - [x]Delete `packages/core/src/build/reproducibility.test.ts` (the alternative function-based API test file — choosing the class-based NixBuilder API per ATDD checklist recommendation)
 
 - [x] Task 7: Validate Dockerfile.nix against the existing Dockerfile.oyster (AC: #1, #3, #6)
-  - [x]Verify that the Nix-built image contains the same runtime components as Dockerfile.oyster: Node.js 20, supervisord, non-root crosstown user, exposed ports 3100/7100/1300
+  - [x]Verify that the Nix-built image contains the same runtime components as Dockerfile.oyster: Node.js 20, supervisord, non-root toon user, exposed ports 3100/7100/1300
   - [x]Verify that `analyzeDockerfileForNonDeterminism` passes on `Dockerfile.nix` with zero violations
   - [x]Verify that Dockerfile.nix does NOT use `:latest` tags or unpinned base images
   - [x]Verify that `flake.nix` exists and defines a `docker-image` output
@@ -225,7 +225,7 @@ The `flake.nix` at the project root defines the reproducible build:
   };
   outputs = { self, nixpkgs }: {
     packages.x86_64-linux.docker-image = nixpkgs.dockerTools.buildLayeredImage {
-      name = "crosstown";
+      name = "toon";
       tag = "nix";
       contents = [ nodejs-20 supervisord productionDeps ];
       config = {
@@ -269,7 +269,7 @@ This story chooses the class-based API (`NixBuilder`) because it better models t
 
 1. **Nix is a build-time dependency, not a runtime dependency:** The `NixBuilder` class shells out to `nix build` — it requires Nix to be installed on the build machine. Tests that exercise actual Nix builds should be conditionally skipped when Nix is not available (`which nix` check). Unit tests for the comparison/validation logic (`verifyPcrReproducibility`, `analyzeDockerfileForNonDeterminism`) work with mock data and do NOT require Nix.
 
-2. **No `@crosstown/core` dependency on Nix:** The `NixBuilder` class is a build utility, not a runtime dependency. It shells out to the `nix` binary. If `nix` is not found, `build()` should throw a clear error (not silently degrade). The rest of the build module (`pcr-validator.ts`) is pure TypeScript with no external dependencies.
+2. **No `@toon-protocol/core` dependency on Nix:** The `NixBuilder` class is a build utility, not a runtime dependency. It shells out to the `nix` binary. If `nix` is not found, `build()` should throw a clear error (not silently degrade). The rest of the build module (`pcr-validator.ts`) is pure TypeScript with no external dependencies.
 
 3. **PCR values are 96-character lowercase hex strings:** SHA-384 produces 48 bytes = 96 hex characters. All PCR comparisons should normalize to lowercase before comparing.
 
@@ -283,7 +283,7 @@ This story chooses the class-based API (`NixBuilder`) because it better models t
 
 ### Anti-Patterns to Avoid
 
-- **DO NOT make Nix a runtime dependency** of `@crosstown/core`. The NixBuilder is a build utility that shells out to the Nix CLI.
+- **DO NOT make Nix a runtime dependency** of `@toon-protocol/core`. The NixBuilder is a build utility that shells out to the Nix CLI.
 - **DO NOT embed timestamps** in the Nix build output. Timestamps are the primary source of non-determinism in Docker images.
 - **DO NOT use `FROM node:20-alpine`** in Dockerfile.nix — use Nix nixpkgs Node.js derivation instead. The point of Nix is to control every byte.
 - **DO NOT use `apt-get`, `apk`, `npm install`, or any mutable package manager** in Dockerfile.nix. All dependencies come from the Nix store.
@@ -383,13 +383,13 @@ The TEA agent has already created RED phase test stubs for Story 4.5 in two file
 
 **Completion Notes List:**
 
-- **Task 1 (Dockerfile.nix):** Created `docker/Dockerfile.nix` as a Nix expression using `dockerTools.buildLayeredImage`. Includes Node.js 20, supervisord, non-root crosstown user (uid/gid 1001), ports 3100/7100/1300, NODE_ENV=production, and CMD for supervisord. No non-deterministic patterns. The expression is parameterized with `{ pkgs, productionDeps }` and consumed by flake.nix.
+- **Task 1 (Dockerfile.nix):** Created `docker/Dockerfile.nix` as a Nix expression using `dockerTools.buildLayeredImage`. Includes Node.js 20, supervisord, non-root toon user (uid/gid 1001), ports 3100/7100/1300, NODE_ENV=production, and CMD for supervisord. No non-deterministic patterns. The expression is parameterized with `{ pkgs, productionDeps }` and consumed by flake.nix.
 
 - **Task 2 (flake.nix + .gitignore):** Created `flake.nix` at project root with `docker-image` output. Pins nixpkgs to a specific commit. Defines `productionBuild` derivation (pnpm install --frozen-lockfile, pnpm -r build, pnpm deploy --prod). Imports `docker/Dockerfile.nix` for image definition. Added `/result` to `.gitignore`. Note: `flake.lock` is NOT created (requires running `nix flake lock` which needs Nix installed).
 
 - **Task 3 (NixBuilder class):** Created `packages/core/src/build/nix-builder.ts` with `NixBuilder` class, `NixBuildResult` interface, and `NixBuilderConfig` interface. The `build()` method shells out to `nix build .#docker-image --print-out-paths`, reads the resulting image, computes SHA-256 image hash and SHA-384 PCR values (pcr0=full image, pcr1=first 1MB, pcr2=remainder). Uses manual promise wrapper for `execFile` instead of `util.promisify` to enable reliable test mocking.
 
-- **Task 4 (pcr-validator.ts):** Created `packages/core/src/build/pcr-validator.ts` with all interfaces (`ForbiddenPattern`, `Violation`, `DeterminismReport`, `PcrReproducibilityResult`, `VerifyOptions`), `PcrReproducibilityError` class (extends `CrosstownError`), `readDockerfileNix()`, `analyzeDockerfileForNonDeterminism()` (pure function, skips comment lines), and `verifyPcrReproducibility()` (normalizes to lowercase, builds human-readable summary).
+- **Task 4 (pcr-validator.ts):** Created `packages/core/src/build/pcr-validator.ts` with all interfaces (`ForbiddenPattern`, `Violation`, `DeterminismReport`, `PcrReproducibilityResult`, `VerifyOptions`), `PcrReproducibilityError` class (extends `ToonError`), `readDockerfileNix()`, `analyzeDockerfileForNonDeterminism()` (pure function, skips comment lines), and `verifyPcrReproducibility()` (normalizes to lowercase, builds human-readable summary).
 
 - **Task 5 (barrel exports):** Created `packages/core/src/build/index.ts` with re-exports from `nix-builder.js` and `pcr-validator.js`. Added build module re-exports to `packages/core/src/index.ts`.
 
@@ -491,7 +491,7 @@ The TEA agent has already created RED phase test stubs for Story 4.5 in two file
 | **Total**|   **4** | **1** | **3** |
 
 **Issues Found:**
-1. **[Medium] CWE-22 Path traversal bypass via `startsWith` prefix collision in `nix-builder.ts`:** The `sourceOverride` path traversal check used `fullPath.startsWith(tempDir)` which can be bypassed when a relative path resolves to a sibling directory sharing the same prefix (e.g., tempDir is `/tmp/crosstown-nix-abc` and path resolves to `/tmp/crosstown-nix-abc123/`). Fixed by checking `fullPath.startsWith(tempDir + path.sep) || fullPath === tempDir` to require the path separator after the tempDir prefix.
+1. **[Medium] CWE-22 Path traversal bypass via `startsWith` prefix collision in `nix-builder.ts`:** The `sourceOverride` path traversal check used `fullPath.startsWith(tempDir)` which can be bypassed when a relative path resolves to a sibling directory sharing the same prefix (e.g., tempDir is `/tmp/toon-nix-abc` and path resolves to `/tmp/toon-nix-abc123/`). Fixed by checking `fullPath.startsWith(tempDir + path.sep) || fullPath === tempDir` to require the path separator after the tempDir prefix.
 2. **[Low] Unused `dockerfilePath` config field in NixBuilder:** The `NixBuilderConfig.dockerfilePath` property is accepted but never used in `build()` — the flake.nix hardcodes the import path. Noted as acceptable — the field exists per the story's AC interface specification for future flexibility.
 3. **[Low] Nix `pnpm install --offline` requires pre-populated store:** The `--offline` flag in `flake.nix` build phase prevents network access, but the Nix sandbox already blocks network. If pnpm packages are not in the Nix store, the build would fail with a non-obvious error. Noted as an operational concern, not a code bug.
 4. **[Low] `npm install` pattern has false negative for bare `npm install` at EOL:** The regex requires `\s+` after `install`, so bare `npm install` without a package name at end of line is not caught. Noted as acceptable — bare `npm install` in Dockerfiles uses the lockfile by default.

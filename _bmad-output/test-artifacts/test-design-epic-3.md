@@ -107,8 +107,8 @@ lastSaved: '2026-03-06'
 
 ## Entry Criteria
 
-- [ ] Epic 2 complete (@crosstown/town relay reference implementation functional)
-- [ ] @crosstown/sdk and @crosstown/town packages importable
+- [ ] Epic 2 complete (@toon-protocol/town relay reference implementation functional)
+- [ ] @toon-protocol/sdk and @toon-protocol/town packages importable
 - [ ] Anvil running with deterministic contract addresses
 - [ ] Circle FiatTokenV2_2 (mock USDC) deployed on Anvil
 - [ ] Faucet distributing mock USDC (not AGENT token)
@@ -155,9 +155,9 @@ lastSaved: '2026-03-06'
 
 | Test ID | Requirement | Test Level | Risk Link | Test Count | Owner | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| 3.2-UNIT-002 | FR-PROD-2: Env var override (CROSSTOWN_CHAIN) | Unit | E3-R004 | 1 | Dev | Env var overrides config file; CROSSTOWN_RPC_URL overrides preset RPC |
+| 3.2-UNIT-002 | FR-PROD-2: Env var override (TOON_CHAIN) | Unit | E3-R004 | 1 | Dev | Env var overrides config file; TOON_RPC_URL overrides preset RPC |
 | 3.2-UNIT-003 | FR-PROD-2: Invalid chain name | Unit | — | 1 | Dev | Unknown chain name → clear error message |
-| 3.3-INT-007 | FR-PROD-3: x402 disabled returns 404 | Integration | — | 1 | Dev | CROSSTOWN_X402_ENABLED=false → GET /publish → 404 |
+| 3.3-INT-007 | FR-PROD-3: x402 disabled returns 404 | Integration | — | 1 | Dev | TOON_X402_ENABLED=false → GET /publish → 404 |
 | 3.3-INT-008 | FR-PROD-3: Multi-hop pricing with routing buffer | Integration | E3-R008 | 1 | Dev | Price = destination basePricePerByte * toonLength + configurable buffer (5-10%) |
 | 3.3-INT-009 | FR-PROD-3: 402 response schema | Integration | — | 1 | Dev | HTTP 402 body contains amount, facilitatorAddress, paymentNetwork, chainId |
 | 3.4-INT-001 | FR-PROD-4: Seed relay discovery happy path | Integration | E3-R006 | 1 | Dev | Read kind:10036 → connect to seed → subscribe kind:10032 |
@@ -233,7 +233,7 @@ lastSaved: '2026-03-06'
 **Test Data:**
 
 - Nostr keypair factory (real nostr-tools)
-- TOON-encoded event factory (real @crosstown/core codec)
+- TOON-encoded event factory (real @toon-protocol/core codec)
 - EIP-3009 authorization factory (viem signTypedData with FiatTokenV2_2 ABI)
 - Chain preset fixtures (Anvil, Sepolia, Arbitrum One configs)
 
@@ -242,7 +242,7 @@ lastSaved: '2026-03-06'
 - Vitest for all test levels
 - viem for EIP-3009 signing and on-chain interaction
 - Real FiatTokenV2_2 contract on Anvil (Decision 10)
-- Real TOON codec from @crosstown/core
+- Real TOON codec from @toon-protocol/core
 
 **Environment:**
 
@@ -326,7 +326,7 @@ lastSaved: '2026-03-06'
 
 ### Assumptions
 
-1. Epic 2 is complete and @crosstown/town relay is functional before Epic 3 starts
+1. Epic 2 is complete and @toon-protocol/town relay is functional before Epic 3 starts
 2. Circle's FiatTokenV2_2 contract is deployable on Anvil without modifications
 3. viem ^2.46 provides full EIP-712 typed data signing support for EIP-3009
 4. Arbitrum One USDC contract address is `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` (per Story 3.2)
@@ -334,7 +334,7 @@ lastSaved: '2026-03-06'
 
 ### Dependencies
 
-1. @crosstown/town package — Required before all Epic 3 stories
+1. @toon-protocol/town package — Required before all Epic 3 stories
 2. Circle FiatTokenV2_2 contract source — Required for Story 3.1 (Anvil deployment)
 3. viem ^2.46 — Required for Story 3.2+ (chain config, EIP-3009)
 4. Genesis node infrastructure — Required for E2E tests (P3)
@@ -356,10 +356,10 @@ lastSaved: '2026-03-06'
 
 | Service/Component | Impact | Regression Scope |
 | --- | --- | --- |
-| **@crosstown/core** | Chain presets added (resolveChainConfig) | Core tests must pass; new preset tests |
-| **@crosstown/sdk** | NodeConfig extended with chain, x402 config | SDK tests must pass with new config fields |
-| **@crosstown/town** | Express routes added (/publish, /health) | Existing Town lifecycle tests must pass |
-| **@crosstown/connector** | Untouched (ethers.js, architectural debt) | Connector tests unaffected |
+| **@toon-protocol/core** | Chain presets added (resolveChainConfig) | Core tests must pass; new preset tests |
+| **@toon-protocol/sdk** | NodeConfig extended with chain, x402 config | SDK tests must pass with new config fields |
+| **@toon-protocol/town** | Express routes added (/publish, /health) | Existing Town lifecycle tests must pass |
+| **@toon-protocol/connector** | Untouched (ethers.js, architectural debt) | Connector tests unaffected |
 | **Faucet** | Distributes mock USDC instead of AGENT | Faucet tests updated for USDC |
 | **genesis-bootstrap-with-channels.test.ts** | Must pass with USDC channels | E2E regression gate |
 

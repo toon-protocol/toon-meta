@@ -27,11 +27,11 @@ inputDocuments:
   - docs/architecture/12-coding-standards.md
   - docs/architecture/13-test-strategy-and-standards.md
   - docs/architecture/14-security.md
-  - docs/architecture/crosstown-service-protocol.md
+  - docs/architecture/toon-service-protocol.md
   - _bmad-output/project-context.md
   - _bmad-output/planning-artifacts/epics.md
 workflowType: 'architecture'
-project_name: 'crosstown'
+project_name: 'toon'
 user_name: 'Jonathan'
 date: '2026-03-03'
 ---
@@ -47,10 +47,10 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 **Functional Requirements:**
 The project introduces 36 FRs organized across five domains:
 
-- **TOON Codec Prerequisite (FR-SDK-0, 1 FR):** Extract TOON encoder, decoder, and shallow parser to @crosstown/core
+- **TOON Codec Prerequisite (FR-SDK-0, 1 FR):** Extract TOON encoder, decoder, and shallow parser to @toon-protocol/core
 - **SDK Core (FR-SDK-1 to FR-SDK-NEW-1, 14 FRs):** Node composition, handler registry, TOON-native context, signature verification, pricing validation, PaymentHandler bridge, connector lifecycle, network discovery, dev mode, unified identity
 - **NIP-34 Git Forge (FR-NIP34-1 to FR-NIP34-6, 6 FRs):** Git HTTP backend, pubkey-native identity, read-only web UI, PR lifecycle, relay-sourced issues/PRs, package publishing
-- **Relay Publishing (FR-RELAY-1, 1 FR):** Publish @crosstown/town package
+- **Relay Publishing (FR-RELAY-1, 1 FR):** Publish @toon-protocol/town package
 - **Production Protocol Economics (FR-PROD-1 to FR-PROD-6, 6 FRs):** USDC token migration, multi-environment chain config, x402 /publish endpoint, seed relay discovery, service discovery events, enriched /health
 - **Marlin TEE Deployment (FR-TEE-1 to FR-TEE-6, 6 FRs):** Oyster CVM packaging, TEE attestation events, attestation-aware peering, Nautilus KMS identity, Nix reproducible builds, attestation-first bootstrap
 
@@ -77,8 +77,8 @@ These build on the existing 66 FRs from the PRD (Epics 1-17), with the SDK repla
 ### Technical Constraints & Dependencies
 
 - **Must remain E2E compatible:** SDK-based relay must pass all existing genesis-bootstrap-with-channels tests
-- **Connector structural typing:** SDK must NOT import `@crosstown/connector` directly. It accepts a `ConnectorNodeLike` at construction time, continuing the existing `*Like` interface pattern. This keeps the connector as an optional peer dependency.
-- **TOON codec dependency:** The epics doc lists `@crosstown/relay` as an SDK dependency "for TOON codec" — this is architecturally incorrect. The TOON codec lives in `@crosstown/bls`. SDK depending on relay would create circular dependencies when `@crosstown/town` (built on SDK) provides relay functionality. **Resolution: SDK depends on `@crosstown/bls` for TOON codec, or the codec is extracted to `@crosstown/core` or a standalone package.**
+- **Connector structural typing:** SDK must NOT import `@toon-protocol/connector` directly. It accepts a `ConnectorNodeLike` at construction time, continuing the existing `*Like` interface pattern. This keeps the connector as an optional peer dependency.
+- **TOON codec dependency:** The epics doc lists `@toon-protocol/relay` as an SDK dependency "for TOON codec" — this is architecturally incorrect. The TOON codec lives in `@toon-protocol/bls`. SDK depending on relay would create circular dependencies when `@toon-protocol/town` (built on SDK) provides relay functionality. **Resolution: SDK depends on `@toon-protocol/bls` for TOON codec, or the codec is extracted to `@toon-protocol/core` or a standalone package.**
 - **System dependency for Rig:** `git` binary must be in PATH (child_process spawning)
 - **No Go dependency:** Rig is pure TypeScript — mechanical template port from Forgejo's Go HTML
 - **Crypto libraries:** @scure/bip39, @scure/bip32 for seed phrase identity derivation
@@ -179,7 +179,7 @@ Epic 4 (Marlin TEE Deployment) introduces 6 FRs:
 ### New Cross-Cutting Concerns
 
 9. **Multi-Chain Configuration:** Chain-specific contract addresses, RPC URLs, and token configs must thread through SDK, connector, and node layers. Affects NodeConfig, settlement, and pricing.
-10. **x402 Facilitation:** The Crosstown node becomes an HTTP-to-ILP bridge. The `/publish` endpoint must query destination SPSP, construct ILP PREPARE with TOON data, route through connector, and return FULFILL results. Touches entrypoint, connector integration, and pricing.
+10. **x402 Facilitation:** The TOON node becomes an HTTP-to-ILP bridge. The `/publish` endpoint must query destination SPSP, construct ILP PREPARE with TOON data, route through connector, and return FULFILL results. Touches entrypoint, connector integration, and pricing.
 11. **Seed Relay Discovery:** kind:10036 events replace genesis-based bootstrap. Affects BootstrapService, node startup, and network topology assumptions.
 12. **TEE Attestation Lifecycle:** kind:10033 events must be published on startup, refreshed periodically, and verified by peers during bootstrap. Affects identity, bootstrap, and peering logic.
 13. **Autonomous Agent Readiness:** Three invariants (deterministic bootstrap, programmatic deployment, self-describing economics) affect every public interface — `/health`, kind:10035, kind:10036, and node startup behavior.
@@ -258,7 +258,7 @@ Each new package (sdk, town, rig) will be initialized with:
 
 **Critical Decisions (Block Implementation):**
 
-1. TOON codec extracted to @crosstown/core (unblocks SDK dependency graph)
+1. TOON codec extracted to @toon-protocol/core (unblocks SDK dependency graph)
 2. SDK identity module location (unblocks Story 1.1)
 3. PaymentHandler bridge pattern with isTransit semantics (unblocks Story 1.6)
 
@@ -274,7 +274,7 @@ Each new package (sdk, town, rig) will be initialized with:
 
 | Attribute | Value                                                                                            |
 | --------- | ------------------------------------------------------------------------------------------------ |
-| Decision  | Extract TOON encoder/decoder to `@crosstown/core`                                                |
+| Decision  | Extract TOON encoder/decoder to `@toon-protocol/core`                                                |
 | Rationale | Avoids circular dependency: SDK → relay → SDK. Core is the shared foundation. Codec is ~100 LOC. |
 | Affects   | SDK, BLS, relay (import path change), core (new @toon-format/toon dependency)                    |
 | Version   | @toon-format/toon ^1.0 (existing, no change)                                                     |
@@ -328,7 +328,7 @@ Each new package (sdk, town, rig) will be initialized with:
 
 | Attribute | Value                                                                                                                |
 | --------- | -------------------------------------------------------------------------------------------------------------------- |
-| Decision  | Identity functions in `@crosstown/sdk`                                                                               |
+| Decision  | Identity functions in `@toon-protocol/sdk`                                                                               |
 | Rationale | Identity is an SDK concern per Story 1.1. Town and Rig both depend on SDK, so no access issue. Keeps core unchanged. |
 | Affects   | SDK package                                                                                                          |
 | Version   | @scure/bip39 ^2.0, @scure/bip32 ^2.0                                                                                 |
@@ -337,19 +337,19 @@ Each new package (sdk, town, rig) will be initialized with:
 
 | Attribute | Value |
 |-----------|-------|
-| Decision | [viem](https://viem.sh/) ^2.46 for all new Crosstown EVM code |
+| Decision | [viem](https://viem.sh/) ^2.46 for all new TOON EVM code |
 | Rationale | TypeScript-native, tree-shakeable, built-in Arbitrum chain definitions, EIP-712 typed data signing (needed for EIP-3009/x402), and ABI encoding. The standard for new TypeScript EVM projects. |
 | Affects | Epic 3 (chain config, x402 settlement, USDC interaction), Epic 4 (attestation contract verification) |
 | Version | viem ^2.46 |
 
-**Architectural Debt Note:** The existing `@crosstown/connector` uses ethers.js internally. viem is for NEW Crosstown code only — no migration of connector code. Two EVM libraries coexist in the monorepo. Consolidation deferred until connector is under Crosstown control. Document and accept this as explicit debt.
+**Architectural Debt Note:** The existing `@toon-protocol/connector` uses ethers.js internally. viem is for NEW TOON code only — no migration of connector code. Two EVM libraries coexist in the monorepo. Consolidation deferred until connector is under TOON control. Document and accept this as explicit debt.
 
 ### Decision 8: Multi-Chain Configuration Architecture (Epic 3)
 
 | Attribute | Value |
 |-----------|-------|
-| Decision | Chain presets in `@crosstown/core` with per-chain contract registries |
-| Rationale | `NodeConfig.chain` selects a preset (`'anvil'`, `'arbitrum-sepolia'`, `'arbitrum-one'`). Each preset bundles RPC URL, chain ID, USDC address, and TokenNetwork address. Env vars (`CROSSTOWN_CHAIN`, `CROSSTOWN_RPC_URL`) override for operators. |
+| Decision | Chain presets in `@toon-protocol/core` with per-chain contract registries |
+| Rationale | `NodeConfig.chain` selects a preset (`'anvil'`, `'arbitrum-sepolia'`, `'arbitrum-one'`). Each preset bundles RPC URL, chain ID, USDC address, and TokenNetwork address. Env vars (`TOON_CHAIN`, `TOON_RPC_URL`) override for operators. |
 | Affects | core (chain presets), SDK (NodeConfig extension), connector (settlement config), town/rig (pass-through) |
 | Pattern | Config resolution: env vars > explicit config > chain preset defaults |
 
@@ -392,8 +392,8 @@ Port 7100:
 
 | Attribute | Value |
 |-----------|-------|
-| Decision | Docker Compose manifest adapted for Oyster CVM runtime, using existing Crosstown Docker image |
-| Rationale | Oyster CVM uses `docker-compose.yml` — downloads images at runtime into the enclave. The existing Crosstown Docker image is the base. Add `supervisord.conf` for multi-process orchestration (relay + connector + attestation server). |
+| Decision | Docker Compose manifest adapted for Oyster CVM runtime, using existing TOON Docker image |
+| Rationale | Oyster CVM uses `docker-compose.yml` — downloads images at runtime into the enclave. The existing TOON Docker image is the base. Add `supervisord.conf` for multi-process orchestration (relay + connector + attestation server). |
 | Affects | Epic 4, Story 4.1 |
 | Dependency | `oyster-cvm` CLI tool for deployment |
 | Deferred | Nix reproducible builds (Story 4.5) — specific Nix configuration deferred to Epic 4 start when Marlin SDK version is known |
@@ -405,7 +405,7 @@ Port 7100:
 | Attribute | Value |
 |-----------|-------|
 | Decision | Attestation as a node lifecycle phase — publish kind:10033 on startup, refresh on configurable interval, dual-channel exposure |
-| Rationale | Attestation is a trust primitive. It publishes to the Crosstown relay network AND exposes via the `/health` endpoint. Peers parse kind:10033 during `BootstrapService.discoverPeers()` and prefer attested relays. HTTP clients and autonomous agents read attestation status from `/health` without requiring Nostr subscription. |
+| Rationale | Attestation is a trust primitive. It publishes to the TOON relay network AND exposes via the `/health` endpoint. Peers parse kind:10033 during `BootstrapService.discoverPeers()` and prefer attested relays. HTTP clients and autonomous agents read attestation status from `/health` without requiring Nostr subscription. |
 | Affects | Node startup sequence, BootstrapService, kind:10033 event format, `/health` endpoint |
 | Pattern | Attestation state: `valid` → `stale` (30s grace) → `unattested`. Trust degrades; money doesn't. Payment channels remain open regardless of attestation status. |
 
@@ -509,7 +509,7 @@ node.onDefault(rejectUnknown);
 
 **Pattern 3: Shallow TOON Parse Type**
 
-The shallow parser extracts routing metadata without full decode. Standard return type in `@crosstown/core`:
+The shallow parser extracts routing metadata without full decode. Standard return type in `@toon-protocol/core`:
 
 ```typescript
 interface ToonRoutingMeta {
@@ -546,14 +546,14 @@ Disambiguation: `node.on(number, ...)` = handler registration. `node.on(string, 
 
 **Pattern 5: Error Hierarchy**
 
-All SDK errors extend `CrosstownError` from `@crosstown/core`:
+All SDK errors extend `ToonError` from `@toon-protocol/core`:
 
 ```typescript
 // New SDK error classes
-class NodeError extends CrosstownError {} // Lifecycle: already started, already stopped
-class HandlerError extends CrosstownError {} // Handler dispatch failures
-class VerificationError extends CrosstownError {} // Schnorr verification failures
-class PricingError extends CrosstownError {} // Payment validation failures
+class NodeError extends ToonError {} // Lifecycle: already started, already stopped
+class HandlerError extends ToonError {} // Handler dispatch failures
+class VerificationError extends ToonError {} // Schnorr verification failures
+class PricingError extends ToonError {} // Payment validation failures
 ```
 
 Error code mapping to ILP:
@@ -657,7 +657,7 @@ export async function blame(
 export function createGitHttpBackend(repoDir: string): express.RequestHandler;
 ```
 
-All functions use `child_process.execFile` (not `exec`) for safety. Errors throw `RigError extends CrosstownError`.
+All functions use `child_process.execFile` (not `exec`) for safety. Errors throw `RigError extends ToonError`.
 
 **Pattern 9: Relay Query Functions**
 
@@ -693,7 +693,7 @@ Returns decoded `NostrEvent` arrays (not TOON — the UI needs structured data).
 
 **Pattern 10: Chain Preset & Config Resolution**
 
-Chain presets live in `@crosstown/core`. One canonical type, one resolution function. Config resolution order: env vars > explicit config > preset defaults.
+Chain presets live in `@toon-protocol/core`. One canonical type, one resolution function. Config resolution order: env vars > explicit config > preset defaults.
 
 ```typescript
 // packages/core/src/chain/presets.ts
@@ -725,7 +725,7 @@ export function resolveChainConfig(
 ): ChainPreset;
 ```
 
-Location: `packages/core/src/chain/presets.ts`. Exported from `@crosstown/core`.
+Location: `packages/core/src/chain/presets.ts`. Exported from `@toon-protocol/core`.
 
 **Pattern 11: viem Client Factory**
 
@@ -901,14 +901,14 @@ Located at `docker/supervisord.conf`.
 
 1. Use `ctx.accept()`/`ctx.reject()` in handlers — never return response objects
 2. Use `child_process.execFile` (not `exec`) for all git operations in the Rig
-3. Place TOON shallow parse types in `@crosstown/core`, not SDK
-4. Extend `CrosstownError` for all new error classes
+3. Place TOON shallow parse types in `@toon-protocol/core`, not SDK
+4. Extend `ToonError` for all new error classes
 5. Use feature-based route files for Rig Express routes
 6. Follow existing project-context rules for all naming, imports, types, and testing
-7. Use `resolveChainConfig()` from `@crosstown/core` for all chain configuration — never hardcode chain IDs or RPC URLs
+7. Use `resolveChainConfig()` from `@toon-protocol/core` for all chain configuration — never hardcode chain IDs or RPC URLs
 8. Create viem clients via the core factory function — never instantiate directly with hardcoded chains
 9. Mount Express on the same `http.Server` as the WebSocket relay — never create separate HTTP servers
-10. Use viem for all new EVM code — never ethers.js in new Crosstown packages (ethers.js is connector-only legacy)
+10. Use viem for all new EVM code — never ethers.js in new TOON packages (ethers.js is connector-only legacy)
 11. Follow the canonical kind:10033 event structure — content is always `JSON.stringify()` with the defined schema
 12. Include the `tee?` field in `/health` response only when the node is running inside a TEE — never fake attestation data
 
@@ -939,7 +939,7 @@ const usdcAddress = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'; // Mainnet!
 // WRONG: ethers.js in new code
 import { ethers } from 'ethers';
 const provider = new ethers.JsonRpcProvider(url);
-// CORRECT: import { createViemPublicClient } from '@crosstown/core';
+// CORRECT: import { createViemPublicClient } from '@toon-protocol/core';
 
 // WRONG: Separate HTTP server for /publish
 app.listen(3200); // New port for x402
@@ -952,12 +952,12 @@ content: 'pcr0=abc123,pcr1=def456'
 
 ## Project Structure & Boundaries
 
-### Modified Package: @crosstown/core (TOON codec extraction + chain config)
+### Modified Package: @toon-protocol/core (TOON codec extraction + chain config)
 
 ```
 packages/core/src/
 ├── ... (existing modules unchanged)
-├── toon/                          # Extracted from @crosstown/bls (Epic 1)
+├── toon/                          # Extracted from @toon-protocol/bls (Epic 1)
 │   ├── index.ts                   # Re-exports encoder, decoder, shallow-parse
 │   ├── encoder.ts                 # Nostr event → TOON bytes (moved from bls)
 │   ├── decoder.ts                 # TOON bytes → Nostr event (moved from bls)
@@ -978,11 +978,11 @@ packages/core/src/
 │   └── seed-relay.test.ts
 ```
 
-### New Package: @crosstown/sdk (Epic 1)
+### New Package: @toon-protocol/sdk (Epic 1)
 
 ```
 packages/sdk/
-├── package.json                   # ESM, peer dep on @crosstown/connector
+├── package.json                   # ESM, peer dep on @toon-protocol/connector
 ├── tsconfig.json                  # Extends root
 ├── tsup.config.ts                 # ESM build
 ├── src/
@@ -1007,11 +1007,11 @@ packages/sdk/
 │       └── full-pipeline.test.ts  # Integration: TOON → parse → verify → price → dispatch
 ```
 
-### New Package: @crosstown/town (Epics 2 + 3)
+### New Package: @toon-protocol/town (Epics 2 + 3)
 
 ```
 packages/town/
-├── package.json                   # Depends on @crosstown/sdk, @crosstown/core, viem
+├── package.json                   # Depends on @toon-protocol/sdk, @toon-protocol/core, viem
 ├── tsconfig.json
 ├── tsup.config.ts
 ├── src/
@@ -1020,7 +1020,7 @@ packages/town/
 │   ├── town.ts                    # startTown() — creates SDK node with relay handlers
 │   ├── server.ts                  # Story 3.3: Dual-protocol server (Express + WSS on port 7100)
 │   ├── server.test.ts
-│   ├── cli.ts                     # CLI entrypoint: npx @crosstown/town
+│   ├── cli.ts                     # CLI entrypoint: npx @toon-protocol/town
 │   ├── handlers/
 │   │   ├── index.ts
 │   │   ├── event-storage.ts       # Story 2.1: decode → store → accept
@@ -1044,19 +1044,19 @@ packages/town/
 ├── Dockerfile                     # Docker image (deterministic — no apt-get update, lockfile pinned)
 ```
 
-### New Package: @crosstown/rig (Epic 5)
+### New Package: @toon-protocol/rig (Epic 5)
 
 ```
 packages/rig/
-├── package.json                   # Depends on @crosstown/sdk, @crosstown/core, express, eta
+├── package.json                   # Depends on @toon-protocol/sdk, @toon-protocol/core, express, eta
 ├── tsconfig.json
 ├── tsup.config.ts
 ├── src/
 │   ├── index.ts                   # Public API: startRig, RigConfig
 │   ├── types.ts                   # RigConfig, TreeEntry, CommitEntry, BlameLine
-│   ├── errors.ts                  # RigError extends CrosstownError
+│   ├── errors.ts                  # RigError extends ToonError
 │   ├── rig.ts                     # startRig() — creates SDK node + Express app
-│   ├── cli.ts                     # CLI entrypoint: npx @crosstown/rig
+│   ├── cli.ts                     # CLI entrypoint: npx @toon-protocol/rig
 │   ├── app.ts                     # Express app setup, middleware, route mounting
 │   ├── handlers/                  # NIP-34 ILP packet handlers (Story 5.1, 5.4)
 │   │   ├── index.ts
@@ -1141,12 +1141,12 @@ docker/
 **Package Dependency Graph:**
 
 ```
-@crosstown/core          ← foundation (TOON codec, types, bootstrap, discovery, SPSP, chain config)
+@toon-protocol/core          ← foundation (TOON codec, types, bootstrap, discovery, SPSP, chain config)
     ↑          ↑
-@crosstown/bls    @crosstown/sdk    ← siblings, both depend on core
+@toon-protocol/bls    @toon-protocol/sdk    ← siblings, both depend on core
                       ↑
               ┌───────┴────────┐
-@crosstown/town (+ bls)    @crosstown/rig
+@toon-protocol/town (+ bls)    @toon-protocol/rig
 ```
 
 Town depends on SDK + BLS (for EventStore) + viem (for x402/EIP-3009). Rig depends on SDK + core. SDK depends on core only.
@@ -1336,17 +1336,17 @@ All 7 NFRs are architecturally addressed.
 1. **SDK → BLS dependency clarified.** The cross-cutting concern #8 originally stated "sdk depends on core+bls" and the dependency graph showed a linear chain (core ← bls ← sdk). With TOON codec moved to core (Decision 1) and pricing created fresh in SDK (Story 1.5), the SDK does not require BLS. The corrected dependency graph:
 
 ```
-@crosstown/core          ← foundation (TOON codec, types, bootstrap, discovery, SPSP)
+@toon-protocol/core          ← foundation (TOON codec, types, bootstrap, discovery, SPSP)
     ↑          ↑
-@crosstown/bls    @crosstown/sdk    ← siblings, both depend on core
+@toon-protocol/bls    @toon-protocol/sdk    ← siblings, both depend on core
                       ↑
               ┌───────┴────────┐
-@crosstown/town (+ bls)    @crosstown/rig
+@toon-protocol/town (+ bls)    @toon-protocol/rig
 ```
 
 Town depends on SDK + BLS (for EventStore). Rig depends on SDK + core. SDK depends on core only.
 
-2. **NFR-SDK-7 relay dependency superseded.** The epics doc lists `@crosstown/relay` as an SDK dependency "for TOON codec." Decision 1 moves TOON to core, making this stale. SDK's actual dependencies: `@crosstown/core`, `nostr-tools`, `@scure/bip39`, `@scure/bip32`. No relay or BLS dependency.
+2. **NFR-SDK-7 relay dependency superseded.** The epics doc lists `@toon-protocol/relay` as an SDK dependency "for TOON codec." Decision 1 moves TOON to core, making this stale. SDK's actual dependencies: `@toon-protocol/core`, `nostr-tools`, `@scure/bip39`, `@scure/bip32`. No relay or BLS dependency.
 
 **Nice-to-Have Gaps Noted:**
 
@@ -1405,7 +1405,7 @@ Town depends on SDK + BLS (for EventStore). Rig depends on SDK + core. SDK depen
 - Rig event caching layer (deferred until relay latency becomes a UX problem)
 - Multi-relay redundancy for Rig queries
 - Rig offline mode
-- ethers.js → viem migration in connector (deferred until connector is under Crosstown control)
+- ethers.js → viem migration in connector (deferred until connector is under TOON control)
 
 ### Implementation Handoff
 

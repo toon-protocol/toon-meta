@@ -22,7 +22,7 @@ So that I can develop locally on Anvil, test on Arbitrum Sepolia, and deploy to 
 
 3. Given the node configuration, when I specify `chain: 'arbitrum-one'`, then the node uses Arbitrum One chainId `42161`, a public RPC endpoint, and the production USDC contract address (`0xaf88d065e77c8cC2239327C5EDb3A432268e5831`).
 
-4. Given environment variables, when `CROSSTOWN_CHAIN` is set, then it overrides the config file chain selection, `CROSSTOWN_RPC_URL` allows custom RPC endpoint override, and `CROSSTOWN_TOKEN_NETWORK` allows custom TokenNetwork address override.
+4. Given environment variables, when `TOON_CHAIN` is set, then it overrides the config file chain selection, `TOON_RPC_URL` allows custom RPC endpoint override, and `TOON_TOKEN_NETWORK` allows custom TokenNetwork address override.
 
 ## Tasks / Subtasks
 
@@ -55,12 +55,12 @@ So that I can develop locally on Anvil, test on Arbitrum Sepolia, and deploy to 
     - `tokenNetworkAddress: ''` (empty — TokenNetwork not yet deployed on Arbitrum One; to be set via env var or config)
 
   - [x] Implement `resolveChainConfig(chain?: ChainName | string): ChainPreset`:
-    1. Check `process.env.CROSSTOWN_CHAIN` — if set, it overrides the `chain` parameter
+    1. Check `process.env.TOON_CHAIN` — if set, it overrides the `chain` parameter
     2. Default to `'anvil'` if neither env var nor parameter is provided
     3. Look up the chain name in `CHAIN_PRESETS`
-    4. If not found, throw `CrosstownError` with message `Unknown chain "${name}". Valid chains: anvil, arbitrum-sepolia, arbitrum-one`
-    5. Check `process.env.CROSSTOWN_RPC_URL` — if set, override the preset's `rpcUrl`
-    6. Check `process.env.CROSSTOWN_TOKEN_NETWORK` — if set, override the preset's `tokenNetworkAddress`
+    4. If not found, throw `ToonError` with message `Unknown chain "${name}". Valid chains: anvil, arbitrum-sepolia, arbitrum-one`
+    5. Check `process.env.TOON_RPC_URL` — if set, override the preset's `rpcUrl`
+    6. Check `process.env.TOON_TOKEN_NETWORK` — if set, override the preset's `tokenNetworkAddress`
     7. Return the resolved `ChainPreset`
   - [x] **IMPORTANT:** The function returns a new object (defensive copy), not a reference to the shared preset, to prevent mutation.
   - [x] **IMPORTANT:** Import `MOCK_USDC_ADDRESS` from `./usdc.js` to avoid hardcoding the address in two places.
@@ -78,9 +78,9 @@ So that I can develop locally on Anvil, test on Arbitrum Sepolia, and deploy to 
   - [x] Implementation: Returns `{ name: 'TokenNetwork', version: '1', chainId: config.chainId, verifyingContract: config.tokenNetworkAddress }`
   - [x] **IMPORTANT:** Must match the existing EIP-712 domain structure in `packages/client/src/signing/evm-signer.ts` (`getBalanceProofDomain()`). The domain name is `'TokenNetwork'`, version is `'1'`, and `verifyingContract` is the TokenNetwork address.
   - [x] **NOTE:** This function is a convenience wrapper. The existing `EvmSigner.signBalanceProof()` already accepts `chainId` and `tokenNetworkAddress` as parameters. This function makes it easy to get the correct domain from a resolved chain config without manually extracting fields.
-  - [x] **NOTE:** The existing `getBalanceProofDomain()` in `evm-signer.ts` casts `verifyingContract` to viem's `Hex` type. Since `buildEip712Domain()` lives in `@crosstown/core` (which does not depend on viem), it returns plain `string`. Consumers in the client package can cast to `Hex` if needed. This keeps the core package viem-free per Decision 7.
+  - [x] **NOTE:** The existing `getBalanceProofDomain()` in `evm-signer.ts` casts `verifyingContract` to viem's `Hex` type. Since `buildEip712Domain()` lives in `@toon-protocol/core` (which does not depend on viem), it returns plain `string`. Consumers in the client package can cast to `Hex` if needed. This keeps the core package viem-free per Decision 7.
 
-- [x] Task 3: Export chain config from `@crosstown/core` (AC: #1, #2, #3)
+- [x] Task 3: Export chain config from `@toon-protocol/core` (AC: #1, #2, #3)
   - [x] Add exports to `packages/core/src/index.ts`:
     ```typescript
     export {
@@ -116,16 +116,16 @@ So that I can develop locally on Anvil, test on Arbitrum Sepolia, and deploy to 
     /** Chain preset name (default: 'anvil'). See resolveChainConfig(). */
     chain?: string;
     ```
-  - [x] In `createNode()`, resolve chain config and pass to the underlying `createCrosstownNode()` if settlement info is needed.
+  - [x] In `createNode()`, resolve chain config and pass to the underlying `createToonNode()` if settlement info is needed.
   - [x] **NOTE:** The SDK currently receives settlement config via `NodeConfig` fields. Adding `chain` as a convenience shorthand that auto-populates settlement fields if not explicitly set.
 
-- [x] Task 6: Update `docker/src/shared.ts` to support `CROSSTOWN_CHAIN` env var (AC: #4)
+- [x] Task 6: Update `docker/src/shared.ts` to support `TOON_CHAIN` env var (AC: #4)
   - [x] The existing `parseConfig()` in `docker/src/shared.ts` reads chain config from individual env vars (`SUPPORTED_CHAINS`, `SETTLEMENT_ADDRESS_*`, `TOKEN_NETWORK_*`, `PREFERRED_TOKEN_*`).
-  - [x] Add support for `CROSSTOWN_CHAIN` as a simplified alternative:
-    - If `CROSSTOWN_CHAIN` is set and `SUPPORTED_CHAINS` is NOT set, use `resolveChainConfig()` to derive the settlement config automatically: construct `supportedChains`, `settlementAddresses`, `preferredTokens`, `tokenNetworks`, and the chain RPC URL from the resolved preset.
-    - If both are set, `SUPPORTED_CHAINS` (explicit) wins over `CROSSTOWN_CHAIN` (convenience).
+  - [x] Add support for `TOON_CHAIN` as a simplified alternative:
+    - If `TOON_CHAIN` is set and `SUPPORTED_CHAINS` is NOT set, use `resolveChainConfig()` to derive the settlement config automatically: construct `supportedChains`, `settlementAddresses`, `preferredTokens`, `tokenNetworks`, and the chain RPC URL from the resolved preset.
+    - If both are set, `SUPPORTED_CHAINS` (explicit) wins over `TOON_CHAIN` (convenience).
   - [x] **NOTE:** This is an additive change. The existing env var pattern continues to work unchanged.
-  - [x] **NOTE:** The existing `parseConfig()` does not have a per-chain RPC URL env var pattern (it only reads `SUPPORTED_CHAINS`, `SETTLEMENT_ADDRESS_*`, `TOKEN_NETWORK_*`, `PREFERRED_TOKEN_*`). The `CROSSTOWN_CHAIN` convenience also sets the RPC URL from the preset, filling a gap in the existing env var pattern. `CROSSTOWN_RPC_URL` overrides the preset RPC if needed.
+  - [x] **NOTE:** The existing `parseConfig()` does not have a per-chain RPC URL env var pattern (it only reads `SUPPORTED_CHAINS`, `SETTLEMENT_ADDRESS_*`, `TOKEN_NETWORK_*`, `PREFERRED_TOKEN_*`). The `TOON_CHAIN` convenience also sets the RPC URL from the preset, filling a gap in the existing env var pattern. `TOON_RPC_URL` overrides the preset RPC if needed.
 
 - [x] Task 7: Enable ATDD tests and make them pass (AC: #1, #2, #3, #4)
   - [x] In `packages/core/src/chain/chain-config.test.ts`:
@@ -133,7 +133,7 @@ So that I can develop locally on Anvil, test on Arbitrum Sepolia, and deploy to 
     - Remove `.skip` from all tests
     - Update test implementations:
       - **3.2-UNIT-001 (3 tests):** Call `resolveChainConfig()` with each chain name and assert chainId, rpcUrl, usdcAddress, name
-      - **3.2-UNIT-002 (2 tests):** Use `vi.stubEnv()` to set `CROSSTOWN_CHAIN` and `CROSSTOWN_RPC_URL`, verify overrides work
+      - **3.2-UNIT-002 (2 tests):** Use `vi.stubEnv()` to set `TOON_CHAIN` and `TOON_RPC_URL`, verify overrides work
       - **3.2-UNIT-003 (1 test):** Call `resolveChainConfig('invalid-chain')` and verify it throws with clear error
       - **3.2-UNIT-004 (1 test):** Verify all fields exist and have correct types
       - **3.9-UNIT-001 (1 test):** Static analysis scan for ethers imports in packages/{core,sdk,town}/src/ (verification by absence pattern from Story 2-7)
@@ -170,7 +170,7 @@ Before:
 After:
 - `chain: 'anvil'` or `chain: 'arbitrum-one'` configures everything
 - resolveChainConfig() provides chainId, rpcUrl, usdcAddress, tokenNetworkAddress
-- CROSSTOWN_CHAIN, CROSSTOWN_RPC_URL, and CROSSTOWN_TOKEN_NETWORK env vars for deployment flexibility
+- TOON_CHAIN, TOON_RPC_URL, and TOON_TOKEN_NETWORK env vars for deployment flexibility
 - EIP-712 domain separator constructed from resolved chain config
 - Three presets: anvil (31337), arbitrum-sepolia (421614), arbitrum-one (42161)
 ```
@@ -178,10 +178,10 @@ After:
 ### Scope Boundaries
 
 **In scope:**
-- `resolveChainConfig()` function in `@crosstown/core`
+- `resolveChainConfig()` function in `@toon-protocol/core`
 - Chain presets for Anvil, Arbitrum Sepolia, Arbitrum One
 - `buildEip712Domain()` helper
-- Environment variable overrides (`CROSSTOWN_CHAIN`, `CROSSTOWN_RPC_URL`, `CROSSTOWN_TOKEN_NETWORK`)
+- Environment variable overrides (`TOON_CHAIN`, `TOON_RPC_URL`, `TOON_TOKEN_NETWORK`)
 - Integration with `TownConfig.chain` and `NodeConfig.chain`
 - ATDD test enablement (9 tests in `chain-config.test.ts`)
 
@@ -203,9 +203,9 @@ After:
 ### Environment Variable Override Precedence
 
 ```
-1. CROSSTOWN_CHAIN overrides config.chain parameter
-2. CROSSTOWN_RPC_URL overrides the preset's rpcUrl
-3. CROSSTOWN_TOKEN_NETWORK overrides the preset's tokenNetworkAddress
+1. TOON_CHAIN overrides config.chain parameter
+2. TOON_RPC_URL overrides the preset's rpcUrl
+3. TOON_TOKEN_NETWORK overrides the preset's tokenNetworkAddress
 4. Explicit chainRpcUrls/tokenNetworks/preferredTokens in TownConfig override chain preset defaults
 ```
 
@@ -228,7 +228,7 @@ The `buildEip712Domain()` function constructs the EIP-712 domain separator used 
 
 The existing settlement config in `docker/src/shared.ts` uses a chain identifier format `evm:base:<chainId>` (e.g., `evm:base:31337`). The chain preset integration in `startTown()` constructs these identifiers from the resolved `chainConfig.chainId`, maintaining backward compatibility with existing Docker deployments.
 
-Existing env vars (`SUPPORTED_CHAINS`, `TOKEN_NETWORK_EVM_BASE_31337`, etc.) continue to work. The new `CROSSTOWN_CHAIN` env var is a convenience shorthand for the common case of using a standard chain preset.
+Existing env vars (`SUPPORTED_CHAINS`, `TOKEN_NETWORK_EVM_BASE_31337`, etc.) continue to work. The new `TOON_CHAIN` env var is a convenience shorthand for the common case of using a standard chain preset.
 
 ### Files Changed (Anticipated)
 
@@ -241,7 +241,7 @@ Existing env vars (`SUPPORTED_CHAINS`, `TOKEN_NETWORK_EVM_BASE_31337`, etc.) con
 - `packages/sdk/src/create-node.ts` — Add `chain` field to `NodeConfig`
 
 **Modified files (docker):**
-- `docker/src/shared.ts` — Support `CROSSTOWN_CHAIN` env var as convenience shorthand
+- `docker/src/shared.ts` — Support `TOON_CHAIN` env var as convenience shorthand
 
 **Modified files (tests):**
 - `packages/core/src/chain/chain-config.test.ts` — Enable all 9 ATDD tests, implement assertions
@@ -261,8 +261,8 @@ Existing env vars (`SUPPORTED_CHAINS`, `TOKEN_NETWORK_EVM_BASE_31337`, etc.) con
 | T-3.2-01 | `resolveChainConfig("anvil") returns local Anvil preset` | #1 | 3.2-UNIT-001 | E3-R004 | P0 | U |
 | T-3.2-02 | `resolveChainConfig("arbitrum-sepolia") returns testnet preset` | #2 | 3.2-UNIT-001 | E3-R004 | P0 | U |
 | T-3.2-03 | `resolveChainConfig("arbitrum-one") returns production preset` | #3 | 3.2-UNIT-001 | E3-R004 | P0 | U |
-| T-3.2-04 | `CROSSTOWN_CHAIN env var overrides config file chain selection` | #4 | 3.2-UNIT-002 | — | P1 | U |
-| T-3.2-05 | `CROSSTOWN_RPC_URL env var overrides preset RPC endpoint` | #4 | 3.2-UNIT-002 | — | P1 | U |
+| T-3.2-04 | `TOON_CHAIN env var overrides config file chain selection` | #4 | 3.2-UNIT-002 | — | P1 | U |
+| T-3.2-05 | `TOON_RPC_URL env var overrides preset RPC endpoint` | #4 | 3.2-UNIT-002 | — | P1 | U |
 | T-3.2-06 | `unknown chain name throws clear error message` | #1, #2, #3 | 3.2-UNIT-003 | — | P1 | U |
 | T-3.2-07 | `ChainPreset has all required fields` | #1, #2, #3 | 3.2-UNIT-004 | — | P2 | U |
 | T-3.2-08 | `no ethers imports in Epic 3 code` | — | 3.9-UNIT-001 | E3-R009 | P2 | U (static) |
@@ -279,19 +279,19 @@ import {
   CHAIN_PRESETS,
   type ChainPreset,
   type ChainName,
-} from '@crosstown/core';
+} from '@toon-protocol/core';
 
 // Existing USDC constants (from Story 3.1)
-import { MOCK_USDC_ADDRESS, USDC_DECIMALS } from '@crosstown/core';
+import { MOCK_USDC_ADDRESS, USDC_DECIMALS } from '@toon-protocol/core';
 
 // Existing EVM signer (uses chainId for EIP-712 domain)
-import { EvmSigner } from '@crosstown/client';
+import { EvmSigner } from '@toon-protocol/client';
 ```
 
 ### Critical Rules
 
 - **Never hardcode chainId in EIP-712 domain separators** — always use `resolveChainConfig().chainId` (E3-R004 mitigation).
-- **CROSSTOWN_CHAIN env var overrides config parameter** — env vars are the deployment-time override mechanism.
+- **TOON_CHAIN env var overrides config parameter** — env vars are the deployment-time override mechanism.
 - **Empty `tokenNetworkAddress` for staging/production** — TokenNetwork contracts are not yet deployed on Arbitrum Sepolia/One. The field exists but is empty until Epic 3 progresses to on-chain deployment.
 - **`evm:base:` prefix for chain identifiers** — must match the existing format used by `docker/src/shared.ts` and the connector's settlement infrastructure.
 - **viem-only for new code** — Decision 7 mandates viem for all new chain interaction code. The connector's ethers.js is architectural debt, not to be touched.
@@ -323,17 +323,17 @@ Claude Opus 4.6 (claude-opus-4-6)
 
 ### Debug Log References
 
-- **CrosstownError constructor mismatch:** The `CrosstownError` class requires a `code` argument as the second parameter (`constructor(message: string, code: string, cause?: Error)`). Initial implementation called it with only one argument, causing a DTS build error. Fixed by adding `'INVALID_CHAIN'` error code.
+- **ToonError constructor mismatch:** The `ToonError` class requires a `code` argument as the second parameter (`constructor(message: string, code: string, cause?: Error)`). Initial implementation called it with only one argument, causing a DTS build error. Fixed by adding `'INVALID_CHAIN'` error code.
 - **Prettier formatting:** `town.ts` had a formatting issue after edits (long ternary expressions). Fixed with `prettier --write`.
 
 ### Completion Notes List
 
-- **Task 1 (chain-config.ts):** Created `packages/core/src/chain/chain-config.ts` with `ChainPreset` interface, `ChainName` type, `CHAIN_PRESETS` map (anvil, arbitrum-sepolia, arbitrum-one), and `resolveChainConfig()` function. Imports `MOCK_USDC_ADDRESS` from `./usdc.js` to avoid hardcoding. Returns defensive copies. Supports `CROSSTOWN_CHAIN`, `CROSSTOWN_RPC_URL`, and `CROSSTOWN_TOKEN_NETWORK` env var overrides.
+- **Task 1 (chain-config.ts):** Created `packages/core/src/chain/chain-config.ts` with `ChainPreset` interface, `ChainName` type, `CHAIN_PRESETS` map (anvil, arbitrum-sepolia, arbitrum-one), and `resolveChainConfig()` function. Imports `MOCK_USDC_ADDRESS` from `./usdc.js` to avoid hardcoding. Returns defensive copies. Supports `TOON_CHAIN`, `TOON_RPC_URL`, and `TOON_TOKEN_NETWORK` env var overrides.
 - **Task 2 (buildEip712Domain):** Added `buildEip712Domain()` to `chain-config.ts`. Returns `{ name: 'TokenNetwork', version: '1', chainId, verifyingContract }` matching the existing `getBalanceProofDomain()` pattern in `evm-signer.ts`. Uses plain `string` for `verifyingContract` (not viem `Hex`) to keep core viem-free per Decision 7.
 - **Task 3 (core exports):** Added exports for `resolveChainConfig`, `buildEip712Domain`, `CHAIN_PRESETS`, `ChainPreset`, `ChainName` to `packages/core/src/index.ts`.
 - **Task 4 (TownConfig integration):** Added optional `chain?: string` field to `TownConfig`. In `startTown()`, calls `resolveChainConfig(config.chain)` and auto-populates `chainRpcUrls`, `preferredTokens`, and `tokenNetworks` from the resolved chain preset when not explicitly set. Uses `evm:base:<chainId>` key format to match existing convention.
 - **Task 5 (NodeConfig integration):** Added optional `chain?: string` field to `NodeConfig`. In `createNode()`, calls `resolveChainConfig(config.chain)` and auto-populates `settlementInfo` from the resolved chain preset when not explicitly provided. Uses `effectiveSettlementInfo` local variable to avoid mutating the config parameter.
-- **Task 6 (docker/shared.ts):** Added `CROSSTOWN_CHAIN` support as a fallback when `SUPPORTED_CHAINS` is not set. If `CROSSTOWN_CHAIN` is set, `resolveChainConfig()` derives the settlement config automatically. `SUPPORTED_CHAINS` (explicit) always wins over `CROSSTOWN_CHAIN` (convenience).
+- **Task 6 (docker/shared.ts):** Added `TOON_CHAIN` support as a fallback when `SUPPORTED_CHAINS` is not set. If `TOON_CHAIN` is set, `resolveChainConfig()` derives the settlement config automatically. `SUPPORTED_CHAINS` (explicit) always wins over `TOON_CHAIN` (convenience).
 - **Task 7 (ATDD tests):** Enabled all 14 tests in `chain-config.test.ts` (13 from spec + 1 additional CHAIN_PRESETS completeness test). Removed `.skip`, uncommented imports, implemented all assertions, removed placeholder `expect(true).toBe(false)`. Static analysis test scans `packages/{core,sdk,town}/src/` for ethers imports.
 - **Task 8 (sprint status):** Updated `sprint-status.yaml` from `ready-for-dev` to `done`. Verified: `pnpm build` (success), `pnpm lint` (0 errors, 349 pre-existing warnings), `pnpm format:check` (pass), `pnpm test` (1358 passing, 0 regressions).
 
@@ -348,7 +348,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 - `packages/sdk/src/create-node.ts` -- Added `chain` field to `NodeConfig`, auto-populate settlementInfo
 
 **Modified files (docker):**
-- `docker/src/shared.ts` -- Support `CROSSTOWN_CHAIN` env var as convenience shorthand
+- `docker/src/shared.ts` -- Support `TOON_CHAIN` env var as convenience shorthand
 
 **Modified files (tests):**
 - `packages/core/src/chain/chain-config.test.ts` -- Enabled all 14 ATDD tests, implemented assertions

@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Story 2-7 removed the SPSP handshake (kind:23194/23195) from the Crosstown protocol and simplified peer discovery from a 4-phase flow (discovering -> registering -> handshaking -> announcing) to a 3-phase flow (discovering -> registering -> announcing). Settlement negotiation now runs locally using kind:10032 data, and channels are opened unilaterally during the registration phase. SPSP code was deleted across all packages (core, sdk, town, docker), and 30+ stale SPSP references were cleaned from comments, test names, JSDoc, env files, and project metadata.
+Story 2-7 removed the SPSP handshake (kind:23194/23195) from the TOON protocol and simplified peer discovery from a 4-phase flow (discovering -> registering -> handshaking -> announcing) to a 3-phase flow (discovering -> registering -> announcing). Settlement negotiation now runs locally using kind:10032 data, and channels are opened unilaterally during the registration phase. SPSP code was deleted across all packages (core, sdk, town, docker), and 30+ stale SPSP references were cleaned from comments, test names, JSDoc, env files, and project metadata.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: Handshaking phase removed; phases are discovering -> registering -> announcing — covered by: `spsp-removal-verification.test.ts` (3 tests), `BootstrapService.test.ts`, `types.ts`, `five-peer-bootstrap.test.ts`
@@ -50,7 +50,7 @@ Story 2-7 removed the SPSP handshake (kind:23194/23195) from the Crosstown proto
 - `packages/bls/src/pricing/PricingService.test.ts` — kind 23194 replaced with 30023
 - `packages/bls/src/entrypoint.ts` — removed erroneous ilpAddress from SettlementConfig
 - `packages/bls/Dockerfile.bootstrap` — SPSP comment removed
-- `packages/client/src/CrosstownClient.ts` — JSDoc/comment cleanup
+- `packages/client/src/ToonClient.ts` — JSDoc/comment cleanup
 - `packages/client/src/modes/types.ts` — comment updated
 - `packages/client/examples/with-payment-channels.ts` — SPSP references in comments/output updated
 - `packages/client/tests/e2e/genesis-bootstrap-with-channels.test.ts` — JSDoc/test name updated
@@ -214,4 +214,4 @@ Story 2-7 removed the SPSP handshake (kind:23194/23195) from the Crosstown proto
 ---
 
 ## TL;DR
-Story 2-7 successfully removed the SPSP handshake from the Crosstown protocol, simplifying peer discovery from 4 phases to 3 and eliminating ~20 files of SPSP-specific code across all packages. The pipeline completed all 22 steps cleanly with 20 issues found and fixed across 3 code review passes (including 2 medium-severity security fixes: CWE-209 info exposure and uncaught JSON.parse). All 1299 tests pass (+25 new verification tests), semgrep security scan is clean, and all 8 acceptance criteria have full traceability. No manual action items remain.
+Story 2-7 successfully removed the SPSP handshake from the TOON protocol, simplifying peer discovery from 4 phases to 3 and eliminating ~20 files of SPSP-specific code across all packages. The pipeline completed all 22 steps cleanly with 20 issues found and fixed across 3 code review passes (including 2 medium-severity security fixes: CWE-209 info exposure and uncaught JSON.parse). All 1299 tests pass (+25 new verification tests), semgrep security scan is clean, and all 8 acceptance criteria have full traceability. No manual action items remain.

@@ -10,7 +10,7 @@ So that settlement negotiation and peer registration work through the SDK's kind
 
 **FRs covered:** FR-SDK-14 (BLS reimplemented using SDK handler registry)
 
-**Dependencies:** Epic 1 (SDK must be complete -- all Stories 1.0-1.11), Story 2.1 (Town package infrastructure, EventStore handler pattern). Specifically requires: `createNode()` (1.7), `HandlerContext` with `ctx.decode()`/`ctx.accept()`/`ctx.reject()` (1.3), `Handler` type (1.2), `createHandlerContext` (1.3), TOON codec in `@crosstown/core` (1.0), `buildSpspResponseEvent` and `parseSpspRequest` from `@crosstown/core`, `negotiateAndOpenChannel` from `@crosstown/core` (main export, NOT `@crosstown/core/spsp` -- there is no sub-path export for spsp), `ConnectorChannelClient` and `ConnectorAdminClient` from `@crosstown/core`.
+**Dependencies:** Epic 1 (SDK must be complete -- all Stories 1.0-1.11), Story 2.1 (Town package infrastructure, EventStore handler pattern). Specifically requires: `createNode()` (1.7), `HandlerContext` with `ctx.decode()`/`ctx.accept()`/`ctx.reject()` (1.3), `Handler` type (1.2), `createHandlerContext` (1.3), TOON codec in `@toon-protocol/core` (1.0), `buildSpspResponseEvent` and `parseSpspRequest` from `@toon-protocol/core`, `negotiateAndOpenChannel` from `@toon-protocol/core` (main export, NOT `@toon-protocol/core/spsp` -- there is no sub-path export for spsp), `ConnectorChannelClient` and `ConnectorAdminClient` from `@toon-protocol/core`.
 
 ## Acceptance Criteria
 
@@ -33,23 +33,23 @@ So that settlement negotiation and peer registration work through the SDK's kind
       adminClient?: ConnectorAdminClient;               // Optional: for peer registration
     }
     ```
-    **Design rationale:** Unlike Story 2.1's event storage handler (which only needed `eventStore`), the SPSP handler needs access to the node's secret key (for NIP-44 decrypt/encrypt), the ILP address (for generating destination accounts), settlement config (for chain negotiation), channel client (for opening channels), admin client (for peer registration), and event store (for looking up kind:10032 peer info). The TOON encoder/decoder are NOT in the config -- the handler uses `ctx.decode()` for the incoming event and uses `encodeEventToToon` directly from `@crosstown/core/toon` for the response event (since it's constructing a new event, not just passing through the existing one).
+    **Design rationale:** Unlike Story 2.1's event storage handler (which only needed `eventStore`), the SPSP handler needs access to the node's secret key (for NIP-44 decrypt/encrypt), the ILP address (for generating destination accounts), settlement config (for chain negotiation), channel client (for opening channels), admin client (for peer registration), and event store (for looking up kind:10032 peer info). The TOON encoder/decoder are NOT in the config -- the handler uses `ctx.decode()` for the incoming event and uses `encodeEventToToon` directly from `@toon-protocol/core/toon` for the response event (since it's constructing a new event, not just passing through the existing one).
   - [x]Implement `createSpspHandshakeHandler(config): Handler`:
-    - The returned function signature matches `Handler` from `@crosstown/sdk`: `(ctx: HandlerContext) => Promise<HandlerResponse>`
+    - The returned function signature matches `Handler` from `@toon-protocol/sdk`: `(ctx: HandlerContext) => Promise<HandlerResponse>`
     - Call `ctx.decode()` to get the structured NostrEvent (kind:23194 SPSP request)
-    - Decrypt the SPSP request using `parseSpspRequest()` from `@crosstown/core` (uses NIP-44 with `config.secretKey` and `event.pubkey`)
+    - Decrypt the SPSP request using `parseSpspRequest()` from `@toon-protocol/core` (uses NIP-44 with `config.secretKey` and `event.pubkey`)
     - Generate fresh SPSP parameters: unique `destinationAccount` (`{ilpAddress}.spsp.{uuid}`) and 32-byte random `sharedSecret` (base64-encoded)
     - Build base SPSP response with `requestId`, `destinationAccount`, `sharedSecret`
     - If settlement config + channel client are provided AND request has `supportedChains`:
-      - Call `negotiateAndOpenChannel()` from `@crosstown/core` (main export) with the SPSP request, config, channel client, and sender pubkey
+      - Call `negotiateAndOpenChannel()` from `@toon-protocol/core` (main export) with the SPSP request, config, channel client, and sender pubkey
       - If successful, merge settlement fields (`negotiatedChain`, `settlementAddress`, `tokenAddress`, `tokenNetworkAddress`, `channelId`, `settlementTimeout`) into response
       - If negotiation throws (channel open failure, timeout), catch the error, log a warning, and continue with basic SPSP response (graceful degradation, AC #2)
-    - Build kind:23195 response event using `buildSpspResponseEvent()` from `@crosstown/core` with:
+    - Build kind:23195 response event using `buildSpspResponseEvent()` from `@toon-protocol/core` with:
       - The SPSP response payload
       - The requester's pubkey (from `event.pubkey`)
       - The node's secret key (for NIP-44 encryption and signing)
       - The original request event ID (for `e` tag correlation)
-    - Encode the response event to TOON using `encodeEventToToon()` from `@crosstown/core/toon`
+    - Encode the response event to TOON using `encodeEventToToon()` from `@toon-protocol/core/toon`
     - Base64 encode the TOON bytes for the fulfillment data field
     - Attempt peer registration BEFORE returning (AC #3):
       - Look up the requester's kind:10032 event from EventStore
@@ -63,8 +63,8 @@ So that settlement negotiation and peer registration work through the SDK's kind
 
 - [x] Task 2: Adapt existing RED-phase test file (AC: #1, #2, #3)
   - [x]In `packages/town/src/handlers/spsp-handshake-handler.test.ts`:
-    - Change `import { createSpspHandshakeHandler } from '@crosstown/sdk'` to `import { createSpspHandshakeHandler } from './spsp-handshake-handler.js'` (the handler lives in Town, not SDK)
-    - Change `import { encodeEventToToon, decodeEventFromToon, SqliteEventStore } from '@crosstown/relay'` to split into two imports: TOON codec from `@crosstown/core/toon` and `SqliteEventStore` from `@crosstown/relay` (per Story 1.0, TOON codec was extracted to `@crosstown/core/toon`)
+    - Change `import { createSpspHandshakeHandler } from '@toon-protocol/sdk'` to `import { createSpspHandshakeHandler } from './spsp-handshake-handler.js'` (the handler lives in Town, not SDK)
+    - Change `import { encodeEventToToon, decodeEventFromToon, SqliteEventStore } from '@toon-protocol/relay'` to split into two imports: TOON codec from `@toon-protocol/core/toon` and `SqliteEventStore` from `@toon-protocol/relay` (per Story 1.0, TOON codec was extracted to `@toon-protocol/core/toon`)
     - Change `describe.skip(...)` to `describe(...)` to enable all 7 tests
     - Update the handler creation in `beforeEach` (line 183-192) to match the new `SpspHandshakeHandlerConfig` interface: remove `toonEncoder` and `toonDecoder` fields from the config object. The remaining fields (`secretKey`, `ilpAddress`, `eventStore`, `settlementConfig`, `channelClient`, `adminClient`) match the new interface.
     - **ALSO update the `failingHandler` creation** in the graceful degradation test (line 420-429) -- remove `toonEncoder` and `toonDecoder` from that config object too. This is a second handler instantiation in the test file that also needs updating.
@@ -83,7 +83,7 @@ So that settlement negotiation and peer registration work through the SDK's kind
     - T-2.2-07: `should register peer with connector after successful handshake` (AC #3)
 
 - [x] Task 3: Update SDK stub with JSDoc pointing to Town (AC: all)
-  - [x]Update `packages/sdk/src/spsp-handshake-handler.ts` JSDoc to say "See @crosstown/town for the relay implementation." (same pattern as Story 2.1)
+  - [x]Update `packages/sdk/src/spsp-handshake-handler.ts` JSDoc to say "See @toon-protocol/town for the relay implementation." (same pattern as Story 2.1)
 
 - [x] Task 4: Wire exports and update vitest config (AC: all)
   - [x]Export `createSpspHandshakeHandler` and `SpspHandshakeHandlerConfig` from `packages/town/src/index.ts`
@@ -113,9 +113,9 @@ Town Handler (this story):
 The handler lives in `packages/town/`, NOT in `packages/sdk/`. The SDK is the framework; Town is the relay implementation. This follows the architectural boundary established in Story 2.1:
 
 ```
-@crosstown/sdk   (framework -- provides createNode, pipeline, HandlerContext)
+@toon-protocol/sdk   (framework -- provides createNode, pipeline, HandlerContext)
     ^
-@crosstown/town  (application -- provides EventStorageHandler, SpspHandshakeHandler)
+@toon-protocol/town  (application -- provides EventStorageHandler, SpspHandshakeHandler)
 ```
 
 ### Handler Signature
@@ -204,8 +204,8 @@ The `data` field is the correct place for the TOON-encoded SPSP response. The co
 The existing RED-phase tests call `handler(request)` where `request` is `{ amount, destination, data }` (a raw packet). SDK handlers receive `HandlerContext`. A test helper is needed:
 
 ```typescript
-import { createHandlerContext } from '@crosstown/sdk';
-import { shallowParseToon, decodeEventFromToon } from '@crosstown/core/toon';
+import { createHandlerContext } from '@toon-protocol/sdk';
+import { shallowParseToon, decodeEventFromToon } from '@toon-protocol/core/toon';
 
 function createTestContext(request: { amount: string; destination: string; data: string }) {
   const toonBytes = Buffer.from(request.data, 'base64');
@@ -241,12 +241,12 @@ Tests then change from `handler(request)` to `handler(createTestContext(request)
 - `packages/town/src/index.ts` -- add SPSP handler exports
 
 **Known test file discrepancies (to be fixed during Task 2):**
-- **Stale TOON codec import:** Test file (line 26) imports `encodeEventToToon` and `decodeEventFromToon` from `@crosstown/relay`. Per Story 1.0, these must be imported from `@crosstown/core/toon`. `SqliteEventStore` still comes from `@crosstown/relay`.
-- **Stale handler import:** Test file (line 38) imports `createSpspHandshakeHandler` from `@crosstown/sdk`. Must be changed to import from `./spsp-handshake-handler.js` (handler lives in Town, not SDK).
+- **Stale TOON codec import:** Test file (line 26) imports `encodeEventToToon` and `decodeEventFromToon` from `@toon-protocol/relay`. Per Story 1.0, these must be imported from `@toon-protocol/core/toon`. `SqliteEventStore` still comes from `@toon-protocol/relay`.
+- **Stale handler import:** Test file (line 38) imports `createSpspHandshakeHandler` from `@toon-protocol/sdk`. Must be changed to import from `./spsp-handshake-handler.js` (handler lives in Town, not SDK).
 - **Stale config fields:** Test file (lines 187-188) passes `toonEncoder` and `toonDecoder` to handler config. These are not in the `SpspHandshakeHandlerConfig` interface and must be removed. Same applies to the `failingHandler` config on lines 424-425.
 - **Raw request calls:** Test file calls `handler(request)` where `request` is `{ amount, destination, data }`. Must be changed to `handler(createTestContext(request))` since SDK handlers receive `HandlerContext`.
 
-**Known ATDD checklist discrepancy:** The `atdd-checklist-2.2.md` Implementation Checklist sections (line 143-144) reference creating files in `packages/sdk/src/handlers/` and exporting from `@crosstown/sdk`. This is stale -- the handler lives in `@crosstown/town`, not `@crosstown/sdk`. This story file is the authoritative source for implementation location.
+**Known ATDD checklist discrepancy:** The `atdd-checklist-2.2.md` Implementation Checklist sections (line 143-144) reference creating files in `packages/sdk/src/handlers/` and exporting from `@toon-protocol/sdk`. This is stale -- the handler lives in `@toon-protocol/town`, not `@toon-protocol/sdk`. This story file is the authoritative source for implementation location.
 
 ### Import Patterns
 
@@ -258,35 +258,35 @@ import { createSpspHandshakeHandler } from './handlers/spsp-handshake-handler.js
 import type { SpspHandshakeHandlerConfig } from './handlers/spsp-handshake-handler.js';
 
 // SDK imports (framework types)
-import type { Handler, HandlerContext, HandlerResponse } from '@crosstown/sdk';
-import { createHandlerContext } from '@crosstown/sdk';
+import type { Handler, HandlerContext, HandlerResponse } from '@toon-protocol/sdk';
+import { createHandlerContext } from '@toon-protocol/sdk';
 
 // Core imports (TOON codec -- from core, NOT relay)
-import { encodeEventToToon, decodeEventFromToon, shallowParseToon } from '@crosstown/core/toon';
+import { encodeEventToToon, decodeEventFromToon, shallowParseToon } from '@toon-protocol/core/toon';
 
-// Core imports (SPSP builders/parsers, types, negotiation -- from main export, NOT @crosstown/core/spsp)
+// Core imports (SPSP builders/parsers, types, negotiation -- from main export, NOT @toon-protocol/core/spsp)
 import {
   parseSpspRequest,
   buildSpspResponseEvent,
   negotiateAndOpenChannel,
   SPSP_REQUEST_KIND,
   SPSP_RESPONSE_KIND,
-} from '@crosstown/core';
+} from '@toon-protocol/core';
 import type {
   SpspResponse,
   SettlementNegotiationConfig,
   ConnectorChannelClient,
   ConnectorAdminClient,
-} from '@crosstown/core';
+} from '@toon-protocol/core';
 
 // Relay imports (EventStore -- still in relay)
-import { SqliteEventStore } from '@crosstown/relay';
-import type { EventStore } from '@crosstown/relay';
+import { SqliteEventStore } from '@toon-protocol/relay';
+import type { EventStore } from '@toon-protocol/relay';
 ```
 
-**IMPORTANT:** There is no `@crosstown/core/spsp` sub-path export. The core package only has sub-path exports for `@crosstown/core/toon` and `@crosstown/core/nip34`. All SPSP-related exports (`negotiateAndOpenChannel`, `parseSpspRequest`, `buildSpspResponseEvent`, etc.) are available from the main `@crosstown/core` export.
+**IMPORTANT:** There is no `@toon-protocol/core/spsp` sub-path export. The core package only has sub-path exports for `@toon-protocol/core/toon` and `@toon-protocol/core/nip34`. All SPSP-related exports (`negotiateAndOpenChannel`, `parseSpspRequest`, `buildSpspResponseEvent`, etc.) are available from the main `@toon-protocol/core` export.
 
-**IMPORTANT:** The existing test file imports `encodeEventToToon` and `decodeEventFromToon` from `@crosstown/relay`. This must be updated to import from `@crosstown/core/toon` per Story 1.0 (TOON codec extraction). `SqliteEventStore` still comes from `@crosstown/relay`.
+**IMPORTANT:** The existing test file imports `encodeEventToToon` and `decodeEventFromToon` from `@toon-protocol/relay`. This must be updated to import from `@toon-protocol/core/toon` per Story 1.0 (TOON codec extraction). `SqliteEventStore` still comes from `@toon-protocol/relay`.
 
 ### Critical Rules
 
@@ -305,7 +305,7 @@ import type { EventStore } from '@crosstown/relay';
 - **Tests mock ConnectorChannelClient** -- Anvil blockchain not available in unit CI (justified)
 - **Tests mock ConnectorAdminClient** -- Connector admin API not available in unit tests (justified)
 - **Use bracket notation for index signatures** -- `obj['key']` not `obj.key` for `Record<string, T>` types (tsconfig `noPropertyAccessFromIndexSignature`)
-- **No `@crosstown/core/spsp` sub-path** -- use `@crosstown/core` main export for all SPSP functions
+- **No `@toon-protocol/core/spsp` sub-path** -- use `@toon-protocol/core` main export for all SPSP functions
 
 ### Risk Mitigations
 
@@ -331,7 +331,7 @@ import type { EventStore } from '@crosstown/relay';
 - [Source: packages/town/src/handlers/event-storage-handler.ts -- Story 2.1 handler pattern to follow]
 - [Source: packages/town/src/handlers/spsp-handshake-handler.test.ts -- ATDD Red Phase tests (7 tests)]
 - [Source: packages/core/src/compose.ts -- HandlePacketAcceptResponse type with `data` field]
-- [Source: packages/core/package.json -- exports map (confirms no @crosstown/core/spsp sub-path)]
+- [Source: packages/core/package.json -- exports map (confirms no @toon-protocol/core/spsp sub-path)]
 - [Source: _bmad-output/implementation-artifacts/2-1-relay-event-storage-handler.md -- Story 2.1 pattern reference]
 
 ## Dev Agent Record
@@ -342,9 +342,9 @@ import type { EventStore } from '@crosstown/relay';
 
 1. **Task 1 -- Implement `createSpspHandshakeHandler`:** Created `packages/town/src/handlers/spsp-handshake-handler.ts` with full SPSP handshake handler. Implements: NIP-44 decryption via `parseSpspRequest()`, unique SPSP parameter generation (UUID destination account + 32-byte random shared secret), settlement negotiation via `negotiateAndOpenChannel()` with try/catch for graceful degradation, NIP-44 encrypted kind:23195 response via `buildSpspResponseEvent()`, TOON encoding via `encodeEventToToon()`, peer registration via `adminClient.addPeer()` (non-fatal, before return), and direct `{ accept, fulfillment, data }` response return pattern (bypasses `ctx.accept()`).
 
-2. **Task 2 -- Adapt RED-phase test file:** The test file (`spsp-handshake-handler.test.ts`) was already updated to GREEN-phase format during the ATDD checklist phase -- all imports were correct (`@crosstown/core/toon`, `./spsp-handshake-handler.js`, `createHandlerContext`), `createTestContext` helper was present, no `describe.skip`, no stale `toonEncoder`/`toonDecoder` config fields. All 7 tests pass without modification.
+2. **Task 2 -- Adapt RED-phase test file:** The test file (`spsp-handshake-handler.test.ts`) was already updated to GREEN-phase format during the ATDD checklist phase -- all imports were correct (`@toon-protocol/core/toon`, `./spsp-handshake-handler.js`, `createHandlerContext`), `createTestContext` helper was present, no `describe.skip`, no stale `toonEncoder`/`toonDecoder` config fields. All 7 tests pass without modification.
 
-3. **Task 3 -- Update SDK stub JSDoc:** Updated `packages/sdk/src/spsp-handshake-handler.ts` JSDoc to match the Story 2.1 pattern: "See @crosstown/town for the relay implementation."
+3. **Task 3 -- Update SDK stub JSDoc:** Updated `packages/sdk/src/spsp-handshake-handler.ts` JSDoc to match the Story 2.1 pattern: "See @toon-protocol/town for the relay implementation."
 
 4. **Task 4 -- Wire exports and update vitest config:** Added `createSpspHandshakeHandler` and `SpspHandshakeHandlerConfig` exports to `packages/town/src/index.ts`. Removed `spsp-handshake-handler.test.ts` exclusion from `packages/town/vitest.config.ts`. Added `data?: string` field to `HandlePacketAcceptResponse` in `packages/core/src/compose.ts` (backward-compatible, needed for SPSP response data). Build and all 1371 tests pass with no regressions.
 
@@ -385,7 +385,7 @@ import type { EventStore } from '@crosstown/relay';
   - Direct response return pattern (`{ accept, fulfillment, data }`) correctly bypasses `ctx.accept()` for top-level `data` field
   - Test file uses real NIP-44 encryption, real TOON codec, and real nostr-tools signing (no mocked crypto)
   - Test coverage is comprehensive: 15 tests covering all 3 ACs plus edge cases
-  - Import patterns are correct: `.js` extensions, `@crosstown/core/toon` for TOON codec, `@crosstown/core` main export for SPSP functions
+  - Import patterns are correct: `.js` extensions, `@toon-protocol/core/toon` for TOON codec, `@toon-protocol/core` main export for SPSP functions
   - `type` keyword used consistently for type-only imports
 
 ### Review Pass #2
@@ -436,7 +436,7 @@ import type { EventStore } from '@crosstown/relay';
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
 | 2026-03-06 | 0.1 | Initial story draft via BMAD create-story (yolo mode) | SM |
-| 2026-03-06 | 0.2 | Adversarial review: (1) Fixed incorrect `@crosstown/core/spsp` sub-path import -- no such export exists; corrected to `@crosstown/core` (main export) in Dependencies, Task 1, and Import Patterns. (2) Fixed peer registration timing -- was described as "post-accept" (after return) which is unreachable; corrected to happen BEFORE the return statement. (3) Clarified handler bypasses `ctx.accept()` and returns raw `HandlePacketAcceptResponse` directly (needed for top-level `data` field). Updated AC #1 wording and added explicit Task 1 notes. (4) Added "Known test file discrepancies" section documenting 4 stale patterns in the RED-phase test file (TOON codec import from relay, handler import from SDK, toonEncoder/toonDecoder config fields, raw request calls). (5) Added note about stale ATDD checklist guidance (handler in SDK -> handler in Town). (6) Added explicit Task 2 callout for `failingHandler` config update (second handler instantiation also needs toonEncoder/toonDecoder removed). (7) Added missing `createHandlerContext` import to Import Patterns. (8) Added `SqliteEventStore` import to Import Patterns (needed for tests). (9) Added explicit note that `@crosstown/core/spsp` does not exist as a sub-path export. (10) Added response return pattern row to Behavioral Differences table. (11) Updated SPSP Flow step ordering (peer registration before return). (12) Added core/package.json to References. (13) Added placeholder Dev Agent Record and Code Review Record sections (matching Story 2.1 structure). (14) Added new Critical Rules for handler response pattern and peer registration timing. | Review |
+| 2026-03-06 | 0.2 | Adversarial review: (1) Fixed incorrect `@toon-protocol/core/spsp` sub-path import -- no such export exists; corrected to `@toon-protocol/core` (main export) in Dependencies, Task 1, and Import Patterns. (2) Fixed peer registration timing -- was described as "post-accept" (after return) which is unreachable; corrected to happen BEFORE the return statement. (3) Clarified handler bypasses `ctx.accept()` and returns raw `HandlePacketAcceptResponse` directly (needed for top-level `data` field). Updated AC #1 wording and added explicit Task 1 notes. (4) Added "Known test file discrepancies" section documenting 4 stale patterns in the RED-phase test file (TOON codec import from relay, handler import from SDK, toonEncoder/toonDecoder config fields, raw request calls). (5) Added note about stale ATDD checklist guidance (handler in SDK -> handler in Town). (6) Added explicit Task 2 callout for `failingHandler` config update (second handler instantiation also needs toonEncoder/toonDecoder removed). (7) Added missing `createHandlerContext` import to Import Patterns. (8) Added `SqliteEventStore` import to Import Patterns (needed for tests). (9) Added explicit note that `@toon-protocol/core/spsp` does not exist as a sub-path export. (10) Added response return pattern row to Behavioral Differences table. (11) Updated SPSP Flow step ordering (peer registration before return). (12) Added core/package.json to References. (13) Added placeholder Dev Agent Record and Code Review Record sections (matching Story 2.1 structure). (14) Added new Critical Rules for handler response pattern and peer registration timing. | Review |
 | 2026-03-06 | 1.0 | Implementation complete. Created SPSP handshake handler in Town package. Added `data?` field to `HandlePacketAcceptResponse` in core (backward-compatible). Updated SDK stub JSDoc. Wired exports. All 7 SPSP tests pass, 1371 total tests pass, no regressions. | Dev (Claude Opus 4.6) |
 | 2026-03-06 | 1.1 | Code review pass #1 (yolo mode). 0 critical, 0 high, 0 medium, 3 low issues found and fixed: (1) added `limit: 1` to EventStore kind:10032 query, (2) added BTP URL format validation (`ws://`/`wss://`) before `addPeer()`, (3) added dedicated JSON.parse error handling for kind:10032 content. All 15 SPSP tests pass, build succeeds, no regressions. | Review (Claude Opus 4.6) |
 | 2026-03-06 | 1.2 | Code review pass #2 (yolo mode). Clean pass: 0 critical, 0 high, 0 medium, 0 low issues. All tests pass, build succeeds. | Review (Claude Opus 4.6) |

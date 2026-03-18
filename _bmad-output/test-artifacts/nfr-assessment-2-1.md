@@ -122,16 +122,16 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** CONCERNS
 - **Threshold:** 0 critical, <3 high vulnerabilities in direct dependencies
-- **Actual:** `pnpm audit` reports 33 vulnerabilities (2 critical, 12 high). All are in transitive dependencies of `@crosstown/connector` (specifically `fast-xml-parser` via AWS SDK).
-- **Evidence:** `pnpm audit` output -- 33 vulnerabilities: 11 low, 8 moderate, 12 high, 2 critical; all traced to `@crosstown/connector > @aws-sdk/* > fast-xml-parser`
-- **Findings:** These vulnerabilities are NOT in the Town package or its direct dependencies. They are in the connector's transitive dependency chain (AWS SDK). The Town package (`@crosstown/town`) has no direct dependency on any vulnerable package. However, the monorepo-wide vulnerability count exceeds the threshold. Marked CONCERNS because this requires upstream action (connector package update) rather than Story 2.1 changes.
-- **Recommendation:** Track as a backlog item: update `@crosstown/connector` to a version with patched `fast-xml-parser`. This is outside Story 2.1 scope.
+- **Actual:** `pnpm audit` reports 33 vulnerabilities (2 critical, 12 high). All are in transitive dependencies of `@toon-protocol/connector` (specifically `fast-xml-parser` via AWS SDK).
+- **Evidence:** `pnpm audit` output -- 33 vulnerabilities: 11 low, 8 moderate, 12 high, 2 critical; all traced to `@toon-protocol/connector > @aws-sdk/* > fast-xml-parser`
+- **Findings:** These vulnerabilities are NOT in the Town package or its direct dependencies. They are in the connector's transitive dependency chain (AWS SDK). The Town package (`@toon-protocol/town`) has no direct dependency on any vulnerable package. However, the monorepo-wide vulnerability count exceeds the threshold. Marked CONCERNS because this requires upstream action (connector package update) rather than Story 2.1 changes.
+- **Recommendation:** Track as a backlog item: update `@toon-protocol/connector` to a version with patched `fast-xml-parser`. This is outside Story 2.1 scope.
 
 ### Compliance (if applicable)
 
 - **Status:** N/A
 - **Standards:** No regulatory compliance requirements defined for Story 2.1
-- **Actual:** Not applicable -- Crosstown is a protocol/SDK project, not a regulated service
+- **Actual:** Not applicable -- TOON is a protocol/SDK project, not a regulated service
 - **Evidence:** No GDPR/HIPAA/PCI-DSS requirements in PRD or architecture docs
 - **Findings:** N/A
 
@@ -217,7 +217,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** Handler must be <100 lines; no SDK stubs left unresolved
-- **Actual:** Handler implementation is 52 lines total (15 lines of logic). SDK stub updated with JSDoc pointing to `@crosstown/town`. No dead code, no TODO comments, no commented-out code.
+- **Actual:** Handler implementation is 52 lines total (15 lines of logic). SDK stub updated with JSDoc pointing to `@toon-protocol/town`. No dead code, no TODO comments, no commented-out code.
 - **Evidence:** `packages/town/src/handlers/event-storage-handler.ts` -- 52 lines; `packages/sdk/src/event-storage-handler.ts` -- stub with JSDoc update; story file confirms Task 3 complete
 - **Findings:** Minimal technical debt. The handler is intentionally simple (the SDK handles complexity). SDK stub is properly documented. PASS.
 
@@ -233,7 +233,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** Tests use real infrastructure (no mocked codecs, no mocked stores); tests follow AAA pattern; tests are deterministic
-- **Actual:** All 8 tests use real SQLite `:memory:` (no mocked EventStore), real TOON codec from `@crosstown/core/toon` (no mocked encoder/decoder), and real nostr-tools Schnorr signatures (no mocked crypto). Tests follow Arrange-Act-Assert pattern with clear section comments. Pipeline tests (Approach B) use a mock connector (transport layer only) with real SDK pipeline. Test data uses deterministic timestamps.
+- **Actual:** All 8 tests use real SQLite `:memory:` (no mocked EventStore), real TOON codec from `@toon-protocol/core/toon` (no mocked encoder/decoder), and real nostr-tools Schnorr signatures (no mocked crypto). Tests follow Arrange-Act-Assert pattern with clear section comments. Pipeline tests (Approach B) use a mock connector (transport layer only) with real SDK pipeline. Test data uses deterministic timestamps.
 - **Evidence:** Test file imports `SqliteEventStore` (real), `encodeEventToToon`/`decodeEventFromToon` (real), `finalizeEvent`/`generateSecretKey` (real nostr-tools). Only the connector transport is mocked.
 - **Findings:** Test quality is high. The minimal-mock philosophy (only mock transport, everything else real) ensures tests validate actual behavior, not mocked behavior. PASS.
 
@@ -264,7 +264,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 2 quick wins identified for immediate implementation:
 
 1. **Update connector dependency** (Security) - MEDIUM - 1-2 hours
-   - Update `@crosstown/connector` to resolve transitive `fast-xml-parser` vulnerabilities
+   - Update `@toon-protocol/connector` to resolve transitive `fast-xml-parser` vulnerabilities
    - No code changes needed -- dependency version bump only
 
 2. **Add handler-level error logging** (Reliability) - LOW - 30 minutes
@@ -282,7 +282,7 @@ None. No CRITICAL or HIGH priority issues found for Story 2.1.
 ### Short-term (Next Milestone) - MEDIUM Priority
 
 1. **Resolve transitive dependency vulnerabilities** - MEDIUM - 2 hours - Dev
-   - Update `@crosstown/connector` to a version with patched AWS SDK dependencies
+   - Update `@toon-protocol/connector` to a version with patched AWS SDK dependencies
    - Run `pnpm audit` to verify 0 critical/high vulnerabilities
    - This is a monorepo-wide concern, not specific to Story 2.1
 

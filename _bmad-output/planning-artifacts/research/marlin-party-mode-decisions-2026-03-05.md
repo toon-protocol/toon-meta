@@ -72,7 +72,7 @@ SECONDARY RAIL: x402 (optional per-node)
 - Phase 2 (attestation-aware peering) is a trust concern
 - Phase 3 (x402) is a payment concern
 - Orthogonal development, but combined market impact
-- "Crosstown relays now accept USDC and prove they're running verified code" > "We added attestation"
+- "TOON relays now accept USDC and prove they're running verified code" > "We added attestation"
 
 ### Decision 6: Arbitrum One as Production Chain
 
@@ -109,7 +109,7 @@ production  Arbitrum One         Real USDC               Live network
 
 ### Decision 8: x402 Integration Architecture (FINAL)
 
-**Decision:** No separate x402 gateway component. Crosstown nodes themselves act as x402 facilitators via a new `/publish` HTTP endpoint on the node. Both payment rails produce identical ILP PREPARE packets with TOON data payloads.
+**Decision:** No separate x402 gateway component. TOON nodes themselves act as x402 facilitators via a new `/publish` HTTP endpoint on the node. Both payment rails produce identical ILP PREPARE packets with TOON data payloads.
 
 **Multi-hop packet flow:**
 ```
@@ -143,14 +143,14 @@ RAIL 2: x402 (HTTP-native, no SPSP needed)
 - Node performs SPSP query to destination to resolve ILP address and pricing
 - All-in pricing model: destination price + routing buffer (5-10%)
 - x402 enabled per-node via configuration flag, not a deployment variant
-- No STREAM protocol — Crosstown sends raw ILP PREPARE/FULFILL with TOON data
+- No STREAM protocol — TOON sends raw ILP PREPARE/FULFILL with TOON data
 
 ### Decision 9: Emergent Compute Vision — Open Primitives, Not Platform
 
-**Decision:** Crosstown provides substrate (discovery via Nostr events, payment via ILP/x402, trust via TEE attestation). Peers may deploy arbitrary TEE-attested services beyond relays. The relay is the reference implementation, not the only implementation.
+**Decision:** TOON provides substrate (discovery via Nostr events, payment via ILP/x402, trust via TEE attestation). Peers may deploy arbitrary TEE-attested services beyond relays. The relay is the reference implementation, not the only implementation.
 
 **Containment:**
-- Event kinds 10032-10099 reserved for Crosstown service advertisement
+- Event kinds 10032-10099 reserved for TOON service advertisement
 - No plugin framework, extension system, or marketplace UI built
 - Any service that can describe itself in a Nostr event, accept payment via x402 or ILP, and prove integrity via TEE attestation is a first-class network participant
 - Emergence happens through open primitives and economic selection, not central planning
@@ -201,10 +201,10 @@ The word change from "relay" to "service" is the difference between a product an
 
 ### Decision 13: Component Boundary Clarification
 
-**Decision:** The x402 `/publish` endpoint, SPSP endpoint, health endpoint, and Nostr relay are all responsibilities of the **Crosstown node**, not the BLS. The BLS handles only `/handle-packet` — ILP packet processing and pricing validation. It has no public-facing surface.
+**Decision:** The x402 `/publish` endpoint, SPSP endpoint, health endpoint, and Nostr relay are all responsibilities of the **TOON node**, not the BLS. The BLS handles only `/handle-packet` — ILP packet processing and pricing validation. It has no public-facing surface.
 
 ```
-Crosstown Node (entrypoint.ts)
+TOON Node (entrypoint.ts)
 ├── Nostr Relay (ws://7100) — event subscription, TOON encoding
 ├── SPSP endpoint — handshake only, returns ILP address + pricing
 ├── /publish endpoint (NEW) — x402 facilitation
@@ -263,7 +263,7 @@ Epic 5: The Rig — Git Forge                       📋 MOVED (was Epic 3)
 | Bottom of funnel | ILP channels (USDC) | Power users, relay operators | Channel setup | Lower (bulk economics) |
 
 ### DePIN Autonomous Agent Pattern
-AI agents are becoming infrastructure operators, not just consumers. They deploy nodes, earn revenue, and reinvest — creating self-sustaining infrastructure networks. Crosstown's architecture must not preclude this (Decision 11).
+AI agents are becoming infrastructure operators, not just consumers. They deploy nodes, earn revenue, and reinvest — creating self-sustaining infrastructure networks. TOON's architecture must not preclude this (Decision 11).
 
 ### Emergent Network Topology
 With x402-capable nodes and ILP-only nodes, the network self-organizes into edge nodes (x402 entry points facing the HTTP world) and interior nodes (pure ILP relays optimizing for throughput). Operators self-select based on revenue opportunity.

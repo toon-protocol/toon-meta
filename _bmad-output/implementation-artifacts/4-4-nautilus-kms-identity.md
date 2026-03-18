@@ -4,15 +4,15 @@ Status: done
 
 ## Story
 
-As a **Crosstown relay operator running in a TEE enclave**,
+As a **TOON relay operator running in a TEE enclave**,
 I want the relay's Nostr identity to be derived from a Nautilus KMS seed inside the enclave using the NIP-06 derivation path,
 So that the relay's identity is cryptographically bound to its code integrity — if the enclave code changes, attestation fails, KMS seed becomes inaccessible, and the identity is lost, making impersonation impossible.
 
 **FRs covered:** FR-TEE-4 (Nautilus KMS identity — persistent enclave-bound keypairs, identity tied to code integrity)
 
-**Dependencies:** Story 4.2 complete (confirmed — commit `864bb49`). The `buildAttestationEvent()` builder and `TEE_ATTESTATION_KIND` constant are available from `@crosstown/core`. Story 4.3 complete (confirmed — commit `aeb2b8b`). The `AttestationVerifier` class is available from `@crosstown/core`. The SDK identity module (`packages/sdk/src/identity.ts`) provides the existing NIP-06 derivation pattern using `@scure/bip39` and `@scure/bip32` — this story creates a parallel function in `@crosstown/core` for enclave-specific key derivation from raw KMS seeds.
+**Dependencies:** Story 4.2 complete (confirmed — commit `864bb49`). The `buildAttestationEvent()` builder and `TEE_ATTESTATION_KIND` constant are available from `@toon-protocol/core`. Story 4.3 complete (confirmed — commit `aeb2b8b`). The `AttestationVerifier` class is available from `@toon-protocol/core`. The SDK identity module (`packages/sdk/src/identity.ts`) provides the existing NIP-06 derivation pattern using `@scure/bip39` and `@scure/bip32` — this story creates a parallel function in `@toon-protocol/core` for enclave-specific key derivation from raw KMS seeds.
 
-**Critical dependency detail:** The `@scure/bip39` and `@scure/bip32` packages are dependencies of `@crosstown/sdk` but NOT currently dependencies of `@crosstown/core`. Story 4.4 places `deriveFromKmsSeed()` in core's `identity/` directory because core is the dependency that Docker entrypoints import. The implementation must add `@scure/bip39` and `@scure/bip32` as dependencies to `packages/core/package.json`.
+**Critical dependency detail:** The `@scure/bip39` and `@scure/bip32` packages are dependencies of `@toon-protocol/sdk` but NOT currently dependencies of `@toon-protocol/core`. Story 4.4 places `deriveFromKmsSeed()` in core's `identity/` directory because core is the dependency that Docker entrypoints import. The implementation must add `@scure/bip39` and `@scure/bip32` as dependencies to `packages/core/package.json`.
 
 **Decision sources:**
 - Decision 12 (architecture.md): Attestation Lifecycle Architecture — identity bound to code integrity
@@ -33,21 +33,21 @@ So that the relay's identity is cryptographically bound to its code integrity �
 
 5. Given a null, undefined, or otherwise invalid seed (not a 32-byte Uint8Array), when `deriveFromKmsSeed(badSeed)` is called, then it throws a `KmsIdentityError` (not a random key fallback) with a message matching `/KMS|seed|unavailable/i`, ensuring operators get a clear error if KMS is unreachable.
 
-6. Given `deriveFromKmsSeed`, `KmsIdentityError`, `KmsKeypair` type, and `DeriveFromKmsSeedOptions` type, when imported from `@crosstown/core`, then they are exported from `packages/core/src/identity/kms-identity.ts` and re-exported via `packages/core/src/identity/index.ts` and the top-level `packages/core/src/index.ts`.
+6. Given `deriveFromKmsSeed`, `KmsIdentityError`, `KmsKeypair` type, and `DeriveFromKmsSeedOptions` type, when imported from `@toon-protocol/core`, then they are exported from `packages/core/src/identity/kms-identity.ts` and re-exported via `packages/core/src/identity/index.ts` and the top-level `packages/core/src/index.ts`.
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Add `@scure/bip39` and `@scure/bip32` dependencies to `@crosstown/core` (AC: #1, #2)
+- [x] Task 1: Add `@scure/bip39` and `@scure/bip32` dependencies to `@toon-protocol/core` (AC: #1, #2)
   - [x]Add `"@scure/bip32": "^2.0.0"` and `"@scure/bip39": "^2.0.0"` to `packages/core/package.json` `dependencies`
   - [x]Run `pnpm install` to update lockfile
   - [x]Verify imports resolve correctly
 
 - [x] Task 2: Create `KmsIdentityError` class and `KmsKeypair` type (AC: #5, #6)
   - [x]Create `packages/core/src/identity/kms-identity.ts`
-  - [x]Import `{ CrosstownError }` from `../errors.js`
-  - [x]Define `KmsIdentityError` extending `CrosstownError`:
+  - [x]Import `{ ToonError }` from `../errors.js`
+  - [x]Define `KmsIdentityError` extending `ToonError`:
     ```typescript
-    export class KmsIdentityError extends CrosstownError {
+    export class KmsIdentityError extends ToonError {
       constructor(message: string, cause?: Error) {
         super(message, 'KMS_IDENTITY_ERROR', cause);
         this.name = 'KmsIdentityError';
@@ -148,7 +148,7 @@ So that the relay's identity is cryptographically bound to its code integrity �
 ### Architecture Context
 
 **Nautilus KMS Key Management:**
-Nautilus KMS provides persistent seeds encrypted using a DKG (Distributed Key Generation) key from the Threshold Network. Seeds are decryptable only by KMS root servers through the KmsRoot contract with attestation verification. The practical implication for Crosstown: the enclave receives a 32-byte seed from KMS, and this story's `deriveFromKmsSeed()` function converts that seed into a Nostr-compatible keypair using the NIP-06 standard derivation path.
+Nautilus KMS provides persistent seeds encrypted using a DKG (Distributed Key Generation) key from the Threshold Network. Seeds are decryptable only by KMS root servers through the KmsRoot contract with attestation verification. The practical implication for TOON: the enclave receives a 32-byte seed from KMS, and this story's `deriveFromKmsSeed()` function converts that seed into a Nostr-compatible keypair using the NIP-06 standard derivation path.
 
 **Identity-Attestation Binding:**
 The KMS seed is only accessible when the enclave's attestation is valid (correct PCR values). If operator changes the relay code, PCR values change, attestation fails, KMS seed becomes inaccessible, and the relay loses its identity. This creates a cryptographic binding: identity proves code integrity.
@@ -161,7 +161,7 @@ The SDK (`packages/sdk/src/identity.ts`) already has `fromMnemonic()` and `fromS
 4. Has KMS-specific error handling (`KmsIdentityError`)
 
 **Why Core, Not SDK:**
-The Docker entrypoint (`docker/src/entrypoint-*.ts`) and attestation server (`docker/src/attestation-server.ts`) import from `@crosstown/core`, not `@crosstown/sdk`. KMS identity derivation must be available at the Docker entrypoint level for the relay to derive its identity before creating an SDK node instance.
+The Docker entrypoint (`docker/src/entrypoint-*.ts`) and attestation server (`docker/src/attestation-server.ts`) import from `@toon-protocol/core`, not `@toon-protocol/sdk`. KMS identity derivation must be available at the Docker entrypoint level for the relay to derive its identity before creating an SDK node instance.
 
 ### Existing Files to Touch
 
@@ -175,7 +175,7 @@ The Docker entrypoint (`docker/src/entrypoint-*.ts`) and attestation server (`do
 
 ### Key Technical Constraints
 
-1. **NIP-06 derivation path:** `m/44'/1237'/0'/0/{accountIndex}` — purpose 44' (BIP-44), coin type 1237' (Nostr), account 0', external chain 0, index N. This is identical to the SDK's `fromMnemonic()` path. The function must produce identical keys for the same mnemonic input as `@crosstown/sdk`'s `fromMnemonic()`.
+1. **NIP-06 derivation path:** `m/44'/1237'/0'/0/{accountIndex}` — purpose 44' (BIP-44), coin type 1237' (Nostr), account 0', external chain 0, index N. This is identical to the SDK's `fromMnemonic()` path. The function must produce identical keys for the same mnemonic input as `@toon-protocol/sdk`'s `fromMnemonic()`.
 
 2. **Raw seed vs mnemonic:** The primary use case is raw 32-byte seeds from KMS (`HDKey.fromMasterSeed(seed).derive(path)`). The mnemonic option is secondary (for backward compat and testing with known BIP-39 vectors). When `options.mnemonic` is provided, it takes precedence — the raw seed is ignored. Note: `HDKey.fromMasterSeed()` accepts seeds of 16-64 bytes; the raw KMS seed is 32 bytes (valid). The mnemonic path produces a 64-byte seed via `mnemonicToSeedSync()` — both are valid inputs.
 
@@ -195,7 +195,7 @@ The Docker entrypoint (`docker/src/entrypoint-*.ts`) and attestation server (`do
 
 - **DO NOT fall back to random key generation** when KMS seed is unavailable — this is a security-critical requirement. Always throw `KmsIdentityError`.
 - **DO NOT duplicate the EVM address derivation** from the SDK identity module — that's an SDK concern. This story only produces Nostr keypairs.
-- **DO NOT import from `@crosstown/sdk`** in `@crosstown/core` — that would create a circular dependency (SDK depends on core).
+- **DO NOT import from `@toon-protocol/sdk`** in `@toon-protocol/core` — that would create a circular dependency (SDK depends on core).
 - **DO NOT store or cache secrets** in module-level variables — each call to `deriveFromKmsSeed()` is stateless.
 - **DO NOT create documentation files** — use inline comments and JSDoc.
 - **DO NOT modify the Docker entrypoint** in this story — entrypoint integration is a future concern.
@@ -266,7 +266,7 @@ The TEA agent has already created RED phase test stubs for Story 4.4:
 
 **Completion Notes List:**
 - Task 1: Added `@scure/bip32` ^2.0.0 and `@scure/bip39` ^2.0.0 as runtime dependencies to `packages/core/package.json`. Ran `pnpm install` to update lockfile.
-- Task 2: Created `KmsIdentityError` class extending `CrosstownError` with code `KMS_IDENTITY_ERROR`. Defined `KmsKeypair` and `DeriveFromKmsSeedOptions` interfaces with JSDoc. Implemented `deriveFromKmsSeed()` with full seed validation, mnemonic precedence, NIP-06 path derivation (`m/44'/1237'/0'/0/{accountIndex}`), defensive copy of secret key, and best-effort seed zeroing in finally block.
+- Task 2: Created `KmsIdentityError` class extending `ToonError` with code `KMS_IDENTITY_ERROR`. Defined `KmsKeypair` and `DeriveFromKmsSeedOptions` interfaces with JSDoc. Implemented `deriveFromKmsSeed()` with full seed validation, mnemonic precedence, NIP-06 path derivation (`m/44'/1237'/0'/0/{accountIndex}`), defensive copy of secret key, and best-effort seed zeroing in finally block.
 - Task 3: Implemented `deriveFromKmsSeed()` following the SDK `fromMnemonic()` pattern but specialized for core: raw 32-byte KMS seed support, no EVM address derivation, KMS-specific error handling. Uses `HDKey.fromMasterSeed(seed).derive(path)` for raw seeds and `mnemonicToSeedSync()` for mnemonic path.
 - Task 4: Created `packages/core/src/identity/index.ts` barrel re-export. Added identity module exports to `packages/core/src/index.ts`.
 - Task 5: Converted all 8 ATDD RED stubs to GREEN. Uncommented imports, removed `it.skip`, fixed test assertions. The TEA agent had already corrected most stub bugs (attestation payload shape, golden pubkey value, import structure) in the pre-existing stubs, so minimal fixes were needed. Used bracket notation for `JSON.parse` content access to satisfy `noPropertyAccessFromIndexSignature`.
@@ -280,7 +280,7 @@ The TEA agent has already created RED phase test stubs for Story 4.4:
 - `pnpm-lock.yaml` -- MODIFIED (lockfile updated for new @scure/bip32, @scure/bip39 dependencies)
 
 **Change Log:**
-- 2026-03-15: Implemented Story 4.4 -- Nautilus KMS Identity. Added `deriveFromKmsSeed()` to `@crosstown/core` for TEE enclave-bound key derivation from raw 32-byte KMS seeds via NIP-06 path. Created `KmsIdentityError` error class, `KmsKeypair` and `DeriveFromKmsSeedOptions` types. All 8 ATDD tests passing (T-4.4-01 through T-4.4-05 with subtests). Full monorepo: 659 core tests passing, 0 lint errors, build clean.
+- 2026-03-15: Implemented Story 4.4 -- Nautilus KMS Identity. Added `deriveFromKmsSeed()` to `@toon-protocol/core` for TEE enclave-bound key derivation from raw 32-byte KMS seeds via NIP-06 path. Created `KmsIdentityError` error class, `KmsKeypair` and `DeriveFromKmsSeedOptions` types. All 8 ATDD tests passing (T-4.4-01 through T-4.4-05 with subtests). Full monorepo: 659 core tests passing, 0 lint errors, build clean.
 
 ---
 

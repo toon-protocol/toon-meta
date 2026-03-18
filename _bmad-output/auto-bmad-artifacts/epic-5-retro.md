@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-17
 **Epic:** 5 -- DVM Compute Marketplace
-**Packages:** `@crosstown/core`, `@crosstown/sdk`, `@crosstown/town`
+**Packages:** `@toon-protocol/core`, `@toon-protocol/sdk`, `@toon-protocol/town`
 **Status:** Done (4/4 stories complete)
 **Branch:** `epic-5`
 **Commits:** 5 (4 story commits + 1 Docker E2E migration commit)
@@ -13,7 +13,7 @@
 
 ## 1. Executive Summary
 
-Epic 5 delivered the DVM (Data Vending Machine) Compute Marketplace foundation for the Crosstown protocol, enabling ILP-native compute job submission, result delivery, settlement, and programmatic agent-to-agent service discovery. The epic implemented four stories across a clean dependency chain: NIP-90 event kind definitions (Story 5-1), ILP-native job submission validation (Story 5-2), job result delivery and compute settlement (Story 5-3), and skill descriptors in service discovery (Story 5-4).
+Epic 5 delivered the DVM (Data Vending Machine) Compute Marketplace foundation for the TOON protocol, enabling ILP-native compute job submission, result delivery, settlement, and programmatic agent-to-agent service discovery. The epic implemented four stories across a clean dependency chain: NIP-90 event kind definitions (Story 5-1), ILP-native job submission validation (Story 5-2), job result delivery and compute settlement (Story 5-3), and skill descriptors in service discovery (Story 5-4).
 
 The most architecturally significant deliverable is the **zero-production-code-change validation** of Story 5-2. The entire DVM job submission pipeline -- ILP PREPARE packets carrying Kind 5xxx events, handler dispatch, pricing, x402 packet equivalence -- works through the existing SDK infrastructure without a single line of production code modified. This validates the SDK's extensibility thesis from Epic 1: the `HandlerRegistry`, `publishEvent()`, and `buildIlpPrepare()` abstractions are genuinely kind-agnostic. The SDK is not merely a relay -- it is a general-purpose ILP-gated event processing platform.
 
@@ -143,7 +143,7 @@ Both are classified as FULL coverage because the underlying behavior is validate
 
 ### 3.7. Zero New Runtime Dependencies
 
-Epic 5 added zero new runtime dependencies. All DVM event builders, parsers, skill descriptors, and settlement methods were implemented using existing `@crosstown/core` infrastructure (TOON codec, `buildIlpPrepare()`, `CrosstownError`). Compare to Epic 4 (2 new runtime deps: `@scure/bip32`, `@scure/bip39`) and Epic 3 (viem for EIP-3009). This confirms the protocol's core dependency set has stabilized.
+Epic 5 added zero new runtime dependencies. All DVM event builders, parsers, skill descriptors, and settlement methods were implemented using existing `@toon-protocol/core` infrastructure (TOON codec, `buildIlpPrepare()`, `ToonError`). Compare to Epic 4 (2 new runtime deps: `@scure/bip32`, `@scure/bip39`) and Epic 3 (viem for EIP-3009). This confirms the protocol's core dependency set has stabilized.
 
 ### 3.8. One Commit Per Story Maintained for 5th Consecutive Epic
 
@@ -235,7 +235,7 @@ Story 5-4's skill descriptors complete the automated agent workflow:
 4. **Submission**: Agent constructs valid Kind 5xxx job request from schema + discovered ILP address
 5. **Settlement**: Agent receives Kind 6xxx result and calls `settleCompute()` with provider's ILP address
 
-This five-step workflow requires no human intermediation -- an LLM agent with access to the Crosstown SDK can discover, evaluate, submit, and settle DVM jobs programmatically. The `inputSchema` using JSON Schema draft-07 is the key enabling decision: it is the most widely supported schema format for programmatic consumption by AI agents.
+This five-step workflow requires no human intermediation -- an LLM agent with access to the TOON SDK can discover, evaluate, submit, and settle DVM jobs programmatically. The `inputSchema` using JSON Schema draft-07 is the key enabling decision: it is the most widely supported schema format for programmatic consumption by AI agents.
 
 ### 5.5. Test Amplification Ratio Correlates with Story Type, Not Complexity
 
@@ -282,7 +282,7 @@ The 49 pre-development validation issues -- including 2 critical issues in Story
 |---|--------|-------|--------|
 | A11 | **Runtime re-publication of kind:10035 on handler change** | Dev | Story 5-4 stretch goal. `getSkillDescriptor()` reads live; no auto re-publish. |
 | A12 | **Docker E2E for full schema-to-request agent path** | Dev | Story 5-4 T-INT-05. Unit-level composition test exists; Docker E2E with network boundaries deferred. |
-| A13 | **Publish @crosstown/town to npm** | Dev | Carried from Epic 2 A3, 3 A14, 4 A14. |
+| A13 | **Publish @toon-protocol/town to npm** | Dev | Carried from Epic 2 A3, 3 A14, 4 A14. |
 | A14 | **Add real Nix integration tests** | Dev | Carried from Epic 4 A12. Requires Nix in CI runner. |
 | A15 | **Implement deferred P3 E2E tests from Epics 3-4** | Dev | T-3.4-12, 3.6-E2E-001, T-4.1-03, T-4.1-04, T-RISK-02. |
 | A16 | **Fix NIP-33/NIP-16 doc discrepancy** | Dev | Carried from Epic 3 A13, 4 A16. |
@@ -349,7 +349,7 @@ Based on Epic 5 learnings (all 4 stories + Docker E2E migration), the following 
 
 11. **Trust gradient over binary gates.** Carried from Epic 4. Apply to DVM provider reputation in Story 6-4.
 
-12. **Zero new runtime dependencies when extending established patterns.** New for Epic 5: all DVM functionality was implemented using existing `@crosstown/core` infrastructure. The dependency set has stabilized. Any new runtime dependency in Epic 6 should be scrutinized.
+12. **Zero new runtime dependencies when extending established patterns.** New for Epic 5: all DVM functionality was implemented using existing `@toon-protocol/core` infrastructure. The dependency set has stabilized. Any new runtime dependency in Epic 6 should be scrutinized.
 
 13. **ATDD step must produce failing tests only -- never production code.** New for Epic 5 (corrective): Story 5-4's ATDD deviation (implementing production code alongside tests) is explicitly prohibited going forward. ATDD = RED phase. Development = GREEN phase.
 
@@ -437,7 +437,7 @@ R14 is new: deferred integration tests have accumulated to 8+ items across Epics
 
 ## 11. Conclusion
 
-Epic 5 delivered a complete DVM Compute Marketplace foundation for the Crosstown protocol: NIP-90 event kind definitions, ILP-native job submission (validated without production code changes), job result delivery with compute settlement, and programmatic skill descriptors for agent-to-agent service discovery. The central architectural thesis -- that the SDK's kind-agnostic pipeline supports arbitrary event kinds including DVM compute jobs -- was validated conclusively by Story 5-2's zero-production-code-change result.
+Epic 5 delivered a complete DVM Compute Marketplace foundation for the TOON protocol: NIP-90 event kind definitions, ILP-native job submission (validated without production code changes), job result delivery with compute settlement, and programmatic skill descriptors for agent-to-agent service discovery. The central architectural thesis -- that the SDK's kind-agnostic pipeline supports arbitrary event kinds including DVM compute jobs -- was validated conclusively by Story 5-2's zero-production-code-change result.
 
 The epic's process execution was the strongest in project history: all 5 critical retro action items resolved at start (best ever), 100% AC coverage restored, zero critical/high code review issues (first time), zero production security findings (second consecutive), all NFR assessments passing (second consecutive), and zero test regressions (fifth consecutive). The Docker E2E migration establishing the no-mock integration policy represents a qualitative improvement in test infrastructure fidelity.
 

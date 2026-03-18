@@ -52,7 +52,7 @@ All 12 stories in Epic 5 (5.1 through 5.12):
 - 5.9: Commit Log and Diff View
 - 5.10: Blame View
 - 5.11: Issues and PRs from Nostr Events on Relay
-- 5.12: Publish @crosstown/rig Package
+- 5.12: Publish @toon-protocol/rig Package
 
 ### Test Design Reference
 
@@ -190,7 +190,7 @@ All 12 stories in Epic 5 (5.1 through 5.12):
 - [x] Comment chronological order (integration)
 - [x] Relay unavailable degradation (integration)
 
-### Story 5.12: Publish @crosstown/rig Package
+### Story 5.12: Publish @toon-protocol/rig Package
 
 - [x] `startRig` exported (unit)
 - [x] `RigConfig` type exported (unit)

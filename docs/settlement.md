@@ -1,6 +1,6 @@
 # Settlement
 
-Crosstown uses EVM payment channels for off-chain micropayments, settled on-chain when needed.
+TOON uses EVM payment channels for off-chain micropayments, settled on-chain when needed.
 
 ## Chain Negotiation
 

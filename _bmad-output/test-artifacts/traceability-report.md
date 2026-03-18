@@ -45,7 +45,7 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 **Priority Assignment Rationale:**
 
-Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Crosstown protocol. AC #4 (TOON roundtrip), AC #5 (shallowParseToon), and AC #6 (export verification) are P0 because TOON encoding is Crosstown's fundamental wire format -- if DVM events cannot survive TOON roundtrip or be routed via shallow parse, the entire DVM subsystem is non-functional. AC #1 (buildJobRequestEvent) and AC #2 (buildJobResultEvent) are P1 because they are core builder functions but depend on the TOON layer working correctly. AC #3 (buildJobFeedbackEvent) and AC #7 (targeted vs open marketplace) are P2 because feedback events and marketplace routing are important but not blocking for the primary job request/result flow. Priority assignments align with the story's test-design-epic-5.md test IDs and their priority markers.
+Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the TOON protocol. AC #4 (TOON roundtrip), AC #5 (shallowParseToon), and AC #6 (export verification) are P0 because TOON encoding is TOON's fundamental wire format -- if DVM events cannot survive TOON roundtrip or be routed via shallow parse, the entire DVM subsystem is non-functional. AC #1 (buildJobRequestEvent) and AC #2 (buildJobResultEvent) are P1 because they are core builder functions but depend on the TOON layer working correctly. AC #3 (buildJobFeedbackEvent) and AC #7 (targeted vs open marketplace) are P2 because feedback events and marketplace routing are important but not blocking for the primary job request/result flow. Priority assignments align with the story's test-design-epic-5.md test IDs and their priority markers.
 
 ---
 
@@ -82,11 +82,11 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Cros
   - `T-5.1-05` - `packages/core/src/events/dvm.test.ts`:520
     - **Given:** Missing or empty required params (input, bid, output)
     - **When:** Builder called
-    - **Then:** CrosstownError thrown with appropriate error codes
+    - **Then:** ToonError thrown with appropriate error codes
   - `T-5.1-18` - `packages/core/src/events/dvm.test.ts`:573
     - **Given:** Kind 4999 (below range) or 6000 (above range)
     - **When:** Builder called
-    - **Then:** CrosstownError with DVM_INVALID_KIND thrown; accepts 5000 and 5999 boundaries
+    - **Then:** ToonError with DVM_INVALID_KIND thrown; accepts 5000 and 5999 boundaries
   - Content field tests - `packages/core/src/events/dvm.test.ts`:488
     - **Given:** params.content set or omitted
     - **When:** Builder called
@@ -95,20 +95,20 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Cros
     - **Given:** Input with marker but no relay
     - **When:** Builder constructs event
     - **Then:** Empty relay placeholder inserted: `['i', data, type, '', marker]`
-  - Gap-fill: CrosstownError codes - `packages/core/src/events/dvm.test.ts`:1726
+  - Gap-fill: ToonError codes - `packages/core/src/events/dvm.test.ts`:1726
     - **Given:** Various invalid inputs
     - **When:** Builder called
-    - **Then:** CrosstownError with specific codes: DVM_INVALID_KIND, DVM_INVALID_BID, DVM_MISSING_OUTPUT, DVM_MISSING_INPUT, DVM_INVALID_PUBKEY
+    - **Then:** ToonError with specific codes: DVM_INVALID_KIND, DVM_INVALID_BID, DVM_MISSING_OUTPUT, DVM_MISSING_INPUT, DVM_INVALID_PUBKEY
   - Gap-fill: non-string bid type - `packages/core/src/events/dvm.test.ts`:2663
     - **Given:** Bid as number instead of string
     - **When:** Builder called
-    - **Then:** CrosstownError with DVM_INVALID_BID
+    - **Then:** ToonError with DVM_INVALID_BID
   - Gap-fill: empty input data acceptance - `packages/core/src/events/dvm.test.ts`:2639
     - **Given:** i tag with empty data string
     - **When:** Builder called
     - **Then:** Accepted as valid per NIP-90
 
-- **Gaps:** None. All AC #1 sub-requirements covered: Schnorr signature (T-5.1-12), i tag format with all variants (T-5.1-09), bid tag with USDC currency (T-5.1-11), output tag, p tag targeted/open marketplace (T-5.1-10), param tags (T-5.1-25), relays tag (T-5.1-24), validation errors (T-5.1-05), kind range (T-5.1-18), content field, edge cases with empty relay placeholder, and CrosstownError codes.
+- **Gaps:** None. All AC #1 sub-requirements covered: Schnorr signature (T-5.1-12), i tag format with all variants (T-5.1-09), bid tag with USDC currency (T-5.1-11), output tag, p tag targeted/open marketplace (T-5.1-10), param tags (T-5.1-25), relays tag (T-5.1-24), validation errors (T-5.1-05), kind range (T-5.1-18), content field, edge cases with empty relay placeholder, and ToonError codes.
 
 ---
 
@@ -127,11 +127,11 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Cros
   - `T-5.1-06` - `packages/core/src/events/dvm.test.ts`:709
     - **Given:** Missing/invalid requestEventId, customerPubkey, amount
     - **When:** Builder called
-    - **Then:** CrosstownError thrown with codes: DVM_INVALID_EVENT_ID, DVM_INVALID_PUBKEY, DVM_INVALID_AMOUNT
+    - **Then:** ToonError thrown with codes: DVM_INVALID_EVENT_ID, DVM_INVALID_PUBKEY, DVM_INVALID_AMOUNT
   - `T-5.1-19` - `packages/core/src/events/dvm.test.ts`:761
     - **Given:** Kind 5999 (below range) or 7000 (above range)
     - **When:** Builder called
-    - **Then:** CrosstownError with DVM_INVALID_KIND; accepts 6000 and 6999 boundaries
+    - **Then:** ToonError with DVM_INVALID_KIND; accepts 6000 and 6999 boundaries
   - Gap-fill: result kind = request kind + 1000 - `packages/core/src/events/dvm.test.ts`:2560
     - **Given:** Request kind 5100, 5200, 5300
     - **When:** Result builder called with kind + 1000
@@ -139,11 +139,11 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Cros
   - Gap-fill: DVM_MISSING_CONTENT error - `packages/core/src/events/dvm.test.ts`:2593
     - **Given:** Content is not a string (undefined/number)
     - **When:** Builder called
-    - **Then:** CrosstownError with DVM_MISSING_CONTENT
+    - **Then:** ToonError with DVM_MISSING_CONTENT
   - Gap-fill: non-string amount type - `packages/core/src/events/dvm.test.ts`:2685
     - **Given:** Amount as number instead of string
     - **When:** Builder called
-    - **Then:** CrosstownError with DVM_INVALID_AMOUNT
+    - **Then:** ToonError with DVM_INVALID_AMOUNT
 
 - **Gaps:** None. All AC #2 sub-requirements covered: Schnorr signature (T-5.1-13), e/p/amount tags, content field, validation (T-5.1-06), kind range (T-5.1-19), result kind relationship, content type validation, and amount type validation.
 
@@ -164,7 +164,7 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Cros
   - `T-5.1-07` - `packages/core/src/events/dvm.test.ts`:885
     - **Given:** Status values: processing, error, success, partial, and invalid
     - **When:** Builder called
-    - **Then:** Valid statuses accepted (all four); invalid status throws CrosstownError
+    - **Then:** Valid statuses accepted (all four); invalid status throws ToonError
   - Content field - `packages/core/src/events/dvm.test.ts`:918
     - **Given:** Content provided or omitted
     - **When:** Builder called
@@ -172,13 +172,13 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Cros
   - Validation errors - `packages/core/src/events/dvm.test.ts`:950
     - **Given:** Invalid requestEventId or customerPubkey
     - **When:** Builder called
-    - **Then:** CrosstownError with DVM_INVALID_EVENT_ID or DVM_INVALID_PUBKEY
-  - Gap-fill: CrosstownError codes - `packages/core/src/events/dvm.test.ts`:1848
+    - **Then:** ToonError with DVM_INVALID_EVENT_ID or DVM_INVALID_PUBKEY
+  - Gap-fill: ToonError codes - `packages/core/src/events/dvm.test.ts`:1848
     - **Given:** Invalid status, event ID, pubkey
     - **When:** Builder called
-    - **Then:** CrosstownError with DVM_INVALID_STATUS, DVM_INVALID_EVENT_ID, DVM_INVALID_PUBKEY
+    - **Then:** ToonError with DVM_INVALID_STATUS, DVM_INVALID_EVENT_ID, DVM_INVALID_PUBKEY
 
-- **Gaps:** None. All AC #3 sub-requirements covered: Schnorr signature (T-5.1-14), e/p/status tags, all four DvmJobStatus values (T-5.1-07), content field, validation, and CrosstownError codes.
+- **Gaps:** None. All AC #3 sub-requirements covered: Schnorr signature (T-5.1-14), e/p/status tags, all four DvmJobStatus values (T-5.1-07), content field, validation, and ToonError codes.
 
 ---
 
@@ -240,7 +240,7 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Cros
 
 ---
 
-#### AC-6: DVM kind constants exported from @crosstown/core (P0)
+#### AC-6: DVM kind constants exported from @toon-protocol/core (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
@@ -249,7 +249,7 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Cros
     - **When:** Values inspected
     - **Then:** JOB_REQUEST_KIND_BASE=5000, JOB_RESULT_KIND_BASE=6000, JOB_FEEDBACK_KIND=7000, TEXT_GENERATION_KIND=5100, IMAGE_GENERATION_KIND=5200, TEXT_TO_SPEECH_KIND=5300, TRANSLATION_KIND=5302 (7 constant assertions)
   - `T-5.1-23` - `packages/core/src/events/dvm.test.ts`:1655
-    - **Given:** Dynamic import from `@crosstown/core` barrel exports
+    - **Given:** Dynamic import from `@toon-protocol/core` barrel exports
     - **When:** Constants, builders, parsers checked
     - **Then:** DVM constants importable (line 1656), builder functions importable (line 1670), parser functions importable (line 1680) -- all verified as `typeof 'function'` or correct numeric values
 
@@ -272,7 +272,7 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Cros
   - Gap-fill: invalid targetProvider hex - `packages/core/src/events/dvm.test.ts`:1895
     - **Given:** targetProvider that is not valid 64-char hex
     - **When:** Builder called
-    - **Then:** CrosstownError with DVM_INVALID_PUBKEY
+    - **Then:** ToonError with DVM_INVALID_PUBKEY
   - Gap-fill: parser hex validation for p tag - `packages/core/src/events/dvm.test.ts`:2113
     - **Given:** p tag with non-64-char hex value
     - **When:** Parser called
@@ -322,7 +322,7 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the Cros
 #### Auth/Authz Negative-Path Gaps
 
 - Criteria missing denied/invalid-path tests: 0
-- All builders validate inputs and throw `CrosstownError` with specific error codes. Parsers return `null` for malformed events. Tests cover: missing required tags, invalid hex format (event ID, pubkey), kind range boundaries, invalid status values, non-string bid/amount types, empty strings. No silent fallbacks exist.
+- All builders validate inputs and throw `ToonError` with specific error codes. Parsers return `null` for malformed events. Tests cover: missing required tags, invalid hex format (event ID, pubkey), kind range boundaries, invalid status values, non-string bid/amount types, empty strings. No silent fallbacks exist.
 
 #### Happy-Path-Only Criteria
 
@@ -454,7 +454,7 @@ None required. All 7 acceptance criteria have FULL coverage at the unit test lev
 **Security**: PASS
 
 - Security Issues: 0
-- All inputs validated before use. Hex format validation (64-char hex regex) on event IDs and pubkeys. Kind range validation prevents events outside NIP-90 ranges. Non-string type checks on bid/amount prevent injection. CrosstownError with specific error codes (no generic errors). No secrets logged. 3 code review passes completed (including OWASP Top 10 analysis in review #3).
+- All inputs validated before use. Hex format validation (64-char hex regex) on event IDs and pubkeys. Kind range validation prevents events outside NIP-90 ranges. Non-string type checks on bid/amount prevent injection. ToonError with specific error codes (no generic errors). No secrets logged. 3 code review passes completed (including OWASP Top 10 analysis in review #3).
 
 **Performance**: PASS
 
@@ -527,9 +527,9 @@ None required. All 7 acceptance criteria have FULL coverage at the unit test lev
 
 All P0 criteria met with 100% coverage and 100% pass rate across all test priorities. P1 criteria exceeded all thresholds (100% coverage, 100% pass rate). No security issues detected across 3 code review passes (including OWASP Top 10 analysis). No flaky tests -- the module contains pure deterministic builder/parser functions with no timing dependencies.
 
-All 7 acceptance criteria have FULL test coverage verified by 149 unit tests covering: NIP-90 tag construction (i, bid, output, p, param, relays tags), TOON roundtrip fidelity for all three DVM kinds, shallow parser routing metadata extraction, kind constant verification, export chain validation, targeted vs open marketplace detection, builder input validation with CrosstownError codes, parser rejection of malformed events, kind range boundary testing, hex format validation, BigInt-compatible bid/amount values, and multiple gap-fill test groups for edge cases.
+All 7 acceptance criteria have FULL test coverage verified by 149 unit tests covering: NIP-90 tag construction (i, bid, output, p, param, relays tags), TOON roundtrip fidelity for all three DVM kinds, shallow parser routing metadata extraction, kind constant verification, export chain validation, targeted vs open marketplace detection, builder input validation with ToonError codes, parser rejection of malformed events, kind range boundary testing, hex format validation, BigInt-compatible bid/amount values, and multiple gap-fill test groups for edge cases.
 
-The implementation correctly follows the established Crosstown event builder/parser pattern (matching `attestation.ts`, `service-discovery.ts`, `seed-relay.ts`) and is NIP-90 compatible with USDC-denominated bid/amount tags.
+The implementation correctly follows the established TOON event builder/parser pattern (matching `attestation.ts`, `service-discovery.ts`, `seed-relay.ts`) and is NIP-90 compatible with USDC-denominated bid/amount tags.
 
 ---
 
@@ -539,7 +539,7 @@ The implementation correctly follows the established Crosstown event builder/par
 
 1. **Proceed to Story 5.2**
    - Story 5.1 is complete and ready for downstream consumption
-   - Builders, parsers, types, and constants are available from `@crosstown/core`
+   - Builders, parsers, types, and constants are available from `@toon-protocol/core`
    - No blocking issues
 
 2. **Post-Integration Monitoring**
@@ -570,7 +570,7 @@ The implementation correctly follows the established Crosstown event builder/par
 **Stakeholder Communication**:
 
 - Notify PM: Story 5.1 PASS -- DVM event kind definitions complete, 149/149 tests passing, ready for integration
-- Notify DEV lead: `buildJobRequestEvent()`, `buildJobResultEvent()`, `buildJobFeedbackEvent()` and parsers available from `@crosstown/core`, NIP-90 compatible, security-reviewed
+- Notify DEV lead: `buildJobRequestEvent()`, `buildJobResultEvent()`, `buildJobFeedbackEvent()` and parsers available from `@toon-protocol/core`, NIP-90 compatible, security-reviewed
 
 ---
 
@@ -585,7 +585,7 @@ The implementation correctly follows the established Crosstown event builder/par
 | 3    | buildJobFeedbackEvent produces signed Kind 7000 with NIP-90 tags | FULL | ~15 tests (T-5.1-14, required tags, T-5.1-07, content, validation, gap-fills) |
 | 4    | DVM events survive TOON encode/decode roundtrip | FULL | ~15 tests (T-5.1-01, T-5.1-02, T-5.1-03, T-5.1-22, full pipeline, additional kinds, edge cases) |
 | 5    | shallowParseToon extracts DVM event routing metadata | FULL | 3 tests (T-5.1-04 for Kind 5100, 6100, 7000) |
-| 6    | DVM kind constants exported from @crosstown/core | FULL | 10 tests (T-5.1-08 constants, T-5.1-23 exports) |
+| 6    | DVM kind constants exported from @toon-protocol/core | FULL | 10 tests (T-5.1-08 constants, T-5.1-23 exports) |
 | 7    | Targeted vs open marketplace request detection via p tag | FULL | ~8 tests (T-5.1-10 builder/parser, hex validation gap-fills) |
 
 **Total: 149 test cases covering all 7 ACs.** Some tests cross-cover multiple ACs (e.g., TOON roundtrip tests exercise both AC #4 and the builder output from AC #1-#3).

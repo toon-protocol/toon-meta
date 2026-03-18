@@ -126,7 +126,7 @@ All existing E2E tests pass when running against the SDK-based relay, proving th
 
 **Exports (inline functions):**
 
-- `createTestClient(secretKey, pubkey)` -- CrosstownClient configured for genesis node E2E testing with EVM channels
+- `createTestClient(secretKey, pubkey)` -- ToonClient configured for genesis node E2E testing with EVM channels
 - `waitForEventOnRelay(relayUrl, eventId, timeoutMs?)` -- Subscribe via NIP-01 WebSocket, decode TOON response
 - `getChannelState(channelId)` -- Query TokenNetwork contract on Anvil for on-chain channel state
 
@@ -172,8 +172,8 @@ N/A -- Backend E2E tests via API/WebSocket/HTTP. No browser UI.
 - [x] Complete Story 2.2 (SPSP handshake handler) -- DONE
 - [ ] Create `docker/src/entrypoint-town.ts` -- SDK-based Docker entrypoint (Approach A: individual SDK components)
 - [ ] Wire SDK pipeline: size check -> shallow TOON parse -> Schnorr verify -> pricing validate -> kind-based dispatch via `HandlerRegistry`
-- [ ] Import handlers from `@crosstown/town` (NOT from `@crosstown/sdk` which has throwing stubs)
-- [ ] Update `docker/Dockerfile` to include `@crosstown/sdk` and `@crosstown/town` packages
+- [ ] Import handlers from `@toon-protocol/town` (NOT from `@toon-protocol/sdk` which has throwing stubs)
+- [ ] Update `docker/Dockerfile` to include `@toon-protocol/sdk` and `@toon-protocol/town` packages
 - [ ] Update `docker/package.json` dependencies
 - [ ] Update Dockerfile CMD to point to new entrypoint
 - [ ] Deploy SDK-based genesis node: `./deploy-genesis-node.sh`
@@ -414,11 +414,11 @@ pnpm build && pnpm test && pnpm lint && pnpm format:check
 ## Notes
 
 - This story is a validation gate: it only passes when Stories 2.1 + 2.2 are complete AND the SDK-based Docker entrypoint is created
-- The E2E tests use real CrosstownClient from @crosstown/client -- no SDK-specific client needed
+- The E2E tests use real ToonClient from @toon-protocol/client -- no SDK-specific client needed
 - The `servicesReady` flag allows graceful degradation if infrastructure is not deployed
 - Each test has a 60-second timeout (blockchain operations can be slow on Anvil)
 - The line count test (T-2.3-07) is the only non-runtime test (reads source files directly)
-- Handlers MUST be imported from `@crosstown/town`, NOT from `@crosstown/sdk` (SDK has throwing stubs)
+- Handlers MUST be imported from `@toon-protocol/town`, NOT from `@toon-protocol/sdk` (SDK has throwing stubs)
 - Docker entrypoint uses Approach A (individual SDK components, NOT `createNode()`) -- external connector mode
 - Total estimated effort: ~13-21 hours (largely dependent on entrypoint creation and Docker build)
 

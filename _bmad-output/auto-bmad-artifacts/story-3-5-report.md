@@ -8,13 +8,13 @@
 - **Migrations**: None
 
 ## What Was Built
-Kind:10035 Service Discovery events for the Crosstown protocol, enabling network participants and AI agents to programmatically discover what services a node offers, at what price, and via which payment rails. The implementation includes a builder/parser in `@crosstown/core`, integration into `startTown()` bootstrap (fire-and-forget publish after kind:10032), and conditional x402 field inclusion.
+Kind:10035 Service Discovery events for the TOON protocol, enabling network participants and AI agents to programmatically discover what services a node offers, at what price, and via which payment rails. The implementation includes a builder/parser in `@toon-protocol/core`, integration into `startTown()` bootstrap (fire-and-forget publish after kind:10032), and conditional x402 field inclusion.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: Node publishes kind:10035 event after bootstrap completes — covered by: 3.5-INT-001, T-3.5-08, T-3.5-09, static analysis tests in town.test.ts (12 tests)
 - [x] AC2: Event content contains required fields (service type, ILP address, pricing, x402 endpoint, supported kinds, capabilities) — covered by: 3.5-INT-002, T-3.5-06, T-3.5-07 family, gap-fill parser tests (31 tests)
 - [x] AC3: x402 field entirely omitted when disabled — covered by: 3.5-INT-003, serialization test, static analysis test (3 tests)
-- [x] AC4: NIP-16 replaceable event with d tag `crosstown-service-discovery` — covered by: 3.5-UNIT-001, T-3.5-05, NIP-16 range validation, tags structure test (4 tests)
+- [x] AC4: NIP-16 replaceable event with d tag `toon-service-discovery` — covered by: 3.5-UNIT-001, T-3.5-05, NIP-16 range validation, tags structure test (4 tests)
 
 ## Files Changed
 
@@ -204,4 +204,4 @@ Kind:10035 Service Discovery events for the Crosstown protocol, enabling network
 ---
 
 ## TL;DR
-Story 3.5 adds kind:10035 Service Discovery events to the Crosstown protocol, enabling programmatic discovery of node services, pricing, and payment rails. The pipeline completed cleanly across all 22 steps with 7 total code review issues found and fixed (all low/medium severity), zero security findings, and full traceability coverage across all 4 acceptance criteria with 52 story-specific tests. Test count increased from 1654 to 1687 (+33) with zero regressions.
+Story 3.5 adds kind:10035 Service Discovery events to the TOON protocol, enabling programmatic discovery of node services, pricing, and payment rails. The pipeline completed cleanly across all 22 steps with 7 total code review issues found and fixed (all low/medium severity), zero security findings, and full traceability coverage across all 4 acceptance criteria with 52 story-specific tests. Test count increased from 1654 to 1687 (+33) with zero regressions.

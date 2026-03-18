@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Story 3.3 implements the x402 /publish HTTP endpoint for the Crosstown protocol. This enables HTTP-based event publishing with EIP-3009 gasless USDC payment (pay-per-publish), as an alternative to the existing ILP WebSocket rail. The implementation includes a shared `buildIlpPrepare()` function in `@crosstown/core` for packet equivalence, a 6-check pre-flight validation pipeline, EIP-3009 on-chain settlement via viem, configurable pricing with routing buffer, and an opt-in feature flag (`CROSSTOWN_X402_ENABLED`, disabled by default).
+Story 3.3 implements the x402 /publish HTTP endpoint for the TOON protocol. This enables HTTP-based event publishing with EIP-3009 gasless USDC payment (pay-per-publish), as an alternative to the existing ILP WebSocket rail. The implementation includes a shared `buildIlpPrepare()` function in `@toon-protocol/core` for packet equivalence, a 6-check pre-flight validation pipeline, EIP-3009 on-chain settlement via viem, configurable pricing with routing buffer, and an opt-in feature flag (`TOON_X402_ENABLED`, disabled by default).
 
 ## Acceptance Criteria Coverage
 - [x] AC1: 402 pricing response (no X-PAYMENT header) -- covered by T-3.3-02, T-3.3-09, gap-fill tests (402 fields, GET/POST routes, amount correctness)
@@ -39,7 +39,7 @@ Story 3.3 implements the x402 /publish HTTP endpoint for the Crosstown protocol.
 ### packages/town/src/
 - `town.ts` (modified) -- x402Enabled, routingBufferPercent, facilitatorAddress in TownConfig; x402 handler wired
 - `index.ts` (modified) -- Exported all x402 modules
-- `cli.ts` (modified) -- --x402-enabled CLI flag and CROSSTOWN_X402_ENABLED env var
+- `cli.ts` (modified) -- --x402-enabled CLI flag and TOON_X402_ENABLED env var
 
 ### packages/town/
 - `package.json` (modified) -- Added viem dependency

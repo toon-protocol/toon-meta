@@ -17,7 +17,7 @@ inputDocuments:
   - _bmad-output/test-artifacts/atdd-checklist-epic-1-sdk.md
 ---
 
-# Test Quality Review: Crosstown Monorepo (Suite)
+# Test Quality Review: TOON Monorepo (Suite)
 
 **Quality Score**: 91/100 (A- - Excellent)
 **Review Date**: 2026-03-04
@@ -50,7 +50,7 @@ Coverage mapping and coverage gates are out of scope here. See `traceability-rep
 
 ### Summary
 
-The Crosstown test suite demonstrates strong test engineering discipline. The ATDD Red Phase pattern is correctly applied with 53 skipped tests across SDK/Town/Rig packages, all ready to turn GREEN once implementation begins. The 108 active tests in existing packages (core, bls, relay, client) show mature patterns: factories, beforeEach isolation, real crypto, specific assertions. Two files exceed the 300-line guideline, and Date.now() usage creates minor flakiness risk, but these are addressable in follow-up PRs. The "no mocks" philosophy is well-executed — mocks appear only at transport boundaries, never for crypto or codec logic.
+The TOON test suite demonstrates strong test engineering discipline. The ATDD Red Phase pattern is correctly applied with 53 skipped tests across SDK/Town/Rig packages, all ready to turn GREEN once implementation begins. The 108 active tests in existing packages (core, bls, relay, client) show mature patterns: factories, beforeEach isolation, real crypto, specific assertions. Two files exceed the 300-line guideline, and Date.now() usage creates minor flakiness risk, but these are addressable in follow-up PRs. The "no mocks" philosophy is well-executed — mocks appear only at transport boundaries, never for crypto or codec logic.
 
 ---
 

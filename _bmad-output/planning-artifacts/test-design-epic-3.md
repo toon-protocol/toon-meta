@@ -15,7 +15,7 @@
 
 ## 1. Scope and Context
 
-Epic 3 delivers 6 stories (3.1-3.6) transforming Crosstown from a development-token prototype into a production-ready USDC-denominated protocol. This is the first epic where real money semantics enter the system: EIP-3009 gasless USDC authorization, on-chain settlement, multi-chain configuration, and x402 HTTP payment on-ramp.
+Epic 3 delivers 6 stories (3.1-3.6) transforming TOON from a development-token prototype into a production-ready USDC-denominated protocol. This is the first epic where real money semantics enter the system: EIP-3009 gasless USDC authorization, on-chain settlement, multi-chain configuration, and x402 HTTP payment on-ramp.
 
 **Dependency chain:**
 ```
@@ -26,8 +26,8 @@ Epic 3 delivers 6 stories (3.1-3.6) transforming Crosstown from a development-to
 
 **What exists today (post-Epic 2):**
 
-- `@crosstown/sdk` is complete with `createNode()`, handler registry, and full processing pipeline
-- `@crosstown/town` is published with `startTown()`, event storage handler, lifecycle management
+- `@toon-protocol/sdk` is complete with `createNode()`, handler registry, and full processing pipeline
+- `@toon-protocol/town` is published with `startTown()`, event storage handler, lifecycle management
 - SPSP handshake removed (Story 2.7), peer discovery simplified to discover -> register -> announce
 - Relay subscription API on TownInstance (Story 2.8) provides general-purpose remote relay subscriptions
 - Payment channels use AGENT token with TokenNetwork on Anvil (chain ID 31337)
@@ -254,8 +254,8 @@ x402 origin:
 | T-3.2-01 | `resolveChainConfig('anvil')` returns chainId=31337, rpcUrl=localhost:8545, deterministic USDC address | U | E3-R003 | P0 |
 | T-3.2-02 | `resolveChainConfig('arbitrum-sepolia')` returns chainId=421614, valid RPC URL, testnet USDC address | U | E3-R003 | P0 |
 | T-3.2-03 | `resolveChainConfig('arbitrum-one')` returns chainId=42161, valid RPC URL, USDC=`0xaf88d065e77c8cC2239327C5EDb3A432268e5831` | U | E3-R003 | P0 |
-| T-3.2-04 | `CROSSTOWN_CHAIN` env var overrides config file chain selection | U | -- | P1 |
-| T-3.2-05 | `CROSSTOWN_RPC_URL` env var overrides preset RPC endpoint | U | -- | P1 |
+| T-3.2-04 | `TOON_CHAIN` env var overrides config file chain selection | U | -- | P1 |
+| T-3.2-05 | `TOON_RPC_URL` env var overrides preset RPC endpoint | U | -- | P1 |
 | T-3.2-06 | Invalid chain name throws clear error message | U | -- | P1 |
 | T-3.2-07 | ChainPreset type has all required fields: chainId, rpcUrl, usdcAddress, tokenNetworkAddress, name | U | -- | P2 |
 | T-3.2-08 | EIP-712 domain separator uses resolved chainId (not hardcoded) -- Anvil vs Arbitrum One produce different domains | I (real crypto) | E3-R003 | P0 |
@@ -281,7 +281,7 @@ x402 origin:
 | T-3.3-04 | Settlement atomicity (revert scenario): settlement tx reverts (insufficient balance) -> no ILP PREPARE sent, HTTP 402 retry response | I (real EVM) | E3-R006 | P0 |
 | T-3.3-05 | No refund on REJECT: settlement succeeds -> PREPARE rejected by destination -> HTTP 200 with settlement hash, no refund initiated | I | E3-R006, E3-R008 | P0 |
 | T-3.3-06 | Forged EIP-3009 signature rejected at pre-flight (no gas spent) | I (real crypto) | E3-R005 | P0 |
-| T-3.3-07 | x402 disabled (`CROSSTOWN_X402_ENABLED=false`) -> `GET /publish` returns 404 | I | -- | P1 |
+| T-3.3-07 | x402 disabled (`TOON_X402_ENABLED=false`) -> `GET /publish` returns 404 | I | -- | P1 |
 | T-3.3-08 | Multi-hop pricing: price = destination `basePricePerByte * toonLength` + configurable routing buffer (5-10%) | U | E3-R010 | P1 |
 | T-3.3-09 | 402 response schema: body contains `amount`, `facilitatorAddress`, `paymentNetwork`, `chainId` | I | -- | P1 |
 | T-3.3-10 | Dual-protocol server: concurrent HTTP `GET /health` + WebSocket connection on same port succeeds | I | E3-R009 | P1 |
@@ -487,8 +487,8 @@ The no-refund design decision eliminates the refund-based gas griefing vector an
 
 QA testing for Epic 3 cannot begin until ALL of the following are met:
 
-- [ ] Epic 2 complete (`@crosstown/town` relay reference implementation functional)
-- [ ] `@crosstown/sdk` and `@crosstown/town` packages importable
+- [ ] Epic 2 complete (`@toon-protocol/town` relay reference implementation functional)
+- [ ] `@toon-protocol/sdk` and `@toon-protocol/town` packages importable
 - [ ] Anvil running with deterministic contract addresses
 - [ ] Circle FiatTokenV2_2 (mock USDC) deployed on Anvil (or deterministic deployment script ready)
 - [ ] Faucet updated to distribute mock USDC (not AGENT token)
@@ -544,12 +544,12 @@ This order differs from the dependency chain (3.1 -> 3.2) because `resolveChainC
 
 | Package | Impact | Regression Scope |
 |---------|--------|------------------|
-| **@crosstown/core** | Chain presets added (`resolveChainConfig`), kind:10035 event builder, seed relay discovery | Core unit tests must pass; new chain/discovery/event tests |
-| **@crosstown/sdk** | `NodeConfig` extended with chain config, x402 config; pricing denominated in USDC | SDK unit tests must pass with new config fields |
-| **@crosstown/town** | Express/Hono routes added (`/publish`, enriched `/health`); dual-protocol HTTP+WS server | Existing Town lifecycle tests must pass; new handler/route tests |
-| **@crosstown/connector** | Untouched (ethers.js architectural debt) | Connector tests unaffected |
-| **@crosstown/faucet** | Distributes mock USDC instead of AGENT | Faucet config tests updated |
-| **@crosstown/client** | No code changes; E2E tests validate x402 | E2E regression gate |
+| **@toon-protocol/core** | Chain presets added (`resolveChainConfig`), kind:10035 event builder, seed relay discovery | Core unit tests must pass; new chain/discovery/event tests |
+| **@toon-protocol/sdk** | `NodeConfig` extended with chain config, x402 config; pricing denominated in USDC | SDK unit tests must pass with new config fields |
+| **@toon-protocol/town** | Express/Hono routes added (`/publish`, enriched `/health`); dual-protocol HTTP+WS server | Existing Town lifecycle tests must pass; new handler/route tests |
+| **@toon-protocol/connector** | Untouched (ethers.js architectural debt) | Connector tests unaffected |
+| **@toon-protocol/faucet** | Distributes mock USDC instead of AGENT | Faucet config tests updated |
+| **@toon-protocol/client** | No code changes; E2E tests validate x402 | E2E regression gate |
 
 ### Regression Test Strategy
 

@@ -133,7 +133,7 @@ The `HandlerContext` is created by the PaymentHandler bridge (Story 1.6) using `
 
 ### Dependencies
 
-- **Upstream**: Story 1.0 (TOON codec in `@crosstown/core` provides `ToonRoutingMeta` type). Already implemented and available.
+- **Upstream**: Story 1.0 (TOON codec in `@toon-protocol/core` provides `ToonRoutingMeta` type). Already implemented and available.
 - **Downstream**: Story 1.6 (PaymentHandler Bridge) creates `HandlerContext` instances via `createHandlerContext()`. Story 1.7 (createNode) wires everything together.
 
 ### Previous Story Learnings (from Story 1.2)

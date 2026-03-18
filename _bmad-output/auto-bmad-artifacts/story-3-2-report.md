@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Multi-environment chain configuration for the Crosstown protocol. Adds chain presets for Anvil (local dev), Arbitrum Sepolia (testnet), and Arbitrum One (production) with `resolveChainConfig()` and `buildEip712Domain()` functions. Integrates chain selection into TownConfig, NodeConfig, and Docker deployment via `CROSSTOWN_CHAIN`, `CROSSTOWN_RPC_URL`, and `CROSSTOWN_TOKEN_NETWORK` environment variables.
+Multi-environment chain configuration for the TOON protocol. Adds chain presets for Anvil (local dev), Arbitrum Sepolia (testnet), and Arbitrum One (production) with `resolveChainConfig()` and `buildEip712Domain()` functions. Integrates chain selection into TownConfig, NodeConfig, and Docker deployment via `TOON_CHAIN`, `TOON_RPC_URL`, and `TOON_TOKEN_NETWORK` environment variables.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: `chain: 'anvil'` defaults — covered by: `chain-config.test.ts` (4 tests), `shared.test.ts` (1 test)
@@ -31,8 +31,8 @@ Multi-environment chain configuration for the Crosstown protocol. Adds chain pre
 - `create-node.ts` — modified (added `chain` field to NodeConfig, auto-populate settlementInfo; fixed `!request.amount` truthiness bug)
 
 **docker/src/**
-- `shared.ts` — modified (CROSSTOWN_CHAIN env var support as convenience shorthand)
-- `shared.test.ts` — modified (7 new CROSSTOWN_CHAIN integration tests)
+- `shared.ts` — modified (TOON_CHAIN env var support as convenience shorthand)
+- `shared.test.ts` — modified (7 new TOON_CHAIN integration tests)
 
 **_bmad-output/**
 - `implementation-artifacts/3-2-multi-environment-chain-configuration.md` — created then modified (story spec with dev/review records)
@@ -47,7 +47,7 @@ Multi-environment chain configuration for the Crosstown protocol. Adds chain pre
 - **Status**: success
 - **Duration**: ~5 min
 - **What changed**: Created story file, updated sprint-status.yaml
-- **Key decisions**: Included Arbitrum Sepolia testnet USDC from Circle deployment, added CROSSTOWN_TOKEN_NETWORK env var override
+- **Key decisions**: Included Arbitrum Sepolia testnet USDC from Circle deployment, added TOON_TOKEN_NETWORK env var override
 - **Issues found & fixed**: 0
 
 ### Step 2: Story Validate
@@ -69,7 +69,7 @@ Multi-environment chain configuration for the Crosstown protocol. Adds chain pre
 - **Duration**: ~12 min
 - **What changed**: Created chain-config.ts, modified index.ts, town.ts, create-node.ts, shared.ts, enabled all tests
 - **Key decisions**: Used effectiveSettlementInfo local variable, INVALID_CHAIN error code, string not viem Hex for verifyingContract
-- **Issues found & fixed**: 2 (CrosstownError constructor args, Prettier formatting)
+- **Issues found & fixed**: 2 (ToonError constructor args, Prettier formatting)
 
 ### Step 5: Post-Dev Artifact Verify
 - **Status**: success
@@ -111,7 +111,7 @@ Multi-environment chain configuration for the Crosstown protocol. Adds chain pre
 - **Status**: success
 - **Duration**: ~8 min
 - **What changed**: Added 2 new tests, improved ethers regex, added clarifying comments
-- **Issues found & fixed**: 5 (missing CrosstownError type check, missing env var error path test, regex false negative risk, trivially-true assertion, stale test count)
+- **Issues found & fixed**: 5 (missing ToonError type check, missing env var error path test, regex false negative risk, trivially-true assertion, stale test count)
 
 ### Step 12: Code Review #1
 - **Status**: success

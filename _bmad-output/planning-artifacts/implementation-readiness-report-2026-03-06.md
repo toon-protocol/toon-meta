@@ -17,7 +17,7 @@ scope: "Epics 3 and 4"
 # Implementation Readiness Assessment Report
 
 **Date:** 2026-03-06
-**Project:** crosstown
+**Project:** toon
 **Scope:** Epics 3 and 4
 
 ## Document Inventory
@@ -248,4 +248,4 @@ This assessment identified **5 issues** across **3 severity categories** (0 crit
 
 **Assessed by:** Implementation Readiness Workflow
 **Date:** 2026-03-06
-**Scope:** Epics 3 and 4 of the Crosstown SDK epic breakdown
+**Scope:** Epics 3 and 4 of the TOON SDK epic breakdown

@@ -2,7 +2,7 @@
 
 ## Overview
 
-- **Story file**: `/Users/jonathangreen/Documents/crosstown/_bmad-output/implementation-artifacts/1-0-extract-toon-codec-to-crosstown-core.md`
+- **Story file**: `/Users/jonathangreen/Documents/toon/_bmad-output/implementation-artifacts/1-0-extract-toon-codec-to-toon-core.md`
 - **Git start**: `01385ba569bcc4d5dd728a6523578a5240a8f445`
 - **Duration**: ~90 minutes pipeline wall-clock time
 - **Pipeline result**: success
@@ -10,7 +10,7 @@
 
 ## What Was Built
 
-Extracted the TOON encoder, decoder, and a new shallow parser from `@crosstown/bls` and `@crosstown/relay` into `@crosstown/core`, enabling the SDK to access TOON functionality without circular dependencies. BLS and relay now use thin re-exports from core. Error classes were migrated from package-specific base errors to `CrosstownError`.
+Extracted the TOON encoder, decoder, and a new shallow parser from `@toon-protocol/bls` and `@toon-protocol/relay` into `@toon-protocol/core`, enabling the SDK to access TOON functionality without circular dependencies. BLS and relay now use thin re-exports from core. Error classes were migrated from package-specific base errors to `ToonError`.
 
 ## Acceptance Criteria Coverage
 
@@ -18,10 +18,10 @@ Extracted the TOON encoder, decoder, and a new shallow parser from `@crosstown/b
 - [x] AC2: `packages/core/src/toon/decoder.ts` contains TOON decoder — covered by: `toon.test.ts` (14+ tests), `index.test.ts` (1 test)
 - [x] AC3: `packages/core/src/toon/index.ts` re-exports all — covered by: `toon.test.ts` (6 re-export tests), `index.test.ts` (9 tests)
 - [x] AC4: `shallowParseToon` with `ToonRoutingMeta` — covered by: `toon.test.ts` (12+ tests + 7 edge cases)
-- [x] AC5: BLS imports from `@crosstown/core` — covered by: 233 BLS tests passing through thin re-export
-- [x] AC6: Relay imports from `@crosstown/core` — covered by: 216 relay tests passing through thin re-export
+- [x] AC5: BLS imports from `@toon-protocol/core` — covered by: 233 BLS tests passing through thin re-export
+- [x] AC6: Relay imports from `@toon-protocol/core` — covered by: 216 relay tests passing through thin re-export
 - [x] AC7: All existing BLS and relay tests pass — covered by: full regression run (1,247 tests)
-- [x] AC8: TOON exports from `@crosstown/core` index — covered by: `index.test.ts` (9 tests)
+- [x] AC8: TOON exports from `@toon-protocol/core` index — covered by: `index.test.ts` (9 tests)
 
 ## Files Changed
 
@@ -43,7 +43,7 @@ Extracted the TOON encoder, decoder, and a new shallow parser from `@crosstown/b
 
 ### packages/bls/ (modified)
 
-- `src/toon/index.ts` — modified: replaced implementation with thin re-export from `@crosstown/core`
+- `src/toon/index.ts` — modified: replaced implementation with thin re-export from `@toon-protocol/core`
 - `src/toon/encoder.ts` — deleted
 - `src/toon/decoder.ts` — deleted (moved to core)
 - `src/toon/toon.test.ts` — deleted (merged into core)
@@ -52,7 +52,7 @@ Extracted the TOON encoder, decoder, and a new shallow parser from `@crosstown/b
 
 ### packages/relay/ (modified)
 
-- `src/toon/index.ts` — modified: replaced implementation with thin re-export from `@crosstown/core`
+- `src/toon/index.ts` — modified: replaced implementation with thin re-export from `@toon-protocol/core`
 - `src/toon/encoder.ts` — deleted (moved to core)
 - `src/toon/decoder.ts` — deleted
 - `src/toon/toon.test.ts` — deleted (merged into core)
@@ -66,7 +66,7 @@ Extracted the TOON encoder, decoder, and a new shallow parser from `@crosstown/b
 
 ### BMAD artifacts (modified)
 
-- `_bmad-output/implementation-artifacts/1-0-extract-toon-codec-to-crosstown-core.md` — modified: status, dev record, code review record
+- `_bmad-output/implementation-artifacts/1-0-extract-toon-codec-to-toon-core.md` — modified: status, dev record, code review record
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — modified: story status → done
 - `_bmad-output/test-artifacts/nfr-assessment-story-1-0.md` — new: NFR assessment report
 
@@ -92,7 +92,7 @@ Extracted the TOON encoder, decoder, and a new shallow parser from `@crosstown/b
 - **Status**: success
 - **Duration**: ~10 min
 - **What changed**: Created all core TOON files, deleted BLS/relay originals, set up thin re-exports, 52 tests
-- **Key decisions**: Used Option A (thin re-export) for BLS/relay; error classes extend CrosstownError
+- **Key decisions**: Used Option A (thin re-export) for BLS/relay; error classes extend ToonError
 
 ### Step 4: Develop
 
@@ -145,7 +145,7 @@ Extracted the TOON encoder, decoder, and a new shallow parser from `@crosstown/b
 - **Status**: success
 - **Duration**: ~5 min
 - **What changed**: Expanded `toon.test.ts` from 52 to 70 tests
-- **Issues found & fixed**: 6 — missing CrosstownError inheritance checks, error cause chaining tests, empty input edge cases, wrong-type field validation, decoder validation gaps
+- **Issues found & fixed**: 6 — missing ToonError inheritance checks, error cause chaining tests, empty input edge cases, wrong-type field validation, decoder validation gaps
 
 ### Step 12: Code Review #1
 
@@ -253,4 +253,4 @@ Extracted the TOON encoder, decoder, and a new shallow parser from `@crosstown/b
 
 ## TL;DR
 
-Story 1-0 successfully extracted the TOON encoder, decoder, and a new shallow parser from `@crosstown/bls` and `@crosstown/relay` into `@crosstown/core`. The pipeline completed cleanly with all 22 steps passing (2 skipped for no UI impact). All 8 acceptance criteria are covered by 79 dedicated tests, with 1,247 total tests passing across the monorepo. Three code review passes found only 1 low-severity DRY violation (fixed). Security scan and OWASP assessment are clean. No action items require human attention.
+Story 1-0 successfully extracted the TOON encoder, decoder, and a new shallow parser from `@toon-protocol/bls` and `@toon-protocol/relay` into `@toon-protocol/core`. The pipeline completed cleanly with all 22 steps passing (2 skipped for no UI impact). All 8 acceptance criteria are covered by 79 dedicated tests, with 1,247 total tests passing across the monorepo. Three code review passes found only 1 low-severity DRY violation (fixed). Security scan and OWASP assessment are clean. No action items require human attention.

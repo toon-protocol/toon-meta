@@ -52,7 +52,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Threshold:** Not applicable (property access on JavaScript objects, no I/O)
 - **Actual:** Not applicable
 - **Evidence:** Source code analysis of `packages/sdk/src/create-node.ts` (lines 98-115, 285-310)
-- **Findings:** `node.connector` is a direct pass-through getter that returns `config.connector` -- a simple property access with O(1) cost. `node.channelClient` delegates to `crosstownNode.channelClient` which is precomputed at construction time (either `null` or a `ConnectorChannelClient` wrapper). No I/O, no network, no asynchronous operations on the access path.
+- **Findings:** `node.connector` is a direct pass-through getter that returns `config.connector` -- a simple property access with O(1) cost. `node.channelClient` delegates to `toonNode.channelClient` which is precomputed at construction time (either `null` or a `ConnectorChannelClient` wrapper). No I/O, no network, no asynchronous operations on the access path.
 
 ### Throughput
 

@@ -52,11 +52,11 @@ inputDocuments:
 
 ## Story Summary
 
-Add an HTTP-native payment on-ramp to Crosstown via the x402 protocol pattern. The `/publish` endpoint allows any HTTP client (AI agents, browsers, CLI tools) to publish Nostr events to the network by paying USDC without understanding ILP or running an ILP client. Uses EIP-3009 gasless USDC authorization with a 6-layer pre-flight validation pipeline before any on-chain transaction.
+Add an HTTP-native payment on-ramp to TOON via the x402 protocol pattern. The `/publish` endpoint allows any HTTP client (AI agents, browsers, CLI tools) to publish Nostr events to the network by paying USDC without understanding ILP or running an ILP client. Uses EIP-3009 gasless USDC authorization with a 6-layer pre-flight validation pipeline before any on-chain transaction.
 
 **As an** HTTP client or AI agent
 **I want** to publish Nostr events to any relay in the network via a simple HTTP endpoint with USDC payment
-**So that** I can interact with Crosstown without understanding ILP or running an ILP client
+**So that** I can interact with TOON without understanding ILP or running an ILP client
 
 ---
 
@@ -103,7 +103,7 @@ Add an HTTP-native payment on-ramp to Crosstown via the x402 protocol pattern. T
 **File:** `packages/town/src/handlers/x402-publish-handler.test.ts` (approx. 340 lines)
 
 - **Test:** `[P0] buildIlpPrepare() sets amount field to match basePricePerByte * toonData.length` (T-3.3-13)
-  - **Status:** RED -- `it.skip()`, module `@crosstown/core/x402` does not exist
+  - **Status:** RED -- `it.skip()`, module `@toon-protocol/core/x402` does not exist
   - **Verifies:** buildIlpPrepare() amount field matches pricing formula (E3-R007)
 
 - **Test:** `[P1] price = basePricePerByte * toonLength + configurable routing buffer` (T-3.3-08)
@@ -115,7 +115,7 @@ Add an HTTP-native payment on-ramp to Crosstown via the x402 protocol pattern. T
   - **Verifies:** calculateX402Price() with zero buffer returns base price only
 
 - **Test:** `[P0] x402 and ILP paths produce identical ILP PREPARE packets via shared buildIlpPrepare()` (T-3.3-03)
-  - **Status:** RED -- `it.skip()`, module `@crosstown/core/x402` does not exist
+  - **Status:** RED -- `it.skip()`, module `@toon-protocol/core/x402` does not exist
   - **Verifies:** Packet equivalence across both payment rails (E3-R007)
 
 - **Test:** `[P0] 6 free checks execute before any on-chain transaction` (T-3.3-01)
@@ -138,7 +138,7 @@ Add an HTTP-native payment on-ramp to Crosstown via the x402 protocol pattern. T
   - **Status:** RED -- `it.skip()`, module `x402-preflight.ts` does not exist
   - **Verifies:** Forged signature rejection at pre-flight (E3-R005)
 
-- **Test:** `[P1] CROSSTOWN_X402_ENABLED=false -> GET /publish returns 404` (T-3.3-07)
+- **Test:** `[P1] TOON_X402_ENABLED=false -> GET /publish returns 404` (T-3.3-07)
   - **Status:** RED -- `it.skip()`, module `x402-publish-handler.ts` does not exist
   - **Verifies:** x402 opt-in configuration
 
@@ -414,7 +414,7 @@ N/A -- Backend-only story with no UI components.
 **Tasks to make this test pass:**
 - [ ] `createX402Handler({ x402Enabled: false })` returns handler that responds with 404
 - [ ] Add `x402Enabled?: boolean` to TownConfig (default: false)
-- [ ] Add `CROSSTOWN_X402_ENABLED` env var to `packages/town/src/cli.ts`
+- [ ] Add `TOON_X402_ENABLED` env var to `packages/town/src/cli.ts`
 - [ ] Add to `docker/src/shared.ts` parseConfig()
 - [ ] Uncomment imports and assertions
 - [ ] Remove `it.skip()`
@@ -627,7 +627,7 @@ No regressions.
 | T-3.3-04 | settlement tx reverts (insufficient balance) -> no ILP PREPARE sent | #7 | 3.3-INT-004 | E3-R006 | P0 | I |
 | T-3.3-05 | settlement succeeds but ILP PREPARE rejected -> HTTP 200, no refund | #8 | 3.3-INT-005 | E3-R006, E3-R008 | P0 | I |
 | T-3.3-06 | invalid EIP-3009 signature rejected at pre-flight (no gas spent) | #2 | 3.3-INT-006 | E3-R005 | P0 | I |
-| T-3.3-07 | CROSSTOWN_X402_ENABLED=false -> GET /publish returns 404 | #6 | 3.3-INT-007 | -- | P1 | I |
+| T-3.3-07 | TOON_X402_ENABLED=false -> GET /publish returns 404 | #6 | 3.3-INT-007 | -- | P1 | I |
 | T-3.3-08 | price = basePricePerByte * toonLength + configurable routing buffer | #5 | 3.3-INT-008 | E3-R010 | P1 | U |
 | T-3.3-08b | routing buffer of 0% returns base price only | #5 | 3.3-INT-008 | E3-R010 | P1 | U |
 | T-3.3-09 | HTTP 402 body contains required fields | #1 | 3.3-INT-009 | -- | P1 | I |

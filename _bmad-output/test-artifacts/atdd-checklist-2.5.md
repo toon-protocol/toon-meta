@@ -12,7 +12,7 @@ lastStep: 'step-05-validate-and-complete'
 lastSaved: '2026-03-06'
 workflowType: 'testarch-atdd'
 inputDocuments:
-  - '_bmad-output/implementation-artifacts/2-5-publish-crosstown-town-package.md'
+  - '_bmad-output/implementation-artifacts/2-5-publish-toon-town-package.md'
   - '_bmad-output/test-artifacts/test-design-epic-2.md'
   - '_bmad-output/project-context.md'
   - 'packages/town/tests/e2e/town-lifecycle.test.ts'
@@ -23,7 +23,7 @@ inputDocuments:
   - 'docker/src/entrypoint-town.ts'
 ---
 
-# ATDD Checklist - Epic 2, Story 2.5: Publish @crosstown/town Package
+# ATDD Checklist - Epic 2, Story 2.5: Publish @toon-protocol/town Package
 
 **Date:** 2026-03-06
 **Author:** Jonathan
@@ -33,20 +33,20 @@ inputDocuments:
 
 ## Story Summary
 
-Story 2.5 is the capstone story for Epic 2, wrapping the validated handler implementations (Stories 2.1-2.4) into a publishable npm package with a programmatic `startTown(config)` API and CLI entrypoint. The package enables network operators to join the Crosstown network with minimal configuration.
+Story 2.5 is the capstone story for Epic 2, wrapping the validated handler implementations (Stories 2.1-2.4) into a publishable npm package with a programmatic `startTown(config)` API and CLI entrypoint. The package enables network operators to join the TOON network with minimal configuration.
 
 **As a** network operator
-**I want** to `npm install @crosstown/town` and deploy a relay with minimal configuration
-**So that** I can join the Crosstown network by running a single command with my seed phrase
+**I want** to `npm install @toon-protocol/town` and deploy a relay with minimal configuration
+**So that** I can join the TOON network by running a single command with my seed phrase
 
 ---
 
 ## Acceptance Criteria
 
-1. **AC #1 -- Package structure:** `package.json` depends on `@crosstown/sdk`, `@crosstown/relay`, and `@crosstown/core`, has `"type": "module"` with TypeScript strict mode, and has a `bin` entry for CLI usage.
+1. **AC #1 -- Package structure:** `package.json` depends on `@toon-protocol/sdk`, `@toon-protocol/relay`, and `@toon-protocol/core`, has `"type": "module"` with TypeScript strict mode, and has a `bin` entry for CLI usage.
 2. **AC #2 -- Public API:** Package exports `startTown(config)` function and `TownConfig` type; config accepts mnemonic/secretKey, relayPort, blsPort, knownPeers, settlement config, and optional overrides.
 3. **AC #3 -- Minimal startup:** Given a minimal config with mnemonic and connectorUrl, `startTown()` starts a relay with sensible defaults (ports 7100/3100), runs bootstrap, discovers peers, and accepts events.
-4. **AC #4 -- CLI entrypoint:** `npx @crosstown/town --mnemonic "..." --connector-url "..."` starts a relay node with environment variable and CLI flag configuration.
+4. **AC #4 -- CLI entrypoint:** `npx @toon-protocol/town --mnemonic "..." --connector-url "..."` starts a relay node with environment variable and CLI flag configuration.
 5. **AC #5 -- Graceful shutdown:** `instance.stop()` cleanly shuts down relay WebSocket, BLS HTTP, relay monitor, bootstrap service, and `instance.isRunning()` returns `false`.
 6. **AC #6 -- Publishability:** Package builds and publishes to npm with correct ESM exports and TypeScript declarations.
 
@@ -66,7 +66,7 @@ Story 2.5 is the capstone story for Epic 2, wrapping the validated handler imple
   - **Infrastructure Required:** Genesis node (Anvil, Connector, Relay)
   - **Adjustment APPLIED:** Added `connectorUrl: CONNECTOR_URL` to startTown() config
 
-- **Test:** T-2.5-02 `should export startTown() and TownConfig from @crosstown/town`
+- **Test:** T-2.5-02 `should export startTown() and TownConfig from @toon-protocol/town`
   - **Status:** RED - `describe.skip` prevents execution; exports not yet wired
   - **Verifies:** AC #2 -- Public API surface exports correct symbols
   - **Priority:** P1
@@ -98,7 +98,7 @@ Story 2.5 is the capstone story for Epic 2, wrapping the validated handler imple
   - **Infrastructure Required:** Genesis node
   - **Adjustment APPLIED:** Changed `blsPort: 3500` to `blsPort: 3550` (avoids Faucet port conflict); added `connectorUrl: CONNECTOR_URL`; updated all health check URLs from 3500 to 3550
 
-- **Test:** T-2.5-06 `package.json should depend on @crosstown/sdk, @crosstown/relay, @crosstown/core`
+- **Test:** T-2.5-06 `package.json should depend on @toon-protocol/sdk, @toon-protocol/relay, @toon-protocol/core`
   - **Status:** RED - `describe.skip` prevents execution; `bin` entry not yet added to package.json
   - **Verifies:** AC #1 -- Package structure, dependencies, bin entry, ESM type
   - **Priority:** P2
@@ -144,8 +144,8 @@ The E2E tests use a shared `beforeAll`/`afterAll` pattern for genesis infrastruc
 Per user preference and project convention, Story 2.5 E2E tests use **real infrastructure only**:
 - Real genesis node (Anvil, Connector, Relay) via `deploy-genesis-node.sh`
 - Real SQLite event store (file-based, not :memory:)
-- Real TOON codec from `@crosstown/core`
-- Real Nostr key derivation from `@crosstown/sdk`
+- Real TOON codec from `@toon-protocol/core`
+- Real Nostr key derivation from `@toon-protocol/sdk`
 - Real WebSocket connections to relay
 - Real HTTP requests to BLS health endpoint
 
@@ -190,7 +190,7 @@ Story 2.5 is a backend/Node.js package with no UI components. No data-testid att
 
 ---
 
-### Test: T-2.5-02 `should export startTown() and TownConfig from @crosstown/town`
+### Test: T-2.5-02 `should export startTown() and TownConfig from @toon-protocol/town`
 
 **File:** `packages/town/tests/e2e/town-lifecycle.test.ts`
 
@@ -268,17 +268,17 @@ Story 2.5 is a backend/Node.js package with no UI components. No data-testid att
 
 ---
 
-### Test: T-2.5-06 `package.json should depend on @crosstown/sdk, @crosstown/relay, @crosstown/core`
+### Test: T-2.5-06 `package.json should depend on @toon-protocol/sdk, @toon-protocol/relay, @toon-protocol/core`
 
 **File:** `packages/town/tests/e2e/town-lifecycle.test.ts`
 
 **Tasks to make this test pass:**
 
-- [ ] Add `bin` field to `packages/town/package.json`: `{ "crosstown-town": "./dist/cli.js" }`
+- [ ] Add `bin` field to `packages/town/package.json`: `{ "toon-town": "./dist/cli.js" }`
 - [ ] Move `better-sqlite3` from devDependencies to dependencies
 - [ ] Move `nostr-tools` from devDependencies to dependencies
 - [ ] Add `hono` and `@hono/node-server` as runtime dependencies
-- [ ] Verify `@crosstown/sdk`, `@crosstown/relay`, `@crosstown/core` in dependencies (already present)
+- [ ] Verify `@toon-protocol/sdk`, `@toon-protocol/relay`, `@toon-protocol/core` in dependencies (already present)
 - [ ] Run test: `cd packages/town && pnpm vitest run tests/e2e/town-lifecycle.test.ts -t "package.json should depend"`
 - [ ] Test passes (green phase)
 
@@ -294,7 +294,7 @@ Story 2.5 is a backend/Node.js package with no UI components. No data-testid att
   - `#!/usr/bin/env node` shebang
   - `node:util` `parseArgs()` for CLI flag parsing
   - Support: `--mnemonic`, `--secret-key`, `--relay-port`, `--bls-port`, `--data-dir`, `--connector-url`, `--known-peers`, `--dev-mode`, `--help`
-  - Environment variable fallbacks: `CROSSTOWN_MNEMONIC`, `CROSSTOWN_SECRET_KEY`, etc.
+  - Environment variable fallbacks: `TOON_MNEMONIC`, `TOON_SECRET_KEY`, etc.
   - CLI flags override environment variables
   - Call `startTown(config)` with parsed config
   - Wire SIGINT/SIGTERM to `instance.stop()`
@@ -457,7 +457,7 @@ Build, lint, and format all pass after test adjustments.
 
 **Expected Failure Messages (when un-skipped):**
 
-- T-2.5-01: `TypeError: startTown is not a function` (or import resolution error -- startTown not exported from @crosstown/town)
+- T-2.5-01: `TypeError: startTown is not a function` (or import resolution error -- startTown not exported from @toon-protocol/town)
 - T-2.5-02: `TypeError: startTown is not a function` (typeof check fails)
 - T-2.5-03: `TypeError: startTown is not a function`
 - T-2.5-04: `TypeError: startTown is not a function`
@@ -484,7 +484,7 @@ Build, lint, and format all pass after test adjustments.
 **Questions or Issues?**
 
 - Ask in team standup
-- Refer to `_bmad-output/implementation-artifacts/2-5-publish-crosstown-town-package.md` for story details
+- Refer to `_bmad-output/implementation-artifacts/2-5-publish-toon-town-package.md` for story details
 - Refer to `docker/src/entrypoint-town.ts` for reference implementation patterns
 - Refer to `_bmad-output/test-artifacts/test-design-epic-2.md` for risk assessment
 

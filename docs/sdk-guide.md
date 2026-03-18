@@ -1,6 +1,6 @@
 # SDK Guide
 
-`@crosstown/sdk` provides the building blocks for creating services that participate in the Crosstown network. It handles identity, signature verification, pricing, and handler dispatch — you bring the business logic.
+`@toon-protocol/sdk` provides the building blocks for creating services that participate in the TOON network. It handles identity, signature verification, pricing, and handler dispatch — you bring the business logic.
 
 ## Where SDK Sits in the Stack
 
@@ -8,9 +8,9 @@
 ┌─────────────────────────┐
 │  Your Application       │  ← You write this
 ├─────────────────────────┤
-│  @crosstown/sdk         │  ← Identity, verification, pricing, handlers
+│  @toon-protocol/sdk         │  ← Identity, verification, pricing, handlers
 ├─────────────────────────┤
-│  @crosstown/core        │  ← Bootstrap, discovery, peering
+│  @toon-protocol/core        │  ← Bootstrap, discovery, peering
 ├─────────────────────────┤
 │  ILP Connector          │  ← Payment routing
 └─────────────────────────┘
@@ -20,10 +20,10 @@ SDK is the framework layer between your application logic and the protocol infra
 
 ## Identity
 
-Every Crosstown node has a unified identity derived from a single secp256k1 key:
+Every TOON node has a unified identity derived from a single secp256k1 key:
 
 ```typescript
-import { fromMnemonic, fromSecretKey, generateMnemonic } from '@crosstown/sdk';
+import { fromMnemonic, fromSecretKey, generateMnemonic } from '@toon-protocol/sdk';
 
 // Generate a new identity
 const mnemonic = generateMnemonic();
@@ -44,8 +44,8 @@ Identity uses [NIP-06](https://github.com/nostr-protocol/nips/blob/master/06.md)
 `createNode()` composes the full processing pipeline and returns a `ServiceNode`:
 
 ```typescript
-import { createNode, fromMnemonic } from '@crosstown/sdk';
-import { ConnectorNode } from '@crosstown/connector';
+import { createNode, fromMnemonic } from '@toon-protocol/sdk';
+import { ConnectorNode } from '@toon-protocol/connector';
 
 const identity = fromMnemonic('your twelve word mnemonic...');
 
@@ -68,7 +68,7 @@ const node = createNode({
 });
 ```
 
-> **Note:** The SDK uses an embedded connector that runs in-process. If you prefer an external connector (simpler setup), use [`@crosstown/town`](../town) instead — it takes a `connectorUrl` and manages the connection for you.
+> **Note:** The SDK uses an embedded connector that runs in-process. If you prefer an external connector (simpler setup), use [`@toon-protocol/town`](../town) instead — it takes a `connectorUrl` and manages the connection for you.
 
 ### NodeConfig Reference
 
@@ -78,7 +78,7 @@ const node = createNode({
 | `connector` | `EmbeddableConnectorLike` | **required** | ILP connector instance |
 | `basePricePerByte` | `bigint` | `10n` | Price per byte of TOON data |
 | `devMode` | `boolean` | `false` | Skip verification and pricing |
-| `ilpAddress` | `string` | `g.crosstown.local` | Node's ILP address |
+| `ilpAddress` | `string` | `g.toon.local` | Node's ILP address |
 | `assetCode` | `string` | `USD` | Settlement asset code |
 | `assetScale` | `number` | `6` | Settlement asset scale |
 | `knownPeers` | `KnownPeer[]` | `[]` | Seed peers for bootstrap |
@@ -174,13 +174,13 @@ import { finalizeEvent } from 'nostr-tools/pure';
 
 const event = finalizeEvent({
   kind: 1,
-  content: 'Hello from Crosstown!',
+  content: 'Hello from TOON!',
   tags: [],
   created_at: Math.floor(Date.now() / 1000),
 }, identity.secretKey);
 
 const result = await node.publishEvent(event, {
-  destination: 'g.crosstown.peer1',
+  destination: 'g.toon.peer1',
 });
 
 if (result.success) {
@@ -219,7 +219,7 @@ node.on('bootstrap', (event) => {
 
 ## Error Handling
 
-All SDK errors extend `CrosstownError` from `@crosstown/core`:
+All SDK errors extend `TOONError` from `@toon-protocol/core`:
 
 | Error Class | When | ILP Code |
 |-------------|------|----------|
@@ -230,7 +230,7 @@ All SDK errors extend `CrosstownError` from `@crosstown/core`:
 | `HandlerError` | Handler registration or dispatch failure | T00 |
 
 ```typescript
-import { IdentityError, NodeError } from '@crosstown/sdk';
+import { IdentityError, NodeError } from '@toon-protocol/sdk';
 
 try {
   const identity = fromMnemonic('invalid mnemonic');

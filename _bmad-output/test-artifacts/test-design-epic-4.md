@@ -45,7 +45,7 @@ lastSaved: '2026-03-06'
 | **Marlin POND staking** | Operator-only concern, invisible to relay users (Decision 1) | Marlin handles POND staking independently |
 | **Multi-chain deployment** | Epic 4 targets Arbitrum One only (Decision 6) | Multi-chain deferred to future epic |
 | **x402 payment integration** | Covered by Epic 3; Epic 4 builds on top | Epic 3 test design covers x402 |
-| **Oyster CVM platform testing** | Marlin infrastructure, not Crosstown responsibility | Marlin provides CVM runtime guarantees |
+| **Oyster CVM platform testing** | Marlin infrastructure, not TOON responsibility | Marlin provides CVM runtime guarantees |
 | **Attestation contract verification** | Deferred decision (architecture.md Decision Priority Analysis) | PCR verification is software-only in Epic 4 |
 
 ---
@@ -305,7 +305,7 @@ Philosophy: Run everything in PRs if < 15 min. Defer only build reproducibility 
 
 1. Marlin Oyster SDK and Nautilus KMS are stable and available before Epic 4 starts
 2. AWS Nitro attestation document format is well-documented and parseable in TypeScript
-3. Nix package manager can produce fully deterministic Docker images for the Crosstown stack
+3. Nix package manager can produce fully deterministic Docker images for the TOON stack
 4. Epic 3 seed relay discovery (kind:10036) and /health endpoint are complete before Story 4.6
 
 ### Dependencies

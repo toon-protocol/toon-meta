@@ -29,7 +29,7 @@ inputDocuments:
 
 ## Story Summary
 
-SPSP request handling (kind:23194) is reimplemented as an SDK handler in `@crosstown/town`, enabling settlement negotiation and peer registration through the SDK's kind-based routing. The handler lives in Town (not SDK) following the architectural boundary established in Story 2.1.
+SPSP request handling (kind:23194) is reimplemented as an SDK handler in `@toon-protocol/town`, enabling settlement negotiation and peer registration through the SDK's kind-based routing. The handler lives in Town (not SDK) following the architectural boundary established in Story 2.1.
 
 **As a** relay operator
 **I want** SPSP request handling reimplemented as an SDK handler
@@ -97,7 +97,7 @@ SPSP request handling (kind:23194) is reimplemented as an SDK handler in `@cross
 **Exports (inline functions):**
 
 - `createKeypair()` -- Generate real nostr-tools keypair
-- `createSpspRequest(senderSk, recipientPubkey, settlementInfo?)` -- Build signed NIP-44 encrypted kind:23194 event using `buildSpspRequestEvent` from @crosstown/core
+- `createSpspRequest(senderSk, recipientPubkey, settlementInfo?)` -- Build signed NIP-44 encrypted kind:23194 event using `buildSpspRequestEvent` from @toon-protocol/core
 - `createMockChannelClient()` -- Mock ConnectorChannelClient with openChannel/getChannelState
 - `createMockAdminClient()` -- Mock ConnectorAdminClient with addPeer/removePeer
 - `createPacketRequest(event, amount?)` -- Build HandlePacketRequest from signed event
@@ -126,7 +126,7 @@ SPSP request handling (kind:23194) is reimplemented as an SDK handler in `@cross
 - `addPeer(config)` -- Returns `undefined` (success)
 - `removePeer(id)` -- Returns `undefined` (success)
 
-**All other infrastructure is REAL:** NIP-44 encryption, nostr-tools keys, TOON codec (`@crosstown/core/toon`), SQLite :memory: (`@crosstown/relay`).
+**All other infrastructure is REAL:** NIP-44 encryption, nostr-tools keys, TOON codec (`@toon-protocol/core/toon`), SQLite :memory: (`@toon-protocol/relay`).
 
 ---
 
@@ -175,7 +175,7 @@ N/A -- Backend integration tests. No UI elements.
 
 **Tasks to make this test pass:**
 
-- [ ] If `settlementConfig` + `channelClient` + `request.supportedChains`: call `negotiateAndOpenChannel()` from `@crosstown/core`
+- [ ] If `settlementConfig` + `channelClient` + `request.supportedChains`: call `negotiateAndOpenChannel()` from `@toon-protocol/core`
 - [ ] On success, merge settlement fields into response
 - [ ] Run test and verify settlement fields in decrypted response
 - [ ] Test passes (green phase)
@@ -202,9 +202,9 @@ N/A -- Backend integration tests. No UI elements.
 
 **Tasks to make this test pass:**
 
-- [ ] `buildSpspResponseEvent()` from `@crosstown/core` handles NIP-44 encryption, `p` tag, `e` tag
+- [ ] `buildSpspResponseEvent()` from `@toon-protocol/core` handles NIP-44 encryption, `p` tag, `e` tag
 - [ ] Response event is kind:23195, signed by node secret key
-- [ ] TOON encode with `encodeEventToToon()` from `@crosstown/core/toon`
+- [ ] TOON encode with `encodeEventToToon()` from `@toon-protocol/core/toon`
 - [ ] Run test
 - [ ] Test passes (green phase)
 
@@ -265,13 +265,13 @@ cd packages/town && pnpm vitest src/handlers/spsp-handshake-handler.test.ts
 
 - All 7 tests written and updated to match Story 2.2 architecture
 - Handler import corrected: `./spsp-handshake-handler.js` (Town, not SDK)
-- TOON codec import corrected: `@crosstown/core/toon` (not `@crosstown/relay`)
+- TOON codec import corrected: `@toon-protocol/core/toon` (not `@toon-protocol/relay`)
 - `toonEncoder`/`toonDecoder` removed from handler config (not in SpspHandshakeHandlerConfig)
 - `createTestContext()` helper added (same pattern as Story 2.1)
 - All `handler(request)` calls updated to `handler(createTestContext(request))`
 - `describe.skip` removed -- tests are active (will fail at import resolution until handler exists)
-- Handler type corrected to `Handler` from `@crosstown/sdk`
-- `ConnectorAdminClient` type import added from `@crosstown/core`
+- Handler type corrected to `Handler` from `@toon-protocol/sdk`
+- `ConnectorAdminClient` type import added from `@toon-protocol/core`
 - Real NIP-44 encryption with real keypairs
 - Real TOON codec, real SQLite :memory:
 - Mock channel client and admin client (justified: Anvil unavailable in CI)
@@ -290,10 +290,10 @@ cd packages/town && pnpm vitest src/handlers/spsp-handshake-handler.test.ts
 **Implementation Order:**
 
 1. Create `createSpspHandshakeHandler` with basic request/response flow -> passes first 2 tests
-2. Add settlement negotiation via `negotiateAndOpenChannel()` from `@crosstown/core` -> passes chain intersection + channel tests
+2. Add settlement negotiation via `negotiateAndOpenChannel()` from `@toon-protocol/core` -> passes chain intersection + channel tests
 3. Add graceful degradation (try/catch around settlement) -> passes degradation test
 4. Add peer registration (before return, non-fatal try/catch) -> passes peer test
-5. NIP-44 encryption is handled by `buildSpspResponseEvent()` from `@crosstown/core` -> passes encryption test
+5. NIP-44 encryption is handled by `buildSpspResponseEvent()` from `@toon-protocol/core` -> passes encryption test
 
 **Key Implementation Notes:**
 
@@ -301,7 +301,7 @@ cd packages/town && pnpm vitest src/handlers/spsp-handshake-handler.test.ts
 - `data` must be the base64-encoded TOON of the response event (top-level field)
 - Peer registration happens BEFORE the return statement (not after)
 - Handler does NOT verify signatures or validate pricing (SDK pipeline handles those)
-- No `@crosstown/core/spsp` sub-path -- use `@crosstown/core` main export for SPSP functions
+- No `@toon-protocol/core/spsp` sub-path -- use `@toon-protocol/core` main export for SPSP functions
 
 ### REFACTOR Phase
 
@@ -316,28 +316,28 @@ cd packages/town && pnpm vitest src/handlers/spsp-handshake-handler.test.ts
 
 The following discrepancies were identified and corrected in this update:
 
-1. **Handler location**: Was `@crosstown/sdk` -> now `@crosstown/town` (`./spsp-handshake-handler.js`)
-2. **TOON codec import**: Was `@crosstown/relay` -> now `@crosstown/core/toon` (per Story 1.0 extraction)
-3. **SqliteEventStore import**: Now separate from TOON codec: `import { SqliteEventStore } from '@crosstown/relay'`
+1. **Handler location**: Was `@toon-protocol/sdk` -> now `@toon-protocol/town` (`./spsp-handshake-handler.js`)
+2. **TOON codec import**: Was `@toon-protocol/relay` -> now `@toon-protocol/core/toon` (per Story 1.0 extraction)
+3. **SqliteEventStore import**: Now separate from TOON codec: `import { SqliteEventStore } from '@toon-protocol/relay'`
 4. **Config fields**: Removed `toonEncoder` and `toonDecoder` from handler config (not in SpspHandshakeHandlerConfig)
-5. **Handler type**: Was `ReturnType<typeof createSpspHandshakeHandler>` -> now `Handler` from `@crosstown/sdk`
+5. **Handler type**: Was `ReturnType<typeof createSpspHandshakeHandler>` -> now `Handler` from `@toon-protocol/sdk`
 6. **Test invocation**: Was `handler(request)` -> now `handler(createTestContext(request))` (SDK handlers receive HandlerContext)
 7. **describe.skip removed**: Tests are active (fail at module resolution, not skipped)
 8. **Added createTestContext helper**: Same pattern as Story 2.1 event-storage-handler tests
-9. **Added ConnectorAdminClient type import**: From `@crosstown/core`
+9. **Added ConnectorAdminClient type import**: From `@toon-protocol/core`
 10. **Implementation Checklist paths corrected**: Files are in `packages/town/`, not `packages/sdk/`
 
 ---
 
 ## Notes
 
-- Uses `buildSpspRequestEvent` from `@crosstown/core` for realistic SPSP requests
+- Uses `buildSpspRequestEvent` from `@toon-protocol/core` for realistic SPSP requests
 - Mock channel client is justified -- Anvil on-chain operations tested in E2E (Story 2.3)
 - The `ownTokenNetworks` config field maps chains to TokenNetwork contract addresses (not registry)
 - Channel creation must happen BEFORE SPSP handshake completes (known issue fixed 2026-02-26)
 - Handler bypasses `ctx.accept()` and returns raw `HandlePacketAcceptResponse` directly
 - Peer registration happens before `return` statement (not after, which would be unreachable)
-- No `@crosstown/core/spsp` sub-path export -- use `@crosstown/core` main export
+- No `@toon-protocol/core/spsp` sub-path export -- use `@toon-protocol/core` main export
 - Total estimated effort: ~11-18 hours for all 7 tests to pass
 
 ---

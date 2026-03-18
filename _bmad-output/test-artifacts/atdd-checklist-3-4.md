@@ -47,7 +47,7 @@ Seed relay discovery replaces the genesis hub-and-spoke topology with a decentra
 
 ## Acceptance Criteria
 
-1. **AC1**: Given a kind:10036 (Seed Relay List) event published to a public Nostr relay, when a new Crosstown node starts with `discovery: 'seed-list'` config, then the node reads kind:10036 events, connects to seed relays, and subscribes to kind:10032 events to discover the full network.
+1. **AC1**: Given a kind:10036 (Seed Relay List) event published to a public Nostr relay, when a new TOON node starts with `discovery: 'seed-list'` config, then the node reads kind:10036 events, connects to seed relays, and subscribes to kind:10032 events to discover the full network.
 
 2. **AC2**: Given the seed list contains multiple relay URLs, when the first seed relay is unreachable, then the node tries the next relay in the list, and continues until a connection is established or the list is exhausted (with a clear error message on exhaustion).
 
@@ -165,7 +165,7 @@ The `SeedRelayDiscovery` class uses raw `ws` WebSocket connections. Tests will n
 
 **Success Response:**
 ```json
-["EVENT", "sub-id", { "kind": 10036, "content": "[...]", "tags": [["d", "crosstown-seed-list"]] }]
+["EVENT", "sub-id", { "kind": 10036, "content": "[...]", "tags": [["d", "toon-seed-list"]] }]
 ["EOSE", "sub-id"]
 ```
 
@@ -223,7 +223,7 @@ Not applicable -- this is a backend-only story with no UI components.
 - [ ] Create `packages/core/src/events/seed-relay.ts` with `buildSeedRelayListEvent()` function
 - [ ] Function must use `finalizeEvent()` from `nostr-tools/pure`
 - [ ] Event must have `kind: 10036`
-- [ ] Event must have `tags: [['d', 'crosstown-seed-list']]`
+- [ ] Event must have `tags: [['d', 'toon-seed-list']]`
 - [ ] Event content must be JSON-serialized `SeedRelayEntry[]`
 - [ ] Export from `packages/core/src/events/index.ts`
 - [ ] Run test: `npx vitest run packages/core/src/discovery/seed-relay-discovery.test.ts`
@@ -541,7 +541,7 @@ Tested files: `builders.test.ts`, `parsers.test.ts`, `NostrPeerDiscovery.test.ts
 
 ## Notes
 
-- The test file uses inline factories rather than separate fixture files, following the co-located test pattern used throughout the `@crosstown/core` package.
+- The test file uses inline factories rather than separate fixture files, following the co-located test pattern used throughout the `@toon-protocol/core` package.
 - T-3.4-06 (static analysis) reads the source file directly using `readFileSync` to verify no `SimplePool` imports -- this is a guard against the known Node.js container crash issue documented in project memory.
 - The E2E test (T-3.4-12) is deliberately skipped with `it.skip()` because it requires running genesis infrastructure. It will be enabled when E2E test infrastructure is available.
 - All integration tests (T-3.4-01 through T-3.4-05) will need `ws` module mocking during the GREEN phase to avoid actual network connections in unit tests.

@@ -1,23 +1,23 @@
 # Architecture
 
-Crosstown is a monorepo with packages organized into three layers. Each layer has a single responsibility.
+TOON is a monorepo with packages organized into three layers. Each layer has a single responsibility.
 
 ## System Layers
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Discovery Layer                                    │
-│  @crosstown/core                                    │
+│  @toon-protocol/core                                    │
 │  Find peers via Nostr events (kind:10032)           │
 │  Bootstrap into the network                         │
 ├─────────────────────────────────────────────────────┤
 │  Payment Layer                                      │
-│  ILP Connector (@crosstown/connector)               │
+│  ILP Connector (@toon-protocol/connector)               │
 │  Route micropayments between peers                  │
 │  Manage payment channels                            │
 ├─────────────────────────────────────────────────────┤
 │  Storage Layer                                      │
-│  @crosstown/relay + @crosstown/bls                  │
+│  @toon-protocol/relay + @toon-protocol/bls                  │
 │  Accept paid events, store them, serve for free     │
 └─────────────────────────────────────────────────────┘
 ```
@@ -25,23 +25,23 @@ Crosstown is a monorepo with packages organized into three layers. Each layer ha
 ## Package Dependency Graph
 
 ```
-@crosstown/town
-├── @crosstown/sdk
-│   └── @crosstown/core
-├── @crosstown/relay
-│   └── @crosstown/core
-└── @crosstown/connector (peer dependency)
+@toon-protocol/town
+├── @toon-protocol/sdk
+│   └── @toon-protocol/core
+├── @toon-protocol/relay
+│   └── @toon-protocol/core
+└── @toon-protocol/connector (peer dependency)
 
-@crosstown/bls
-└── @crosstown/core
+@toon-protocol/bls
+└── @toon-protocol/core
 ```
 
-- **`@crosstown/core`** — Foundation with no Crosstown dependencies. Provides bootstrap, discovery, settlement negotiation, TOON codec, and NIP-34 handling.
-- **`@crosstown/sdk`** — Framework layer. Adds identity derivation, handler registry, verification pipeline, pricing validation, and node composition on top of core.
-- **`@crosstown/relay`** — Nostr relay server with WebSocket (NIP-01), SQLite event store, and upstream relay propagation.
-- **`@crosstown/town`** — Production relay. Composes SDK + relay + BLS + storage into a single `startTown()` call.
-- **`@crosstown/bls`** — Standalone business logic server. HTTP endpoint that validates ILP packets and stores events.
-- **`@crosstown/faucet`** — Development tool. Distributes test ETH and tokens for local development.
+- **`@toon-protocol/core`** — Foundation with no TOON dependencies. Provides bootstrap, discovery, settlement negotiation, TOON codec, and NIP-34 handling.
+- **`@toon-protocol/sdk`** — Framework layer. Adds identity derivation, handler registry, verification pipeline, pricing validation, and node composition on top of core.
+- **`@toon-protocol/relay`** — Nostr relay server with WebSocket (NIP-01), SQLite event store, and upstream relay propagation.
+- **`@toon-protocol/town`** — Production relay. Composes SDK + relay + BLS + storage into a single `startTown()` call.
+- **`@toon-protocol/bls`** — Standalone business logic server. HTTP endpoint that validates ILP packets and stores events.
+- **`@toon-protocol/faucet`** — Development tool. Distributes test ETH and tokens for local development.
 
 ## Data Flow
 
@@ -88,7 +88,7 @@ Reads use the standard Nostr WebSocket protocol (NIP-01). Events are served in T
 Import SDK packages directly. The connector runs in-process — zero network overhead.
 
 ```typescript
-import { createNode, fromMnemonic } from '@crosstown/sdk';
+import { createNode, fromMnemonic } from '@toon-protocol/sdk';
 
 const node = createNode({ secretKey, connector, ...config });
 await node.start();
@@ -116,7 +116,7 @@ Best for: Relay operators, infrastructure providers.
 Use `startTown()` or the CLI for a complete relay with minimal configuration.
 
 ```bash
-npx @crosstown/town --mnemonic "..." --connector-url http://localhost:8080
+npx @toon-protocol/town --mnemonic "..." --connector-url http://localhost:8080
 ```
 
 Best for: Quick relay deployment, testing, development.

@@ -83,7 +83,7 @@
 - 4.3 AC5: Export verification -- FULL
 - 4.4 AC3: Deterministic derivation -- FULL
 - 4.4 AC4: kind:10033 self-attestation signing -- FULL
-- 4.4 AC6: Exports from @crosstown/core -- FULL
+- 4.4 AC6: Exports from @toon-protocol/core -- FULL
 - 4.5 AC3: Dockerfile determinism analysis -- FULL
 - 4.5 AC4: verifyPcrReproducibility() -- FULL
 - 4.5 AC5: Public API exports -- FULL

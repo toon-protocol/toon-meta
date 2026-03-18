@@ -17,7 +17,7 @@
 
 ## 1. Scope and Context
 
-Epic 5 delivers 4 stories (5.1-5.4) implementing a NIP-90 compatible DVM (Data Vending Machine) compute marketplace on top of the Crosstown ILP payment infrastructure. This is the first epic where the protocol transitions from a relay (store events, route payments) to a compute marketplace (structured jobs, feedback loops, compute settlement, programmatic service discovery).
+Epic 5 delivers 4 stories (5.1-5.4) implementing a NIP-90 compatible DVM (Data Vending Machine) compute marketplace on top of the TOON ILP payment infrastructure. This is the first epic where the protocol transitions from a relay (store events, route payments) to a compute marketplace (structured jobs, feedback loops, compute settlement, programmatic service discovery).
 
 **Decision source:** [Party Mode 2020117 Analysis](research/party-mode-2020117-analysis-2026-03-10.md)
 
@@ -30,15 +30,15 @@ Epic 5 delivers 4 stories (5.1-5.4) implementing a NIP-90 compatible DVM (Data V
 
 **What exists today (post-Epic 4):**
 
-- `@crosstown/sdk` is complete with `createNode()`, handler registry, full processing pipeline, `publishEvent()`
-- `@crosstown/town` is published with `startTown()`, event storage, x402 `/publish`, service discovery (kind:10035), enriched `/health`, relay subscription API
+- `@toon-protocol/sdk` is complete with `createNode()`, handler registry, full processing pipeline, `publishEvent()`
+- `@toon-protocol/town` is published with `startTown()`, event storage, x402 `/publish`, service discovery (kind:10035), enriched `/health`, relay subscription API
 - USDC denomination across all packages (AGENT eliminated in Story 3.1)
 - ILP payment channels work end-to-end with EVM settlement
 - x402 `/publish` endpoint provides HTTP on-ramp for non-initiated agents
 - kind:10035 service discovery events advertise pricing, x402, capabilities
 - kind:10036 seed relay discovery for decentralized bootstrap
 - TEE attestation (kind:10033) for verifiable code integrity
-- TOON codec in `@crosstown/core` with shallow parse, encode, decode
+- TOON codec in `@toon-protocol/core` with shallow parse, encode, decode
 - Relay subscription API on TownInstance for subscribing to remote relays
 - `node.publishEvent()` for publishing TOON-encoded events via ILP PREPARE
 
@@ -75,7 +75,7 @@ Epic 5 delivers 4 stories (5.1-5.4) implementing a NIP-90 compatible DVM (Data V
 | Story | Risk ID | Category | Description | P | I | Score | Mitigation |
 |-------|---------|----------|-------------|---|---|-------|------------|
 | **5.1 DVM Event Kinds** | E5-R001 | DATA | TOON encoding of DVM event tags (complex nested `i`, `param`, `bid` tags) corrupts tag structure during encode/decode roundtrip -- relay stores malformed events that providers cannot parse | 2 | 3 | **6** | Roundtrip encode/decode tests for all DVM event kinds with complex tag structures; verify tag preservation including order and nested values |
-| **5.1 DVM Event Kinds** | E5-R002 | TECH | NIP-90 compatibility drift -- Crosstown DVM events use non-standard tag formats that prevent interoperability with other NIP-90 implementations (2020117, DVMDash) | 2 | 2 | 4 | Validate DVM event structures against NIP-90 spec; verify required tags (`i`, `bid`, `output`, `e`, `p`, `amount`, `status`) match NIP-90 format |
+| **5.1 DVM Event Kinds** | E5-R002 | TECH | NIP-90 compatibility drift -- TOON DVM events use non-standard tag formats that prevent interoperability with other NIP-90 implementations (2020117, DVMDash) | 2 | 2 | 4 | Validate DVM event structures against NIP-90 spec; verify required tags (`i`, `bid`, `output`, `e`, `p`, `amount`, `status`) match NIP-90 format |
 | **5.2 ILP Job Submission** | E5-R003 | TECH | SDK handler routing for DVM kinds -- handler registry routes Kind 5xxx to wrong handler or fails to dispatch because DVM kinds are in a range (5000-5999) rather than specific values | 1 | 3 | 3 | Unit test: `.on(5100, handler)` routes Kind 5100 only; Kind 5200 goes to different handler or default |
 | **5.2 ILP Job Submission** | E5-R004 | BUS | Two-tier access divergence -- x402-submitted DVM jobs are stored differently than ILP-submitted jobs (different relay-side behavior), breaking the invariant that both rails are identical at the relay level | 2 | 3 | **6** | Packet equivalence test: ILP-submitted Kind 5100 event and x402-submitted Kind 5100 event produce identical relay-side storage; reuse `buildIlpPrepare()` shared function |
 | **5.3 Compute Settlement** | E5-R005 | SEC | Compute settlement amount manipulation -- provider inflates `amount` tag in Kind 6xxx result; customer's SDK auto-pays the inflated amount without validation against the original `bid` | 2 | 3 | **6** | SDK `settleCompute()` MUST validate that Kind 6xxx `amount` <= original Kind 5xxx `bid`; unit test: inflated amount rejected |
@@ -84,7 +84,7 @@ Epic 5 delivers 4 stories (5.1-5.4) implementing a NIP-90 compatible DVM (Data V
 | **5.3 Compute Settlement** | E5-R008 | BUS | Feedback event lifecycle gaps -- Kind 7000 feedback events with `status: 'processing'` never followed by result or error, leaving customer in limbo with no timeout mechanism | 2 | 2 | 4 | Test: provider sends `processing` feedback then `error` feedback; verify customer receives both via subscription. Document timeout as an application-level concern (not protocol-enforced) |
 | **5.4 Skill Descriptors** | E5-R009 | DATA | Skill descriptor schema drift -- JSON Schema for `inputSchema` is malformed or incompatible with JSON Schema draft-07, preventing agents from constructing valid job requests programmatically | 2 | 2 | 4 | Validate `inputSchema` against JSON Schema meta-schema (draft-07 self-validation); roundtrip test: schema -> construct request -> validate against schema |
 | **5.4 Skill Descriptors** | E5-R010 | TECH | Auto-population from handler registry -- skill descriptor `kinds` array does not accurately reflect registered DVM handlers (off-by-one, stale registration, or handler replacement not reflected) | 2 | 2 | 4 | Unit test: register handlers for Kind 5100 and 5200 -> skill descriptor `kinds` contains exactly `[5100, 5200]`; replace handler -> descriptor updated |
-| **5.4 Skill Descriptors** | E5-R011 | BUS | Skill descriptor supersedes 2020117 format -- Crosstown-specific fields (`ilpAddress`, `x402Endpoint`, `supportedChains`) cause interop issues with standard NIP-90 discovery tools | 1 | 2 | 2 | Document that Crosstown skill descriptors are a superset of 2020117; verify standard fields are parseable by generic NIP-90 clients |
+| **5.4 Skill Descriptors** | E5-R011 | BUS | Skill descriptor supersedes 2020117 format -- TOON-specific fields (`ilpAddress`, `x402Endpoint`, `supportedChains`) cause interop issues with standard NIP-90 discovery tools | 1 | 2 | 2 | Document that TOON skill descriptors are a superset of 2020117; verify standard fields are parseable by generic NIP-90 clients |
 
 ### Inherited System-Level Risks
 
@@ -240,7 +240,7 @@ DVM event origin:
 
 - T-5.1-01 through T-5.1-03 are the TOON encoding gating tests. If DVM tags are corrupted through the TOON roundtrip, all downstream stories are blocked.
 - T-5.1-04 verifies that the existing shallow parser works for DVM kinds without modification (DVM kinds are just numbers in the 5000-7000 range).
-- T-5.1-09 validates NIP-90 interoperability -- Crosstown's DVM events must be parseable by any NIP-90 compliant client.
+- T-5.1-09 validates NIP-90 interoperability -- TOON's DVM events must be parseable by any NIP-90 compliant client.
 - T-5.1-11 ensures denomination consistency with Epic 3's USDC migration.
 
 ### Story 5.2: ILP-Native Job Submission
@@ -312,7 +312,7 @@ DVM event origin:
 | T-5.4-06 | Node publishes kind:10035 with skill descriptor on bootstrap completion | I | E5-R010 | P1 |
 | T-5.4-07 | Skill descriptor update: add new DVM handler -> updated kind:10035 published (NIP-33 replaceable event) | I | E5-R010 | P2 |
 | T-5.4-08 | Agent discovery: query relay for kind:10035 events -> filter by `skill.kinds` containing 5100 -> compare pricing across providers | I | -- | P1 |
-| T-5.4-09 | Crosstown-specific fields: `ilpAddress`, `x402Endpoint`, `supportedChains` present in skill descriptor alongside standard fields | U | E5-R011 | P2 |
+| T-5.4-09 | TOON-specific fields: `ilpAddress`, `x402Endpoint`, `supportedChains` present in skill descriptor alongside standard fields | U | E5-R011 | P2 |
 | T-5.4-10 | `parseServiceDiscovery()` roundtrip with skill descriptor: build -> parse -> all skill fields recovered including nested inputSchema | U | -- | P1 |
 | T-5.4-11 | Skill descriptor with `attestation` field placeholder for Epic 6 TEE integration (field present but optional) | U | -- | P3 |
 
@@ -440,14 +440,14 @@ DVM event origin:
 QA testing for Epic 5 cannot begin until ALL of the following are met:
 
 - [ ] Epics 1-4 complete (SDK, Town, Protocol Economics, TEE Deployment all functional)
-- [ ] `@crosstown/sdk` and `@crosstown/town` packages importable
+- [ ] `@toon-protocol/sdk` and `@toon-protocol/town` packages importable
 - [ ] `node.publishEvent()` functional for ILP PREPARE event publishing
 - [ ] x402 `/publish` endpoint functional for fallback path testing
 - [ ] kind:10035 service discovery events publishable and queryable
 - [ ] Relay subscription API (`town.subscribe()`) functional for provider-side event subscription
 - [ ] Anvil running with FiatTokenV2_2 (mock USDC) and TokenNetwork deployed
 - [ ] EVM payment channels functional for compute settlement testing
-- [ ] TOON codec in `@crosstown/core` handling all existing event kinds correctly
+- [ ] TOON codec in `@toon-protocol/core` handling all existing event kinds correctly
 
 ### Exit Criteria
 
@@ -497,12 +497,12 @@ Story 5.4 can be developed in parallel with Story 5.2 because skill descriptors 
 
 | Package | Impact | Regression Scope |
 |---------|--------|------------------|
-| **@crosstown/core** | DVM event builders/parsers added, TOON codec tested with DVM kinds, skill descriptor schema types | Core unit tests must pass; TOON roundtrip for existing kinds unaffected |
-| **@crosstown/sdk** | DVM helper functions (`publishJobRequest`, `publishFeedback`, `publishResult`, `settleCompute`), handler registry tested with DVM kinds | SDK unit tests must pass; handler dispatch for existing kinds unaffected |
-| **@crosstown/town** | kind:10035 extended with skill descriptor field, relay stores DVM events | Existing Town lifecycle/health/x402 tests must pass; kind:10035 backward-compatible |
-| **@crosstown/relay** | No code changes; DVM events stored like any other Nostr event | Relay tests unaffected |
-| **@crosstown/connector** | No code changes; compute settlement routes through existing ILP mesh | Connector tests unaffected |
-| **@crosstown/client** | No code changes; E2E tests may gain DVM scenarios | E2E regression gate |
+| **@toon-protocol/core** | DVM event builders/parsers added, TOON codec tested with DVM kinds, skill descriptor schema types | Core unit tests must pass; TOON roundtrip for existing kinds unaffected |
+| **@toon-protocol/sdk** | DVM helper functions (`publishJobRequest`, `publishFeedback`, `publishResult`, `settleCompute`), handler registry tested with DVM kinds | SDK unit tests must pass; handler dispatch for existing kinds unaffected |
+| **@toon-protocol/town** | kind:10035 extended with skill descriptor field, relay stores DVM events | Existing Town lifecycle/health/x402 tests must pass; kind:10035 backward-compatible |
+| **@toon-protocol/relay** | No code changes; DVM events stored like any other Nostr event | Relay tests unaffected |
+| **@toon-protocol/connector** | No code changes; compute settlement routes through existing ILP mesh | Connector tests unaffected |
+| **@toon-protocol/client** | No code changes; E2E tests may gain DVM scenarios | E2E regression gate |
 
 ### Regression Test Strategy
 

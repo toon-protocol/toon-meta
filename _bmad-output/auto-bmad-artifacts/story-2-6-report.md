@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Story 2.6 adds a `publishEvent(event, options)` method to `ServiceNode` in the Crosstown SDK. The method TOON-encodes a Nostr event, computes the price as `basePricePerByte * toonData.length`, converts to base64, and sends via the embedded connector's `sendIlpPacket()`. It returns a discriminated `PublishEventResult` with success/failure shapes, and includes guards for not-started and missing-destination errors.
+Story 2.6 adds a `publishEvent(event, options)` method to `ServiceNode` in the TOON SDK. The method TOON-encodes a Nostr event, computes the price as `basePricePerByte * toonData.length`, converts to base64, and sends via the embedded connector's `sendIlpPacket()`. It returns a discriminated `PublishEventResult` with success/failure shapes, and includes guards for not-started and missing-destination errors.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: TOON-encode, price, base64, sendIlpPacket — covered by: T-2.6-01, 02, 08, 09, 11, 12-17, 20
@@ -22,7 +22,7 @@ Story 2.6 adds a `publishEvent(event, options)` method to `ServiceNode` in the C
 Consolidated list of all files created/modified/deleted:
 
 ### packages/core/src/
-- `compose.ts` — modified (added `runtimeClient` to CrosstownNode interface + return; replaced removed SPSP types with `SettlementConfig`)
+- `compose.ts` — modified (added `runtimeClient` to ToonNode interface + return; replaced removed SPSP types with `SettlementConfig`)
 - `bootstrap/index.ts` — modified (added `SettlementConfig` to type exports)
 - `index.ts` — modified (added `SettlementConfig` re-export)
 - `settlement/index.ts` — new (barrel export for settlement module)
@@ -215,4 +215,4 @@ Consolidated list of all files created/modified/deleted:
 ---
 
 ## TL;DR
-Story 2.6 adds `publishEvent()` to the Crosstown SDK's `ServiceNode`, enabling developers to send Nostr events through ILP with automatic TOON encoding and pricing. The pipeline passed cleanly with 22 unit tests covering all 6 acceptance criteria, 3 code review passes (4 total issues found and fixed, final pass clean), and a clean semgrep security scan. The lint/build step also fixed 11 pre-existing SPSP removal build errors. No action items require human attention.
+Story 2.6 adds `publishEvent()` to the TOON SDK's `ServiceNode`, enabling developers to send Nostr events through ILP with automatic TOON encoding and pricing. The pipeline passed cleanly with 22 unit tests covering all 6 acceptance criteria, 3 code review passes (4 total issues found and fixed, final pass clean), and a clean semgrep security scan. The lint/build step also fixed 11 pre-existing SPSP removal build errors. No action items require human attention.

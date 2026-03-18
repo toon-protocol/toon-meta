@@ -102,7 +102,7 @@ Story 2.8 adds a `subscribe()` method to `TownInstance` that allows programmatic
   - **Status:** RED - it.skip() -- subscribe() does not exist on TownInstance
   - **Verifies:** AC #8 -- idempotent close
 
-- **Test:** [P1] TownSubscription should be exported from @crosstown/town
+- **Test:** [P1] TownSubscription should be exported from @toon-protocol/town
   - **Status:** RED - it.skip() -- TownSubscription type not yet defined
   - **Verifies:** AC #1 -- type export
 
@@ -132,7 +132,7 @@ No Playwright/Cypress fixtures needed. This is a pure unit test story using Vite
 
 **Mock infrastructure (commented out for RED phase, activate for GREEN phase):**
 - `MockRelaySubscriber` -- Mock constructor and `start()` return value
-- `vi.mock('@crosstown/relay')` -- Isolate subscribe() wrapper from actual RelaySubscriber
+- `vi.mock('@toon-protocol/relay')` -- Isolate subscribe() wrapper from actual RelaySubscriber
 - `vi.mock('nostr-tools/pool')` -- Prevent live WebSocket connections
 - `vi.mock('nostr-tools/pure')` -- Control `verifyEvent` behavior
 
@@ -142,12 +142,12 @@ No Playwright/Cypress fixtures needed. This is a pure unit test story using Vite
 
 ### RelaySubscriber Mock
 
-**Module:** `@crosstown/relay`
+**Module:** `@toon-protocol/relay`
 
 **Mock pattern:** Follow `RelaySubscriber.test.ts` (granular mocking):
 ```typescript
-vi.mock('@crosstown/relay', async () => {
-  const actual = await vi.importActual('@crosstown/relay');
+vi.mock('@toon-protocol/relay', async () => {
+  const actual = await vi.importActual('@toon-protocol/relay');
   return { ...actual, RelaySubscriber: MockRelaySubscriber };
 });
 ```
@@ -201,7 +201,7 @@ Not applicable. This story has no UI components.
 
 - [ ] Define `TownSubscription` interface in `packages/town/src/town.ts` with `close()`, `relayUrl`, `isActive()`
 - [ ] Add `subscribe(relayUrl: string, filter: Filter): TownSubscription` to `TownInstance` interface
-- [ ] Import `RelaySubscriber` from `@crosstown/relay` in `town.ts`
+- [ ] Import `RelaySubscriber` from `@toon-protocol/relay` in `town.ts`
 - [ ] Import `type { Filter }` from `nostr-tools/filter` in `town.ts`
 - [ ] Implement `subscribe()` inside `startTown()`: create `RelaySubscriber`, call `start()`, return `TownSubscription`
 - [ ] Remove `it.skip()` from test, uncomment mock setup and assertions
@@ -538,7 +538,7 @@ Existing project test patterns referenced:
 
 ## Notes
 
-- **Pre-existing issue:** `@crosstown/core` has a broken export from `./spsp/index.js` (directory removed in Story 3.7 SPSP removal). This prevents importing actual modules from `@crosstown/relay` or `@crosstown/core` in tests. The test file avoids this by commenting out `vi.importActual('@crosstown/relay')`. When the SPSP export is cleaned up, the mocks can use `vi.importActual` safely.
+- **Pre-existing issue:** `@toon-protocol/core` has a broken export from `./spsp/index.js` (directory removed in Story 3.7 SPSP removal). This prevents importing actual modules from `@toon-protocol/relay` or `@toon-protocol/core` in tests. The test file avoids this by commenting out `vi.importActual('@toon-protocol/relay')`. When the SPSP export is cleaned up, the mocks can use `vi.importActual` safely.
 - **No data factories needed:** Test data is simple (relay URLs as strings, Filter objects). The `makeEvent()` helper from `RelaySubscriber.test.ts` can be reused if needed in GREEN phase.
 - **Testing approach decision:** The story recommends either (a) mocking `RelaySubscriber` at module level, or (b) extracting a testable helper function. The tests are structured to support either approach -- the dev agent can choose during GREEN phase.
 

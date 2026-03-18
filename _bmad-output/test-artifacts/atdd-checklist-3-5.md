@@ -38,10 +38,10 @@ inputDocuments:
 
 ## Story Summary
 
-Crosstown nodes publish kind:10035 Service Discovery events to advertise their capabilities, pricing, and payment endpoints in a machine-readable format. This enables network participants and AI agents to programmatically discover and consume services.
+TOON nodes publish kind:10035 Service Discovery events to advertise their capabilities, pricing, and payment endpoints in a machine-readable format. This enables network participants and AI agents to programmatically discover and consume services.
 
 **As a** network participant or AI agent
-**I want** to discover what services a Crosstown node offers and at what price
+**I want** to discover what services a TOON node offers and at what price
 **So that** I can programmatically find and consume services without documentation
 
 ---
@@ -51,7 +51,7 @@ Crosstown nodes publish kind:10035 Service Discovery events to advertise their c
 1. **AC #1:** Node publishes kind:10035 (Service Discovery) event after bootstrap completes.
 2. **AC #2:** Event content contains: service type, x402 endpoint URL (if enabled), ILP address, pricing model, supported event kinds, node capabilities, chain, and version.
 3. **AC #3:** When x402 is disabled, the x402 field is **entirely omitted** from the event content (not set to `{ enabled: false }`).
-4. **AC #4:** Event uses NIP-16 replaceable semantics (kind 10000-19999) with `d` tag value `crosstown-service-discovery`.
+4. **AC #4:** Event uses NIP-16 replaceable semantics (kind 10000-19999) with `d` tag value `toon-service-discovery`.
 
 ---
 
@@ -79,7 +79,7 @@ Crosstown nodes publish kind:10035 Service Discovery events to advertise their c
 
 - **Test:** `[P2] event has d tag for NIP-16 replaceable event pattern` (3.5-UNIT-001)
   - **Status:** RED - Module `./service-discovery.js` does not exist
-  - **Verifies:** d tag = 'crosstown-service-discovery' (NIP-16, not NIP-33)
+  - **Verifies:** d tag = 'toon-service-discovery' (NIP-16, not NIP-33)
 
 - **Test:** `[P2] returns null for malformed JSON content` (T-3.5-06)
   - **Status:** RED - Module `./service-discovery.js` does not exist
@@ -215,7 +215,7 @@ Not applicable. This is a backend-only story with no UI components.
 
 - [ ] Define `ServiceDiscoveryContent` interface in `service-discovery.ts`
 - [ ] Implement `buildServiceDiscoveryEvent(content, secretKey)` using `finalizeEvent()` from `nostr-tools/pure`
-- [ ] Set `kind: SERVICE_DISCOVERY_KIND`, `content: JSON.stringify(content)`, `tags: [['d', 'crosstown-service-discovery']]`, `created_at: Math.floor(Date.now() / 1000)`
+- [ ] Set `kind: SERVICE_DISCOVERY_KIND`, `content: JSON.stringify(content)`, `tags: [['d', 'toon-service-discovery']]`, `created_at: Math.floor(Date.now() / 1000)`
 - [ ] Export `buildServiceDiscoveryEvent` and `type ServiceDiscoveryContent`
 - [ ] Run test: `npx vitest run packages/core/src/events/service-discovery.test.ts -t "node publishes"`
 - [ ] Test passes (green phase)
@@ -263,7 +263,7 @@ Not applicable. This is a backend-only story with no UI components.
 
 **Tasks to make this test pass:**
 
-- [ ] Ensure `buildServiceDiscoveryEvent()` sets `tags: [['d', 'crosstown-service-discovery']]`
+- [ ] Ensure `buildServiceDiscoveryEvent()` sets `tags: [['d', 'toon-service-discovery']]`
 - [ ] Run test: `npx vitest run packages/core/src/events/service-discovery.test.ts -t "d tag"`
 - [ ] Test passes (green phase)
 
@@ -324,8 +324,8 @@ Not applicable. This is a backend-only story with no UI components.
 
 **Tasks (not directly tested by ATDD unit tests, but required for AC #1):**
 
-- [ ] Import `buildServiceDiscoveryEvent`, `SERVICE_DISCOVERY_KIND`, `VERSION` from `@crosstown/core`
-- [ ] Import `type ServiceDiscoveryContent` from `@crosstown/core`
+- [ ] Import `buildServiceDiscoveryEvent`, `SERVICE_DISCOVERY_KIND`, `VERSION` from `@toon-protocol/core`
+- [ ] Import `type ServiceDiscoveryContent` from `@toon-protocol/core`
 - [ ] After bootstrap completes (after kind:10032 self-write), build `ServiceDiscoveryContent` from resolved config
 - [ ] Use `chainConfig.name` from existing `resolveChainConfig()` call (do NOT call again)
 - [ ] Conditionally include `x402` field only when `x402Enabled` is true

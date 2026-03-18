@@ -9,7 +9,7 @@
 - **Final test count**: 1897 (1818 passed, 79 skipped, 0 failures)
 
 ## What Was Built
-Epic 4 delivers TEE (Trusted Execution Environment) integration for the Crosstown protocol using Marlin Oyster CVM. It adds Oyster CVM container packaging with supervisord orchestration, kind:10033 attestation events for TEE trust verification, attestation-aware peering that degrades trust without disrupting payments (Decision 12: "Trust degrades; money doesn't"), Nautilus KMS-derived deterministic identity from enclave seeds, Nix reproducible builds with PCR verification, and attestation-first seed relay bootstrap that requires attestation verification before peering.
+Epic 4 delivers TEE (Trusted Execution Environment) integration for the TOON protocol using Marlin Oyster CVM. It adds Oyster CVM container packaging with supervisord orchestration, kind:10033 attestation events for TEE trust verification, attestation-aware peering that degrades trust without disrupting payments (Decision 12: "Trust degrades; money doesn't"), Nautilus KMS-derived deterministic identity from enclave seeds, Nix reproducible builds with PCR verification, and attestation-first seed relay bootstrap that requires attestation verification before peering.
 
 ## Stories Delivered
 | Story | Title | Status |
@@ -165,7 +165,7 @@ Key takeaways from the retrospective:
 7. **Dockerfile.oyster builder stage sync** — duplicated from base Dockerfile, requires manual sync
 8. **Large test files** — 5+ files exceed 900 lines; DVM lifecycle testing will add more
 9. **Transitive dependency vulnerabilities** — audit needed with @scure/bip32, @scure/bip39 additions
-10. **entrypoint-town.ts health migration** — should use createHealthResponse() from @crosstown/town
+10. **entrypoint-town.ts health migration** — should use createHealthResponse() from @toon-protocol/town
 
 ---
 
