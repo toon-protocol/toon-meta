@@ -102,7 +102,7 @@ development_status:
   # Epic 6: Advanced DVM Coordination + TEE Integration
   # Decision source: Party Mode 2020117 Analysis (2026-03-10)
   # Dependencies: Epic 4 (TEE) + Epic 5 (base DVM)
-  epic-6: backlog
+  epic-6: in-progress
   6-1-workflow-chains: backlog
   6-2-agent-swarms: backlog
   6-3-tee-attested-dvm-results: backlog
