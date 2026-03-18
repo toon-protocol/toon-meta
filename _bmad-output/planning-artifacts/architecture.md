@@ -392,11 +392,12 @@ Port 7100:
 
 | Attribute | Value |
 |-----------|-------|
-| Decision | Docker Compose manifest adapted for Oyster CVM runtime, using existing TOON Docker image |
-| Rationale | Oyster CVM uses `docker-compose.yml` — downloads images at runtime into the enclave. The existing TOON Docker image is the base. Add `supervisord.conf` for multi-process orchestration (relay + connector + attestation server). |
+| Decision | Docker Compose manifest adapted for Oyster CVM runtime, using existing TOON Docker image with embedded ConnectorNode |
+| Rationale | Oyster CVM uses `docker-compose.yml` — downloads images at runtime into the enclave. The existing TOON Docker image is the base. `supervisord.conf` orchestrates two processes: **toon** (embedded ConnectorNode + BLS + Relay + Bootstrap via `entrypoint-sdk.js`) and **attestation** server. The connector is EMBEDDED — ConnectorNode runs in-process; no external connector container is needed. |
 | Affects | Epic 4, Story 4.1 |
 | Dependency | `oyster-cvm` CLI tool for deployment |
 | Deferred | Nix reproducible builds (Story 4.5) — specific Nix configuration deferred to Epic 4 start when Marlin SDK version is known |
+| Updated | 2026-03-18 — switched from external connector (3-process model) to embedded ConnectorNode (2-process model) |
 
 **Forward Constraint — Dockerfile Determinism:** Nix reproducible builds (Epic 4, Story 4.5) require no non-deterministic build steps. This means: no `apt-get update`, no `npm install` without a lockfile, no `git clone` of moving targets. Apply this constraint from Epic 2 onwards in all Dockerfiles to avoid rewrites.
 
@@ -873,27 +874,25 @@ interface HealthResponse {
 
 **Pattern 16: Oyster CVM supervisord Process Map**
 
-Canonical multi-process layout for the TEE enclave. Process startup order: relay first (owns the port), then connector, then attestation server.
+Canonical two-process layout for the TEE enclave. The connector is **embedded** — ConnectorNode runs in-process with the TOON node via `entrypoint-sdk.js`. Process startup order: toon first (embedded connector + BLS + relay + bootstrap), then attestation server.
 
 ```
 # docker/supervisord.conf
-[program:relay]
-command=node /app/town/dist/cli.js
+[program:toon]
+command=node /app/dist/entrypoint-sdk.js
 priority=10
-
-[program:connector]
-command=node /app/connector/dist/index.js
-priority=20
-autostart=true
-startsecs=5
+user=toon
+autorestart=true
 
 [program:attestation]
-command=/app/attestation-server
-priority=30
-depends_on=relay
+command=node /app/dist/attestation-server.js
+priority=20
+user=toon
+autorestart=true
+startsecs=5
 ```
 
-Located at `docker/supervisord.conf`.
+Located at `docker/supervisord.conf`. Updated 2026-03-18 from 3-process model (relay + connector + attestation) to 2-process model (toon with embedded connector + attestation).
 
 ### Enforcement Guidelines
 

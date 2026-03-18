@@ -609,12 +609,13 @@ Epic 4 delivered the TEE (Trusted Execution Environment) integration layer for t
    -> Degraded mode fallback when no attested relays found
 ```
 
-**Oyster CVM Container Architecture (Story 4.1):**
+**Oyster CVM Container Architecture (Story 4.1, updated 2026-03-18):**
 
 ```
 +--------------- Oyster CVM ---------------+
-|  toon (priority=10):                |
-|    Relay (WS:7100) + BLS (HTTP:3100)     |
+|  toon (priority=10):                     |
+|    Embedded ConnectorNode (BTP:3000)     |
+|    + Relay (WS:7100) + BLS (HTTP:3100)   |
 |    + Bootstrap Service                   |
 |  attestation-server (priority=20):       |
 |    HTTP (:1300) /attestation/raw         |
@@ -625,9 +626,31 @@ Epic 4 delivered the TEE (Trusted Execution Environment) integration layer for t
 ```
 
 - **supervisord** manages two processes: toon (priority=10) and attestation (priority=20)
-- The connector is EXTERNAL -- runs outside the Oyster CVM enclave
+- The connector is **EMBEDDED** -- ConnectorNode runs in-process via `entrypoint-sdk.js`
+- The enclave is fully self-contained; no external connector container needed
 - Marlin's dual-proxy architecture handles networking (inbound/outbound vsock)
 - Non-root `toon` user (uid 1001) for container execution
+
+**Oyster CVM Testnet Deployment (2026-03-18):**
+
+Dual-chain architecture:
+- **CVM payment**: Arbitrum One (42161) -- pays Marlin for enclave runtime
+- **TOON settlement**: Arbitrum Sepolia (421614) -- payment channels between nodes
+
+Wallet inventory (keys in `.env.oyster`, gitignored):
+
+| Role | Address | Arb Sepolia ETH | Arb Sepolia USDC |
+|------|---------|-----------------|------------------|
+| Deployer (CVM payment) | `0x1caac55...468F` | ~0.085 (reserve) | 17 (reserve) |
+| Town Node 1 (Oyster) | `0xa5faA17...4320` | 0.005 | 1 |
+| Town Node 2 (test peer) | `0xc2cB0db...2F8D` | 0.005 | 1 |
+| Client (end user) | `0x81CD520...bBb0` | 0.005 | 1 |
+
+- Deployer also holds 0.005 ETH + 5 USDC on Arbitrum One for CVM instance payment
+- Settlement USDC (Arb Sepolia): `0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d`
+- Circle testnet faucet: https://faucet.circle.com/ (20 USDC per request)
+- `TOON_CHAIN=arbitrum-sepolia` activates the chain preset via `resolveChainConfig()`
+- **TokenNetwork contract not yet deployed on Arbitrum Sepolia** -- needed for payment channel settlement
 
 **Attestation Server (Stories 4.1 + 4.2):**
 
