@@ -1210,19 +1210,19 @@ Both pipelines produce identical ILP PREPARE packets — the BLS cannot distingu
 | Story 2.3: E2E validation           | client  | `tests/e2e/` (existing)                                                                    |
 | Story 2.4: Remove git-proxy         | root    | Delete `packages/git-proxy/`                                                               |
 | Story 2.5: Publish town             | town    | `town.ts`, `cli.ts`, `Dockerfile`                                                          |
-| **Epic 5: The Rig**                 |         |                                                                                            |
-| Story 5.1: SDK node + repo creation | rig     | `handlers/repo-announcement.ts`, `git/operations.ts` (initRepo)                            |
-| Story 5.2: Patch handler            | rig     | `handlers/patch.ts`, `git/operations.ts` (applyPatch)                                      |
-| Story 5.3: Issue + comment handlers | rig     | `handlers/issue.ts`, `handlers/comment.ts`                                                 |
-| Story 5.4: Git HTTP backend         | rig     | `git/http-backend.ts`, `routes/git-backend.ts`                                             |
-| Story 5.5: Pubkey identity          | rig     | `identity/pubkey-display.ts`                                                               |
-| Story 5.6: PR lifecycle             | rig     | `handlers/status.ts`                                                                       |
-| Story 5.7: Layout + repo list       | rig     | `routes/repos.ts` (list), `views/layout.eta`, `views/repos/list.eta`                       |
-| Story 5.8: File tree + blob view    | rig     | `routes/repos.ts` (tree/blob), `views/repos/tree.eta`, `views/repos/blob.eta`              |
-| Story 5.9: Commit log + diff        | rig     | `routes/commits.ts`, `views/commits/log.eta`, `views/commits/diff.eta`                     |
-| Story 5.10: Blame view              | rig     | `routes/repos.ts` (blame), `views/repos/blame.eta`                                         |
-| Story 5.11: Issues/PRs from relay   | rig     | `relay/queries.ts`, `routes/issues.ts`, `routes/pulls.ts`, `views/issues/`, `views/pulls/` |
-| Story 5.12: Publish rig             | rig     | `rig.ts`, `cli.ts`, `Dockerfile`                                                           |
+| **Epic 8: The Rig**                 |         |                                                                                            |
+| Story 8.1: SDK node + repo creation | rig     | `handlers/repo-announcement.ts`, `git/operations.ts` (initRepo)                            |
+| Story 8.2: Patch handler            | rig     | `handlers/patch.ts`, `git/operations.ts` (applyPatch)                                      |
+| Story 8.3: Issue + comment handlers | rig     | `handlers/issue.ts`, `handlers/comment.ts`                                                 |
+| Story 8.4: Git HTTP backend         | rig     | `git/http-backend.ts`, `routes/git-backend.ts`                                             |
+| Story 8.5: Pubkey identity          | rig     | `identity/pubkey-display.ts`                                                               |
+| Story 8.6: PR lifecycle             | rig     | `handlers/status.ts`                                                                       |
+| Story 8.7: Layout + repo list       | rig     | `routes/repos.ts` (list), `views/layout.eta`, `views/repos/list.eta`                       |
+| Story 8.8: File tree + blob view    | rig     | `routes/repos.ts` (tree/blob), `views/repos/tree.eta`, `views/repos/blob.eta`              |
+| Story 8.9: Commit log + diff        | rig     | `routes/commits.ts`, `views/commits/log.eta`, `views/commits/diff.eta`                     |
+| Story 8.10: Blame view              | rig     | `routes/repos.ts` (blame), `views/repos/blame.eta`                                         |
+| Story 8.11: Issues/PRs from relay   | rig     | `relay/queries.ts`, `routes/issues.ts`, `routes/pulls.ts`, `views/issues/`, `views/pulls/` |
+| Story 8.12: Publish rig             | rig     | `rig.ts`, `cli.ts`, `Dockerfile`                                                           |
 | **Epic 3: Production Economics**    |         |                                                                                            |
 | Story 3.1: USDC token migration     | docker  | `scripts/deploy-usdc.ts`, faucet updates                                                   |
 | Story 3.2: Multi-chain config       | core    | `chain/presets.ts`, `chain/client.ts`                                                      |

@@ -50,7 +50,7 @@ Epic 5 (base DVM marketplace) -> 6.1 (Workflow Chains)
 **What this test plan does NOT cover:**
 
 - Epics 1-5 internals (covered by prior test plans)
-- Epic 7 (The Rig) -- separate test design exists
+- Epic 8 (The Rig) -- separate test design exists
 - Real Arbitrum One deployment with production USDC
 - Performance benchmarking under production load (deferred A10)
 

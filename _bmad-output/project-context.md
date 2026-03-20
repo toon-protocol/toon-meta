@@ -80,7 +80,7 @@ toon/
 │   ├── client/      # @toon-protocol/client -- Client SDK with payment channel support
 │   ├── faucet/      # @toon-protocol/faucet -- Token distribution for dev testing (plain JS, dev-only)
 │   ├── examples/    # @toon-protocol/examples -- Demo applications
-│   └── rig/         # @toon-protocol/rig -- (ATDD stubs only, Epic 7, not yet implemented)
+│   └── rig/         # @toon-protocol/rig -- (ATDD stubs only, Epic 8, not yet implemented)
 ├── docker/          # Container entrypoint (pnpm workspace member)
 │   ├── src/
 │   │   ├── shared.ts              # Config parsing, admin client, health check utilities
@@ -104,7 +104,7 @@ toon/
 @toon-protocol/bls    @toon-protocol/sdk    <-- siblings, both depend on core
     ^                 ^
     |           +-----+-------+
-    |     @toon-protocol/town     @toon-protocol/rig    <-- (Town: Epics 2+3+4+5 DONE, Rig: Epic 7)
+    |     @toon-protocol/town     @toon-protocol/rig    <-- (Town: Epics 2+3+4+5 DONE, Rig: Epic 8)
     |       (+ relay + viem)
     |
 @toon-protocol/relay   <-- Town depends on relay for EventStore + NostrRelayServer
@@ -130,10 +130,11 @@ Epic 3: Production Protocol Economics            COMPLETE (6/6 stories, 26/26 AC
 Epic 4: Marlin TEE Deployment                    COMPLETE (6/6 stories, 32/33 ACs)
 Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 ACs)
 Epic 6: Advanced DVM Coordination + TEE          PLANNED
-Epic 7: The Rig -- ILP-Gated Git Forge           PLANNED
+Epic 7: ILP Address Hierarchy & Protocol Econ    PLANNED
+Epic 8: The Rig -- ILP-Gated Git Forge           PLANNED
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination -> Build applications on top.
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination -> Hierarchical addressing & protocol economics -> Build applications on top.
 
 ## Production Architecture Decisions (Party Mode 2026-03-05/06)
 
@@ -1361,7 +1362,7 @@ packages/sdk/tests/e2e/
 - **NEVER use property access on index signatures** -- Use bracket notation `obj['key']` not `obj.key`
 - **NEVER return response objects from handlers** -- Use `ctx.accept()` / `ctx.reject()` methods (exception: handlers returning data in ILP FULFILL return directly)
 - **NEVER decode TOON before verification** -- Shallow parse first, verify, then optionally decode (correctness requirement)
-- **NEVER use `exec()` for git operations** -- Use `execFile()` to prevent command injection (Rig, Epic 7)
+- **NEVER use `exec()` for git operations** -- Use `execFile()` to prevent command injection (Rig, Epic 8)
 - **NEVER reference AGENT token** -- AGENT eliminated in Story 3.1; production uses USDC on Arbitrum One
 - **NEVER call the BLS a public-facing component** -- BLS handles only `/handle-packet`; the TOON node owns all public endpoints
 - **NEVER use `!body.amount` for validation** -- Fails for amount=0 (truthiness bug). Use `=== undefined || === null`

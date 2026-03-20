@@ -91,6 +91,15 @@ This document provides the epic and story breakdown for `@toon-protocol/sdk`, de
 - FR-DVM-7: DVM job results (Kind 6xxx) from TEE-attested nodes SHALL include a reference to the node's kind:10033 attestation event, providing cryptographic proof that the computation ran in a verified enclave
 - FR-DVM-8: The protocol SHALL define a reputation scoring system combining ILP channel volume, Web of Trust declarations (Kind 30382), job completion statistics, and job reviews (Kind 31117) into a composite score visible in kind:10035 service discovery events
 
+**ILP Address Hierarchy & Protocol Economics (derived from Party Mode 2026-03-20)**
+
+- FR-ADDR-1: ILP addresses SHALL be deterministically derived from the peering topology using `${parentPrefix}.${childPubkey.slice(0, 8)}`, with the root prefix (`g.toon`) as a deployment constant
+- FR-ADDR-2: The BTP handshake SHALL communicate the upstream peer's prefix so the connecting node can compute its own address deterministically
+- FR-ADDR-3: Multi-peered nodes SHALL hold multiple ILP addresses (one per upstream peering) and advertise all addresses in kind:10032 events
+- FR-ADDR-4: Each node SHALL advertise a `feePerByte` field in kind:10032 peer info events to enable route-aware fee calculation
+- FR-ADDR-5: The SDK SHALL compute total cost internally as `destinationWriteFee + Σ(hop[i].feePerByte × packetBytes)`, making fee calculation invisible to `publishEvent()` callers
+- FR-ADDR-6: A new Nostr event kind SHALL enable peers to claim human-readable vanity prefixes (e.g., `useast`, `btc`) from their upstream peer by paying for the prefix, creating an ILP address marketplace
+
 **NIP-34 Git Forge — The Rig (derived from TOON Service Protocol + NIP-34)**
 
 - FR-NIP34-1: The Rig SHALL be an SDK-based service node that receives NIP-34 git events (kinds 30617, 1617, 1618, 1619, 1621, 1622, 1630-1633) via ILP packets and executes git operations via TypeScript-native git HTTP backend
@@ -196,12 +205,18 @@ FR-DVM-5: Epic 6, Story 6.1 - Workflow chains (multi-step pipelines)
 FR-DVM-6: Epic 6, Story 6.2 - Agent swarms (competitive bidding)
 FR-DVM-7: Epic 6, Story 6.3 - TEE-attested DVM results
 FR-DVM-8: Epic 6, Story 6.4 - Reputation scoring system
-FR-NIP34-1: Epic 7, Stories 7.1-7.4 - Git HTTP backend and NIP-34 handlers (split across repo, patch, issue/comment, HTTP backend)
-FR-NIP34-2: Epic 7, Story 7.5 - Nostr pubkey-native git identity
-FR-NIP34-3: Epic 7, Stories 7.7-7.10 - Read-only code browsing web UI (split across layout+repo list, tree+blob, commits+diff, blame)
-FR-NIP34-4: Epic 7, Story 7.6 - PR lifecycle via NIP-34 status events
-FR-NIP34-5: Epic 7, Story 7.11 - Issues/PRs from Nostr events on relay
-FR-NIP34-6: Epic 7, Story 7.12 - Publish @toon-protocol/rig package
+FR-ADDR-1: Epic 7, Story 7.1 - Deterministic address derivation from pubkey + parent prefix
+FR-ADDR-2: Epic 7, Story 7.2 - BTP address assignment handshake
+FR-ADDR-3: Epic 7, Story 7.3 - Multi-address support for multi-peered nodes
+FR-ADDR-4: Epic 7, Story 7.4 - Fee-per-byte advertisement in kind:10032
+FR-ADDR-5: Epic 7, Story 7.5 - SDK route-aware fee calculation (invisible to users)
+FR-ADDR-6: Epic 7, Story 7.6 - Prefix claim kind and vanity prefix marketplace
+FR-NIP34-1: Epic 8, Stories 8.1-8.4 - Git HTTP backend and NIP-34 handlers (split across repo, patch, issue/comment, HTTP backend)
+FR-NIP34-2: Epic 8, Story 8.5 - Nostr pubkey-native git identity
+FR-NIP34-3: Epic 8, Stories 8.7-8.10 - Read-only code browsing web UI (split across layout+repo list, tree+blob, commits+diff, blame)
+FR-NIP34-4: Epic 8, Story 8.6 - PR lifecycle via NIP-34 status events
+FR-NIP34-5: Epic 8, Story 8.11 - Issues/PRs from Nostr events on relay
+FR-NIP34-6: Epic 8, Story 8.12 - Publish @toon-protocol/rig package
 
 ## Epic List
 
@@ -249,13 +264,27 @@ Advanced DVM coordination patterns and TEE trust integration. Workflow chains en
 **Dependencies:** Epic 4 (TEE attestation for Story 6.3), Epic 5 (base DVM for all stories)
 **Decision source:** [Party Mode 2020117 Analysis](research/party-mode-2020117-analysis-2026-03-10.md)
 
-### Epic 7: The Rig — ILP-Gated TypeScript Git Forge
+### Epic 7: ILP Address Hierarchy & Protocol Economics
+
+Hierarchical ILP addressing with deterministic address derivation, multi-hop fee calculation, and a prefix marketplace. Replaces the current flat, publisher-assigned ILP addressing (`g.toon.genesis`, `g.toon.peer1`) with a hierarchical model where addresses are derived from the peering topology: each upstream peer assigns child addresses as `${parentPrefix}.${childPubkey.slice(0, 8)}`. The root prefix (`g.toon`) is a deployment constant owned by the genesis node. Multi-peered nodes receive multiple addresses (one per upstream peering). Fee calculation becomes invisible to SDK users — each node advertises `feePerByte` in kind:10032 events, and the SDK sums intermediary fees along the route path internally. A new Nostr kind enables peers to claim human-readable vanity prefixes (e.g., `g.toon.useast`, `g.toon.btc`) from their upstream by paying for the prefix, creating an ILP address marketplace.
+
+**Key Design Decisions (Party Mode 2026-03-20):**
+- Identity ≠ Address ≠ Route — Nostr pubkey is identity, ILP address is reachability (ephemeral, per-peering), routes are dynamic advertisements
+- Addresses are deterministic: `${parentPrefix}.${peerPubkey.slice(0, 8)}` — zero configuration, cryptographically collision-resistant
+- Root prefix (`g.toon`) is a protocol constant, not assigned — the genesis node IS `g.toon`
+- Fee calculation is SDK-internal: `totalAmount = destinationWriteFee + Σ(hop[i].feePerByte × packetBytes)`
+- Vanity prefix claims via new Nostr kind — peers pay upstream for human-readable prefixes, creating a domain-registrar business model
+
+**Stories:** 6
+**Decision source:** Party Mode 2026-03-20 — ILP Address Generation & Fee Calculation
+
+### Epic 8: The Rig — ILP-Gated TypeScript Git Forge
 
 A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. Published as `@toon-protocol/rig` so operators can `npx @toon-protocol/rig` and add git collaboration to their node. No Go dependency, no Docker required. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis.
 **FRs covered:** FR-NIP34-1, FR-NIP34-2, FR-NIP34-3, FR-NIP34-4, FR-NIP34-5, FR-NIP34-6
 **Stories:** 12 (decomposed for proper sizing)
 **Reference:** [forgejo](https://codeberg.org/forgejo/forgejo) (Go, GPL-3.0) — source for mechanical template port
-**Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM) — the Rig exercises the complete stack
+**Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM), 7 (ILP Addressing) — the Rig exercises the complete stack
 
 ---
 
@@ -1498,7 +1527,143 @@ So that I can make programmatic trust decisions about which providers to send jo
 
 ---
 
-## Epic 7: The Rig — ILP-Gated TypeScript Git Forge
+## Epic 7: ILP Address Hierarchy & Protocol Economics
+
+Hierarchical ILP addressing with deterministic address derivation, multi-hop fee calculation, and a prefix marketplace. Replaces flat publisher-assigned addressing with a topology-derived hierarchy. Fee calculation becomes invisible to SDK users. A new Nostr kind enables vanity prefix purchases from upstream peers.
+
+**Decision source:** Party Mode 2026-03-20
+
+### Story 7.1: Deterministic Address Derivation
+
+**As a** TOON node operator,
+**I want** my ILP address to be deterministically derived from my Nostr pubkey and my upstream peer's prefix,
+**So that** address assignment is automatic, collision-resistant, and requires zero configuration.
+
+**Acceptance Criteria:**
+
+**Given** a node with Nostr pubkey `abcd1234...` peering with a node at prefix `g.toon`
+**When** the peering handshake completes
+**Then** the node's ILP address is `g.toon.abcd1234` (first 8 hex chars of pubkey)
+
+**Given** the genesis node with network prefix `g.toon`
+**When** it starts
+**Then** its ILP address is `g.toon` (the root prefix, a protocol constant)
+
+**Given** a `deriveChildAddress(parentPrefix, childPubkey)` utility function
+**When** called with `('g.toon.ef567890', '11aabb22...')`
+**Then** it returns `g.toon.ef567890.11aabb22`
+
+**Test Approach:** Unit test: `deriveChildAddress()` with various inputs. Verify ILP address segment validation (lowercase, valid chars). Verify 8-char truncation. Verify root prefix is a constant.
+
+### Story 7.2: BTP Address Assignment Handshake
+
+**As a** TOON node,
+**I want** my upstream peer to communicate its prefix during the BTP handshake,
+**So that** I can deterministically compute my own ILP address from the peering relationship.
+
+**Acceptance Criteria:**
+
+**Given** a node initiating a BTP connection to an upstream peer
+**When** the BTP handshake completes
+**Then** the upstream peer's prefix is communicated to the connecting node
+**And** the connecting node computes its address as `${upstreamPrefix}.${ownPubkey.slice(0, 8)}`
+
+**Given** a node that was previously addressed as `g.toon.peer1` (hardcoded)
+**When** it connects via the new handshake protocol
+**Then** its address is derived from the upstream prefix + its pubkey (not hardcoded)
+
+**Test Approach:** Integration test: two nodes peer via BTP, verify child receives correct address derived from parent's prefix. Unit test: handshake message parsing.
+
+### Story 7.3: Multi-Address Support for Multi-Peered Nodes
+
+**As a** TOON node peered with multiple upstream connectors,
+**I want** to hold multiple ILP addresses (one per peering),
+**So that** I am reachable via any of my upstream paths.
+
+**Acceptance Criteria:**
+
+**Given** a node peered with both `g.toon.useast` and `g.toon.euwest`
+**When** it publishes its kind:10032 peer info event
+**Then** the event contains `ilpAddresses: ['g.toon.useast.{pubkey8}', 'g.toon.euwest.{pubkey8}']`
+
+**Given** a client resolving a destination by Nostr pubkey
+**When** the destination node has multiple ILP addresses
+**Then** the client can select the optimal route based on available paths
+
+**Test Approach:** Unit test: kind:10032 event with multiple addresses. Integration test: node with two peers, verify both addresses are advertised and routable.
+
+### Story 7.4: Fee-Per-Byte Advertisement in kind:10032
+
+**As a** TOON node operator,
+**I want** to advertise my routing fee in kind:10032 peer info events,
+**So that** senders can calculate the total cost of multi-hop routes.
+
+**Acceptance Criteria:**
+
+**Given** a node with `feePerByte: 2n` configured
+**When** it publishes its kind:10032 peer info event
+**Then** the event includes `feePerByte: 2` alongside existing fields (`ilpAddresses`, `btpEndpoint`, `capabilities`)
+
+**Given** a node with no explicit fee configuration
+**When** it publishes kind:10032
+**Then** `feePerByte` defaults to `0` (free routing)
+
+**Test Approach:** Unit test: kind:10032 event builder includes `feePerByte`. Integration test: peer discovers fee via kind:10032 subscription.
+
+### Story 7.5: SDK Route-Aware Fee Calculation
+
+**As an** SDK user calling `publishEvent()`,
+**I want** the SDK to automatically calculate and include intermediary routing fees,
+**So that** the recipient receives the correct write fee without me knowing about multi-hop costs.
+
+**Acceptance Criteria:**
+
+**Given** a publish from `g.toon.useast.client-abc` to `g.toon.euwest.relay-42`
+**And** the route traverses two intermediaries with `feePerByte: 2n` and `feePerByte: 3n`
+**When** the SDK computes the ILP PREPARE amount
+**Then** `amount = (basePricePerByte × toonBytes.length) + (2n × toonBytes.length) + (3n × toonBytes.length)`
+
+**Given** a direct single-hop publish (no intermediaries)
+**When** the SDK computes the amount
+**Then** `amount = basePricePerByte × toonBytes.length` (unchanged from current behavior)
+
+**Given** the fee calculation
+**When** the user calls `publishEvent(event)`
+**Then** the fee math is completely internal — no fee parameters exposed to the user
+
+**Test Approach:** Unit test: fee calculator with mock route table. Integration test: multi-hop publish with fee-charging intermediaries, verify destination receives correct write fee. E2E test: full publish through Docker infra with intermediary fees.
+
+### Story 7.6: Prefix Claim Kind and Marketplace
+
+**As a** TOON node operator,
+**I want** to claim a human-readable vanity prefix (e.g., `useast`, `btc`) from my upstream peer by paying for it,
+**So that** my node has a memorable, branded ILP address instead of a pubkey-derived one.
+
+**Acceptance Criteria:**
+
+**Given** a new Nostr event kind for prefix claim requests
+**When** a node sends a prefix claim event with `{ requestedPrefix: 'useast', payment: <ILP claim> }` to its upstream peer
+**Then** the upstream validates: (1) the prefix is available (not already claimed), (2) the payment is sufficient
+**And** responds with a confirmation event granting the prefix
+
+**Given** a node that has claimed `useast` from `g.toon`
+**When** it peers with child nodes
+**Then** its prefix is `g.toon.useast` (the vanity prefix replaces the pubkey-derived default)
+**And** child nodes are addressed as `g.toon.useast.{childPubkey8}`
+
+**Given** a prefix that is already claimed by another peer
+**When** a new node requests the same prefix
+**Then** the request is rejected with a `PREFIX_TAKEN` error
+
+**Given** the upstream peer's pricing for vanity prefixes
+**When** it advertises in kind:10032
+**Then** it includes prefix pricing information (e.g., `prefixPricing: { basePrice: 1000000n }`)
+
+**Test Approach:** Unit test: prefix claim event creation, validation, conflict detection. Integration test: full claim flow — request, payment, confirmation, address activation. Verify claimed prefix overrides pubkey-derived address.
+
+---
+
+## Epic 8: The Rig — ILP-Gated TypeScript Git Forge
 
 A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis.
 
@@ -1515,9 +1680,9 @@ A TypeScript-native git forge built on the SDK, proving the full production stac
 - **Read path**: HTTP request → Express route → git binary (for code/tree/blob) + relay subscription (for issues/PRs) → Eta template → HTML response
 - **Template port scope**: repository list, file tree, blob viewer, commit log, commit diff, blame — NOT: admin panels, user settings, OAuth, notification system, dashboard
 - Existing `packages/core/src/nip34/` provides NIP34Handler, GitOperations as foundation (ForgejoClient to be replaced)
-- **Validates Epics 1-6**: The Rig exercises SDK handlers (Epic 1), relay event storage (Epic 2), USDC/x402 payments (Epic 3), TEE attestation (Epic 4), DVM marketplace (Epic 5), and advanced DVM coordination (Epic 6) in a single service
+- **Validates Epics 1-7**: The Rig exercises SDK handlers (Epic 1), relay event storage (Epic 2), USDC/x402 payments (Epic 3), TEE attestation (Epic 4), DVM marketplace (Epic 5), advanced DVM coordination (Epic 6), and ILP address hierarchy (Epic 7) in a single service
 
-### Story 7.1: SDK Node Setup and Repository Creation Handler
+### Story 8.1: SDK Node Setup and Repository Creation Handler
 
 As a **network operator**,
 I want a Rig service node built on the SDK that accepts kind:30617 (Repository Announcement) events via ILP and initializes git repositories,
@@ -1548,13 +1713,13 @@ So that repositories can be created through paid Nostr events.
 **When** the handler cannot process it
 **Then** `ctx.reject('F00', 'Unsupported NIP-34 kind')` is called
 
-### Story 7.2: Patch Handler
+### Story 8.2: Patch Handler
 
 As a **contributor**,
 I want to submit code patches as kind:1617 events via ILP,
 So that my patches are applied to the repository through the standard NIP-34 workflow.
 
-**Dependencies:** Story 7.1 (repositories must exist)
+**Dependencies:** Story 8.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1572,13 +1737,13 @@ So that my patches are applied to the repository through the standard NIP-34 wor
 **When** `git am` or `git apply` fails
 **Then** `ctx.reject('F00', 'Patch application failed')` is called with the git error message
 
-### Story 7.3: Issue and Comment Handlers
+### Story 8.3: Issue and Comment Handlers
 
 As a **contributor**,
 I want to submit issues (kind:1621) and comments (kind:1622) via ILP,
 So that my discussions are acknowledged by the Rig and stored on the relay for web UI rendering.
 
-**Dependencies:** Story 7.1 (repositories must exist)
+**Dependencies:** Story 8.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1594,13 +1759,13 @@ So that my discussions are acknowledged by the Rig and stored on the relay for w
 **When** the handler processes it
 **Then** `ctx.reject('F00', 'Repository not found')` is called
 
-### Story 7.4: Git HTTP Backend for Clone and Fetch
+### Story 8.4: Git HTTP Backend for Clone and Fetch
 
 As a **developer**,
 I want to clone and fetch repositories hosted on the Rig via standard git HTTP protocol,
 So that I can work with Rig repositories using any standard git client.
 
-**Dependencies:** Story 7.1 (repositories must exist)
+**Dependencies:** Story 8.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1621,7 +1786,7 @@ So that I can work with Rig repositories using any standard git client.
 **When** the HTTP server receives it
 **Then** the request is rejected (write operations go through ILP-gated NIP-34 events, not HTTP push)
 
-### Story 7.5: Nostr Pubkey-Native Git Identity
+### Story 8.5: Nostr Pubkey-Native Git Identity
 
 As a **contributor**,
 I want my Nostr pubkey to be my git identity on the Rig,
@@ -1651,13 +1816,13 @@ So that my commits, issues, and PRs are attributed to my cryptographic identity 
 **Then** the event's pubkey is checked against the repository's maintainer list (from the latest kind:30617 event's `maintainers` tags)
 **And** unauthorized pubkeys receive `ctx.reject('F06', 'Unauthorized')`
 
-### Story 7.6: NIP-34 Status Events and PR Lifecycle
+### Story 8.6: NIP-34 Status Events and PR Lifecycle
 
 As a **contributor**,
 I want my pull request status tracked through NIP-34 status events (kinds 1630-1633),
 So that the PR lifecycle (open, applied/merged, closed, draft) is managed through Nostr events with ILP payment.
 
-**Dependencies:** Stories 7.1, 7.2 (repositories and patches must exist)
+**Dependencies:** Stories 8.1, 8.2 (repositories and patches must exist)
 
 **Acceptance Criteria:**
 
@@ -1684,13 +1849,13 @@ So that the PR lifecycle (open, applied/merged, closed, draft) is managed throug
 **When** the handler checks authorization
 **Then** `ctx.reject('F06', 'Unauthorized: pubkey lacks maintainer permissions')` is called
 
-### Story 7.7: Layout and Repository List Page
+### Story 8.7: Layout and Repository List Page
 
 As a **developer**,
 I want to see a list of all repositories hosted on the Rig through a web UI,
 So that I can discover and navigate to projects without needing a specialized client.
 
-**Dependencies:** Story 7.1 (repositories must exist), Story 7.5 (pubkey display)
+**Dependencies:** Story 8.1 (repositories must exist), Story 8.5 (pubkey display)
 
 **Acceptance Criteria:**
 
@@ -1708,13 +1873,13 @@ So that I can discover and navigate to projects without needing a specialized cl
 **When** I visit the root
 **Then** an empty state message is displayed
 
-### Story 7.8: File Tree and Blob View
+### Story 8.8: File Tree and Blob View
 
 As a **developer**,
 I want to browse a repository's file tree and view individual file contents,
 So that I can explore the codebase through the web UI.
 
-**Dependencies:** Story 7.7 (layout must exist)
+**Dependencies:** Story 8.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1734,13 +1899,13 @@ So that I can explore the codebase through the web UI.
 **When** I navigate to it
 **Then** a 404 page is displayed
 
-### Story 7.9: Commit Log and Diff View
+### Story 8.9: Commit Log and Diff View
 
 As a **developer**,
 I want to view commit history and individual commit diffs,
 So that I can understand the change history of a repository.
 
-**Dependencies:** Story 7.7 (layout must exist)
+**Dependencies:** Story 8.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1759,13 +1924,13 @@ So that I can understand the change history of a repository.
 **When** I navigate to it
 **Then** a 404 page is displayed
 
-### Story 7.10: Blame View
+### Story 8.10: Blame View
 
 As a **developer**,
 I want to view per-line blame information for any file,
 So that I can see who last modified each line and when.
 
-**Dependencies:** Story 7.7 (layout must exist)
+**Dependencies:** Story 8.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1778,13 +1943,13 @@ So that I can see who last modified each line and when.
 **When** I navigate to its blame view
 **Then** a 404 page is displayed
 
-### Story 7.11: Issues and PRs from Nostr Events on Relay
+### Story 8.11: Issues and PRs from Nostr Events on Relay
 
 As a **developer**,
 I want to view issues, pull requests, and comments in the web UI,
 So that I can follow project discussions sourced from Nostr events without needing a Nostr client.
 
-**Dependencies:** Story 7.7 (layout must exist), Story 7.1 (repositories must exist)
+**Dependencies:** Story 8.7 (layout must exist), Story 8.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1814,13 +1979,13 @@ So that I can follow project discussions sourced from Nostr events without needi
 **Then** a banner explains that participation requires an ILP/Nostr client
 **And** includes a link to documentation on submitting NIP-34 events via `@toon-protocol/client`
 
-### Story 7.12: Publish @toon-protocol/rig Package
+### Story 8.12: Publish @toon-protocol/rig Package
 
 As a **network operator**,
 I want to `npm install @toon-protocol/rig` and deploy a TypeScript git forge alongside my relay,
 So that I can add git collaboration to my TOON node with a single command.
 
-**Dependencies:** Stories 7.1-7.11 (all Rig functionality must be complete)
+**Dependencies:** Stories 8.1-8.11 (all Rig functionality must be complete)
 
 **Acceptance Criteria:**
 

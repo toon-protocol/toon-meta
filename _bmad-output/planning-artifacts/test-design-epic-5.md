@@ -11,7 +11,7 @@
 - `_bmad-output/test-artifacts/test-design-architecture.md` (System-level architecture test design)
 - `_bmad-output/test-artifacts/test-design-qa.md` (System-level QA test design)
 
-**Note:** The `_bmad-output/test-artifacts/test-design-epic-5.md` file is a test design for The Rig (Epic 7, renumbered per Decision 8 in the 2020117 analysis). This document is the authoritative test design for the DVM Compute Marketplace (Epic 5, Stories 5.1-5.4).
+**Note:** The `_bmad-output/test-artifacts/test-design-epic-5.md` file is a test design for The Rig (Epic 8, renumbered per Decision 8 in the 2020117 analysis, then renumbered again 2026-03-20 to accommodate Epic 7: ILP Address Hierarchy). This document is the authoritative test design for the DVM Compute Marketplace (Epic 5, Stories 5.1-5.4).
 
 ---
 
@@ -57,7 +57,7 @@ Epic 5 delivers 4 stories (5.1-5.4) implementing a NIP-90 compatible DVM (Data V
 - Epic 6 features: workflow chains, agent swarms, TEE-attested results, reputation scoring
 - Multi-relay redundancy or performance testing
 - Real Arbitrum One deployment with production USDC
-- The Rig (Epic 7) -- separate test design exists
+- The Rig (Epic 8) -- separate test design exists
 
 ---
 
@@ -517,7 +517,7 @@ Story 5.4 can be developed in parallel with Story 5.2 because skill descriptors 
 
 This test plan is specific to Epic 5 (DVM Compute Marketplace, Stories 5.1-5.4) as renumbered per Decision 8 in the 2020117 analysis. It should NOT be confused with:
 
-- `_bmad-output/test-artifacts/test-design-epic-5.md` -- This is a test design for **The Rig** (NIP-34 Git Forge), which was renumbered to **Epic 7** in the 2020117 analysis. The Rig test design remains valid for Epic 7 implementation.
+- `_bmad-output/test-artifacts/test-design-epic-5.md` -- This is a test design for **The Rig** (NIP-34 Git Forge), which was renumbered to **Epic 8** (originally Epic 7 per 2020117 analysis, then renumbered 2026-03-20 to accommodate ILP Address Hierarchy epic). The Rig test design remains valid for Epic 8 implementation.
 
 This test plan follows the format established by:
 - `_bmad-output/planning-artifacts/test-design-epic-3.md` (Epic 3 format template)
