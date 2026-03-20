@@ -130,7 +130,7 @@ Epic 3: Production Protocol Economics            COMPLETE (6/6 stories, 26/26 AC
 Epic 4: Marlin TEE Deployment                    COMPLETE (6/6 stories, 32/33 ACs)
 Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 ACs)
 Epic 6: Advanced DVM Coordination + TEE          PLANNED
-Epic 7: ILP Address Hierarchy & Protocol Econ    PLANNED
+Epic 7: ILP Address Hierarchy & Protocol Econ    PLANNED (7 stories, design decisions D7-001 through D7-007)
 Epic 8: The Rig -- ILP-Gated Git Forge           PLANNED
 ```
 
@@ -193,6 +193,18 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 | 10036 | Seed Relay List | Implemented (Story 3.4) |
 | ~~23194~~ | ~~SPSP Request~~ | Removed (Story 2.7) |
 | ~~23195~~ | ~~SPSP Response~~ | Removed (Story 2.7) |
+
+**Prepaid Protocol Model (Party Mode 2026-03-20 -- shapes Epic 7):**
+- **"Sending a message and sending money are the same action"** -- protocol thesis, all monetized flows must respect it
+- **Prepaid DVM (D7-001):** Kind 5xxx request's ILP PREPARE amount = provider's advertised price from `SkillDescriptor.pricing`. Request packet IS the payment. `settleCompute()` deprecated.
+- **Supply-driven marketplace (D7-002):** Providers advertise capabilities + pricing in `SkillDescriptor` (kind:10035). Customers discover, compare, and pay on submission. Not a request-for-quote system.
+- **Prefix claim single-packet (D7-003):** Prefix claim event's ILP PREPARE amount = prefix price. Handler validates `ctx.amount >= prefixPricing.basePrice`. Same pattern as prepaid DVM.
+- **Unified payment pattern (D7-004):** All monetized flows: (1) advertise price in replaceable Nostr event, (2) customer discovers, (3) message + payment in ONE ILP packet.
+- **Prefix claims use own kinds (D7-005):** Control-plane operation (routing topology mutation), not DVM. Event kinds in 10032-10099 range.
+- **Bid semantic shift (D7-006):** `bid` tag = client-side safety cap ("won't pay more than X"), not an offer. Actual payment from `SkillDescriptor.pricing`.
+- **publishEvent() amount override (D7-007):** Optional `amount` param overrides `basePricePerByte × bytes` calculation. Enables prepaid DVM and prefix claim flows.
+- **settleCompute() deprecation path:** Still functional in Epic 7 (backward compat) but `@deprecated`. Kind 6xxx `amount` tag becomes informational, not an invoice.
+- Full decision record: `_bmad-output/planning-artifacts/research/party-mode-prepaid-protocol-decisions-2026-03-20.md`
 
 **Terminology:**
 - "ILP client" not "ILP/SPSP client" -- SPSP is not part of the protocol

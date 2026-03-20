@@ -1529,9 +1529,27 @@ So that I can make programmatic trust decisions about which providers to send jo
 
 ## Epic 7: ILP Address Hierarchy & Protocol Economics
 
-Hierarchical ILP addressing with deterministic address derivation, multi-hop fee calculation, and a prefix marketplace. Replaces flat publisher-assigned addressing with a topology-derived hierarchy. Fee calculation becomes invisible to SDK users. A new Nostr kind enables vanity prefix purchases from upstream peers.
+Hierarchical ILP addressing with deterministic address derivation, multi-hop fee calculation, a prefix marketplace, and the prepaid protocol model. Replaces flat publisher-assigned addressing with a topology-derived hierarchy. Fee calculation becomes invisible to SDK users. A new Nostr kind enables vanity prefix purchases from upstream peers. Adopts the prepaid model for DVM compute, deprecating `settleCompute()` in favor of single-packet payment-with-message semantics.
 
 **Decision source:** Party Mode 2026-03-20
+
+### Design Decisions (Party Mode 2026-03-20)
+
+**D7-001: Prepaid DVM Model.** The Kind 5xxx job request's ILP PREPARE amount equals the provider's advertised price (from `SkillDescriptor.pricing`). The request packet IS the payment — no separate `settleCompute()` call. This respects the protocol thesis: "sending a message and sending money are the same action." `settleCompute()` is deprecated.
+
+**D7-002: Supply-Driven Marketplace.** The DVM marketplace flips from demand-driven (customer posts job, waits) to supply-driven (provider advertises capabilities and pricing in `SkillDescriptor`, customer discovers, shops, and pays on submission). `SkillDescriptor.pricing` is the price tag, not a negotiation starting point.
+
+**D7-003: Prefix Claim Single-Packet Payment.** The prefix claim event's ILP PREPARE amount IS the prefix price. One packet carries claim data + payment. Handler validates `ctx.amount >= prefixPricing.basePrice`. Same pattern as prepaid DVM.
+
+**D7-004: Unified Protocol Payment Pattern.** All monetized flows follow the same pattern: (1) provider advertises capability + price via replaceable Nostr event, (2) customer discovers price, (3) customer sends message + payment in ONE ILP packet, (4) provider validates amount and responds. Three use cases (relay write, DVM compute, prefix claim), one primitive.
+
+**D7-005: Prefix Claims Use Own Event Kinds.** Prefix claiming is a stateful control-plane operation (mutates routing topology, persistent state) — NOT a DVM compute job. Uses own event kinds in the 10032-10099 TOON service advertisement range. However, the ILP payment mechanism is identical to DVM prepaid model.
+
+**D7-006: Bid Tag Semantic Shift.** The `bid` tag in Kind 5xxx events shifts from "I offer to pay this much" (Epic 5) to "I won't pay more than this" (Epic 7). Actual payment comes from `SkillDescriptor.pricing`. If `advertisedPrice > bid`, SDK refuses to send (client-side safety cap).
+
+**D7-007: publishEvent() Amount Override.** `publishEvent()` gains an optional `amount` parameter so customers can set the ILP PREPARE amount to the provider's advertised price instead of `basePricePerByte × bytes`. This enables prepaid DVM and prefix claim flows without new payment machinery.
+
+**Full decision record:** `_bmad-output/planning-artifacts/research/party-mode-prepaid-protocol-decisions-2026-03-20.md`
 
 ### Story 7.1: Deterministic Address Derivation
 
@@ -1633,18 +1651,60 @@ Hierarchical ILP addressing with deterministic address derivation, multi-hop fee
 
 **Test Approach:** Unit test: fee calculator with mock route table. Integration test: multi-hop publish with fee-charging intermediaries, verify destination receives correct write fee. E2E test: full publish through Docker infra with intermediary fees.
 
-### Story 7.6: Prefix Claim Kind and Marketplace
+### Story 7.6: Prepaid DVM Model and settleCompute() Deprecation
+
+**As an** SDK user submitting DVM jobs,
+**I want** the job request packet to carry both the data and the payment in a single ILP PREPARE,
+**So that** the protocol thesis ("sending a message and sending money are the same action") holds for DVM compute.
+
+**Design Decisions:** D7-001 (prepaid model), D7-002 (supply-driven marketplace), D7-006 (bid semantic shift), D7-007 (amount override)
+
+**Acceptance Criteria:**
+
+**Given** a provider advertising `SkillDescriptor.pricing: { '5100': '50000' }` in kind:10035
+**When** a customer sends a Kind 5100 job request
+**Then** the ILP PREPARE amount equals the provider's advertised price (`50000`), not `basePricePerByte × bytes`
+**And** the provider's handler receives both the job data and payment via `ctx.amount`
+
+**Given** `publishEvent()` with an `amount` option
+**When** called with `publishEvent(event, { destination, amount: 50000n })`
+**Then** the ILP PREPARE packet uses the specified amount instead of computing `basePricePerByte × toonBytes.length`
+
+**Given** a provider's handler for Kind 5100
+**When** it receives a job request where `ctx.amount < advertisedPrice`
+**Then** the handler rejects the packet and payment is not transferred
+
+**Given** a Kind 5xxx job request with `bid: '60000'` and a provider advertising price `50000`
+**When** the SDK prepares to send the request
+**Then** the ILP PREPARE amount is `50000` (advertised price, not bid)
+**And** if `advertisedPrice > bid`, the SDK refuses to send (client-side safety cap)
+
+**Given** the existing `settleCompute()` method on `ServiceNode`
+**When** Epic 7 is complete
+**Then** `settleCompute()` is deprecated with a JSDoc `@deprecated` annotation pointing to the prepaid model
+
+**Given** a Kind 6xxx job result with an `amount` tag
+**When** the provider sends the result
+**Then** the `amount` tag is informational metadata (actual compute cost), not a payment invoice
+
+**Test Approach:** Unit test: `publishEvent()` with `amount` override sends correct ILP PREPARE amount. Unit test: bid validation — SDK refuses when `advertisedPrice > bid`. Integration test: full prepaid DVM flow — customer discovers provider pricing, sends job + payment in one packet, provider validates `ctx.amount`, processes, returns result. E2E test: Docker infra with provider advertising pricing in kind:10035, customer submitting prepaid job. Verify no `settleCompute()` call needed. Verify `settleCompute()` still works (backward compat) but logs deprecation warning.
+
+### Story 7.7: Prefix Claim Kind and Marketplace
 
 **As a** TOON node operator,
 **I want** to claim a human-readable vanity prefix (e.g., `useast`, `btc`) from my upstream peer by paying for it,
 **So that** my node has a memorable, branded ILP address instead of a pubkey-derived one.
 
+**Design Decisions:** D7-003 (single-packet payment), D7-005 (own event kinds, not DVM), D7-007 (amount override from Story 7.6)
+
 **Acceptance Criteria:**
 
-**Given** a new Nostr event kind for prefix claim requests
-**When** a node sends a prefix claim event with `{ requestedPrefix: 'useast', payment: <ILP claim> }` to its upstream peer
-**Then** the upstream validates: (1) the prefix is available (not already claimed), (2) the payment is sufficient
+**Given** a new Nostr event kind for prefix claim requests (in the 10032-10099 TOON service advertisement range)
+**When** a node sends a prefix claim event with `{ requestedPrefix: 'useast' }` as an ILP PREPARE packet
+**And** the ILP PREPARE amount equals the upstream's advertised prefix price
+**Then** the upstream handler validates: (1) the prefix is available (not already claimed), (2) `ctx.amount >= prefixPricing.basePrice`
 **And** responds with a confirmation event granting the prefix
+**And** no separate payment packet is needed — the claim request IS the payment (D7-003)
 
 **Given** a node that has claimed `useast` from `g.toon`
 **When** it peers with child nodes
@@ -1653,13 +1713,17 @@ Hierarchical ILP addressing with deterministic address derivation, multi-hop fee
 
 **Given** a prefix that is already claimed by another peer
 **When** a new node requests the same prefix
-**Then** the request is rejected with a `PREFIX_TAKEN` error
+**Then** the ILP packet is rejected with a `PREFIX_TAKEN` error and payment is not transferred
 
 **Given** the upstream peer's pricing for vanity prefixes
 **When** it advertises in kind:10032
 **Then** it includes prefix pricing information (e.g., `prefixPricing: { basePrice: 1000000n }`)
 
-**Test Approach:** Unit test: prefix claim event creation, validation, conflict detection. Integration test: full claim flow — request, payment, confirmation, address activation. Verify claimed prefix overrides pubkey-derived address.
+**Given** the prefix claim handler registered via `.on(PREFIX_CLAIM_KIND, handler)`
+**When** the handler receives a claim request
+**Then** it validates via `ctx.amount` (existing pipeline) — no new payment machinery needed
+
+**Test Approach:** Unit test: prefix claim event creation, validation, conflict detection, amount validation against `prefixPricing.basePrice`. Integration test: full claim flow — request with payment in single packet, confirmation, address activation. Verify claimed prefix overrides pubkey-derived address. Verify insufficient payment is rejected (packet rejected, no money moves). Verify already-claimed prefix returns `PREFIX_TAKEN`.
 
 ---
 
