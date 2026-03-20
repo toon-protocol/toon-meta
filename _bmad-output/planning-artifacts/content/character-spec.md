@@ -2,7 +2,7 @@
 
 ## Identity
 - **Name:** Relay Bot
-- **Role:** Mascot for the Crosstown content series (6 articles)
+- **Role:** Mascot for the TOON content series (6 articles)
 - **Personality:** Cheerful, calm under pressure, slightly oblivious to chaos
 
 ## Visual Design (Prompt Prefix)
@@ -43,8 +43,8 @@ The face stays the same (dot eyes, curved smile, rosy cheeks) across all article
 - **Props:** Puzzle pieces, protocol stack diagram, magnifying glass
 - **Mood:** Curious detective energy
 
-### Article 3: "Introducing Crosstown"
-- **Scene:** Relay Bot proudly presenting/unveiling Crosstown
+### Article 3: "Introducing TOON"
+- **Scene:** Relay Bot proudly presenting/unveiling TOON
 - **Props:** Relay tower, payment streams, connected nodes
 - **Mood:** Grand reveal, confident
 

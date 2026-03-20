@@ -4,13 +4,13 @@ Status: done
 
 ## Story
 
-As a **Crosstown node operator bootstrapping into the ILP network**,
+As a **TOON node operator bootstrapping into the ILP network**,
 I want the seed relay discovery flow (from Story 3.4's kind:10036 events) to verify each seed relay's kind:10033 TEE attestation BEFORE trusting its kind:10032 peer list,
 So that seed relay list poisoning (R-E4-004) is mitigated by using attestation as the bootstrap trust anchor, and only peers from verified TEE-attested seed relays are added to my routing table.
 
 **FRs covered:** FR-TEE-6 (Attestation-first seed relay bootstrap -- kind:10033 verification integrated into seed relay flow)
 
-**Dependencies:** Story 4.1 complete (commit `4fbef06`). Story 4.2 complete (commit `864bb49`) -- `buildAttestationEvent()`, `parseAttestation()`, `TEE_ATTESTATION_KIND` available from `@crosstown/core`. Story 4.3 complete (commit `aeb2b8b`) -- `AttestationVerifier` class with `verify()`, `getAttestationState()`, `rankPeers()` available. Story 4.4 complete (commit `81d3f4d`) -- `deriveFromKmsSeed()` available. Story 4.5 complete (commit `e1bf435`) -- `NixBuilder`, `verifyPcrReproducibility` available. Story 3.4 complete (commit `ab01976`) -- `buildSeedRelayListEvent()`, `parseSeedRelayList()`, `SeedRelayEntry` available from `@crosstown/core`.
+**Dependencies:** Story 4.1 complete (commit `4fbef06`). Story 4.2 complete (commit `864bb49`) -- `buildAttestationEvent()`, `parseAttestation()`, `TEE_ATTESTATION_KIND` available from `@toon-protocol/core`. Story 4.3 complete (commit `aeb2b8b`) -- `AttestationVerifier` class with `verify()`, `getAttestationState()`, `rankPeers()` available. Story 4.4 complete (commit `81d3f4d`) -- `deriveFromKmsSeed()` available. Story 4.5 complete (commit `e1bf435`) -- `NixBuilder`, `verifyPcrReproducibility` available. Story 3.4 complete (commit `ab01976`) -- `buildSeedRelayListEvent()`, `parseSeedRelayList()`, `SeedRelayEntry` available from `@toon-protocol/core`.
 
 **Decision sources:**
 - Decision 7 (research/marlin-party-mode-decisions): Genesis replaced by seed relay list model. Bootstrap trust flow: kind:10036 -> connect seed -> verify kind:10033 -> subscribe kind:10032
@@ -30,7 +30,7 @@ So that seed relay list poisoning (R-E4-004) is mitigated by using attestation a
 
 5. Given the full attestation-first bootstrap flow (kind:10036 -> connect seed -> verify kind:10033 -> subscribe kind:10032), when `AttestationBootstrap.bootstrap()` completes successfully, then lifecycle events are emitted in order: `attestation:seed-connected` -> `attestation:verified` -> `attestation:peers-discovered`. The result includes `mode: 'attested'`, the attested seed relay URL, and all discovered peers.
 
-6. Given `AttestationBootstrap`, `AttestationBootstrapConfig`, `AttestationBootstrapResult`, and `AttestationBootstrapEvent`, when imported from `@crosstown/core`, then they are exported from `packages/core/src/bootstrap/AttestationBootstrap.ts` and re-exported via `packages/core/src/bootstrap/index.ts` and the top-level `packages/core/src/index.ts`.
+6. Given `AttestationBootstrap`, `AttestationBootstrapConfig`, `AttestationBootstrapResult`, and `AttestationBootstrapEvent`, when imported from `@toon-protocol/core`, then they are exported from `packages/core/src/bootstrap/AttestationBootstrap.ts` and re-exported via `packages/core/src/bootstrap/index.ts` and the top-level `packages/core/src/index.ts`.
 
 ## Tasks / Subtasks
 
@@ -124,7 +124,7 @@ So that seed relay list poisoning (R-E4-004) is mitigated by using attestation a
 ### Architecture Context
 
 **Attestation-First Bootstrap Trust Flow (Decision 7):**
-The bootstrap trust flow is the core security mechanism for the Crosstown network's decentralized peer discovery. Without attestation-first verification, a malicious actor could publish a kind:10036 seed relay list event on a public Nostr relay pointing to non-attested nodes, enabling man-in-the-middle attacks during bootstrap (R-E4-004, Score: 6 HIGH).
+The bootstrap trust flow is the core security mechanism for the TOON network's decentralized peer discovery. Without attestation-first verification, a malicious actor could publish a kind:10036 seed relay list event on a public Nostr relay pointing to non-attested nodes, enabling man-in-the-middle attacks during bootstrap (R-E4-004, Score: 6 HIGH).
 
 The flow is:
 ```
@@ -171,7 +171,7 @@ This makes `AttestationBootstrap` fully testable with the mock functions already
 
 6. **ESM only:** All imports use `.js` extensions (`import { AttestationBootstrap } from './AttestationBootstrap.js'`). No CommonJS.
 
-7. **Extend CrosstownError for errors (if any):** Per enforcement guideline 4, any new error classes must extend `CrosstownError` from `../errors.js`. However, `AttestationBootstrap` is designed to not throw -- it degrades gracefully. Errors from callbacks are caught and trigger fallback to the next relay.
+7. **Extend ToonError for errors (if any):** Per enforcement guideline 4, any new error classes must extend `ToonError` from `../errors.js`. However, `AttestationBootstrap` is designed to not throw -- it degrades gracefully. Errors from callbacks are caught and trigger fallback to the next relay.
 
 8. **Callback error handling:** The `queryAttestation` and `subscribePeers` callbacks may throw. The `bootstrap()` method must wrap each call in `try/catch` and treat thrown errors as equivalent to a failed attestation (emit `attestation:verification-failed` with the error message as reason, then continue to next relay). This is critical for robustness -- WebSocket connection failures, DNS resolution failures, and relay timeouts should not crash the bootstrap flow.
 
@@ -242,7 +242,7 @@ This makes `AttestationBootstrap` fully testable with the mock functions already
 
 **Learnings from Story 4.5 (Nix Reproducible Builds):**
 - Barrel export verification tests were added as a new test ID (T-4.5-05) during GREEN phase -- follow the same pattern for T-4.6-06
-- The `CrosstownError` base class is in `packages/core/src/errors.ts` -- extend if any error classes needed
+- The `ToonError` base class is in `packages/core/src/errors.ts` -- extend if any error classes needed
 - Code review identified path traversal via `startsWith` prefix collision -- always use `path.sep` suffix check for path validation
 - `RegExp.exec()` with global flag needs `lastIndex` reset -- avoid stateful regex patterns
 - Mock approach: `vi.mock()` for external modules, direct mock objects for DI-injected dependencies
@@ -252,7 +252,7 @@ This makes `AttestationBootstrap` fully testable with the mock functions already
 
 **Recent commit pattern:** One commit per story with `feat(story-id): description` format.
 - `feat(4-5): Nix reproducible builds -- NixBuilder, PCR verification, Dockerfile analysis`
-- `feat(4-4): Nautilus KMS identity -- deriveFromKmsSeed in @crosstown/core`
+- `feat(4-4): Nautilus KMS identity -- deriveFromKmsSeed in @toon-protocol/core`
 - `feat(4-3): attestation-aware peering -- AttestationVerifier class`
 
 **Expected commit:** `feat(4-6): attestation-first seed relay bootstrap -- AttestationBootstrap class`

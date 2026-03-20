@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Story 5.3 implements the complete DVM job result delivery and compute settlement pipeline for the Crosstown SDK. Three new `ServiceNode` helper methods were added: `publishFeedback()` (Kind 7000 status events), `publishResult()` (Kind 6xxx result events), and `settleCompute()` (pure ILP value transfers for compute payment). A core infrastructure fix in `direct-ilp-client.ts` enables empty-data ILP packets for settlement.
+Story 5.3 implements the complete DVM job result delivery and compute settlement pipeline for the TOON SDK. Three new `ServiceNode` helper methods were added: `publishFeedback()` (Kind 7000 status events), `publishResult()` (Kind 6xxx result events), and `settleCompute()` (pure ILP value transfers for compute payment). A core infrastructure fix in `direct-ilp-client.ts` enables empty-data ILP packets for settlement.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: Provider publishes Kind 7000 feedback via ILP PREPARE — covered by: T-5.3-01, T-5.3-10, T-5.3-16

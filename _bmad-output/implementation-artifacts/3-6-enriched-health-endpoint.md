@@ -12,11 +12,11 @@ So that I can monitor nodes and make programmatic peering decisions.
 
 **Dependencies:** Story 3.1 (USDC pricing denomination), Story 3.2 (chain configuration -- provides `chainConfig.name` for the `chain` response field), Story 3.3 (x402 /publish endpoint -- provides `x402Enabled` config flag), Story 3.5 (service discovery data provides the pricing/capabilities/chain fields that the enriched health response mirrors).
 
-**Decision source:** Party Mode Decision 13 -- "Crosstown node owns all public-facing endpoints". The enriched `/health` endpoint is the node's operational status advertisement, complementing the kind:10035 service discovery event (story 3.5) with live runtime state.
+**Decision source:** Party Mode Decision 13 -- "TOON node owns all public-facing endpoints". The enriched `/health` endpoint is the node's operational status advertisement, complementing the kind:10035 service discovery event (story 3.5) with live runtime state.
 
 ## Acceptance Criteria
 
-1. Given a running Crosstown node that has completed bootstrap, when I request `GET /health`, then the response is a JSON object containing all of the following fields: `status` (string), `phase` (BootstrapPhase string), `pubkey` (64-char hex), `ilpAddress` (string), `peerCount` (number), `discoveredPeerCount` (number), `channelCount` (number), `pricing` (object with `basePricePerByte` number and `currency` string `"USDC"`), `capabilities` (string array), `chain` (string), `version` (string matching semver pattern), `sdk` (boolean `true`), and `timestamp` (number). When x402 is enabled, the response also includes `x402` (object with `enabled: true` and `endpoint: string`).
+1. Given a running TOON node that has completed bootstrap, when I request `GET /health`, then the response is a JSON object containing all of the following fields: `status` (string), `phase` (BootstrapPhase string), `pubkey` (64-char hex), `ilpAddress` (string), `peerCount` (number), `discoveredPeerCount` (number), `channelCount` (number), `pricing` (object with `basePricePerByte` number and `currency` string `"USDC"`), `capabilities` (string array), `chain` (string), `version` (string matching semver pattern), `sdk` (boolean `true`), and `timestamp` (number). When x402 is enabled, the response also includes `x402` (object with `enabled: true` and `endpoint: string`).
 
 2. Given a node with x402 disabled (the default), when I request `GET /health`, then the `x402` field is entirely omitted from the response (not set to `{ enabled: false }`), and the `capabilities` array does not contain `'x402'`. This mirrors the same omission semantics used in kind:10035 events (AC #3 of Story 3.5).
 
@@ -107,7 +107,7 @@ So that I can monitor nodes and make programmatic peering decisions.
     ```
   - [x] The `x402` field is optional: omit it entirely when x402 is disabled (AC #2). Do NOT set `{ x402: { enabled: false } }`. Same semantics as kind:10035.
   - [x] `basePricePerByte` converted from `bigint` to `number` via `Number()` for JSON serialization, same as kind:10035.
-  - [x] Import `VERSION` from `@crosstown/core`.
+  - [x] Import `VERSION` from `@toon-protocol/core`.
 
 - [x] Task 2: Export from `packages/town/src/health.ts` and `packages/town/src/index.ts` (AC: all)
   - [x] Export `createHealthResponse`, `type HealthConfig`, `type HealthResponse` from `packages/town/src/health.ts`.
@@ -137,7 +137,7 @@ So that I can monitor nodes and make programmatic peering decisions.
   - [x] **Data sources for health config fields** (all are local variables in `startTown()`, in scope at the `/health` handler registration):
     - `bootstrapService.getPhase()` -- `BootstrapService` instance created at step 9, `.getPhase()` returns a `BootstrapPhase` string
     - `identity.pubkey` -- derived at step 2 (`fromMnemonic()` or `fromSecretKey()`)
-    - `ilpAddress` -- resolved at config resolution (step 3), format `g.crosstown.<pubkeyShort>`
+    - `ilpAddress` -- resolved at config resolution (step 3), format `g.toon.<pubkeyShort>`
     - `discoveryTracker.getPeerCount()` + `peerCount` -- discovery tracker created at step 9b, `peerCount` is a `let` variable tracking manually added peers
     - `discoveryTracker.getDiscoveredCount()` -- discovered but not yet registered peers
     - `channelCount` -- `let` variable incremented during bootstrap channel opening
@@ -159,7 +159,7 @@ So that I can monitor nodes and make programmatic peering decisions.
     - **Factory `_createHealthConfig` drift:** The ATDD stub factory has fields (`currency`, `x402Endpoint`, `capabilities`, `version`) that are NOT in the story's `HealthConfig` interface -- `createHealthResponse()` derives these values internally. Additionally, `basePricePerByte: 10` should be `basePricePerByte: 10n` (bigint, matching the `HealthConfig` type). Rewrite the factory to match the `HealthConfig` interface, adding `phase`, `pubkey`, and `ilpAddress` which are required fields.
     - **Import name mismatch:** The ATDD stub comments reference `createHealthHandler` and `handler.getHealth()`, but the implementation is `createHealthResponse(config)` -- a pure function, not a handler class. Update the commented-out imports and usage accordingly.
   - [x] Add new unit tests for:
-    - `createHealthResponse() returns correct version from @crosstown/core` (verify VERSION constant is used)
+    - `createHealthResponse() returns correct version from @toon-protocol/core` (verify VERSION constant is used)
     - `createHealthResponse() returns sdk: true` (backward compatibility)
     - `createHealthResponse() always returns status 'healthy'`
     - `createHealthResponse() timestamp is a recent number` (within last 5 seconds)
@@ -189,7 +189,7 @@ The enriched `/health` response combines static configuration data (pricing, cha
   "status": "healthy",
   "phase": "ready",
   "pubkey": "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-  "ilpAddress": "g.crosstown.abcdef12345678",
+  "ilpAddress": "g.toon.abcdef12345678",
   "peerCount": 5,
   "discoveredPeerCount": 12,
   "channelCount": 3,
@@ -215,7 +215,7 @@ The enriched `/health` response combines static configuration data (pricing, cha
   "status": "healthy",
   "phase": "ready",
   "pubkey": "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-  "ilpAddress": "g.crosstown.abcdef12345678",
+  "ilpAddress": "g.toon.abcdef12345678",
   "peerCount": 5,
   "discoveredPeerCount": 12,
   "channelCount": 3,
@@ -242,7 +242,7 @@ The existing health endpoint returns `{ status, pubkey, ilpAddress, timestamp, s
 Key backward compatibility concerns:
 - `sdk: true` must remain in the response. The `sdk-entrypoint-validation.test.ts` static analysis test greps for `sdk:\s*true` in `docker/src/entrypoint-town.ts` (lines 180-191), NOT in `packages/town/src/town.ts`. Since the Docker entrypoint builds its own health response inline (it uses Approach A -- individual SDK components, not `startTown()`), this test is unaffected by the `town.ts` refactoring. However, if the Docker entrypoint is later refactored to use `createHealthResponse()`, the test would need to search in `health.ts`. For now, no change to this test is needed.
 - `status: 'healthy'` is preserved (existing monitors may check this field).
-- **Field renamed:** The existing health endpoint uses `bootstrapPhase` as the field name (conditionally included). The enriched response uses `phase` as the field name (always included). This is a minor breaking change for consumers that parse the `bootstrapPhase` field. The rename aligns with the `BootstrapPhase` type from `@crosstown/core` and the epics.md AC which specifies `"phase"`.
+- **Field renamed:** The existing health endpoint uses `bootstrapPhase` as the field name (conditionally included). The enriched response uses `phase` as the field name (always included). This is a minor breaking change for consumers that parse the `bootstrapPhase` field. The rename aligns with the `BootstrapPhase` type from `@toon-protocol/core` and the epics.md AC which specifies `"phase"`.
 - The conditional `bootstrapPhase === 'ready'` gating of peer/channel counts is removed. The enriched endpoint always returns these fields. Consumers that relied on the absence of these fields before bootstrap completes will now see them with value 0 during bootstrap, which is more informative than omission.
 
 ### Extracting Health Logic
@@ -327,10 +327,10 @@ import {
   createHealthResponse,
   type HealthConfig,
   type HealthResponse,
-} from '@crosstown/town';
+} from '@toon-protocol/town';
 
 // Existing infrastructure (unchanged)
-import { VERSION } from '@crosstown/core';
+import { VERSION } from '@toon-protocol/core';
 ```
 
 ### Critical Rules
@@ -369,7 +369,7 @@ No debug issues encountered. Clean implementation -- all tests passed on first r
 
 ### Completion Notes List
 
-- **Task 1**: Created `packages/town/src/health.ts` with `HealthConfig` interface, `HealthResponse` interface, and `createHealthResponse()` pure function. Imports `VERSION` from `@crosstown/core`. Handles x402 omission (entire field omitted when disabled, AC #2). Converts `basePricePerByte` from `bigint` to `number` via `Number()` for JSON serialization. Always returns `status: 'healthy'`, `sdk: true`, and current `timestamp`.
+- **Task 1**: Created `packages/town/src/health.ts` with `HealthConfig` interface, `HealthResponse` interface, and `createHealthResponse()` pure function. Imports `VERSION` from `@toon-protocol/core`. Handles x402 omission (entire field omitted when disabled, AC #2). Converts `basePricePerByte` from `bigint` to `number` via `Number()` for JSON serialization. Always returns `status: 'healthy'`, `sdk: true`, and current `timestamp`.
 - **Task 2**: Exported `createHealthResponse`, `type HealthConfig`, `type HealthResponse` from `packages/town/src/index.ts`.
 - **Task 3**: Replaced the inline `/health` handler in `packages/town/src/town.ts` (lines 686-701) with a call to `createHealthResponse()`. Added import from `./health.js`. The enriched endpoint always returns all fields regardless of bootstrap phase (phase field itself communicates readiness). Backward-incompatible change: field renamed from `bootstrapPhase` to `phase` (aligns with BootstrapPhase type and epics.md AC specification).
 - **Task 4**: Enabled all 3 skipped ATDD tests in `health.test.ts` and added 8 new unit tests (11 total). Fixed ATDD stub bugs: x402 disabled assertion now checks field omission (not `enabled: false`), BootstrapPhase regex corrected, factory rewritten to match `HealthConfig` interface with `Partial<HealthConfig>` overrides type, import updated from `createHealthHandler` to `createHealthResponse`. Enabled 2 skipped static analysis tests in `town.test.ts` (T-3.6-12, T-3.6-13).
@@ -412,7 +412,7 @@ No debug issues encountered. Clean implementation -- all tests passed on first r
 
 1. **[Medium] `HealthConfig.phase` used `string` instead of `BootstrapPhase` type.**
    - Location: `packages/town/src/health.ts`, `HealthConfig` interface, `phase` field.
-   - Fix: Imported `BootstrapPhase` from `@crosstown/core` and narrowed the `phase` field type from `string` to `BootstrapPhase`.
+   - Fix: Imported `BootstrapPhase` from `@toon-protocol/core` and narrowed the `phase` field type from `string` to `BootstrapPhase`.
 
 2. **[Low] `HealthResponse.pricing.currency` typed as `string` instead of literal `'USDC'`.**
    - Location: `packages/town/src/health.ts`, `HealthResponse` interface, `pricing.currency` field.
@@ -487,7 +487,7 @@ No follow-up tasks or action items were created. All code issues were resolved i
 | A03: Injection | **Pass** | `createHealthResponse()` is a pure function with typed inputs. No user-controlled input reaches the response -- all values come from internal state (bootstrap service, config resolution, identity derivation). No SQL, command, or template injection vectors. |
 | A04: Insecure Design | **Pass** | The design correctly separates liveness (`status: 'healthy'`) from readiness (`phase`). Response schema is enforced by TypeScript types. x402 omission semantics are consistent with kind:10035. |
 | A05: Security Misconfiguration | **Pass** | No CORS or authentication headers configured on `/health` -- appropriate for a public health endpoint. No debug information leaked. |
-| A06: Vulnerable Components | **N/A** | No new dependencies introduced. Only imports `VERSION` and `BootstrapPhase` from `@crosstown/core`. |
+| A06: Vulnerable Components | **N/A** | No new dependencies introduced. Only imports `VERSION` and `BootstrapPhase` from `@toon-protocol/core`. |
 | A07: Auth Failures | **Pass** | `/health` is intentionally public (no auth required). This is standard practice for health endpoints used by load balancers, monitoring systems, and peer discovery. |
 | A08: Data Integrity Failures | **Pass** | Response built from trusted internal state only. No deserialization of external data. |
 | A09: Logging/Monitoring Failures | **Pass** | Health endpoint does not perform logging itself (appropriate for a high-frequency endpoint). Errors in the handler pipeline are logged at the `/handle-packet` level. |
@@ -495,7 +495,7 @@ No follow-up tasks or action items were created. All code issues were resolved i
 
 #### Authentication/Authorization Analysis
 
-The `/health` endpoint is intentionally unauthenticated. This is correct per the design (Decision 13: "Crosstown node owns all public-facing endpoints"). The health endpoint serves the same purpose as kind:10035 service discovery events -- advertising node capabilities for programmatic peering decisions. The data exposed (pubkey, ILP address, peer counts, pricing, capabilities, chain, version) is all public operational data that would also be visible in kind:10035 events published to public Nostr relays.
+The `/health` endpoint is intentionally unauthenticated. This is correct per the design (Decision 13: "TOON node owns all public-facing endpoints"). The health endpoint serves the same purpose as kind:10035 service discovery events -- advertising node capabilities for programmatic peering decisions. The data exposed (pubkey, ILP address, peer counts, pricing, capabilities, chain, version) is all public operational data that would also be visible in kind:10035 events published to public Nostr relays.
 
 #### Injection Risk Analysis
 
@@ -515,14 +515,14 @@ No user-controlled input reaches this function. The Hono handler passes only int
 
 #### Verified (No Issues)
 
-- **Correct VERSION import:** `VERSION` imported from `@crosstown/core` (line 14), used at line 94.
-- **Correct BootstrapPhase import:** Type import from `@crosstown/core` (line 15), used in both `HealthConfig` and `HealthResponse`.
+- **Correct VERSION import:** `VERSION` imported from `@toon-protocol/core` (line 14), used at line 94.
+- **Correct BootstrapPhase import:** Type import from `@toon-protocol/core` (line 15), used in both `HealthConfig` and `HealthResponse`.
 - **x402 omission semantics:** Field entirely omitted when disabled (lines 99-104). Matches kind:10035 pattern (AC #2).
 - **basePricePerByte conversion:** `Number(config.basePricePerByte)` (line 89) with JSDoc precision warning (line 33).
 - **capabilities derivation:** Correctly ternary-based on `x402Enabled` (line 92).
 - **All HealthConfig fields used:** Every field in the config is consumed in the response.
 - **No unused imports.**
-- **ESM .js extensions:** Import uses `@crosstown/core` (package import) and `./health.js` (local import with .js extension).
+- **ESM .js extensions:** Import uses `@toon-protocol/core` (package import) and `./health.js` (local import with .js extension).
 - **Test coverage:** 21 unit tests cover all response fields, x402 enabled/disabled, schema strictness (exact key sets), edge cases (0n, MAX_SAFE_INTEGER, negative scenarios not needed since inputs are from trusted internal sources).
 - **Static analysis tests in town.test.ts:** T-3.6-12 and T-3.6-13 verify integration.
 - **index.ts exports:** All three public APIs exported (createHealthResponse, HealthConfig, HealthResponse).

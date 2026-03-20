@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Implemented `deriveFromKmsSeed()` in `@crosstown/core` — a function that derives Nostr-compatible secp256k1 keypairs from raw 32-byte Nautilus KMS seeds using the NIP-06 derivation path (`m/44'/1237'/0'/0/{accountIndex}`). The function supports optional BIP-39 mnemonic override, validates inputs strictly (never falls back to random keys), zeros intermediate key material, and returns defensive copies. This binds a TEE relay's identity cryptographically to its enclave code integrity.
+Implemented `deriveFromKmsSeed()` in `@toon-protocol/core` — a function that derives Nostr-compatible secp256k1 keypairs from raw 32-byte Nautilus KMS seeds using the NIP-06 derivation path (`m/44'/1237'/0'/0/{accountIndex}`). The function supports optional BIP-39 mnemonic override, validates inputs strictly (never falls back to random keys), zeros intermediate key material, and returns defensive copies. This binds a TEE relay's identity cryptographically to its enclave code integrity.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: 32-byte KMS seed produces valid Schnorr keypair — covered by: T-4.4-01, keypair format tests
@@ -16,7 +16,7 @@ Implemented `deriveFromKmsSeed()` in `@crosstown/core` — a function that deriv
 - [x] AC3: Deterministic derivation (same seed = same key) — covered by: T-4.4-03
 - [x] AC4: kind:10033 self-attestation signing — covered by: T-4.4-04
 - [x] AC5: Invalid seed throws KmsIdentityError — covered by: T-4.4-05a/b/c/d, invalid accountIndex tests, whitespace mnemonic test
-- [x] AC6: Exports from @crosstown/core — covered by: export verification tests, barrel export tests
+- [x] AC6: Exports from @toon-protocol/core — covered by: export verification tests, barrel export tests
 
 ## Files Changed
 ### packages/core/src/identity/
@@ -211,4 +211,4 @@ Implemented `deriveFromKmsSeed()` in `@crosstown/core` — a function that deriv
 ---
 
 ## TL;DR
-Implemented `deriveFromKmsSeed()` in `@crosstown/core` for TEE enclave identity derivation from Nautilus KMS seeds via NIP-06 path. Pipeline completed cleanly across all 22 steps with 31 tests covering 100% of acceptance criteria. Code reviews found and fixed 6 issues across 3 passes (2 medium: empty mnemonic fallback + HDKey material cleanup; 4 low). Security scan clean. No regressions — test count increased from 1856 to 1879.
+Implemented `deriveFromKmsSeed()` in `@toon-protocol/core` for TEE enclave identity derivation from Nautilus KMS seeds via NIP-06 path. Pipeline completed cleanly across all 22 steps with 31 tests covering 100% of acceptance criteria. Code reviews found and fixed 6 issues across 3 passes (2 medium: empty mnemonic fallback + HDKey material cleanup; 4 low). Security scan clean. No regressions — test count increased from 1856 to 1879.

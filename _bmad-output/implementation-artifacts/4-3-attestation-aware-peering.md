@@ -4,13 +4,13 @@ Status: done
 
 ## Story
 
-As a **Crosstown relay operator bootstrapping into the network**,
+As a **TOON relay operator bootstrapping into the network**,
 I want the BootstrapService to parse, verify, and rank peers based on kind:10033 TEE attestation events, tracking attestation state transitions over time,
 So that my node preferentially connects to peers running verified, unmodified code in TEE enclaves, improving network trust without breaking backward compatibility with non-TEE peers.
 
 **FRs covered:** FR-TEE-3 (BootstrapService verifies kind:10033, prefers attested peers, PCR measurement verification against known-good values)
 
-**Dependencies:** Story 4.2 complete (confirmed -- commit `864bb49`). The `buildAttestationEvent()`, `parseAttestation()`, `TeeAttestation` type, `ParsedAttestation` type, and `TEE_ATTESTATION_KIND` constant are available from `@crosstown/core`. The attestation server publishes kind:10033 events to the relay. This story consumes those events on the verifier/consumer side.
+**Dependencies:** Story 4.2 complete (confirmed -- commit `864bb49`). The `buildAttestationEvent()`, `parseAttestation()`, `TeeAttestation` type, `ParsedAttestation` type, and `TEE_ATTESTATION_KIND` constant are available from `@toon-protocol/core`. The attestation server publishes kind:10033 events to the relay. This story consumes those events on the verifier/consumer side.
 
 **Critical dependency detail:** `parseAttestation(event)` returns `ParsedAttestation | null`, NOT `TeeAttestation` directly. The `ParsedAttestation` type wraps attestation content at `.attestation` (a `TeeAttestation`) plus tag-extracted fields `.relay`, `.chain`, `.expiry`. The verifier's `verify()` method accepts `TeeAttestation`, so callers must unwrap: `parseAttestation(event)?.attestation`.
 
@@ -35,7 +35,7 @@ So that my node preferentially connects to peers running verified, unmodified co
 
 4. Given the `AttestationVerifier` is the single source of truth for attestation state, when both the kind:10033 Nostr event path and the `/health` HTTP endpoint query the verifier for the same attestation at the same time, then they receive identical `AttestationState` values (dual-channel consistency -- R-E4-008).
 
-5. Given `AttestationVerifier`, `AttestationState`, `VerificationResult`, `PeerDescriptor`, and `AttestationVerifierConfig` types, when imported from `@crosstown/core`, then they are exported from `packages/core/src/bootstrap/AttestationVerifier.ts` and re-exported via `packages/core/src/bootstrap/index.ts` and the top-level `packages/core/src/index.ts`.
+5. Given `AttestationVerifier`, `AttestationState`, `VerificationResult`, `PeerDescriptor`, and `AttestationVerifierConfig` types, when imported from `@toon-protocol/core`, then they are exported from `packages/core/src/bootstrap/AttestationVerifier.ts` and re-exported via `packages/core/src/bootstrap/index.ts` and the top-level `packages/core/src/index.ts`.
 
 ## Tasks / Subtasks
 
@@ -201,7 +201,7 @@ When attestation degrades from VALID to STALE to UNATTESTED, existing payment ch
 ### Anti-Patterns to Avoid
 
 - **DO NOT add WebSocket or relay query logic** to `AttestationVerifier` -- it is pure business logic
-- **DO NOT re-implement `parseAttestation()`** -- import from `@crosstown/core/events/attestation.js`
+- **DO NOT re-implement `parseAttestation()`** -- import from `@toon-protocol/core/events/attestation.js`
 - **DO NOT close payment channels** based on attestation state changes -- trust degrades, money doesn't
 - **DO NOT use `Array.prototype.sort()`** for peer ranking -- use `filter()` for guaranteed stability
 - **DO NOT make attestation a hard requirement** -- non-attested peers must remain connectable

@@ -8,14 +8,14 @@
 - **Migrations**: None
 
 ## What Was Built
-Implemented TEE attestation event support (kind:10033) for the Crosstown protocol. This includes the `TeeAttestation` type definition, `buildAttestationEvent()` builder and `parseAttestation()` parser in `@crosstown/core`, an attestation server lifecycle module that publishes and refreshes attestation events via WebSocket, and `/health` endpoint enrichment with TEE attestation state.
+Implemented TEE attestation event support (kind:10033) for the TOON protocol. This includes the `TeeAttestation` type definition, `buildAttestationEvent()` builder and `parseAttestation()` parser in `@toon-protocol/core`, an attestation server lifecycle module that publishes and refreshes attestation events via WebSocket, and `/health` endpoint enrichment with TEE attestation state.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: `buildAttestationEvent()` produces a valid kind:10033 Nostr event with correct content fields, tags, and signature — covered by: `packages/core/src/events/attestation.test.ts` (T-4.2-01, T-4.2-02, T-4.2-03, T-4.2-14, T-4.2-17, T-4.2-26, T-4.2-33)
 - [x] AC2: `parseAttestation()` validates and extracts content/tags; rejects malformed events — covered by: `packages/core/src/events/attestation.test.ts` (T-4.2-07, T-4.2-09 through T-4.2-13, T-4.2-16, T-4.2-18 through T-4.2-34)
 - [x] AC3: Attestation server publishes kind:10033 on startup and refreshes on interval — covered by: `packages/core/src/events/attestation.test.ts` (T-4.2-04, T-4.2-05)
 - [x] AC4: `/health` endpoint includes `tee` field when TEE is enabled — covered by: `packages/town/src/health.test.ts` (9 TEE-specific tests)
-- [x] AC5: `TEE_ATTESTATION_KIND`, `TeeAttestation`, builder/parser exported from `@crosstown/core` — covered by: `packages/core/src/events/attestation.test.ts` (T-4.2-08, T-4.2-15, T-4.2-29)
+- [x] AC5: `TEE_ATTESTATION_KIND`, `TeeAttestation`, builder/parser exported from `@toon-protocol/core` — covered by: `packages/core/src/events/attestation.test.ts` (T-4.2-08, T-4.2-15, T-4.2-29)
 
 ## Files Changed
 ### packages/core/src/
@@ -188,7 +188,7 @@ Implemented TEE attestation event support (kind:10033) for the Crosstown protoco
 - **Traceability**: pass — 100% AC coverage, gate decision PASS
 
 ## Known Risks & Gaps
-- Task 8 (follow-up): `docker/src/entrypoint-town.ts` health endpoint should migrate to use `createHealthResponse()` from `@crosstown/town` — tracked as TODO in code
+- Task 8 (follow-up): `docker/src/entrypoint-town.ts` health endpoint should migrate to use `createHealthResponse()` from `@toon-protocol/town` — tracked as TODO in code
 - Attestation server WebSocket publish path validated by code review but not by automated integration tests — recommended as Story 4.3 follow-up
 - `expiry: 0` accepted by parser (design choice, not a bug)
 

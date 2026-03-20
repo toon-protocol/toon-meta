@@ -163,7 +163,7 @@ This matches the NIP-01 verification spec. The `@noble/curves` `schnorr.verify()
 
 ### Dependencies
 
-- **Upstream**: Story 1.0 (TOON codec in `@crosstown/core` provides `ToonRoutingMeta` type and `shallowParseToon` function). Already implemented and available.
+- **Upstream**: Story 1.0 (TOON codec in `@toon-protocol/core` provides `ToonRoutingMeta` type and `shallowParseToon` function). Already implemented and available.
 - **Downstream**: Story 1.7 (createNode) wires verification into the full pipeline. Story 1.10 (Dev Mode) extends the devMode bypass with debug logging (completing AC #4's logging requirement).
 
 ### AC #4 Deferral Rationale
@@ -227,11 +227,11 @@ All 6 test-design IDs (T-1.4-01 through T-1.4-06) are covered by 6 tests (4 exis
 
 - PascalCase for interface names: `VerificationResult`, `VerificationPipelineConfig`
 - camelCase for function names: `createVerificationPipeline`
-- No `any` -- uses typed `ToonRoutingMeta` from `@crosstown/core/toon`
+- No `any` -- uses typed `ToonRoutingMeta` from `@toon-protocol/core/toon`
 - Co-located tests: `verification-pipeline.test.ts` next to `verification-pipeline.ts`
 - AAA pattern in all tests (the existing ATDD tests already follow this)
 - ESM `.js` extensions in imports (already correct in existing files)
-- Real crypto in tests: uses `nostr-tools/pure` for `generateSecretKey`, `getPublicKey`, `finalizeEvent` and `@crosstown/core/toon` for `encodeEventToToon`, `shallowParseToon`
+- Real crypto in tests: uses `nostr-tools/pure` for `generateSecretKey`, `getPublicKey`, `finalizeEvent` and `@toon-protocol/core/toon` for `encodeEventToToon`, `shallowParseToon`
 
 ### Critical Rules
 
@@ -261,7 +261,7 @@ The verification pipeline uses `@noble/curves` and `@noble/hashes` which are alr
 
 These are the same underlying libraries used by `nostr-tools` for Schnorr signing/verification, ensuring cryptographic compatibility.
 
-The test file uses `nostr-tools/pure` for generating test events (which internally uses `@noble/curves`), and `@crosstown/core/toon` for TOON encoding/shallow parsing.
+The test file uses `nostr-tools/pure` for generating test events (which internally uses `@noble/curves`), and `@toon-protocol/core/toon` for TOON encoding/shallow parsing.
 
 ### References
 

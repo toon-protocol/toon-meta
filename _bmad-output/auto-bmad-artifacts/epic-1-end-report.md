@@ -9,12 +9,12 @@
 - **Final test count**: 1,401
 
 ## What Was Built
-Epic 1 delivered the `@crosstown/sdk` package — a TOON-native, ILP-gated service node framework with unified secp256k1 identity (Nostr + EVM). Developers build ILP-gated services by registering kind-based handlers that receive raw TOON for direct LLM consumption, with optional structured decode for code-based handlers. The SDK composes an embedded ILP connector with a handler registry, verification pipeline, pricing validator, and bootstrap service into a single lifecycle-managed `ServiceNode`.
+Epic 1 delivered the `@toon-protocol/sdk` package — a TOON-native, ILP-gated service node framework with unified secp256k1 identity (Nostr + EVM). Developers build ILP-gated services by registering kind-based handlers that receive raw TOON for direct LLM consumption, with optional structured decode for code-based handlers. The SDK composes an embedded ILP connector with a handler registry, verification pipeline, pricing validator, and bootstrap service into a single lifecycle-managed `ServiceNode`.
 
 ## Stories Delivered
 | Story | Title | Status |
 |-------|-------|--------|
-| 1-0 | Extract TOON Codec to @crosstown/core | done |
+| 1-0 | Extract TOON Codec to @toon-protocol/core | done |
 | 1-1 | Unified Identity from Seed Phrase | done |
 | 1-2 | Handler Registry with Kind-Based Routing | done |
 | 1-3 | HandlerContext with TOON Passthrough and Lazy Decode | done |
@@ -177,4 +177,4 @@ Key takeaways from the retrospective:
 ---
 
 ## TL;DR
-Epic 1 delivered the `@crosstown/sdk` package with 12/12 stories complete, 1,401 tests passing (100%), 75/75 acceptance criteria covered, and zero critical/high code review issues. The traceability gate passed with 100% coverage across all priority levels. Three action items must be addressed before starting Epic 2 (type alignment, CI setup, testing docs). Recommended next step: `auto-bmad:epic-start 2`.
+Epic 1 delivered the `@toon-protocol/sdk` package with 12/12 stories complete, 1,401 tests passing (100%), 75/75 acceptance criteria covered, and zero critical/high code review issues. The traceability gate passed with 100% coverage across all priority levels. Three action items must be addressed before starting Epic 2 (type alignment, CI setup, testing docs). Recommended next step: `auto-bmad:epic-start 2`.

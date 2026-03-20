@@ -4,15 +4,15 @@ inputDocuments: []
 workflowType: 'research'
 lastStep: 1
 research_type: 'domain'
-research_topic: 'AI Agent Protocols & Nostr Community Visibility for Crosstown Protocol'
-research_goals: 'Identify best platforms, communities, and content strategies to gain visibility for Crosstown Protocol among AI agent developers and Nostr community members'
+research_topic: 'AI Agent Protocols & Nostr Community Visibility for TOON Protocol'
+research_goals: 'Identify best platforms, communities, and content strategies to gain visibility for TOON Protocol among AI agent developers and Nostr community members'
 user_name: 'Jonathan'
 date: '2026-03-12'
 web_research_enabled: true
 source_verification: true
 ---
 
-# Crosstown Protocol Visibility Strategy: AI Agent & Nostr Community Domain Research
+# TOON Protocol Visibility Strategy: AI Agent & Nostr Community Domain Research
 
 **Date:** 2026-03-12
 **Author:** Jonathan
@@ -22,9 +22,9 @@ source_verification: true
 
 ## Research Overview
 
-This research investigates where and how the Crosstown Protocol — an ILP-gated Nostr relay enabling pay-to-write, free-to-read micropayments — should establish visibility across two target audiences: **AI agent/protocol developers** and the **Nostr community**. The research covers the $7.6B AI agent market (growing 40-46% CAGR), the Nostr ecosystem (315K+ profiles, 11M+ events), agent payment infrastructure (x402, ILP), and the regulatory/standards landscape (EU AI Act, W3C, NIST).
+This research investigates where and how the TOON Protocol — an ILP-gated Nostr relay enabling pay-to-write, free-to-read micropayments — should establish visibility across two target audiences: **AI agent/protocol developers** and the **Nostr community**. The research covers the $7.6B AI agent market (growing 40-46% CAGR), the Nostr ecosystem (315K+ profiles, 11M+ events), agent payment infrastructure (x402, ILP), and the regulatory/standards landscape (EU AI Act, W3C, NIST).
 
-Key finding: Crosstown occupies a unique, uncontested niche at the intersection of decentralized data persistence (Nostr relay) and protocol-native micropayments (ILP). No existing project combines these three elements with agent-friendly design. The highest-impact visibility strategy is to publish directly on Nostr (Habla.news, YakiHonne), developer platforms (Dev.to, HackerNoon), and the Interledger Community — leading with the relay sustainability problem and the "missing layer in the agent protocol stack" narrative.
+Key finding: TOON occupies a unique, uncontested niche at the intersection of decentralized data persistence (Nostr relay) and protocol-native micropayments (ILP). No existing project combines these three elements with agent-friendly design. The highest-impact visibility strategy is to publish directly on Nostr (Habla.news, YakiHonne), developer platforms (Dev.to, HackerNoon), and the Interledger Community — leading with the relay sustainability problem and the "missing layer in the agent protocol stack" narrative.
 
 For the full executive summary and actionable content strategy, see the [Research Synthesis](#research-synthesis) section.
 
@@ -32,8 +32,8 @@ For the full executive summary and actionable content strategy, see the [Researc
 
 ## Domain Research Scope Confirmation
 
-**Research Topic:** AI Agent Protocols & Nostr Community Visibility for Crosstown Protocol
-**Research Goals:** Identify best platforms, communities, and content strategies to gain visibility for Crosstown Protocol among AI agent developers and Nostr community members
+**Research Topic:** AI Agent Protocols & Nostr Community Visibility for TOON Protocol
+**Research Goals:** Identify best platforms, communities, and content strategies to gain visibility for TOON Protocol among AI agent developers and Nostr community members
 
 **Domain Research Scope:**
 
@@ -56,7 +56,7 @@ For the full executive summary and actionable content strategy, see the [Researc
 
 ### Market Size and Valuation
 
-The AI agents market represents a rapidly expanding sector with significant investment and growth potential across Crosstown's two target domains.
+The AI agents market represents a rapidly expanding sector with significant investment and growth potential across TOON's two target domains.
 
 **AI Agent Market:**
 The global AI agents market was estimated at **USD 7.63–7.84 billion in 2025** and is projected to reach **USD 10.91 billion in 2026**, growing to **USD 42.7–52.6 billion by 2030** at a CAGR of 40–46%. North America dominates with ~40% market share. The agentic AI market specifically is projected to reach USD 139 billion by 2034.
@@ -67,7 +67,7 @@ _Market Segments: Enterprise automation, customer experience, agent-to-agent com
 _Source: [Grand View Research](https://www.grandviewresearch.com/industry-analysis/ai-agents-market-report), [MarketsAndMarkets](https://www.marketsandmarkets.com/Market-Reports/ai-agents-market-15761548.html), [Fortune Business Insights](https://www.fortunebusinessinsights.com/agentic-ai-market-114233)_
 
 **Nostr Protocol Ecosystem:**
-Nostr has grown from ~800 users (Dec 2022) to over 315,000 profiles with bios/contact lists (Jun 2023) — a 39,275% surge. As of late 2025, the network sees 228,000+ daily trusted pubkey events across 178+ relays hosting >5% of content each. Over 11 million events have been published. Jack Dorsey donated $10 million to Nostr development in 2025, signaling serious institutional backing. However, 95% of relays cannot cover operational costs — a problem Crosstown's pay-to-write model directly addresses.
+Nostr has grown from ~800 users (Dec 2022) to over 315,000 profiles with bios/contact lists (Jun 2023) — a 39,275% surge. As of late 2025, the network sees 228,000+ daily trusted pubkey events across 178+ relays hosting >5% of content each. Over 11 million events have been published. Jack Dorsey donated $10 million to Nostr development in 2025, signaling serious institutional backing. However, 95% of relays cannot cover operational costs — a problem TOON's pay-to-write model directly addresses.
 
 _Source: [Glukhov - Nostr Statistics](https://www.glukhov.org/post/2025/10/nostr-overview-and-statistics/), [Social Capital Markets](https://socialcapitalmarkets.net/crypto-trading/nostr-statistics/)_
 
@@ -107,8 +107,8 @@ Three dominant protocols have emerged, each occupying a distinct niche:
 - Geographic distribution: global, with concentration in US, Europe, and Japan
 - Financial layer: Lightning Network deeply integrated (82.5% growth in LN-addressed profiles)
 
-**Crosstown's Unique Position:**
-Crosstown sits at the intersection of these markets — an ILP-gated Nostr relay enabling pay-to-write micropayments. No direct competitor occupies this exact niche (Nostr + ILP + agent-friendly).
+**TOON's Unique Position:**
+TOON sits at the intersection of these markets — an ILP-gated Nostr relay enabling pay-to-write micropayments. No direct competitor occupies this exact niche (Nostr + ILP + agent-friendly).
 
 _Source: [The Register - Protocol Overview](https://www.theregister.com/2026/01/30/agnetic_ai_protocols_mcp_utcp_a2a_etc/), [Zylos Research](https://zylos.ai/research/2026-02-15-agent-to-agent-communication-protocols), [GetStream](https://getstream.io/blog/ai-agent-protocols/)_
 
@@ -139,11 +139,11 @@ _Market Concentration:_
 - **Nostr relays:** Highly fragmented — hundreds of relays, but most unprofitable. No dominant paid-relay model has emerged
 - **Agent payment rails:** x402 (Coinbase/Stripe) is the early leader, but ILP (Interledger Foundation) offers an alternative with deeper protocol-level design
 
-_Competitive Intensity: High in agent protocols, low in Nostr relay monetization (blue ocean for Crosstown)_
+_Competitive Intensity: High in agent protocols, low in Nostr relay monetization (blue ocean for TOON)_
 
 _Barriers to Entry:_
 - Agent protocol space: network effects favor MCP/A2A incumbents
-- Nostr relay space: low technical barriers, but sustainability is the moat — pay-to-write models like Crosstown could differentiate
+- Nostr relay space: low technical barriers, but sustainability is the moat — pay-to-write models like TOON could differentiate
 - Agent payments: x402 has first-mover advantage but ILP has deeper technical foundations
 
 _Innovation Pressure: Very high — the entire agent protocol stack is being defined right now (2025-2027). Early movers who establish standards win disproportionately._
@@ -185,7 +185,7 @@ _Source: [GetStream - AI Agent Protocols](https://getstream.io/blog/ai-agent-pro
 | **expensive-relay** (fiatjaf) | Pay-per-key (Lightning) | One-time registration | Reference implementation by Nostr creator. Single Lightning payment to whitelist pubkey. |
 | **Nosflare** | Free/Cloudflare Workers | Free | Next-gen relay running on Cloudflare edge. Performance-focused. |
 
-_No existing paid relay uses ILP for payment._ All current paid relays use Lightning Network or Monero. Crosstown's ILP-based pay-per-write model is entirely novel in the Nostr ecosystem.
+_No existing paid relay uses ILP for payment._ All current paid relays use Lightning Network or Monero. TOON's ILP-based pay-per-write model is entirely novel in the Nostr ecosystem.
 
 _Source: [nostr.wine](https://nostr.wine/), [The Bitcoin Manual - Paid Relays](https://thebitcoinmanual.com/articles/paid-nostr-relay/), [André Neves - Rise of Paid Relays](https://andreneves.xyz/p/the-rise-of-paid-nostr-relays), [Stacker News](https://stacker.news/items/145707)_
 
@@ -196,35 +196,35 @@ _Market Share Distribution:_
 - **Nostr relays:** Highly fragmented — hundreds of relays, no single dominant player. nostr.wine is the largest paid relay. Most relays are free and unprofitable.
 - **Agent payments:** x402 has first-mover advantage in the HTTP micropayment layer. ILP has deeper protocol-level foundations but smaller ecosystem.
 
-_Competitive Positioning — Crosstown's Unique Intersection:_
+_Competitive Positioning — TOON's Unique Intersection:_
 
 ```
                     Agent Protocols (MCP/A2A)
                            |
-                    [Crosstown fills this gap]
+                    [TOON fills this gap]
                            |
     Nostr Relays -------- ILP Payments -------- Agent Payments (x402)
 ```
 
-No existing project combines Nostr relay infrastructure + ILP micropayments + agent-friendly design. Crosstown occupies a unique position at the intersection of three growing markets.
+No existing project combines Nostr relay infrastructure + ILP micropayments + agent-friendly design. TOON occupies a unique position at the intersection of three growing markets.
 
 _Source: [Kore.ai - Agentic Platforms](https://www.kore.ai/blog/7-best-agentic-ai-platforms), [IBM - AI Agent Protocols](https://www.ibm.com/think/topics/ai-agent-protocols)_
 
 ### Competitive Strategies and Differentiation
 
-_How Crosstown Differentiates:_
+_How TOON Differentiates:_
 
-1. **Pay-per-write via ILP** — Unlike subscription-based paid relays (nostr.wine) or one-time Lightning payments (expensive-relay), Crosstown uses per-event ILP micropayments. This is more agent-friendly (no subscriptions, no accounts needed) and economically sustainable.
+1. **Pay-per-write via ILP** — Unlike subscription-based paid relays (nostr.wine) or one-time Lightning payments (expensive-relay), TOON uses per-event ILP micropayments. This is more agent-friendly (no subscriptions, no accounts needed) and economically sustainable.
 
-2. **Protocol-native agent support** — While x402 bolts payments onto HTTP and existing agent protocols ignore payment entirely, Crosstown integrates payment at the relay layer. Agents can write to the relay by simply paying per event.
+2. **Protocol-native agent support** — While x402 bolts payments onto HTTP and existing agent protocols ignore payment entirely, TOON integrates payment at the relay layer. Agents can write to the relay by simply paying per event.
 
-3. **Free to read** — Unlike some paid relays that restrict read access, Crosstown's read-free model maximizes content distribution while monetizing writes.
+3. **Free to read** — Unlike some paid relays that restrict read access, TOON's read-free model maximizes content distribution while monetizing writes.
 
-4. **TOON-native format** — Crosstown's relay returns events in TOON format, differentiating from standard JSON Nostr events and enabling richer data semantics.
+4. **TOON-native format** — TOON's relay returns events in TOON format, differentiating from standard JSON Nostr events and enabling richer data semantics.
 
 _Differentiation Strategies Across Competitors:_
 - **x402:** HTTP-native, stablecoin-based. Easy for web developers. But requires blockchain settlement.
-- **ILP/Crosstown:** Protocol-agnostic micropayments. Designed for streaming/per-packet payments. No blockchain requirement.
+- **ILP/TOON:** Protocol-agnostic micropayments. Designed for streaming/per-packet payments. No blockchain requirement.
 - **Lightning-based paid relays:** Bitcoin-native. Simple but limited to one payment rail.
 
 _Source: [x402.org](https://www.x402.org/), [DWF Labs - x402 Analysis](https://www.dwf-labs.com/research/inside-x402-how-a-forgotten-http-code-becomes-the-future-of-autonomous-payments)_
@@ -233,41 +233,41 @@ _Source: [x402.org](https://www.x402.org/), [DWF Labs - x402 Analysis](https://w
 
 _Primary Business Models in the Ecosystem:_
 
-| Model | Examples | Revenue | Crosstown Relevance |
+| Model | Examples | Revenue | TOON Relevance |
 |-------|----------|---------|---------------------|
-| Subscription relay | nostr.wine, filter.nostr.wine | Recurring monthly fees | Crosstown uses per-event instead — more granular, more agent-friendly |
-| One-time whitelist | expensive-relay, nerostr | One-time registration fee | Crosstown charges per write — ongoing revenue, no upfront friction |
-| Protocol licensing/support | Interledger Foundation | Grants, sponsorship, consulting | Crosstown could contribute to ILP ecosystem while building own relay network |
-| Platform fees | x402/Stripe | Transaction percentage | Crosstown could capture value on write volume |
-| Open source + services | MCP, A2A | Enterprise support, hosting | Crosstown is open-source; services/hosting could be future revenue |
+| Subscription relay | nostr.wine, filter.nostr.wine | Recurring monthly fees | TOON uses per-event instead — more granular, more agent-friendly |
+| One-time whitelist | expensive-relay, nerostr | One-time registration fee | TOON charges per write — ongoing revenue, no upfront friction |
+| Protocol licensing/support | Interledger Foundation | Grants, sponsorship, consulting | TOON could contribute to ILP ecosystem while building own relay network |
+| Platform fees | x402/Stripe | Transaction percentage | TOON could capture value on write volume |
+| Open source + services | MCP, A2A | Enterprise support, hosting | TOON is open-source; services/hosting could be future revenue |
 
-_Crosstown's Value Proposition:_ "A Nostr relay where AI agents and humans pay per event to write, and everyone reads for free — powered by Interledger micropayments."
+_TOON's Value Proposition:_ "A Nostr relay where AI agents and humans pay per event to write, and everyone reads for free — powered by Interledger micropayments."
 
 ### Competitive Dynamics and Entry Barriers
 
-_Barriers to Entry for Crosstown:_
-- **Low technical barriers:** Running a Nostr relay is straightforward. ILP adds complexity but Crosstown has already solved this.
+_Barriers to Entry for TOON:_
+- **Low technical barriers:** Running a Nostr relay is straightforward. ILP adds complexity but TOON has already solved this.
 - **Network effects are the real barrier:** Nostr value comes from network effects (users + content). Paid relays need content worth paying for.
-- **Trust and reputation:** New relays must build trust. Crosstown's open-source nature helps.
+- **Trust and reputation:** New relays must build trust. TOON's open-source nature helps.
 
 _Competitive Intensity:_
 - **Nostr relay space:** Low — most relays are free, few paid competitors, and no ILP-based competitors exist
-- **Agent protocol space:** Very high — MCP/A2A/x402 all competing for standardization. But Crosstown doesn't compete with these directly; it complements them.
+- **Agent protocol space:** Very high — MCP/A2A/x402 all competing for standardization. But TOON doesn't compete with these directly; it complements them.
 
 _Switching Costs:_
-- Nostr users can add/remove relays trivially (just add a WebSocket URL). Low switching costs mean Crosstown must compete on value, not lock-in.
+- Nostr users can add/remove relays trivially (just add a WebSocket URL). Low switching costs mean TOON must compete on value, not lock-in.
 
 _Source: [Bitcoin Magazine - Nostr Scaling](https://bitcoinmagazine.com/culture/can-nostr-grow-to-twitter-size), [Nasdaq - Nostr Relay Incentives](https://www.nasdaq.com/articles/nostr-will-only-scale-if-it-can-incentivize-users-to-run-relays)_
 
 ### Ecosystem and Partnership Analysis
 
-_Key Ecosystem Relationships for Crosstown:_
+_Key Ecosystem Relationships for TOON:_
 
 **Natural Allies:**
-- **Interledger Foundation** — Crosstown demonstrates a novel ILP use case. Could be featured in community calls, Web Monetization showcases.
-- **Nostr developer community** — Crosstown solves the relay sustainability problem. Potential to become a reference implementation for paid relay NIPs.
-- **AI agent framework builders** (LangGraph, CrewAI, AG2) — Crosstown provides a decentralized data layer agents can write to via micropayments.
-- **W3C AI Agent Protocol Community Group** — Crosstown sits at the intersection of their mandate (agent interoperability).
+- **Interledger Foundation** — TOON demonstrates a novel ILP use case. Could be featured in community calls, Web Monetization showcases.
+- **Nostr developer community** — TOON solves the relay sustainability problem. Potential to become a reference implementation for paid relay NIPs.
+- **AI agent framework builders** (LangGraph, CrewAI, AG2) — TOON provides a decentralized data layer agents can write to via micropayments.
+- **W3C AI Agent Protocol Community Group** — TOON sits at the intersection of their mandate (agent interoperability).
 
 **Potential Partners:**
 - **Coinbase/x402** — Cross-pollination between ILP and x402 payment rails
@@ -280,26 +280,26 @@ _Source: [Interledger Foundation](https://interledger.org/), [W3C AI Agent Proto
 
 ### Applicable Regulations
 
-Crosstown operates at the intersection of three regulatory domains: AI agents, micropayments/stablecoins, and decentralized protocols. Here's the landscape:
+TOON operates at the intersection of three regulatory domains: AI agents, micropayments/stablecoins, and decentralized protocols. Here's the landscape:
 
 **EU AI Act (Effective August 2, 2026):**
-The world's most comprehensive AI regulatory framework becomes fully applicable in August 2026. While the Act was not originally designed with AI agents in mind, it does apply to agentic systems. Key implications for Crosstown:
-- Agents writing to Crosstown relays may fall under "high-risk AI systems" depending on their use case (healthcare, finance, etc.)
+The world's most comprehensive AI regulatory framework becomes fully applicable in August 2026. While the Act was not originally designed with AI agents in mind, it does apply to agentic systems. Key implications for TOON:
+- Agents writing to TOON relays may fall under "high-risk AI systems" depending on their use case (healthcare, finance, etc.)
 - The Act requires human oversight mechanisms — autonomous high-risk systems that cannot be overridden are explicitly forbidden
 - Penalties for non-compliance: up to 35 million EUR or 7% of global annual turnover
-- **Crosstown implication:** As infrastructure (a relay), Crosstown itself is likely not classified as a high-risk AI system. But articles positioning Crosstown as agent infrastructure should be aware of the Act's requirements for agent developers.
+- **TOON implication:** As infrastructure (a relay), TOON itself is likely not classified as a high-risk AI system. But articles positioning TOON as agent infrastructure should be aware of the Act's requirements for agent developers.
 
 _Source: [LegalNodes - EU AI Act 2026](https://www.legalnodes.com/article/eu-ai-act-2026-updates-compliance-requirements-and-business-risks), [SecurePrivacy - EU AI Act Compliance](https://secureprivacy.ai/blog/eu-ai-act-2026-compliance), [The Future Society - AI Agents in EU](https://thefuturesociety.org/aiagentsintheeu/)_
 
 **U.S. GENIUS Act (July 2025) & Stablecoin Regulation:**
 The GENIUS Act brought payment stablecoins under the Bank Secrecy Act (BSA), mandating AML/sanctions compliance, customer due diligence, transaction monitoring, and suspicious activity reporting. 85 of 117 jurisdictions have now passed or are passing Travel Rule legislation for virtual assets.
-- **Crosstown implication:** Crosstown uses ILP (protocol-level micropayments), not stablecoins directly. However, if ILP connectors route through stablecoin settlement rails, they may trigger compliance obligations. Crosstown's ILP approach may be advantageous here — ILP is protocol-agnostic and doesn't inherently require blockchain settlement.
+- **TOON implication:** TOON uses ILP (protocol-level micropayments), not stablecoins directly. However, if ILP connectors route through stablecoin settlement rails, they may trigger compliance obligations. TOON's ILP approach may be advantageous here — ILP is protocol-agnostic and doesn't inherently require blockchain settlement.
 
 _Source: [FinTech Weekly - Stablecoin 2026](https://www.fintechweekly.com/magazine/articles/stablecoin-predictions-2026-payments-infrastructure-regulation), [Cleary Gottlieb - Digital Assets 2026](https://www.clearygottlieb.com/news-and-insights/publication-listing/2026-digital-assets-regulatory-update-a-landmark-2025-but-more-developments-on-the-horizon), [Grant Thornton - Crypto Compliance 2026](https://www.grantthornton.com/insights/articles/banking/2026/crypto-compliance-in-2026)_
 
 **EU MiCA (Markets in Crypto-Assets Regulation):**
 MiCA provides a comprehensive framework for crypto-assets in the EU, with full enforcement underway. Stablecoin issuers need authorization, and VASPs face governance, reserve, and disclosure requirements.
-- **Crosstown implication:** ILP micropayments may or may not fall under MiCA depending on the settlement layer used. Protocol-level routing of value packets is a novel category that regulators haven't specifically addressed.
+- **TOON implication:** ILP micropayments may or may not fall under MiCA depending on the settlement layer used. Protocol-level routing of value packets is a novel category that regulators haven't specifically addressed.
 
 _Source: [InnReg - MiCA Guide 2026](https://www.innreg.com/blog/mica-regulation-guide), [Sumsub - Crypto Regulation 2026](https://sumsub.com/blog/global-crypto-regulations/)_
 
@@ -312,7 +312,7 @@ The W3C is developing open, interoperable standards for AI agent communication, 
 - Standardized metadata formats (Web-native descriptions of agent capabilities)
 - Security and privacy mechanisms (cross-origin security, verifiable credentials, E2E encryption)
 
-Specifications expected 2026-2027. Crosstown's architecture aligns well with these emerging standards.
+Specifications expected 2026-2027. TOON's architecture aligns well with these emerging standards.
 
 _Source: [W3C AI Agent Protocol CG](https://www.w3.org/community/agentprotocol/), [W3C Agent Protocol Use Cases](https://w3c-cg.github.io/ai-agent-protocol/use_case.html)_
 
@@ -322,7 +322,7 @@ NIST announced the first U.S. federal initiative specifically for AI agent inter
 _Source: [NIST Announcement](https://www.nist.gov/news-events/news/2026/02/announcing-ai-agent-standards-initiative-interoperable-and-secure)_
 
 **Nostr NIPs (Nostr Implementation Possibilities):**
-The Nostr protocol is governed by community-driven NIPs. Key standards for Crosstown:
+The Nostr protocol is governed by community-driven NIPs. Key standards for TOON:
 - NIP-42: Authentication of clients to relays (enables paid access)
 - NIP-11: Relay Information Document (self-description for discovery)
 - NIP-50: Search capability
@@ -332,7 +332,7 @@ _Source: [NIPs Repository](https://nips.nostr.com/), [NIP-42](https://nips.nostr
 
 ### Compliance Frameworks
 
-| Domain | Framework | Status | Crosstown Impact |
+| Domain | Framework | Status | TOON Impact |
 |--------|-----------|--------|-----------------|
 | AI Agents | EU AI Act | Full enforcement Aug 2026 | Low direct impact (infrastructure, not AI system). Content angle for articles. |
 | Payments | GENIUS Act (US) | Active | ILP may avoid stablecoin-specific rules depending on settlement layer |
@@ -353,7 +353,7 @@ Nostr users authenticate with public keys only — no personal data collected at
 **GDPR Considerations for Relay Operators:**
 - Relay operators who store event data may be considered data processors under GDPR
 - The right to erasure ("right to be forgotten") conflicts with append-only event storage
-- Crosstown's pay-to-write model could actually help: per-event payments create an audit trail
+- TOON's pay-to-write model could actually help: per-event payments create an audit trail
 
 _Source: [Gate.io - Nostr Explained](https://dex.gate.com/crypto-wiki/article/what-is-nostr-the-censorship-resistant-social-media-protocol-explained-20260113), [SecurePrivacy - GDPR 2026](https://secureprivacy.ai/blog/gdpr-compliance-2026)_
 
@@ -368,8 +368,8 @@ _Source: [Gate.io - Nostr Explained](https://dex.gate.com/crypto-wiki/article/wh
 
 ### Implementation Considerations
 
-For Crosstown's **content strategy** (the actual goal of this research), regulatory awareness creates several opportunities:
-1. **"How Crosstown navigates the AI agent regulatory landscape"** — thought leadership content
+For TOON's **content strategy** (the actual goal of this research), regulatory awareness creates several opportunities:
+1. **"How TOON navigates the AI agent regulatory landscape"** — thought leadership content
 2. **Relay sustainability as compliance advantage** — paid relays can afford content moderation, audit trails, and data governance
 3. **ILP vs stablecoin regulation** — positioning ILP as a protocol-layer alternative that may sidestep stablecoin-specific regulations
 4. **Privacy-by-design** — Nostr's public-key model + pay-to-write creates a spam-free, privacy-preserving, financially sustainable relay
@@ -379,7 +379,7 @@ For Crosstown's **content strategy** (the actual goal of this research), regulat
 | Risk | Severity | Likelihood | Mitigation |
 |------|----------|------------|------------|
 | ILP classified as money transmission | Medium | Low-Medium | Engage with Interledger Foundation on regulatory positioning. ILP routes packets, not money directly. |
-| EU AI Act applies to relay infrastructure | Low | Low | Crosstown is infrastructure, not an AI system. Monitor guidance. |
+| EU AI Act applies to relay infrastructure | Low | Low | TOON is infrastructure, not an AI system. Monitor guidance. |
 | GDPR right-to-erasure conflicts | Medium | Medium | Implement event deletion mechanisms (NIP-09). Document data processing basis. |
 | Content moderation requirements expand to relays | Medium | Low-Medium | Pay-to-write model inherently deters spam. Implement basic content policies. |
 
@@ -388,17 +388,17 @@ For Crosstown's **content strategy** (the actual goal of this research), regulat
 ### Emerging Technologies
 
 **Multi-Agent Systems Explosion:**
-Gartner reported a **1,445% surge** in multi-agent system inquiries from Q1 2024 to Q2 2025. By 2026, multi-agent architectures are becoming the default for complex AI workloads. Each agent specializes (data analysis, operations, customer support, compliance) and communicates with others through orchestration layers, collaboration protocols, and shared memory. This is precisely the use case Crosstown enables — a decentralized data layer where agents write events via micropayments.
+Gartner reported a **1,445% surge** in multi-agent system inquiries from Q1 2024 to Q2 2025. By 2026, multi-agent architectures are becoming the default for complex AI workloads. Each agent specializes (data analysis, operations, customer support, compliance) and communicates with others through orchestration layers, collaboration protocols, and shared memory. This is precisely the use case TOON enables — a decentralized data layer where agents write events via micropayments.
 
 _Source: [DruidAI - AI Trends 2026](https://www.druidai.com/blog/ai-trends-in-2026), [Salesmate - Agent Trends](https://www.salesmate.io/blog/future-of-ai-agents/), [ML Mastery - Agentic AI Trends](https://machinelearningmastery.com/7-agentic-ai-trends-to-watch-in-2026/)_
 
 **Agentic Operating Systems (AOS):**
-The industry is moving toward "Agentic Operating Systems" that standardize orchestration, safety, compliance, and resource governance across agent swarms. Crosstown could position as a decentralized persistence layer within this emerging AOS stack — where agents store and retrieve shared state.
+The industry is moving toward "Agentic Operating Systems" that standardize orchestration, safety, compliance, and resource governance across agent swarms. TOON could position as a decentralized persistence layer within this emerging AOS stack — where agents store and retrieve shared state.
 
 _Source: [Adaline Labs - AI Research 2026](https://labs.adaline.ai/p/the-ai-research-landscape-in-2026), [Kanerika - Multimodal AI Agents](https://kanerika.com/blogs/multimodal-ai-agents/)_
 
 **Domain-Specific Relays (DSRs):**
-The Nostr ecosystem is trending toward specialized relays for specific use cases rather than general-purpose relays. SMART (Slightly More Advanced Relay Technology) adds middleware capabilities like server-side caching, indexing, and rendering. Crosstown is inherently a domain-specific relay — specialized for paid writes via ILP.
+The Nostr ecosystem is trending toward specialized relays for specific use cases rather than general-purpose relays. SMART (Slightly More Advanced Relay Technology) adds middleware capabilities like server-side caching, indexing, and rendering. TOON is inherently a domain-specific relay — specialized for paid writes via ILP.
 
 _Source: [Shocknet SMART](https://github.com/shocknet/SMART), [Nostr Compass](https://nostrcompass.org/en/)_
 
@@ -431,14 +431,14 @@ _Source: [ILF - Web Monetization Updates Jan-Feb 2026](https://community.interle
 The agent protocol stack is converging on a layered model:
 1. **Identity & Discovery** — W3C DID, ANP (decentralized), DNS-based (centralized)
 2. **Communication** — MCP (agent-to-tool), A2A/ACP (agent-to-agent)
-3. **Data Persistence** — *This is where Crosstown fits* — decentralized, paid event storage
+3. **Data Persistence** — *This is where TOON fits* — decentralized, paid event storage
 4. **Payment** — x402 (HTTP-native), ILP (protocol-native), Lightning (Bitcoin-native)
 5. **Orchestration** — LangGraph, CrewAI, AG2, emerging AOS platforms
 
-Crosstown uniquely bridges layers 3 and 4 — combining data persistence (Nostr relay) with native payment (ILP).
+TOON uniquely bridges layers 3 and 4 — combining data persistence (Nostr relay) with native payment (ILP).
 
 **Developer Documentation as AI Training Data:**
-A critical 2026 insight: developer documentation is now training data for AI assistants. This means Crosstown's docs, articles, and technical content directly influence whether AI coding assistants recommend Crosstown as a solution. High-quality, comprehensive documentation has compounding returns.
+A critical 2026 insight: developer documentation is now training data for AI assistants. This means TOON's docs, articles, and technical content directly influence whether AI coding assistants recommend TOON as a solution. High-quality, comprehensive documentation has compounding returns.
 
 _Source: [Strategic Nerds - Developer Marketing 2026](https://www.strategicnerds.com/blog/the-complete-developer-marketing-guide-2026), [IBM - AI Tech Trends 2026](https://www.ibm.com/think/news/ai-tech-trends-predictions-2026)_
 
@@ -467,7 +467,7 @@ _Source: [OneReach - Agentic AI Stats](https://onereach.ai/blog/agentic-ai-adopt
 
 ### Implementation Opportunities
 
-Based on the technical trends, here are the highest-impact content and visibility opportunities for Crosstown:
+Based on the technical trends, here are the highest-impact content and visibility opportunities for TOON:
 
 **Tier 1 — Publish on Nostr (native reach):**
 - Write long-form articles via NIP-23 on **Habla.news** and **YakiHonne**
@@ -481,9 +481,9 @@ Based on the technical trends, here are the highest-impact content and visibilit
 - **Stacker News** — Bitcoin/Nostr overlap community, sats-based tipping
 
 **Tier 3 — Community engagement:**
-- **Interledger Community** (community.interledger.org) — monthly calls, blog posts, showcase Crosstown as a novel ILP use case
+- **Interledger Community** (community.interledger.org) — monthly calls, blog posts, showcase TOON as a novel ILP use case
 - **W3C AI Agent Protocol CG** — join the community group, contribute use cases
-- **GitHub** — ensure Crosstown repos are well-documented (docs = AI training data)
+- **GitHub** — ensure TOON repos are well-documented (docs = AI training data)
 - **Nostr Compass** — get listed and featured in their weekly newsletter/podcast
 
 **Tier 4 — Events and conferences:**
@@ -512,7 +512,7 @@ Publish articles directly on Nostr using NIP-23 via Habla.news and YakiHonne. Th
 These platforms have the highest concentration of developers discussing agent protocols (MCP, A2A, x402) in 2026. Articles about "how to build an ILP-gated Nostr relay" or "why AI agents need a decentralized data layer" would resonate strongly. Suggested cadence: 1 article per month per platform.
 
 **Priority 3 — Interledger Community:**
-Post on community.interledger.org and present at monthly community calls. Crosstown is a compelling novel use case for ILP — the Foundation is actively looking for new use cases beyond Web Monetization.
+Post on community.interledger.org and present at monthly community calls. TOON is a compelling novel use case for ILP — the Foundation is actively looking for new use cases beyond Web Monetization.
 
 **Priority 4 — Cross-post to Stacker News and Medium:**
 Stacker News reaches the Bitcoin/Nostr overlap audience. Medium reaches a broader tech audience. Syndicate your best-performing content.
@@ -520,24 +520,24 @@ Stacker News reaches the Bitcoin/Nostr overlap audience. Medium reaches a broade
 ### Content Topics — What to Write About
 
 **For the AI Agent audience:**
-1. "Why AI Agents Need a Decentralized Data Layer" — position Crosstown as infrastructure
+1. "Why AI Agents Need a Decentralized Data Layer" — position TOON as infrastructure
 2. "ILP vs x402: Two Approaches to Agent Micropayments" — thought leadership comparison
 3. "Building Agent-to-Relay Communication with Interledger" — technical tutorial
 4. "The Missing Layer in the Agent Protocol Stack: Persistent, Paid Data Storage" — architecture piece
 
 **For the Nostr audience:**
 1. "Solving the Relay Sustainability Problem with ILP Micropayments" — addresses the #1 pain point (95% of relays unprofitable)
-2. "Pay-to-Write: A New Economic Model for Nostr Relays" — introduces Crosstown's model
-3. "How Crosstown Relay Works: A Technical Deep Dive" — NIP-42 + ILP integration
+2. "Pay-to-Write: A New Economic Model for Nostr Relays" — introduces TOON's model
+3. "How TOON Relay Works: A Technical Deep Dive" — NIP-42 + ILP integration
 4. "Why AI Agents Are the Next Wave of Nostr Users" — bridges both audiences
 
 **For the Interledger audience:**
-1. "Crosstown: A Novel ILP Use Case Beyond Web Monetization" — showcase for ILF community
+1. "TOON: A Novel ILP Use Case Beyond Web Monetization" — showcase for ILF community
 2. "From Streaming Payments to Event Payments: ILP for Nostr" — technical innovation story
 
 ### Innovation Roadmap
 
-1. **Month 1-2:** Establish presence on Nostr (Habla.news/YakiHonne), Dev.to, and Interledger Community. Publish foundational "what is Crosstown" article on each.
+1. **Month 1-2:** Establish presence on Nostr (Habla.news/YakiHonne), Dev.to, and Interledger Community. Publish foundational "what is TOON" article on each.
 2. **Month 3-4:** Publish technical deep-dives. Present at Interledger Community Call. Engage with W3C AI Agent Protocol CG.
 3. **Month 5-6:** Publish comparison/thought leadership pieces (ILP vs x402, relay sustainability). Submit a NIP or NIP-adjacent proposal for ILP-gated relays.
 4. **Ongoing:** Maintain documentation quality (it's AI training data). Engage in Nostr and agent protocol discussions. Syndicate top content.
@@ -548,7 +548,7 @@ Stacker News reaches the Bitcoin/Nostr overlap audience. Medium reaches a broade
 2. **Write for developers, not marketers** — Authenticity matters. Developers detect marketing. Include code examples, architecture diagrams, and honest tradeoffs.
 3. **Leverage existing communities** — Don't build an audience from zero. Post where the people already are (Nostr, Dev.to, ILF community).
 4. **Keep content evergreen** — Focus on architecture and fundamentals rather than implementation specifics that change rapidly.
-5. **Ensure docs are AI-ready** — Your README and getting-started guide may be the most impactful content you write, because AI assistants will recommend Crosstown based on documentation quality.
+5. **Ensure docs are AI-ready** — Your README and getting-started guide may be the most impactful content you write, because AI assistants will recommend TOON based on documentation quality.
 
 ---
 
@@ -556,9 +556,9 @@ Stacker News reaches the Bitcoin/Nostr overlap audience. Medium reaches a broade
 
 ### Executive Summary
 
-The Crosstown Protocol enters the market at a uniquely favorable moment. The AI agent economy is projected to reach $42-53 billion by 2030, with enterprise adoption of autonomous agents crossing 37% in 2026. Agent-to-agent communication protocols (MCP, A2A/ACP) are being standardized at the W3C and NIST levels, and machine-to-machine micropayments are emerging via x402 and ILP — but the infrastructure layer for decentralized, paid data persistence remains an open gap. Crosstown fills this gap.
+The TOON Protocol enters the market at a uniquely favorable moment. The AI agent economy is projected to reach $42-53 billion by 2030, with enterprise adoption of autonomous agents crossing 37% in 2026. Agent-to-agent communication protocols (MCP, A2A/ACP) are being standardized at the W3C and NIST levels, and machine-to-machine micropayments are emerging via x402 and ILP — but the infrastructure layer for decentralized, paid data persistence remains an open gap. TOON fills this gap.
 
-Simultaneously, the Nostr ecosystem faces a sustainability crisis: 95% of relays cannot cover operational costs, and no dominant paid-relay business model has emerged. Existing paid relays (nostr.wine, expensive-relay) use Lightning or Monero with subscription or one-time payment models. No relay uses ILP, and no relay is designed for AI agent writers. Crosstown's pay-per-write model directly addresses both the relay sustainability problem and the need for agent-friendly infrastructure.
+Simultaneously, the Nostr ecosystem faces a sustainability crisis: 95% of relays cannot cover operational costs, and no dominant paid-relay business model has emerged. Existing paid relays (nostr.wine, expensive-relay) use Lightning or Monero with subscription or one-time payment models. No relay uses ILP, and no relay is designed for AI agent writers. TOON's pay-per-write model directly addresses both the relay sustainability problem and the need for agent-friendly infrastructure.
 
 The regulatory landscape is maturing but not hostile. The EU AI Act (Aug 2026) applies to AI systems, not infrastructure like relays. Stablecoin regulation (GENIUS Act, MiCA) is tightening, but ILP's protocol-level routing may sidestep stablecoin-specific requirements. Nostr's public-key-only identity model is inherently GDPR-friendly.
 
@@ -566,10 +566,10 @@ The regulatory landscape is maturing but not hostile. The EU AI Act (Aug 2026) a
 
 - **$7.6B AI agent market** growing at 40-46% CAGR — agent infrastructure is a massive and expanding opportunity
 - **1,445% surge** in multi-agent system inquiries (Gartner) — demand for agent coordination infrastructure is exploding
-- **95% of Nostr relays unprofitable** — Crosstown's pay-to-write model solves the ecosystem's #1 sustainability problem
+- **95% of Nostr relays unprofitable** — TOON's pay-to-write model solves the ecosystem's #1 sustainability problem
 - **No competitor** combines Nostr relay + ILP micropayments + agent-friendly design — blue ocean position
-- **Protocol standardization happening NOW** (W3C, NIST, Linux Foundation) — early engagement window for Crosstown
-- **Developer docs are AI training data** — documentation quality directly impacts whether AI assistants recommend Crosstown
+- **Protocol standardization happening NOW** (W3C, NIST, Linux Foundation) — early engagement window for TOON
+- **Developer docs are AI training data** — documentation quality directly impacts whether AI assistants recommend TOON
 
 **Strategic Recommendations:**
 
@@ -620,13 +620,13 @@ The regulatory landscape is maturing but not hostile. The EU AI Act (Aug 2026) a
 ### Cross-Domain Strategic Insights
 
 **Market-Technology Convergence:**
-The agent protocol stack is converging on a layered model (identity → communication → data → payment → orchestration). Crosstown uniquely bridges the data persistence and payment layers — a position no other project occupies. As the stack solidifies (W3C specs expected 2026-2027), early movers who establish themselves in an open layer win disproportionately.
+The agent protocol stack is converging on a layered model (identity → communication → data → payment → orchestration). TOON uniquely bridges the data persistence and payment layers — a position no other project occupies. As the stack solidifies (W3C specs expected 2026-2027), early movers who establish themselves in an open layer win disproportionately.
 
 **Nostr-Agent Opportunity:**
-The Nostr community is payment-ready (82.5% increase in Lightning-addressed profiles) and searching for relay sustainability models. The AI agent community needs decentralized data infrastructure. Crosstown is the bridge between these two communities — and content that connects them ("Why AI Agents Are the Next Wave of Nostr Users") would resonate with both audiences simultaneously.
+The Nostr community is payment-ready (82.5% increase in Lightning-addressed profiles) and searching for relay sustainability models. The AI agent community needs decentralized data infrastructure. TOON is the bridge between these two communities — and content that connects them ("Why AI Agents Are the Next Wave of Nostr Users") would resonate with both audiences simultaneously.
 
 **Regulatory-Strategic Alignment:**
-The regulatory environment actually favors Crosstown's positioning:
+The regulatory environment actually favors TOON's positioning:
 - ILP's protocol-level routing is more regulation-friendly than stablecoin-specific rails (x402)
 - Nostr's public-key identity is GDPR-compatible by design
 - Paid relays can afford compliance (content moderation, audit trails) — unlike free relays
@@ -656,7 +656,7 @@ Month 1-2: ESTABLISH PRESENCE
 ├── Create accounts on Habla.news, Dev.to, HackerNoon
 ├── Join W3C AI Agent Protocol CG
 ├── Publish foundational article on each platform
-├── Audit and improve Crosstown documentation (AI-readiness)
+├── Audit and improve TOON documentation (AI-readiness)
 └── Engage in Nostr and ILF community discussions
 
 Month 3-4: DEEPEN ENGAGEMENT
@@ -730,15 +730,15 @@ Ongoing: MAINTAIN & GROW
 
 ### Summary of Key Findings
 
-Crosstown Protocol is positioned at the intersection of three converging trends: the explosion of multi-agent AI systems, the Nostr ecosystem's search for relay sustainability, and the emergence of machine-to-machine micropayment infrastructure. No existing project occupies this intersection. The window to establish Crosstown as the reference implementation for ILP-gated Nostr relays — and as a "decentralized data persistence layer for agents" — is open now and will narrow as protocol standards solidify over 2026-2027.
+TOON Protocol is positioned at the intersection of three converging trends: the explosion of multi-agent AI systems, the Nostr ecosystem's search for relay sustainability, and the emergence of machine-to-machine micropayment infrastructure. No existing project occupies this intersection. The window to establish TOON as the reference implementation for ILP-gated Nostr relays — and as a "decentralized data persistence layer for agents" — is open now and will narrow as protocol standards solidify over 2026-2027.
 
 ### Strategic Impact Assessment
 
-The research validates two key narratives for Crosstown's content strategy:
+The research validates two key narratives for TOON's content strategy:
 
-1. **For Nostr:** "We solve the relay sustainability problem" — 95% of relays can't cover costs; Crosstown's pay-per-write model creates a financially viable relay that also deters spam and enables compliance.
+1. **For Nostr:** "We solve the relay sustainability problem" — 95% of relays can't cover costs; TOON's pay-per-write model creates a financially viable relay that also deters spam and enables compliance.
 
-2. **For AI Agents:** "We're the missing layer in the agent protocol stack" — MCP handles tools, A2A handles agent-agent communication, x402/ILP handle payments, but no protocol addresses decentralized, paid data persistence. Crosstown does.
+2. **For AI Agents:** "We're the missing layer in the agent protocol stack" — MCP handles tools, A2A handles agent-agent communication, x402/ILP handle payments, but no protocol addresses decentralized, paid data persistence. TOON does.
 
 ### Next Steps
 
@@ -754,4 +754,4 @@ The research validates two key narratives for Crosstown's content strategy:
 **Source Verification:** All facts cited with web-verified sources
 **Confidence Level:** High — based on multiple authoritative sources across market research, community data, and regulatory publications
 
-_This comprehensive research document serves as an authoritative reference for Crosstown Protocol's visibility and content strategy across the AI agent and Nostr ecosystems._
+_This comprehensive research document serves as an authoritative reference for TOON Protocol's visibility and content strategy across the AI agent and Nostr ecosystems._

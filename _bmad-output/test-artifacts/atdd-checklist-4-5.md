@@ -29,9 +29,9 @@ inputDocuments:
 
 ## Story Summary
 
-Story 4.5 adds Nix-based reproducible Docker builds to the Crosstown relay, ensuring that Docker images produce deterministic PCR (Platform Configuration Register) values across independent builds. This closes the trust loop between enclave code integrity and attestation verification.
+Story 4.5 adds Nix-based reproducible Docker builds to the TOON relay, ensuring that Docker images produce deterministic PCR (Platform Configuration Register) values across independent builds. This closes the trust loop between enclave code integrity and attestation verification.
 
-**As a** Crosstown relay operator deploying to Marlin Oyster CVM
+**As a** TOON relay operator deploying to Marlin Oyster CVM
 **I want** Docker builds to produce deterministic images with identical PCR values across independent builds
 **So that** remote attestation verification can compare PCR measurements against a known-good registry, and any code tampering is detectable by a PCR mismatch
 
@@ -189,7 +189,7 @@ Story 4.5 adds Nix-based reproducible Docker builds to the Crosstown relay, ensu
   - **Status:** RED - `it.skip()` -- build/index.ts does not exist
   - **Verifies:** Error class export
 
-- **Test:** T-4.5-05f: all build module exports re-exported from @crosstown/core
+- **Test:** T-4.5-05f: all build module exports re-exported from @toon-protocol/core
   - **Status:** RED - `it.skip()` -- build/index.ts does not exist
   - **Verifies:** Top-level barrel re-export chain
 
@@ -219,7 +219,7 @@ Story 4.5 adds Nix-based reproducible Docker builds to the Crosstown relay, ensu
   - **Status:** RED - `it.skip()` -- /result not yet in .gitignore
   - **Verifies:** Nix build output symlink excluded from VCS
 
-- **Test:** T-4.5-06g: flake.nix sets NODE_ENV=production and creates crosstown user
+- **Test:** T-4.5-06g: flake.nix sets NODE_ENV=production and creates toon user
   - **Status:** RED - `it.skip()` -- flake.nix does not exist
   - **Verifies:** Production config and security user
 
@@ -270,7 +270,7 @@ The `NixBuilder.build()` method shells out to `nix build` via `child_process.exe
 **Mock Success Response:**
 ```json
 {
-  "imagePath": "/nix/store/abc123-crosstown-docker-image.tar.gz",
+  "imagePath": "/nix/store/abc123-toon-docker-image.tar.gz",
   "imageHash": "sha256:ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34"
 }
 ```
@@ -366,7 +366,7 @@ Not applicable. This is a backend-only story with no UI components.
 - [ ] Compare all 3 PCR registers + imageHash
 - [ ] Return structured result with per-field match booleans and details
 - [ ] Generate human-readable summary string for CI logs
-- [ ] Implement `PcrReproducibilityError` extending `CrosstownError`
+- [ ] Implement `PcrReproducibilityError` extending `ToonError`
 - [ ] Error message includes both PCR values for debugging
 - [ ] Run test: `npx vitest run packages/core/src/build/nix-reproducibility.test.ts`
 - [ ] Test passes (green phase)
@@ -405,7 +405,7 @@ Not applicable. This is a backend-only story with no UI components.
 - [ ] Define build derivation: pnpm install, build, deploy
 - [ ] Output via `dockerTools.buildLayeredImage`
 - [ ] Set NODE_ENV=production, expose ports 3100/7100/1300
-- [ ] Create non-root crosstown user, CMD supervisord
+- [ ] Create non-root toon user, CMD supervisord
 - [ ] Create `flake.lock` via `nix flake lock`
 - [ ] Add `/result` to `.gitignore`
 - [ ] Run test: `npx vitest run packages/core/src/build/nix-reproducibility.test.ts`
@@ -481,7 +481,7 @@ npx vitest run packages/core --coverage
 1. **Remove local NixBuildResult type**: When creating `nix-builder.ts`, uncomment the real import and delete the local interface definition at the top of the test file
 2. **Remove placeholder variables**: Delete the `NixBuilder`, `verifyPcrReproducibility`, `readDockerfileNix`, `analyzeDockerfileForNonDeterminism` placeholder constants
 3. **Path resolution**: Tests use `resolveFromRoot()` which navigates up 4 levels from `packages/core/src/build/` to the project root. This matches the pattern established in `oyster-config.test.ts`
-4. **PcrReproducibilityError**: Must extend `CrosstownError` from `../errors.js` per project convention
+4. **PcrReproducibilityError**: Must extend `ToonError` from `../errors.js` per project convention
 
 ---
 
@@ -506,7 +506,7 @@ npx vitest run packages/core --coverage
 **Results:**
 
 ```
- RUN  v1.6.1 /Users/jonathangreen/Documents/crosstown
+ RUN  v1.6.1 /Users/jonathangreen/Documents/toon
 
  ↓ packages/core/src/build/nix-reproducibility.test.ts  (33 tests | 33 skipped)
 
@@ -582,14 +582,14 @@ npx vitest run packages/core --coverage
 | T-4.5-05c | analyzeDockerfileForNonDeterminism exported | #5 | nix-reproducibility.test.ts | P1 | Integration | RED |
 | T-4.5-05d | readDockerfileNix exported | #5 | nix-reproducibility.test.ts | P1 | Integration | RED |
 | T-4.5-05e | PcrReproducibilityError exported | #5 | nix-reproducibility.test.ts | P1 | Integration | RED |
-| T-4.5-05f | Top-level @crosstown/core re-exports | #5 | nix-reproducibility.test.ts | P1 | Integration | RED |
+| T-4.5-05f | Top-level @toon-protocol/core re-exports | #5 | nix-reproducibility.test.ts | P1 | Integration | RED |
 | T-4.5-06a | flake.nix exists | #6 | nix-reproducibility.test.ts | P1 | Static | RED |
 | T-4.5-06b | docker-image output defined | #6 | nix-reproducibility.test.ts | P1 | Static | RED |
 | T-4.5-06c | nixpkgs pinned | #6 | nix-reproducibility.test.ts | P1 | Static | RED |
 | T-4.5-06d | Node.js 20 + supervisord | #6 | nix-reproducibility.test.ts | P1 | Static | RED |
 | T-4.5-06e | Ports 3100, 7100, 1300 | #6 | nix-reproducibility.test.ts | P1 | Static | RED |
 | T-4.5-06f | .gitignore contains /result | #6 | nix-reproducibility.test.ts | P1 | Static | RED |
-| T-4.5-06g | NODE_ENV + crosstown user | #6 | nix-reproducibility.test.ts | P1 | Static | RED |
+| T-4.5-06g | NODE_ENV + toon user | #6 | nix-reproducibility.test.ts | P1 | Static | RED |
 | T-4.5-06h | CMD supervisord | #6 | nix-reproducibility.test.ts | P1 | Static | RED |
 
 ---

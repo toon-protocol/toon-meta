@@ -16,7 +16,7 @@ documentsIncluded:
 # Implementation Readiness Assessment Report
 
 **Date:** 2026-03-03
-**Project:** crosstown
+**Project:** toon
 
 ## 1. Document Discovery
 
@@ -36,7 +36,7 @@ documentsIncluded:
 
 ## 2. PRD Analysis
 
-> **Note:** This PRD is from an older version of the project (last updated 2026-02-17, v3.0). It references epics 11-17 (Gas Town integration, agent runtime, NIP adoption roadmap) and packages (`@crosstown/agent`, `@crosstown/ui-prototypes`) that may no longer reflect the current project scope. Requirements extracted below for reference, but cross-referencing against current epics will be limited.
+> **Note:** This PRD is from an older version of the project (last updated 2026-02-17, v3.0). It references epics 11-17 (Gas Town integration, agent runtime, NIP adoption roadmap) and packages (`@toon-protocol/agent`, `@toon-protocol/ui-prototypes`) that may no longer reflect the current project scope. Requirements extracted below for reference, but cross-referencing against current epics will be limited.
 
 ### Functional Requirements
 
@@ -58,7 +58,7 @@ documentsIncluded:
 
 **BLS & Docker (Epic 5)**
 
-- FR14: BLS extracted as standalone package (`@crosstown/bls`)
+- FR14: BLS extracted as standalone package (`@toon-protocol/bls`)
 - FR15: BLS Docker image implements standard BLS contract (`/health`, `/handle-packet`)
 - FR16: BLS configurable via environment variables
 - FR17: BLS persist events to SQLite with in-memory fallback
@@ -80,7 +80,7 @@ documentsIncluded:
 
 **Embedded Connector (Epic 10)**
 
-- FR27: Provide `createCrosstownNode()` composition function
+- FR27: Provide `createToonNode()` composition function
 - FR28: Provide `DirectRuntimeClient` and `DirectConnectorAdmin` for in-process ILP communication
 - FR29: Retain `createHttpRuntimeClient()` as HTTP fallback
 - FR30: `@agent-runtime/connector` as optional peer dependency
@@ -147,7 +147,7 @@ All 24 FRs defined in the epics document have explicit story coverage:
 
 | FR Number    | Requirement                            | Epic/Story               | Status  |
 | ------------ | -------------------------------------- | ------------------------ | ------- |
-| FR-SDK-0     | TOON codec in @crosstown/core          | Epic 1, Story 1.0        | Covered |
+| FR-SDK-0     | TOON codec in @toon-protocol/core          | Epic 1, Story 1.0        | Covered |
 | FR-SDK-1     | `createNode()` composition function    | Epic 1, Story 1.7        | Covered |
 | FR-SDK-2     | Handler registry `.on(kind, handler)`  | Epic 1, Story 1.2        | Covered |
 | FR-SDK-3     | TOON-native HandlerContext             | Epic 1, Story 1.3        | Covered |
@@ -160,18 +160,18 @@ All 24 FRs defined in the epics document have explicit story coverage:
 | FR-SDK-10    | Node lifecycle start()/stop()          | Epic 1, Story 1.7        | Covered |
 | FR-SDK-11    | Embedded connector mode                | Epic 1, Story 1.7        | Covered |
 | FR-SDK-12    | Dev mode                               | Epic 1, Story 1.10       | Covered |
-| FR-SDK-13    | npm publish as @crosstown/sdk          | Epic 1, Story 1.11       | Covered |
+| FR-SDK-13    | npm publish as @toon-protocol/sdk          | Epic 1, Story 1.11       | Covered |
 | FR-SDK-NEW-1 | Unified identity from seed phrase      | Epic 1, Story 1.1        | Covered |
 | FR-SDK-14    | Relay reimplementation using SDK       | Epic 2, Story 2.1        | Covered |
 | FR-SDK-15    | E2E test validation                    | Epic 2, Story 2.3        | Covered |
 | FR-SDK-16    | Remove packages/git-proxy              | Epic 2, Story 2.4        | Covered |
-| FR-RELAY-1   | Publish @crosstown/town                | Epic 2, Story 2.5        | Covered |
+| FR-RELAY-1   | Publish @toon-protocol/town                | Epic 2, Story 2.5        | Covered |
 | FR-NIP34-1   | NIP-34 handlers + git HTTP backend     | Epic 5, Stories 5.1-5.4  | Covered |
 | FR-NIP34-2   | Nostr pubkey-native git identity       | Epic 5, Story 5.5        | Covered |
 | FR-NIP34-3   | Read-only code browsing web UI         | Epic 5, Stories 5.7-5.10 | Covered |
 | FR-NIP34-4   | PR lifecycle via NIP-34 status events  | Epic 5, Story 5.6        | Covered |
 | FR-NIP34-5   | Issues/PRs from Nostr events           | Epic 5, Story 5.11       | Covered |
-| FR-NIP34-6   | Publish @crosstown/rig                 | Epic 5, Story 5.12       | Covered |
+| FR-NIP34-6   | Publish @toon-protocol/rig                 | Epic 5, Story 5.12       | Covered |
 
 **Internal coverage: 24/24 FRs = 100%**
 
@@ -184,15 +184,15 @@ Since the PRD is outdated, this cross-reference shows how the old requirements m
 | FR1-FR3   | Peer discovery (NIP-02, kind:10032, RelayMonitor) | FR-SDK-9 (Story 1.9)                | Evolved            |
 | FR4-FR5   | SPSP handshakes (kind:23194/23195)                | Epic 2, Story 2.2                   | Evolved            |
 | FR6-FR7   | Trust scores / configurable trust calculator      | **NOT COVERED**                     | Dropped            |
-| FR8-FR9   | TypeScript interfaces + parser/builder utilities  | Existing @crosstown/core            | Pre-existing       |
+| FR8-FR9   | TypeScript interfaces + parser/builder utilities  | Existing @toon-protocol/core            | Pre-existing       |
 | FR10      | ILP-gated relay accepts payments                  | FR-SDK-5 + Epic 2, Story 2.1        | Evolved            |
 | FR11      | Configurable pricing (per-byte, per-kind)         | FR-SDK-5 (Story 1.5)                | Evolved            |
 | FR12      | Free NIP-01 reads                                 | Implicit (relay architecture)       | Unchanged          |
 | FR13      | Self-write bypass                                 | FR-SDK-5 (Story 1.5)                | Evolved            |
-| FR14-FR17 | BLS standalone package + Docker                   | Superseded by SDK + @crosstown/town | Superseded         |
+| FR14-FR17 | BLS standalone package + Docker                   | Superseded by SDK + @toon-protocol/town | Superseded         |
 | FR18-FR22 | Layered discovery + bootstrap                     | FR-SDK-9 (Story 1.9)                | Evolved            |
 | FR23-FR26 | Settlement negotiation                            | Epic 2 Story 2.2 + FR-SDK-8         | Evolved            |
-| FR27      | createCrosstownNode()                             | FR-SDK-1 (createNode())             | Evolved            |
+| FR27      | createToonNode()                             | FR-SDK-1 (createNode())             | Evolved            |
 | FR28      | DirectRuntimeClient/DirectConnectorAdmin          | FR-SDK-8 + FR-SDK-11                | Evolved            |
 | FR29      | HTTP fallback mode                                | **NOT COVERED**                     | Dropped            |
 | FR30      | Optional peer dependency                          | NFR-SDK-5                           | Evolved            |
@@ -292,7 +292,7 @@ While Epics 1-2 (SDK + Relay) are purely programmatic (no UI), **Epic 5 (The Rig
 
 #### 1. Missing Prerequisite Story: TOON Codec Extraction
 
-The architecture document identifies "Extract TOON codec to `@crosstown/core`" as Decision 1 and "Epic 0 prerequisite" that "unblocks all three epics." However, **no story exists for this work in any epic.**
+The architecture document identifies "Extract TOON codec to `@toon-protocol/core`" as Decision 1 and "Epic 0 prerequisite" that "unblocks all three epics." However, **no story exists for this work in any epic.**
 
 The architecture states:
 
@@ -300,13 +300,13 @@ The architecture states:
 
 And:
 
-> "First Implementation Priority: 1. Extract TOON codec to @crosstown/core (unblocks all three epics)"
+> "First Implementation Priority: 1. Extract TOON codec to @toon-protocol/core (unblocks all three epics)"
 
 This is real work (move ~100 LOC from BLS to core, add shallow-parse.ts, update imports in BLS and relay packages) that has no story, no acceptance criteria, and no FR.
 
 **Impact:** Blocks Stories 1.4 (verification needs ToonRoutingMeta), 1.5 (pricing needs toonBytes), and everything downstream.
 
-**Recommendation:** Add a Story 1.0 or "Epic 0, Story 0.1: Extract TOON Codec to @crosstown/core" with acceptance criteria.
+**Recommendation:** Add a Story 1.0 or "Epic 0, Story 0.1: Extract TOON Codec to @toon-protocol/core" with acceptance criteria.
 
 ---
 
@@ -395,7 +395,7 @@ The AC for Story 2.3 includes: "the handler registrations are significantly shor
 
 #### 7. Architecture Identifies SDK Does NOT Depend on BLS
 
-The architecture corrects the epics document's dependency listing (NFR-SDK-7 lists `@crosstown/relay` as SDK dependency "for TOON codec"). The architecture moves TOON to core, making NFR-SDK-7 stale. The epics doc should be updated to reflect the corrected dependency graph.
+The architecture corrects the epics document's dependency listing (NFR-SDK-7 lists `@toon-protocol/relay` as SDK dependency "for TOON codec"). The architecture moves TOON to core, making NFR-SDK-7 stale. The epics doc should be updated to reflect the corrected dependency graph.
 
 ---
 
@@ -440,7 +440,7 @@ The following issues were identified during the initial assessment and have sinc
 | 4   | Major    | Undocumented within-epic dependencies | **RESOLVED** — Dependencies added to all 29 stories                               |
 | 5   | Minor    | Story 2.3 soft metric in AC           | **RESOLVED** — Reframed "<100 lines" as a note rather than pass/fail AC           |
 | 6   | Minor    | Technical epic title                  | Not addressed (cosmetic, kept as-is)                                              |
-| 7   | Minor    | Stale NFR-SDK-7 dependency            | **RESOLVED** — Updated to reference @crosstown/core per FR-SDK-0                  |
+| 7   | Minor    | Stale NFR-SDK-7 dependency            | **RESOLVED** — Updated to reference @toon-protocol/core per FR-SDK-0                  |
 
 **Additional improvements applied:**
 
@@ -482,5 +482,5 @@ This assessment initially identified **7 issues** across **3 severity categories
 
 **Assessment Date:** 2026-03-03
 **Updated:** 2026-03-03 (post-remediation)
-**Project:** Crosstown Protocol
+**Project:** TOON Protocol
 **Assessed By:** Implementation Readiness Workflow (BMAD)

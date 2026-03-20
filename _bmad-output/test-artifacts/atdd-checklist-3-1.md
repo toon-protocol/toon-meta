@@ -31,7 +31,7 @@ inputDocuments:
 
 ## Story Summary
 
-Migrate the Crosstown protocol from the AGENT development token to USDC (USD Coin) for all user-facing payments. Deploy a mock USDC contract on Anvil, update the TokenNetwork to use USDC, update the faucet, replace all AGENT token references, and verify pricing denomination semantics.
+Migrate the TOON protocol from the AGENT development token to USDC (USD Coin) for all user-facing payments. Deploy a mock USDC contract on Anvil, update the TokenNetwork to use USDC, update the faucet, replace all AGENT token references, and verify pricing denomination semantics.
 
 **As a** relay operator
 **I want** payment channels and pricing denominated in USDC instead of the AGENT development token
@@ -128,7 +128,7 @@ No separate fixture files needed. All test data is created via inline factories 
 
 ### Pricing Validator -- T-3.1-05
 
-**Required:** `createPricingValidator` from `@crosstown/sdk`
+**Required:** `createPricingValidator` from `@toon-protocol/sdk`
 **Purpose:** Verify pricing formula produces correct USDC micro-unit amounts
 **Pattern:** Direct import, no mocks needed (pure function)
 
@@ -234,7 +234,7 @@ Not applicable -- this story is backend-only (no UI components).
 - [ ] No code changes needed for the pricing formula (it is denomination-agnostic)
 - [ ] Add documentation comment to `basePricePerByte` in SDK config noting USDC micro-units
 - [ ] Remove `.skip` from test
-- [ ] Import `createPricingValidator` from `@crosstown/sdk`
+- [ ] Import `createPricingValidator` from `@toon-protocol/sdk`
 - [ ] Create mock `ToonRoutingMeta` with known byte length
 - [ ] Assert pricing produces expected USDC micro-unit amounts
 - [ ] Run test: `pnpm test packages/core/src/chain/usdc-migration.test.ts`
@@ -366,7 +366,7 @@ npx vitest run --coverage
 **Results:**
 
 ```
- DEV  v1.6.1 /Users/jonathangreen/Documents/crosstown
+ DEV  v1.6.1 /Users/jonathangreen/Documents/toon
 
  ↓ packages/core/src/chain/usdc-migration.test.ts  (5 tests | 5 skipped)
 

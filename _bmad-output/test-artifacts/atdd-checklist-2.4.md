@@ -142,15 +142,15 @@ No mocks needed. All tests are static analysis (read filesystem, parse files, ch
   - **Status:** GREEN (passing since Epic 2 baseline)
   - **Verifies:** AC #1 -- git-proxy directory removed from filesystem
 
-- **Test:** T-2.4-02 `should not have any package depending on @crosstown/git-proxy`
+- **Test:** T-2.4-02 `should not have any package depending on @toon-protocol/git-proxy`
   - **Status:** GREEN (passing since Epic 2 baseline)
   - **Verifies:** AC #1 -- no workspace package references git-proxy
 
-- **Test:** T-2.4-03 `should not reference @crosstown/git-proxy in pnpm-workspace.yaml`
+- **Test:** T-2.4-03 `should not reference @toon-protocol/git-proxy in pnpm-workspace.yaml`
   - **Status:** GREEN (passing since Epic 2 baseline)
   - **Verifies:** AC #1 -- workspace config clean
 
-- **Test:** T-2.4-04 `SDK relay entrypoint should import from @crosstown/sdk`
+- **Test:** T-2.4-04 `SDK relay entrypoint should import from @toon-protocol/sdk`
   - **Status:** GREEN (passing since SDK implementation)
   - **Verifies:** AC #1 -- SDK package exists and is correctly named
 
@@ -186,7 +186,7 @@ These tests were created in Story 2.3 and are verification-only for Story 2.4. T
 
 - T-2.3-07: Handler logic < 100 lines (GREEN)
 - Handler logic significantly smaller than old entrypoint (GREEN)
-- Imports handlers from @crosstown/town (GREEN)
+- Imports handlers from @toon-protocol/town (GREEN)
 - Includes sdk:true in health response (GREEN)
 - Docker dependencies correct (GREEN)
 - Dockerfile CMD references entrypoint-town.js (GREEN)
@@ -199,9 +199,9 @@ These tests were created in Story 2.3 and are verification-only for Story 2.4. T
 | ATDD Test ID | Test Name | AC | Test-Design ID | Risk Link | Priority | Level | Status |
 |---|---|---|---|---|---|---|---|
 | T-2.4-01 | should not have packages/git-proxy directory | #1 | 2.4-UNIT-001 | E2-R011 | P2 | Unit | GREEN |
-| T-2.4-02 | should not have any package depending on @crosstown/git-proxy | #1 | 2.4-UNIT-002 | E2-R011 | P2 | Unit | GREEN |
-| T-2.4-03 | should not reference @crosstown/git-proxy in pnpm-workspace.yaml | #1 | 2.4-UNIT-003 | E2-R011 | P2 | Unit | GREEN |
-| T-2.4-04 | SDK relay entrypoint should import from @crosstown/sdk | #1 | 2.4-UNIT-004 | E2-R011 | P2 | Unit | GREEN |
+| T-2.4-02 | should not have any package depending on @toon-protocol/git-proxy | #1 | 2.4-UNIT-002 | E2-R011 | P2 | Unit | GREEN |
+| T-2.4-03 | should not reference @toon-protocol/git-proxy in pnpm-workspace.yaml | #1 | 2.4-UNIT-003 | E2-R011 | P2 | Unit | GREEN |
+| T-2.4-04 | SDK relay entrypoint should import from @toon-protocol/sdk | #1 | 2.4-UNIT-004 | E2-R011 | P2 | Unit | GREEN |
 | T-2.4-05 | docs/api-contracts-git-proxy.md should not exist | #1 | 2.4-UNIT-005 | E2-R011 | P2 | Unit | RED |
 | T-2.4-06 | docs/project-scan-report.json should not reference git-proxy | #1 | 2.4-UNIT-006 | E2-R011 | P2 | Unit | RED |
 | T-2.4-07 | docs/index.md should not reference git-proxy | #1 | 2.4-UNIT-007 | E2-R011 | P2 | Unit | RED |
@@ -275,9 +275,9 @@ N/A -- Backend static analysis tests. No browser UI.
 
 **Tasks to make this test pass:**
 
-- [ ] Remove `@crosstown/git-proxy` row from the package table
+- [ ] Remove `@toon-protocol/git-proxy` row from the package table
 - [ ] Remove the git-proxy API contracts link
-- [ ] Optionally add `@crosstown/sdk` and `@crosstown/town` entries to the package table
+- [ ] Optionally add `@toon-protocol/sdk` and `@toon-protocol/town` entries to the package table
 - [ ] Run test: `npx vitest run packages/town/src/doc-cleanup-and-reference.test.ts -t "T-2.4-07"`
 - [ ] Test passes (green phase)
 

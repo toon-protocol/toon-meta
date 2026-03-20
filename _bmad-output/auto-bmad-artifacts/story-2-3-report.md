@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Created an SDK-based Docker entrypoint (`docker/src/entrypoint-town.ts`) that replaces the original manual wiring with SDK pipeline components (Approach A: individual components, not `createNode()`). The entrypoint uses `createVerificationPipeline`, `createPricingValidator`, `HandlerRegistry`, and `createHandlerContext` from `@crosstown/sdk`, with handlers imported from `@crosstown/town`. The Docker build was updated to include SDK and Town packages, and 7 new E2E tests + 7 static analysis tests validate the SDK relay's behavioral equivalence to the original.
+Created an SDK-based Docker entrypoint (`docker/src/entrypoint-town.ts`) that replaces the original manual wiring with SDK pipeline components (Approach A: individual components, not `createNode()`). The entrypoint uses `createVerificationPipeline`, `createPricingValidator`, `HandlerRegistry`, and `createHandlerContext` from `@toon-protocol/sdk`, with handlers imported from `@toon-protocol/town`. The Docker build was updated to include SDK and Town packages, and 7 new E2E tests + 7 static analysis tests validate the SDK relay's behavioral equivalence to the original.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: SDK-based relay deployed as genesis node, all E2E tests pass — covered by: T-2.3-01, T-2.3-02, T-2.3-05, T-2.3-06, T-2.3-EXIST in `sdk-relay-validation.test.ts` and `genesis-bootstrap-with-channels.test.ts`
@@ -18,7 +18,7 @@ Created an SDK-based Docker entrypoint (`docker/src/entrypoint-town.ts`) that re
 ## Files Changed
 ### docker/
 - `docker/src/entrypoint-town.ts` — **created** — SDK-based Docker entrypoint (535 lines, ~73 lines handler logic)
-- `docker/package.json` — **modified** — Added `@crosstown/sdk` and `@crosstown/town` dependencies; updated `main`/`start` to `entrypoint-town.js`
+- `docker/package.json` — **modified** — Added `@toon-protocol/sdk` and `@toon-protocol/town` dependencies; updated `main`/`start` to `entrypoint-town.js`
 - `docker/Dockerfile` — **modified** — Added COPY stages for SDK and Town packages; updated CMD to `entrypoint-town.js`
 
 ### packages/client/tests/e2e/

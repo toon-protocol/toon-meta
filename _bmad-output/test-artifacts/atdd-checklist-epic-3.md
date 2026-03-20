@@ -30,7 +30,7 @@ inputDocuments:
 
 ## Epic Summary
 
-**Epic 3: Production Protocol Economics** — Production-ready protocol economics: USDC payments, x402 HTTP payment on-ramp, multi-environment chain configuration, and decentralized peer discovery. After this epic, Crosstown nodes deploy on any infrastructure with real USDC on Arbitrum.
+**Epic 3: Production Protocol Economics** — Production-ready protocol economics: USDC payments, x402 HTTP payment on-ramp, multi-environment chain configuration, and decentralized peer discovery. After this epic, TOON nodes deploy on any infrastructure with real USDC on Arbitrum.
 
 **Stories covered:** 3.1 through 3.6 (6 stories, 34 tests)
 
@@ -49,8 +49,8 @@ inputDocuments:
 - `chain: 'anvil'` connects to local Anvil
 - `chain: 'arbitrum-sepolia'` connects to testnet
 - `chain: 'arbitrum-one'` connects to production
-- `CROSSTOWN_CHAIN` env var overrides config
-- `CROSSTOWN_RPC_URL` allows custom RPC override
+- `TOON_CHAIN` env var overrides config
+- `TOON_RPC_URL` allows custom RPC override
 
 ### Story 3.3: x402 /publish Endpoint (FR-PROD-3)
 - GET /publish returns 402 with pricing info
@@ -106,9 +106,9 @@ inputDocuments:
   - **Status:** RED
 - **3.2-UNIT-001** [P0] resolveChainConfig("arbitrum-one") returns production preset
   - **Status:** RED
-- **3.2-UNIT-002** [P1] CROSSTOWN_CHAIN env var overrides config file chain selection
+- **3.2-UNIT-002** [P1] TOON_CHAIN env var overrides config file chain selection
   - **Status:** RED
-- **3.2-UNIT-002** [P1] CROSSTOWN_RPC_URL env var overrides preset RPC endpoint
+- **3.2-UNIT-002** [P1] TOON_RPC_URL env var overrides preset RPC endpoint
   - **Status:** RED
 - **3.2-UNIT-003** [P1] unknown chain name throws clear error message
   - **Status:** RED
@@ -239,7 +239,7 @@ All factories are **inline** within test files (co-located pattern, per project 
 - [ ] Create `packages/core/src/chain/chain-config.ts` with `resolveChainConfig()`
 - [ ] Define `ChainPreset` type with chainId, rpcUrl, usdcAddress, tokenNetworkAddress, name
 - [ ] Implement 3 presets: anvil, arbitrum-sepolia, arbitrum-one
-- [ ] Add CROSSTOWN_CHAIN and CROSSTOWN_RPC_URL env var support
+- [ ] Add TOON_CHAIN and TOON_RPC_URL env var support
 - [ ] Build EIP-712 domain separator using resolved chainId
 - [ ] Remove `.skip` from `chain-config.test.ts` tests
 - [ ] Run: `pnpm test packages/core/src/chain/chain-config.test.ts`
@@ -258,7 +258,7 @@ All factories are **inline** within test files (co-located pattern, per project 
 - [ ] Implement 402 response with pricing info
 - [ ] Implement no-refund-on-REJECT logic
 - [ ] Add Express route: GET /publish
-- [ ] Add CROSSTOWN_X402_ENABLED config flag
+- [ ] Add TOON_X402_ENABLED config flag
 - [ ] Remove `.skip` from `x402-publish-handler.test.ts` tests
 - [ ] Run: `pnpm test packages/town/src/handlers/x402-publish-handler.test.ts`
 - [ ] All tests pass (GREEN phase)

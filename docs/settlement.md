@@ -1,6 +1,6 @@
 # Settlement
 
-Crosstown uses EVM payment channels for off-chain micropayments, settled on-chain when needed.
+TOON uses EVM payment channels for off-chain micropayments, settled on-chain when needed.
 
 ## Chain Negotiation
 
@@ -17,9 +17,9 @@ When two nodes want to peer, they need to agree on which blockchain to use for s
 
 | Example | Chain |
 |---------|-------|
-| `evm:base:8453` | Base mainnet |
-| `evm:base:84532` | Base Sepolia testnet |
-| `evm:base:31337` | Local Anvil |
+| `evm:arbitrum:42161` | Arbitrum One (mainnet) |
+| `evm:arbitrum:421614` | Arbitrum Sepolia (testnet) |
+| `evm:anvil:31337` | Local Anvil |
 
 ## Payment Channels
 
@@ -30,7 +30,7 @@ Channels are opened unilaterally — the joining node opens a channel on the neg
 1. Joiner calls `openChannel(peerAddress, timeout)` on the TokenNetwork contract
 2. TokenNetwork enforces one open channel per participant pair
 3. Off-chain balance updates happen via signed BTP claims
-4. On-chain settlement only occurs at channel close or dispute
+4. On-chain settlement claims can be submitted at any time — the channel remains open for continued use
 
 ### Self-Describing BTP Claims
 

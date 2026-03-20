@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Story 1.10 enables dev mode in the SDK pipeline with three behaviors: pricing validation bypass (all amounts accepted when `devMode: true`), packet logging with `[crosstown:dev]` prefix showing kind, pubkey, amount, destination, and TOON preview, and production mode enforcement ensuring none of these bypasses leak when `devMode` is not set. Signature verification bypass was already implemented in Story 1.4.
+Story 1.10 enables dev mode in the SDK pipeline with three behaviors: pricing validation bypass (all amounts accepted when `devMode: true`), packet logging with `[toon:dev]` prefix showing kind, pubkey, amount, destination, and TOON preview, and production mode enforcement ensuring none of these bypasses leak when `devMode` is not set. Signature verification bypass was already implemented in Story 1.4.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: `createNode({ devMode: true })` with invalid/missing signature -> verification skipped, handler invoked — covered by: `dev-mode.test.ts` (T-1.10-01)
@@ -19,7 +19,7 @@ Story 1.10 enables dev mode in the SDK pipeline with three behaviors: pricing va
 ## Files Changed
 
 ### `packages/sdk/src/`
-- `create-node.ts` (modified) — Added dev mode pricing bypass (lines 247-276), packet logging with `[crosstown:dev]` prefix (lines 220-234), log injection sanitization, standardized `config.devMode ?? false` guards
+- `create-node.ts` (modified) — Added dev mode pricing bypass (lines 247-276), packet logging with `[toon:dev]` prefix (lines 220-234), log injection sanitization, standardized `config.devMode ?? false` guards
 - `dev-mode.test.ts` (modified) — Completely rewritten from 139 to ~487 lines: restructured from `createPaymentHandlerBridge()` to `createNode()` with `MockConnector`, enabled all `.skip` tests, added 3 additional edge case tests (8 total), `try/finally` console spy cleanup, `deliverPacket()` method pattern
 - `__integration__/create-node.test.ts` (modified) — Prettier formatting only
 

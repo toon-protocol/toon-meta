@@ -1,7 +1,7 @@
 # Story 1-2 Report
 
 ## Overview
-- **Story file**: `/Users/jonathangreen/Documents/crosstown/_bmad-output/implementation-artifacts/1-2-handler-registry-with-kind-based-routing.md`
+- **Story file**: `/Users/jonathangreen/Documents/toon/_bmad-output/implementation-artifacts/1-2-handler-registry-with-kind-based-routing.md`
 - **Git start**: `5d41861191dee9d52b856ace8432c6c45eb81e60`
 - **Duration**: ~45 minutes pipeline wall-clock time
 - **Pipeline result**: success

@@ -15,7 +15,7 @@
 | 1 | Set up CI pipeline with genesis node | Critical | Fixed — `.github/workflows/test.yml` enhanced with format check, security audit, SDK E2E, proper teardown |
 | 2 | Implement structured logging | Critical | Fixed — `packages/core/src/logger.ts` created (zero-dep, JSON/human output, child loggers, 17 tests) |
 | 3 | Deploy FiatTokenV2_2 on Anvil (proper 6-decimal USDC) | Critical | Fixed — `scripts/deploy-mock-usdc.sh` created (EIP-3009, EIP-712 compatible) |
-| 4 | Address transitive dependency vulnerabilities | Critical | Fixed — `pnpm.overrides` patches 8 vulns; 31 remaining in `@ardrive/turbo-sdk`/`@crosstown/connector` (no patches available) |
+| 4 | Address transitive dependency vulnerabilities | Critical | Fixed — `pnpm.overrides` patches 8 vulns; 31 remaining in `@ardrive/turbo-sdk`/`@toon-protocol/connector` (no patches available) |
 | 5 | Create project-level semgrep configuration | Critical | Fixed — `.semgrep.yml` and `.semgrepignore` created |
 | 6 | Wire viem clients in startTown() | Recommended | Fixed — production x402 facilitators wired |
 | 7 | Update Docker entrypoint-town.ts for TEE config + createHealthResponse() | Recommended | Fixed — migrated to shared health function |
@@ -25,7 +25,7 @@
 | 11 | Add real Nix integration tests | Recommended | Deferred — requires Nix infrastructure |
 | 12 | Extract Dockerfile.oyster builder stage | Recommended | Deferred — no immediate impact |
 | 13 | Refactor SDK publishEvent() to use shared buildIlpPrepare() | Recommended | Fixed — packet equivalence with x402 rail |
-| 14 | Publish @crosstown/town to npm | Nice-to-have | Deferred |
+| 14 | Publish @toon-protocol/town to npm | Nice-to-have | Deferred |
 | 15 | Ensure code review agents run Prettier | Nice-to-have | Deferred |
 | 16 | Fix NIP-33/NIP-16 doc discrepancy | Nice-to-have | Deferred |
 | 17 | Set up facilitator ETH monitoring | Nice-to-have | Deferred |
@@ -52,7 +52,7 @@
   - Internal: 5.1 → 5.2 → 5.3 (sequential chain); 5.4 independent (parallel with chain)
   - External: All satisfied (Epics 1-4 complete)
 - **Design patterns needed**:
-  - DVM event builders/parsers following `@crosstown/core/src/events/` pattern
+  - DVM event builders/parsers following `@toon-protocol/core/src/events/` pattern
   - SDK handler registration for DVM kinds via `node.on(kind, handler)`
   - Customer-to-provider ILP payment flow (new direction, Story 5.3)
   - Skill descriptor extension of ServiceDiscoveryContent interface
@@ -137,7 +137,7 @@
 - [x] Test design complete (54 test cases, 4 high-priority risks identified)
 
 ## Next Steps
-1. **Story 5.1 (DVM Event Kind Definitions)** — first story to implement. Creates the foundational event builders/parsers in `@crosstown/core/src/events/dvm.ts`.
+1. **Story 5.1 (DVM Event Kind Definitions)** — first story to implement. Creates the foundational event builders/parsers in `@toon-protocol/core/src/events/dvm.ts`.
 2. **Story 5.4 (Skill Descriptors)** — can start in parallel with 5.1 if capacity allows.
 3. Consider splitting oversized stories 5.3 and 5.4 before implementation begins.
 4. Create ATDD test stubs as the first step of each story's implementation.

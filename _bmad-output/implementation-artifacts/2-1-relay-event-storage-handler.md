@@ -10,7 +10,7 @@ So that the existing relay functionality works on the SDK and serves as a refere
 
 **FRs covered:** FR-SDK-14 (BLS reimplemented using SDK handler registry)
 
-**Dependencies:** Epic 1 (SDK must be complete -- all Stories 1.0-1.11). Specifically requires: `createNode()` (1.7), `HandlerContext` with `ctx.decode()`/`ctx.accept()`/`ctx.reject()` (1.3), `Handler` type (1.2), `createHandlerContext` (1.3), verification pipeline (1.4), pricing validator with self-write bypass (1.5), TOON codec in `@crosstown/core` (1.0).
+**Dependencies:** Epic 1 (SDK must be complete -- all Stories 1.0-1.11). Specifically requires: `createNode()` (1.7), `HandlerContext` with `ctx.decode()`/`ctx.accept()`/`ctx.reject()` (1.3), `Handler` type (1.2), `createHandlerContext` (1.3), verification pipeline (1.4), pricing validator with self-write bypass (1.5), TOON codec in `@toon-protocol/core` (1.0).
 
 ## Acceptance Criteria
 
@@ -20,12 +20,12 @@ So that the existing relay functionality works on the SDK and serves as a refere
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Set up `@crosstown/town` package infrastructure (AC: all -- prerequisite)
+- [x] Task 1: Set up `@toon-protocol/town` package infrastructure (AC: all -- prerequisite)
   - [x] Create `packages/town/package.json` with:
-    - `"name": "@crosstown/town"`, `"type": "module"`, `"main": "./dist/index.js"`, `"types": "./dist/index.d.ts"`
-    - **dependencies** (runtime): `@crosstown/sdk` (`workspace:*`), `@crosstown/core` (`workspace:*`), `@crosstown/relay` (`workspace:*`)
+    - `"name": "@toon-protocol/town"`, `"type": "module"`, `"main": "./dist/index.js"`, `"types": "./dist/index.d.ts"`
+    - **dependencies** (runtime): `@toon-protocol/sdk` (`workspace:*`), `@toon-protocol/core` (`workspace:*`), `@toon-protocol/relay` (`workspace:*`)
     - **devDependencies** (test-only): `vitest`, `better-sqlite3`, `@types/better-sqlite3`, `nostr-tools`, `tsup`, `typescript`, `@types/node`
-    - **NOTE on dependency placement:** `@crosstown/relay` is a runtime dependency because the handler imports `EventStore` at runtime. `better-sqlite3` and `nostr-tools` are devDependencies because they are only needed in tests (the handler uses `EventStore` interface, not `SqliteEventStore` directly; and `NostrEvent` from nostr-tools is a type-only import). Follow the SDK package pattern for `exports`, `files`, `engines`, and `publishConfig` fields.
+    - **NOTE on dependency placement:** `@toon-protocol/relay` is a runtime dependency because the handler imports `EventStore` at runtime. `better-sqlite3` and `nostr-tools` are devDependencies because they are only needed in tests (the handler uses `EventStore` interface, not `SqliteEventStore` directly; and `NostrEvent` from nostr-tools is a type-only import). Follow the SDK package pattern for `exports`, `files`, `engines`, and `publishConfig` fields.
   - [x] Create `packages/town/tsconfig.json` extending root tsconfig
   - [x] Create `packages/town/tsup.config.ts` for ESM build with `.d.ts` type declarations
   - [x] Create `packages/town/vitest.config.ts` for per-package test execution, include `src/**/*.test.ts`, exclude `tests/e2e/**`
@@ -41,12 +41,12 @@ So that the existing relay functionality works on the SDK and serves as a refere
   - [x] Define and export `EventStorageHandlerConfig` interface:
     ```typescript
     interface EventStorageHandlerConfig {
-      eventStore: EventStore;          // from @crosstown/relay
+      eventStore: EventStore;          // from @toon-protocol/relay
     }
     ```
     **Design rationale:** The config is minimal because the handler's only job is decode + store + accept. The SDK pipeline handles pricing (via `createPricingValidator`), signature verification (via `createVerificationPipeline`), and self-write bypass (via `ownPubkey` in pricing config). The handler does not need `basePricePerByte`, `ownerPubkey`, `toonEncoder`, or `toonDecoder` -- all of these are SDK pipeline concerns, not handler concerns. The `ctx.decode()` method on `HandlerContext` already has the decoder wired in by the SDK.
   - [x] Implement `createEventStorageHandler(config): Handler`:
-    - The returned function signature matches `Handler` from `@crosstown/sdk`: `(ctx: HandlerContext) => Promise<HandlerResponse>` where `HandlerResponse = HandlePacketAcceptResponse | HandlePacketRejectResponse`
+    - The returned function signature matches `Handler` from `@toon-protocol/sdk`: `(ctx: HandlerContext) => Promise<HandlerResponse>` where `HandlerResponse = HandlePacketAcceptResponse | HandlePacketRejectResponse`
     - Call `ctx.decode()` to get the structured NostrEvent
     - Store the event via `config.eventStore.store(event)` -- the EventStore handles replaceable events, duplicates, etc.
     - Return `ctx.accept({ eventId: event.id, storedAt: Date.now() })` with event metadata
@@ -55,25 +55,25 @@ So that the existing relay functionality works on the SDK and serves as a refere
   - [x] **NOTE on existing test file**: The existing RED-phase test file (`event-storage-handler.test.ts`) creates the handler with `{ eventStore, basePricePerByte, ownerPubkey, toonDecoder, toonEncoder }`. These extra config fields must be removed from the test file's `createEventStorageHandler()` call to match the simplified config interface. Only `{ eventStore }` is needed.
 
 - [x] Task 3: Replace SDK stub with re-export from Town (AC: all)
-  - [x] Update `packages/sdk/src/event-storage-handler.ts` to re-export from `@crosstown/town` OR leave the stub in SDK and have the real implementation ONLY in Town. Decision rationale:
-    - **Option A (recommended):** Keep the SDK stub as-is (throws "not yet implemented"). Town has the real implementation. SDK consumers use `@crosstown/town` for relay functionality. This maintains the boundary: SDK is the framework, Town is the relay implementation.
+  - [x] Update `packages/sdk/src/event-storage-handler.ts` to re-export from `@toon-protocol/town` OR leave the stub in SDK and have the real implementation ONLY in Town. Decision rationale:
+    - **Option A (recommended):** Keep the SDK stub as-is (throws "not yet implemented"). Town has the real implementation. SDK consumers use `@toon-protocol/town` for relay functionality. This maintains the boundary: SDK is the framework, Town is the relay implementation.
     - **Option B:** Move the real implementation into SDK and have Town re-export. This would put relay-specific logic (EventStore) in the framework package, violating the SDK/Town boundary.
-  - [x] Go with Option A: leave SDK stub, Town has the real `createEventStorageHandler`. Update the SDK stub's JSDoc to say "See @crosstown/town for the relay implementation."
+  - [x] Go with Option A: leave SDK stub, Town has the real `createEventStorageHandler`. Update the SDK stub's JSDoc to say "See @toon-protocol/town for the relay implementation."
 
 - [x] Task 4: Enable existing ATDD tests and make them pass (AC: #1, #2, #3)
   - [x] In `packages/town/src/handlers/event-storage-handler.test.ts`:
-    - Change `import { createEventStorageHandler } from '@crosstown/sdk'` to `import { createEventStorageHandler } from '../event-storage-handler.js'` (the handler lives in Town, not SDK)
-    - Change `import { encodeEventToToon, decodeEventFromToon, SqliteEventStore } from '@crosstown/relay'` to import TOON codec from `@crosstown/core/toon` (per Story 1.0, TOON codec lives in core, not relay). `SqliteEventStore` still comes from `@crosstown/relay`.
+    - Change `import { createEventStorageHandler } from '@toon-protocol/sdk'` to `import { createEventStorageHandler } from '../event-storage-handler.js'` (the handler lives in Town, not SDK)
+    - Change `import { encodeEventToToon, decodeEventFromToon, SqliteEventStore } from '@toon-protocol/relay'` to import TOON codec from `@toon-protocol/core/toon` (per Story 1.0, TOON codec lives in core, not relay). `SqliteEventStore` still comes from `@toon-protocol/relay`.
     - Change `describe.skip(...)` to `describe(...)` to enable all 7 tests
     - Update the handler creation in `beforeEach` to use simplified config: `createEventStorageHandler({ eventStore })` (remove `basePricePerByte`, `ownerPubkey`, `toonDecoder`, `toonEncoder` -- these are SDK pipeline concerns)
   - [x] **Test infrastructure decision:** The existing RED tests call `handler(request)` where `request` is `{ amount, destination, data }` (a `HandlePacketRequest`). But SDK handlers receive `HandlerContext`, not raw requests. Two approaches:
-    - **Approach A (unit tests, recommended for T-2.1-01, T-2.1-02, T-2.1-04, T-2.1-05):** Create a test helper that builds a `HandlerContext` from a `HandlePacketRequest` (using `createHandlerContext` from `@crosstown/sdk` and `shallowParseToon` from `@crosstown/core/toon`) and calls the handler. Tests exercise the handler in isolation.
+    - **Approach A (unit tests, recommended for T-2.1-01, T-2.1-02, T-2.1-04, T-2.1-05):** Create a test helper that builds a `HandlerContext` from a `HandlePacketRequest` (using `createHandlerContext` from `@toon-protocol/sdk` and `shallowParseToon` from `@toon-protocol/core/toon`) and calls the handler. Tests exercise the handler in isolation.
     - **Approach B (integration tests, recommended for T-2.1-03, T-2.1-06, T-2.1-07):** Wire a full `createNode()` with the handler registered via `.onDefault()`, then send packets through the pipeline. Tests exercise the handler + SDK pipeline together. This is necessary for pricing rejection (T-2.1-06) and signature rejection (T-2.1-07) since those happen in the SDK, not the handler.
   - [x] Create test helper `createTestContext(request)` in the test file (inline) that:
     1. Decodes base64 data to TOON bytes
-    2. Calls `shallowParseToon()` from `@crosstown/core/toon` on the bytes
-    3. Builds a `HandlerContext` via `createHandlerContext()` from `@crosstown/sdk`
-    4. Wires `toonDecoder` to use `decodeEventFromToon` from `@crosstown/core/toon`
+    2. Calls `shallowParseToon()` from `@toon-protocol/core/toon` on the bytes
+    3. Builds a `HandlerContext` via `createHandlerContext()` from `@toon-protocol/sdk`
+    4. Wires `toonDecoder` to use `decodeEventFromToon` from `@toon-protocol/core/toon`
     5. Returns the context
   - [x] Adapt each unit-level test (Approach A) to:
     1. Create a `HandlerContext` from the request via `createTestContext()`
@@ -123,12 +123,12 @@ The handler is ~15 lines of code. The SDK handles:
 The handler lives in `packages/town/`, NOT in `packages/sdk/`. The SDK is the framework; Town is the relay implementation. This follows the architectural boundary:
 
 ```
-@crosstown/sdk   (framework -- provides createNode, pipeline, HandlerContext)
+@toon-protocol/sdk   (framework -- provides createNode, pipeline, HandlerContext)
     ^
-@crosstown/town  (application -- provides EventStorageHandler, SpspHandshakeHandler)
+@toon-protocol/town  (application -- provides EventStorageHandler, SpspHandshakeHandler)
 ```
 
-The existing SDK stubs (`event-storage-handler.ts`, `spsp-handshake-handler.ts`) remain as stubs that throw. Their JSDoc is updated to point to `@crosstown/town` for the real implementation.
+The existing SDK stubs (`event-storage-handler.ts`, `spsp-handshake-handler.ts`) remain as stubs that throw. Their JSDoc is updated to point to `@toon-protocol/town` for the real implementation.
 
 ### Handler Signature
 
@@ -149,7 +149,7 @@ Where `HandlerContext` provides (from `packages/sdk/src/handler-context.ts`):
 - `ctx.accept(metadata?)` -- accept the packet
 - `ctx.reject(code, message)` -- reject the packet
 
-And `HandlerResponse` is `HandlePacketAcceptResponse | HandlePacketRejectResponse` (exported from `@crosstown/sdk`, types originally from `@crosstown/core`).
+And `HandlerResponse` is `HandlePacketAcceptResponse | HandlePacketRejectResponse` (exported from `@toon-protocol/sdk`, types originally from `@toon-protocol/core`).
 
 ### What the Handler Does NOT Do
 
@@ -176,7 +176,7 @@ These responsibilities are handled by the SDK pipeline stages that execute BEFOR
 
 ### EventStore Interface
 
-The handler uses `EventStore` from `@crosstown/relay`:
+The handler uses `EventStore` from `@toon-protocol/relay`:
 
 ```typescript
 interface EventStore {
@@ -232,8 +232,8 @@ The existing RED-phase tests in `packages/town/src/handlers/event-storage-handle
 **Approach A -- Test helper pattern (for unit-level tests):**
 
 ```typescript
-import { createHandlerContext } from '@crosstown/sdk';
-import { shallowParseToon, decodeEventFromToon } from '@crosstown/core/toon';
+import { createHandlerContext } from '@toon-protocol/sdk';
+import { shallowParseToon, decodeEventFromToon } from '@toon-protocol/core/toon';
 
 function createTestContext(request: { amount: string; destination: string; data: string }) {
   const toonBytes = Buffer.from(request.data, 'base64');
@@ -254,7 +254,7 @@ function createTestContext(request: { amount: string; destination: string; data:
 **Approach B -- Pipeline pattern (for integration-level tests):**
 
 ```typescript
-import { createNode } from '@crosstown/sdk';
+import { createNode } from '@toon-protocol/sdk';
 
 const node = createNode({
   secretKey: nodeSk,
@@ -271,7 +271,7 @@ The Town package follows the same pattern established in Epic 1 for the SDK pack
 
 ```
 packages/town/
-├── package.json            # @crosstown/town, ESM, workspace deps
+├── package.json            # @toon-protocol/town, ESM, workspace deps
 ├── tsconfig.json           # Extends root tsconfig
 ├── tsup.config.ts          # ESM build config
 ├── vitest.config.ts        # Per-package test execution
@@ -304,7 +304,7 @@ packages/town/
 
 **Known upstream doc discrepancy:** The `test-design-epic-2.md` inventory table (line: "packages/town/src/handlers/event-storage-handler.test.ts | 6") lists 6 tests, but the actual file contains 7 tests. The correct count is 7. The ATDD checklist `atdd-checklist-2.1.md` correctly says 7.
 
-**Known ATDD checklist discrepancy:** The `atdd-checklist-2.1.md` Implementation Checklist sections reference creating files in `packages/sdk/src/handlers/` and exporting from `@crosstown/sdk`. This is stale -- the handler lives in `@crosstown/town`, not `@crosstown/sdk`. The story file (this document) is the authoritative source for implementation location.
+**Known ATDD checklist discrepancy:** The `atdd-checklist-2.1.md` Implementation Checklist sections reference creating files in `packages/sdk/src/handlers/` and exporting from `@toon-protocol/sdk`. This is stale -- the handler lives in `@toon-protocol/town`, not `@toon-protocol/sdk`. The story file (this document) is the authoritative source for implementation location.
 
 ### Import Patterns
 
@@ -316,18 +316,18 @@ import { createEventStorageHandler } from './handlers/event-storage-handler.js';
 import type { EventStorageHandlerConfig } from './handlers/event-storage-handler.js';
 
 // SDK imports (framework types -- OK for Town to import from SDK)
-import type { Handler, HandlerContext, HandlerResponse } from '@crosstown/sdk';
-import { createHandlerContext } from '@crosstown/sdk';
+import type { Handler, HandlerContext, HandlerResponse } from '@toon-protocol/sdk';
+import { createHandlerContext } from '@toon-protocol/sdk';
 
 // Core imports (TOON codec -- moved to core in Story 1.0, NOT from relay)
-import { encodeEventToToon, decodeEventFromToon, shallowParseToon } from '@crosstown/core/toon';
+import { encodeEventToToon, decodeEventFromToon, shallowParseToon } from '@toon-protocol/core/toon';
 
 // Relay imports (EventStore -- still in relay)
-import { SqliteEventStore } from '@crosstown/relay';
-import type { EventStore } from '@crosstown/relay';
+import { SqliteEventStore } from '@toon-protocol/relay';
+import type { EventStore } from '@toon-protocol/relay';
 ```
 
-**IMPORTANT:** The existing test file imports `encodeEventToToon` and `decodeEventFromToon` from `@crosstown/relay`. This must be updated to import from `@crosstown/core/toon` per Story 1.0 (TOON codec extraction). `SqliteEventStore` still comes from `@crosstown/relay`.
+**IMPORTANT:** The existing test file imports `encodeEventToToon` and `decodeEventFromToon` from `@toon-protocol/relay`. This must be updated to import from `@toon-protocol/core/toon` per Story 1.0 (TOON codec extraction). `SqliteEventStore` still comes from `@toon-protocol/relay`.
 
 ### Critical Rules
 
@@ -344,7 +344,7 @@ import type { EventStore } from '@crosstown/relay';
 ### Risk Mitigations
 
 - **E2-R001 (SDK replacement behavioral equivalence, score 9):** Side-by-side test with real TOON payload accepted by both old BLS path and new handler. Integration tests T-2.1-01 through T-2.1-05 verify individual handler behaviors match existing BLS. Full E2E validation deferred to Story 2.3.
-- **E2-R002 (TOON roundtrip fidelity, score 6):** Roundtrip test: encode -> store -> retrieve -> re-encode = identical bytes (T-2.1-04). Uses real TOON codec from `@crosstown/core/toon` (no mocks).
+- **E2-R002 (TOON roundtrip fidelity, score 6):** Roundtrip test: encode -> store -> retrieve -> re-encode = identical bytes (T-2.1-04). Uses real TOON codec from `@toon-protocol/core/toon` (no mocks).
 - **E2-R005 (pricing calculation mismatch, score 6):** Integration test T-2.1-06 verifies F04 rejection on underpayment. T-2.1-01 verifies acceptance on exact payment. Uses real pricing calculation (`basePricePerByte * toonData.length`).
 - **E2-R006 (self-write bypass edge cases, score 4):** Integration test T-2.1-03 verifies self-write bypass with real nostr-tools key generation. Tests through full SDK pipeline to exercise `createPricingValidator` self-write path.
 
@@ -373,7 +373,7 @@ import type { EventStore } from '@crosstown/relay';
 **Completion Notes List:**
 - **Task 1 (Package Infrastructure):** Created `packages/town/package.json`, `tsconfig.json`, `tsup.config.ts`, `vitest.config.ts`, and `src/index.ts`. Updated root `tsconfig.json` to remove `packages/town` from exclude. Updated root `eslint.config.js` to remove `packages/town/**` from ignores. Ran `pnpm install` and verified the package appears in workspace listing. Added `spsp-handshake-handler.test.ts` to vitest exclude since Story 2.2 is not yet implemented.
 - **Task 2 (Handler Implementation):** Created `packages/town/src/handlers/event-storage-handler.ts` with `EventStorageHandlerConfig` interface and `createEventStorageHandler` factory. The handler is minimal (~15 lines of logic): `ctx.decode()` -> `eventStore.store(event)` -> `ctx.accept({ eventId, storedAt })`. No pricing, verification, or self-write bypass logic (those are SDK pipeline concerns).
-- **Task 3 (SDK Stub Update):** Updated `packages/sdk/src/event-storage-handler.ts` JSDoc to point to `@crosstown/town` for the real implementation (Option A: keep stub in SDK, real implementation in Town).
+- **Task 3 (SDK Stub Update):** Updated `packages/sdk/src/event-storage-handler.ts` JSDoc to point to `@toon-protocol/town` for the real implementation (Option A: keep stub in SDK, real implementation in Town).
 - **Task 4 (Test Fixes):** Fixed import path in test file from `'../event-storage-handler.js'` to `'./event-storage-handler.js'` (both test and handler are in `src/handlers/`). Fixed pipeline integration tests (T-2.1-03, T-2.1-06, T-2.1-07) to call `node.start()` before accessing `packetHandler` (packet handler is wired during `start()`, not `createNode()`). Fixed T-2.1-04 TOON roundtrip test to use semantic comparison instead of byte-level comparison (SQLite returns NostrEvent fields in different property order than nostr-tools, which changes TOON serialization order). Fixed T-2.1-07 signature test to use forged signature approach instead of content tampering (content tampering preserves original `id`+`sig` which still verify correctly).
 - **Task 5 (New Test T-2.1-08):** Already present in the RED-phase test file -- verified it passes. Total: 11 handler tests (8 original RED-phase + 3 added during implementation: T-2.1-09, T-2.1-10, T-2.1-11).
 - **Task 6 (Build & Test):** All packages build successfully. All 15 town tests pass (11 event-storage-handler + 4 cleanup). Full suite: 1361 tests pass, 79 skipped (pre-existing), 0 failures. Lint: 0 errors. Format: all files pass.
@@ -386,7 +386,7 @@ import type { EventStore } from '@crosstown/relay';
 - `packages/town/src/index.ts` -- created (public API exports)
 - `packages/town/src/handlers/event-storage-handler.ts` -- created (handler implementation)
 - `packages/town/src/handlers/event-storage-handler.test.ts` -- modified (import path fix, pipeline test fixes, roundtrip test fix, signature test fix)
-- `packages/sdk/src/event-storage-handler.ts` -- modified (JSDoc update pointing to @crosstown/town)
+- `packages/sdk/src/event-storage-handler.ts` -- modified (JSDoc update pointing to @toon-protocol/town)
 - `tsconfig.json` -- modified (removed `packages/town` from exclude)
 - `eslint.config.js` -- modified (removed `packages/town/**` from ignores)
 
@@ -403,8 +403,8 @@ import type { EventStore } from '@crosstown/relay';
   - Medium: 0
   - Low: 4
 - **Low Issues (all fixed):**
-  1. Duplicate `import type` from `@crosstown/core` in test file -- consolidated into single import statement
-  2. Redundant inline function type on handler variable in test file -- replaced with `Handler` type alias from `@crosstown/sdk`
+  1. Duplicate `import type` from `@toon-protocol/core` in test file -- consolidated into single import statement
+  2. Redundant inline function type on handler variable in test file -- replaced with `Handler` type alias from `@toon-protocol/sdk`
   3. Missing error propagation documentation in handler JSDoc -- added note about T00 error boundary behavior in SDK pipeline
   4. Test count discrepancy in Dev Agent Record -- stated "8 original RED-phase" but correct count is "11" total tests (corrected)
 - **Outcome:** PASS -- all 4 low-severity issues resolved in-place. No follow-up tasks required.
@@ -458,8 +458,8 @@ import type { EventStore } from '@crosstown/relay';
 | Date       | Version | Description | Author |
 | ---------- | ------- | ----------- | ------ |
 | 2026-03-06 | 0.1     | Initial story draft via BMAD create-story (yolo mode) | SM |
-| 2026-03-06 | 0.2     | Adversarial review: (1) Added formal Dependencies section with specific Epic 1 story references. (2) Simplified EventStorageHandlerConfig to only require `eventStore` -- removed `basePricePerByte`, `ownerPubkey`, `toonEncoder`, `toonDecoder` since these are SDK pipeline concerns, not handler concerns. (3) Added test-design traceability table mapping all 8 ATDD tests to test-design IDs, ACs, risk links, and test approach (unit vs pipeline). (4) Fixed Handler return type from `HandlePacketResponse` to `HandlerResponse` to match actual SDK type. (5) Fixed risk mitigation IDs from E2-R01/R02/R03 to E2-R001/R002/R005/R006 matching test-design-epic-2.md. (6) Added note about stale TOON codec import in test file (`@crosstown/relay` -> `@crosstown/core/toon`). (7) Added note about stale ATDD checklist guidance (handler in SDK -> handler in Town). (8) Added note about test-design-epic-2.md test count discrepancy (says 6, actual 7). (9) Expanded Import Patterns section with concrete import examples for all sources. (10) Added missing infrastructure files to Existing Files section. (11) Expanded References section with 7 additional source references. (12) Added test file update requirements (import source changes, config simplification) to Task 4. | Review |
-| 2026-03-06 | 1.0     | Implementation complete. Created @crosstown/town package with event storage handler. All 11 handler tests pass (7 unit via Approach A, 4 pipeline via Approach B). Fixed 4 test issues: import path, pipeline start() wiring, TOON roundtrip property order, signature tampering approach. Full suite: 1361 pass, 0 fail. | Dev (Claude Opus 4.6) |
-| 2026-03-06 | 1.1     | Code review (yolo mode). 0 critical, 0 high, 0 medium, 4 low issues found and fixed: (1) consolidated duplicate `import type` from `@crosstown/core` in test file, (2) replaced inline function type with `Handler` type alias in test file, (3) added error propagation documentation to handler JSDoc, (4) fixed test count discrepancy in Dev Agent Record (was "8", corrected to "11"). All 15 tests pass, 0 lint errors, formatting clean. | Review (Claude Opus 4.6) |
+| 2026-03-06 | 0.2     | Adversarial review: (1) Added formal Dependencies section with specific Epic 1 story references. (2) Simplified EventStorageHandlerConfig to only require `eventStore` -- removed `basePricePerByte`, `ownerPubkey`, `toonEncoder`, `toonDecoder` since these are SDK pipeline concerns, not handler concerns. (3) Added test-design traceability table mapping all 8 ATDD tests to test-design IDs, ACs, risk links, and test approach (unit vs pipeline). (4) Fixed Handler return type from `HandlePacketResponse` to `HandlerResponse` to match actual SDK type. (5) Fixed risk mitigation IDs from E2-R01/R02/R03 to E2-R001/R002/R005/R006 matching test-design-epic-2.md. (6) Added note about stale TOON codec import in test file (`@toon-protocol/relay` -> `@toon-protocol/core/toon`). (7) Added note about stale ATDD checklist guidance (handler in SDK -> handler in Town). (8) Added note about test-design-epic-2.md test count discrepancy (says 6, actual 7). (9) Expanded Import Patterns section with concrete import examples for all sources. (10) Added missing infrastructure files to Existing Files section. (11) Expanded References section with 7 additional source references. (12) Added test file update requirements (import source changes, config simplification) to Task 4. | Review |
+| 2026-03-06 | 1.0     | Implementation complete. Created @toon-protocol/town package with event storage handler. All 11 handler tests pass (7 unit via Approach A, 4 pipeline via Approach B). Fixed 4 test issues: import path, pipeline start() wiring, TOON roundtrip property order, signature tampering approach. Full suite: 1361 pass, 0 fail. | Dev (Claude Opus 4.6) |
+| 2026-03-06 | 1.1     | Code review (yolo mode). 0 critical, 0 high, 0 medium, 4 low issues found and fixed: (1) consolidated duplicate `import type` from `@toon-protocol/core` in test file, (2) replaced inline function type with `Handler` type alias in test file, (3) added error propagation documentation to handler JSDoc, (4) fixed test count discrepancy in Dev Agent Record (was "8", corrected to "11"). All 15 tests pass, 0 lint errors, formatting clean. | Review (Claude Opus 4.6) |
 | 2026-03-06 | 1.2     | Code review pass #2 (yolo mode). 0 critical, 0 high, 1 medium, 0 low. Fixed 6 occurrences of dot-notation access on `Record<string, unknown>` index signature in test file (TS4111 violation of `noPropertyAccessFromIndexSignature`). Changed to bracket notation. All 15 town tests pass, `tsc --noEmit` clean, 0 lint errors. Full suite: 1364 pass, 0 fail. | Review (Claude Opus 4.6) |
 | 2026-03-06 | 1.3     | Code review pass #3 (yolo mode + OWASP/security analysis). 0 critical, 0 high, 0 medium, 0 low. Full OWASP top 10 review, auth/authz analysis, injection risk assessment. No new issues found. All previous review issues already resolved. All 15 town tests pass, full suite passes. | Review (Claude Opus 4.6) |

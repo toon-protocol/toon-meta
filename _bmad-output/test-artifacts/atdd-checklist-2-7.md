@@ -43,7 +43,7 @@ Remove the SPSP handshake (kind:23194/23195) from the entire protocol and simpli
 
 3. **AC #3 -- peerWith() flow simplification:** `peerWith()` performs: read peer's kind:10032 -> select chain locally -> register with connector (including settlement info) -> open channel unilaterally. No kind:23194/23195 events are created or processed.
 
-4. **AC #4 -- SPSP code removal:** `NostrSpspServer`, `NostrSpspClient`, `IlpSpspClient`, SPSP event builders/parsers removed from `@crosstown/core`. `createSpspHandshakeHandler()` removed from `@crosstown/town`. SDK stub removed. SPSP constants and error classes removed.
+4. **AC #4 -- SPSP code removal:** `NostrSpspServer`, `NostrSpspClient`, `IlpSpspClient`, SPSP event builders/parsers removed from `@toon-protocol/core`. `createSpspHandshakeHandler()` removed from `@toon-protocol/town`. SDK stub removed. SPSP constants and error classes removed.
 
 5. **AC #5 -- RelayMonitor SPSP removal:** `RelayMonitor.peerWith()` no longer performs SPSP handshake. The `IlpSpspClient` dependency is removed.
 
@@ -72,13 +72,13 @@ Remove the SPSP handshake (kind:23194/23195) from the entire protocol and simpli
 | T-2.7-11 | packages/core/src/spsp/ directory is fully deleted | #4 | P0 | Build verify | GREEN |
 | T-2.7-12 | packages/sdk/src/spsp-handshake-handler.ts is deleted | #4 | P1 | Build verify | GREEN |
 | T-2.7-13 | packages/town/src/handlers/spsp-handshake-handler.ts is deleted | #4 | P1 | Build verify | GREEN |
-| T-2.7-14 | createSpspHandshakeHandler not exported from @crosstown/town | #4 | P1 | Unit (export) | GREEN |
-| T-2.7-15 | createSpspHandshakeHandler not exported from @crosstown/sdk | #4 | P1 | Unit (export) | GREEN |
+| T-2.7-14 | createSpspHandshakeHandler not exported from @toon-protocol/town | #4 | P1 | Unit (export) | GREEN |
+| T-2.7-15 | createSpspHandshakeHandler not exported from @toon-protocol/sdk | #4 | P1 | Unit (export) | GREEN |
 | T-2.7-16 | RelayMonitor has no IlpSpspClient dependency | #5 | P1 | Unit | GREEN |
 | T-2.7-17 | peerWith() settlement failure emits 'bootstrap:settlement-failed' (not handshake-failed) | #7 | P1 | Unit | GREEN |
 | T-2.7-18 | BootstrapEvent type includes 'bootstrap:settlement-failed' | #7 | P1 | Unit (static) | GREEN |
 | T-2.7-19 | Settlement functions relocated to packages/core/src/settlement/ | #1 | P1 | Build verify | GREEN |
-| T-2.7-20 | negotiateSettlementChain and resolveTokenForChain exported from @crosstown/core | #1 | P1 | Unit (export) | GREEN |
+| T-2.7-20 | negotiateSettlementChain and resolveTokenForChain exported from @toon-protocol/core | #1 | P1 | Unit (export) | GREEN |
 | T-2.7-21 | pnpm build succeeds with zero SPSP imports | #6 | P0 | Build verify | GREEN |
 | T-2.7-22 | pnpm test passes all remaining tests | #6 | P0 | Build verify | GREEN |
 | T-2.7-23 | pnpm lint reports zero errors | #6 | P1 | Build verify | GREEN |
@@ -153,7 +153,7 @@ Remove the SPSP handshake (kind:23194/23195) from the entire protocol and simpli
 - **T-2.7-08:** `[P0] SpspError and SpspTimeoutError classes are removed`
   - **Status:** GREEN
   - **Verifies:** `packages/core/src/errors.ts` does not contain `SpspError` or `SpspTimeoutError`
-  - **Evidence:** errors.ts contains only `CrosstownError`, `InvalidEventError`, `PeerDiscoveryError`
+  - **Evidence:** errors.ts contains only `ToonError`, `InvalidEventError`, `PeerDiscoveryError`
 
 - **T-2.7-09:** `[P0] SPSP types (SpspInfo, SpspRequest, SpspResponse) are removed`
   - **Status:** GREEN
@@ -180,12 +180,12 @@ Remove the SPSP handshake (kind:23194/23195) from the entire protocol and simpli
   - **Verifies:** Town handler file and test file no longer exist
   - **Evidence:** File confirmed deleted in Dev Agent Record
 
-- **T-2.7-14:** `[P1] createSpspHandshakeHandler not exported from @crosstown/town`
+- **T-2.7-14:** `[P1] createSpspHandshakeHandler not exported from @toon-protocol/town`
   - **Status:** GREEN
   - **Verifies:** `packages/town/src/index.ts` does not export `createSpspHandshakeHandler` or `SpspHandshakeHandlerConfig`
   - **Evidence:** town index.ts exports only `startTown`, `TownConfig`, `TownInstance`, `TownSubscription`, `ResolvedTownConfig`, `createEventStorageHandler`, `EventStorageHandlerConfig`
 
-- **T-2.7-15:** `[P1] createSpspHandshakeHandler not exported from @crosstown/sdk`
+- **T-2.7-15:** `[P1] createSpspHandshakeHandler not exported from @toon-protocol/sdk`
   - **Status:** GREEN
   - **Verifies:** `packages/sdk/src/index.ts` does not export `createSpspHandshakeHandler`
   - **Evidence:** SDK index.ts has no SPSP-related exports
@@ -257,7 +257,7 @@ Remove the SPSP handshake (kind:23194/23195) from the entire protocol and simpli
   - **Verifies:** `packages/core/src/settlement/settlement.ts`, `settlement.test.ts`, and `index.ts` exist
   - **Evidence:** Glob confirms all three files exist
 
-- **T-2.7-20:** `[P1] negotiateSettlementChain and resolveTokenForChain exported from @crosstown/core`
+- **T-2.7-20:** `[P1] negotiateSettlementChain and resolveTokenForChain exported from @toon-protocol/core`
   - **Status:** GREEN
   - **Verifies:** `packages/core/src/index.ts` exports both functions from `./settlement/index.js`
   - **Evidence:** index.ts line 49-52 exports from settlement module

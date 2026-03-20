@@ -1,6 +1,6 @@
 # Protocol
 
-Crosstown extends Nostr with custom event kinds for ILP peering and uses TOON encoding for efficient data transport.
+TOON extends Nostr with custom event kinds for ILP peering and uses TOON encoding for efficient data transport.
 
 ## Event Kinds
 
@@ -16,7 +16,7 @@ Kind 10032 is a replaceable event — publishing a new one with the same `d` tag
 
 ```json
 {
-  "ilpAddress": "g.crosstown.peer1",
+  "ilpAddress": "g.toon.peer1",
   "btpEndpoint": "ws://peer1.example.com:3000",
   "supportedChains": ["evm:base:84532"],
   "settlementAddresses": { "evm:base:84532": "0xABC..." },
@@ -39,7 +39,7 @@ NIP-34 events are payment-gated — submitting a patch requires micropayments vi
 
 ## TOON Format
 
-[TOON](https://toonformat.dev) is a compact, human-readable encoding of the JSON data model. Crosstown uses it natively throughout the entire stack — from ingestion to storage to delivery.
+[TOON](https://toonformat.dev) is a compact, human-readable encoding of the JSON data model. TOON uses it natively throughout the entire stack — from ingestion to storage to delivery.
 
 **Why TOON over JSON?**
 

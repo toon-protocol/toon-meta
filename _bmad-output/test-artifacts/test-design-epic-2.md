@@ -94,7 +94,7 @@ lastSaved: '2026-03-04'
 ## Entry Criteria
 
 - [x] Epic 1 SDK complete (prerequisite for Stories 2.1-2.3, 2.5)
-- [ ] @crosstown/sdk package published and importable
+- [ ] @toon-protocol/sdk package published and importable
 - [ ] Genesis node deployable via deploy-genesis-node.sh (for E2E tests)
 - [ ] Anvil running with deterministic contract addresses
 - [ ] Faucet running at :3500 for ETH + AGENT token distribution
@@ -159,7 +159,7 @@ lastSaved: '2026-03-04'
 | 2.4-UNIT-001 | FR-SDK-16: git-proxy dir removed  | Unit        | E2-R011   | 1          | Dev   | Filesystem existence check             |
 | 2.4-UNIT-002 | FR-SDK-16: No git-proxy deps      | Unit        | E2-R011   | 1          | Dev   | package.json scan                      |
 | 2.4-UNIT-003 | FR-SDK-16: No workspace refs      | Unit        | E2-R011   | 1          | Dev   | pnpm-workspace.yaml check              |
-| 2.4-UNIT-004 | FR-SDK-16: SDK package exists     | Unit        | —         | 1          | Dev   | @crosstown/sdk package.json validation |
+| 2.4-UNIT-004 | FR-SDK-16: SDK package exists     | Unit        | —         | 1          | Dev   | @toon-protocol/sdk package.json validation |
 | 2.5-INT-001  | FR-RELAY-1: startTown() lifecycle | Integration | E2-R010   | 1          | Dev   | Real SQLite, no live relay needed      |
 | 2.5-UNIT-001 | FR-RELAY-1: TownConfig defaults   | Unit        | E2-R012   | 1          | Dev   | Ports 7100/3100, default pricing       |
 | 2.5-UNIT-002 | FR-RELAY-1: API surface exports   | Unit        | —         | 1          | Dev   | startTown, TownConfig exported         |
@@ -209,7 +209,7 @@ lastSaved: '2026-03-04'
 **Test Data:**
 
 - Nostr keypair factory (real nostr-tools generateSecretKey/getPublicKey)
-- TOON-encoded event factory (real encoder from @crosstown/core)
+- TOON-encoded event factory (real encoder from @toon-protocol/core)
 - NIP-44 encrypted payload factory (real nip44 from nostr-tools)
 
 **Tooling:**
@@ -217,7 +217,7 @@ lastSaved: '2026-03-04'
 - Vitest for all test levels
 - SQLite :memory: for EventStore integration tests
 - Real nostr-tools for signature + encryption
-- Real TOON codec from @crosstown/core
+- Real TOON codec from @toon-protocol/core
 
 **Environment:**
 
@@ -246,7 +246,7 @@ lastSaved: '2026-03-04'
 **Mitigation Strategy:**
 
 1. Integration test (2.1-INT-002) performs bit-exact encode→store→decode comparison
-2. Uses real TOON codec from @crosstown/core (no mocks)
+2. Uses real TOON codec from @toon-protocol/core (no mocks)
 3. Tests multiple event kinds (standard events, SPSP events)
 
 **Owner:** Dev
@@ -299,15 +299,15 @@ lastSaved: '2026-03-04'
 
 ### Assumptions
 
-1. Epic 1 SDK is complete and @crosstown/sdk is importable before Epic 2 development starts
-2. TOON codec in @crosstown/core provides identical behavior to current BLS codec
+1. Epic 1 SDK is complete and @toon-protocol/sdk is importable before Epic 2 development starts
+2. TOON codec in @toon-protocol/core provides identical behavior to current BLS codec
 3. deploy-genesis-node.sh produces a working genesis node with Anvil at deterministic addresses
 4. SQLite :memory: is sufficient for integration testing (no need for persistent DB)
 
 ### Dependencies
 
-1. @crosstown/sdk package — Required before Stories 2.1-2.3, 2.5
-2. @crosstown/core TOON codec — Required before Story 2.1
+1. @toon-protocol/sdk package — Required before Stories 2.1-2.3, 2.5
+2. @toon-protocol/core TOON codec — Required before Story 2.1
 3. Genesis node infrastructure — Required for E2E tests (Story 2.3)
 4. Anvil contract addresses — Deterministic from DeployLocal.s.sol
 
@@ -323,9 +323,9 @@ lastSaved: '2026-03-04'
 
 | Service/Component                           | Impact                                 | Regression Scope                                               |
 | ------------------------------------------- | -------------------------------------- | -------------------------------------------------------------- |
-| **@crosstown/bls**                          | Replaced by SDK handler registry       | Existing BLS tests must still pass during transition           |
-| **@crosstown/relay**                        | EventStore reused by @crosstown/town   | Relay tests unaffected (shared dependency)                     |
-| **@crosstown/core**                         | TOON codec + BootstrapService consumed | Core tests must pass (codec extraction in Epic 1)              |
+| **@toon-protocol/bls**                          | Replaced by SDK handler registry       | Existing BLS tests must still pass during transition           |
+| **@toon-protocol/relay**                        | EventStore reused by @toon-protocol/town   | Relay tests unaffected (shared dependency)                     |
+| **@toon-protocol/core**                         | TOON codec + BootstrapService consumed | Core tests must pass (codec extraction in Epic 1)              |
 | **docker/src/entrypoint.ts**                | Superseded by SDK-based entrypoint     | Original entrypoint tests deprecated after SDK relay validated |
 | **genesis-bootstrap-with-channels.test.ts** | Must pass against SDK relay            | Existing E2E test is the validation gate                       |
 

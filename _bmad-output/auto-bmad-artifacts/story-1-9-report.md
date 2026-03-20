@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Story 1.9 integrates network discovery and bootstrap functionality with the `ServiceNode` API surface in `@crosstown/sdk`. It adds an `on('bootstrap', listener)` lifecycle event overload that forwards events from both `BootstrapService` and `RelayMonitor`, and a `peerWith(pubkey)` method for manual peering. Type re-exports (`BootstrapEvent`, `BootstrapEventListener`) are exposed from the SDK's public API.
+Story 1.9 integrates network discovery and bootstrap functionality with the `ServiceNode` API surface in `@toon-protocol/sdk`. It adds an `on('bootstrap', listener)` lifecycle event overload that forwards events from both `BootstrapService` and `RelayMonitor`, and a `peerWith(pubkey)` method for manual peering. Type re-exports (`BootstrapEvent`, `BootstrapEventListener`) are exposed from the SDK's public API.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: `node.start()` with knownPeers triggers layered discovery — covered by: `__integration__/network-discovery.test.ts` test 1

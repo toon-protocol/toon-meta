@@ -1,7 +1,7 @@
 # Story 1-3 Report
 
 ## Overview
-- **Story file**: `/Users/jonathangreen/Documents/crosstown/_bmad-output/implementation-artifacts/1-3-handlercontext-with-toon-passthrough-and-lazy-decode.md`
+- **Story file**: `/Users/jonathangreen/Documents/toon/_bmad-output/implementation-artifacts/1-3-handlercontext-with-toon-passthrough-and-lazy-decode.md`
 - **Git start**: `85d68d46f35c5204e2c4e29bd18899bff2c11736`
 - **Duration**: ~45 minutes pipeline wall-clock time
 - **Pipeline result**: success

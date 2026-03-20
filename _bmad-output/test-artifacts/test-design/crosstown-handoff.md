@@ -8,7 +8,7 @@ inputDocuments:
 sourceWorkflow: 'testarch-test-design'
 generatedBy: 'TEA Master Test Architect'
 generatedAt: '2026-03-03'
-projectName: 'crosstown'
+projectName: 'toon'
 ---
 
 # TEA -> BMAD Integration Handoff
@@ -68,7 +68,7 @@ The following P0/P1 risks should appear as epic-level quality gates:
 | 1.3   | P1-004: Raw TOON passthrough, P1-005: Lazy decode caching | AC: `ctx.toon` available without decode overhead          |
 | 1.4   | P0-003: Invalid sig F06, P0-004: devMode enforcement      | AC: Invalid signature rejected in non-dev mode            |
 | 1.5   | P1-008: Pricing F04, P1-010: Self-write bypass            | AC: Underpaid event rejected; own pubkey events free      |
-| 1.6   | P1-011: Transit fire-and-forget, P1-012: Transit await    | AC: isTransit behavior matches Crosstown Service Protocol |
+| 1.6   | P1-011: Transit fire-and-forget, P1-012: Transit await    | AC: isTransit behavior matches TOON Service Protocol |
 | 1.7   | P0-002: Full pipeline ordering                            | AC: Integration test validates stage sequence             |
 | 2.3   | P0-011: E2E regression                                    | AC: All genesis-bootstrap tests pass                      |
 | 5.1   | P1-024: Repo creation, P0-007: execFile                   | AC: git init via execFile only                            |

@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Story 5.2 is a validation/test story proving that DVM (Data Vending Machine) job request events (Kind 5xxx) flow through the existing Crosstown SDK pipeline identically to all other Nostr event kinds. No production code changes were needed — the existing `publishEvent()`, `HandlerRegistry`, `buildIlpPrepare()`, and pipeline handler infrastructure already support DVM events natively. The story created 27 tests (10 unit, 14 integration, 3 Town package) validating ILP-native submission, x402 packet equivalence, handler dispatch with DVM tags, pricing, pipeline ordering, and relay-side storage.
+Story 5.2 is a validation/test story proving that DVM (Data Vending Machine) job request events (Kind 5xxx) flow through the existing TOON SDK pipeline identically to all other Nostr event kinds. No production code changes were needed — the existing `publishEvent()`, `HandlerRegistry`, `buildIlpPrepare()`, and pipeline handler infrastructure already support DVM events natively. The story created 27 tests (10 unit, 14 integration, 3 Town package) validating ILP-native submission, x402 packet equivalence, handler dispatch with DVM tags, pricing, pipeline ordering, and relay-side storage.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: ILP-native publish + relay storage + pricing — covered by: `dvm-job-submission.test.ts` (T-5.2-01), `dvm-handler-dispatch.test.ts` (T-5.2-08), `event-storage-handler.test.ts` (AC-1 storage test)
@@ -204,10 +204,10 @@ Story 5.2 is a validation/test story proving that DVM (Data Vending Machine) job
 
 ## Known Risks & Gaps
 1. **AC-3 indirect coverage**: Provider WebSocket subscription validated through pipeline integration tests, not direct WebSocket test. Direct test requires live genesis infrastructure. Medium severity, documented in Review Pass #3 (M1).
-2. **Pre-existing import boundary violation**: `create-node.test.ts` and `network-discovery.test.ts` import from `@crosstown/relay` instead of `@crosstown/core/toon`. Not introduced by Story 5.2 — deferred to future cleanup.
+2. **Pre-existing import boundary violation**: `create-node.test.ts` and `network-discovery.test.ts` import from `@toon-protocol/relay` instead of `@toon-protocol/core/toon`. Not introduced by Story 5.2 — deferred to future cleanup.
 3. **No DVM-specific epic test design**: `test-design-epic-5.md` covers old Rig/NIP-34 epic. A new DVM test design should be created.
 
 ---
 
 ## TL;DR
-Story 5.2 validates that DVM job request events (Kind 5xxx) flow through the existing Crosstown SDK pipeline with zero production code changes. 27 tests were created covering all 6 acceptance criteria, including ILP-native submission, x402 packet equivalence, handler dispatch, pricing, pipeline ordering, and relay storage. The pipeline passed cleanly with 0 critical/high issues across 3 code review passes and a clean semgrep security scan. The only action item is adding a direct WebSocket subscription test for AC-3 when genesis infrastructure becomes available in CI.
+Story 5.2 validates that DVM job request events (Kind 5xxx) flow through the existing TOON SDK pipeline with zero production code changes. 27 tests were created covering all 6 acceptance criteria, including ILP-native submission, x402 packet equivalence, handler dispatch, pricing, pipeline ordering, and relay storage. The pipeline passed cleanly with 0 critical/high issues across 3 code review passes and a clean semgrep security scan. The only action item is adding a direct WebSocket subscription test for AC-3 when genesis infrastructure becomes available in CI.

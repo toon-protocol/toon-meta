@@ -93,7 +93,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** No hardcoded secrets; env var overrides must not leak credentials
-- **Actual:** No secrets in chain presets. Environment variables (`CROSSTOWN_CHAIN`, `CROSSTOWN_RPC_URL`, `CROSSTOWN_TOKEN_NETWORK`) are read via bracket notation (`process.env['KEY']`), which is the safe access pattern. RPC URLs are configuration values, not authentication credentials.
+- **Actual:** No secrets in chain presets. Environment variables (`TOON_CHAIN`, `TOON_RPC_URL`, `TOON_TOKEN_NETWORK`) are read via bracket notation (`process.env['KEY']`), which is the safe access pattern. RPC URLs are configuration values, not authentication credentials.
 - **Evidence:** `packages/core/src/chain/chain-config.ts` lines 98, 114, 120. Grep for `hardcoded|secret|password|api.?key` returned 0 matches.
 - **Findings:** No authentication concerns. The chain presets contain only public blockchain configuration (chain IDs, public RPC endpoints, public contract addresses).
 
@@ -109,15 +109,15 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** No sensitive data exposed in error messages; defensive copies prevent shared-state mutation
-- **Actual:** `CrosstownError` messages expose only the invalid chain name (user-provided input), which is acceptable. Defensive copy (line 111: `{ ...preset }`) prevents callers from mutating the shared `CHAIN_PRESETS` object. Test `resolveChainConfig() returns defensive copy, not shared reference` (line 195-207) validates this.
+- **Actual:** `ToonError` messages expose only the invalid chain name (user-provided input), which is acceptable. Defensive copy (line 111: `{ ...preset }`) prevents callers from mutating the shared `CHAIN_PRESETS` object. Test `resolveChainConfig() returns defensive copy, not shared reference` (line 195-207) validates this.
 - **Evidence:** `packages/core/src/chain/chain-config.test.ts` lines 195-207 (defensive copy test)
-- **Findings:** Error messages are appropriately scoped. The `CrosstownError` includes a machine-readable error code (`INVALID_CHAIN`) for programmatic handling.
+- **Findings:** Error messages are appropriately scoped. The `ToonError` includes a machine-readable error code (`INVALID_CHAIN`) for programmatic handling.
 
 ### Vulnerability Management
 
 - **Status:** CONCERNS
 - **Threshold:** 0 critical, 0 high vulnerabilities in direct dependencies
-- **Actual:** `pnpm audit --prod` reports 29 vulnerabilities (14 low, 6 moderate, 7 high, 2 critical). All are in transitive dependencies of `@crosstown/connector > express > qs` and `@crosstown/connector > express > body-parser > qs`. None are introduced by Story 3.2.
+- **Actual:** `pnpm audit --prod` reports 29 vulnerabilities (14 low, 6 moderate, 7 high, 2 critical). All are in transitive dependencies of `@toon-protocol/connector > express > qs` and `@toon-protocol/connector > express > body-parser > qs`. None are introduced by Story 3.2.
 - **Evidence:** `pnpm audit --prod` output (2026-03-13). All vulnerability paths trace to `qs@6.11.0` in the connector's Express dependency.
 - **Findings:** Pre-existing vulnerability debt in the connector package's Express dependency. Not introduced by this story. The connector uses ethers.js and Express (architectural debt per Decision 7). Upgrading Express/qs is a separate maintenance task.
 
@@ -145,7 +145,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** 0 test failures; clear error messages for invalid input
-- **Actual:** 14/14 ATDD tests pass. `resolveChainConfig('invalid-chain')` throws `CrosstownError` with message `Unknown chain "invalid-chain". Valid chains: anvil, arbitrum-sepolia, arbitrum-one` and error code `INVALID_CHAIN`.
+- **Actual:** 14/14 ATDD tests pass. `resolveChainConfig('invalid-chain')` throws `ToonError` with message `Unknown chain "invalid-chain". Valid chains: anvil, arbitrum-sepolia, arbitrum-one` and error code `INVALID_CHAIN`.
 - **Evidence:** `packages/core/src/chain/chain-config.test.ts` lines 169-173 (invalid chain test). Full suite: 1358 passing, 0 failures, 0 regressions.
 - **Findings:** Error handling is explicit and deterministic. No silent failures.
 
@@ -161,7 +161,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** Env var overrides do not break preset defaults; missing env vars fall through gracefully
-- **Actual:** Override chain is: `CROSSTOWN_CHAIN` (if set) > `chain` parameter > `'anvil'` default. Each env var override (`CROSSTOWN_RPC_URL`, `CROSSTOWN_TOKEN_NETWORK`) is independently optional. Absence of any env var falls through to the preset default.
+- **Actual:** Override chain is: `TOON_CHAIN` (if set) > `chain` parameter > `'anvil'` default. Each env var override (`TOON_RPC_URL`, `TOON_TOKEN_NETWORK`) is independently optional. Absence of any env var falls through to the preset default.
 - **Evidence:** `packages/core/src/chain/chain-config.ts` lines 96-126. Tests 3.2-UNIT-002 (lines 133-163) verify override behavior.
 - **Findings:** Graceful degradation: if no env vars or parameters are set, `resolveChainConfig()` returns the Anvil preset (safe local-dev defaults).
 
@@ -211,7 +211,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** No new tech debt introduced; viem-only for new code (Decision 7)
-- **Actual:** Static analysis test `3.9-UNIT-001` (line 214-241) scans `packages/{core,sdk,town}/src/` for ethers imports and verifies 0 violations. The `@crosstown/core` package has no viem dependency (by design -- `buildEip712Domain()` returns plain `string` for `verifyingContract`, not viem `Hex`). The connector's ethers.js usage is explicitly excluded as architectural debt per Decision 7.
+- **Actual:** Static analysis test `3.9-UNIT-001` (line 214-241) scans `packages/{core,sdk,town}/src/` for ethers imports and verifies 0 violations. The `@toon-protocol/core` package has no viem dependency (by design -- `buildEip712Domain()` returns plain `string` for `verifyingContract`, not viem `Hex`). The connector's ethers.js usage is explicitly excluded as architectural debt per Decision 7.
 - **Evidence:** `packages/core/src/chain/chain-config.test.ts` lines 214-241 (viem-only enforcement test). Story Dev Notes: "viem-only for new code -- Decision 7 mandates viem for all new chain interaction code."
 - **Findings:** No new technical debt. Clean viem boundary maintained.
 
@@ -242,7 +242,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
    - No code changes needed, only vitest.config.ts update
 
 2. **Upgrade connector Express dependency** (Security) - MEDIUM - 4 hours
-   - Upgrade `@crosstown/connector` Express and qs to resolve 29 transitive vulnerabilities
+   - Upgrade `@toon-protocol/connector` Express and qs to resolve 29 transitive vulnerabilities
    - Separate from Story 3.2, tracked as maintenance task
 
 ---
@@ -256,7 +256,7 @@ None. No FAIL or blocking issues.
 ### Short-term (Next Milestone) - MEDIUM Priority
 
 1. **Upgrade connector Express/qs dependencies** - MEDIUM - 4 hours - Dev Team
-   - Resolve 29 transitive vulnerabilities (14 low, 6 moderate, 7 high, 2 critical) in `@crosstown/connector > express > qs`
+   - Resolve 29 transitive vulnerabilities (14 low, 6 moderate, 7 high, 2 critical) in `@toon-protocol/connector > express > qs`
    - Update Express to latest v4 (or migrate to Hono, which is already used in Town and SDK)
    - Validate connector E2E tests still pass after upgrade
 
@@ -298,7 +298,7 @@ None. No FAIL or blocking issues.
 
 ### Validation Gates (Security)
 
-- [x] `resolveChainConfig()` throws `CrosstownError` with code `INVALID_CHAIN` for unknown chain names -- prevents misconfiguration from reaching runtime
+- [x] `resolveChainConfig()` throws `ToonError` with code `INVALID_CHAIN` for unknown chain names -- prevents misconfiguration from reaching runtime
   - **Owner:** Implemented
   - **Estimated Effort:** Done
 

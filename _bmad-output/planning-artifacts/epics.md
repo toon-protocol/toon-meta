@@ -2,7 +2,7 @@
 stepsCompleted: [1, 2, 3, 4]
 inputDocuments:
   - docs/prd/2-requirements.md
-  - docs/architecture/crosstown-service-protocol.md
+  - docs/architecture/toon-service-protocol.md
   - docs/architecture/5-components.md
   - docs/architecture/7-core-workflows.md
   - docs/architecture/12-coding-standards.md
@@ -11,11 +11,11 @@ inputDocuments:
   - packages/core/src/compose.ts
 ---
 
-# Crosstown SDK - Epic Breakdown
+# TOON SDK - Epic Breakdown
 
 ## Overview
 
-This document provides the epic and story breakdown for `@crosstown/sdk`, decomposing the requirements from the PRD, Architecture, and the Crosstown Service Protocol spec into implementable stories. The SDK is a TOON-native, ILP-gated service node framework with unified secp256k1 identity (Nostr + EVM). Developers build ILP-gated services by registering kind-based handlers that receive raw TOON for direct LLM consumption, with optional structured decode for code-based handlers.
+This document provides the epic and story breakdown for `@toon-protocol/sdk`, decomposing the requirements from the PRD, Architecture, and the TOON Service Protocol spec into implementable stories. The SDK is a TOON-native, ILP-gated service node framework with unified secp256k1 identity (Nostr + EVM). Developers build ILP-gated services by registering kind-based handlers that receive raw TOON for direct LLM consumption, with optional structured decode for code-based handlers.
 
 > **Scope Note:** This document supersedes `docs/prd/` (v3.0, 2026-02-17) as the requirements baseline for the SDK phase. The old PRD's FR1-FR66 covered a broader scope (17 epics including agent runtime, Gas Town integration, NIP adoption roadmap) that no longer reflects the current project direction. The Requirements Inventory below defines the authoritative FR set for implementation.
 
@@ -25,9 +25,9 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 
 **TOON Codec Prerequisite (derived from Architecture Decision 1)**
 
-- FR-SDK-0: The TOON encoder, decoder, and shallow parser SHALL be available in `@crosstown/core` to avoid circular dependencies and enable SDK, BLS, and relay packages to share a single codec location
+- FR-SDK-0: The TOON encoder, decoder, and shallow parser SHALL be available in `@toon-protocol/core` to avoid circular dependencies and enable SDK, BLS, and relay packages to share a single codec location
 
-**SDK Core (derived from Crosstown Service Protocol + existing FR27-FR30)**
+**SDK Core (derived from TOON Service Protocol + existing FR27-FR30)**
 
 - FR-SDK-1: The SDK SHALL provide a `createNode()` function that composes an embedded `ConnectorNode` with a handler registry, bootstrap service, and relay monitor into a single lifecycle-managed object
 - FR-SDK-2: The SDK SHALL provide a handler registry with `.on(kind, handler)` and `.onDefault(handler)` methods for routing events by kind to developer-provided handler functions
@@ -37,11 +37,11 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - FR-SDK-6: The SDK SHALL bridge the handler registry to the connector's `PaymentHandler` interface, using `isTransit` to distinguish fire-and-forget (intermediate hop) from await (final hop) semantics
 - FR-SDK-7: The SDK SHALL provide a `HandlerContext` object to handlers with `toon` (raw TOON string), `kind`, `pubkey`, `amount`, `destination`, `decode()` (lazy), `accept(data?)` and `reject(code, message)` methods
 - FR-SDK-8: The SDK SHALL expose the embedded connector's direct method API for peer management (`registerPeer`, `removePeer`), packet sending (`sendPacket`), and channel operations (`openChannel`, `getChannelState`)
-- FR-SDK-9: The SDK SHALL integrate with `BootstrapService` and `RelayMonitor` from `@crosstown/core` for peer discovery and network join
+- FR-SDK-9: The SDK SHALL integrate with `BootstrapService` and `RelayMonitor` from `@toon-protocol/core` for peer discovery and network join
 - FR-SDK-10: The SDK SHALL manage complete node lifecycle via `start()` and `stop()` methods (connector start, bootstrap, relay monitor start; graceful shutdown)
-- FR-SDK-11: The SDK SHALL use `@crosstown/connector` in embedded mode (`deploymentMode: 'embedded'`) with `setPacketHandler()` for in-process packet delivery
+- FR-SDK-11: The SDK SHALL use `@toon-protocol/connector` in embedded mode (`deploymentMode: 'embedded'`) with `setPacketHandler()` for in-process packet delivery
 - FR-SDK-12: The SDK SHALL support a dev mode that skips signature verification, bypasses pricing, and logs all incoming packets for local development
-- FR-SDK-13: The SDK SHALL be published as `@crosstown/sdk` on npm with public access
+- FR-SDK-13: The SDK SHALL be published as `@toon-protocol/sdk` on npm with public access
 - FR-SDK-NEW-1: The SDK SHALL provide unified identity from BIP-39 seed phrases: `generateMnemonic()`, `fromMnemonic(words, options?)`, and `fromSecretKey(key)` deriving both Nostr pubkey (x-only Schnorr) and EVM address (Keccak-256) from a single secp256k1 key via NIP-06 derivation path `m/44'/1237'/0'/0/{accountIndex}`
 
 **Validation & Proof (derived from existing codebase)**
@@ -49,29 +49,29 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - FR-SDK-14: The current relay BLS logic in `docker/src/entrypoint.ts` SHALL be reimplementable using the SDK's handler registry, proving SDK completeness
 - FR-SDK-15: All existing E2E tests SHALL pass when running against a relay built with the SDK
 
-**Cleanup (derived from Crosstown Service Protocol)**
+**Cleanup (derived from TOON Service Protocol)**
 
-- FR-SDK-16: The `packages/git-proxy/` package SHALL be removed as it is superseded by the Crosstown Service Protocol pattern
+- FR-SDK-16: The `packages/git-proxy/` package SHALL be removed as it is superseded by the TOON Service Protocol pattern
 
 **Relay Node Publishing (derived from Epic 2)**
 
-- FR-RELAY-1: The SDK-based relay SHALL be published as `@crosstown/town` on npm with a `startTown(config)` function, CLI entrypoint, and Docker image
+- FR-RELAY-1: The SDK-based relay SHALL be published as `@toon-protocol/town` on npm with a `startTown(config)` function, CLI entrypoint, and Docker image
 
 **Production Protocol Economics (derived from Party Mode Decisions 2026-03-05/06)**
 
 - FR-PROD-1: The protocol SHALL use USDC as the sole user-facing payment token, replacing the AGENT development token. Payment channels, pricing, and all user flows SHALL be USDC-denominated
 - FR-PROD-2: The protocol SHALL support multi-environment chain configuration: Anvil (local dev with mock USDC), Arbitrum Sepolia (staging with testnet USDC), and Arbitrum One (production with real USDC)
-- FR-PROD-3: Crosstown nodes SHALL expose a `/publish` HTTP endpoint that accepts x402 payments (HTTP 402 negotiation with EIP-3009 gasless USDC authorization), constructs ILP PREPARE packets with TOON data payloads, and routes them through the ILP network to destination relays
+- FR-PROD-3: TOON nodes SHALL expose a `/publish` HTTP endpoint that accepts x402 payments (HTTP 402 negotiation with EIP-3009 gasless USDC authorization), constructs ILP PREPARE packets with TOON data payloads, and routes them through the ILP network to destination relays
 - FR-PROD-4: Peer discovery SHALL use a seed relay list model (kind:10036 events on public Nostr relays) instead of requiring a genesis node. Any relay in the seed list can bootstrap a new peer into the network
-- FR-PROD-5: Crosstown nodes SHALL publish kind:10035 (x402 Service Discovery) events advertising payment endpoint, pricing, and supported chains in a machine-readable format
+- FR-PROD-5: TOON nodes SHALL publish kind:10035 (x402 Service Discovery) events advertising payment endpoint, pricing, and supported chains in a machine-readable format
 - FR-PROD-6: The `/health` endpoint SHALL return enriched JSON including peer count, channel count, pricing information, and service capabilities for both human and agent consumption
 - FR-PROD-7: The SPSP handshake (kind:23194/23195) SHALL be removed from the protocol. The peer discovery handshake phase SHALL be eliminated, with chain selection running locally against kind:10032 data and channels opened unilaterally
 - FR-PROD-8: The Town node SHALL expose a relay subscription API allowing developers to subscribe to other Nostr relays for any event kind, enabling extensible peer discovery, seed relay lists, and custom event subscriptions
 
 **Marlin TEE Deployment (derived from Party Mode Decisions 2026-03-05/06)**
 
-- FR-TEE-1: The Crosstown Docker image SHALL be packaged for deployment on Marlin Oyster CVM with attestation server configuration and proxy endpoint mapping
-- FR-TEE-2: Crosstown nodes running in Oyster CVM SHALL publish kind:10033 (TEE Attestation) events containing PCR values, enclave image hash, and attestation documents
+- FR-TEE-1: The TOON Docker image SHALL be packaged for deployment on Marlin Oyster CVM with attestation server configuration and proxy endpoint mapping
+- FR-TEE-2: TOON nodes running in Oyster CVM SHALL publish kind:10033 (TEE Attestation) events containing PCR values, enclave image hash, and attestation documents
 - FR-TEE-3: The BootstrapService SHALL verify kind:10033 attestation events when discovering peers, preferring TEE-attested relays and validating PCR measurements against known-good image hashes
 - FR-TEE-4: Enclave-resident nodes SHALL derive persistent Nostr identity keys from Nautilus KMS seeds, binding relay identity to TEE code integrity
 - FR-TEE-5: Docker builds SHALL use Nix for reproducible builds producing deterministic PCR values across build environments
@@ -91,14 +91,23 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - FR-DVM-7: DVM job results (Kind 6xxx) from TEE-attested nodes SHALL include a reference to the node's kind:10033 attestation event, providing cryptographic proof that the computation ran in a verified enclave
 - FR-DVM-8: The protocol SHALL define a reputation scoring system combining ILP channel volume, Web of Trust declarations (Kind 30382), job completion statistics, and job reviews (Kind 31117) into a composite score visible in kind:10035 service discovery events
 
-**NIP-34 Git Forge — The Rig (derived from Crosstown Service Protocol + NIP-34)**
+**ILP Address Hierarchy & Protocol Economics (derived from Party Mode 2026-03-20)**
+
+- FR-ADDR-1: ILP addresses SHALL be deterministically derived from the peering topology using `${parentPrefix}.${childPubkey.slice(0, 8)}`, with the root prefix (`g.toon`) as a deployment constant
+- FR-ADDR-2: The BTP handshake SHALL communicate the upstream peer's prefix so the connecting node can compute its own address deterministically
+- FR-ADDR-3: Multi-peered nodes SHALL hold multiple ILP addresses (one per upstream peering) and advertise all addresses in kind:10032 events
+- FR-ADDR-4: Each node SHALL advertise a `feePerByte` field in kind:10032 peer info events to enable route-aware fee calculation
+- FR-ADDR-5: The SDK SHALL compute total cost internally as `destinationWriteFee + Σ(hop[i].feePerByte × packetBytes)`, making fee calculation invisible to `publishEvent()` callers
+- FR-ADDR-6: A new Nostr event kind SHALL enable peers to claim human-readable vanity prefixes (e.g., `useast`, `btc`) from their upstream peer by paying for the prefix, creating an ILP address marketplace
+
+**NIP-34 Git Forge — The Rig (derived from TOON Service Protocol + NIP-34)**
 
 - FR-NIP34-1: The Rig SHALL be an SDK-based service node that receives NIP-34 git events (kinds 30617, 1617, 1618, 1619, 1621, 1622, 1630-1633) via ILP packets and executes git operations via TypeScript-native git HTTP backend
 - FR-NIP34-2: The Rig SHALL use Nostr pubkeys as native identity for all git operations — no separate user database, no identity mapping layer; pubkeys ARE the usernames
 - FR-NIP34-3: The Rig SHALL serve a read-only web UI (TypeScript port of Forgejo's code browsing/diff templates converted from Go HTML to EJS/Eta) with issues/PRs/comments sourced from Nostr events on the relay
 - FR-NIP34-4: The Rig SHALL process NIP-34 status events (kinds 1630-1633) for PR lifecycle management with pubkey-based permission checks
-- FR-NIP34-5: The Rig SHALL be a single-process TypeScript service deployable via `npx @crosstown/rig` with no Go, no Docker, and no external database dependencies
-- FR-NIP34-6: The Rig SHALL be published as `@crosstown/rig` on npm with a `startRig(config)` function, CLI entrypoint, and Docker image
+- FR-NIP34-5: The Rig SHALL be a single-process TypeScript service deployable via `npx @toon-protocol/rig` with no Go, no Docker, and no external database dependencies
+- FR-NIP34-6: The Rig SHALL be published as `@toon-protocol/rig` on npm with a `startRig(config)` function, CLI entrypoint, and Docker image
 
 ### NonFunctional Requirements
 
@@ -106,9 +115,9 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - NFR-SDK-2: The SDK SHALL support Node.js 24.x via ESM
 - NFR-SDK-3: The SDK SHALL achieve >80% line coverage for public APIs
 - NFR-SDK-4: Developer integration time for creating a basic custom service SHALL be under 30 minutes (10 lines of code for a minimal node)
-- NFR-SDK-5: The SDK SHALL use structural typing for the `ConnectorNode` interface to keep `@crosstown/connector` as an optional peer dependency
+- NFR-SDK-5: The SDK SHALL use structural typing for the `ConnectorNode` interface to keep `@toon-protocol/connector` as an optional peer dependency
 - NFR-SDK-6: Unit tests SHALL use mocked connectors with no live relay or blockchain dependencies
-- NFR-SDK-7: The SDK package size SHALL be minimal, depending only on `@crosstown/core` (includes TOON codec per FR-SDK-0), `nostr-tools`, `@scure/bip39`, `@scure/bip32`
+- NFR-SDK-7: The SDK package size SHALL be minimal, depending only on `@toon-protocol/core` (includes TOON codec per FR-SDK-0), `nostr-tools`, `@scure/bip39`, `@scure/bip32`
 
 ### Additional Requirements
 
@@ -127,7 +136,7 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - Factory functions for test fixtures
 - AAA pattern (Arrange, Act, Assert)
 
-**From Architecture - Crosstown Service Protocol:**
+**From Architecture - TOON Service Protocol:**
 
 - Service contract is `POST /handle-packet` with `HandlePacketRequest`/`HandlePacketResponse`
 - These types already exist in `packages/core/src/compose.ts`
@@ -136,7 +145,7 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 - Nostr pubkeys are universal identity (no service-specific auth)
 - TOON is the AI-native wire format — handlers receive raw TOON for direct LLM consumption
 
-**From Connector Package (@crosstown/connector@1.4.0):**
+**From Connector Package (@toon-protocol/connector@1.4.0):**
 
 - `ConnectorNode` class with `setPacketHandler(handler: PaymentHandler)` for simplified handling
 - `PaymentRequest` includes `isTransit`, `paymentId`, `destination`, `amount`, `data`
@@ -155,7 +164,7 @@ This document provides the epic and story breakdown for `@crosstown/sdk`, decomp
 
 ### FR Coverage Map
 
-FR-SDK-0: Epic 1, Story 1.0 - TOON codec extraction to @crosstown/core
+FR-SDK-0: Epic 1, Story 1.0 - TOON codec extraction to @toon-protocol/core
 FR-SDK-1: Epic 1, Story 1.7 - createNode() composition function
 FR-SDK-2: Epic 1, Story 1.2 - Handler registry (.on/.onDefault)
 FR-SDK-3: Epic 1, Story 1.3 - TOON-native HandlerContext with passthrough + lazy decode
@@ -168,12 +177,12 @@ FR-SDK-9: Epic 1, Story 1.9 - BootstrapService + RelayMonitor integration
 FR-SDK-10: Epic 1, Story 1.7 - Node lifecycle (start/stop)
 FR-SDK-11: Epic 1, Story 1.7 - Embedded connector mode
 FR-SDK-12: Epic 1, Story 1.10 - Dev mode
-FR-SDK-13: Epic 1, Story 1.11 - npm publish as @crosstown/sdk
+FR-SDK-13: Epic 1, Story 1.11 - npm publish as @toon-protocol/sdk
 FR-SDK-NEW-1: Epic 1, Story 1.1 - Unified identity from seed phrase
 FR-SDK-14: Epic 2, Story 2.1 - Relay reimplementation using SDK
 FR-SDK-15: Epic 2, Story 2.3 - E2E test validation
 FR-SDK-16: Epic 2, Story 2.4 - Remove packages/git-proxy
-FR-RELAY-1: Epic 2, Story 2.5 - Publish @crosstown/town package
+FR-RELAY-1: Epic 2, Story 2.5 - Publish @toon-protocol/town package
 FR-PROD-1: Epic 3, Story 3.1 - USDC token migration
 FR-PROD-2: Epic 3, Story 3.2 - Multi-environment chain configuration
 FR-PROD-3: Epic 3, Story 3.3 - x402 /publish endpoint
@@ -196,30 +205,36 @@ FR-DVM-5: Epic 6, Story 6.1 - Workflow chains (multi-step pipelines)
 FR-DVM-6: Epic 6, Story 6.2 - Agent swarms (competitive bidding)
 FR-DVM-7: Epic 6, Story 6.3 - TEE-attested DVM results
 FR-DVM-8: Epic 6, Story 6.4 - Reputation scoring system
-FR-NIP34-1: Epic 7, Stories 7.1-7.4 - Git HTTP backend and NIP-34 handlers (split across repo, patch, issue/comment, HTTP backend)
-FR-NIP34-2: Epic 7, Story 7.5 - Nostr pubkey-native git identity
-FR-NIP34-3: Epic 7, Stories 7.7-7.10 - Read-only code browsing web UI (split across layout+repo list, tree+blob, commits+diff, blame)
-FR-NIP34-4: Epic 7, Story 7.6 - PR lifecycle via NIP-34 status events
-FR-NIP34-5: Epic 7, Story 7.11 - Issues/PRs from Nostr events on relay
-FR-NIP34-6: Epic 7, Story 7.12 - Publish @crosstown/rig package
+FR-ADDR-1: Epic 7, Story 7.1 - Deterministic address derivation from pubkey + parent prefix
+FR-ADDR-2: Epic 7, Story 7.2 - BTP address assignment handshake
+FR-ADDR-3: Epic 7, Story 7.3 - Multi-address support for multi-peered nodes
+FR-ADDR-4: Epic 7, Story 7.4 - Fee-per-byte advertisement in kind:10032
+FR-ADDR-5: Epic 7, Story 7.5 - SDK route-aware fee calculation (invisible to users)
+FR-ADDR-6: Epic 7, Story 7.6 - Prefix claim kind and vanity prefix marketplace
+FR-NIP34-1: Epic 8, Stories 8.1-8.4 - Git HTTP backend and NIP-34 handlers (split across repo, patch, issue/comment, HTTP backend)
+FR-NIP34-2: Epic 8, Story 8.5 - Nostr pubkey-native git identity
+FR-NIP34-3: Epic 8, Stories 8.7-8.10 - Read-only code browsing web UI (split across layout+repo list, tree+blob, commits+diff, blame)
+FR-NIP34-4: Epic 8, Story 8.6 - PR lifecycle via NIP-34 status events
+FR-NIP34-5: Epic 8, Story 8.11 - Issues/PRs from Nostr events on relay
+FR-NIP34-6: Epic 8, Story 8.12 - Publish @toon-protocol/rig package
 
 ## Epic List
 
 ### Epic 1: ILP-Gated Service Node SDK
 
-A developer can create a working ILP-gated service node from a 12-word seed phrase in ~10 lines of code. The SDK provides unified secp256k1 identity (Nostr + EVM), TOON-native kind-based event handling with raw TOON passthrough for LLM consumption and lazy decode for code handlers, configurable pricing validation, embedded connector lifecycle management, network discovery, and dev mode. Includes the TOON codec extraction prerequisite. Published as `@crosstown/sdk`.
+A developer can create a working ILP-gated service node from a 12-word seed phrase in ~10 lines of code. The SDK provides unified secp256k1 identity (Nostr + EVM), TOON-native kind-based event handling with raw TOON passthrough for LLM consumption and lazy decode for code handlers, configurable pricing validation, embedded connector lifecycle management, network discovery, and dev mode. Includes the TOON codec extraction prerequisite. Published as `@toon-protocol/sdk`.
 **FRs covered:** FR-SDK-0, FR-SDK-1, FR-SDK-2, FR-SDK-3, FR-SDK-4, FR-SDK-5, FR-SDK-6, FR-SDK-7, FR-SDK-8, FR-SDK-9, FR-SDK-10, FR-SDK-11, FR-SDK-12, FR-SDK-13, FR-SDK-NEW-1
 
 ### Epic 2: Nostr Relay Reference Implementation, Protocol Stabilization & SDK Validation
 
-The existing relay BLS is rebuilt using the SDK's handler registry, proving SDK completeness. Adds Nostr-specific handlers (event storage) as documented examples of code-based handlers that decode TOON to structured NostrEvent objects. Published as `@crosstown/town` so anyone can `npm install` and run their own relay to join the network. All existing E2E tests pass. Old experimental `packages/git-proxy/` removed. Additionally, the SPSP handshake is removed from the protocol and the peer discovery flow is simplified (discover → register → announce), ensuring the SDK ships with a clean, stable protocol surface. A relay subscription API on TownInstance replaces bespoke internal components like `RelayMonitor`.
+The existing relay BLS is rebuilt using the SDK's handler registry, proving SDK completeness. Adds Nostr-specific handlers (event storage) as documented examples of code-based handlers that decode TOON to structured NostrEvent objects. Published as `@toon-protocol/town` so anyone can `npm install` and run their own relay to join the network. All existing E2E tests pass. Old experimental `packages/git-proxy/` removed. Additionally, the SPSP handshake is removed from the protocol and the peer discovery flow is simplified (discover → register → announce), ensuring the SDK ships with a clean, stable protocol surface. A relay subscription API on TownInstance replaces bespoke internal components like `RelayMonitor`.
 **FRs covered:** FR-SDK-14, FR-SDK-15, FR-SDK-16, FR-RELAY-1, FR-PROD-7, FR-PROD-8
 **Stories:** 8 (2.1-2.8)
 **Scope change (2026-03-07):** Stories 3.7 (SPSP Removal) and 3.8 (Relay Subscription API) moved from Epic 3 into Epic 2. These stories modify the SDK's public surface (removing SPSP handler, simplifying bootstrap, replacing RelayMonitor) and should land before the SDK is considered stable. The dependency of Story 3.7 on Story 3.1 (USDC) was a sequencing artifact, not a technical dependency — SPSP removal is token-agnostic.
 
 ### Epic 3: Production Protocol Economics
 
-Production-ready protocol economics — USDC payments, x402 HTTP payment on-ramp, multi-environment chain configuration, and decentralized peer discovery. Replaces the AGENT development token with USDC, adds Arbitrum One as production chain, enables x402 as an HTTP-native payment rail alongside ILP, and replaces the genesis hub-and-spoke topology with a seed relay list model. After this epic, Crosstown nodes can be deployed on any infrastructure with real USDC on Arbitrum, and the protocol works end-to-end without TEE.
+Production-ready protocol economics — USDC payments, x402 HTTP payment on-ramp, multi-environment chain configuration, and decentralized peer discovery. Replaces the AGENT development token with USDC, adds Arbitrum One as production chain, enables x402 as an HTTP-native payment rail alongside ILP, and replaces the genesis hub-and-spoke topology with a seed relay list model. After this epic, TOON nodes can be deployed on any infrastructure with real USDC on Arbitrum, and the protocol works end-to-end without TEE.
 **FRs covered:** FR-PROD-1, FR-PROD-2, FR-PROD-3, FR-PROD-4, FR-PROD-5, FR-PROD-6
 **Stories:** 6
 **Decision source:** [Party Mode Decision Log](research/marlin-party-mode-decisions-2026-03-05.md) — Decisions 1, 2, 6, 7, 8, 12, 13
@@ -227,7 +242,7 @@ Production-ready protocol economics — USDC payments, x402 HTTP payment on-ramp
 
 ### Epic 4: Marlin TEE Deployment
 
-From repository to one-command *service* deployment on Marlin Oyster — starting with the relay as reference implementation. Packages the Crosstown Docker image for Oyster CVM, adds TEE attestation (kind:10033), implements attestation-aware peering, integrates Nautilus KMS for persistent enclave-bound identity, and establishes Nix reproducible builds for deterministic PCR values. Phases 2 (attestation-aware peering) and 3 (x402 bridge was moved to Epic 3) are developed in parallel but ship as a combined external release.
+From repository to one-command *service* deployment on Marlin Oyster — starting with the relay as reference implementation. Packages the TOON Docker image for Oyster CVM, adds TEE attestation (kind:10033), implements attestation-aware peering, integrates Nautilus KMS for persistent enclave-bound identity, and establishes Nix reproducible builds for deterministic PCR values. Phases 2 (attestation-aware peering) and 3 (x402 bridge was moved to Epic 3) are developed in parallel but ship as a combined external release.
 **FRs covered:** FR-TEE-1, FR-TEE-2, FR-TEE-3, FR-TEE-4, FR-TEE-5, FR-TEE-6
 **Stories:** TBD (to be decomposed when epic starts)
 **Decision source:** [Party Mode Decision Log](research/marlin-party-mode-decisions-2026-03-05.md) — Decisions 3, 4, 5, 9, 10, 11
@@ -235,7 +250,7 @@ From repository to one-command *service* deployment on Marlin Oyster — startin
 
 ### Epic 5: DVM Compute Marketplace
 
-NIP-90 compatible DVM (Data Vending Machine) compute marketplace on the Crosstown network. Agents post job requests (Kind 5xxx) and receive results (Kind 6xxx) through the existing ILP payment infrastructure. Initiated agents use ILP PREPARE packets as the preferred write path; non-initiated agents use x402 as an HTTP on-ramp. Compute settlement (paying the provider for work performed) routes through the ILP network, settling through EVM payment channels. Skill descriptors in kind:10035 events enable programmatic agent-to-agent service discovery. The DVM layer creates a two-tier access model: ILP-native for committed network participants, x402 for newcomers — with the marketplace providing the economic incentive to graduate from tier 2 to tier 1.
+NIP-90 compatible DVM (Data Vending Machine) compute marketplace on the TOON network. Agents post job requests (Kind 5xxx) and receive results (Kind 6xxx) through the existing ILP payment infrastructure. Initiated agents use ILP PREPARE packets as the preferred write path; non-initiated agents use x402 as an HTTP on-ramp. Compute settlement (paying the provider for work performed) routes through the ILP network, settling through EVM payment channels. Skill descriptors in kind:10035 events enable programmatic agent-to-agent service discovery. The DVM layer creates a two-tier access model: ILP-native for committed network participants, x402 for newcomers — with the marketplace providing the economic incentive to graduate from tier 2 to tier 1.
 **FRs covered:** FR-DVM-1, FR-DVM-2, FR-DVM-3, FR-DVM-4
 **Stories:** 4
 **Decision source:** [Party Mode 2020117 Analysis](research/party-mode-2020117-analysis-2026-03-10.md)
@@ -249,13 +264,27 @@ Advanced DVM coordination patterns and TEE trust integration. Workflow chains en
 **Dependencies:** Epic 4 (TEE attestation for Story 6.3), Epic 5 (base DVM for all stories)
 **Decision source:** [Party Mode 2020117 Analysis](research/party-mode-2020117-analysis-2026-03-10.md)
 
-### Epic 7: The Rig — ILP-Gated TypeScript Git Forge
+### Epic 7: ILP Address Hierarchy & Protocol Economics
 
-A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. Published as `@crosstown/rig` so operators can `npx @crosstown/rig` and add git collaboration to their node. No Go dependency, no Docker required. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis.
+Hierarchical ILP addressing with deterministic address derivation, multi-hop fee calculation, and a prefix marketplace. Replaces the current flat, publisher-assigned ILP addressing (`g.toon.genesis`, `g.toon.peer1`) with a hierarchical model where addresses are derived from the peering topology: each upstream peer assigns child addresses as `${parentPrefix}.${childPubkey.slice(0, 8)}`. The root prefix (`g.toon`) is a deployment constant owned by the genesis node. Multi-peered nodes receive multiple addresses (one per upstream peering). Fee calculation becomes invisible to SDK users — each node advertises `feePerByte` in kind:10032 events, and the SDK sums intermediary fees along the route path internally. A new Nostr kind enables peers to claim human-readable vanity prefixes (e.g., `g.toon.useast`, `g.toon.btc`) from their upstream by paying for the prefix, creating an ILP address marketplace.
+
+**Key Design Decisions (Party Mode 2026-03-20):**
+- Identity ≠ Address ≠ Route — Nostr pubkey is identity, ILP address is reachability (ephemeral, per-peering), routes are dynamic advertisements
+- Addresses are deterministic: `${parentPrefix}.${peerPubkey.slice(0, 8)}` — zero configuration, cryptographically collision-resistant
+- Root prefix (`g.toon`) is a protocol constant, not assigned — the genesis node IS `g.toon`
+- Fee calculation is SDK-internal: `totalAmount = destinationWriteFee + Σ(hop[i].feePerByte × packetBytes)`
+- Vanity prefix claims via new Nostr kind — peers pay upstream for human-readable prefixes, creating a domain-registrar business model
+
+**Stories:** 6
+**Decision source:** Party Mode 2026-03-20 — ILP Address Generation & Fee Calculation
+
+### Epic 8: The Rig — ILP-Gated TypeScript Git Forge
+
+A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. Published as `@toon-protocol/rig` so operators can `npx @toon-protocol/rig` and add git collaboration to their node. No Go dependency, no Docker required. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis.
 **FRs covered:** FR-NIP34-1, FR-NIP34-2, FR-NIP34-3, FR-NIP34-4, FR-NIP34-5, FR-NIP34-6
 **Stories:** 12 (decomposed for proper sizing)
 **Reference:** [forgejo](https://codeberg.org/forgejo/forgejo) (Go, GPL-3.0) — source for mechanical template port
-**Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM) — the Rig exercises the complete stack
+**Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM), 7 (ILP Addressing) — the Rig exercises the complete stack
 
 ---
 
@@ -263,17 +292,17 @@ A TypeScript-native git forge built on the SDK, proving the full production stac
 
 A developer can create a working ILP-gated service node from a 12-word seed phrase in ~10 lines of code. The SDK provides unified secp256k1 identity (Nostr + EVM), TOON-native kind-based event handling with raw TOON passthrough for LLM consumption and lazy decode for code handlers, configurable pricing validation, embedded connector lifecycle management, network discovery, and dev mode.
 
-### Story 1.0: Extract TOON Codec to @crosstown/core
+### Story 1.0: Extract TOON Codec to @toon-protocol/core
 
 As a **SDK developer**,
-I want the TOON encoder, decoder, and shallow parser to live in `@crosstown/core`,
-So that the SDK can access TOON functionality without depending on `@crosstown/bls` or `@crosstown/relay`, avoiding circular dependencies.
+I want the TOON encoder, decoder, and shallow parser to live in `@toon-protocol/core`,
+So that the SDK can access TOON functionality without depending on `@toon-protocol/bls` or `@toon-protocol/relay`, avoiding circular dependencies.
 
 **Dependencies:** None (prerequisite for all other Epic 1 stories)
 
 **Acceptance Criteria:**
 
-**Given** the TOON encoder and decoder currently in `@crosstown/bls`
+**Given** the TOON encoder and decoder currently in `@toon-protocol/bls`
 **When** I move them to `packages/core/src/toon/`
 **Then** `packages/core/src/toon/encoder.ts` contains the Nostr event → TOON bytes encoder
 **And** `packages/core/src/toon/decoder.ts` contains the TOON bytes → Nostr event decoder
@@ -285,13 +314,13 @@ So that the SDK can access TOON functionality without depending on `@crosstown/b
 **And** `ToonRoutingMeta` contains `{ kind: number, pubkey: string, id: string, sig: string, rawBytes: Uint8Array }`
 **And** the shallow parser extracts only these fields without performing a full TOON decode
 
-**Given** `@crosstown/bls` currently imports TOON codec locally
-**When** I update its imports to use `@crosstown/core`
+**Given** `@toon-protocol/bls` currently imports TOON codec locally
+**When** I update its imports to use `@toon-protocol/core`
 **Then** all existing BLS tests pass with the updated import paths
 **And** the BLS package no longer contains its own copy of the codec
 
-**Given** `@crosstown/relay` may reference the TOON codec
-**When** I update any relay imports to use `@crosstown/core`
+**Given** `@toon-protocol/relay` may reference the TOON codec
+**When** I update any relay imports to use `@toon-protocol/core`
 **Then** all existing relay tests pass with the updated import paths
 
 **Given** all import paths are updated
@@ -546,9 +575,9 @@ So that I can programmatically manage peers and payment channels for advanced us
 
 As a **service developer**,
 I want my node to automatically discover peers, join the network, and monitor for new peers,
-So that my service participates in the Crosstown mesh without manual peer configuration.
+So that my service participates in the TOON mesh without manual peer configuration.
 
-**Dependencies:** None (uses existing @crosstown/core BootstrapService and RelayMonitor)
+**Dependencies:** None (uses existing @toon-protocol/core BootstrapService and RelayMonitor)
 
 **Acceptance Criteria:**
 
@@ -605,32 +634,32 @@ So that I can iterate locally without running a full network or blockchain.
 ### Story 1.11: Package Setup and npm Publish
 
 As a **service developer**,
-I want to `npm install @crosstown/sdk` and import a clean public API,
+I want to `npm install @toon-protocol/sdk` and import a clean public API,
 So that I can start building immediately with TypeScript types and documentation.
 
 **Dependencies:** Stories 1.0-1.10 (all SDK code must be complete before publish)
 
 **Acceptance Criteria:**
 
-**Given** the `@crosstown/sdk` package
+**Given** the `@toon-protocol/sdk` package
 **When** I inspect `package.json`
 **Then** it has `"type": "module"`, TypeScript strict mode, ESLint 9.x flat config, Prettier 3.x
-**And** peer dependency on `@crosstown/connector` (optional)
-**And** dependencies on `@crosstown/core`, `@crosstown/relay` (for TOON codec), `nostr-tools`, `@scure/bip39`, `@scure/bip32`
+**And** peer dependency on `@toon-protocol/connector` (optional)
+**And** dependencies on `@toon-protocol/core`, `@toon-protocol/relay` (for TOON codec), `nostr-tools`, `@scure/bip39`, `@scure/bip32`
 
 **Given** the package entry point `index.ts`
-**When** I import from `@crosstown/sdk`
+**When** I import from `@toon-protocol/sdk`
 **Then** all public APIs are exported: `createNode`, `fromMnemonic`, `fromSecretKey`, `generateMnemonic`, `HandlerContext`, `NodeConfig`, `ServiceNode`, type definitions
 
 **Given** the package is built
 **When** published to npm with `--access public`
-**Then** it is available as `@crosstown/sdk` with correct ESM exports and TypeScript declarations
+**Then** it is available as `@toon-protocol/sdk` with correct ESM exports and TypeScript declarations
 
 ---
 
 ## Epic 2: Nostr Relay Reference Implementation, Protocol Stabilization & SDK Validation
 
-The existing relay BLS is rebuilt using the SDK's handler registry, proving SDK completeness. Adds Nostr-specific handlers (event storage) as documented examples of code-based handlers that decode TOON to structured NostrEvent objects. Serves as the reference implementation for other developers building their own services. All existing E2E tests pass. Published as `@crosstown/town` so anyone can `npm install` and run their own relay to join the network. Old experimental `packages/git-proxy/` removed. The SPSP handshake is removed from the protocol and peer discovery is simplified, ensuring the SDK ships clean. A relay subscription API on TownInstance provides a general-purpose mechanism for subscribing to remote relays.
+The existing relay BLS is rebuilt using the SDK's handler registry, proving SDK completeness. Adds Nostr-specific handlers (event storage) as documented examples of code-based handlers that decode TOON to structured NostrEvent objects. Serves as the reference implementation for other developers building their own services. All existing E2E tests pass. Published as `@toon-protocol/town` so anyone can `npm install` and run their own relay to join the network. Old experimental `packages/git-proxy/` removed. The SPSP handshake is removed from the protocol and peer discovery is simplified, ensuring the SDK ships clean. A relay subscription API on TownInstance provides a general-purpose mechanism for subscribing to remote relays.
 
 ### Story 2.1: Relay Event Storage Handler
 
@@ -658,7 +687,7 @@ So that the existing relay functionality works on the SDK and serves as a refere
 
 ### Story 2.2: SPSP Handshake Handler _(DEPRECATED — removed in Story 2.7)_
 
-> **Deprecation Notice:** This story was implemented as part of Epic 2 but the SPSP handshake (kind:23194/23195) is removed from the protocol in Story 2.7. The handshake is unnecessary because: (1) kind:10032 already publishes all settlement info publicly, (2) no STREAM protocol is used (TOON-over-ILP directly), (3) BTP claims can be made self-describing with chainId/tokenNetworkAddress/tokenAddress, and (4) connectors can verify payment channels on-chain dynamically. The `createSpspHandshakeHandler()` in `@crosstown/town` and all SPSP code in `@crosstown/core` are removed in Story 2.7.
+> **Deprecation Notice:** This story was implemented as part of Epic 2 but the SPSP handshake (kind:23194/23195) is removed from the protocol in Story 2.7. The handshake is unnecessary because: (1) kind:10032 already publishes all settlement info publicly, (2) no STREAM protocol is used (TOON-over-ILP directly), (3) BTP claims can be made self-describing with chainId/tokenNetworkAddress/tokenAddress, and (4) connectors can verify payment channels on-chain dynamically. The `createSpspHandshakeHandler()` in `@toon-protocol/town` and all SPSP code in `@toon-protocol/core` are removed in Story 2.7.
 
 As a **relay operator**,
 I want SPSP request handling (kind:23194) reimplemented as an SDK handler,
@@ -738,23 +767,23 @@ So that the codebase is clean and developers have a clear example to follow.
 **When** reviewed against the SDK's public API
 **Then** every major SDK feature is exercised (identity, handlers, pricing, bootstrap, channels, dev mode)
 
-### Story 2.5: Publish @crosstown/town Package
+### Story 2.5: Publish @toon-protocol/town Package
 
 As a **network operator**,
-I want to `npm install @crosstown/town` and deploy a relay with minimal configuration,
-So that I can join the Crosstown network by running a single command with my seed phrase.
+I want to `npm install @toon-protocol/town` and deploy a relay with minimal configuration,
+So that I can join the TOON network by running a single command with my seed phrase.
 
 **Dependencies:** Stories 2.1, 2.3 (relay handler and E2E validation must pass)
 
 **Acceptance Criteria:**
 
-**Given** the `@crosstown/town` package
+**Given** the `@toon-protocol/town` package
 **When** I inspect `package.json`
-**Then** it depends on `@crosstown/sdk`, `@crosstown/relay` (for EventStore + TOON codec), and `@crosstown/core`
+**Then** it depends on `@toon-protocol/sdk`, `@toon-protocol/relay` (for EventStore + TOON codec), and `@toon-protocol/core`
 **And** it has `"type": "module"` with TypeScript strict mode
 
 **Given** the package entry point
-**When** I import from `@crosstown/town`
+**When** I import from `@toon-protocol/town`
 **Then** it exports a `startTown(config)` function and a `TownConfig` type
 **And** config accepts: `mnemonic` (or `secretKey`), `relayPort`, `blsPort`, `knownPeers`, `settlementConfig`, and optional overrides
 
@@ -764,13 +793,13 @@ So that I can join the Crosstown network by running a single command with my see
 **And** bootstrap runs, peers are discovered, and the relay is accepting events
 
 **Given** the package includes a CLI entrypoint
-**When** I run `npx @crosstown/town --mnemonic "..."` (or `--secret-key`)
+**When** I run `npx @toon-protocol/town --mnemonic "..."` (or `--secret-key`)
 **Then** a relay node starts with environment variable and CLI flag configuration
 **And** Docker image is also published for container deployments
 
 **Given** the package is built
 **When** published to npm with `--access public`
-**Then** it is available as `@crosstown/town` with correct ESM exports and TypeScript declarations
+**Then** it is available as `@toon-protocol/town` with correct ESM exports and TypeScript declarations
 
 ### Story 2.7: SPSP Removal and Peer Discovery Cleanup
 
@@ -794,7 +823,7 @@ The SPSP handshake (kind:23194/23195) exists to negotiate settlement details bet
 - `tokenNetworkAddress` → kind:10032 `tokenNetworks`
 - `channelId` → Opened unilaterally by sender
 
-Since Crosstown uses TOON-over-ILP (not STREAM), there is no shared secret to negotiate. The sender reads the peer's kind:10032 from the relay, selects the best matching chain locally, and opens a channel unilaterally. The connector handles BTP claim signing and verification independently (see connector handoff doc).
+Since TOON uses TOON-over-ILP (not STREAM), there is no shared secret to negotiate. The sender reads the peer's kind:10032 from the relay, selects the best matching chain locally, and opens a channel unilaterally. The connector handles BTP claim signing and verification independently (see connector handoff doc).
 
 **Acceptance Criteria:**
 
@@ -815,15 +844,15 @@ Since Crosstown uses TOON-over-ILP (not STREAM), there is no shared secret to ne
 **Then** `peerWith()` performs: read peer's kind:10032 from relay → select chain locally → register with connector (including settlement info) → open channel unilaterally → done
 **And** no kind:23194/23195 events are created or processed
 
-**Given** the SPSP code in `@crosstown/core` and `@crosstown/town`
+**Given** the SPSP code in `@toon-protocol/core` and `@toon-protocol/town`
 **When** this story is completed
-**Then** `NostrSpspServer`, `NostrSpspClient`, SPSP event builders/parsers are removed from `@crosstown/core`
-**And** `createSpspHandshakeHandler()` is removed from `@crosstown/town`
+**Then** `NostrSpspServer`, `NostrSpspClient`, SPSP event builders/parsers are removed from `@toon-protocol/core`
+**And** `createSpspHandshakeHandler()` is removed from `@toon-protocol/town`
 **And** Event kinds 23194 and 23195 are no longer used by the protocol
-**And** The SDK stub `spsp-handshake-handler.ts` is removed from `@crosstown/sdk`
+**And** The SDK stub `spsp-handshake-handler.ts` is removed from `@toon-protocol/sdk`
 **And** `SPSP_REQUEST_KIND` and `SPSP_RESPONSE_KIND` constants are removed
 
-**Given** the `RelayMonitor` component in `@crosstown/core`
+**Given** the `RelayMonitor` component in `@toon-protocol/core`
 **When** this story is completed
 **Then** `RelayMonitor` is evaluated for removal or simplification, since the Town node's own relay subscriptions can serve the same purpose (see Story 2.8)
 
@@ -832,7 +861,7 @@ Since Crosstown uses TOON-over-ILP (not STREAM), there is no shared secret to ne
 **Then** all tests pass with the simplified flow (no SPSP handshake)
 **And** payment channel creation works via unilateral opening
 
-**Connector dependency:** The `@crosstown/connector` must support self-describing BTP claims (extended `EVMClaimMessage` with `chainId`, `tokenNetworkAddress`, `tokenAddress`) and dynamic on-chain channel verification. See handoff doc: `docs/handoffs/connector-self-describing-claims.md`
+**Connector dependency:** The `@toon-protocol/connector` must support self-describing BTP claims (extended `EVMClaimMessage` with `chainId`, `tokenNetworkAddress`, `tokenAddress`) and dynamic on-chain channel verification. See handoff doc: `docs/handoffs/connector-self-describing-claims.md`
 
 **Test Approach:** Integration tests for simplified peer discovery flow without SPSP, unilateral channel opening using kind:10032 data, and E2E validation of the complete discover → register → announce → transact flow.
 
@@ -889,13 +918,13 @@ The Town node is a Nostr relay that can serve events and accept subscriptions. H
 
 ## Epic 3: Production Protocol Economics
 
-Production-ready protocol economics — USDC payments, x402 HTTP payment on-ramp, multi-environment chain configuration, and decentralized peer discovery. After this epic, Crosstown nodes can be deployed on any infrastructure with real USDC on Arbitrum One, and the protocol works end-to-end without TEE.
+Production-ready protocol economics — USDC payments, x402 HTTP payment on-ramp, multi-environment chain configuration, and decentralized peer discovery. After this epic, TOON nodes can be deployed on any infrastructure with real USDC on Arbitrum One, and the protocol works end-to-end without TEE.
 
 **Decision source:** [Party Mode Decision Log](research/marlin-party-mode-decisions-2026-03-05.md)
 
 **Key architectural decisions:**
 - USDC replaces AGENT token for all user-facing payments (Decision 1)
-- x402 `/publish` endpoint on the Crosstown node (not a separate gateway) constructs the same ILP PREPARE packets the network already routes (Decision 8)
+- x402 `/publish` endpoint on the TOON node (not a separate gateway) constructs the same ILP PREPARE packets the network already routes (Decision 8)
 - The BLS handles only `/handle-packet` — all public-facing endpoints belong to the node (Decision 13)
 - Seed relay list replaces genesis hub-and-spoke topology (Decision 7)
 - Arbitrum One is the production chain; Anvil for dev, Sepolia for staging (Decision 6)
@@ -958,21 +987,21 @@ So that I can develop locally on Anvil, test on Arbitrum Sepolia, and deploy to 
 **And** uses the production USDC contract address (`0xaf88d065e77c8cC2239327C5EDb3A432268e5831`)
 
 **Given** environment variables
-**When** `CROSSTOWN_CHAIN` is set
+**When** `TOON_CHAIN` is set
 **Then** it overrides the config file chain selection
-**And** `CROSSTOWN_RPC_URL` allows custom RPC endpoint override
+**And** `TOON_RPC_URL` allows custom RPC endpoint override
 
 ### Story 3.3: x402 /publish Endpoint
 
 As an **HTTP client or AI agent**,
 I want to publish Nostr events to any relay in the network via a simple HTTP endpoint with USDC payment,
-So that I can interact with Crosstown without understanding ILP or running an ILP client.
+So that I can interact with TOON without understanding ILP or running an ILP client.
 
 **Dependencies:** Story 3.1 (USDC denomination), Story 3.2 (Arbitrum chain config for on-chain settlement)
 
 **Acceptance Criteria:**
 
-**Given** a Crosstown node with x402 enabled (`CROSSTOWN_X402_ENABLED=true`)
+**Given** a TOON node with x402 enabled (`TOON_X402_ENABLED=true`)
 **When** an HTTP client sends `GET /publish` with a Nostr event payload
 **Then** the node returns HTTP 402 with pricing information (amount in USDC, facilitator address, payment network)
 
@@ -1013,7 +1042,7 @@ So that the network has no single point of failure for peer discovery.
 **Acceptance Criteria:**
 
 **Given** a kind:10036 (Seed Relay List) event published to a public Nostr relay
-**When** a new Crosstown node starts with `discovery: 'seed-list'` config
+**When** a new TOON node starts with `discovery: 'seed-list'` config
 **Then** the node reads kind:10036 events from configured public Nostr relays
 **And** connects to seed relays from the list
 **And** subscribes to kind:10032 events to discover the full network
@@ -1036,14 +1065,14 @@ So that the network has no single point of failure for peer discovery.
 ### Story 3.5: kind:10035 Service Discovery Events
 
 As a **network participant or AI agent**,
-I want to discover what services a Crosstown node offers and at what price,
+I want to discover what services a TOON node offers and at what price,
 So that I can programmatically find and consume services without documentation.
 
 **Dependencies:** Story 3.1 (USDC pricing)
 
 **Acceptance Criteria:**
 
-**Given** a Crosstown node that starts successfully
+**Given** a TOON node that starts successfully
 **When** bootstrap completes
 **Then** the node publishes a kind:10035 (Service Discovery) event to the relay network
 
@@ -1070,7 +1099,7 @@ So that I can monitor nodes and make programmatic peering decisions.
 
 **Acceptance Criteria:**
 
-**Given** a running Crosstown node
+**Given** a running TOON node
 **When** I request `GET /health`
 **Then** the response includes:
 ```json
@@ -1104,13 +1133,13 @@ From repository to one-command *service* deployment on Marlin Oyster — startin
 - Epic thesis: "From repository to one-command *service* deployment on Marlin Oyster — starting with the relay as reference implementation" (Decision 10)
 - Phases 2 (attestation-aware peering) and 3 (combined release) develop in parallel, ship together (Decision 5)
 - Autonomous agent readiness as architectural invariant — deterministic bootstrap, programmatic deployment, self-describing economics (Decision 11)
-- Emergent compute vision — Crosstown provides substrate, peers deploy arbitrary TEE-attested services (Decision 9)
+- Emergent compute vision — TOON provides substrate, peers deploy arbitrary TEE-attested services (Decision 9)
 - Event kinds 10032-10099 reserved for service advertisement (Decision 9)
 
 **High-level scope (to be decomposed into stories at epic start):**
 
 ### Story 4.1: Oyster CVM Packaging (FR-TEE-1)
-Package existing Crosstown Docker image for Oyster CVM deployment. Add attestation server configuration, proxy endpoint mapping. Verify deployment on Oyster testnet.
+Package existing TOON Docker image for Oyster CVM deployment. Add attestation server configuration, proxy endpoint mapping. Verify deployment on Oyster testnet.
 
 ### Story 4.2: TEE Attestation Events (FR-TEE-2)
 Publish kind:10033 events containing PCR values, enclave image hash, and attestation documents. Define event format and publish on node startup and periodic refresh.
@@ -1131,7 +1160,7 @@ Integrate kind:10033 verification into the seed relay discovery flow (from Epic 
 
 ## Epic 5: DVM Compute Marketplace
 
-NIP-90 compatible DVM (Data Vending Machine) compute marketplace on the Crosstown network. Agents post job requests (Kind 5xxx) and receive results (Kind 6xxx) through the existing ILP payment infrastructure. The DVM layer provides a structured job lifecycle protocol — request, feedback, result, settlement — on top of Crosstown's pay-to-write relay and ILP routing mesh.
+NIP-90 compatible DVM (Data Vending Machine) compute marketplace on the TOON network. Agents post job requests (Kind 5xxx) and receive results (Kind 6xxx) through the existing ILP payment infrastructure. The DVM layer provides a structured job lifecycle protocol — request, feedback, result, settlement — on top of TOON's pay-to-write relay and ILP routing mesh.
 
 **Decision source:** [Party Mode 2020117 Analysis](research/party-mode-2020117-analysis-2026-03-10.md)
 **Inspiration:** [2020117](https://github.com/qingfeng/2020117) — Nostr-native agent network with NIP-90 DVM marketplace
@@ -1155,7 +1184,7 @@ Tier 2: Non-Initiated Agents (x402 on-ramp) — fallback path
   Higher friction, but no payment channel required
 ```
 
-**DVM job lifecycle on Crosstown:**
+**DVM job lifecycle on TOON:**
 ```
 1. Customer → ILP PREPARE [Kind 5xxx job request]  → Relay (paid to write)
 2. Provider ← reads Kind 5xxx (free to read)
@@ -1168,7 +1197,7 @@ Tier 2: Non-Initiated Agents (x402 on-ramp) — fallback path
 ### Story 5.1: DVM Event Kind Definitions
 
 As a **protocol developer**,
-I want NIP-90 compatible DVM event kinds defined for the Crosstown protocol with full TOON encoding support,
+I want NIP-90 compatible DVM event kinds defined for the TOON protocol with full TOON encoding support,
 So that agents can post structured job requests, receive feedback, and collect results using the standard DVM protocol.
 
 **Dependencies:** Epic 2 (relay must support event storage and subscriptions)
@@ -1181,7 +1210,7 @@ So that agents can post structured job requests, receive feedback, and collect r
 **And** Kind 6xxx (Job Result) events are defined with required tags: `e` (request event ID), `p` (customer pubkey), `amount` (compute cost in USDC micro-units), and content containing the result data
 **And** Kind 7000 (Job Feedback) events are defined with required tags: `e` (request event ID), `p` (customer pubkey), `status` (processing/error/success/partial), and optional content with status details
 
-**Given** the Crosstown TOON format
+**Given** the TOON TOON format
 **When** DVM events are published via ILP PREPARE packets
 **Then** TOON encoder/decoder handles Kind 5xxx, 6xxx, and 7000 events correctly
 **And** the TOON shallow parser extracts kind, pubkey, and event ID without full decode for routing decisions
@@ -1209,7 +1238,7 @@ So that I can post jobs using the native payment rail with lower cost and no HTT
 
 **Acceptance Criteria:**
 
-**Given** an initiated agent with an open ILP payment channel to a Crosstown relay
+**Given** an initiated agent with an open ILP payment channel to a TOON relay
 **When** the agent publishes a Kind 5xxx job request
 **Then** the job request is TOON-encoded and sent as an ILP PREPARE packet (existing write path)
 **And** the relay stores the event and broadcasts to subscribers
@@ -1242,7 +1271,7 @@ So that I can post jobs using the native payment rail with lower cost and no HTT
 
 As a **DVM provider agent**,
 I want to publish job results and receive compute payment through the ILP network,
-So that the complete job lifecycle (request → feedback → result → settlement) works end-to-end on Crosstown.
+So that the complete job lifecycle (request → feedback → result → settlement) works end-to-end on TOON.
 
 **Dependencies:** Story 5.2 (job submission must work), Epic 3 Story 3.1 (USDC denomination)
 
@@ -1285,7 +1314,7 @@ So that the complete job lifecycle (request → feedback → result → settleme
 ### Story 5.4: Skill Descriptors in Service Discovery
 
 As an **agent or AI system**,
-I want to discover what DVM services a Crosstown node offers by reading structured skill descriptors in kind:10035 events,
+I want to discover what DVM services a TOON node offers by reading structured skill descriptors in kind:10035 events,
 So that I can programmatically find compatible providers and construct valid job requests without documentation.
 
 **Dependencies:** Epic 3 Story 3.5 (kind:10035 service discovery events must exist)
@@ -1320,7 +1349,7 @@ So that I can programmatically find compatible providers and construct valid job
 
 **Given** the skill descriptor format
 **When** compared to 2020117's skill JSON schema
-**Then** the Crosstown skill descriptor is a superset — it includes all fields from 2020117's format plus Crosstown-specific fields: `ilpAddress`, `x402Endpoint`, `supportedChains`, and `attestation` (for Epic 6 TEE integration)
+**Then** the TOON skill descriptor is a superset — it includes all fields from 2020117's format plus TOON-specific fields: `ilpAddress`, `x402Endpoint`, `supportedChains`, and `attestation` (for Epic 6 TEE integration)
 
 **Test Approach:** Unit test: skill descriptor generation from handler registrations. Integration test: node publishes kind:10035 with skill on startup → agent queries relay → parses skill descriptor → constructs valid job request. Validate JSON Schema compliance of inputSchema field.
 
@@ -1334,7 +1363,7 @@ Advanced DVM coordination patterns — workflow chains and agent swarms — plus
 **Dependencies:** Epic 4 (TEE attestation for Story 6.3), Epic 5 (base DVM marketplace for all stories)
 
 **Key architectural decisions:**
-- Workflow chains use Crosstown relay as the orchestration layer (no separate workflow engine)
+- Workflow chains use TOON relay as the orchestration layer (no separate workflow engine)
 - Agent swarms settle only the winning submission — losers pay relay write fees but receive no compute payment
 - TEE-attested results reference kind:10033 attestation events (not inline attestation data)
 - Reputation formula adapted from 2020117: replaces zap_sats with ILP channel volume, keeps WoT and job stats
@@ -1359,7 +1388,7 @@ So that I can compose complex compute tasks from simpler DVM jobs without manual
 **Given** a customer that wants to chain multiple DVM jobs
 **When** the customer publishes a workflow definition event
 **Then** the event contains: an ordered list of steps (each with a DVM kind, description, and optional provider target), the initial input, and a total bid (split across steps)
-**And** the event uses a Crosstown-specific kind in the reserved 10032-10099 range (e.g., kind:10040 Workflow Chain)
+**And** the event uses a TOON-specific kind in the reserved 10032-10099 range (e.g., kind:10040 Workflow Chain)
 
 **Given** a published workflow definition
 **When** the relay receives it
@@ -1498,7 +1527,207 @@ So that I can make programmatic trust decisions about which providers to send jo
 
 ---
 
-## Epic 7: The Rig — ILP-Gated TypeScript Git Forge
+## Epic 7: ILP Address Hierarchy & Protocol Economics
+
+Hierarchical ILP addressing with deterministic address derivation, multi-hop fee calculation, a prefix marketplace, and the prepaid protocol model. Replaces flat publisher-assigned addressing with a topology-derived hierarchy. Fee calculation becomes invisible to SDK users. A new Nostr kind enables vanity prefix purchases from upstream peers. Adopts the prepaid model for DVM compute, deprecating `settleCompute()` in favor of single-packet payment-with-message semantics.
+
+**Decision source:** Party Mode 2026-03-20
+
+### Design Decisions (Party Mode 2026-03-20)
+
+**D7-001: Prepaid DVM Model.** The Kind 5xxx job request's ILP PREPARE amount equals the provider's advertised price (from `SkillDescriptor.pricing`). The request packet IS the payment — no separate `settleCompute()` call. This respects the protocol thesis: "sending a message and sending money are the same action." `settleCompute()` is deprecated.
+
+**D7-002: Supply-Driven Marketplace.** The DVM marketplace flips from demand-driven (customer posts job, waits) to supply-driven (provider advertises capabilities and pricing in `SkillDescriptor`, customer discovers, shops, and pays on submission). `SkillDescriptor.pricing` is the price tag, not a negotiation starting point.
+
+**D7-003: Prefix Claim Single-Packet Payment.** The prefix claim event's ILP PREPARE amount IS the prefix price. One packet carries claim data + payment. Handler validates `ctx.amount >= prefixPricing.basePrice`. Same pattern as prepaid DVM.
+
+**D7-004: Unified Protocol Payment Pattern.** All monetized flows follow the same pattern: (1) provider advertises capability + price via replaceable Nostr event, (2) customer discovers price, (3) customer sends message + payment in ONE ILP packet, (4) provider validates amount and responds. Three use cases (relay write, DVM compute, prefix claim), one primitive.
+
+**D7-005: Prefix Claims Use Own Event Kinds.** Prefix claiming is a stateful control-plane operation (mutates routing topology, persistent state) — NOT a DVM compute job. Uses own event kinds in the 10032-10099 TOON service advertisement range. However, the ILP payment mechanism is identical to DVM prepaid model.
+
+**D7-006: Bid Tag Semantic Shift.** The `bid` tag in Kind 5xxx events shifts from "I offer to pay this much" (Epic 5) to "I won't pay more than this" (Epic 7). Actual payment comes from `SkillDescriptor.pricing`. If `advertisedPrice > bid`, SDK refuses to send (client-side safety cap).
+
+**D7-007: publishEvent() Amount Override.** `publishEvent()` gains an optional `amount` parameter so customers can set the ILP PREPARE amount to the provider's advertised price instead of `basePricePerByte × bytes`. This enables prepaid DVM and prefix claim flows without new payment machinery.
+
+**Full decision record:** `_bmad-output/planning-artifacts/research/party-mode-prepaid-protocol-decisions-2026-03-20.md`
+
+### Story 7.1: Deterministic Address Derivation
+
+**As a** TOON node operator,
+**I want** my ILP address to be deterministically derived from my Nostr pubkey and my upstream peer's prefix,
+**So that** address assignment is automatic, collision-resistant, and requires zero configuration.
+
+**Acceptance Criteria:**
+
+**Given** a node with Nostr pubkey `abcd1234...` peering with a node at prefix `g.toon`
+**When** the peering handshake completes
+**Then** the node's ILP address is `g.toon.abcd1234` (first 8 hex chars of pubkey)
+
+**Given** the genesis node with network prefix `g.toon`
+**When** it starts
+**Then** its ILP address is `g.toon` (the root prefix, a protocol constant)
+
+**Given** a `deriveChildAddress(parentPrefix, childPubkey)` utility function
+**When** called with `('g.toon.ef567890', '11aabb22...')`
+**Then** it returns `g.toon.ef567890.11aabb22`
+
+**Test Approach:** Unit test: `deriveChildAddress()` with various inputs. Verify ILP address segment validation (lowercase, valid chars). Verify 8-char truncation. Verify root prefix is a constant.
+
+### Story 7.2: BTP Address Assignment Handshake
+
+**As a** TOON node,
+**I want** my upstream peer to communicate its prefix during the BTP handshake,
+**So that** I can deterministically compute my own ILP address from the peering relationship.
+
+**Acceptance Criteria:**
+
+**Given** a node initiating a BTP connection to an upstream peer
+**When** the BTP handshake completes
+**Then** the upstream peer's prefix is communicated to the connecting node
+**And** the connecting node computes its address as `${upstreamPrefix}.${ownPubkey.slice(0, 8)}`
+
+**Given** a node that was previously addressed as `g.toon.peer1` (hardcoded)
+**When** it connects via the new handshake protocol
+**Then** its address is derived from the upstream prefix + its pubkey (not hardcoded)
+
+**Test Approach:** Integration test: two nodes peer via BTP, verify child receives correct address derived from parent's prefix. Unit test: handshake message parsing.
+
+### Story 7.3: Multi-Address Support for Multi-Peered Nodes
+
+**As a** TOON node peered with multiple upstream connectors,
+**I want** to hold multiple ILP addresses (one per peering),
+**So that** I am reachable via any of my upstream paths.
+
+**Acceptance Criteria:**
+
+**Given** a node peered with both `g.toon.useast` and `g.toon.euwest`
+**When** it publishes its kind:10032 peer info event
+**Then** the event contains `ilpAddresses: ['g.toon.useast.{pubkey8}', 'g.toon.euwest.{pubkey8}']`
+
+**Given** a client resolving a destination by Nostr pubkey
+**When** the destination node has multiple ILP addresses
+**Then** the client can select the optimal route based on available paths
+
+**Test Approach:** Unit test: kind:10032 event with multiple addresses. Integration test: node with two peers, verify both addresses are advertised and routable.
+
+### Story 7.4: Fee-Per-Byte Advertisement in kind:10032
+
+**As a** TOON node operator,
+**I want** to advertise my routing fee in kind:10032 peer info events,
+**So that** senders can calculate the total cost of multi-hop routes.
+
+**Acceptance Criteria:**
+
+**Given** a node with `feePerByte: 2n` configured
+**When** it publishes its kind:10032 peer info event
+**Then** the event includes `feePerByte: 2` alongside existing fields (`ilpAddresses`, `btpEndpoint`, `capabilities`)
+
+**Given** a node with no explicit fee configuration
+**When** it publishes kind:10032
+**Then** `feePerByte` defaults to `0` (free routing)
+
+**Test Approach:** Unit test: kind:10032 event builder includes `feePerByte`. Integration test: peer discovers fee via kind:10032 subscription.
+
+### Story 7.5: SDK Route-Aware Fee Calculation
+
+**As an** SDK user calling `publishEvent()`,
+**I want** the SDK to automatically calculate and include intermediary routing fees,
+**So that** the recipient receives the correct write fee without me knowing about multi-hop costs.
+
+**Acceptance Criteria:**
+
+**Given** a publish from `g.toon.useast.client-abc` to `g.toon.euwest.relay-42`
+**And** the route traverses two intermediaries with `feePerByte: 2n` and `feePerByte: 3n`
+**When** the SDK computes the ILP PREPARE amount
+**Then** `amount = (basePricePerByte × toonBytes.length) + (2n × toonBytes.length) + (3n × toonBytes.length)`
+
+**Given** a direct single-hop publish (no intermediaries)
+**When** the SDK computes the amount
+**Then** `amount = basePricePerByte × toonBytes.length` (unchanged from current behavior)
+
+**Given** the fee calculation
+**When** the user calls `publishEvent(event)`
+**Then** the fee math is completely internal — no fee parameters exposed to the user
+
+**Test Approach:** Unit test: fee calculator with mock route table. Integration test: multi-hop publish with fee-charging intermediaries, verify destination receives correct write fee. E2E test: full publish through Docker infra with intermediary fees.
+
+### Story 7.6: Prepaid DVM Model and settleCompute() Deprecation
+
+**As an** SDK user submitting DVM jobs,
+**I want** the job request packet to carry both the data and the payment in a single ILP PREPARE,
+**So that** the protocol thesis ("sending a message and sending money are the same action") holds for DVM compute.
+
+**Design Decisions:** D7-001 (prepaid model), D7-002 (supply-driven marketplace), D7-006 (bid semantic shift), D7-007 (amount override)
+
+**Acceptance Criteria:**
+
+**Given** a provider advertising `SkillDescriptor.pricing: { '5100': '50000' }` in kind:10035
+**When** a customer sends a Kind 5100 job request
+**Then** the ILP PREPARE amount equals the provider's advertised price (`50000`), not `basePricePerByte × bytes`
+**And** the provider's handler receives both the job data and payment via `ctx.amount`
+
+**Given** `publishEvent()` with an `amount` option
+**When** called with `publishEvent(event, { destination, amount: 50000n })`
+**Then** the ILP PREPARE packet uses the specified amount instead of computing `basePricePerByte × toonBytes.length`
+
+**Given** a provider's handler for Kind 5100
+**When** it receives a job request where `ctx.amount < advertisedPrice`
+**Then** the handler rejects the packet and payment is not transferred
+
+**Given** a Kind 5xxx job request with `bid: '60000'` and a provider advertising price `50000`
+**When** the SDK prepares to send the request
+**Then** the ILP PREPARE amount is `50000` (advertised price, not bid)
+**And** if `advertisedPrice > bid`, the SDK refuses to send (client-side safety cap)
+
+**Given** the existing `settleCompute()` method on `ServiceNode`
+**When** Epic 7 is complete
+**Then** `settleCompute()` is deprecated with a JSDoc `@deprecated` annotation pointing to the prepaid model
+
+**Given** a Kind 6xxx job result with an `amount` tag
+**When** the provider sends the result
+**Then** the `amount` tag is informational metadata (actual compute cost), not a payment invoice
+
+**Test Approach:** Unit test: `publishEvent()` with `amount` override sends correct ILP PREPARE amount. Unit test: bid validation — SDK refuses when `advertisedPrice > bid`. Integration test: full prepaid DVM flow — customer discovers provider pricing, sends job + payment in one packet, provider validates `ctx.amount`, processes, returns result. E2E test: Docker infra with provider advertising pricing in kind:10035, customer submitting prepaid job. Verify no `settleCompute()` call needed. Verify `settleCompute()` still works (backward compat) but logs deprecation warning.
+
+### Story 7.7: Prefix Claim Kind and Marketplace
+
+**As a** TOON node operator,
+**I want** to claim a human-readable vanity prefix (e.g., `useast`, `btc`) from my upstream peer by paying for it,
+**So that** my node has a memorable, branded ILP address instead of a pubkey-derived one.
+
+**Design Decisions:** D7-003 (single-packet payment), D7-005 (own event kinds, not DVM), D7-007 (amount override from Story 7.6)
+
+**Acceptance Criteria:**
+
+**Given** a new Nostr event kind for prefix claim requests (in the 10032-10099 TOON service advertisement range)
+**When** a node sends a prefix claim event with `{ requestedPrefix: 'useast' }` as an ILP PREPARE packet
+**And** the ILP PREPARE amount equals the upstream's advertised prefix price
+**Then** the upstream handler validates: (1) the prefix is available (not already claimed), (2) `ctx.amount >= prefixPricing.basePrice`
+**And** responds with a confirmation event granting the prefix
+**And** no separate payment packet is needed — the claim request IS the payment (D7-003)
+
+**Given** a node that has claimed `useast` from `g.toon`
+**When** it peers with child nodes
+**Then** its prefix is `g.toon.useast` (the vanity prefix replaces the pubkey-derived default)
+**And** child nodes are addressed as `g.toon.useast.{childPubkey8}`
+
+**Given** a prefix that is already claimed by another peer
+**When** a new node requests the same prefix
+**Then** the ILP packet is rejected with a `PREFIX_TAKEN` error and payment is not transferred
+
+**Given** the upstream peer's pricing for vanity prefixes
+**When** it advertises in kind:10032
+**Then** it includes prefix pricing information (e.g., `prefixPricing: { basePrice: 1000000n }`)
+
+**Given** the prefix claim handler registered via `.on(PREFIX_CLAIM_KIND, handler)`
+**When** the handler receives a claim request
+**Then** it validates via `ctx.amount` (existing pipeline) — no new payment machinery needed
+
+**Test Approach:** Unit test: prefix claim event creation, validation, conflict detection, amount validation against `prefixPricing.basePrice`. Integration test: full claim flow — request with payment in single packet, confirmation, address activation. Verify claimed prefix overrides pubkey-derived address. Verify insufficient payment is rejected (packet rejected, no money moves). Verify already-claimed prefix returns `PREFIX_TAKEN`.
+
+---
+
+## Epic 8: The Rig — ILP-Gated TypeScript Git Forge
 
 A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis.
 
@@ -1515,9 +1744,9 @@ A TypeScript-native git forge built on the SDK, proving the full production stac
 - **Read path**: HTTP request → Express route → git binary (for code/tree/blob) + relay subscription (for issues/PRs) → Eta template → HTML response
 - **Template port scope**: repository list, file tree, blob viewer, commit log, commit diff, blame — NOT: admin panels, user settings, OAuth, notification system, dashboard
 - Existing `packages/core/src/nip34/` provides NIP34Handler, GitOperations as foundation (ForgejoClient to be replaced)
-- **Validates Epics 1-6**: The Rig exercises SDK handlers (Epic 1), relay event storage (Epic 2), USDC/x402 payments (Epic 3), TEE attestation (Epic 4), DVM marketplace (Epic 5), and advanced DVM coordination (Epic 6) in a single service
+- **Validates Epics 1-7**: The Rig exercises SDK handlers (Epic 1), relay event storage (Epic 2), USDC/x402 payments (Epic 3), TEE attestation (Epic 4), DVM marketplace (Epic 5), advanced DVM coordination (Epic 6), and ILP address hierarchy (Epic 7) in a single service
 
-### Story 7.1: SDK Node Setup and Repository Creation Handler
+### Story 8.1: SDK Node Setup and Repository Creation Handler
 
 As a **network operator**,
 I want a Rig service node built on the SDK that accepts kind:30617 (Repository Announcement) events via ILP and initializes git repositories,
@@ -1548,13 +1777,13 @@ So that repositories can be created through paid Nostr events.
 **When** the handler cannot process it
 **Then** `ctx.reject('F00', 'Unsupported NIP-34 kind')` is called
 
-### Story 7.2: Patch Handler
+### Story 8.2: Patch Handler
 
 As a **contributor**,
 I want to submit code patches as kind:1617 events via ILP,
 So that my patches are applied to the repository through the standard NIP-34 workflow.
 
-**Dependencies:** Story 7.1 (repositories must exist)
+**Dependencies:** Story 8.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1572,13 +1801,13 @@ So that my patches are applied to the repository through the standard NIP-34 wor
 **When** `git am` or `git apply` fails
 **Then** `ctx.reject('F00', 'Patch application failed')` is called with the git error message
 
-### Story 7.3: Issue and Comment Handlers
+### Story 8.3: Issue and Comment Handlers
 
 As a **contributor**,
 I want to submit issues (kind:1621) and comments (kind:1622) via ILP,
 So that my discussions are acknowledged by the Rig and stored on the relay for web UI rendering.
 
-**Dependencies:** Story 7.1 (repositories must exist)
+**Dependencies:** Story 8.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1594,13 +1823,13 @@ So that my discussions are acknowledged by the Rig and stored on the relay for w
 **When** the handler processes it
 **Then** `ctx.reject('F00', 'Repository not found')` is called
 
-### Story 7.4: Git HTTP Backend for Clone and Fetch
+### Story 8.4: Git HTTP Backend for Clone and Fetch
 
 As a **developer**,
 I want to clone and fetch repositories hosted on the Rig via standard git HTTP protocol,
 So that I can work with Rig repositories using any standard git client.
 
-**Dependencies:** Story 7.1 (repositories must exist)
+**Dependencies:** Story 8.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1621,7 +1850,7 @@ So that I can work with Rig repositories using any standard git client.
 **When** the HTTP server receives it
 **Then** the request is rejected (write operations go through ILP-gated NIP-34 events, not HTTP push)
 
-### Story 7.5: Nostr Pubkey-Native Git Identity
+### Story 8.5: Nostr Pubkey-Native Git Identity
 
 As a **contributor**,
 I want my Nostr pubkey to be my git identity on the Rig,
@@ -1651,13 +1880,13 @@ So that my commits, issues, and PRs are attributed to my cryptographic identity 
 **Then** the event's pubkey is checked against the repository's maintainer list (from the latest kind:30617 event's `maintainers` tags)
 **And** unauthorized pubkeys receive `ctx.reject('F06', 'Unauthorized')`
 
-### Story 7.6: NIP-34 Status Events and PR Lifecycle
+### Story 8.6: NIP-34 Status Events and PR Lifecycle
 
 As a **contributor**,
 I want my pull request status tracked through NIP-34 status events (kinds 1630-1633),
 So that the PR lifecycle (open, applied/merged, closed, draft) is managed through Nostr events with ILP payment.
 
-**Dependencies:** Stories 7.1, 7.2 (repositories and patches must exist)
+**Dependencies:** Stories 8.1, 8.2 (repositories and patches must exist)
 
 **Acceptance Criteria:**
 
@@ -1684,13 +1913,13 @@ So that the PR lifecycle (open, applied/merged, closed, draft) is managed throug
 **When** the handler checks authorization
 **Then** `ctx.reject('F06', 'Unauthorized: pubkey lacks maintainer permissions')` is called
 
-### Story 7.7: Layout and Repository List Page
+### Story 8.7: Layout and Repository List Page
 
 As a **developer**,
 I want to see a list of all repositories hosted on the Rig through a web UI,
 So that I can discover and navigate to projects without needing a specialized client.
 
-**Dependencies:** Story 7.1 (repositories must exist), Story 7.5 (pubkey display)
+**Dependencies:** Story 8.1 (repositories must exist), Story 8.5 (pubkey display)
 
 **Acceptance Criteria:**
 
@@ -1708,13 +1937,13 @@ So that I can discover and navigate to projects without needing a specialized cl
 **When** I visit the root
 **Then** an empty state message is displayed
 
-### Story 7.8: File Tree and Blob View
+### Story 8.8: File Tree and Blob View
 
 As a **developer**,
 I want to browse a repository's file tree and view individual file contents,
 So that I can explore the codebase through the web UI.
 
-**Dependencies:** Story 7.7 (layout must exist)
+**Dependencies:** Story 8.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1734,13 +1963,13 @@ So that I can explore the codebase through the web UI.
 **When** I navigate to it
 **Then** a 404 page is displayed
 
-### Story 7.9: Commit Log and Diff View
+### Story 8.9: Commit Log and Diff View
 
 As a **developer**,
 I want to view commit history and individual commit diffs,
 So that I can understand the change history of a repository.
 
-**Dependencies:** Story 7.7 (layout must exist)
+**Dependencies:** Story 8.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1759,13 +1988,13 @@ So that I can understand the change history of a repository.
 **When** I navigate to it
 **Then** a 404 page is displayed
 
-### Story 7.10: Blame View
+### Story 8.10: Blame View
 
 As a **developer**,
 I want to view per-line blame information for any file,
 So that I can see who last modified each line and when.
 
-**Dependencies:** Story 7.7 (layout must exist)
+**Dependencies:** Story 8.7 (layout must exist)
 
 **Acceptance Criteria:**
 
@@ -1778,13 +2007,13 @@ So that I can see who last modified each line and when.
 **When** I navigate to its blame view
 **Then** a 404 page is displayed
 
-### Story 7.11: Issues and PRs from Nostr Events on Relay
+### Story 8.11: Issues and PRs from Nostr Events on Relay
 
 As a **developer**,
 I want to view issues, pull requests, and comments in the web UI,
 So that I can follow project discussions sourced from Nostr events without needing a Nostr client.
 
-**Dependencies:** Story 7.7 (layout must exist), Story 7.1 (repositories must exist)
+**Dependencies:** Story 8.7 (layout must exist), Story 8.1 (repositories must exist)
 
 **Acceptance Criteria:**
 
@@ -1812,26 +2041,26 @@ So that I can follow project discussions sourced from Nostr events without needi
 **Given** any issue/PR/comment page
 **When** a visitor wants to contribute
 **Then** a banner explains that participation requires an ILP/Nostr client
-**And** includes a link to documentation on submitting NIP-34 events via `@crosstown/client`
+**And** includes a link to documentation on submitting NIP-34 events via `@toon-protocol/client`
 
-### Story 7.12: Publish @crosstown/rig Package
+### Story 8.12: Publish @toon-protocol/rig Package
 
 As a **network operator**,
-I want to `npm install @crosstown/rig` and deploy a TypeScript git forge alongside my relay,
-So that I can add git collaboration to my Crosstown node with a single command.
+I want to `npm install @toon-protocol/rig` and deploy a TypeScript git forge alongside my relay,
+So that I can add git collaboration to my TOON node with a single command.
 
-**Dependencies:** Stories 7.1-7.11 (all Rig functionality must be complete)
+**Dependencies:** Stories 8.1-8.11 (all Rig functionality must be complete)
 
 **Acceptance Criteria:**
 
-**Given** the `@crosstown/rig` package
+**Given** the `@toon-protocol/rig` package
 **When** I inspect `package.json`
-**Then** it depends on `@crosstown/sdk`, `@crosstown/core` (for NIP-34 types, GitOperations), `eta` (template engine), `express` (HTTP server)
+**Then** it depends on `@toon-protocol/sdk`, `@toon-protocol/core` (for NIP-34 types, GitOperations), `eta` (template engine), `express` (HTTP server)
 **And** it has `"type": "module"` with TypeScript strict mode
 **And** it does NOT depend on Go, Forgejo, or any external database
 
 **Given** the package entry point
-**When** I import from `@crosstown/rig`
+**When** I import from `@toon-protocol/rig`
 **Then** it exports a `startRig(config)` function and a `RigConfig` type
 **And** config accepts: `mnemonic` (or `secretKey`), `repoDir` (git repo storage path), `httpPort` (web UI port), `relayUrl` (for event queries), `knownPeers`, `settlementConfig`, and optional overrides
 
@@ -1843,10 +2072,10 @@ So that I can add git collaboration to my Crosstown node with a single command.
 **And** bootstrap runs and the Rig begins accepting ILP packets
 
 **Given** the package includes a CLI entrypoint
-**When** I run `npx @crosstown/rig --mnemonic "..." --relay-url "ws://localhost:7100"`
+**When** I run `npx @toon-protocol/rig --mnemonic "..." --relay-url "ws://localhost:7100"`
 **Then** a Rig node starts with environment variable and CLI flag configuration
 **And** a Docker image is also published for container deployments
 
 **Given** the package is built
 **When** published to npm with `--access public`
-**Then** it is available as `@crosstown/rig` with correct ESM exports and TypeScript declarations
+**Then** it is available as `@toon-protocol/rig` with correct ESM exports and TypeScript declarations

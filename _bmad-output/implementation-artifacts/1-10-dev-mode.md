@@ -68,7 +68,7 @@ So that I can iterate locally without running a full network or blockchain.
         ? request.data.substring(0, 80) + '...'
         : request.data;
       console.log(
-        '[crosstown:dev]',
+        '[toon:dev]',
         `kind=${meta.kind}`,
         `pubkey=${meta.pubkey.substring(0, 16)}...`,
         `amount=${request.amount}`,
@@ -77,7 +77,7 @@ So that I can iterate locally without running a full network or blockchain.
       );
     }
     ```
-  - [x] The log format uses `[crosstown:dev]` prefix for easy filtering. It logs: kind (from shallow parse), pubkey (truncated to 16 chars for readability), amount (raw string from request), destination (ILP address), and TOON preview (first 80 chars of base64).
+  - [x] The log format uses `[toon:dev]` prefix for easy filtering. It logs: kind (from shallow parse), pubkey (truncated to 16 chars for readability), amount (raw string from request), destination (ILP address), and TOON preview (first 80 chars of base64).
   - [x] Use `console.log` (not `console.debug`) because dev mode is explicitly opted-in and the user expects visible output.
 
 - [x] Task 3: Enable ATDD tests in `dev-mode.test.ts` (AC: #1-#4)
@@ -89,7 +89,7 @@ So that I can iterate locally without running a full network or blockchain.
       1. Create a `MockConnector` (same pattern as `createMockConnector()` in `create-node.test.ts`)
       2. Call `createNode({ secretKey, connector, devMode: true, handlers: { ... } })`
       3. Call `node.start()` to wire the packet handler
-      4. Deliver packets via `connector.packetHandler!(request)` -- the `packetHandler` is set by `start()` -> `crosstownNode.start()` -> `connector.setPacketHandler()`
+      4. Deliver packets via `connector.packetHandler!(request)` -- the `packetHandler` is set by `start()` -> `toonNode.start()` -> `connector.setPacketHandler()`
       5. Assert that invalid signatures are accepted, pricing is bypassed, and logging occurs
     - [x] Update the test for "production mode rejects invalid signature with F06" (test 4, currently using `devMode: false`) to also use `createNode()` with no devMode set (defaults to false). This test validates AC #4 and mirrors the existing `__integration__/create-node.test.ts` test at line 851.
     - [x] Update the test for "production mode rejects underpaid event with F04" (test 5, currently using `devMode: false`) to use `createNode()` with a validly-signed event but insufficient payment.
@@ -174,7 +174,7 @@ Dev mode bypasses Steps 2 and 3 but does NOT change Steps 0, 1, 4, or 5. The sha
 
 | Element | Convention | Example |
 | --- | --- | --- |
-| Log prefix | `[crosstown:dev]` | `console.log('[crosstown:dev]', ...)` |
+| Log prefix | `[toon:dev]` | `console.log('[toon:dev]', ...)` |
 | Pubkey truncation | 16 chars | `meta.pubkey.substring(0, 16) + '...'` |
 | TOON preview | 80 chars base64 | `request.data.substring(0, 80) + '...'` |
 | Priority prefix | matches test-design | `'[P1] devMode skips...'` |
@@ -199,7 +199,7 @@ Dev mode bypasses Steps 2 and 3 but does NOT change Steps 0, 1, 4, or 5. The sha
 
 **Test factory pattern:** The dev-mode tests should use the same test factories as the existing tests:
 - `createMockConnector()` from `create-node.test.ts` pattern (line 29-51)
-- Signed event creation using `generateSecretKey()` + `finalizeEvent()` + `encodeEventToToon()` from `@crosstown/core/toon`
+- Signed event creation using `generateSecretKey()` + `finalizeEvent()` + `encodeEventToToon()` from `@toon-protocol/core/toon`
 - The `__integration__/create-node.test.ts` file has `createSignedToonEvent()` and `createTestSecretKey()` helpers that can be referenced for the pattern
 
 **Unit test count:** After this story: 128 existing + ~5 new dev-mode tests = ~133+ tests (9 existing files + dev-mode.test.ts = 10 test files)
@@ -279,7 +279,7 @@ None required -- all tests passed on first run.
 ### Completion Notes List
 
 - **Task 1 (Pricing bypass):** Verified `create-node.ts` lines 246-271 implement the dev mode pricing bypass. Amount parsing uses `BigInt(request.amount)` with fallback to `0n` in dev mode. The `pricer.validate()` call is wrapped in `if (!(config.devMode ?? false))` guard.
-- **Task 2 (Packet logging):** Verified `create-node.ts` lines 220-233 implement dev mode packet logging after shallow TOON parse and before verification. Uses `[crosstown:dev]` prefix, 16-char pubkey truncation, 80-char TOON preview, and `console.log`.
+- **Task 2 (Packet logging):** Verified `create-node.ts` lines 220-233 implement dev mode packet logging after shallow TOON parse and before verification. Uses `[toon:dev]` prefix, 16-char pubkey truncation, 80-char TOON preview, and `console.log`.
 - **Task 3 (ATDD tests):** Verified `dev-mode.test.ts` has all 5 tests enabled (no `.skip`), restructured to use `createNode()` with `MockConnector` for full pipeline coverage. Priority labels match test-design: `[P1]`, `[P2]`, `[P1]`, `[P0]`, `[P0]`. ATDD comment updated.
 - **Task 4 (vitest exclude):** Verified `vitest.config.ts` no longer excludes `dev-mode.test.ts` and tracker comment updated to `(done)`.
 - **Task 5 (Verification):** TypeScript compiles cleanly (`tsc --noEmit`). SDK tests: 10 files, 133 tests all passing. Full monorepo: no regressions.
@@ -294,7 +294,7 @@ None required -- all tests passed on first run.
 
 | Date       | Change Description |
 | ---------- | ------------------ |
-| 2026-03-05 | Verified Story 1.10 implementation: dev mode pricing bypass in create-node.ts pipeline, packet logging with [crosstown:dev] prefix, all 5 ATDD tests enabled and passing (133 total SDK tests), no monorepo regressions. All tasks complete. |
+| 2026-03-05 | Verified Story 1.10 implementation: dev mode pricing bypass in create-node.ts pipeline, packet logging with [toon:dev] prefix, all 5 ATDD tests enabled and passing (133 total SDK tests), no monorepo regressions. All tasks complete. |
 
 ## Code Review Record
 

@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-A relay subscription API on `TownInstance` that allows service developers to subscribe to other Nostr relays for peer discovery, seed relay monitoring, and custom event kind filtering. The implementation wraps `RelaySubscriber` from `@crosstown/relay` with lifecycle management (open/close/stop cleanup), WebSocket URL validation, and `TownSubscription` handles with `close()`, `relayUrl`, and `isActive()` methods.
+A relay subscription API on `TownInstance` that allows service developers to subscribe to other Nostr relays for peer discovery, seed relay monitoring, and custom event kind filtering. The implementation wraps `RelaySubscriber` from `@toon-protocol/relay` with lifecycle management (open/close/stop cleanup), WebSocket URL validation, and `TownSubscription` handles with `close()`, `relayUrl`, and `isActive()` methods.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: `town.subscribe(relayUrl, filter)` opens WebSocket, stores events, returns TownSubscription — covered by: `subscribe.test.ts` (10 tests)
@@ -83,7 +83,7 @@ A relay subscription API on `TownInstance` that allows service developers to sub
 - **Status**: success
 - **Duration**: ~20 min
 - **What changed**: town.ts, index.ts, subscribe.test.ts, town.test.ts
-- **Key decisions**: Extracted `createSubscription()` helper for testability; mocked `@crosstown/relay` at module level
+- **Key decisions**: Extracted `createSubscription()` helper for testability; mocked `@toon-protocol/relay` at module level
 - **Issues found & fixed**: 1 (ESLint prefer-const)
 
 ### Step 5: Post-Dev Artifact Verify

@@ -43,13 +43,13 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 #### AC-1: Initiated agent publishes DVM job request via ILP PREPARE (P0)
 
-**Acceptance Criterion:** Given an initiated agent with an open ILP payment channel to a Crosstown relay, when the agent calls `node.publishEvent(jobRequestEvent, { destination })` with a Kind 5xxx event built by `buildJobRequestEvent()`, then the event is TOON-encoded and sent as an ILP PREPARE packet via the existing `publishEvent()` write path, and the relay stores the event and broadcasts to subscribers, and the relay write fee is `basePricePerByte * toonData.length`.
+**Acceptance Criterion:** Given an initiated agent with an open ILP payment channel to a TOON relay, when the agent calls `node.publishEvent(jobRequestEvent, { destination })` with a Kind 5xxx event built by `buildJobRequestEvent()`, then the event is TOON-encoded and sent as an ILP PREPARE packet via the existing `publishEvent()` write path, and the relay stores the event and broadcasts to subscribers, and the relay write fee is `basePricePerByte * toonData.length`.
 
 - **Coverage:** FULL
 - **Tests:**
   - `T-5.2-01` - `packages/sdk/src/__integration__/dvm-job-submission.test.ts`:216
     - **Given:** An initiated agent with a mock embedded connector and basePricePerByte=10n
-    - **When:** `node.publishEvent(dvmEvent, { destination: 'g.crosstown.relay' })` is called with a Kind 5100 event built by `buildJobRequestEvent()`
+    - **When:** `node.publishEvent(dvmEvent, { destination: 'g.toon.relay' })` is called with a Kind 5100 event built by `buildJobRequestEvent()`
     - **Then:** The event is TOON-encoded, sendPacket is called with correct destination, data is a valid Uint8Array, amount equals `basePricePerByte * toonData.length`, and TOON data roundtrips correctly with kind=5100 and matching event ID
   - `T-5.2-01 amplification` - `packages/sdk/src/__integration__/dvm-job-submission.test.ts`:268
     - **Given:** Same initiated agent setup

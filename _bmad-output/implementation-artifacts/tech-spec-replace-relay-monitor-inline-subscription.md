@@ -19,7 +19,7 @@ files_to_modify:
   - 'packages/sdk/src/__integration__/network-discovery.test.ts'
   - 'packages/town/src/town.ts'
   - 'packages/town/src/health.test.ts'
-  - 'packages/client/src/CrosstownClient.ts'
+  - 'packages/client/src/ToonClient.ts'
   - 'packages/client/src/modes/types.ts'
   - 'packages/client/src/modes/http.ts'
   - 'packages/client/src/modes/http.test.ts'
@@ -56,7 +56,7 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 ### Solution
 
 1. **Create a `discovery-tracker.ts` module** — factory function `createDiscoveryTracker()` returns a `DiscoveryTracker` object with `processEvent()`, `peerWith()`, `getDiscoveredPeers()`, `getPeerCount()`, `getDiscoveredCount()`.
-2. **Replace RelayMonitor in all composition roots** — `createCrosstownNode()`, `startTown()`, client HTTP mode, BLS entrypoint all switch to discovery tracker.
+2. **Replace RelayMonitor in all composition roots** — `createToonNode()`, `startTown()`, client HTTP mode, BLS entrypoint all switch to discovery tracker.
 3. **Kind:10032 events arrive via existing relay subscriptions** — no separate SimplePool connection. The tracker receives parsed NostrEvent objects.
 4. **Update health endpoints** to return live `peerCount` and `discoveredPeerCount` from the tracker.
 5. **Delete RelayMonitor.ts** and all references across the monorepo.
@@ -65,10 +65,10 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 
 **In Scope:**
 - Create `discovery-tracker.ts` module in `packages/core/src/bootstrap/`
-- Update `CrosstownNode` interface and `createCrosstownNode()` in compose.ts
+- Update `ToonNode` interface and `createToonNode()` in compose.ts
 - Update `ServiceNode` and `createNode()` in SDK create-node.ts
 - Update `startTown()` in town.ts
-- Update client package (CrosstownClient, http mode)
+- Update client package (ToonClient, http mode)
 - Update BLS entrypoint
 - Update docker entrypoint-sdk.ts
 - Update health endpoints with live peer counts
@@ -90,7 +90,7 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 
 - **Factory functions over classes** — `create*` prefix convention
 - **Structural typing with `*Like` suffix** — cross-package interfaces avoid direct imports
-- **Two composition roots:** `createCrosstownNode()` (core/compose.ts) for SDK, `startTown()` (town/town.ts) for Town
+- **Two composition roots:** `createToonNode()` (core/compose.ts) for SDK, `startTown()` (town/town.ts) for Town
 - **Client and BLS create their own RelayMonitor instances** — independent of compose.ts
 - **ESM with `.js` extensions** — all imports require `.js` suffix
 - **Co-located tests** — `*.test.ts` next to source files
@@ -107,11 +107,11 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 | `core/index.ts` | Re-exports | Remove RelayMonitor, add tracker |
 | `core/compose.ts` | Import, create, expose on interface | Replace with tracker |
 | `core/compose.test.ts` | Tests spy on relayMonitor | Update tests |
-| `sdk/create-node.ts` | `crosstownNode.relayMonitor.on()` | Use tracker event source |
+| `sdk/create-node.ts` | `toonNode.relayMonitor.on()` | Use tracker event source |
 | `sdk/__integration__/network-discovery.test.ts` | Test descriptions | Update text |
 | `town/town.ts` | Creates RelayMonitor instance | Replace with tracker |
 | `town/health.test.ts` | Health schema stubs | Add discoveredPeerCount |
-| `client/CrosstownClient.ts` | Imports RelayMonitor | Replace with tracker type |
+| `client/ToonClient.ts` | Imports RelayMonitor | Replace with tracker type |
 | `client/modes/types.ts` | Uses RelayMonitor type | Replace with tracker interface |
 | `client/modes/http.ts` | Creates RelayMonitor | Replace with createDiscoveryTracker() |
 | `client/modes/http.test.ts` | Tests RelayMonitor creation | Update tests |
@@ -125,7 +125,7 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 1. **`createDiscoveryTracker()` factory function** — returns `DiscoveryTracker` interface. Preserves all discovery logic from RelayMonitor (processEvent, peerWith, stale filtering, deregistration).
 2. **Tracker receives parsed events** — callers handle WebSocket subscriptions, tracker handles discovery logic only. Clean separation of concerns.
 3. **Tracker owns event emission** — same `BootstrapEvent` types, same `on()/off()` listener pattern as RelayMonitor.
-4. **`CrosstownNode.relayMonitor` → `CrosstownNode.discoveryTracker`** — interface-level rename. SDK adapts.
+4. **`ToonNode.relayMonitor` → `ToonNode.discoveryTracker`** — interface-level rename. SDK adapts.
 5. **Health reads from tracker** — `tracker.getPeerCount()` and `tracker.getDiscoveredCount()`. No new connector API needed.
 
 ## Implementation Plan
@@ -215,9 +215,9 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
     - Remove: `import { RelayMonitor } from './bootstrap/RelayMonitor.js'`
     - Add: `import { createDiscoveryTracker } from './bootstrap/discovery-tracker.js'`
     - Add: `import type { DiscoveryTracker } from './bootstrap/discovery-tracker.js'`
-    - Update `CrosstownNode` interface: `readonly relayMonitor: RelayMonitor` → `readonly discoveryTracker: DiscoveryTracker`
+    - Update `ToonNode` interface: `readonly relayMonitor: RelayMonitor` → `readonly discoveryTracker: DiscoveryTracker`
     - Update JSDoc for `peerWith()`: "discovered by the RelayMonitor" → "discovered by the discovery tracker"
-    - In `createCrosstownNode()`:
+    - In `createToonNode()`:
       - Replace `new RelayMonitor({...})` block (lines 329-337) with `createDiscoveryTracker({secretKey, settlementInfo, basePricePerByte})`
       - Replace `relayMonitor.setConnectorAdmin(...)` etc. with tracker equivalents
       - Update `relayMonitor.start(bootstrapPeerPubkeys)` → `tracker.addExcludedPubkeys(bootstrapPeerPubkeys)` (no subscription to start)
@@ -239,7 +239,7 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 - [x] **Task 8: Update `sdk/create-node.ts` — adapt to new interface**
   - File: `packages/sdk/src/create-node.ts`
   - Action:
-    - Line 376-379: Change `crosstownNode.relayMonitor.on(listener)` → `crosstownNode.discoveryTracker.on(listener)`
+    - Line 376-379: Change `toonNode.relayMonitor.on(listener)` → `toonNode.discoveryTracker.on(listener)`
     - Update JSDoc "Start the node: wire packet handler, run bootstrap, start relay monitor" → "...start discovery"
 
 - [x] **Task 9: Update `sdk/__integration__/network-discovery.test.ts`**
@@ -249,7 +249,7 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 - [x] **Task 10: Update `town.ts` — replace RelayMonitor with tracker**
   - File: `packages/town/src/town.ts`
   - Action:
-    - Remove: `import { RelayMonitor } from '@crosstown/core'` (or from bootstrap path)
+    - Remove: `import { RelayMonitor } from '@toon-protocol/core'` (or from bootstrap path)
     - The block at lines 707-732 creates a RelayMonitor, wires admin/runtime/channel clients, attaches listener, and starts subscription. Replace with:
       1. `createDiscoveryTracker({secretKey, settlementInfo, basePricePerByte})`
       2. Wire admin client and channel client to tracker
@@ -266,10 +266,10 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 
 - [x] **Task 12: Update client package**
   - Files:
-    - `packages/client/src/modes/types.ts`: Change `relayMonitor: RelayMonitor` → `discoveryTracker: DiscoveryTracker` in mode config types. Update import from `@crosstown/core`.
+    - `packages/client/src/modes/types.ts`: Change `relayMonitor: RelayMonitor` → `discoveryTracker: DiscoveryTracker` in mode config types. Update import from `@toon-protocol/core`.
     - `packages/client/src/modes/http.ts`: Replace `new RelayMonitor(monitorConfig, pool)` with `createDiscoveryTracker(config)`. Remove `RelayMonitorConfig` import. Wire admin/channel clients to tracker instead. Remove SimplePool usage if only RelayMonitor used it here.
     - `packages/client/src/modes/http.test.ts`: Update tests to verify `createDiscoveryTracker()` is called instead of `new RelayMonitor()`.
-    - `packages/client/src/CrosstownClient.ts`: Replace `relayMonitor: RelayMonitor` reference with `discoveryTracker: DiscoveryTracker`.
+    - `packages/client/src/ToonClient.ts`: Replace `relayMonitor: RelayMonitor` reference with `discoveryTracker: DiscoveryTracker`.
 
 - [x] **Task 13: Update BLS entrypoint**
   - File: `packages/bls/src/entrypoint.ts`
@@ -315,13 +315,13 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 
 - [x] **AC 4:** Given stale kind:10032 events (older timestamp than previously seen), when `tracker.processEvent()` is called, then the event is ignored (no duplicate discovery).
 
-- [x] **AC 5:** Given a running Crosstown node, when the health endpoint is called, then the response includes `peerCount` (active registered peers) and `discoveredPeerCount` (all discovered peers).
+- [x] **AC 5:** Given a running TOON node, when the health endpoint is called, then the response includes `peerCount` (active registered peers) and `discoveredPeerCount` (all discovered peers).
 
 - [x] **AC 6:** Given `peerWith()` is called twice for the same pubkey, when the second call executes, then it is a no-op (idempotent).
 
 - [x] **AC 7:** Given the codebase after implementation, when searching for `RelayMonitor` imports in `packages/`, then zero matches are found (verified by static analysis test).
 
-- [x] **AC 8:** Given `createCrosstownNode()` is called, when the node is created, then it exposes `discoveryTracker` (not `relayMonitor`) on the `CrosstownNode` interface.
+- [x] **AC 8:** Given `createToonNode()` is called, when the node is created, then it exposes `discoveryTracker` (not `relayMonitor`) on the `ToonNode` interface.
 
 - [x] **AC 9:** Given `ServiceNode.on('bootstrap', listener)` is called, when bootstrap events occur, then the listener receives events from both `bootstrapService` and `discoveryTracker`.
 
@@ -333,7 +333,7 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 
 - No new dependencies required
 - SimplePool remains in project (RelaySubscriber uses it)
-- `@crosstown/connector` optional peer dep unchanged
+- `@toon-protocol/connector` optional peer dep unchanged
 
 ### Testing Strategy
 
@@ -363,7 +363,7 @@ Additionally, health endpoints currently use stale event-counter-based peer coun
 | F7 | Medium | Stale RelayMonitor comments in integration tests | Fixed: updated 6 comments across 4 files |
 | F9 | Medium | handleDeregistration emits before async removePeer | Fixed: emit after `.then()` resolution |
 | F10 | Medium | Double-counting in town.ts health endpoint | Fixed: removed duplicate counter |
-| F13 | Low | Grammar "an Crosstown" → "a Crosstown" | Fixed |
+| F13 | Low | Grammar "an TOON" → "a TOON" | Fixed |
 | F14 | Low | Unused `basePricePerByte` in DiscoveryTrackerConfig | Fixed: removed from config + all callers |
 | F15 | Low | Verification test doesn't grep docker/src/ | Fixed: extended grepPackages scope |
 

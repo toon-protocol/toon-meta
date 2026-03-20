@@ -8,11 +8,11 @@
 - **Migrations**: None
 
 ## What Was Built
-Packaged the Crosstown Docker image for deployment on Marlin Oyster CVM with TEE attestation server configuration and proxy endpoint mapping. Created `docker-compose-oyster.yml` (2-service CVM manifest), `supervisord.conf` (multi-process orchestration), `Dockerfile.oyster` (extended multi-stage Alpine build with supervisord), and `attestation-server.ts` (minimal Hono HTTP server for TEE attestation). 67 dedicated tests validate all structural, behavioral, security, and compatibility properties.
+Packaged the TOON Docker image for deployment on Marlin Oyster CVM with TEE attestation server configuration and proxy endpoint mapping. Created `docker-compose-oyster.yml` (2-service CVM manifest), `supervisord.conf` (multi-process orchestration), `Dockerfile.oyster` (extended multi-stage Alpine build with supervisord), and `attestation-server.ts` (minimal Hono HTTP server for TEE attestation). 67 dedicated tests validate all structural, behavioral, security, and compatibility properties.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: docker-compose-oyster.yml defines correct services, ports, images -- covered by: `oyster-config.test.ts` (T-4.1-01, T-4.1-13: 16 tests)
-- [x] AC2: supervisord.conf defines process priorities for crosstown and attestation -- covered by: `oyster-config.test.ts` (T-4.1-02, T-4.1-11: 14 tests)
+- [x] AC2: supervisord.conf defines process priorities for toon and attestation -- covered by: `oyster-config.test.ts` (T-4.1-02, T-4.1-11: 14 tests)
 - [~] AC3: Both processes running and healthy -- PARTIAL coverage: `oyster-config.test.ts` (T-4.1-05/06/07/12: 25 tests) + `attestation-server.test.ts` (T-4.1-08/09/10: 13 tests). Deferred: T-4.1-03 (integration) and T-4.1-04 (E2E) require Oyster CVM infrastructure.
 - [x] AC4: Compose file compatible with oyster-cvm build -- covered by: `oyster-config.test.ts` (T-4.1-01j, T-4.1-13a-f: 8 tests)
 - [x] AC5: No application-level code changes needed -- covered by: `oyster-config.test.ts` (T-4.1-07: 4 tests, T-4.1-05f: 1 test)
@@ -20,7 +20,7 @@ Packaged the Crosstown Docker image for deployment on Marlin Oyster CVM with TEE
 ## Files Changed
 ### `docker/` (source - new files)
 - `docker-compose-oyster.yml` -- **created** -- Oyster CVM deployment manifest (2 services, 3 ports)
-- `supervisord.conf` -- **created** -- Multi-process orchestration (crosstown priority=10, attestation priority=20)
+- `supervisord.conf` -- **created** -- Multi-process orchestration (toon priority=10, attestation priority=20)
 - `Dockerfile.oyster` -- **created** -- Extended multi-stage Alpine build with supervisord
 - `src/attestation-server.ts` -- **created** -- Minimal Hono HTTP server (GET /attestation/raw, GET /health)
 - `src/attestation-server.test.ts` -- **created** -- 13 HTTP-level tests for attestation server
@@ -104,7 +104,7 @@ Packaged the Crosstown Docker image for deployment on Marlin Oyster CVM with TEE
 
 ### Step 14: Story 4-1 Code Review #2
 - **Status**: success
-- **Issues found & fixed**: 0C/0H/2M/1L -- Port range validation (1-65535), healthcheck for crosstown service with `service_healthy` condition, TEE detection comment
+- **Issues found & fixed**: 0C/0H/2M/1L -- Port range validation (1-65535), healthcheck for toon service with `service_healthy` condition, TEE detection comment
 
 ### Step 15: Story 4-1 Review #2 Artifact Verify
 - **Status**: success
@@ -172,4 +172,4 @@ Packaged the Crosstown Docker image for deployment on Marlin Oyster CVM with TEE
 ---
 
 ## TL;DR
-Story 4.1 packaged the Crosstown Docker image for Marlin Oyster CVM deployment with docker-compose, supervisord, Dockerfile, and attestation server placeholder. The pipeline completed across all 22 steps (2 skipped: frontend polish and E2E) with 67 dedicated tests, 3 code review passes (converging from 4 to 3 to 7 total issues, all fixed), zero security vulnerabilities, and a CONCERNS traceability gate (4/5 ACs FULL, 1 PARTIAL due to deferred infrastructure-dependent integration tests). No action items requiring immediate human attention.
+Story 4.1 packaged the TOON Docker image for Marlin Oyster CVM deployment with docker-compose, supervisord, Dockerfile, and attestation server placeholder. The pipeline completed across all 22 steps (2 skipped: frontend polish and E2E) with 67 dedicated tests, 3 code review passes (converging from 4 to 3 to 7 total issues, all fixed), zero security vulnerabilities, and a CONCERNS traceability gate (4/5 ACs FULL, 1 PARTIAL due to deferred infrastructure-dependent integration tests). No action items requiring immediate human attention.

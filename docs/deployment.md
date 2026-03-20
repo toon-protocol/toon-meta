@@ -10,8 +10,8 @@
 ## Building from Source
 
 ```bash
-git clone https://github.com/ALLiDoizCode/crosstown.git
-cd crosstown
+git clone https://github.com/toon-protocol/town.git
+cd toon
 
 pnpm install        # Install dependencies
 pnpm build          # Build all packages
@@ -65,7 +65,7 @@ Peer N gets ports offset by N*10:
 Run a relay with one command (no Docker required):
 
 ```bash
-npx @crosstown/town --mnemonic "your twelve word mnemonic phrase here"
+npx @toon-protocol/town --mnemonic "your twelve word mnemonic phrase here"
 ```
 
 Town embeds its own ILP connector by default — no external connector needed. See the [Town Guide](town-guide.md) for full CLI reference and environment variables.
@@ -75,11 +75,11 @@ Town embeds its own ILP connector by default — no external connector needed. S
 Build and run as a standalone microservice:
 
 ```bash
-docker build -f docker/Dockerfile -t crosstown .
+docker build -f docker/Dockerfile -t toon .
 docker run -p 3100:3100 -p 7100:7100 \
-  -e CROSSTOWN_MNEMONIC="your twelve word mnemonic phrase here" \
-  -e CROSSTOWN_KNOWN_PEERS='[{"pubkey":"ab12...","relayUrl":"ws://seed.example.com:7100","btpEndpoint":"ws://seed.example.com:3000"}]' \
-  crosstown
+  -e TOON_MNEMONIC="your twelve word mnemonic phrase here" \
+  -e TOON_KNOWN_PEERS='[{"pubkey":"ab12...","relayUrl":"ws://seed.example.com:7100","btpEndpoint":"ws://seed.example.com:3000"}]' \
+  toon
 ```
 
 ## Health Checks
@@ -95,8 +95,8 @@ The relay (port 7100) is WebSocket-only — no HTTP health endpoint.
 ## View Logs
 
 ```bash
-docker compose -p crosstown-genesis -f docker-compose-genesis.yml logs -f
-docker compose -p crosstown-genesis -f docker-compose-genesis.yml logs -f crosstown  # Node only
+docker compose -p toon-genesis -f docker-compose-genesis.yml logs -f
+docker compose -p toon-genesis -f docker-compose-genesis.yml logs -f toon  # Node only
 ```
 
 ## E2E Testing
@@ -115,7 +115,7 @@ cd packages/town && pnpm test:e2e
 
 1. Check Docker is running: `docker ps`
 2. Verify connector repo: `ls ../connector/packages/contracts`
-3. Check logs: `docker compose -p crosstown-genesis -f docker-compose-genesis.yml logs crosstown`
+3. Check logs: `docker compose -p toon-genesis -f docker-compose-genesis.yml logs toon`
 
 **Tests failing:**
 

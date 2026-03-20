@@ -8,7 +8,7 @@
 - **Migrations**: None
 
 ## What Was Built
-Implemented `AttestationVerifier` class in `@crosstown/core` for TEE attestation-aware peering. The class provides PCR verification against a known-good registry, an attestation lifecycle state machine (VALID -> STALE -> UNATTESTED) with configurable validity/grace periods, and stable attestation-aware peer ranking. This is a pure logic module with no transport layer — relay integration is deferred to Story 4.6.
+Implemented `AttestationVerifier` class in `@toon-protocol/core` for TEE attestation-aware peering. The class provides PCR verification against a known-good registry, an attestation lifecycle state machine (VALID -> STALE -> UNATTESTED) with configurable validity/grace periods, and stable attestation-aware peer ranking. This is a pure logic module with no transport layer — relay integration is deferred to Story 4.6.
 
 ## Acceptance Criteria Coverage
 - [x] AC1: PCR verification — verify() checks pcr0/pcr1/pcr2 against known-good registry Map — covered by: T-4.3-01, T-4.3-02, T-4.3-03, AUTO-01 to AUTO-05, AUTO-12
@@ -211,4 +211,4 @@ Acknowledged items:
 ---
 
 ## TL;DR
-Implemented `AttestationVerifier` for `@crosstown/core` with PCR verification, lifecycle state machine (VALID->STALE->UNATTESTED), and stable peer ranking. Pipeline passed cleanly through all 22 steps with 42 tests, 3 code review passes (16 issues found, all resolved), semgrep security scan clean, and 100% acceptance criteria traceability. No action items requiring human attention.
+Implemented `AttestationVerifier` for `@toon-protocol/core` with PCR verification, lifecycle state machine (VALID->STALE->UNATTESTED), and stable peer ranking. Pipeline passed cleanly through all 22 steps with 42 tests, 3 code review passes (16 issues found, all resolved), semgrep security scan clean, and 100% acceptance criteria traceability. No action items requiring human attention.

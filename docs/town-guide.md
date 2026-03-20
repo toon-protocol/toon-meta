@@ -1,15 +1,15 @@
 # Town Guide
 
-`@crosstown/town` is a production-ready relay node built on `@crosstown/sdk`. It provides a complete Nostr relay with an embedded ILP connector, payment validation, SQLite storage, WebSocket serving, and automatic bootstrap — all in a single function call or CLI command.
+`@toon-protocol/town` is a production-ready relay node built on `@toon-protocol/sdk`. It provides a complete Nostr relay with an embedded ILP connector, payment validation, SQLite storage, WebSocket serving, and automatic bootstrap — all in a single function call or CLI command.
 
 ## Where Town Sits in the Stack
 
 ```
-@crosstown/town
+@toon-protocol/town
 ├── startTown() / CLI          ← You configure here
-├── @crosstown/sdk             ← Verification, pricing, handlers
-│   └── @crosstown/core        ← Bootstrap, discovery
-├── @crosstown/relay           ← WebSocket relay, event store
+├── @toon-protocol/sdk             ← Verification, pricing, handlers
+│   └── @toon-protocol/core        ← Bootstrap, discovery
+├── @toon-protocol/relay           ← WebSocket relay, event store
 └── Embedded ILP Connector     ← Payment routing (included)
 ```
 
@@ -20,14 +20,14 @@ Town composes everything the SDK provides into an opinionated, ready-to-run rela
 ### CLI
 
 ```bash
-npx @crosstown/town \
+npx @toon-protocol/town \
   --mnemonic "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 ```
 
 ### Programmatic
 
 ```typescript
-import { startTown } from '@crosstown/town';
+import { startTown } from '@toon-protocol/town';
 
 const town = await startTown({
   mnemonic: 'abandon abandon abandon ...',
@@ -68,24 +68,24 @@ Provide exactly one of `mnemonic` or `secretKey` — not both, not neither.
 
 | Variable | Maps to |
 |----------|---------|
-| `CROSSTOWN_MNEMONIC` | `--mnemonic` |
-| `CROSSTOWN_SECRET_KEY` | `--secret-key` |
-| `CROSSTOWN_CONNECTOR_URL` | `--connector-url` |
-| `CROSSTOWN_RELAY_PORT` | `--relay-port` |
-| `CROSSTOWN_BLS_PORT` | `--bls-port` |
-| `CROSSTOWN_DATA_DIR` | `--data-dir` |
-| `CROSSTOWN_DEV_MODE` | `--dev-mode` |
-| `CROSSTOWN_KNOWN_PEERS` | `--known-peers` (JSON array) |
+| `TOON_MNEMONIC` | `--mnemonic` |
+| `TOON_SECRET_KEY` | `--secret-key` |
+| `TOON_CONNECTOR_URL` | `--connector-url` |
+| `TOON_RELAY_PORT` | `--relay-port` |
+| `TOON_BLS_PORT` | `--bls-port` |
+| `TOON_DATA_DIR` | `--data-dir` |
+| `TOON_DEV_MODE` | `--dev-mode` |
+| `TOON_KNOWN_PEERS` | `--known-peers` (JSON array) |
 
 ### CLI Flags
 
 ```
-npx @crosstown/town [options]
+npx @toon-protocol/town [options]
 
 Options:
   --mnemonic <phrase>          BIP-39 mnemonic for node identity
   --secret-key <hex>           64-char hex secret key (alternative to mnemonic)
-  --connector-url <url>        ILP connector HTTP endpoint (required)
+  --connector-url <url>        ILP connector HTTP endpoint (omit for embedded connector)
   --connector-admin-url <url>  Connector admin endpoint
   --relay-port <port>          WebSocket relay port (default: 7100)
   --bls-port <port>            BLS HTTP port (default: 3100)

@@ -113,7 +113,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** CONCERNS
 - **Threshold:** 0 critical, 0 high vulnerabilities in story-specific code
-- **Actual:** 0 vulnerabilities in Story 3.6 code. However, `pnpm audit` reports 43 vulnerabilities (2 critical, 17 high) in transitive dependencies -- all traced to `qs@6.11.0` via `express@4.18.3` via `@crosstown/connector@1.7.1`. These are inherited from the connector package and are NOT introduced by Story 3.6.
+- **Actual:** 0 vulnerabilities in Story 3.6 code. However, `pnpm audit` reports 43 vulnerabilities (2 critical, 17 high) in transitive dependencies -- all traced to `qs@6.11.0` via `express@4.18.3` via `@toon-protocol/connector@1.7.1`. These are inherited from the connector package and are NOT introduced by Story 3.6.
 - **Evidence:** `pnpm audit` output (2026-03-14)
 - **Findings:** The vulnerabilities are in transitive dependencies of the connector package (express/qs). Story 3.6 introduces no new dependencies. The connector upgrade is tracked separately (architectural debt documented in MEMORY.md). Not a blocker for this story.
 
@@ -241,7 +241,7 @@ The 2 CONCERNS items are:
    - No code changes needed -- just measurement and documentation
 
 2. **Dependency vulnerabilities** (Security) - MEDIUM - upstream
-   - Update `@crosstown/connector` to use a newer version of express (or migrate to Hono)
+   - Update `@toon-protocol/connector` to use a newer version of express (or migrate to Hono)
    - This is tracked as architectural debt, not Story 3.6 scope
    - No code changes in Story 3.6 needed
 
@@ -256,7 +256,7 @@ None. No blockers or high-priority issues identified.
 ### Short-term (Next Milestone) - MEDIUM Priority
 
 1. **Update connector express dependency** - MEDIUM - 4-8 hours - Dev
-   - `@crosstown/connector@1.7.1` uses `express@4.18.3` with known vulnerabilities in `qs@6.11.0`
+   - `@toon-protocol/connector@1.7.1` uses `express@4.18.3` with known vulnerabilities in `qs@6.11.0`
    - Consider migrating connector to Hono (aligning with Town package) or updating express
    - Not a Story 3.6 issue -- tracked as connector architectural debt
 

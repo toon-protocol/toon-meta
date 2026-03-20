@@ -32,9 +32,9 @@ inputDocuments:
 
 ## Story Summary
 
-Story 4.3 adds attestation-aware peering to the Crosstown protocol. The `AttestationVerifier` class provides PCR verification against a known-good registry, attestation lifecycle state management (valid/stale/unattested), and peer ranking that prefers TEE-attested relays over non-attested ones.
+Story 4.3 adds attestation-aware peering to the TOON protocol. The `AttestationVerifier` class provides PCR verification against a known-good registry, attestation lifecycle state management (valid/stale/unattested), and peer ranking that prefers TEE-attested relays over non-attested ones.
 
-**As a** Crosstown relay operator bootstrapping into the network
+**As a** TOON relay operator bootstrapping into the network
 **I want** the BootstrapService to parse, verify, and rank peers based on kind:10033 TEE attestation events
 **So that** my node preferentially connects to peers running verified, unmodified code in TEE enclaves
 
@@ -46,7 +46,7 @@ Story 4.3 adds attestation-aware peering to the Crosstown protocol. The `Attesta
 2. **AC#2 - Attestation State Lifecycle:** `getAttestationState()` returns VALID within validity period, STALE after validity but within grace period, UNATTESTED after both expire. Boundary: at exactly `attestedAt + validitySeconds` = VALID (inclusive); at exactly `attestedAt + validitySeconds + graceSeconds` = STALE (inclusive); at grace+1s = UNATTESTED.
 3. **AC#3 - Peer Ranking:** `rankPeers()` places all TEE-attested peers before all non-attested peers, preserving relative order within each group (stable sort).
 4. **AC#4 - Dual-Channel Consistency:** The same `AttestationVerifier` instance returns identical `AttestationState` values regardless of whether queried via the kind:10033 event path or the /health endpoint path (R-E4-008).
-5. **AC#5 - Exports:** `AttestationVerifier`, `AttestationState`, `VerificationResult`, `PeerDescriptor`, and `AttestationVerifierConfig` are exported from `@crosstown/core`.
+5. **AC#5 - Exports:** `AttestationVerifier`, `AttestationState`, `VerificationResult`, `PeerDescriptor`, and `AttestationVerifierConfig` are exported from `@toon-protocol/core`.
 
 ---
 
@@ -431,7 +431,7 @@ npx vitest run packages/core/src/bootstrap/AttestationVerifier.test.ts --coverag
 ```
  FAIL  packages/core/src/bootstrap/AttestationVerifier.test.ts
 Error: Failed to load url ./AttestationVerifier.js (resolved id: ./AttestationVerifier.js)
-in /Users/jonathangreen/Documents/crosstown/packages/core/src/bootstrap/AttestationVerifier.test.ts.
+in /Users/jonathangreen/Documents/toon/packages/core/src/bootstrap/AttestationVerifier.test.ts.
 Does the file exist?
 
  Test Files  1 failed (1)

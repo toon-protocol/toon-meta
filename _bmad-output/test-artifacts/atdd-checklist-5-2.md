@@ -36,7 +36,7 @@ inputDocuments:
 
 ## Story Summary
 
-Story 5.2 validates that the existing Crosstown SDK infrastructure correctly handles DVM (Data Vending Machine) event kinds (5000-5999 range) for job submission via ILP PREPARE packets. This is a validation-only story -- no production code changes are expected.
+Story 5.2 validates that the existing TOON SDK infrastructure correctly handles DVM (Data Vending Machine) event kinds (5000-5999 range) for job submission via ILP PREPARE packets. This is a validation-only story -- no production code changes are expected.
 
 **As a** initiated agent (with an open ILP payment channel)
 **I want** to publish DVM job requests via ILP PREPARE packets as the preferred path
@@ -196,7 +196,7 @@ Story 5.2 validates that the existing Crosstown SDK infrastructure correctly han
 
 ### EmbeddableConnectorLike Mock
 
-**Interface:** `EmbeddableConnectorLike` from `@crosstown/core`
+**Interface:** `EmbeddableConnectorLike` from `@toon-protocol/core`
 
 **Methods mocked:**
 
@@ -225,7 +225,7 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 - [ ] Remove `it.skip()` from this test
 - [ ] Verify HandlerRegistry.dispatch() routes Kind 5100 correctly (existing code)
-- [ ] Run test: `pnpm --filter @crosstown/sdk test -- --run src/dvm-handler-dispatch.test.ts`
+- [ ] Run test: `pnpm --filter @toon-protocol/sdk test -- --run src/dvm-handler-dispatch.test.ts`
 - [ ] Test passes (green phase)
 
 **Estimated Effort:** 0.1 hours (validation only -- no production code changes expected)
@@ -240,7 +240,7 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 - [ ] Remove `it.skip()` from this test
 - [ ] Verify createHandlerContext lazy decode preserves DVM tags (existing code)
-- [ ] Run test: `pnpm --filter @crosstown/sdk test -- --run src/dvm-handler-dispatch.test.ts`
+- [ ] Run test: `pnpm --filter @toon-protocol/sdk test -- --run src/dvm-handler-dispatch.test.ts`
 - [ ] Test passes (green phase)
 
 **Estimated Effort:** 0.1 hours
@@ -255,7 +255,7 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 - [ ] Remove `it.skip()` from this test
 - [ ] Verify ctx.toon returns raw base64 string without decoding (existing code)
-- [ ] Run test: `pnpm --filter @crosstown/sdk test -- --run src/dvm-handler-dispatch.test.ts`
+- [ ] Run test: `pnpm --filter @toon-protocol/sdk test -- --run src/dvm-handler-dispatch.test.ts`
 - [ ] Test passes (green phase)
 
 **Estimated Effort:** 0.1 hours
@@ -270,7 +270,7 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 - [ ] Remove `it.skip()` from this test
 - [ ] Verify createPricingValidator accepts DVM events at standard per-byte rate (existing code)
-- [ ] Run test: `pnpm --filter @crosstown/sdk test -- --run src/dvm-handler-dispatch.test.ts`
+- [ ] Run test: `pnpm --filter @toon-protocol/sdk test -- --run src/dvm-handler-dispatch.test.ts`
 - [ ] Test passes (green phase)
 
 **Estimated Effort:** 0.1 hours
@@ -285,7 +285,7 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 - [ ] Remove `it.skip()` from this test
 - [ ] Verify HandlerRegistry routes 5100, 5200 correctly and returns F00 for 5300 (existing code)
-- [ ] Run test: `pnpm --filter @crosstown/sdk test -- --run src/dvm-handler-dispatch.test.ts`
+- [ ] Run test: `pnpm --filter @toon-protocol/sdk test -- --run src/dvm-handler-dispatch.test.ts`
 - [ ] Test passes (green phase)
 
 **Estimated Effort:** 0.1 hours
@@ -300,7 +300,7 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 - [ ] Remove `it.skip()` from this test
 - [ ] Verify ctx.decode() exposes p tag for targeted filtering (existing code)
-- [ ] Run test: `pnpm --filter @crosstown/sdk test -- --run src/dvm-handler-dispatch.test.ts`
+- [ ] Run test: `pnpm --filter @toon-protocol/sdk test -- --run src/dvm-handler-dispatch.test.ts`
 - [ ] Test passes (green phase)
 
 **Estimated Effort:** 0.1 hours
@@ -315,7 +315,7 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 - [ ] Remove `it.skip()` from this test
 - [ ] Verify publishEvent() TOON-encodes and sends DVM event via connector (existing code)
-- [ ] Run test: `pnpm --filter @crosstown/sdk test:integration -- --run`
+- [ ] Run test: `pnpm --filter @toon-protocol/sdk test:integration -- --run`
 - [ ] Test passes (green phase)
 
 **Estimated Effort:** 0.1 hours
@@ -330,7 +330,7 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 - [ ] Remove `it.skip()` from packet equivalence tests
 - [ ] Verify buildIlpPrepare() produces identical output for both paths (existing code)
-- [ ] Run test: `pnpm --filter @crosstown/sdk test:integration -- --run`
+- [ ] Run test: `pnpm --filter @toon-protocol/sdk test:integration -- --run`
 - [ ] Tests pass (green phase)
 
 **Estimated Effort:** 0.1 hours
@@ -345,7 +345,7 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 - [ ] Remove `it.skip()` from pipeline ordering test
 - [ ] Verify DVM events traverse shallow parse -> verify -> price -> dispatch (existing code)
-- [ ] Run test: `pnpm --filter @crosstown/sdk test:integration -- --run`
+- [ ] Run test: `pnpm --filter @toon-protocol/sdk test:integration -- --run`
 - [ ] Test passes (green phase)
 
 **Estimated Effort:** 0.2 hours
@@ -360,7 +360,7 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 - [ ] Remove `it.skip()` from cross-story boundary test
 - [ ] Verify complex DVM event with all tag types survives TOON encode/decode/parse (existing code)
-- [ ] Run test: `pnpm --filter @crosstown/sdk test:integration -- --run`
+- [ ] Run test: `pnpm --filter @toon-protocol/sdk test:integration -- --run`
 - [ ] Test passes (green phase)
 
 **Estimated Effort:** 0.2 hours
@@ -371,19 +371,19 @@ N/A -- This is a backend-only story with no UI components. All tests operate on 
 
 ```bash
 # Run all failing unit tests for this story
-pnpm --filter @crosstown/sdk test -- --run src/dvm-handler-dispatch.test.ts
+pnpm --filter @toon-protocol/sdk test -- --run src/dvm-handler-dispatch.test.ts
 
 # Run all failing integration tests for this story
-pnpm --filter @crosstown/sdk test:integration -- --run
+pnpm --filter @toon-protocol/sdk test:integration -- --run
 
 # Run specific integration test file only
-pnpm --filter @crosstown/sdk test:integration -- --run src/__integration__/dvm-job-submission.test.ts
+pnpm --filter @toon-protocol/sdk test:integration -- --run src/__integration__/dvm-job-submission.test.ts
 
 # Run all SDK tests (unit + integration)
-pnpm --filter @crosstown/sdk test -- --run && pnpm --filter @crosstown/sdk test:integration -- --run
+pnpm --filter @toon-protocol/sdk test -- --run && pnpm --filter @toon-protocol/sdk test:integration -- --run
 
 # Run with verbose reporter for detailed output
-pnpm --filter @crosstown/sdk test -- --run --reporter=verbose src/dvm-handler-dispatch.test.ts
+pnpm --filter @toon-protocol/sdk test -- --run --reporter=verbose src/dvm-handler-dispatch.test.ts
 ```
 
 ---
@@ -452,7 +452,7 @@ pnpm --filter @crosstown/sdk test -- --run --reporter=verbose src/dvm-handler-di
 
 ### Initial Test Run (RED Phase Verification)
 
-**Command:** `pnpm --filter @crosstown/sdk test -- --run --reporter=verbose src/dvm-handler-dispatch.test.ts`
+**Command:** `pnpm --filter @toon-protocol/sdk test -- --run --reporter=verbose src/dvm-handler-dispatch.test.ts`
 
 **Results:**
 
@@ -462,7 +462,7 @@ pnpm --filter @crosstown/sdk test -- --run --reporter=verbose src/dvm-handler-di
       Tests  10 skipped (190 total)
 ```
 
-**Command:** `pnpm --filter @crosstown/sdk test:integration -- --run --reporter=verbose`
+**Command:** `pnpm --filter @toon-protocol/sdk test:integration -- --run --reporter=verbose`
 
 **Results:**
 
@@ -486,14 +486,14 @@ pnpm --filter @crosstown/sdk test -- --run --reporter=verbose src/dvm-handler-di
 - **Validation-only story:** No production code changes expected. All DVM submission infrastructure exists from Epics 1-4. The value is in the tests proving the infrastructure handles DVM kinds correctly.
 - **Epic 5 renumbering:** Decision 8 renumbered the old Epic 5 (The Rig / NIP-34 Git Forge) to Epic 7. The current Epic 5 is the DVM Compute Marketplace. The existing `test-design-epic-5.md` and `atdd-checklist-epic-5.md` cover the old Rig epic and are not relevant to DVM stories.
 - **T-5.2-07 (provider subscription):** Not implemented in this ATDD batch because it requires live WebSocket infrastructure (relay running). This test should be added when infrastructure is available or as part of the E2E test suite.
-- **Import path note:** DVM builders/parsers (`buildJobRequestEvent`, `parseJobRequest`) are re-exported from `@crosstown/core` (not `@crosstown/core/events/dvm`), as the package.json exports map does not include the events subpath.
+- **Import path note:** DVM builders/parsers (`buildJobRequestEvent`, `parseJobRequest`) are re-exported from `@toon-protocol/core` (not `@toon-protocol/core/events/dvm`), as the package.json exports map does not include the events subpath.
 
 ---
 
 ## Next Steps
 
 1. **Share this checklist and failing tests** with the dev workflow
-2. **Run failing tests** to confirm RED phase: `pnpm --filter @crosstown/sdk test -- --run src/dvm-handler-dispatch.test.ts`
+2. **Run failing tests** to confirm RED phase: `pnpm --filter @toon-protocol/sdk test -- --run src/dvm-handler-dispatch.test.ts`
 3. **Begin validation**: Remove `it.skip()` one test at a time, starting with P0 priority
 4. **Work one test at a time** (red -> green for each)
 5. **When all tests pass**, refactor if needed

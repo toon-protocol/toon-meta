@@ -7,12 +7,12 @@ Status: done
 ## Story
 
 As an **agent or AI system**,
-I want to discover what DVM services a Crosstown node offers by reading structured skill descriptors in kind:10035 events,
+I want to discover what DVM services a TOON node offers by reading structured skill descriptors in kind:10035 events,
 So that I can programmatically find compatible providers and construct valid job requests without documentation.
 
 **FRs covered:** FR-DVM-4 (Nodes SHALL publish structured skill descriptors in kind:10035 service discovery events, auto-populated from registered DVM handlers, enabling programmatic agent-to-agent service discovery)
 
-**Dependencies:** Epic 3 Story 3.5 complete (kind:10035 service discovery events exist -- `buildServiceDiscoveryEvent()`, `parseServiceDiscovery()`, `ServiceDiscoveryContent` in `@crosstown/core`). Story 5.1 complete (DVM event kind definitions -- builders, parsers, constants). Stories 5.2 and 5.3 complete (full DVM lifecycle validated). All infrastructure from Epics 1-4 is complete.
+**Dependencies:** Epic 3 Story 3.5 complete (kind:10035 service discovery events exist -- `buildServiceDiscoveryEvent()`, `parseServiceDiscovery()`, `ServiceDiscoveryContent` in `@toon-protocol/core`). Story 5.1 complete (DVM event kind definitions -- builders, parsers, constants). Stories 5.2 and 5.3 complete (full DVM lifecycle validated). All infrastructure from Epics 1-4 is complete.
 
 **Decision sources:**
 - Decision 5 (party-mode-2020117-analysis): Skill descriptors in kind:10035, not a separate event kind
@@ -34,7 +34,7 @@ So that I can programmatically find compatible providers and construct valid job
 
 5. Given an agent searching for a text generation provider, when the agent queries the relay for kind:10035 events, then it can filter results by parsing the `skill.kinds` array to find entries containing `5100`, compare `skill.pricing['5100']` across providers, and select the provider whose `skill.features` and `skill.models` best match the job requirements.
 
-6. Given the skill descriptor format, when compared to 2020117's skill JSON schema, then the Crosstown skill descriptor is a superset -- it includes standard NIP-90 discovery fields plus Crosstown-specific fields already present in `ServiceDiscoveryContent`: `ilpAddress`, `x402` (with endpoint), `chain` (supported chains), and a new `attestation` placeholder field (optional, for Epic 6 TEE integration) within the skill descriptor. The `attestation` field is typed but left unpopulated until Epic 6 Story 6.3.
+6. Given the skill descriptor format, when compared to 2020117's skill JSON schema, then the TOON skill descriptor is a superset -- it includes standard NIP-90 discovery fields plus TOON-specific fields already present in `ServiceDiscoveryContent`: `ilpAddress`, `x402` (with endpoint), `chain` (supported chains), and a new `attestation` placeholder field (optional, for Epic 6 TEE integration) within the skill descriptor. The `attestation` field is typed but left unpopulated until Epic 6 Story 6.3.
 
 ## Tasks / Subtasks
 
@@ -50,7 +50,7 @@ So that I can programmatically find compatible providers and construct valid job
   - [x] 1.9 Write unit test: `parseServiceDiscovery()` returns null when `skill.inputSchema` is not an object.
   - [x] 1.10 Write unit test: `parseServiceDiscovery()` returns null when `skill.pricing` has non-string values.
   - [x] 1.11 Write unit test: skill descriptor structure contains all required fields (T-5.4-01).
-  - [x] 1.12 Write unit test: Crosstown-specific fields (`ilpAddress`, `x402`, `chain`) present alongside skill descriptor (T-5.4-09).
+  - [x] 1.12 Write unit test: TOON-specific fields (`ilpAddress`, `x402`, `chain`) present alongside skill descriptor (T-5.4-09).
   - [x] 1.13 Write unit test: skill descriptor with `attestation` placeholder field (optional, present but empty object) (T-5.4-11).
 
 - [x] Task 2: Expose registered DVM kinds from `HandlerRegistry` (AC: #3)
@@ -62,7 +62,7 @@ So that I can programmatically find compatible providers and construct valid job
   - [x] 2.6 Write unit test: register `node.on(5100, handler)` and `node.on(5200, handler)` -> `getDvmKinds()` returns `[5100, 5200]` (T-5.4-04).
 
 - [x] Task 3: Auto-populate skill descriptor from handler registry at bootstrap (AC: #3, #5)
-  - [x] 3.1 Add `buildSkillDescriptor(registry, config)` function to `packages/sdk/src/create-node.ts` (or a new `packages/sdk/src/skill-descriptor.ts` file). The function takes the `HandlerRegistry` instance and node config (`{ basePricePerByte, kindPricing, name?, version?, features?, inputSchema?, models? }`) and returns a `SkillDescriptor | undefined`. Returns `undefined` when `registry.getDvmKinds()` is empty (no DVM handlers). When DVM kinds exist: `kinds` from `registry.getDvmKinds()`, `pricing` from `config.kindPricing` (mapping DVM kinds to their per-kind price, falling back to `basePricePerByte` converted to string for unpriced kinds), `name` defaults to `'crosstown-dvm'`, `version` defaults to `'1.0'`, `features`/`inputSchema`/`models` from config or sensible defaults.
+  - [x] 3.1 Add `buildSkillDescriptor(registry, config)` function to `packages/sdk/src/create-node.ts` (or a new `packages/sdk/src/skill-descriptor.ts` file). The function takes the `HandlerRegistry` instance and node config (`{ basePricePerByte, kindPricing, name?, version?, features?, inputSchema?, models? }`) and returns a `SkillDescriptor | undefined`. Returns `undefined` when `registry.getDvmKinds()` is empty (no DVM handlers). When DVM kinds exist: `kinds` from `registry.getDvmKinds()`, `pricing` from `config.kindPricing` (mapping DVM kinds to their per-kind price, falling back to `basePricePerByte` converted to string for unpriced kinds), `name` defaults to `'toon-dvm'`, `version` defaults to `'1.0'`, `features`/`inputSchema`/`models` from config or sensible defaults.
   - [x] 3.2 Add optional `skillConfig` to `NodeConfig` in `packages/sdk/src/create-node.ts`: `skillConfig?: { name?: string, version?: string, features?: string[], inputSchema?: Record<string, unknown>, models?: string[] }`. These are developer-provided overrides for fields that cannot be auto-derived from the handler registry.
   - [x] 3.3 Wire `buildSkillDescriptor()` into the kind:10035 publication path. The SDK's `createNode()` does not directly publish kind:10035 events (that's Town's responsibility via `startTown()`). The SDK must expose the skill descriptor so Town can include it. Add a `getSkillDescriptor(): SkillDescriptor | undefined` method to the `ServiceNode` interface that returns the computed skill descriptor (or `undefined` if no DVM handlers registered). Implement in `createNode()` closure.
   - [x] 3.4 Update `startTown()` in `packages/town/src/town.ts` to include the `skill` field in `ServiceDiscoveryContent` when the node has DVM handlers. This requires either: (a) passing the skill descriptor through Town's config, or (b) having Town call the SDK's `getSkillDescriptor()`. Since Town builds its own `ServiceDiscoveryContent` at line ~1011, the simplest approach is adding an optional `skill?: SkillDescriptor` to `TownConfig` that gets passed through to the kind:10035 content. **Alternative:** If Town uses `createNode()` internally, use `node.getSkillDescriptor()`. Determine the correct approach based on Town's architecture.
@@ -90,9 +90,9 @@ So that I can programmatically find compatible providers and construct valid job
 **Key insight: Story 5.4 extends an existing event kind (kind:10035) rather than creating a new one.** This is per Decision 5 from the 2020117 analysis -- skill descriptors are embedded in the existing service discovery infrastructure, not a separate event kind. This means backward compatibility is critical: existing kind:10035 parsers must continue to work when `skill` is absent, and new parsers must handle both old (no skill) and new (with skill) events.
 
 **Three packages need changes:**
-1. **`@crosstown/core`** -- Type extension (`SkillDescriptor`, `ServiceDiscoveryContent.skill`), parser update (`parseServiceDiscovery()`), type exports.
-2. **`@crosstown/sdk`** -- Handler registry exposure (`getDvmKinds()`), skill descriptor builder (`buildSkillDescriptor()`), `ServiceNode.getSkillDescriptor()` method.
-3. **`@crosstown/town`** (conditional) -- Include skill in kind:10035 publication at bootstrap. This depends on how Town integrates with the SDK's skill descriptor.
+1. **`@toon-protocol/core`** -- Type extension (`SkillDescriptor`, `ServiceDiscoveryContent.skill`), parser update (`parseServiceDiscovery()`), type exports.
+2. **`@toon-protocol/sdk`** -- Handler registry exposure (`getDvmKinds()`), skill descriptor builder (`buildSkillDescriptor()`), `ServiceNode.getSkillDescriptor()` method.
+3. **`@toon-protocol/town`** (conditional) -- Include skill in kind:10035 publication at bootstrap. This depends on how Town integrates with the SDK's skill descriptor.
 
 **The skill descriptor is NOT a new event.** It is a new optional JSON field inside the existing kind:10035 event's `content` field. The event structure (kind, tags, signature) is unchanged.
 
@@ -110,7 +110,7 @@ So that I can programmatically find compatible providers and construct valid job
 **Skill descriptor schema (from epics.md + 2020117 analysis):**
 ```typescript
 interface SkillDescriptor {
-  name: string;           // Service identifier (e.g., 'crosstown-dvm')
+  name: string;           // Service identifier (e.g., 'toon-dvm')
   version: string;        // Schema version (e.g., '1.0')
   kinds: number[];        // Supported DVM Kind 5xxx numbers (e.g., [5100, 5200])
   features: string[];     // Capability list (e.g., ['text-generation', 'streaming'])
@@ -175,7 +175,7 @@ interface SkillDescriptor {
 | T-5.4-06 | Node publishes kind:10035 with skill descriptor on bootstrap completion | I | P1 | E5-R010 | 4.4 |
 | T-5.4-07 | Skill descriptor update: add new DVM handler -> updated kind:10035 published (NIP-16 replaceable event) | I | P2 | E5-R010 | (stretch) |
 | T-5.4-08 | Agent discovery: query relay for kind:10035 events -> filter by `skill.kinds` containing 5100 -> compare pricing across providers | I | P1 | -- | 4.3 |
-| T-5.4-09 | Crosstown-specific fields: `ilpAddress`, `x402` (with nested `endpoint`), `chain` present in `ServiceDiscoveryContent` alongside skill descriptor | U | P2 | E5-R011 | 1.12 |
+| T-5.4-09 | TOON-specific fields: `ilpAddress`, `x402` (with nested `endpoint`), `chain` present in `ServiceDiscoveryContent` alongside skill descriptor | U | P2 | E5-R011 | 1.12 |
 | T-5.4-10 | `parseServiceDiscovery()` roundtrip with skill descriptor: build -> parse -> all skill fields recovered including nested inputSchema | U | P1 | -- | 1.5, 5.2 |
 | T-5.4-11 | Skill descriptor with `attestation` field placeholder for Epic 6 TEE integration (field present but optional) | U | P3 | -- | 1.13 |
 
@@ -208,7 +208,7 @@ interface SkillDescriptor {
 
 **E5-R010 (Score 4, MEDIUM): Auto-Population from Handler Registry** -- Skill descriptor `kinds` array might not accurately reflect registered DVM handlers (stale registration, handler replacement not reflected). Mitigation: `getDvmKinds()` reads directly from the live `handlers` Map -- no caching, no stale state. `buildSkillDescriptor()` is called at bootstrap time, after all handlers are registered. Tests T-5.4-04, T-5.4-05, T-5.4-06 validate this.
 
-**E5-R011 (Score 2, LOW): 2020117 Format Interop** -- Crosstown-specific fields (`ilpAddress`, `x402`, `chain`) could cause interop issues with standard NIP-90 discovery tools. Mitigation: Crosstown skill descriptors are a superset of 2020117. Standard fields are always present; Crosstown-specific fields are additive. Test T-5.4-09 validates this.
+**E5-R011 (Score 2, LOW): 2020117 Format Interop** -- TOON-specific fields (`ilpAddress`, `x402`, `chain`) could cause interop issues with standard NIP-90 discovery tools. Mitigation: TOON skill descriptors are a superset of 2020117. Standard fields are always present; TOON-specific fields are additive. Test T-5.4-09 validates this.
 
 **S5.4-R1 (Score 3): Backward Compatibility of kind:10035 Parser** -- Adding `skill` field parsing to `parseServiceDiscovery()` must not break parsing of existing kind:10035 events (from Epics 3-4) that lack the `skill` field. Mitigation: The `skill` field is optional. The parser only validates `skill` when it is present. When absent, `result.skill` is `undefined`. The existing forward-compatibility test already proves that unknown fields don't break parsing. Test T-5.4-12 explicitly validates this.
 
@@ -226,9 +226,9 @@ interface SkillDescriptor {
 - **Mock connectors** -- SDK tests use structural `EmbeddableConnectorLike` mock with `vi.fn()` for sendPacket, registerPeer, etc.
 - **Always mock SimplePool** -- `vi.mock('nostr-tools')` to prevent live relay connections
 - **Deterministic test data** -- Use fixed timestamps (e.g., `1700000000`), fixed keys, fixed event IDs (not `Date.now()` or `generateSecretKey()` in test assertions)
-- **Import from `@crosstown/core`** for service discovery types and DVM constants
+- **Import from `@toon-protocol/core`** for service discovery types and DVM constants
 - **Lint-check immediately after writing code** -- `pnpm lint` before marking any task complete
-- **Constants for DVM kind range** -- Use `JOB_REQUEST_KIND_BASE` (5000) from `@crosstown/core` for the 5000-5999 DVM range filter, not magic numbers
+- **Constants for DVM kind range** -- Use `JOB_REQUEST_KIND_BASE` (5000) from `@toon-protocol/core` for the 5000-5999 DVM range filter, not magic numbers
 
 ### Implementation Approach
 
@@ -250,8 +250,8 @@ interface SkillDescriptor {
 
 ### Project Structure Notes
 
-- `SkillDescriptor` interface defined in `@crosstown/core` (alongside `ServiceDiscoveryContent`) -- follows the co-location convention for event types.
-- `buildSkillDescriptor()` lives in `@crosstown/sdk` (not core) because it depends on `HandlerRegistry` which is an SDK concept.
+- `SkillDescriptor` interface defined in `@toon-protocol/core` (alongside `ServiceDiscoveryContent`) -- follows the co-location convention for event types.
+- `buildSkillDescriptor()` lives in `@toon-protocol/sdk` (not core) because it depends on `HandlerRegistry` which is an SDK concept.
 - `getDvmKinds()` method on `HandlerRegistry` exposes registry internals in a controlled way -- only kind numbers, not handlers.
 - The skill descriptor is computed at `createNode()` closure scope and exposed via `getSkillDescriptor()` -- same pattern as `publishEvent()`, `publishFeedback()`, etc.
 - `TownConfig` gets an optional `skill` field to pass through from SDK to Town's kind:10035 publication.
@@ -261,7 +261,7 @@ interface SkillDescriptor {
 - [Source: `_bmad-output/planning-artifacts/epics.md` -- Epic 5 description, Story 5.4 definition, skill descriptor requirements, 2020117 superset requirement]
 - [Source: `_bmad-output/planning-artifacts/research/party-mode-2020117-analysis-2026-03-10.md` -- Decision 5 (skill in kind:10035, not separate event), Decision 6 (Epic 5 scope 5.1-5.4)]
 - [Source: `_bmad-output/planning-artifacts/test-design-epic-5.md` -- DVM Compute Marketplace test design. Section 4.4 Story 5.4 tests (T-5.4-01 through T-5.4-11), Section 5 cross-story integration test T-INT-05, Section 2 risk assessment (E5-R009, E5-R010, E5-R011)]
-- [Source: `_bmad-output/implementation-artifacts/5-1-dvm-event-kind-definitions.md` -- Story 5.1 complete (DVM builders, parsers, constants in `@crosstown/core`)]
+- [Source: `_bmad-output/implementation-artifacts/5-1-dvm-event-kind-definitions.md` -- Story 5.1 complete (DVM builders, parsers, constants in `@toon-protocol/core`)]
 - [Source: `_bmad-output/implementation-artifacts/5-2-ilp-native-job-submission.md` -- Story 5.2 complete (handler dispatch for DVM kinds, SDK pipeline validation)]
 - [Source: `_bmad-output/implementation-artifacts/5-3-job-result-delivery-and-compute-settlement.md` -- Story 5.3 complete (SDK helpers, compute settlement, full DVM lifecycle validated)]
 - [Source: `_bmad-output/project-context.md` -- Testing Rules, Naming Conventions, Code Organization, SDK Pipeline, Handler Pattern, Chain Configuration]
@@ -286,7 +286,7 @@ None required -- all tests passed on first verification run.
 
 ### Completion Notes List
 
-- **Task 1 (Core type extension):** `SkillDescriptor` interface added to `service-discovery.ts` with all required fields (`name`, `version`, `kinds`, `features`, `inputSchema`, `pricing`) and optional fields (`models`, `attestation`). Optional `skill?: SkillDescriptor` added to `ServiceDiscoveryContent`. `parseServiceDiscovery()` extended with comprehensive validation for the optional `skill` field including nested field validation. Exported from `events/index.ts` and `core/index.ts`. 20 new tests in `service-discovery.test.ts` covering roundtrip (T-5.4-10), backward compatibility (T-5.4-12), malformed field rejection (T-5.4-13 through T-5.4-16), structure validation (T-5.4-01), Crosstown-specific fields (T-5.4-09), attestation placeholder (T-5.4-11), and edge cases.
+- **Task 1 (Core type extension):** `SkillDescriptor` interface added to `service-discovery.ts` with all required fields (`name`, `version`, `kinds`, `features`, `inputSchema`, `pricing`) and optional fields (`models`, `attestation`). Optional `skill?: SkillDescriptor` added to `ServiceDiscoveryContent`. `parseServiceDiscovery()` extended with comprehensive validation for the optional `skill` field including nested field validation. Exported from `events/index.ts` and `core/index.ts`. 20 new tests in `service-discovery.test.ts` covering roundtrip (T-5.4-10), backward compatibility (T-5.4-12), malformed field rejection (T-5.4-13 through T-5.4-16), structure validation (T-5.4-01), TOON-specific fields (T-5.4-09), attestation placeholder (T-5.4-11), and edge cases.
 - **Task 2 (Handler registry):** `getRegisteredKinds()` and `getDvmKinds()` methods added to `HandlerRegistry`. `getDvmKinds()` filters using `JOB_REQUEST_KIND_BASE` constant for the 5000-5999 range. 7 new tests in `handler-registry.test.ts` covering all registered kinds (T-5.4-17), DVM range filtering (T-5.4-18), empty results (T-5.4-19), auto-population (T-5.4-04), and boundary values.
 - **Task 3 (Skill descriptor builder and SDK integration):** `buildSkillDescriptor()` function in new `skill-descriptor.ts` file. Derives pricing from `kindPricing` overrides with `basePricePerByte` fallback using `Object.hasOwn()`. `skillConfig` added to `NodeConfig`. `getSkillDescriptor()` method on `ServiceNode` interface delegates to `buildSkillDescriptor()`. `TownConfig` extended with optional `skill?: SkillDescriptor` field, wired into `startTown()` kind:10035 publication. 20 tests in `skill-descriptor.test.ts` covering auto-population, pricing derivation, default values, config overrides, and `ServiceNode.getSkillDescriptor()`. 4 static analysis tests in `town.test.ts` covering T-5.4-06 (kind:10035 skill wiring verification).
 - **Task 4 (JSON Schema compliance and agent discovery):** Tests for inputSchema JSON Schema draft-07 structural validation (T-5.4-02), agent job request construction from inputSchema (T-5.4-03), and agent discovery flow with provider comparison (T-5.4-08). All in `skill-descriptor.test.ts`.

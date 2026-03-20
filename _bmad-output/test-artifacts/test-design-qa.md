@@ -13,17 +13,17 @@ workflowType: 'testarch-test-design'
 inputDocuments:
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/epics.md
-  - docs/architecture/crosstown-service-protocol.md
+  - docs/architecture/toon-service-protocol.md
 ---
 
-# Test Design for QA: Crosstown SDK
+# Test Design for QA: TOON SDK
 
 **Purpose:** Test execution recipe for QA team. Defines what to test, how to test it, and what QA needs from other teams.
 
 **Date:** 2026-03-03
 **Author:** TEA Master Test Architect
 **Status:** Draft
-**Project:** Crosstown
+**Project:** TOON
 
 **Related:** See Architecture doc (`test-design-architecture.md`) for testability concerns and architectural blockers.
 
@@ -67,7 +67,7 @@ inputDocuments:
 **Source:** See Architecture doc "Quick Guide" for detailed mitigation plans.
 
 1. **TOON Codec Extraction (Story 1.0)** - Dev - Pre-Epic 1
-   - QA needs TOON encode/decode/shallow-parse in `@crosstown/core`
+   - QA needs TOON encode/decode/shallow-parse in `@toon-protocol/core`
    - Blocks all SDK unit tests that use TOON data
 
 2. **Pipeline Stage Ordering Invariant (R-001)** - Architecture - Pre-Implementation
@@ -97,14 +97,14 @@ inputDocuments:
      - API: `POST /api/request` with `{address}` body, `GET /health`
      - Uses Account #0 (deployer) for token transfers, Account #1 for ETH distribution
    - **Required for**: Payment channel integration tests (R-005), E2E regression tests (R-006)
-   - **Setup**: `./deploy-genesis-node.sh` orchestrates Anvil, Faucet, Connector, and Crosstown Node
-   - **Note**: `deploy-genesis-node.sh` and `docker-compose-genesis.yml` currently deploy the pre-SDK relay/BLS image. Once Epic 2 (Town) replaces the relay with an SDK-based implementation, these deployment scripts will need updating to use the new `@crosstown/town` Docker image. E2E test infrastructure should track this transition.
+   - **Setup**: `./deploy-genesis-node.sh` orchestrates Anvil, Faucet, Connector, and TOON Node
+   - **Note**: `deploy-genesis-node.sh` and `docker-compose-genesis.yml` currently deploy the pre-SDK relay/BLS image. Once Epic 2 (Town) replaces the relay with an SDK-based implementation, these deployment scripts will need updating to use the new `@toon-protocol/town` Docker image. E2E test infrastructure should track this transition.
 
 **Example Vitest factory pattern:**
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { encodeToon, decodeToon, shallowParseToon } from '@crosstown/core';
+import { encodeToon, decodeToon, shallowParseToon } from '@toon-protocol/core';
 
 // Factory: create a valid TOON-encoded Nostr event
 function createTestToonEvent(overrides?: Partial<NostrEvent>): {
@@ -174,7 +174,7 @@ describe('TOON shallow parse', () => {
 
 **QA testing cannot begin until ALL of the following are met:**
 
-- [ ] TOON codec extraction to `@crosstown/core` complete (Story 1.0)
+- [ ] TOON codec extraction to `@toon-protocol/core` complete (Story 1.0)
 - [ ] Pipeline stage ordering invariant documented in ADR
 - [ ] Test data factories created (TOON events, keypairs, ILP packets)
 - [ ] Vitest configured in new packages (sdk, town, rig)
@@ -207,7 +207,7 @@ describe('TOON shallow parse', () => {
 | **P0-002** | Full pipeline ordering: parse -> verify -> price -> dispatch       | Integration | R-001     | Invalid sig = handler never invoked   |
 | **P0-003** | Schnorr verification rejects invalid signatures with F06           | Unit        | R-002     | Use nostr-tools test vectors          |
 | **P0-004** | devMode=false enforces verification (no bypass leak)               | Unit        | R-002     | Explicit production config test       |
-| **P0-005** | TOON codec encode/decode roundtrip from @crosstown/core            | Unit        | R-003     | Replaces existing BLS codec tests     |
+| **P0-005** | TOON codec encode/decode roundtrip from @toon-protocol/core            | Unit        | R-003     | Replaces existing BLS codec tests     |
 | **P0-006** | BLS + relay imports work after codec extraction to core            | Integration | R-003     | Run `pnpm -r test` post-move          |
 | **P0-007** | All git operations use execFile (not exec)                         | Unit        | R-004     | Static analysis + runtime test        |
 | **P0-008** | Git input sanitization rejects shell metacharacters                | Unit        | R-004     | Path traversal, semicolons, backticks |
@@ -363,11 +363,11 @@ describe('TOON shallow parse', () => {
 
 | Service/Component        | Impact                                              | Regression Scope                           | Validation Steps                      |
 | ------------------------ | --------------------------------------------------- | ------------------------------------------ | ------------------------------------- |
-| **@crosstown/core**      | TOON codec moves here from BLS                      | All existing core tests + BLS import tests | `pnpm -r test` after codec extraction |
-| **@crosstown/bls**       | TOON codec removed, imports from core               | BLS unit tests must pass with new imports  | P0-006 validates                      |
-| **@crosstown/relay**     | May need updated TOON imports                       | Relay tests pass with core imports         | P0-006 validates                      |
-| **@crosstown/client**    | No code changes, E2E tests validate SDK             | E2E test suite                             | P0-011, P0-012                        |
-| **@crosstown/connector** | No code changes, SDK interfaces via structural type | ConnectorNodeLike compatibility            | P1-014 validates                      |
+| **@toon-protocol/core**      | TOON codec moves here from BLS                      | All existing core tests + BLS import tests | `pnpm -r test` after codec extraction |
+| **@toon-protocol/bls**       | TOON codec removed, imports from core               | BLS unit tests must pass with new imports  | P0-006 validates                      |
+| **@toon-protocol/relay**     | May need updated TOON imports                       | Relay tests pass with core imports         | P0-006 validates                      |
+| **@toon-protocol/client**    | No code changes, E2E tests validate SDK             | E2E test suite                             | P0-011, P0-012                        |
+| **@toon-protocol/connector** | No code changes, SDK interfaces via structural type | ConnectorNodeLike compatibility            | P1-014 validates                      |
 
 **Regression test strategy:**
 
@@ -407,7 +407,7 @@ describe('Full pipeline @P1 @Integration', () => {
 
     const response = await node.handlePacket({
       amount: String(toonBytes.length * 10),
-      destination: 'g.crosstown.test',
+      destination: 'g.toon.test',
       data: Buffer.from(toonBytes).toString('base64'),
     });
 

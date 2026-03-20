@@ -4,11 +4,11 @@ Status: done
 
 ## Story
 
-As a **Crosstown relay operator running on Marlin Oyster CVM**,
+As a **TOON relay operator running on Marlin Oyster CVM**,
 I want my node to publish kind:10033 TEE attestation events containing PCR values, enclave image hash, and attestation documents, and refresh them periodically,
 So that peers and clients can cryptographically verify that my relay is running trusted, unmodified code inside a TEE enclave.
 
-**FRs covered:** FR-TEE-2 (Crosstown nodes running in Oyster CVM SHALL publish kind:10033 TEE Attestation events containing PCR values, enclave image hash, and attestation documents)
+**FRs covered:** FR-TEE-2 (TOON nodes running in Oyster CVM SHALL publish kind:10033 TEE Attestation events containing PCR values, enclave image hash, and attestation documents)
 
 **Dependencies:** Story 4.1 complete (confirmed -- commit `4fbef06`). The attestation server placeholder (`docker/src/attestation-server.ts`) and Oyster CVM packaging are in place. This story fills the placeholder with real attestation event building and publishing logic.
 
@@ -24,7 +24,7 @@ So that peers and clients can cryptographically verify that my relay is running 
 
 ## Acceptance Criteria
 
-1. Given a Crosstown node with a valid Nostr secret key and TEE attestation data (PCR values, enclave type, attestation document), when `buildAttestationEvent()` is called, then it produces a signed kind:10033 Nostr event with:
+1. Given a TOON node with a valid Nostr secret key and TEE attestation data (PCR values, enclave type, attestation document), when `buildAttestationEvent()` is called, then it produces a signed kind:10033 Nostr event with:
    - Content: `JSON.stringify({ enclave, pcr0, pcr1, pcr2, attestationDoc, version })` (Pattern 14)
    - Tags: `['relay', relayUrl]`, `['chain', chainId]`, `['expiry', unixTimestamp]`
    - Valid Schnorr signature verifiable by `nostr-tools`
@@ -36,7 +36,7 @@ So that peers and clients can cryptographically verify that my relay is running 
 
 4. Given the enriched `/health` endpoint, when the node is running inside a TEE enclave, then the health response includes a `tee` field with `{ attested: boolean, enclaveType: string, lastAttestation: number, pcr0: string, state: 'valid' | 'stale' | 'unattested' }`. When not in a TEE, the `tee` field is entirely absent (never set to `{ attested: false }` -- enforcement guideline 12).
 
-5. Given a `TeeAttestation` constant and type, when the module is imported from `@crosstown/core`, then `TEE_ATTESTATION_KIND` equals `10033` and the `TeeAttestation` interface defines `{ enclave: string, pcr0: string, pcr1: string, pcr2: string, attestationDoc: string, version: string }`.
+5. Given a `TeeAttestation` constant and type, when the module is imported from `@toon-protocol/core`, then `TEE_ATTESTATION_KIND` equals `10033` and the `TeeAttestation` interface defines `{ enclave: string, pcr0: string, pcr1: string, pcr2: string, attestationDoc: string, version: string }`.
 
 ## Tasks / Subtasks
 
@@ -124,12 +124,12 @@ So that peers and clients can cryptographically verify that my relay is running 
       type ParsedAttestation,
     } from './attestation.js';
     ```
-  - [x] **Note:** `TeeAttestation` is defined in `packages/core/src/types.ts` (Task 1), not in `attestation.ts`. It should be re-exported from `attestation.ts` for convenient co-located imports (same pattern as `SERVICE_DISCOVERY_KIND` re-exported from `service-discovery.ts`). Then `events/index.ts` can include `type TeeAttestation` in the above export block. Alternatively, `TeeAttestation` can be exported only from `types.ts` and `index.ts` directly -- both patterns work, but re-exporting from `attestation.ts` is more ergonomic for consumers who import from `@crosstown/core` events.
+  - [x] **Note:** `TeeAttestation` is defined in `packages/core/src/types.ts` (Task 1), not in `attestation.ts`. It should be re-exported from `attestation.ts` for convenient co-located imports (same pattern as `SERVICE_DISCOVERY_KIND` re-exported from `service-discovery.ts`). Then `events/index.ts` can include `type TeeAttestation` in the above export block. Alternatively, `TeeAttestation` can be exported only from `types.ts` and `index.ts` directly -- both patterns work, but re-exporting from `attestation.ts` is more ergonomic for consumers who import from `@toon-protocol/core` events.
   - [x] Also export `TEE_ATTESTATION_KIND` and `TeeAttestation` from the top-level `packages/core/src/index.ts` -- add to the existing event kind constants export block and the types export block respectively
 
 - [x] Task 5: Upgrade attestation server with kind:10033 publishing lifecycle (AC: #3)
   - [x] Modify `docker/src/attestation-server.ts` to:
-    - Import `buildAttestationEvent` and `TeeAttestation` from `@crosstown/core`
+    - Import `buildAttestationEvent` and `TeeAttestation` from `@toon-protocol/core`
     - Import `finalizeEvent` from `nostr-tools/pure` if needed for event signing
     - Accept configuration for relay URL, chain ID, secret key (from env vars or shared config via `docker/src/shared.ts`)
     - On startup (when `TEE_ENABLED=true`), read attestation data from the Nitro attestation endpoint (or use placeholder data if endpoint unavailable) and publish a kind:10033 event
@@ -159,7 +159,7 @@ So that peers and clients can cryptographically verify that my relay is running 
     - If `TEE_ENABLED` is not set, omit `tee` entirely
     - The attestation state comes from the attestation server's published event history (shared state between attestation server process and main node process via relay query)
 
-- [ ] Task 8 (Review Follow-up): Migrate `docker/src/entrypoint-town.ts` health endpoint to use `createHealthResponse()` from `@crosstown/town` (MEDIUM-3 from Code Review #1)
+- [ ] Task 8 (Review Follow-up): Migrate `docker/src/entrypoint-town.ts` health endpoint to use `createHealthResponse()` from `@toon-protocol/town` (MEDIUM-3 from Code Review #1)
   - [ ] Replace inline health response construction in `entrypoint-town.ts` with `createHealthResponse()` call, passing `tee` field via `HealthConfig` when `TEE_ENABLED=true`
   - [ ] Verify `/health` response shape is unchanged after migration
 
@@ -256,7 +256,7 @@ TEE startup ────┤                           │
 
 4. **kind:10033 is NIP-16 replaceable:** Kind 10000-19999 means relays store only the latest event per `pubkey + kind`. This is intentional -- only the most recent attestation matters. **No `d` tag needed:** Unlike kind:10035 (service discovery) and kind:10036 (seed relay list) which include `d` tags as content markers, kind:10033 does NOT need a `d` tag. NIP-16 replaceable events in the 10000-19999 range replace by `pubkey + kind` alone -- a `d` tag is only required for NIP-33 parameterized replaceable events (30000-39999). The sibling modules use `d` tags for filtering convenience, not replaceability. kind:10033 is identifiable by its kind number and does not need a content marker tag.
 
-5. **Attestation server process isolation:** The attestation server runs as a separate supervisord process (priority=20) from the main Crosstown node (priority=10). The two processes communicate through the relay (WebSocket) -- the attestation server publishes kind:10033 events to the relay, and peers read them from the relay.
+5. **Attestation server process isolation:** The attestation server runs as a separate supervisord process (priority=20) from the main TOON node (priority=10). The two processes communicate through the relay (WebSocket) -- the attestation server publishes kind:10033 events to the relay, and peers read them from the relay.
 
 6. **Story 4.1 placeholder preserved:** The `/attestation/raw` and `/health` HTTP endpoints on the attestation server (port 1300) from Story 4.1 remain unchanged. They serve Marlin's CVM verification tooling, which is a different purpose than kind:10033 events on the Nostr relay.
 
@@ -291,7 +291,7 @@ The TEA agent has already created RED phase test stubs for Story 4.2:
 **ATDD Stub Notes:**
 - T-4.2-01 through T-4.2-03 and T-4.2-07 use `buildAttestationEvent` and `parseAttestation` from `./attestation.js` -- these must be imported when implementing
 - T-4.2-04 and T-4.2-05 reference `AttestationServer` class and `TEE_ATTESTATION_KIND` -- the lifecycle tests need the attestation server module (either in core or docker/src)
-- T-4.2-06 has placeholder `expect(true).toBe(false)` assertions -- these must be replaced with real health response assertions using `createHealthResponse()` from `@crosstown/town`
+- T-4.2-06 has placeholder `expect(true).toBe(false)` assertions -- these must be replaced with real health response assertions using `createHealthResponse()` from `@toon-protocol/town`
 
 **ATDD Stub Discrepancies (must be addressed during GREEN phase):**
 
@@ -352,7 +352,7 @@ The TEA agent has already created RED phase test stubs for Story 4.2:
 | 2026-03-14 | Story 4.2 file created. |
 | 2026-03-14 | Adversarial review (Claude Opus 4.6, yolo mode): 8 issues found and fixed. [1] Decision 12 source attribution clarified -- party-mode-decisions Decision 12 is "Terminology Corrections", not attestation lifecycle; corrected to reference architecture.md Decision 12. [2] version type divergence documented explicitly -- architecture.md Pattern 14 shows `version: 1` (number), implementation uses `'1.0.0'` (string); decision rationale strengthened with note to update architecture.md. [3] ATDD stub discrepancies section added: TeeAttestation type used without import (compilation error in fixture function), chain ID format inconsistency (`'evm:base:8453'` vs `'42161'`), T-4.2-07 forged attestation definition clarified (base64 validation as minimum viable check). [4] NIP-16 `d` tag discussion added to constraint #4 -- explicitly documents why kind:10033 does NOT need a `d` tag unlike kind:10035/10036 siblings. [5] Health response shape divergence documented in Task 6 -- existing `HealthResponse` shape differs from Pattern 15 aspirational shape, story adds tee to existing shape. [6] Task 5 WebSocket publish dependency note added -- confirms `ws` package already available in docker workspace. [7] Task 4 TeeAttestation re-export strategy clarified -- type is defined in types.ts but should be re-exported from attestation.ts for ergonomic imports. [8] References section corrected -- split Decision 12 source to correct document, added health.ts divergence note and docker/package.json ws dependency. |
 | 2026-03-14 | Implementation complete (Claude Opus 4.6). All 7 tasks implemented. 29 core attestation tests + 4 town health TEE tests passing (33 total new tests, 87 total new passing tests across monorepo). Full monorepo: 1645 tests passing, 0 errors, 0 regressions. Build clean, lint clean (0 errors), format clean. |
-| 2026-03-14 | Code review #1 (Claude Opus 4.6, yolo mode): 0 critical, 1 high, 3 medium, 4 low issues found and fixed. [HIGH-1] Lint error in attestation.test.ts line 1066 -- inline `import()` type annotation replaced with already-imported `TeeAttestation` type (consistent-type-imports rule). [MEDIUM-1] Hardcoded `attested: true` / `state: 'valid'` in entrypoint-town.ts health endpoint changed to honest `attested: false` / `state: 'unattested'` placeholder until attestation server confirms via relay query. [MEDIUM-2] BASE64_REGEX `=*` padding corrected to `={0,2}` to reject invalid base64 with 3+ padding chars. [MEDIUM-3] TODO added for entrypoint-town.ts to migrate to `createHealthResponse()` from @crosstown/town. [LOW-1] Dev Agent Record lint warning count corrected from 442 to 460. [LOW-2] PCR error messages sanitized -- removed `pcr0.length` user-controlled data from error strings (CWE-209 consistency). [LOW-3] Test helper `createTestEvent()` uses fake id/sig noted as acceptable for parser tests. [LOW-4] Expiry of 0 accepted by parser noted as design choice per T-4.2-30. All tests passing (61 core + 29 health), build clean, lint clean (0 errors), format clean. |
+| 2026-03-14 | Code review #1 (Claude Opus 4.6, yolo mode): 0 critical, 1 high, 3 medium, 4 low issues found and fixed. [HIGH-1] Lint error in attestation.test.ts line 1066 -- inline `import()` type annotation replaced with already-imported `TeeAttestation` type (consistent-type-imports rule). [MEDIUM-1] Hardcoded `attested: true` / `state: 'valid'` in entrypoint-town.ts health endpoint changed to honest `attested: false` / `state: 'unattested'` placeholder until attestation server confirms via relay query. [MEDIUM-2] BASE64_REGEX `=*` padding corrected to `={0,2}` to reject invalid base64 with 3+ padding chars. [MEDIUM-3] TODO added for entrypoint-town.ts to migrate to `createHealthResponse()` from @toon-protocol/town. [LOW-1] Dev Agent Record lint warning count corrected from 442 to 460. [LOW-2] PCR error messages sanitized -- removed `pcr0.length` user-controlled data from error strings (CWE-209 consistency). [LOW-3] Test helper `createTestEvent()` uses fake id/sig noted as acceptable for parser tests. [LOW-4] Expiry of 0 accepted by parser noted as design choice per T-4.2-30. All tests passing (61 core + 29 health), build clean, lint clean (0 errors), format clean. |
 | 2026-03-14 | Code review #2 (Claude Opus 4.6, yolo mode): 0 critical, 0 high, 1 medium, 2 low issues found and fixed. [MEDIUM-1] Hanging promise in `publishAttestationEvent()` WebSocket `close` handler -- if relay closed connection without sending OK and without error, promise would never settle. Added `settled` flag to track promise resolution state across all event handlers; `close` handler now resolves the promise if not already settled. Also added double-settle protection to `error`, `message`, and `timeout` handlers. [LOW-1] `ATTESTATION_REFRESH_INTERVAL` env var parsed without NaN/negative validation -- `parseInt` of non-numeric text returns NaN, causing `setInterval(fn, NaN)` to fire at ~0ms interval (rapid-fire refreshes). Added validation matching `attestationPort` pattern. [LOW-2] `msg[3]` relay rejection message logged unsanitized -- truncated to 200 chars and type-checked before interpolation (CWE-209 consistency). All tests passing (1681 monorepo), build clean, lint clean (0 errors, 460 warnings), format clean. |
 | 2026-03-14 | Code review #3 (Claude Opus 4.6, yolo mode + OWASP/security audit): 0 critical, 0 high, 1 medium, 2 low issues found and fixed. [MEDIUM-1] `WS_PORT` env var missing NaN/range validation -- `parseInt` returns NaN for non-numeric input, producing `ws://localhost:NaN` WebSocket URL. Added validation matching `attestationPort` pattern (1-65535 range). [LOW-1] Prettier formatting drift in `attestation-server.ts` and `entrypoint-town.ts` -- two files failed `prettier --check`. Fixed by running `prettier --write`. [LOW-2] `NOSTR_SECRET_KEY` validated only by length (`=== 64`), not hex format -- `Buffer.from('gg...', 'hex')` silently produces zero bytes for non-hex input. Changed to regex `/^[0-9a-f]{64}$/` validation. OWASP Top 10 security audit: no injection risks (JSON.stringify/parse with defensive validation), no ReDoS (tested both regexes with 100K-char inputs at 0ms), no prototype pollution (bracket notation, JSON.parse objects), no auth bypass, no SSRF (localhost-only WebSocket), no secret key logging, no CWE-209 violations. All tests passing (61 core + 29 health), build clean, lint clean (0 errors), format clean. |
 
@@ -380,7 +380,7 @@ The TEA agent has already created RED phase test stubs for Story 4.2:
 
 5. **Task 5 (Health Response):** Added `TeeHealthInfo` interface and optional `tee` field to `HealthConfig` and `HealthResponse` in `packages/town/src/health.ts`. `createHealthResponse()` includes `tee` field only when `config.tee` is provided (enforcement guideline 12: omit entirely when not in TEE). Exported `TeeHealthInfo` from `packages/town/src/index.ts`. Wired TEE info in `docker/src/entrypoint-town.ts` health endpoint (conditionally includes tee field when `TEE_ENABLED=true`).
 
-6. **Task 6 (Tests GREEN):** Converted all ATDD test stubs from RED (it.skip) to GREEN. Removed `@crosstown/town` import from core test file (boundary rule violation). Moved T-4.2-06 health tests to `packages/town/src/health.test.ts` where they belong. All 29 core tests pass (T-4.2-01 through T-4.2-18). All 4 town TEE health tests pass (T-4.2-06 positive, negative, stale, unattested).
+6. **Task 6 (Tests GREEN):** Converted all ATDD test stubs from RED (it.skip) to GREEN. Removed `@toon-protocol/town` import from core test file (boundary rule violation). Moved T-4.2-06 health tests to `packages/town/src/health.test.ts` where they belong. All 29 core tests pass (T-4.2-01 through T-4.2-18). All 4 town TEE health tests pass (T-4.2-06 positive, negative, stale, unattested).
 
 7. **Task 7 (Verification):** Build clean for all 12 workspace packages. Lint clean (0 errors). Format clean. 1645 tests passing, 0 regressions.
 
@@ -426,7 +426,7 @@ The TEA agent has already created RED phase test stubs for Story 4.2:
 1. **[HIGH-1]** Lint error in `attestation.test.ts` line 1066 -- inline `import()` type annotation replaced with already-imported `TeeAttestation` type (consistent-type-imports rule).
 2. **[MEDIUM-1]** Hardcoded `attested: true` / `state: 'valid'` in `entrypoint-town.ts` health endpoint changed to honest `attested: false` / `state: 'unattested'` placeholder until attestation server confirms via relay query.
 3. **[MEDIUM-2]** `BASE64_REGEX` `=*` padding corrected to `={0,2}` to reject invalid base64 with 3+ padding chars.
-4. **[MEDIUM-3]** TODO added for `entrypoint-town.ts` to migrate to `createHealthResponse()` from `@crosstown/town`. (Follow-up task added to Tasks/Subtasks.)
+4. **[MEDIUM-3]** TODO added for `entrypoint-town.ts` to migrate to `createHealthResponse()` from `@toon-protocol/town`. (Follow-up task added to Tasks/Subtasks.)
 5. **[LOW-1]** Dev Agent Record lint warning count corrected from 442 to 460.
 6. **[LOW-2]** PCR error messages sanitized -- removed `pcr0.length` user-controlled data from error strings (CWE-209 consistency).
 

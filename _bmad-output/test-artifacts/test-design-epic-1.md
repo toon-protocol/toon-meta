@@ -60,7 +60,7 @@ lastSaved: '2026-03-04'
 | ------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----- | --------- |
 | E1-R001 | TECH     | TOON pipeline stage ordering — shallow parse → verify → price → dispatch is a correctness invariant. Stage reordering causes verify-after-decode (trusts decode) or price-before-verify (pays for forged events). | 3           | 3      | 9     | Integration test asserts stage ordering: inject invalid sig → handler never invoked; inject underpaid → rejection includes verify trace          | Dev   | Story 1.7 |
 | E1-R002 | SEC      | Schnorr verification devMode leakage — if devMode defaults to true or can be set via env var, production skips all signature verification.                                                                        | 2           | 3      | 6     | Unit test: devMode unset → defaults false → invalid sig → F06; no env var override path in code                                                  | Dev   | Story 1.4 |
-| E1-R003 | TECH     | TOON codec extraction regression — moving encoder/decoder from BLS to core breaks encode/decode roundtrip. Shallow parser introduces new failure surface.                                                         | 2           | 3      | 6     | Roundtrip tests in @crosstown/core using real TOON codec; run full `pnpm -r test` after move                                                     | Dev   | Story 1.0 |
+| E1-R003 | TECH     | TOON codec extraction regression — moving encoder/decoder from BLS to core breaks encode/decode roundtrip. Shallow parser introduces new failure surface.                                                         | 2           | 3      | 6     | Roundtrip tests in @toon-protocol/core using real TOON codec; run full `pnpm -r test` after move                                                     | Dev   | Story 1.0 |
 | E1-R004 | SEC      | BIP-39/NIP-06 key derivation interop — derived keys from @scure/bip39+bip32 may be incompatible with nostr-tools Schnorr verification or viem EVM address derivation.                                             | 2           | 3      | 6     | Cross-library validation: derive key → sign with nostr-tools → verify with nostr-tools; derive same key → compute EVM address → verify with viem | Dev   | Story 1.1 |
 | E1-R005 | TECH     | PaymentHandler bridge transit semantics — swapped isTransit flag causes fire-and-forget when await is needed (data loss) or await when fire-and-forget is needed (forwarding block).                              | 2           | 3      | 6     | Unit test both paths: isTransit=true returns immediately (handler still running); isTransit=false waits for handler result                       | Dev   | Story 1.6 |
 
@@ -240,7 +240,7 @@ lastSaved: '2026-03-04'
 - Vitest ^1.0 with co-located `*.test.ts` files
 - nostr-tools/pure for real Schnorr signing/verification
 - @scure/bip39, @scure/bip32 for real key derivation
-- @crosstown/core TOON codec (after Story 1.0)
+- @toon-protocol/core TOON codec (after Story 1.0)
 
 **Environment:**
 
@@ -359,9 +359,9 @@ lastSaved: '2026-03-04'
 
 ### Dependencies
 
-1. **@crosstown/core TOON codec** — Story 1.0 must complete before Stories 1.3, 1.4, 1.5, 1.7. Required by: all pipeline tests.
+1. **@toon-protocol/core TOON codec** — Story 1.0 must complete before Stories 1.3, 1.4, 1.5, 1.7. Required by: all pipeline tests.
 2. **Anvil + Faucet containers** — Required for Story 1.9 (network discovery with channels). Uses `docker-compose-genesis.yml` with deterministic contract addresses. Required by: integration tests only.
-3. **@crosstown/connector** — Real ConnectorNode for integration tests. SDK uses structural typing (`ConnectorNodeLike`) but integration tests validate against the real connector.
+3. **@toon-protocol/connector** — Real ConnectorNode for integration tests. SDK uses structural typing (`ConnectorNodeLike`) but integration tests validate against the real connector.
 4. **nostr-tools/pure** — Real Schnorr signing and verification. No mock substitute.
 
 ### Risks to Plan
@@ -376,11 +376,11 @@ lastSaved: '2026-03-04'
 
 | Service/Component        | Impact                                             | Regression Scope                                                         |
 | ------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------ |
-| **@crosstown/bls**       | Import path changes after TOON codec extraction    | All existing BLS tests must pass                                         |
-| **@crosstown/relay**     | Import path changes if relay references TOON codec | All existing relay tests must pass                                       |
-| **@crosstown/core**      | New toon/ module added                             | Existing core tests must pass; new TOON tests added                      |
-| **@crosstown/connector** | SDK's PaymentHandler bridge consumes connector API | Connector tests unaffected; SDK integration tests validate compatibility |
-| **@crosstown/client**    | No direct impact                                   | Existing E2E tests remain unchanged                                      |
+| **@toon-protocol/bls**       | Import path changes after TOON codec extraction    | All existing BLS tests must pass                                         |
+| **@toon-protocol/relay**     | Import path changes if relay references TOON codec | All existing relay tests must pass                                       |
+| **@toon-protocol/core**      | New toon/ module added                             | Existing core tests must pass; new TOON tests added                      |
+| **@toon-protocol/connector** | SDK's PaymentHandler bridge consumes connector API | Connector tests unaffected; SDK integration tests validate compatibility |
+| **@toon-protocol/client**    | No direct impact                                   | Existing E2E tests remain unchanged                                      |
 
 ---
 

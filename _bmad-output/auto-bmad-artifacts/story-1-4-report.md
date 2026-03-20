@@ -1,7 +1,7 @@
 # Story 1-4 Report
 
 ## Overview
-- **Story file**: `/Users/jonathangreen/Documents/crosstown/_bmad-output/implementation-artifacts/1-4-schnorr-signature-verification-pipeline.md`
+- **Story file**: `/Users/jonathangreen/Documents/toon/_bmad-output/implementation-artifacts/1-4-schnorr-signature-verification-pipeline.md`
 - **Git start**: `54ec1b8edf4f1fabe872ffa437c29b65822f51a9`
 - **Duration**: ~35 minutes
 - **Pipeline result**: success

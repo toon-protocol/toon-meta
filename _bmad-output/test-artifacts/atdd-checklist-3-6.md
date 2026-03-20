@@ -45,7 +45,7 @@ The `/health` endpoint is enriched to return comprehensive node status including
 
 ## Acceptance Criteria
 
-1. **AC #1:** Given a running Crosstown node, when I request `GET /health`, then the response is a JSON object containing all of: `status`, `phase`, `pubkey`, `ilpAddress`, `peerCount`, `discoveredPeerCount`, `channelCount`, `pricing` (basePricePerByte + currency USDC), `capabilities`, `chain`, `version`, `sdk: true`, `timestamp`. When x402 is enabled, the response also includes `x402` (enabled + endpoint).
+1. **AC #1:** Given a running TOON node, when I request `GET /health`, then the response is a JSON object containing all of: `status`, `phase`, `pubkey`, `ilpAddress`, `peerCount`, `discoveredPeerCount`, `channelCount`, `pricing` (basePricePerByte + currency USDC), `capabilities`, `chain`, `version`, `sdk: true`, `timestamp`. When x402 is enabled, the response also includes `x402` (enabled + endpoint).
 2. **AC #2:** Given a node with x402 disabled, when I request `GET /health`, then the `x402` field is entirely omitted (not set to `{ enabled: false }`), and `capabilities` does not contain `'x402'`.
 
 ---
@@ -68,7 +68,7 @@ The `/health` endpoint is enriched to return comprehensive node status including
   - **Status:** RED - `it.skip()` -- module `./health.js` does not exist
   - **Verifies:** AC #1 -- runtime state fields match config inputs
 
-- **Test:** `[P2] returns correct version from @crosstown/core (T-3.6-04)`
+- **Test:** `[P2] returns correct version from @toon-protocol/core (T-3.6-04)`
   - **Status:** RED - `it.skip()` -- module `./health.js` does not exist
   - **Verifies:** AC #1 -- version field uses VERSION constant
 
@@ -128,7 +128,7 @@ The `/health` endpoint is enriched to return comprehensive node status including
 
 - `phase: 'ready'`
 - `pubkey: 'abcdef...' (64 hex chars)`
-- `ilpAddress: 'g.crosstown.abcdef12345678'`
+- `ilpAddress: 'g.toon.abcdef12345678'`
 - `peerCount: 5`
 - `discoveredPeerCount: 12`
 - `channelCount: 3`
@@ -177,7 +177,7 @@ Not applicable. Story 3.6 is a backend-only story with no UI components.
 
 - [ ] Create `packages/town/src/health.ts` with `HealthConfig` and `HealthResponse` interfaces
 - [ ] Implement `createHealthResponse(config: HealthConfig): HealthResponse` pure function
-- [ ] Import `VERSION` from `@crosstown/core`
+- [ ] Import `VERSION` from `@toon-protocol/core`
 - [ ] Handle x402 field omission when `x402Enabled: false` (AC #2)
 - [ ] Convert `basePricePerByte` from bigint to number via `Number()`
 - [ ] Set `capabilities` array based on x402 flag (`['relay']` or `['relay', 'x402']`)
@@ -288,7 +288,7 @@ npx vitest packages/town/src/health.test.ts
 | T-3.6-01 | response includes full schema | #1 | 3.6-UNIT-001 | E3-R013 | P2 | Unit |
 | T-3.6-02 | x402 disabled omits x402 field | #2 | 3.6-UNIT-001 | -- | P2 | Unit |
 | T-3.6-03 | peerCount/channelCount match config | #1 | 3.6-INT-001 | -- | P2 | Unit |
-| T-3.6-04 | version from @crosstown/core | #1 | -- | -- | P2 | Unit |
+| T-3.6-04 | version from @toon-protocol/core | #1 | -- | -- | P2 | Unit |
 | T-3.6-05 | sdk: true | #1 | -- | -- | P2 | Unit |
 | T-3.6-06 | status always healthy | #1 | -- | -- | P2 | Unit |
 | T-3.6-07 | timestamp is recent | #1 | -- | -- | P2 | Unit |

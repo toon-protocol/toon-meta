@@ -34,9 +34,9 @@ inputDocuments:
 
 ## Story Summary
 
-Crosstown relay operators running on Marlin Oyster CVM need their nodes to publish kind:10033 TEE attestation events containing PCR values, enclave image hash, and attestation documents. The events are refreshed periodically so peers and clients can cryptographically verify trusted, unmodified code execution inside a TEE enclave.
+TOON relay operators running on Marlin Oyster CVM need their nodes to publish kind:10033 TEE attestation events containing PCR values, enclave image hash, and attestation documents. The events are refreshed periodically so peers and clients can cryptographically verify trusted, unmodified code execution inside a TEE enclave.
 
-**As a** Crosstown relay operator running on Marlin Oyster CVM
+**As a** TOON relay operator running on Marlin Oyster CVM
 **I want** my node to publish kind:10033 TEE attestation events containing PCR values, enclave image hash, and attestation documents, and refresh them periodically
 **So that** peers and clients can cryptographically verify that my relay is running trusted, unmodified code inside a TEE enclave
 
@@ -52,7 +52,7 @@ Crosstown relay operators running on Marlin Oyster CVM need their nodes to publi
 
 4. **AC #4 -- /health tee field:** Given the enriched /health endpoint, when running inside a TEE enclave, the health response includes a `tee` field. When not in TEE, the `tee` field is entirely absent (enforcement guideline 12).
 
-5. **AC #5 -- TEE_ATTESTATION_KIND constant:** Given the `TeeAttestation` constant and type, when imported from `@crosstown/core`, then `TEE_ATTESTATION_KIND` equals 10033 and the `TeeAttestation` interface defines the canonical field set.
+5. **AC #5 -- TEE_ATTESTATION_KIND constant:** Given the `TeeAttestation` constant and type, when imported from `@toon-protocol/core`, then `TEE_ATTESTATION_KIND` equals 10033 and the `TeeAttestation` interface defines the canonical field set.
 
 ---
 

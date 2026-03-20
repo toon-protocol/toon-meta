@@ -43,7 +43,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 **High Priority Issues:** 0
 
-**Recommendation:** Story 5.1 is ready to merge. The implementation is a pure-logic library module (`packages/core/src/events/dvm.ts`) that defines NIP-90 compatible DVM event kinds for the Crosstown protocol. It contains 3 builder functions (`buildJobRequestEvent`, `buildJobResultEvent`, `buildJobFeedbackEvent`), 3 parser functions (`parseJobRequest`, `parseJobResult`, `parseJobFeedback`), 7 kind constants, and supporting TypeScript types. The module has no runtime dependencies, no I/O, no network access, and no persistent state -- all interactions are via pure function calls using `nostr-tools/pure` for Schnorr signing and `CrosstownError` for validation. All 86 ATDD tests pass in 305ms (T-5.1-01 through T-5.1-25). The full monorepo test suite (1929 tests) shows 0 regressions. Build and lint are clean (0 errors, 526 pre-existing warnings). The two CONCERNS relate to infrastructure-level gaps (no CI pipeline for burn-in testing, no formal performance SLOs) that are inherited pre-existing action items and not introduced by this story.
+**Recommendation:** Story 5.1 is ready to merge. The implementation is a pure-logic library module (`packages/core/src/events/dvm.ts`) that defines NIP-90 compatible DVM event kinds for the TOON protocol. It contains 3 builder functions (`buildJobRequestEvent`, `buildJobResultEvent`, `buildJobFeedbackEvent`), 3 parser functions (`parseJobRequest`, `parseJobResult`, `parseJobFeedback`), 7 kind constants, and supporting TypeScript types. The module has no runtime dependencies, no I/O, no network access, and no persistent state -- all interactions are via pure function calls using `nostr-tools/pure` for Schnorr signing and `ToonError` for validation. All 86 ATDD tests pass in 305ms (T-5.1-01 through T-5.1-25). The full monorepo test suite (1929 tests) shows 0 regressions. Build and lint are clean (0 errors, 526 pre-existing warnings). The two CONCERNS relate to infrastructure-level gaps (no CI pipeline for burn-in testing, no formal performance SLOs) that are inherited pre-existing action items and not introduced by this story.
 
 ---
 
@@ -112,14 +112,14 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** `secretKey` must not be exposed in built events, error messages, or parsed results. No secrets should leak through the API surface.
 - **Actual:** `secretKey` is passed to `finalizeEvent()` and never stored, logged, or included in error messages. Builder error messages include only field names and invalid values (e.g., `"Job request kind must be in range 5000-5999, got 4999"`). Parsers do not accept or return `secretKey`.
-- **Evidence:** Source code analysis: `secretKey` appears only as a function parameter in builder signatures. `CrosstownError` messages contain field descriptions and numeric values -- never secret key material.
+- **Evidence:** Source code analysis: `secretKey` appears only as a function parameter in builder signatures. `ToonError` messages contain field descriptions and numeric values -- never secret key material.
 - **Findings:** Clean secret isolation. The `secretKey` is consumed by `finalizeEvent()` and immediately goes out of scope.
 
 ### Vulnerability Management
 
 - **Status:** PASS
 - **Threshold:** No new runtime dependencies introduced. Input validation must prevent malformed data from producing structurally invalid events.
-- **Actual:** Zero new npm dependencies. The only imports are from `nostr-tools/pure` (existing dependency since Story 1.0) and `../errors.js` (existing `CrosstownError` class). Builders validate: kind ranges (5000-5999, 6000-6999, exactly 7000), hex format for event IDs and pubkeys (64-char hex regex), non-empty strings for bid/amount/output, valid status values (Set membership check). Parsers return `null` for any malformed input.
+- **Actual:** Zero new npm dependencies. The only imports are from `nostr-tools/pure` (existing dependency since Story 1.0) and `../errors.js` (existing `ToonError` class). Builders validate: kind ranges (5000-5999, 6000-6999, exactly 7000), hex format for event IDs and pubkeys (64-char hex regex), non-empty strings for bid/amount/output, valid status values (Set membership check). Parsers return `null` for any malformed input.
 - **Evidence:** `dvm.ts` lines 60-68: validation helpers. `pnpm lint`: 0 errors. `packages/core/package.json`: no new dependencies.
 - **Findings:** Defense in depth: builders throw on invalid input (preventing malformed event creation), parsers return null on invalid events (preventing malformed event processing).
 
@@ -127,7 +127,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Standards:** FR-DVM-1 (NIP-90 compatible DVM event kinds), Decision 4 (NIP-90 interoperability), NIP-90 specification (tag formats).
-- **Actual:** All tag formats match NIP-90 specification: `i` tag with `[data, type, relay?, marker?]`, `bid` tag with amount + currency extension, `output` tag with MIME type, `e`/`p` reference tags, `status` tag with NIP-90 status values, `param` repeatable tags, `relays` multi-value tag. The `'usdc'` currency element in `bid` and `amount` tags is a documented Crosstown extension to NIP-90 (NIP-90 uses satoshis).
+- **Actual:** All tag formats match NIP-90 specification: `i` tag with `[data, type, relay?, marker?]`, `bid` tag with amount + currency extension, `output` tag with MIME type, `e`/`p` reference tags, `status` tag with NIP-90 status values, `param` repeatable tags, `relays` multi-value tag. The `'usdc'` currency element in `bid` and `amount` tags is a documented TOON extension to NIP-90 (NIP-90 uses satoshis).
 - **Evidence:** Story file NIP-90 Tag Reference section maps to implementation. T-5.1-09 validates `i` tag format. T-5.1-11 validates USDC micro-units.
 - **Findings:** Full NIP-90 compliance with documented currency extension.
 
@@ -139,7 +139,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** Builder functions must throw clear errors on invalid input. Parser functions must return null on malformed events without throwing.
-- **Actual:** Builders throw `CrosstownError` with descriptive error codes (`DVM_INVALID_KIND`, `DVM_INVALID_BID`, `DVM_MISSING_INPUT`, `DVM_MISSING_OUTPUT`, `DVM_INVALID_EVENT_ID`, `DVM_INVALID_PUBKEY`, `DVM_INVALID_AMOUNT`, `DVM_MISSING_CONTENT`, `DVM_INVALID_STATUS`). Parsers return `null` for any validation failure -- never throw. This matches the established lenient parse pattern from `parseServiceDiscovery()` and `parseAttestation()`.
+- **Actual:** Builders throw `ToonError` with descriptive error codes (`DVM_INVALID_KIND`, `DVM_INVALID_BID`, `DVM_MISSING_INPUT`, `DVM_MISSING_OUTPUT`, `DVM_INVALID_EVENT_ID`, `DVM_INVALID_PUBKEY`, `DVM_INVALID_AMOUNT`, `DVM_MISSING_CONTENT`, `DVM_INVALID_STATUS`). Parsers return `null` for any validation failure -- never throw. This matches the established lenient parse pattern from `parseServiceDiscovery()` and `parseAttestation()`.
 - **Evidence:** T-5.1-05 (builder throws on missing i/bid), T-5.1-06 (builder throws on missing e/amount), T-5.1-07 (builder throws on invalid status). T-5.1-20 (parser returns null for invalid kind, missing tags).
 - **Findings:** Crash-proof parser design. Builder-side validation prevents invalid event creation. Parser-side null returns prevent crash-on-malformed-input.
 
@@ -155,9 +155,9 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** Error messages must be diagnostic -- include the invalid value and the expected format.
-- **Actual:** All `CrosstownError` messages include: what went wrong, what was expected, and what was received. Examples: `"Job request kind must be in range 5000-5999, got 4999"`, `"Job result requestEventId must be a 64-character lowercase hex string"`, `"Job feedback status must be one of: processing, error, success, partial. Got: invalid-status"`.
+- **Actual:** All `ToonError` messages include: what went wrong, what was expected, and what was received. Examples: `"Job request kind must be in range 5000-5999, got 4999"`, `"Job result requestEventId must be a 64-character lowercase hex string"`, `"Job feedback status must be one of: processing, error, success, partial. Got: invalid-status"`.
 - **Evidence:** `dvm.ts` lines 235-238, 348-351, 355-358, 363-367, 413-415, 420-423, 429-432.
-- **Findings:** Error messages are self-diagnosing. A developer encountering any `CrosstownError` can immediately identify the invalid field, expected format, and actual value.
+- **Findings:** Error messages are self-diagnosing. A developer encountering any `ToonError` can immediately identify the invalid field, expected format, and actual value.
 
 ### Fault Tolerance
 
@@ -213,7 +213,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** No new technical debt introduced. No new npm dependencies.
-- **Actual:** Zero new npm dependencies added. Only imports from `nostr-tools/pure` (existing dependency since Story 1.0) and `../errors.js` (existing `CrosstownError` class). The module follows the exact same pattern as established event modules. No `any` types, no type assertions except one safe `as DvmJobStatus` cast in `parseJobFeedback()` after Set membership validation (line 643).
+- **Actual:** Zero new npm dependencies added. Only imports from `nostr-tools/pure` (existing dependency since Story 1.0) and `../errors.js` (existing `ToonError` class). The module follows the exact same pattern as established event modules. No `any` types, no type assertions except one safe `as DvmJobStatus` cast in `parseJobFeedback()` after Set membership validation (line 643).
 - **Evidence:** `packages/core/package.json`: no new runtime dependencies. `dvm.ts`: 647 lines of pure TypeScript with no workarounds.
 - **Findings:** Clean separation of concerns. The module is self-contained and composable. No TODOs, no workarounds, no temporary hacks.
 
@@ -221,7 +221,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** JSDoc on all public exports; inline comments on non-obvious logic; module-level documentation explaining architectural context.
-- **Actual:** Module-level comment block (lines 1-31) explains NIP-90 protocol, Crosstown extensions (USDC micro-units), event kind ranges, and tag reference for all three event types. All 16 public exports have JSDoc: `DvmJobStatus` (lines 72-79), `JobRequestParams` (lines 82-114), `JobResultParams` (lines 116-134), `JobFeedbackParams` (lines 136-151), `ParsedJobRequest` (lines 153-182), `ParsedJobResult` (lines 184-198), `ParsedJobFeedback` (lines 200-212), `buildJobRequestEvent` (lines 217-228), `buildJobResultEvent` (lines 322-333), `buildJobFeedbackEvent` (lines 395-406), `parseJobRequest` (lines 454-468), `parseJobResult` (lines 552-563), `parseJobFeedback` (lines 597-610). Inline comments explain validation logic and tag construction.
+- **Actual:** Module-level comment block (lines 1-31) explains NIP-90 protocol, TOON extensions (USDC micro-units), event kind ranges, and tag reference for all three event types. All 16 public exports have JSDoc: `DvmJobStatus` (lines 72-79), `JobRequestParams` (lines 82-114), `JobResultParams` (lines 116-134), `JobFeedbackParams` (lines 136-151), `ParsedJobRequest` (lines 153-182), `ParsedJobResult` (lines 184-198), `ParsedJobFeedback` (lines 200-212), `buildJobRequestEvent` (lines 217-228), `buildJobResultEvent` (lines 322-333), `buildJobFeedbackEvent` (lines 395-406), `parseJobRequest` (lines 454-468), `parseJobResult` (lines 552-563), `parseJobFeedback` (lines 597-610). Inline comments explain validation logic and tag construction.
 - **Evidence:** `dvm.ts` -- every public symbol has JSDoc with `@param`, `@returns`, and `@throws` annotations where applicable.
 - **Findings:** Documentation is thorough and follows the established pattern from prior event modules.
 
@@ -242,7 +242,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** All DVM event tag structures must match NIP-90 specification. The `'usdc'` currency extension must be documented and non-breaking (extra tag elements are ignored per Nostr convention).
 - **Actual:** T-5.1-09 validates `i` tag format `['i', data, type, relay?, marker?]`. T-5.1-11 validates `bid` and `amount` tags with USDC micro-units as string. T-5.1-07 validates all four NIP-90 status values. T-5.1-10 validates targeted vs open marketplace detection. The `'usdc'` third element in `bid` and `amount` tags is a non-breaking extension -- NIP-90 parsers that only read the first two elements will still function correctly.
-- **Evidence:** Module-level comment (lines 1-31) documents the Crosstown NIP-90 extension. Story file risk E5-R002 documents compatibility considerations.
+- **Evidence:** Module-level comment (lines 1-31) documents the TOON NIP-90 extension. Story file risk E5-R002 documents compatibility considerations.
 - **Findings:** Full NIP-90 compliance with documented, non-breaking currency extension.
 
 ### TOON Codec Roundtrip Integrity (Custom: Data Integrity)
@@ -299,11 +299,11 @@ No immediate actions required. All 86 ATDD tests pass. Build, lint, and full tes
 
 ### Validation Gates (Builders)
 
-- [x] Kind range validation -- Builders reject kinds outside their valid ranges (5000-5999, 6000-6999, exactly 7000). `CrosstownError` with `DVM_INVALID_KIND` code.
+- [x] Kind range validation -- Builders reject kinds outside their valid ranges (5000-5999, 6000-6999, exactly 7000). `ToonError` with `DVM_INVALID_KIND` code.
   - **Owner:** Dev (implemented in Story 5.1)
   - **Estimated Effort:** 0 (already done)
 
-- [x] Hex format validation -- Builders reject event IDs and pubkeys that do not match the 64-char lowercase hex pattern. `CrosstownError` with `DVM_INVALID_EVENT_ID` or `DVM_INVALID_PUBKEY` code.
+- [x] Hex format validation -- Builders reject event IDs and pubkeys that do not match the 64-char lowercase hex pattern. `ToonError` with `DVM_INVALID_EVENT_ID` or `DVM_INVALID_PUBKEY` code.
   - **Owner:** Dev (implemented in Story 5.1)
   - **Estimated Effort:** 0 (already done)
 

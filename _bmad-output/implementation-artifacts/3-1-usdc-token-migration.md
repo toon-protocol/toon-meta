@@ -10,7 +10,7 @@ So that the protocol uses a real, widely-held stablecoin for all user-facing pay
 
 **FRs covered:** FR-PROD-1 (USDC replaces AGENT token for all user-facing payments)
 
-**Dependencies:** Epic 2 (relay reference implementation must be complete). Specifically requires: `startTown()` (2.5), payment channel support via `@crosstown/client` (OnChainChannelClient), settlement configuration in `docker/src/entrypoint-sdk.ts` and `docker/src/shared.ts`, faucet service (`packages/faucet`).
+**Dependencies:** Epic 2 (relay reference implementation must be complete). Specifically requires: `startTown()` (2.5), payment channel support via `@toon-protocol/client` (OnChainChannelClient), settlement configuration in `docker/src/entrypoint-sdk.ts` and `docker/src/shared.ts`, faucet service (`packages/faucet`).
 
 **Decision source:** Party Mode Decision 1 — "AGENT Token Eliminated — USDC Only" (see `_bmad-output/planning-artifacts/research/marlin-party-mode-decisions-2026-03-05.md`)
 
@@ -150,7 +150,7 @@ So that the protocol uses a real, widely-held stablecoin for all user-facing pay
 
 ### What This Story Does
 
-This story migrates the Crosstown protocol from the AGENT development token to USDC (USD Coin) for all user-facing payments. This is the foundation story for Epic 3 — all subsequent stories in this epic depend on USDC being in place.
+This story migrates the TOON protocol from the AGENT development token to USDC (USD Coin) for all user-facing payments. This is the foundation story for Epic 3 — all subsequent stories in this epic depend on USDC being in place.
 
 The AGENT token was a development convenience: a simple ERC-20 deployed on Anvil for testing payment channels. USDC replaces it because:
 - USDC is a real, widely-held stablecoin with a $1 peg
@@ -295,7 +295,7 @@ import { MOCK_USDC_ADDRESS, USDC_DECIMALS, USDC_SYMBOL } from './chain/usdc.js';
 import type { MockUsdcConfig } from './chain/usdc.js';
 
 // Existing pricing validator (unchanged)
-import { createPricingValidator } from '@crosstown/sdk';
+import { createPricingValidator } from '@toon-protocol/sdk';
 
 // Existing settlement config (token addresses updated)
 // In docker/src/entrypoint-sdk.ts and shared.ts

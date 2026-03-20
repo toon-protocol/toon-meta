@@ -34,7 +34,7 @@ Implemented `createNode(config)` — a composition function that wires the full 
 ### `packages/sdk/` (config/build)
 - `vitest.config.ts` — **modified**: Updated ATDD story tracker, added `connector-api.test.ts` exclusion
 - `vitest.integration.config.ts` — **created**: Separate vitest config for integration tests with 30s timeout
-- `package.json` — **modified**: Added `@crosstown/relay` devDependency, `test:integration` script
+- `package.json` — **modified**: Added `@toon-protocol/relay` devDependency, `test:integration` script
 
 ### `_bmad-output/` (artifacts)
 - `implementation-artifacts/1-7-createnode-composition-with-embedded-connector-lifecycle.md` — **created**: Story spec with full Dev Agent Record and Code Review Record

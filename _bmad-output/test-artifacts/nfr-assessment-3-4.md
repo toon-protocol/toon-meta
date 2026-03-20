@@ -128,7 +128,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** N/A
 - **Standards:** No specific compliance standards apply to this peer-to-peer discovery protocol
 - **Actual:** N/A
-- **Findings:** Crosstown is an open protocol. No GDPR/HIPAA/PCI-DSS scope for peer discovery.
+- **Findings:** TOON is an open protocol. No GDPR/HIPAA/PCI-DSS scope for peer discovery.
 
 ---
 
@@ -147,7 +147,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** Clear error messages on all failure paths; 0 test failures
 - **Actual:** 0% error rate in test suite. 23/23 seed relay tests passing, 1 E2E skipped. Full monorepo: all test files pass across all packages (core: 439, client: 230, sdk: 180, town: 163, docker: 45).
-- **Evidence:** `pnpm test --filter=@crosstown/core -- --run` output: 24 test files passed, 7 skipped, 0 failures.
+- **Evidence:** `pnpm test --filter=@toon-protocol/core -- --run` output: 24 test files passed, 7 skipped, 0 failures.
 - **Findings:** All error paths produce clear, descriptive `PeerDiscoveryError` messages. Test T-3.4-03 validates the "all seeds exhausted" error message includes relay count and attempt count.
 
 ### MTTR (Mean Time To Recovery)
@@ -248,7 +248,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** kind:10036 must follow NIP-16 replaceable event semantics (kind 10000-19999)
-- **Actual:** `SEED_RELAY_LIST_KIND = 10036` is in the NIP-16 replaceable range. Event includes `['d', 'crosstown-seed-list']` tag as content marker. `buildSeedRelayListEvent` produces properly structured events via `finalizeEvent`.
+- **Actual:** `SEED_RELAY_LIST_KIND = 10036` is in the NIP-16 replaceable range. Event includes `['d', 'toon-seed-list']` tag as content marker. `buildSeedRelayListEvent` produces properly structured events via `finalizeEvent`.
 - **Evidence:** Test T-3.4-11 verifies constant value. Test T-3.4-07 verifies kind, d-tag, content structure, and signature.
 - **Findings:** Full compliance with NIP-16 for replaceable events.
 
@@ -426,7 +426,7 @@ No immediate actions required. No FAIL statuses or critical issues identified.
 
 5. **Security (4/4):** AuthN (PASS -- Schnorr signatures on all kind:10036 events). AuthZ (PASS -- read-only discovery, no write operations). Secrets (PASS -- no secrets logged, CWE-209 prevention). Input Validation (PASS -- URL and pubkey validation with type guards, CWE-20 prevention).
 
-6. **Monitorability (2/4):** Tracing (CONCERNS -- no distributed tracing or correlation IDs). Logs (CONCERNS -- `console.warn` instead of structured logging). Metrics (CONCERNS -- no discovery metrics exposed). Config (PASS -- fully externalized via env vars `CROSSTOWN_DISCOVERY`, `CROSSTOWN_SEED_RELAYS`, etc., and CLI flags).
+6. **Monitorability (2/4):** Tracing (CONCERNS -- no distributed tracing or correlation IDs). Logs (CONCERNS -- `console.warn` instead of structured logging). Metrics (CONCERNS -- no discovery metrics exposed). Config (PASS -- fully externalized via env vars `TOON_DISCOVERY`, `TOON_SEED_RELAYS`, etc., and CLI flags).
 
 7. **QoS/QoE (2/4):** Latency (CONCERNS -- no SLOs defined for discovery). Throttling (PASS -- not applicable for startup-only operation). Perceived Performance (PASS -- N/A for backend service). Degradation (PASS -- clear error messages on all failure paths, graceful fallback).
 
@@ -478,7 +478,7 @@ nfr_assessment:
   - Source Code: `packages/core/src/discovery/seed-relay-discovery.ts` (394 lines), `packages/core/src/events/seed-relay.ts` (149 lines)
   - Integration: `packages/town/src/town.ts` (startTown seed-list discovery integration, lines 855-890)
   - CLI: `packages/town/src/cli.ts` (--discovery, --seed-relays, --publish-seed-entry, --external-relay-url flags)
-  - Docker: `docker/src/shared.ts` (env var mapping: CROSSTOWN_DISCOVERY, CROSSTOWN_SEED_RELAYS, etc.)
+  - Docker: `docker/src/shared.ts` (env var mapping: TOON_DISCOVERY, TOON_SEED_RELAYS, etc.)
   - Lint: `pnpm lint` -- 0 errors, 365 warnings (all pre-existing)
   - Monorepo Tests: All packages pass (core: 439 tests, client: 230, sdk: 180, town: 163, docker: 45)
 

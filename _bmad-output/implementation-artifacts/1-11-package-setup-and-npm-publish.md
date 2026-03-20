@@ -5,20 +5,20 @@ Status: done
 ## Story
 
 As a **service developer**,
-I want to `npm install @crosstown/sdk` and import a clean public API,
+I want to `npm install @toon-protocol/sdk` and import a clean public API,
 So that I can start building immediately with TypeScript types and documentation.
 
-**FRs covered:** FR-SDK-13 (The SDK SHALL be published as `@crosstown/sdk` on npm with public access)
+**FRs covered:** FR-SDK-13 (The SDK SHALL be published as `@toon-protocol/sdk` on npm with public access)
 
 **Dependencies:** Stories 1.0-1.10 (all SDK code must be complete before publish). All done.
 
 ## Acceptance Criteria
 
-1. Given the `@crosstown/sdk` package, when I inspect `package.json`, then it has `"type": "module"`, `"engines": { "node": ">=20" }`, TypeScript strict mode, ESLint 9.x flat config, Prettier 3.x, peer dependency on `@crosstown/connector` (optional), and dependencies on `@crosstown/core`, `nostr-tools`, `@scure/bip39`, `@scure/bip32`, `@noble/curves`, `@noble/hashes`
+1. Given the `@toon-protocol/sdk` package, when I inspect `package.json`, then it has `"type": "module"`, `"engines": { "node": ">=20" }`, TypeScript strict mode, ESLint 9.x flat config, Prettier 3.x, peer dependency on `@toon-protocol/connector` (optional), and dependencies on `@toon-protocol/core`, `nostr-tools`, `@scure/bip39`, `@scure/bip32`, `@noble/curves`, `@noble/hashes`
 
-> **Note:** The epics doc AC originally listed `@crosstown/relay` as a dependency "for TOON codec". Architecture Decision 1 moved the TOON codec to `@crosstown/core`, making `@crosstown/relay` unnecessary as an SDK runtime dependency. `@crosstown/relay` remains a devDependency only (used in integration test fixtures). The `@noble/curves` and `@noble/hashes` are direct dependencies used by `identity.ts` (BIP-340 Schnorr, Keccak-256) and `verification-pipeline.ts` -- these are not listed in the epics doc AC but are required per the actual implementation.
-2. Given the package entry point `index.ts`, when I import from `@crosstown/sdk`, then all public APIs are exported: `createNode`, `fromMnemonic`, `fromSecretKey`, `generateMnemonic`, `HandlerContext`, `NodeConfig`, `ServiceNode`, type definitions
-3. Given the package is built, when published to npm with `--access public`, then it is available as `@crosstown/sdk` with correct ESM exports and TypeScript declarations
+> **Note:** The epics doc AC originally listed `@toon-protocol/relay` as a dependency "for TOON codec". Architecture Decision 1 moved the TOON codec to `@toon-protocol/core`, making `@toon-protocol/relay` unnecessary as an SDK runtime dependency. `@toon-protocol/relay` remains a devDependency only (used in integration test fixtures). The `@noble/curves` and `@noble/hashes` are direct dependencies used by `identity.ts` (BIP-340 Schnorr, Keccak-256) and `verification-pipeline.ts` -- these are not listed in the epics doc AC but are required per the actual implementation.
+2. Given the package entry point `index.ts`, when I import from `@toon-protocol/sdk`, then all public APIs are exported: `createNode`, `fromMnemonic`, `fromSecretKey`, `generateMnemonic`, `HandlerContext`, `NodeConfig`, `ServiceNode`, type definitions
+3. Given the package is built, when published to npm with `--access public`, then it is available as `@toon-protocol/sdk` with correct ESM exports and TypeScript declarations
 
 ## Tasks / Subtasks
 
@@ -27,8 +27,8 @@ So that I can start building immediately with TypeScript types and documentation
   - [x] Verify `"exports"` field has correct ESM entry with types condition (ALREADY SET at lines 9-13)
   - [x] Verify `"files"` field includes only `dist` (ALREADY SET at lines 15-17)
   - [x] Verify `"publishConfig"` has `"access": "public"` (ALREADY SET at lines 39-41)
-  - [x] Verify peer dependency on `@crosstown/connector` is optional (ALREADY SET at lines 50-57)
-  - [x] Verify dependencies list is correct and minimal per NFR-SDK-7: `@crosstown/core`, `nostr-tools`, `@scure/bip39`, `@scure/bip32` (ALREADY HAS: `@crosstown/core`, `@noble/curves`, `@noble/hashes`, `@scure/bip32`, `@scure/bip39`, `nostr-tools`). The `@noble/curves` and `@noble/hashes` are direct dependencies used by `identity.ts` and `verification-pipeline.ts` -- these are correct to keep.
+  - [x] Verify peer dependency on `@toon-protocol/connector` is optional (ALREADY SET at lines 50-57)
+  - [x] Verify dependencies list is correct and minimal per NFR-SDK-7: `@toon-protocol/core`, `nostr-tools`, `@scure/bip39`, `@scure/bip32` (ALREADY HAS: `@toon-protocol/core`, `@noble/curves`, `@noble/hashes`, `@scure/bip32`, `@scure/bip39`, `nostr-tools`). The `@noble/curves` and `@noble/hashes` are direct dependencies used by `identity.ts` and `verification-pipeline.ts` -- these are correct to keep.
   - [x] Add `"engines"` field: `{ "node": ">=20" }` per NFR-SDK-2 (Node.js 24.x support). Already present in SDK package.json.
   - [x] Verify `"description"` field is informative for npm listing
   - [x] Verify `"keywords"` includes relevant terms for npm discoverability
@@ -60,7 +60,7 @@ So that I can start building immediately with TypeScript types and documentation
   - [x] Run `npm pack --dry-run` from `packages/sdk/` to verify published file list only includes `dist/` contents
 
 - [x] Task 4: Verify ATDD tests cover story requirements (AC: #1-#3)
-  - [x] Verify `packages/sdk/src/index.test.ts` covers T-1.11-01 (all public APIs importable from `@crosstown/sdk`). The existing `index.test.ts` has 28 tests verifying all major exports, package.json structure, tooling config, and npm publish readiness.
+  - [x] Verify `packages/sdk/src/index.test.ts` covers T-1.11-01 (all public APIs importable from `@toon-protocol/sdk`). The existing `index.test.ts` has 28 tests verifying all major exports, package.json structure, tooling config, and npm publish readiness.
   - [x] Fix priority labels in `index.test.ts` to match test-design-epic-1.md. Labels already correct: all use `[P2]` with `(T-1.11-01)` references, matching test-design convention. No changes needed.
   - [x] Decide on T-1.11-02: TypeScript types exported correctly. Decision: `tsc --noEmit` passes clean, confirming all type-only exports resolve correctly. No additional runtime test needed.
   - [x] Ensure `index.test.ts` is NOT in the vitest exclude list (confirmed: not excluded in vitest.config.ts)
@@ -75,7 +75,7 @@ So that I can start building immediately with TypeScript types and documentation
 
 ### What This Story Does
 
-Validates that the `@crosstown/sdk` package is correctly structured and ready for npm publish. This is primarily an audit and verification story -- most of the package infrastructure was set up during Story 1.0 and evolved through Stories 1.1-1.10. The key deliverable is confidence that `npm publish` will produce a correct, usable package.
+Validates that the `@toon-protocol/sdk` package is correctly structured and ready for npm publish. This is primarily an audit and verification story -- most of the package infrastructure was set up during Story 1.0 and evolved through Stories 1.1-1.10. The key deliverable is confidence that `npm publish` will produce a correct, usable package.
 
 ### What Already Exists (Comprehensive Audit)
 
@@ -85,8 +85,8 @@ Validates that the `@crosstown/sdk` package is correctly structured and ready fo
 - `"exports"` with types condition -- set
 - `"files": ["dist"]` -- set
 - `"publishConfig": { "access": "public" }` -- set
-- `"peerDependencies"` with optional `@crosstown/connector` -- set
-- Dependencies: `@crosstown/core`, `@noble/curves`, `@noble/hashes`, `@scure/bip32`, `@scure/bip39`, `nostr-tools` -- correct
+- `"peerDependencies"` with optional `@toon-protocol/connector` -- set
+- Dependencies: `@toon-protocol/core`, `@noble/curves`, `@noble/hashes`, `@scure/bip32`, `@scure/bip39`, `nostr-tools` -- correct
 - MISSING: `"engines": { "node": ">=20" }`
 
 **Index.ts (COMPLETE):**
@@ -100,7 +100,7 @@ Validates that the `@crosstown/sdk` package is correctly structured and ready fo
 - Bridge: `createPaymentHandlerBridge`, `PaymentHandlerBridgeConfig`, `PaymentRequest`, `PaymentResponse`
 - Stubs: `createEventStorageHandler`, `createSpspHandshakeHandler`
 - Composition: `createNode`, `NodeConfig`, `ServiceNode`, `StartResult`
-- Re-exports: `BootstrapEvent`, `BootstrapEventListener` from `@crosstown/core`
+- Re-exports: `BootstrapEvent`, `BootstrapEventListener` from `@toon-protocol/core`
 
 **Build tooling (COMPLETE):**
 - `packages/sdk/tsup.config.ts` -- ESM build with dts, sourcemap, clean
@@ -128,20 +128,20 @@ Validates that the `@crosstown/sdk` package is correctly structured and ready fo
 
 **NFR-SDK-3:** >80% line coverage for public APIs -- all public modules have co-located `*.test.ts` files. 154 tests.
 
-**NFR-SDK-5:** Structural typing for ConnectorNode -- `EmbeddableConnectorLike` from `@crosstown/core` used (not direct `@crosstown/connector` import). Connector is optional peer dependency.
+**NFR-SDK-5:** Structural typing for ConnectorNode -- `EmbeddableConnectorLike` from `@toon-protocol/core` used (not direct `@toon-protocol/connector` import). Connector is optional peer dependency.
 
 **NFR-SDK-6:** Unit tests use mocked connectors -- MockConnector pattern in test files, no live relay/blockchain deps.
 
-**NFR-SDK-7:** Minimal package size -- depends only on `@crosstown/core`, `nostr-tools`, `@scure/bip39`, `@scure/bip32`, `@noble/curves`, `@noble/hashes`. The `@noble/*` deps are direct dependencies for identity.ts (BIP-340 Schnorr, Keccak-256) and verification-pipeline.ts.
+**NFR-SDK-7:** Minimal package size -- depends only on `@toon-protocol/core`, `nostr-tools`, `@scure/bip39`, `@scure/bip32`, `@noble/curves`, `@noble/hashes`. The `@noble/*` deps are direct dependencies for identity.ts (BIP-340 Schnorr, Keccak-256) and verification-pipeline.ts.
 
 **Dependency graph (correct):**
 ```
-@crosstown/core  <-- foundation (TOON codec, types, bootstrap, SPSP)
+@toon-protocol/core  <-- foundation (TOON codec, types, bootstrap, SPSP)
     ^
-@crosstown/sdk   <-- developer-facing (identity, handlers, pipeline)
+@toon-protocol/sdk   <-- developer-facing (identity, handlers, pipeline)
 ```
 
-SDK does NOT depend on `@crosstown/bls` or `@crosstown/relay` at runtime. `@crosstown/relay` is a devDependency only (used in integration tests for TOON event encoding fixtures).
+SDK does NOT depend on `@toon-protocol/bls` or `@toon-protocol/relay` at runtime. `@toon-protocol/relay` is a devDependency only (used in integration tests for TOON event encoding fixtures).
 
 ### Coding Standards
 
@@ -169,7 +169,7 @@ SDK does NOT depend on `@crosstown/bls` or `@crosstown/relay` at runtime. `@cros
 
 | Test ID   | Test Description                                   | Level | Risk   | Priority | Status        | ATDD File       |
 | --------- | -------------------------------------------------- | ----- | ------ | -------- | ------------- | --------------- |
-| T-1.11-01 | All public APIs importable from `@crosstown/sdk`   | U     | E1-R16 | P2       | Existing      | `index.test.ts` |
+| T-1.11-01 | All public APIs importable from `@toon-protocol/sdk`   | U     | E1-R16 | P2       | Existing      | `index.test.ts` |
 | T-1.11-02 | TypeScript types exported correctly                | U     | -      | P3       | Via tsc check | `index.test.ts` |
 
 **Risk E1-R16** (score 1, low -- P=1, I=1): ESM export map misconfigured, consumers get import errors. Mitigated by T-1.11-01 runtime import checks + TypeScript compilation catching type mismatches.
@@ -249,8 +249,8 @@ None required -- this was a verification-only story with no code changes.
 
 ### Completion Notes List
 
-- **Task 1 (package.json audit):** All fields verified correct. `"type": "module"`, `"exports"` with types condition, `"files": ["dist"]`, `"publishConfig": { "access": "public" }`, `"engines": { "node": ">=20" }`, optional `@crosstown/connector` peer dependency, all runtime dependencies (`@crosstown/core`, `@noble/curves`, `@noble/hashes`, `@scure/bip32`, `@scure/bip39`, `nostr-tools`), `"description"`, `"keywords"`, `"license": "MIT"`, `"repository"` -- all present and correct. The `"engines"` field noted as MISSING in the story was already present (added during a prior story).
-- **Task 2 (public API exports):** All 30+ exports from index.ts verified against source modules. Every function, class, interface, and type from identity.ts, errors.ts, handler-context.ts, handler-registry.ts, pricing-validator.ts, verification-pipeline.ts, payment-handler-bridge.ts, event-storage-handler.ts, spsp-handshake-handler.ts, and create-node.ts is correctly re-exported. `BootstrapEvent` and `BootstrapEventListener` type re-exports from `@crosstown/core` confirmed.
+- **Task 1 (package.json audit):** All fields verified correct. `"type": "module"`, `"exports"` with types condition, `"files": ["dist"]`, `"publishConfig": { "access": "public" }`, `"engines": { "node": ">=20" }`, optional `@toon-protocol/connector` peer dependency, all runtime dependencies (`@toon-protocol/core`, `@noble/curves`, `@noble/hashes`, `@scure/bip32`, `@scure/bip39`, `nostr-tools`), `"description"`, `"keywords"`, `"license": "MIT"`, `"repository"` -- all present and correct. The `"engines"` field noted as MISSING in the story was already present (added during a prior story).
+- **Task 2 (public API exports):** All 30+ exports from index.ts verified against source modules. Every function, class, interface, and type from identity.ts, errors.ts, handler-context.ts, handler-registry.ts, pricing-validator.ts, verification-pipeline.ts, payment-handler-bridge.ts, event-storage-handler.ts, spsp-handshake-handler.ts, and create-node.ts is correctly re-exported. `BootstrapEvent` and `BootstrapEventListener` type re-exports from `@toon-protocol/core` confirmed.
 - **Task 3 (index.test.ts verification):** Priority labels already correct (`[P2]` with `(T-1.11-01)` and `(T-1.11-02)` references matching test-design-epic-1.md). T-1.11-02 comment present explaining TypeScript type validation via `tsc --noEmit`. 28 tests cover runtime-verifiable exports, package.json structure, tooling config, and npm publish readiness. No changes needed.
 - **Task 4 (ESM build and npm pack):** `pnpm build` produces `dist/index.js` (16.68 KB ESM), `dist/index.d.ts` (13.81 KB type declarations), and `dist/index.js.map` (45.76 KB source map). Verified ESM format (contains `export` statements, zero `require()` calls). `npm pack --dry-run` confirms only 4 files in tarball: dist/index.d.ts, dist/index.js, dist/index.js.map, package.json. Total package size: 19.6 KB compressed.
 - **Task 5 (full verification suite):** `tsc --noEmit` passes clean (zero errors). SDK tests: 10 files, 154 tests all passing. ESLint: 0 errors on source files, 28 warnings in test files (non-null assertions, expected per relaxed test rules).

@@ -55,7 +55,7 @@ All 5 acceptance criteria are P0 because they implement FR-TEE-2 (a security-cri
 
 #### AC #1: `buildAttestationEvent()` produces signed kind:10033 event (P0)
 
-**Acceptance Criterion:** Given a Crosstown node with a valid Nostr secret key and TEE attestation data (PCR values, enclave type, attestation document), when `buildAttestationEvent()` is called, then it produces a signed kind:10033 Nostr event with:
+**Acceptance Criterion:** Given a TOON node with a valid Nostr secret key and TEE attestation data (PCR values, enclave type, attestation document), when `buildAttestationEvent()` is called, then it produces a signed kind:10033 Nostr event with:
 - Content: `JSON.stringify({ enclave, pcr0, pcr1, pcr2, attestationDoc, version })` (Pattern 14)
 - Tags: `['relay', relayUrl]`, `['chain', chainId]`, `['expiry', unixTimestamp]`
 - Valid Schnorr signature verifiable by `nostr-tools`
@@ -254,9 +254,9 @@ All 5 acceptance criteria are P0 because they implement FR-TEE-2 (a security-cri
 
 ---
 
-#### AC #5: TEE_ATTESTATION_KIND=10033 and TeeAttestation type exported from @crosstown/core (P0)
+#### AC #5: TEE_ATTESTATION_KIND=10033 and TeeAttestation type exported from @toon-protocol/core (P0)
 
-**Acceptance Criterion:** Given a `TeeAttestation` constant and type, when the module is imported from `@crosstown/core`, then `TEE_ATTESTATION_KIND` equals `10033` and the `TeeAttestation` interface defines `{ enclave: string, pcr0: string, pcr1: string, pcr2: string, attestationDoc: string, version: string }`.
+**Acceptance Criterion:** Given a `TeeAttestation` constant and type, when the module is imported from `@toon-protocol/core`, then `TEE_ATTESTATION_KIND` equals `10033` and the `TeeAttestation` interface defines `{ enclave: string, pcr0: string, pcr1: string, pcr2: string, attestationDoc: string, version: string }`.
 
 - **Coverage:** FULL PASS
 - **Tests:**
@@ -269,7 +269,7 @@ All 5 acceptance criteria are P0 because they implement FR-TEE-2 (a security-cri
     - **When:** Range is checked
     - **Then:** Within NIP-16 replaceable range (10000-19999)
   - `T-4.2-29` - `packages/core/src/events/attestation.test.ts:1033` (4 sub-tests)
-    - **Given:** Dynamic import of `@crosstown/core` (via `../index.js`)
+    - **Given:** Dynamic import of `@toon-protocol/core` (via `../index.js`)
     - **When:** Exports are checked
     - **Then:** TEE_ATTESTATION_KIND=10033, buildAttestationEvent is function, parseAttestation is function, TeeAttestation interface contract satisfied (6 required string fields)
 

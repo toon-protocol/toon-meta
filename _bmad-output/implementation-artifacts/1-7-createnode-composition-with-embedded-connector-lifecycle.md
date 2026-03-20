@@ -23,7 +23,7 @@ So that I don't manually wire connector, handlers, verification, pricing, and bo
 ## Tasks / Subtasks
 
 - [x] Task 1: Create `packages/sdk/src/create-node.ts` with `createNode()` function and `NodeConfig`/`ServiceNode` types (AC: #1, #5, #6, #7)
-  - [x] Define `NodeConfig` interface with fields: `secretKey: Uint8Array`, `connector` (structural type matching `EmbeddableConnectorLike` from `@crosstown/core`), `basePricePerByte?: bigint`, `devMode?: boolean`, `toonEncoder?`, `toonDecoder?`, `knownPeers?`, `relayUrl?`, `settlementInfo?`, `ardriveEnabled?`, `settlementNegotiationConfig?`, `kindPricing?: Record<number, bigint>`, `handlers?: Record<number, Handler>` (config-based handler registration), `defaultHandler?: Handler` (config-based default handler)
+  - [x] Define `NodeConfig` interface with fields: `secretKey: Uint8Array`, `connector` (structural type matching `EmbeddableConnectorLike` from `@toon-protocol/core`), `basePricePerByte?: bigint`, `devMode?: boolean`, `toonEncoder?`, `toonDecoder?`, `knownPeers?`, `relayUrl?`, `settlementInfo?`, `ardriveEnabled?`, `settlementNegotiationConfig?`, `kindPricing?: Record<number, bigint>`, `handlers?: Record<number, Handler>` (config-based handler registration), `defaultHandler?: Handler` (config-based default handler)
   - [x] **NOTE on `ilpAddress`, `assetCode`, `assetScale`:** The existing ATDD integration test (`__integration__/create-node.test.ts`) does NOT pass these fields in NodeConfig. Review whether these should be optional with defaults (e.g., `ilpAddress` defaults to empty string, `assetCode` defaults to `'USD'`, `assetScale` defaults to `6`) or required. The `connector-api.test.ts` helper `createTestConfig()` DOES include them. Choose one approach and align both test files.
   - [x] Define `ServiceNode` interface with: `pubkey: string`, `evmAddress: string`, `connector` (pass-through), `channelClient` (null or channel methods), `on(kind, handler): this`, `onDefault(handler): this`, `on(event, listener)` for lifecycle events, `start(): Promise<StartResult>`, `stop(): Promise<void>`
   - [x] Define `StartResult` interface: `{ peerCount: number, channelCount: number, bootstrapResults: BootstrapResult[] }`
@@ -36,7 +36,7 @@ So that I don't manually wire connector, handlers, verification, pricing, and bo
     6. Create pricing validator via `createPricingValidator({ basePricePerByte: config.basePricePerByte ?? 10n, ownPubkey: pubkey, kindPricing: config.kindPricing })`
     7. Wire the full pipeline: the bridge's registry dispatch is wrapped so that BEFORE dispatch, the pipeline runs shallow TOON parse -> verify -> price. Only if all pass does dispatch proceed.
     8. Create `PaymentHandlerBridge` that composes the full pipeline
-    9. Create `CrosstownNode` from `@crosstown/core/compose` for bootstrap/relay monitor lifecycle (pass the bridge's `handlePayment` as the `handlePacket` callback)
+    9. Create `ToonNode` from `@toon-protocol/core/compose` for bootstrap/relay monitor lifecycle (pass the bridge's `handlePayment` as the `handlePacket` callback)
     10. Return `ServiceNode` object
 
 - [x] Task 2: Wire the processing pipeline in correct order (AC: #5) -- CRITICAL
@@ -46,10 +46,10 @@ So that I don't manually wire connector, handlers, verification, pricing, and bo
     3. `pricingValidator.validate(meta, amount)` -> reject with F04 if underpaid (unless self-write)
     4. `registry.dispatch(ctx)` -> route to handler by kind
   - [x] The bridge from Story 1.6 currently constructs a placeholder `HandlerContext` with empty metadata. In this story, the bridge must be enhanced (or a wrapper must be composed around it) so that the REAL `ToonRoutingMeta` from shallow parse is used for context construction
-  - [x] The `toonDecoder` callback passed to `createHandlerContext` must use the real TOON decoder (from `@crosstown/core/toon` or config)
+  - [x] The `toonDecoder` callback passed to `createHandlerContext` must use the real TOON decoder (from `@toon-protocol/core/toon` or config)
 
 - [x] Task 3: Implement `start()` and `stop()` lifecycle (AC: #2, #3, #4)
-  - [x] `start()` must: call `connector.setPacketHandler(bridge.handlePayment)` if connector has that method, run bootstrap via `CrosstownNode.start()`, start relay monitor, return `StartResult`
+  - [x] `start()` must: call `connector.setPacketHandler(bridge.handlePayment)` if connector has that method, run bootstrap via `ToonNode.start()`, start relay monitor, return `StartResult`
   - [x] `stop()` must: unsubscribe relay monitor, clean up lifecycle state, be idempotent (second call is no-op)
   - [x] Double `start()` must throw `NodeError` (not `BootstrapError` -- use SDK-specific error)
 
@@ -91,7 +91,7 @@ So that I don't manually wire connector, handlers, verification, pricing, and bo
     ```
 
 - [x] Task 6: Add unit tests for defaults and config-based registration (AC: #6, #7)
-  - [x] Create `packages/sdk/src/create-node.test.ts` with co-located unit tests that use mocked `CrosstownNode` (no real bootstrap/relay)
+  - [x] Create `packages/sdk/src/create-node.test.ts` with co-located unit tests that use mocked `ToonNode` (no real bootstrap/relay)
   - [x] Test: createNode with minimal config uses defaults (basePricePerByte=10n, devMode=false) (T-1.7-13)
   - [x] Test: createNode with `handlers: { 1: handler }` pre-registers the handler (AC: #7)
   - [x] Test: createNode with `defaultHandler: handler` pre-registers the default handler (AC: #7)
@@ -125,22 +125,22 @@ So that I don't manually wire connector, handlers, verification, pricing, and bo
 - **`verification-pipeline.ts`** -- `createVerificationPipeline({ devMode }): { verify(meta, toonData): Promise<VerificationResult> }`. Returns `{ verified: boolean, rejection?: {accept: false, code: 'F06', message} }`.
 - **`pricing-validator.ts`** -- `createPricingValidator({ basePricePerByte?, ownPubkey, kindPricing? }): { validate(meta, amount): PricingValidationResult }`. Returns `{ accepted: boolean, rejection?: {accept: false, code: 'F04', message, metadata} }`.
 - **`payment-handler-bridge.ts`** -- `createPaymentHandlerBridge({ registry, devMode, ownPubkey, basePricePerByte }): { handlePayment(request: PaymentRequest): Promise<PaymentResponse> }`. Currently constructs a placeholder `HandlerContext` with empty ToonRoutingMeta. The bridge handles isTransit semantics and T00 error boundary.
-- **`errors.ts`** -- `NodeError extends CrosstownError`. Use for lifecycle errors (double start).
+- **`errors.ts`** -- `NodeError extends ToonError`. Use for lifecycle errors (double start).
 
 **Test files (all `.skip`ped, ATDD Red Phase):**
 
 - **`connector-api.test.ts`** -- 4 tests importing `createNode` and `NodeConfig` from `./index.js`. Tests: `node.connector.registerPeer` exists, `node.connector.removePeer` exists, `node.channelClient` null without channel support, `node.channelClient` non-null with channel methods. Uses `createTestConfig()` helper returning `{ secretKey, connector, ilpAddress, assetCode, assetScale }`. **Scope: Story 1.8. Do NOT enable in Story 1.7.**
 - **`index.test.ts`** -- 9 `.skip`ped export tests. The `createNode` test is Story 1.7 scope. The other 8 tests (generateMnemonic, fromMnemonic, fromSecretKey, HandlerContext, HandlerRegistry, createVerificationPipeline, createPricingValidator, createPaymentHandlerBridge) test exports that already exist and should also be unskipped in this story.
-- **`__integration__/create-node.test.ts`** -- 12 `.skip`ped integration tests covering composition, lifecycle, and full pipeline scenarios. Uses `MockEmbeddedConnector` class, `createSignedToonEvent()` helper, and real TOON codec from `@crosstown/relay`. Imports from `@crosstown/core` for `EmbeddableConnectorLike`, `HandlePacketRequest`, `HandlePacketResponse`. **NOTE:** Uses `handlers: {}` and `defaultHandler` config fields in NodeConfig -- these MUST be supported by the implementation.
+- **`__integration__/create-node.test.ts`** -- 12 `.skip`ped integration tests covering composition, lifecycle, and full pipeline scenarios. Uses `MockEmbeddedConnector` class, `createSignedToonEvent()` helper, and real TOON codec from `@toon-protocol/relay`. Imports from `@toon-protocol/core` for `EmbeddableConnectorLike`, `HandlePacketRequest`, `HandlePacketResponse`. **NOTE:** Uses `handlers: {}` and `defaultHandler` config fields in NodeConfig -- these MUST be supported by the implementation.
 - **`__integration__/network-discovery.test.ts`** -- Integration tests for Story 1.9 scope. Do NOT enable in Story 1.7.
 
-**Existing composition pattern in `@crosstown/core`:**
+**Existing composition pattern in `@toon-protocol/core`:**
 
-- **`packages/core/src/compose.ts`** -- `createCrosstownNode(config: CrosstownNodeConfig): CrosstownNode`. This is the existing lower-level composition. The SDK's `createNode()` should use this internally for bootstrap/relay monitor lifecycle, wrapping it with the handler registry + verification + pricing pipeline layer.
-- `CrosstownNodeConfig` requires: `connector` (EmbeddableConnectorLike), `handlePacket` (PacketHandler), `secretKey`, `ilpInfo`, `toonEncoder`, `toonDecoder`, plus optional bootstrap config.
-- `CrosstownNode` provides: `start()`, `stop()`, `bootstrapService`, `relayMonitor`, `channelClient`, `peerWith()`.
+- **`packages/core/src/compose.ts`** -- `createToonNode(config: ToonNodeConfig): ToonNode`. This is the existing lower-level composition. The SDK's `createNode()` should use this internally for bootstrap/relay monitor lifecycle, wrapping it with the handler registry + verification + pricing pipeline layer.
+- `ToonNodeConfig` requires: `connector` (EmbeddableConnectorLike), `handlePacket` (PacketHandler), `secretKey`, `ilpInfo`, `toonEncoder`, `toonDecoder`, plus optional bootstrap config.
+- `ToonNode` provides: `start()`, `stop()`, `bootstrapService`, `relayMonitor`, `channelClient`, `peerWith()`.
 
-**TOON modules in `@crosstown/core/toon`:**
+**TOON modules in `@toon-protocol/core/toon`:**
 
 - `shallowParseToon(data: Uint8Array): ToonRoutingMeta` -- extracts `{ kind, pubkey, id, sig, rawBytes }` without full decode
 - `decodeEventFromToon(bytes: Uint8Array): NostrEvent` -- full TOON to NostrEvent decode
@@ -151,7 +151,7 @@ So that I don't manually wire connector, handlers, verification, pricing, and bo
 
 The current `payment-handler-bridge.ts` constructs a placeholder `HandlerContext` with empty `ToonRoutingMeta`. For Story 1.7, the bridge must receive a REAL `ToonRoutingMeta` from shallow parse.
 
-**IMPORTANT TYPE MISMATCH:** The connector's `setPacketHandler()` accepts `(request: HandlePacketRequest) => HandlePacketResponse | Promise<HandlePacketResponse>` (from `@crosstown/core/compose`). The bridge's `handlePayment()` accepts `PaymentRequest` (from `payment-handler-bridge.ts`). These are different types:
+**IMPORTANT TYPE MISMATCH:** The connector's `setPacketHandler()` accepts `(request: HandlePacketRequest) => HandlePacketResponse | Promise<HandlePacketResponse>` (from `@toon-protocol/core/compose`). The bridge's `handlePayment()` accepts `PaymentRequest` (from `payment-handler-bridge.ts`). These are different types:
 - `HandlePacketRequest` has: `amount`, `destination`, `data`, `sourceAccount?` -- **no `isTransit`, no `paymentId`**
 - `PaymentRequest` has: `paymentId`, `destination`, `amount`, `data`, `isTransit`
 
@@ -255,12 +255,12 @@ ILP Packet arrives at connector
 
 ### ConnectorNodeLike Structural Type
 
-The `connector` field in `NodeConfig` should accept anything matching `EmbeddableConnectorLike` from `@crosstown/core/compose`. Do NOT import `ConnectorNode` directly from `@crosstown/connector`. Use structural typing:
+The `connector` field in `NodeConfig` should accept anything matching `EmbeddableConnectorLike` from `@toon-protocol/core/compose`. Do NOT import `ConnectorNode` directly from `@toon-protocol/connector`. Use structural typing:
 
 ```typescript
 // In create-node.ts or types.ts
-// Re-use EmbeddableConnectorLike from @crosstown/core/compose
-import type { EmbeddableConnectorLike } from '@crosstown/core/compose';
+// Re-use EmbeddableConnectorLike from @toon-protocol/core/compose
+import type { EmbeddableConnectorLike } from '@toon-protocol/core/compose';
 
 export interface NodeConfig {
   secretKey: Uint8Array;
@@ -274,10 +274,10 @@ export interface NodeConfig {
 }
 ```
 
-**NOTE on `ilpAddress`/`assetCode`/`assetScale`:** The existing ATDD integration tests (`__integration__/create-node.test.ts`) do NOT pass these fields. The `connector-api.test.ts` helper DOES pass them. Making them optional with sensible defaults resolves this inconsistency. The `CrosstownNodeConfig` in `@crosstown/core/compose` requires `ilpInfo` -- provide defaults when not specified:
+**NOTE on `ilpAddress`/`assetCode`/`assetScale`:** The existing ATDD integration tests (`__integration__/create-node.test.ts`) do NOT pass these fields. The `connector-api.test.ts` helper DOES pass them. Making them optional with sensible defaults resolves this inconsistency. The `ToonNodeConfig` in `@toon-protocol/core/compose` requires `ilpInfo` -- provide defaults when not specified:
 ```typescript
 ilpInfo: {
-  ilpAddress: config.ilpAddress ?? 'g.crosstown.local',
+  ilpAddress: config.ilpAddress ?? 'g.toon.local',
   assetCode: config.assetCode ?? 'USD',
   assetScale: config.assetScale ?? 6,
 },
@@ -285,18 +285,18 @@ ilpInfo: {
 
 ### TOON Codec DI Pattern
 
-The `toonEncoder` and `toonDecoder` are optional in `NodeConfig`. If not provided, use the defaults from `@crosstown/core/toon`:
+The `toonEncoder` and `toonDecoder` are optional in `NodeConfig`. If not provided, use the defaults from `@toon-protocol/core/toon`:
 
 ```typescript
-import { encodeEventToToon, decodeEventFromToon } from '@crosstown/core/toon';
+import { encodeEventToToon, decodeEventFromToon } from '@toon-protocol/core/toon';
 
 const encoder = config.toonEncoder ?? encodeEventToToon;
 const decoder = config.toonDecoder ?? ((bytes: Uint8Array) => decodeEventFromToon(bytes));
 ```
 
-**NOTE:** The existing ATDD integration tests import from `@crosstown/relay` not `@crosstown/core/toon`:
+**NOTE:** The existing ATDD integration tests import from `@toon-protocol/relay` not `@toon-protocol/core/toon`:
 ```typescript
-import { encodeEventToToon, decodeEventFromToon } from '@crosstown/relay';
+import { encodeEventToToon, decodeEventFromToon } from '@toon-protocol/relay';
 ```
 Both packages re-export the same codec (relay re-exports from core after Story 1.0 extraction). Either import source works.
 
@@ -311,10 +311,10 @@ const contextDecoder = (toon: string) => {
 
 ### How start() and stop() Work
 
-`createNode()` internally creates a `CrosstownNode` from `@crosstown/core/compose` and delegates lifecycle:
+`createNode()` internally creates a `ToonNode` from `@toon-protocol/core/compose` and delegates lifecycle:
 
 ```typescript
-const crosstownNode = createCrosstownNode({
+const toonNode = createToonNode({
   connector: config.connector,
   handlePacket: pipelinedHandler, // The full pipeline handler
   secretKey: config.secretKey,
@@ -329,8 +329,8 @@ const crosstownNode = createCrosstownNode({
   settlementNegotiationConfig: config.settlementNegotiationConfig,
 });
 
-// ServiceNode.start() delegates to crosstownNode.start()
-// ServiceNode.stop() delegates to crosstownNode.stop()
+// ServiceNode.start() delegates to toonNode.start()
+// ServiceNode.stop() delegates to toonNode.stop()
 ```
 
 The `started` guard and `NodeError` on double-start replace the `BootstrapError` used in core's compose.ts. Wrap the core's error:
@@ -341,7 +341,7 @@ async start(): Promise<StartResult> {
     throw new NodeError('Node already started');
   }
   try {
-    const result = await crosstownNode.start();
+    const result = await toonNode.start();
     started = true;
     return result;
   } catch (error) {
@@ -407,7 +407,7 @@ Both patterns are callable BEFORE `start()`. The builder pattern returns `this` 
 
 ### channelClient Pass-through
 
-The `channelClient` on `ServiceNode` is a pass-through from `CrosstownNode.channelClient`. For the `connector-api.test.ts` tests, `node.channelClient` is null when the connector lacks `openChannel`/`getChannelState` methods, and non-null when they exist.
+The `channelClient` on `ServiceNode` is a pass-through from `ToonNode.channelClient`. For the `connector-api.test.ts` tests, `node.channelClient` is null when the connector lacks `openChannel`/`getChannelState` methods, and non-null when they exist.
 
 ### connector Pass-through
 
@@ -417,7 +417,7 @@ The `channelClient` on `ServiceNode` is a pass-through from `CrosstownNode.chann
 
 - **Upstream (all implemented):** Story 1.0 (TOON codec + shallow parse), Story 1.1 (identity), Story 1.2 (HandlerRegistry), Story 1.3 (HandlerContext), Story 1.4 (verification), Story 1.5 (pricing), Story 1.6 (PaymentHandler bridge)
 - **Downstream:** Story 1.8 (connector direct methods -- tests in `connector-api.test.ts`), Story 1.9 (bootstrap integration), Story 1.10 (dev mode)
-- **Cross-package:** `@crosstown/core/compose` for `createCrosstownNode` and `EmbeddableConnectorLike`
+- **Cross-package:** `@toon-protocol/core/compose` for `createToonNode` and `EmbeddableConnectorLike`
 
 **NOTE: Discrepancy with epics.md.** The epics.md dependency declaration for Story 1.7 lists "Stories 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, **1.8, 1.9**" as dependencies. This is INCORRECT in epics.md -- Stories 1.8 (connector direct methods) and 1.9 (bootstrap integration) are DOWNSTREAM consumers of createNode, not prerequisites. This story correctly lists 1.8 and 1.9 as downstream. The epics.md should be updated to fix this stale dependency declaration.
 
@@ -480,17 +480,17 @@ The `channelClient` on `ServiceNode` is a pass-through from `CrosstownNode.chann
 - Do NOT modify `payment-handler-bridge.ts` -- compose around it or replace its internal dispatch
 - Do NOT modify `verification-pipeline.ts` or `pricing-validator.ts` -- compose them in the pipeline
 - Use `NodeError` (not `BootstrapError`) for double-start -- SDK has its own error hierarchy
-- Use structural typing for connector -- do NOT import from `@crosstown/connector`
+- Use structural typing for connector -- do NOT import from `@toon-protocol/connector`
 - `node.on(kind, handler)` MUST return `this` for builder pattern chaining
 - Handlers MUST be registerable BEFORE `start()` is called (both via config `handlers` map and post-creation `.on()`)
 - `stop()` MUST be idempotent -- second call is a no-op, no throw
 - Do NOT unskip `dev-mode.test.ts` -- it belongs to Story 1.10
 - Do NOT unskip `connector-api.test.ts` tests -- they belong to Story 1.8
 - Do NOT unskip `__integration__/network-discovery.test.ts` -- it belongs to Story 1.9
-- TOON codec callbacks should default to `@crosstown/core/toon` implementations if not provided in config
+- TOON codec callbacks should default to `@toon-protocol/core/toon` implementations if not provided in config
 - Do NOT add `process.env` reads -- the node is config-driven only
 - The `@ts-nocheck` pragma in `index.test.ts` should be removed once `createNode` is exported AND all other imports resolve. Keep `@ts-nocheck` in `connector-api.test.ts` (Story 1.8 scope).
-- `HandlePacketRequest` (from `@crosstown/core/compose`) does NOT have `isTransit` -- do not assume it exists in the pipeline handler. Transit semantics are handled by the connector in embedded mode.
+- `HandlePacketRequest` (from `@toon-protocol/core/compose`) does NOT have `isTransit` -- do not assume it exists in the pipeline handler. Transit semantics are handled by the connector in embedded mode.
 - `NodeConfig` MUST support `handlers?: Record<number, Handler>` and `defaultHandler?: Handler` to match existing ATDD integration tests
 - `ilpAddress`, `assetCode`, `assetScale` should be OPTIONAL in NodeConfig with sensible defaults to match ATDD integration test expectations
 - Integration tests in `__integration__/` are excluded from the default vitest run. Add a `test:integration` script or document how to run them.
@@ -544,7 +544,7 @@ Stories 1.2-1.5 primarily enabled skipped ATDD tests (implementations already ex
 - [Source: _bmad-output/planning-artifacts/test-design-epic-1.md#Story 1.7]
 - [Source: _bmad-output/planning-artifacts/test-design-epic-1.md#3.1 The Pipeline Ordering Invariant (E1-R11, Score 9)]
 - [Source: _bmad-output/planning-artifacts/test-design-epic-1.md#6.2 Story 1.7 (createNode) wiring changes]
-- [Source: packages/core/src/compose.ts -- CrosstownNode, CrosstownNodeConfig, EmbeddableConnectorLike, HandlePacketRequest, HandlePacketResponse]
+- [Source: packages/core/src/compose.ts -- ToonNode, ToonNodeConfig, EmbeddableConnectorLike, HandlePacketRequest, HandlePacketResponse]
 - [Source: packages/core/src/toon/shallow-parse.ts -- shallowParseToon, ToonRoutingMeta]
 - [Source: packages/core/src/toon/index.ts -- encodeEventToToon, decodeEventFromToon]
 - [Source: packages/sdk/src/payment-handler-bridge.ts -- createPaymentHandlerBridge, PaymentRequest (note: different type from HandlePacketRequest)]
@@ -553,7 +553,7 @@ Stories 1.2-1.5 primarily enabled skipped ATDD tests (implementations already ex
 - [Source: packages/sdk/src/verification-pipeline.ts -- createVerificationPipeline, VerificationResult]
 - [Source: packages/sdk/src/pricing-validator.ts -- createPricingValidator, PricingValidationResult]
 - [Source: packages/sdk/src/identity.ts -- fromSecretKey, NodeIdentity]
-- [Source: packages/sdk/src/errors.ts -- NodeError extends CrosstownError]
+- [Source: packages/sdk/src/errors.ts -- NodeError extends ToonError]
 - [Source: packages/sdk/src/__integration__/create-node.test.ts -- 12 ATDD integration tests for Story 1.7 (composition + pipeline)]
 - [Source: packages/sdk/src/__integration__/network-discovery.test.ts -- ATDD integration tests for Story 1.9 (DO NOT ENABLE)]
 - [Source: packages/sdk/src/connector-api.test.ts -- ATDD tests for Story 1.8 (depends on createNode, DO NOT ENABLE)]
@@ -575,7 +575,7 @@ None required -- all tests passed on first run.
 
 - **Task 1 (create-node.ts):** Verified existing `create-node.ts` implementation covers all requirements: `NodeConfig` interface with all required and optional fields (including `handlers`, `defaultHandler`, `ilpAddress`, `assetCode`, `assetScale` with sensible defaults), `ServiceNode` interface with `pubkey`, `evmAddress`, `connector`, `channelClient`, `on()`, `onDefault()`, `start()`, `stop()`, and `StartResult` interface. Implementation follows Option A (pipelined handler directly on `HandlePacketRequest`).
 - **Task 2 (Pipeline wiring):** Pipeline executes in correct order: (1) shallow TOON parse via `shallowParseToon()`, (2) Schnorr verification via `verifier.verify()`, (3) pricing validation via `pricer.validate()`, (4) handler dispatch via `registry.dispatch()`. Real `ToonRoutingMeta` from shallow parse is used for `createHandlerContext()`. T00 error boundary wraps dispatch.
-- **Task 3 (Lifecycle):** `start()` delegates to `crosstownNode.start()` with `NodeError` guard on double-start. `stop()` delegates to `crosstownNode.stop()` and is idempotent. `started` flag tracks SDK-level lifecycle.
+- **Task 3 (Lifecycle):** `start()` delegates to `toonNode.start()` with `NodeError` guard on double-start. `stop()` delegates to `toonNode.stop()` and is idempotent. `started` flag tracks SDK-level lifecycle.
 - **Task 4 (vitest.config.ts and index.test.ts):** All `.skip` removed from `index.test.ts` (9 export tests). `@ts-nocheck` removed. vitest.config.ts ATDD comments updated for Story 1.7 done status. `connector-api.test.ts` and `dev-mode.test.ts` remain excluded.
 - **Task 5 (Integration tests):** All 13 original tests in `__integration__/create-node.test.ts` unskipped. 3 new tests added: T-1.7-01 spy-instrumented pipeline ordering, default basePricePerByte verification, default devMode verification (total 16 integration tests). All pass.
 - **Task 6 (Unit tests):** `create-node.test.ts` has 9 unit tests covering defaults (T-1.7-13), config-based handler registration, builder pattern chaining, identity derivation (T-1.7-11, T-1.7-12), and connector pass-through.
@@ -593,7 +593,7 @@ None required -- all tests passed on first run.
 - `packages/sdk/src/handler-registry.test.ts` -- modified (updated test assertions to match new `HandlerResponse` type, replaced bracket notation with `in` operator checks)
 - `packages/sdk/vitest.config.ts` -- modified (updated ATDD story comments to reflect 1.7 done status, added connector-api.test.ts Story 1.8 comment)
 - `packages/sdk/vitest.integration.config.ts` -- created (integration test vitest config with 30s timeout)
-- `packages/sdk/package.json` -- modified (added `test:integration` script, added `@crosstown/relay` devDependency)
+- `packages/sdk/package.json` -- modified (added `test:integration` script, added `@toon-protocol/relay` devDependency)
 
 ### Change Log
 

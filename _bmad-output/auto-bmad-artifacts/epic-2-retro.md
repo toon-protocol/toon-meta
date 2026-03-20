@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-07 (final)
 **Epic:** 2 -- Nostr Relay Reference Implementation, Protocol Stabilization & SDK Validation
-**Package:** `@crosstown/town`, `@crosstown/sdk`, `@crosstown/core`
+**Package:** `@toon-protocol/town`, `@toon-protocol/sdk`, `@toon-protocol/core`
 **Status:** Done (8/8 stories complete)
 **Branch:** `epic-2`
 **Commits:** 10 (1 epic start, 1 planning, 5 original story commits, 1 mid-epic retro, 2 scope-change story commits)
@@ -13,9 +13,9 @@
 
 ## 1. Executive Summary
 
-Epic 2 validated the SDK built in Epic 1 by reimplementing the Nostr relay as a set of SDK handlers in a new `@crosstown/town` package, then extended the SDK and protocol with three additional stories (2-6, 2-7, 2-8) that were pulled forward from Epic 3 during a mid-epic scope change.
+Epic 2 validated the SDK built in Epic 1 by reimplementing the Nostr relay as a set of SDK handlers in a new `@toon-protocol/town` package, then extended the SDK and protocol with three additional stories (2-6, 2-7, 2-8) that were pulled forward from Epic 3 during a mid-epic scope change.
 
-The epic began with the relay rebuild: from ~300+ lines of monolithic `entrypoint.ts` wiring, the relay was rebuilt as composable SDK handlers. `createEventStorageHandler` is ~15 lines of logic, and the SDK pipeline handles all cross-cutting concerns (verification, pricing, self-write bypass) transparently. The epic culminated in a `startTown(config)` programmatic API, a CLI entrypoint (`npx @crosstown/town`), and an npm-publishable package.
+The epic began with the relay rebuild: from ~300+ lines of monolithic `entrypoint.ts` wiring, the relay was rebuilt as composable SDK handlers. `createEventStorageHandler` is ~15 lines of logic, and the SDK pipeline handles all cross-cutting concerns (verification, pricing, self-write bypass) transparently. The epic culminated in a `startTown(config)` programmatic API, a CLI entrypoint (`npx @toon-protocol/town`), and an npm-publishable package.
 
 The scope change added three stories: `publishEvent()` on `ServiceNode` (2-6), SPSP protocol removal and bootstrap simplification (2-7), and a relay subscription API on `TownInstance` (2-8). Story 2-7 was the most impactful of these -- it removed the entire SPSP handshake (kind:23194/23195), simplified peer discovery from 4 phases to 3, and cleaned 60+ stale references across the entire codebase. This protocol stabilization means Epic 3 can focus purely on production economics without carrying dead SPSP code.
 
@@ -196,7 +196,7 @@ All 8 stories' E2E steps were either skipped or marked as backend-only. The gene
 
 ### 5.1. Handler Composition Pattern Is the SDK's Core Value
 
-The most important insight from Epic 2 is that the SDK's value is not in any single feature but in the composition pattern: `createNode()` wires identity + verification + pricing + handlers + connector into a running node with ~10 lines. The `startTown()` function demonstrates this: 14 composition steps that would be ~300+ lines of manual wiring are reduced to a function call with a config object. This pattern should be preserved and documented for future package authors (Epic 5's `@crosstown/rig`).
+The most important insight from Epic 2 is that the SDK's value is not in any single feature but in the composition pattern: `createNode()` wires identity + verification + pricing + handlers + connector into a running node with ~10 lines. The `startTown()` function demonstrates this: 14 composition steps that would be ~300+ lines of manual wiring are reduced to a function call with a config object. This pattern should be preserved and documented for future package authors (Epic 5's `@toon-protocol/rig`).
 
 ### 5.2. Protocol Simplification Pays Compound Interest
 
@@ -228,14 +228,14 @@ Epic 2 expanded from 5 to 8 stories without sacrificing quality: all 8 stories a
 |---|--------|-------|--------|----------------|
 | A1 | ~~Fix `!body.amount` truthiness bug in `entrypoint-town.ts`~~ | Dev | **DONE** (Story 2-7) | Resolved |
 | A2 | **Set up genesis node in CI** (carried from Epic 1 A2) -- E2E tests across 8 stories were never run in the pipeline. Epic 3 stories (USDC migration, x402 publish, service discovery) will have heavier E2E requirements. | Dev | OPEN | 3-1, 3-3, 3-5 |
-| A3 | **Publish `@crosstown/town` to npm** -- package is build-ready and tested but manual `npm publish --access public` has not been executed. Must happen before Epic 3 stories that reference the published package. | Dev | OPEN | Pre-epic |
+| A3 | **Publish `@toon-protocol/town` to npm** -- package is build-ready and tested but manual `npm publish --access public` has not been executed. Must happen before Epic 3 stories that reference the published package. | Dev | OPEN | Pre-epic |
 
 ### 6.2. Should-Do (Quality Improvements)
 
 | # | Action | Owner | Status | Reason |
 |---|--------|-------|--------|--------|
 | A4 | **Clean up stale git-proxy and SPSP references in root-level docs** -- Story 2-4 cleaned `docs/` directory, Story 2-7 cleaned source code. References may remain in README.md, SECURITY.md, ARCHITECTURE.md, SETUP-GUIDE.md, DOCUMENTATION-INDEX.md. | Dev | OPEN | Documentation accuracy |
-| A5 | **Address transitive dependency vulnerabilities** -- 33 findings (2 critical, 12 high) from `fast-xml-parser` via `@crosstown/connector` -> AWS SDK. Recurring NFR CONCERN across all 8 stories. Consider pinning or patching. | Dev | OPEN | Security hygiene (NFR recurring FAIL) |
+| A5 | **Address transitive dependency vulnerabilities** -- 33 findings (2 critical, 12 high) from `fast-xml-parser` via `@toon-protocol/connector` -> AWS SDK. Recurring NFR CONCERN across all 8 stories. Consider pinning or patching. | Dev | OPEN | Security hygiene (NFR recurring FAIL) |
 | A6 | **Replace `console.error` with structured logger** (carried from Epic 1 A4) -- Epic 3's enriched health endpoint (Story 3-6) is a natural place to introduce structured logging. | Dev | OPEN | Production observability |
 | A7 | **Lint-check ATDD stubs immediately after creation** -- Story 2-2 inherited 53 ESLint errors from RED-phase test stubs. Future ATDD red phases should run `pnpm lint` before committing stubs. | Process | OPEN | Prevent deferred lint debt |
 | A8 | **Address CLI `--mnemonic`/`--secret-key` process listing exposure** -- NFR FAIL item from Story 2-5. CLI flags expose secrets in `ps` output. Document env var alternatives prominently. Consider deprecating CLI flags in favor of env vars. | Dev | OPEN | Security (CWE-214) |
@@ -365,7 +365,7 @@ Key differences:
 
 ## 11. Conclusion
 
-Epic 2 delivered a complete, tested, npm-publish-ready `@crosstown/town` package that validates the SDK from Epic 1, extended the SDK with `publishEvent()` and `subscribe()` APIs, and stabilized the protocol by removing SPSP. The central thesis -- that a relay can be built from composable SDK handlers in ~10 lines of composition -- was proven. The `startTown(config)` API, CLI entrypoint, and reference implementation Docker entrypoint provide three entry points for relay deployment.
+Epic 2 delivered a complete, tested, npm-publish-ready `@toon-protocol/town` package that validates the SDK from Epic 1, extended the SDK with `publishEvent()` and `subscribe()` APIs, and stabilized the protocol by removing SPSP. The central thesis -- that a relay can be built from composable SDK handlers in ~10 lines of composition -- was proven. The `startTown(config)` API, CLI entrypoint, and reference implementation Docker entrypoint provide three entry points for relay deployment.
 
 The scope change from 5 to 8 stories was well-managed: all 8 stories achieved 100% AC coverage (40/40), 61 code review issues were found and fixed (0 remaining), and zero test regressions occurred. Story 2-7's SPSP removal was the most impactful individual story in the project's history, simplifying the protocol and eliminating significant technical debt.
 

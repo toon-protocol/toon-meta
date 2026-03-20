@@ -69,7 +69,7 @@ So that the embedded connector delivers ILP packets to my handlers with correct 
     4. For `isTransit === true`: invoke `registry.dispatch(ctx)` fire-and-forget (do NOT await), attach `.catch()` to prevent unhandled rejection, return `{ accept: true }` immediately
     5. For `isTransit === false`: await `registry.dispatch(ctx)` and return the handler's response
     6. Wrap the `isTransit === false` path in try/catch that returns `{ accept: false, code: 'T00', message: <error message> }` on any exception
-  - [x] Add necessary imports: `createHandlerContext` from `./handler-context.js`, `type ToonRoutingMeta` from `@crosstown/core/toon`
+  - [x] Add necessary imports: `createHandlerContext` from `./handler-context.js`, `type ToonRoutingMeta` from `@toon-protocol/core/toon`
   - [x] The bridge is a thin adapter -- it does NOT implement verification, pricing, or TOON parsing. Those pipeline stages are composed externally in Story 1.7's `createNode()`.
 
 - [x] Task 5: Run tests and verify (AC: #1-#4)
@@ -103,7 +103,7 @@ The ATDD tests mock `registry.dispatch`, so the context is never inspected. Howe
 
 ```typescript
 import { createHandlerContext } from './handler-context.js';
-import type { ToonRoutingMeta } from '@crosstown/core/toon';
+import type { ToonRoutingMeta } from '@toon-protocol/core/toon';
 
 const ctx = createHandlerContext({
   toon: request.data,

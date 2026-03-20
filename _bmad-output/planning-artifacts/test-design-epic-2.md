@@ -10,11 +10,11 @@
 
 ## 1. Scope and Context
 
-Epic 2 delivers 5 stories (2.1-2.5) producing `@crosstown/town` -- a publishable Nostr relay rebuilt on the SDK's handler registry. This epic is both a **product deliverable** (anyone can `npm install @crosstown/town` and run a relay) and a **validation exercise** (proof that the SDK from Epic 1 is feature-complete).
+Epic 2 delivers 5 stories (2.1-2.5) producing `@toon-protocol/town` -- a publishable Nostr relay rebuilt on the SDK's handler registry. This epic is both a **product deliverable** (anyone can `npm install @toon-protocol/town` and run a relay) and a **validation exercise** (proof that the SDK from Epic 1 is feature-complete).
 
 **What exists today (post-Epic 1):**
 
-- `@crosstown/sdk` package is complete with `createNode()`, handler registry, Schnorr verification, pricing validation, PaymentHandler bridge, and lifecycle management
+- `@toon-protocol/sdk` package is complete with `createNode()`, handler registry, Schnorr verification, pricing validation, PaymentHandler bridge, and lifecycle management
 - `docker/src/entrypoint.ts` (~1248 lines) manually wires relay, BLS, SPSP, bootstrap, settlement, and NIP-34 -- this is what Epic 2 replaces
 - SDK stubs exist: `event-storage-handler.ts` and `spsp-handshake-handler.ts` both throw "not yet implemented"
 - Town package has RED-phase test files (`describe.skip`): `event-storage-handler.test.ts`, `spsp-handshake-handler.test.ts`, `cleanup.test.ts`, `town-lifecycle.test.ts`
@@ -61,9 +61,9 @@ Epic 2 delivers 5 stories (2.1-2.5) producing `@crosstown/town` -- a publishable
 | **2.3 E2E Validation** | E2-R08 | TECH | **SDK-based relay fails existing E2E tests** -- behavioral mismatch between SDK pipeline and manual BLS wiring | 3 | 3 | **9** | Run `genesis-bootstrap-with-channels.test.ts` against SDK-based relay as the primary gate |
 | **2.3 E2E Validation** | E2-R09 | TECH | Docker image build fails because town package dependencies are not resolved in container | 2 | 2 | 4 | CI step: `docker build` for SDK-based relay image as part of Story 2.3 gate |
 | **2.3 E2E Validation** | E2-R10 | PERF | SDK pipeline overhead (shallow parse + verify + price + dispatch) makes relay noticeably slower than old BLS | 1 | 2 | 2 | Monitor E2E test execution time; SDK adds ~2ms per event for Schnorr verification (acceptable) |
-| **2.4 Cleanup** | E2-R11 | OPS | git-proxy removal breaks a package that was silently depending on it | 1 | 1 | 1 | Cleanup test verifies no package.json references `@crosstown/git-proxy` |
+| **2.4 Cleanup** | E2-R11 | OPS | git-proxy removal breaks a package that was silently depending on it | 1 | 1 | 1 | Cleanup test verifies no package.json references `@toon-protocol/git-proxy` |
 | **2.5 Publish Town** | E2-R12 | OPS | `startTown()` API does not match the entrypoint behavior -- config surface incomplete | 2 | 2 | 4 | E2E lifecycle test: `startTown()` -> relay accepts connections -> bootstrap runs -> `stop()` cleans up |
-| **2.5 Publish Town** | E2-R13 | OPS | ESM export misconfigured -- `import { startTown } from '@crosstown/town'` fails | 1 | 2 | 2 | Import validation test in town package |
+| **2.5 Publish Town** | E2-R13 | OPS | ESM export misconfigured -- `import { startTown } from '@toon-protocol/town'` fails | 1 | 2 | 2 | Import validation test in town package |
 | **2.5 Publish Town** | E2-R14 | SEC | CLI entrypoint exposes mnemonic in process list or logs | 1 | 3 | 3 | Code review: mnemonic read from env var or file, not CLI arg; log sanitization for secret key |
 
 ### High-Priority Risks (Score >= 6) -- Ordered by Score
@@ -232,9 +232,9 @@ startTown(config) {
 | ID | Test | Level | Risk | Priority | Status |
 |----|------|-------|------|----------|--------|
 | T-2.4-01 | `packages/git-proxy/` directory does not exist | U (filesystem) | E2-R11 | P2 | Existing (GREEN -- already passes) |
-| T-2.4-02 | No package depends on `@crosstown/git-proxy` | U (filesystem) | E2-R11 | P2 | Existing (GREEN -- already passes) |
+| T-2.4-02 | No package depends on `@toon-protocol/git-proxy` | U (filesystem) | E2-R11 | P2 | Existing (GREEN -- already passes) |
 | T-2.4-03 | `pnpm-workspace.yaml` does not reference git-proxy | U (filesystem) | E2-R11 | P2 | Existing (GREEN -- already passes) |
-| T-2.4-04 | `@crosstown/sdk` package exists and exports `createEventStorageHandler` | U (filesystem) | - | P2 | Existing (RED) |
+| T-2.4-04 | `@toon-protocol/sdk` package exists and exports `createEventStorageHandler` | U (filesystem) | - | P2 | Existing (RED) |
 
 **Notes:**
 
@@ -242,7 +242,7 @@ startTown(config) {
 - T-2.4-04 verifies that the SDK exports the handler factories that the Town package needs.
 - The "documentation" part of this story is a code review gate, not an automated test.
 
-### Story 2.5: Publish @crosstown/town Package
+### Story 2.5: Publish @toon-protocol/town Package
 
 | ID | Test | Level | Risk | Priority | Status |
 |----|------|-------|------|----------|--------|
@@ -250,8 +250,8 @@ startTown(config) {
 | T-2.5-02 | `startTown()` with default ports uses 7100 (relay) and 3100 (BLS) | E2E | E2-R12 | P1 | Existing (RED) |
 | T-2.5-03 | Bootstrap discovers peers on start; `bootstrapResult.peerCount >= 1` | E2E | E2-R12 | P1 | Existing (RED) |
 | T-2.5-04 | `instance.stop()` cleans up: relay down, BLS down, isRunning() returns false | E2E | E2-R12 | P1 | Existing (RED) |
-| T-2.5-05 | `package.json` depends on `@crosstown/sdk`, `@crosstown/relay`, `@crosstown/core` | U (filesystem) | E2-R13 | P2 | Existing (RED) |
-| T-2.5-06 | `import { startTown, TownConfig } from '@crosstown/town'` resolves correctly | U | E2-R13 | P2 | Existing (RED) |
+| T-2.5-05 | `package.json` depends on `@toon-protocol/sdk`, `@toon-protocol/relay`, `@toon-protocol/core` | U (filesystem) | E2-R13 | P2 | Existing (RED) |
+| T-2.5-06 | `import { startTown, TownConfig } from '@toon-protocol/town'` resolves correctly | U | E2-R13 | P2 | Existing (RED) |
 | T-2.5-07 | CLI entrypoint starts relay from env vars (mnemonic not in process list) | U | E2-R14 | P2 | New |
 | T-2.5-08 | TownInstance exposes `pubkey` (64-char hex) and `evmAddress` (0x-prefixed) | E2E | - | P2 | New |
 
@@ -259,7 +259,7 @@ startTown(config) {
 
 - T-2.5-01 through T-2.5-06 already exist as RED-phase stubs in `packages/town/tests/e2e/town-lifecycle.test.ts`.
 - T-2.5-01 is the critical lifecycle test: start -> verify -> stop. It requires live genesis infrastructure.
-- T-2.5-07 is a security-focused test ensuring the CLI does not leak mnemonics. The mnemonic should be passed via environment variable (`CROSSTOWN_MNEMONIC`) or a file path, not as a CLI argument visible in `ps aux`.
+- T-2.5-07 is a security-focused test ensuring the CLI does not leak mnemonics. The mnemonic should be passed via environment variable (`TOON_MNEMONIC`) or a file path, not as a CLI argument visible in `ps aux`.
 
 ---
 
@@ -476,7 +476,7 @@ Tests should be written in story dependency order:
 - [ ] Docker image builds with SDK-based entrypoint
 - [ ] Handler logic is <100 lines in Town entrypoint
 - [ ] No Epic 1 SDK test regressions (`packages/sdk/pnpm test` passes)
-- [ ] `@crosstown/town` published to npm with correct ESM exports
+- [ ] `@toon-protocol/town` published to npm with correct ESM exports
 
 ### Quality Gates
 

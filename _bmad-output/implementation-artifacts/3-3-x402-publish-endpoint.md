@@ -6,17 +6,17 @@ Status: done
 
 As an **HTTP client or AI agent**,
 I want to publish Nostr events to any relay in the network via a simple HTTP endpoint with USDC payment,
-So that I can interact with Crosstown without understanding ILP or running an ILP client.
+So that I can interact with TOON without understanding ILP or running an ILP client.
 
 **FRs covered:** FR-PROD-3 (x402 HTTP payment on-ramp: 402 negotiation, EIP-3009 gasless USDC authorization, ILP PREPARE construction, multi-hop routing)
 
 **Dependencies:** Story 3.1 (USDC denomination -- provides `MOCK_USDC_ADDRESS`, `USDC_DECIMALS`, mock USDC on Anvil), Story 3.2 (Arbitrum chain config -- provides `resolveChainConfig()`, `ChainPreset`, `buildEip712Domain()`)
 
-**Decision source:** Party Mode Decision 8 -- "x402 Integration Architecture (FINAL)" (see `_bmad-output/planning-artifacts/research/marlin-party-mode-decisions-2026-03-05.md`). Decision 2 -- "Dual Payment Rail -- ILP Primary, x402 Optional". Decision 13 -- "Component Boundary Clarification" (x402 `/publish` is a Crosstown node responsibility, not BLS).
+**Decision source:** Party Mode Decision 8 -- "x402 Integration Architecture (FINAL)" (see `_bmad-output/planning-artifacts/research/marlin-party-mode-decisions-2026-03-05.md`). Decision 2 -- "Dual Payment Rail -- ILP Primary, x402 Optional". Decision 13 -- "Component Boundary Clarification" (x402 `/publish` is a TOON node responsibility, not BLS).
 
 ## Acceptance Criteria
 
-1. Given a Crosstown node with x402 enabled (`CROSSTOWN_X402_ENABLED=true` or `x402Enabled: true` in TownConfig), when an HTTP client sends `GET /publish` with a Nostr event payload but without an `X-PAYMENT` header, then the node returns HTTP 402 with pricing information (amount in USDC, facilitator EVM address, payment network `eip-3009`, chainId from resolved chain config).
+1. Given a TOON node with x402 enabled (`TOON_X402_ENABLED=true` or `x402Enabled: true` in TownConfig), when an HTTP client sends `GET /publish` with a Nostr event payload but without an `X-PAYMENT` header, then the node returns HTTP 402 with pricing information (amount in USDC, facilitator EVM address, payment network `eip-3009`, chainId from resolved chain config).
 
 2. Given the 402 response, when the client signs an EIP-3009 gasless USDC `transferWithAuthorization` and retries with the `X-PAYMENT` header containing the signed authorization, then the node:
    - Runs 6 pre-flight validation checks (all free, no on-chain tx): (1) EIP-3009 signature verification off-chain, (2) USDC balance check, (3) nonce freshness check, (4) TOON shallow parse, (5) Schnorr signature verification, (6) destination reachability check
@@ -38,7 +38,7 @@ So that I can interact with Crosstown without understanding ILP or running an IL
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Create `buildIlpPrepare()` shared function in `@crosstown/core` (AC: #3)
+- [x] Task 1: Create `buildIlpPrepare()` shared function in `@toon-protocol/core` (AC: #3)
   - [x] Create `packages/core/src/x402/build-ilp-prepare.ts`:
     ```typescript
     interface BuildIlpPrepareParams {
@@ -101,12 +101,12 @@ So that I can interact with Crosstown without understanding ILP or running an IL
     1. **EIP-3009 signature verification (off-chain):** Recover signer from the EIP-712 typed data signature. Verify recovered address matches `authorization.from`. Uses viem's `verifyTypedData()` or equivalent.
     2. **USDC balance check:** Read `balanceOf(from)` on the USDC contract. Verify balance >= authorization value. This is a read-only call (no gas).
     3. **Nonce freshness check:** Read `authorizationState(from, nonce)` on the USDC contract. Verify the nonce has not been used. Read-only call.
-    4. **TOON shallow parse:** Decode base64, call `shallowParseToon()` from `@crosstown/core/toon`. Verify the TOON data is valid format.
+    4. **TOON shallow parse:** Decode base64, call `shallowParseToon()` from `@toon-protocol/core/toon`. Verify the TOON data is valid format.
     5. **Schnorr signature verification:** Verify the Nostr event signature via the SDK verification pipeline (`createVerificationPipeline`). In devMode, this is skipped.
     6. **Destination reachability check:** Verify the destination ILP address is known (has a kind:10032 peer info event in the relay's EventStore or a route via the connector). This prevents gas spending on packets that will F02 (no route).
   - [x] If any check fails, return immediately with `{ passed: false, failedCheck: '<check name>' }`. No on-chain transaction is executed.
   - [x] **Gas griefing mitigation (E3-R008):** All 6 checks are free. Bad actors cannot drain the facilitator's ETH by submitting deliberately-failing authorizations, because the failure is caught before any on-chain tx.
-  - [x] **NOTE on viem dependency:** This is the first module in `@crosstown/town` to use viem for on-chain reads. Add `viem` as a dependency to `packages/town/package.json`. The core package remains viem-free per Decision 7.
+  - [x] **NOTE on viem dependency:** This is the first module in `@toon-protocol/town` to use viem for on-chain reads. Add `viem` as a dependency to `packages/town/package.json`. The core package remains viem-free per Decision 7.
 
 - [x] Task 4: Create EIP-3009 settlement module (AC: #2, #4, #7)
   - [x] Create `packages/town/src/handlers/x402-settlement.ts`:
@@ -201,12 +201,12 @@ So that I can interact with Crosstown without understanding ILP or running an IL
     - When `x402Enabled` is false (default):
       1. Register `GET /publish` route that returns 404.
       2. No viem client created (no unnecessary dependency overhead).
-  - [x] **IMPORTANT: Component boundary.** The `/publish` endpoint is on the Crosstown node (BLS Hono app, same server as `/health` and `/handle-packet`), NOT a separate HTTP server. Per Decision 13, the node owns all public-facing endpoints.
+  - [x] **IMPORTANT: Component boundary.** The `/publish` endpoint is on the TOON node (BLS Hono app, same server as `/health` and `/handle-packet`), NOT a separate HTTP server. Per Decision 13, the node owns all public-facing endpoints.
   - [x] **IMPORTANT: Hono concurrent HTTP + WS.** The BLS Hono server and the WebSocket relay run on different ports (default BLS: 3100, relay: 7100). The x402 handler is on the BLS port. If a future story merges them, the 3.7-INT-001 test (concurrent HTTP + WS on same port) validates that scenario. For now, they are separate ports.
   - [x] Update `TownInstance` to expose x402 status.
 
-- [x] Task 7: Add `CROSSTOWN_X402_ENABLED` env var support (AC: #6)
-  - [x] In `packages/town/src/cli.ts`, add CLI flag `--x402-enabled` and env var `CROSSTOWN_X402_ENABLED`.
+- [x] Task 7: Add `TOON_X402_ENABLED` env var support (AC: #6)
+  - [x] In `packages/town/src/cli.ts`, add CLI flag `--x402-enabled` and env var `TOON_X402_ENABLED`.
   - [x] In `docker/src/shared.ts`, add `x402Enabled` to `parseConfig()` output.
   - [x] Propagate through to `TownConfig.x402Enabled`.
 
@@ -267,13 +267,13 @@ So that I can interact with Crosstown without understanding ILP or running an IL
 
 ### What This Story Does
 
-This story adds an HTTP-native payment on-ramp to Crosstown via the x402 protocol pattern. x402 allows any HTTP client (AI agents, browsers, CLI tools) to publish Nostr events to the network by paying USDC, without understanding ILP or running an ILP client.
+This story adds an HTTP-native payment on-ramp to TOON via the x402 protocol pattern. x402 allows any HTTP client (AI agents, browsers, CLI tools) to publish Nostr events to the network by paying USDC, without understanding ILP or running an ILP client.
 
 The x402 flow:
 ```
-Client ──GET /publish + event──→ Crosstown Node
+Client ──GET /publish + event──→ TOON Node
        ←── 402 { price, facilitator, network } ←─
-Client ──GET /publish + X-PAYMENT + event──→ Crosstown Node
+Client ──GET /publish + X-PAYMENT + event──→ TOON Node
                                               ├── pre-flight (6 free checks)
                                               ├── settle USDC on-chain (EIP-3009)
                                               ├── buildIlpPrepare() → ILP PREPARE
@@ -304,13 +304,13 @@ After:
 ### Scope Boundaries
 
 **In scope:**
-- `buildIlpPrepare()` shared function in `@crosstown/core`
+- `buildIlpPrepare()` shared function in `@toon-protocol/core`
 - x402 pricing calculator with routing buffer
 - Pre-flight validation pipeline (6 checks)
 - EIP-3009 settlement module (on-chain USDC transfer)
 - x402 publish handler with Hono route
 - `TownConfig.x402Enabled` and `TownConfig.routingBufferPercent`
-- `CROSSTOWN_X402_ENABLED` env var
+- `TOON_X402_ENABLED` env var
 - EIP-3009 types and constants
 - ATDD test enablement (13 unit/integration tests + 1 deferred E2E)
 
@@ -330,7 +330,7 @@ After:
 GET /publish HTTP/1.1
 Content-Type: application/json
 
-{ "event": { ... NostrEvent }, "destination": "g.crosstown.target-relay" }
+{ "event": { ... NostrEvent }, "destination": "g.toon.target-relay" }
 
 → HTTP 402 Payment Required
 {
@@ -349,7 +349,7 @@ GET /publish HTTP/1.1
 Content-Type: application/json
 X-PAYMENT: {"from":"0x...","to":"0x...","value":"5500","validAfter":0,"validBefore":1710000000,"nonce":"0x...","v":27,"r":"0x...","s":"0x..."}
 
-{ "event": { ... NostrEvent }, "destination": "g.crosstown.target-relay" }
+{ "event": { ... NostrEvent }, "destination": "g.toon.target-relay" }
 
 → HTTP 200 OK
 {
@@ -420,7 +420,7 @@ The destination relay's `/handle-packet` receives identical packets regardless o
 
 ### viem Integration Notes
 
-This story introduces viem as a dependency of `@crosstown/town` (not `@crosstown/core`). The core package remains viem-free per Decision 7.
+This story introduces viem as a dependency of `@toon-protocol/town` (not `@toon-protocol/core`). The core package remains viem-free per Decision 7.
 
 **viem usage in this story:**
 - `createPublicClient()` -- for read-only contract calls (balance check, nonce check)
@@ -449,7 +449,7 @@ This story introduces viem as a dependency of `@crosstown/town` (not `@crosstown
 - `packages/town/package.json` -- Add `viem` dependency
 
 **Modified files (docker):**
-- `docker/src/shared.ts` -- Support `CROSSTOWN_X402_ENABLED` env var
+- `docker/src/shared.ts` -- Support `TOON_X402_ENABLED` env var
 
 **Modified files (tests):**
 - `packages/town/src/handlers/x402-publish-handler.test.ts` -- Enable 12 existing + add 1 new ATDD test (T-3.3-13)
@@ -484,7 +484,7 @@ This story introduces viem as a dependency of `@crosstown/town` (not `@crosstown
 | T-3.3-04 | `settlement tx reverts (insufficient balance) -> no ILP PREPARE sent` | #7 | 3.3-INT-004 | E3-R006 | P0 | I |
 | T-3.3-05 | `settlement succeeds but ILP PREPARE rejected -> HTTP 200, no refund` | #8 | 3.3-INT-005 | E3-R006, E3-R008 | P0 | I |
 | T-3.3-06 | `invalid EIP-3009 signature rejected at pre-flight (no gas spent)` | #2 | 3.3-INT-006 | E3-R005 | P0 | I |
-| T-3.3-07 | `CROSSTOWN_X402_ENABLED=false -> GET /publish returns 404` | #6 | 3.3-INT-007 | -- | P1 | I |
+| T-3.3-07 | `TOON_X402_ENABLED=false -> GET /publish returns 404` | #6 | 3.3-INT-007 | -- | P1 | I |
 | T-3.3-08 | `price = destination basePricePerByte * toonLength + configurable routing buffer` | #5 | 3.3-INT-008 | E3-R010 | P1 | U |
 | T-3.3-09 | `HTTP 402 body contains required fields: amount, facilitatorAddress, paymentNetwork, chainId` | #1 | 3.3-INT-009 | -- | P1 | I |
 | T-3.3-10 | `concurrent HTTP GET /health + WS connection on port 7100` | -- | 3.7-INT-001 | E3-R009 | P1 | I |
@@ -497,7 +497,7 @@ This story introduces viem as a dependency of `@crosstown/town` (not `@crosstown
 
 ```typescript
 // New x402 modules (created in this story)
-import { buildIlpPrepare, type BuildIlpPrepareParams } from '@crosstown/core';
+import { buildIlpPrepare, type BuildIlpPrepareParams } from '@toon-protocol/core';
 import { createX402Handler, type X402HandlerConfig } from './handlers/x402-publish-handler.js';
 import { calculateX402Price, type X402PricingConfig } from './handlers/x402-pricing.js';
 import { runPreflight, type PreflightResult, type PreflightConfig } from './handlers/x402-preflight.js';
@@ -505,13 +505,13 @@ import { settleEip3009, type SettlementResult, type SettlementConfig } from './h
 import type { Eip3009Authorization, X402PublishRequest } from './handlers/x402-types.js';
 
 // Existing chain config (from Story 3.2)
-import { resolveChainConfig, type ChainPreset } from '@crosstown/core';
+import { resolveChainConfig, type ChainPreset } from '@toon-protocol/core';
 
 // TOON codec (from core)
-import { shallowParseToon, encodeEventToToon } from '@crosstown/core/toon';
+import { shallowParseToon, encodeEventToToon } from '@toon-protocol/core/toon';
 
 // SDK pipeline (for verification in pre-flight)
-import { createVerificationPipeline } from '@crosstown/sdk';
+import { createVerificationPipeline } from '@toon-protocol/sdk';
 
 // viem (new dependency for Town)
 import { createPublicClient, createWalletClient, http, type WalletClient, type PublicClient } from 'viem';
@@ -522,8 +522,8 @@ import { arbitrum, arbitrumSepolia } from 'viem/chains';
 import type { Context } from 'hono';
 
 // Core types (existing)
-import type { IlpClient } from '@crosstown/core';
-import type { EventStore } from '@crosstown/relay';
+import type { IlpClient } from '@toon-protocol/core';
+import type { EventStore } from '@toon-protocol/relay';
 ```
 
 ### Critical Rules
@@ -537,7 +537,7 @@ import type { EventStore } from '@crosstown/relay';
 - **Always use `.js` extensions in imports** -- ESM requires explicit extensions.
 - **Use consistent type imports** -- `import type { X } from '...'` for type-only imports.
 - **EIP-712 domain for USDC != TokenNetwork** -- The EIP-712 domain for `transferWithAuthorization` uses the USDC contract's name/version, not the TokenNetwork's. Do not confuse the two.
-- **viem in Town only** -- Do not add viem to `@crosstown/core`. Core remains viem-free per Decision 7.
+- **viem in Town only** -- Do not add viem to `@toon-protocol/core`. Core remains viem-free per Decision 7.
 
 ### References
 
@@ -579,7 +579,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 - **Task 4**: Created `settleEip3009()` in `packages/town/src/handlers/x402-settlement.ts` using viem `WalletClient.writeContract` for `transferWithAuthorization`.
 - **Task 5**: Created `createX402Handler()` in `packages/town/src/handlers/x402-publish-handler.ts` orchestrating the full x402 flow: 402 pricing, X-PAYMENT parsing, preflight, settlement, ILP PREPARE via `buildIlpPrepare()`, and response construction.
 - **Task 6**: Added `x402Enabled`, `routingBufferPercent`, `facilitatorAddress` to `TownConfig`. Wired x402 handler into BLS Hono app with GET/POST `/publish` routes. Updated `ResolvedTownConfig` with x402 fields.
-- **Task 7**: Added `--x402-enabled` CLI flag and `CROSSTOWN_X402_ENABLED` env var to `cli.ts`. Added `x402Enabled` to `docker/src/shared.ts` `parseConfig()`.
+- **Task 7**: Added `--x402-enabled` CLI flag and `TOON_X402_ENABLED` env var to `cli.ts`. Added `x402Enabled` to `docker/src/shared.ts` `parseConfig()`.
 - **Task 8**: Created `Eip3009Authorization`, `EIP_3009_TYPES`, `USDC_EIP712_DOMAIN`, `USDC_ABI`, `X402PublishRequest`, `X402PublishResponse`, `X402PricingResponse` types in `packages/town/src/handlers/x402-types.ts`.
 - **Task 9**: Rewrote ATDD test file with 14 real tests (1 E2E skipped). All tests use actual module imports. Used `createPassingPreflight()` mock for post-preflight integration tests. All 14 active tests pass.
 - **Task 10**: Build passes (0 errors). Lint passes (0 errors, 349 pre-existing warnings). Format check passes. Full test suite: 1379 passed, 160 skipped, 0 failed. Sprint status updated.
@@ -599,7 +599,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 - `packages/core/src/index.ts` -- Added `buildIlpPrepare` export
 - `packages/town/src/town.ts` -- Added `x402Enabled`, `routingBufferPercent`, `facilitatorAddress` to TownConfig; wired x402 routes
 - `packages/town/src/index.ts` -- Exported x402 handler, pricing, preflight, settlement, and types
-- `packages/town/src/cli.ts` -- Added `--x402-enabled` flag and `CROSSTOWN_X402_ENABLED` env var
+- `packages/town/src/cli.ts` -- Added `--x402-enabled` flag and `TOON_X402_ENABLED` env var
 - `packages/town/package.json` -- Added `viem` dependency
 
 **Modified files (docker):**
@@ -620,7 +620,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 | 2026-03-13 | Adversarial review: 9 issues found and fixed. Risk IDs aligned with test-design-epic-3.md (E3-R013->E3-R008 for gas griefing, E3-R001->E3-R005, E3-R002->E3-R006, E3-R003->E3-R007). Added missing T-3.3-13 and T-3.3-14 tests from test design. Fixed sprint status transition. Added Dev Agent Record, Change Log, and Code Review Record sections. |
 | 2026-03-13 | Implementation complete (Claude Opus 4.6). All 10 tasks done. 7 new files, 7 modified source files. 14 tests passing (1 E2E skipped). Build, lint, format all green. 5 debug issues found and fixed during development. viem added as Town dependency. |
 | 2026-03-13 | Code review #1 complete (Claude Opus 4.6, YOLO mode). 7 issues found and fixed: 3 high (ilpClient not wired, walletClient null guard, tautological reachability check), 3 medium (duplicate TOON parse, CWE-209 settlement error leak, duplicated EventStoreLike), 1 low (test assertion update). All checks green: build, lint, format, 1402 tests passing. |
-| 2026-03-13 | Code review #2 complete (Claude Opus 4.6, YOLO mode). 3 issues found and fixed: 1 medium (SettlementConfig/SettlementResult naming collision with @crosstown/core), 2 low (missing validAfter/validBefore NaN validation, test type name updates). All checks green: build, lint, format, 1402 tests passing. |
+| 2026-03-13 | Code review #2 complete (Claude Opus 4.6, YOLO mode). 3 issues found and fixed: 1 medium (SettlementConfig/SettlementResult naming collision with @toon-protocol/core), 2 low (missing validAfter/validBefore NaN validation, test type name updates). All checks green: build, lint, format, 1402 tests passing. |
 | 2026-03-13 | Code review #3 complete (Claude Opus 4.6, YOLO mode + OWASP security audit). 6 issues found and fixed: 1 high (EVM address format validation in parseAuthorization), 2 medium (negative value acceptance, routingBufferPercent range), 3 low (ILP address format validation, facilitatorAddress validation, deprecated export syntax). 9 new tests added. All checks green: build, lint, format, 1411 tests passing. |
 
 ## Code Review Record
@@ -644,7 +644,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 |---|----------|------|-------|-----|
 | 1 | HIGH | `town.ts` | `ilpClient` created AFTER x402 handler -- handler never receives it, so ILP routing is non-functional when x402 is enabled | Moved `ilpClient` creation before x402 handler creation; wired `ilpClient` into `createX402Handler()` config |
 | 2 | HIGH | `x402-publish-handler.ts` | `walletClient` cast to `WalletClient` without null guard -- undefined walletClient causes opaque crash during settlement | Added explicit guard: if `!config.settle && !config.walletClient`, return 500 before attempting settlement |
-| 3 | HIGH | `x402-preflight.ts` | Destination reachability check tautological: `events.length > 0 \|\| destination.startsWith('g.crosstown.')` always passes for `g.crosstown.*` destinations regardless of actual route availability | Simplified to `events.length === 0` check -- rejects if no kind:10032 peer info events exist |
+| 3 | HIGH | `x402-preflight.ts` | Destination reachability check tautological: `events.length > 0 \|\| destination.startsWith('g.toon.')` always passes for `g.toon.*` destinations regardless of actual route availability | Simplified to `events.length === 0` check -- rejects if no kind:10032 peer info events exist |
 | 4 | MEDIUM | `x402-preflight.ts` | TOON data decoded and shallow-parsed twice (check 4 and check 5) -- wasteful and divergence risk | Parse once in check 4, reuse `toonMeta` in check 5 |
 | 5 | MEDIUM | `x402-publish-handler.ts` | Settlement error message leaked on-chain revert reason in HTTP 400 response (`Settlement failed: ERC20: transfer amount exceeds balance`) -- CWE-209 violation | Changed to generic `Settlement failed` message; log full error server-side only |
 | 6 | MEDIUM | `x402-preflight.ts`, `x402-publish-handler.ts` | `EventStoreLike` interface duplicated in two files | Moved to `x402-types.ts` as single source of truth; both files import from there |
@@ -678,7 +678,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 
 | # | Severity | File | Issue | Fix |
 |---|----------|------|-------|-----|
-| 1 | MEDIUM | `x402-settlement.ts`, `index.ts` | `SettlementConfig` and `SettlementResult` naming collision with `@crosstown/core` bootstrap types -- consumers importing from both packages get ambiguous type names | Renamed to `X402SettlementConfig` and `X402SettlementResult`; added deprecated type aliases for backward compatibility; updated all internal references |
+| 1 | MEDIUM | `x402-settlement.ts`, `index.ts` | `SettlementConfig` and `SettlementResult` naming collision with `@toon-protocol/core` bootstrap types -- consumers importing from both packages get ambiguous type names | Renamed to `X402SettlementConfig` and `X402SettlementResult`; added deprecated type aliases for backward compatibility; updated all internal references |
 | 2 | LOW | `x402-publish-handler.ts` | `parseAuthorization` missing `validAfter`/`validBefore` type validation -- `Number(undefined)` produces `NaN` that silently propagates and fails cryptically downstream during EIP-3009 verification or on-chain settlement | Added explicit `Number.isNaN()` checks after conversion, throwing clear validation error |
 | 3 | LOW | `x402-publish-handler.test.ts` | Test imports used deprecated `SettlementResult` type name | Updated to `X402SettlementResult` |
 

@@ -4,7 +4,7 @@ slug: 'wire-viem-x402-town'
 created: '2026-03-16'
 status: 'completed'
 stepsCompleted: [1, 2, 3, 4]
-tech_stack: ['viem ^2.47.2', 'viem/accounts', 'typescript', '@crosstown/town', 'vitest']
+tech_stack: ['viem ^2.47.2', 'viem/accounts', 'typescript', '@toon-protocol/town', 'vitest']
 files_to_modify: ['packages/town/src/town.ts', 'packages/town/src/town.test.ts', '_bmad-output/project-context.md']
 code_patterns: ['conditional-wiring', 'identity-derivation', 'defineChain', 'privateKeyToAccount', 'static-analysis-tests', 'best-effort-key-zeroing']
 test_patterns: ['vitest', 'static-source-analysis', 'ordering-validation', 'Given/When/Then']
@@ -110,7 +110,7 @@ expect(kind10032Idx).toBeLessThan(kind10035Idx);
 
 - **Derive EVM key from existing identity:** `identity.secretKey` is the same secp256k1 key used for both Nostr and EVM. Convert to `0x`-prefixed hex for viem's `privateKeyToAccount()`.
 - **Conditional creation:** Only create viem clients when `x402Enabled` is true. This avoids unnecessary RPC connections for nodes that don't use x402.
-- **Use `chainConfig.rpcUrl` for transport:** Already resolved with env var overrides (`CROSSTOWN_RPC_URL`). Pass only to `http()` transport — do not duplicate in `defineChain()` `rpcUrls` field.
+- **Use `chainConfig.rpcUrl` for transport:** Already resolved with env var overrides (`TOON_RPC_URL`). Pass only to `http()` transport — do not duplicate in `defineChain()` `rpcUrls` field.
 - **Chain definition:** Use viem's `defineChain()` with `chainConfig.chainId` and `chainConfig.rpcUrl`.
 - **No new config fields:** The private key comes from the node identity, the RPC URL comes from the chain config. No new `TownConfig` fields needed.
 - **Use explicit viem types:** Import `type { WalletClient, PublicClient }` from viem for variable declarations, matching the types used in `X402HandlerConfig`.
@@ -279,7 +279,7 @@ expect(kind10032Idx).toBeLessThan(kind10035Idx);
 
 ### Dependencies
 
-- `viem` ^2.47.2 (already in `@crosstown/town` dependencies)
+- `viem` ^2.47.2 (already in `@toon-protocol/town` dependencies)
 - `viem/accounts` for `privateKeyToAccount()` (part of viem package)
 - No new npm dependencies required
 

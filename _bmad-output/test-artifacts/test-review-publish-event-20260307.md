@@ -292,7 +292,7 @@ function createTestEvent(overrides: Partial<NostrEvent> = {}): NostrEvent {
     created_at: 1700000000,
     kind: 1,
     tags: [],
-    content: 'Hello, Crosstown!',
+    content: 'Hello, TOON!',
     sig: 'c'.repeat(128),
     ...overrides,
   };
@@ -341,7 +341,7 @@ function createTestEvent(overrides: Partial<NostrEvent> = {}): NostrEvent {
     created_at: 1700000000,
     kind: 1,
     tags: [],
-    content: 'Hello, Crosstown!',
+    content: 'Hello, TOON!',
     sig: 'c'.repeat(128),
     ...overrides,
   };

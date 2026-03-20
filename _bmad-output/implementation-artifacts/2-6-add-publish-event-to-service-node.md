@@ -4,13 +4,13 @@ Status: done
 
 ## Story
 
-As a **developer building on the Crosstown SDK**,
+As a **developer building on the TOON SDK**,
 I want `ServiceNode` to expose a `publishEvent(event, options)` method that sends Nostr events through the embedded connector,
 So that I can send outbound ILP packets without manually encoding TOON, computing conditions, or calling low-level connector APIs.
 
 **FRs covered:** FR-SDK-1 (partial -- extends `createNode()` composition with outbound event publishing capability), FR-SDK-10 (partial -- extends `ServiceNode` lifecycle with `publishEvent()` method)
 
-**Dependencies:** Stories 2.1-2.5 (done). Requires: `@crosstown/sdk` with `createNode()` and `ServiceNode` (Story 1.7), `AgentRuntimeClient` interface from `@crosstown/core` (already exported), TOON encoder from `@crosstown/core/toon`.
+**Dependencies:** Stories 2.1-2.5 (done). Requires: `@toon-protocol/sdk` with `createNode()` and `ServiceNode` (Story 1.7), `AgentRuntimeClient` interface from `@toon-protocol/core` (already exported), TOON encoder from `@toon-protocol/core/toon`.
 
 ## Acceptance Criteria
 
@@ -18,15 +18,15 @@ So that I can send outbound ILP packets without manually encoding TOON, computin
 2. Given a started `ServiceNode`, when I call `node.publishEvent(event)` without options or with an empty destination, then a `NodeError` is thrown with a clear message indicating that `destination` is required.
 3. Given a `ServiceNode` that has not been started, when I call `node.publishEvent(event, { destination })`, then a `NodeError` is thrown with message "Cannot publish: node not started. Call start() first."
 4. Given a successful publish, when `publishEvent()` resolves, then it returns `{ success: true, eventId: string, fulfillment: string }`. Given a rejected publish, it returns `{ success: false, eventId: string, code: string, message: string }`.
-5. Given the `@crosstown/sdk` package, when I import from `@crosstown/sdk`, then `PublishEventResult` type is exported alongside existing exports, and `ServiceNode` includes the `publishEvent` method in its type definition.
+5. Given the `@toon-protocol/sdk` package, when I import from `@toon-protocol/sdk`, then `PublishEventResult` type is exported alongside existing exports, and `ServiceNode` includes the `publishEvent` method in its type definition.
 6. Given the existing SDK test suite, when I run `pnpm test`, then all existing tests pass and new unit tests cover `publishEvent()` success, rejection, not-started error, and missing-destination error scenarios.
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Expose `runtimeClient` from `CrosstownNode` in core (AC: #1)
-  - [x] Add `readonly runtimeClient: AgentRuntimeClient` to the `CrosstownNode` interface in `packages/core/src/compose.ts` (line ~213)
-  - [x] Return `directRuntimeClient` as `runtimeClient` in the `createCrosstownNode()` return object (line ~347, add to the returned object literal)
-  - [x] Verify `AgentRuntimeClient` type is already exported from `@crosstown/core` (it is -- `packages/core/src/index.ts` line 95). No changes needed to core's index.ts.
+- [x] Task 1: Expose `runtimeClient` from `ToonNode` in core (AC: #1)
+  - [x] Add `readonly runtimeClient: AgentRuntimeClient` to the `ToonNode` interface in `packages/core/src/compose.ts` (line ~213)
+  - [x] Return `directRuntimeClient` as `runtimeClient` in the `createToonNode()` return object (line ~347, add to the returned object literal)
+  - [x] Verify `AgentRuntimeClient` type is already exported from `@toon-protocol/core` (it is -- `packages/core/src/index.ts` line 95). No changes needed to core's index.ts.
   - [x] **Import needed:** Add `import type { AgentRuntimeClient } from './bootstrap/types.js'` at top of compose.ts (if not already present -- check existing imports)
 
 - [x] Task 2: Add `publishEvent()` to `ServiceNode` interface and implementation (AC: #1, #2, #3, #4, #5)
@@ -47,7 +47,7 @@ So that I can send outbound ILP packets without manually encoding TOON, computin
     3. TOON-encode the event: `const toonData = encoder(event)` -- the `encoder` variable is already in scope (line 184, captured from `config.toonEncoder ?? encodeEventToToon`)
     4. Compute amount: `const amount = (config.basePricePerByte ?? 10n) * BigInt(toonData.length)`
     5. Convert to base64: `const base64Data = Buffer.from(toonData).toString('base64')`
-    6. Call `crosstownNode.runtimeClient.sendIlpPacket({ destination: options.destination, amount: String(amount), data: base64Data })` -- **CRITICAL:** `amount` must be converted to `String()` because `AgentRuntimeClient.sendIlpPacket()` accepts `amount: string`, not bigint. The runtime client handles: base64 -> Uint8Array conversion, execution condition computation (`SHA256(SHA256(event.id))` via toonDecoder), and result mapping.
+    6. Call `toonNode.runtimeClient.sendIlpPacket({ destination: options.destination, amount: String(amount), data: base64Data })` -- **CRITICAL:** `amount` must be converted to `String()` because `AgentRuntimeClient.sendIlpPacket()` accepts `amount: string`, not bigint. The runtime client handles: base64 -> Uint8Array conversion, execution condition computation (`SHA256(SHA256(event.id))` via toonDecoder), and result mapping.
     7. Map `IlpSendResult` to `PublishEventResult`:
        - If `result.accepted`: return `{ success: true, eventId: event.id, fulfillment: result.fulfillment ?? '' }`
        - If `!result.accepted`: return `{ success: false, eventId: event.id, code: result.code ?? 'T00', message: result.message ?? 'Unknown error' }`
@@ -72,7 +72,7 @@ So that I can send outbound ILP packets without manually encoding TOON, computin
     - Test: `publishEvent()` throws `NodeError` with "destination is required" message when options is undefined
     - Test: `publishEvent()` uses custom `basePricePerByte` from config when provided
     - Test: `publishEvent()` uses default `basePricePerByte` (10n) when not configured
-  - [x] **Mock strategy:** Create a mock `EmbeddableConnectorLike` with `vi.fn()` for `sendPacket`, `registerPeer`, `removePeer`, and `setPacketHandler`. For the `runtimeClient`, the test must exercise the full `createNode()` -> `start()` -> `publishEvent()` flow, so the mock connector's `sendPacket` should return a fulfill/reject result. The `createCrosstownNode()` internally creates the `directRuntimeClient` which wraps `connector.sendPacket()`. This means the mock connector's `sendPacket` IS what gets called.
+  - [x] **Mock strategy:** Create a mock `EmbeddableConnectorLike` with `vi.fn()` for `sendPacket`, `registerPeer`, `removePeer`, and `setPacketHandler`. For the `runtimeClient`, the test must exercise the full `createNode()` -> `start()` -> `publishEvent()` flow, so the mock connector's `sendPacket` should return a fulfill/reject result. The `createToonNode()` internally creates the `directRuntimeClient` which wraps `connector.sendPacket()`. This means the mock connector's `sendPacket` IS what gets called.
   - [x] **Test setup pattern** (from existing `create-node.test.ts`):
     ```typescript
     const mockConnector: EmbeddableConnectorLike = {
@@ -99,7 +99,7 @@ Adds a single method -- `publishEvent()` -- to the SDK's `ServiceNode` interface
 
 ### Architecture
 
-The `DirectRuntimeClient` is created inside `createCrosstownNode()` at `packages/core/src/compose.ts` line 292. It wraps `connector.sendPacket()` with:
+The `DirectRuntimeClient` is created inside `createToonNode()` at `packages/core/src/compose.ts` line 292. It wraps `connector.sendPacket()` with:
 - Base64 to Uint8Array conversion for data
 - String to BigInt conversion for amount
 - Execution condition computation: `fulfillment = SHA256(event.id)`, then `condition = SHA256(fulfillment)` (lines 101-106 of direct-runtime-client.ts)
@@ -117,7 +117,7 @@ The `publishEvent()` method adds one thin layer on top of `AgentRuntimeClient.se
 publishEvent(event, { destination })
   -> encoder(event)                           // NostrEvent -> Uint8Array (TOON bytes)
   -> Buffer.from(toonData).toString('base64') // Uint8Array -> base64 string
-  -> crosstownNode.runtimeClient.sendIlpPacket({
+  -> toonNode.runtimeClient.sendIlpPacket({
        destination,
        amount: String(basePricePerByte * BigInt(toonData.length)),
        data: base64Data
@@ -159,7 +159,7 @@ interface IlpSendResult {
 
 | File | Change | Lines |
 |------|--------|-------|
-| `packages/core/src/compose.ts` | Add `runtimeClient` to `CrosstownNode` interface + return object | Interface ~213, return ~347 |
+| `packages/core/src/compose.ts` | Add `runtimeClient` to `ToonNode` interface + return object | Interface ~213, return ~347 |
 | `packages/sdk/src/create-node.ts` | Add `PublishEventResult` type, add `publishEvent()` to `ServiceNode` interface + implementation | Interface ~102, implementation ~328 |
 | `packages/sdk/src/index.ts` | Add `PublishEventResult` to type exports | Line 64 |
 | `packages/sdk/src/publish-event.test.ts` | New test file for publishEvent() | New file |
@@ -173,17 +173,17 @@ interface IlpSendResult {
 - Do not add HTTP/BTP transport -- this uses the embedded connector path only
 - Do not add retry logic -- the connector handles transport-level retries
 - Do not break existing SDK exports -- `PublishEventResult` is additive
-- Do not modify `@crosstown/core/src/index.ts` -- `AgentRuntimeClient` is already exported (line 95)
+- Do not modify `@toon-protocol/core/src/index.ts` -- `AgentRuntimeClient` is already exported (line 95)
 
 ### Differences from Client's publishEvent()
 
-The `@crosstown/client` package has a `publishEvent()` on `CrosstownClient` (line 225 of `packages/client/src/CrosstownClient.ts`) that served as the design reference. Key differences:
+The `@toon-protocol/client` package has a `publishEvent()` on `ToonClient` (line 225 of `packages/client/src/ToonClient.ts`) that served as the design reference. Key differences:
 
-| Aspect | Client (`CrosstownClient`) | SDK (`ServiceNode`) |
+| Aspect | Client (`ToonClient`) | SDK (`ServiceNode`) |
 |--------|---------------------------|---------------------|
 | Amount source | Hardcoded `basePricePerByte = 10n` | Config-based `config.basePricePerByte ?? 10n` |
 | Result type | `{ success, eventId?, fulfillment?, error? }` | `{ success, eventId, fulfillment?, code?, message? }` -- structured error info |
-| Error handling | Throws `CrosstownClientError` | Throws `NodeError` |
+| Error handling | Throws `ToonClientError` | Throws `NodeError` |
 | Transport | `runtimeClient` or `btpClient` (with optional claim) | `runtimeClient` only (embedded connector) |
 | Destination | Falls back to `config.destinationAddress` | Always required in options (no fallback) |
 
@@ -238,16 +238,16 @@ The `@crosstown/client` package has a `publishEvent()` on `CrosstownClient` (lin
 
 - Test file `publish-event.test.ts` is co-located in `packages/sdk/src/` following existing convention (e.g., `handler-registry.test.ts`, `create-node.test.ts`)
 - `PublishEventResult` type is defined in `create-node.ts` alongside `ServiceNode` and `StartResult` (related types co-located)
-- The `runtimeClient` property on `CrosstownNode` follows the same pattern as existing `channelClient` property (lines 239-240 of compose.ts)
+- The `runtimeClient` property on `ToonNode` follows the same pattern as existing `channelClient` property (lines 239-240 of compose.ts)
 
 ### References
 
 - [Source: packages/sdk/src/create-node.ts -- ServiceNode interface (lines 102-123), createNode() implementation (lines 137-429)]
-- [Source: packages/core/src/compose.ts -- CrosstownNode interface (lines 213-246), createCrosstownNode() (lines 288-410)]
+- [Source: packages/core/src/compose.ts -- ToonNode interface (lines 213-246), createToonNode() (lines 288-410)]
 - [Source: packages/core/src/bootstrap/direct-runtime-client.ts -- createDirectRuntimeClient (lines 80-147), sendIlpPacket with SHA256 condition (lines 85-145)]
 - [Source: packages/core/src/bootstrap/types.ts -- AgentRuntimeClient interface (lines 163-184), IlpSendResult (lines 152-158)]
 - [Source: packages/sdk/src/index.ts -- SDK public API exports (lines 1-68)]
-- [Source: packages/client/src/CrosstownClient.ts -- publishEvent() reference implementation (lines 225-292)]
+- [Source: packages/client/src/ToonClient.ts -- publishEvent() reference implementation (lines 225-292)]
 - [Source: packages/client/src/types.ts -- client PublishEventResult (lines 178-190)]
 - [Source: packages/core/src/index.ts -- AgentRuntimeClient already exported (line 95)]
 
@@ -264,15 +264,15 @@ Claude Opus 4.6
 
 ### Completion Notes List
 
-- Task 1: Added `import type { AgentRuntimeClient }` to compose.ts, added `readonly runtimeClient: AgentRuntimeClient` to `CrosstownNode` interface, exposed `directRuntimeClient` as `runtimeClient` on the return object. Verified `AgentRuntimeClient` is already exported from `@crosstown/core`.
-- Task 2: Added `PublishEventResult` interface to `create-node.ts`. Added `publishEvent()` to `ServiceNode` interface with proper JSDoc. Implemented `publishEvent()` on the returned node object with: not-started guard, destination-required guard, TOON encoding, amount computation (`basePricePerByte * BigInt(toonData.length)`), base64 conversion, `sendIlpPacket()` call via `crosstownNode.runtimeClient`, result mapping from `IlpSendResult` to `PublishEventResult`, and error wrapping following the same pattern as `start()`.
+- Task 1: Added `import type { AgentRuntimeClient }` to compose.ts, added `readonly runtimeClient: AgentRuntimeClient` to `ToonNode` interface, exposed `directRuntimeClient` as `runtimeClient` on the return object. Verified `AgentRuntimeClient` is already exported from `@toon-protocol/core`.
+- Task 2: Added `PublishEventResult` interface to `create-node.ts`. Added `publishEvent()` to `ServiceNode` interface with proper JSDoc. Implemented `publishEvent()` on the returned node object with: not-started guard, destination-required guard, TOON encoding, amount computation (`basePricePerByte * BigInt(toonData.length)`), base64 conversion, `sendIlpPacket()` call via `toonNode.runtimeClient`, result mapping from `IlpSendResult` to `PublishEventResult`, and error wrapping following the same pattern as `start()`.
 - Task 3: Updated `packages/sdk/src/index.ts` to export `PublishEventResult` type alongside existing `NodeConfig`, `ServiceNode`, `StartResult`.
 - Task 4: ATDD red-phase test file already existed with 9 comprehensive tests. All 9 original tests pass: TOON-encode + sendPacket parameters, amount computation, success result shape, rejection result shape, not-started guard, undefined options guard, empty destination guard, custom basePricePerByte, default basePricePerByte. Fixed 2 lint errors (unused import, unused variable). Code reviews later added 7 more tests (T-2.6-10 through T-2.6-16: post-stop guard, exact amount verification, TOON encoder failure wrapping, sendPacket error wrapping, non-Error wrapping, NodeError propagation, proportional scaling), bringing the total to 16 tests.
 - Task 5: All checks pass -- `pnpm build` (all packages), `pnpm test` (1,443 passed, 185 skipped, 0 failures), `pnpm lint` (0 errors, 381 pre-existing warnings), `pnpm format:check` (all files clean).
 
 ### File List
 
-- `packages/core/src/compose.ts` -- Added `AgentRuntimeClient` import, `runtimeClient` to `CrosstownNode` interface and return object
+- `packages/core/src/compose.ts` -- Added `AgentRuntimeClient` import, `runtimeClient` to `ToonNode` interface and return object
 - `packages/sdk/src/create-node.ts` -- Added `PublishEventResult` interface, `publishEvent()` to `ServiceNode` interface and implementation
 - `packages/sdk/src/index.ts` -- Added `PublishEventResult` to type exports
 - `packages/sdk/src/publish-event.test.ts` -- Unit tests for publishEvent(); added vi.mock('nostr-tools'), post-stop test, exact amount test
@@ -350,7 +350,7 @@ None. This is the 7th review pass for Story 2.6. The implementation is mature an
 
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
-| 2026-03-07 | 1.0 | Implementation complete: publishEvent() on ServiceNode -- TOON-encode, price, base64, send via runtimeClient. Exposed runtimeClient from CrosstownNode in core. Added PublishEventResult type export. All 9 ATDD tests pass. 0 regressions across 1,443 tests. | Dev (Claude Opus 4.6) |
+| 2026-03-07 | 1.0 | Implementation complete: publishEvent() on ServiceNode -- TOON-encode, price, base64, send via runtimeClient. Exposed runtimeClient from ToonNode in core. Added PublishEventResult type export. All 9 ATDD tests pass. 0 regressions across 1,443 tests. | Dev (Claude Opus 4.6) |
 | 2026-03-07 | 1.1 | Code review #1: 5 issues found (0 critical, 1 high, 2 medium, 2 low), all fixed. H1: Removed stale ATDD exclusion from root vitest.config.ts. M1: Replaced non-deterministic generateSecretKey() with fixed test key. M2: Added root vitest.config.ts to File List. L1: Updated project-context.md with publishEvent() in SDK API. L2: Cleaned stale "RED PHASE" comment from test header. 1,452 tests pass, 0 lint errors, format clean. | Review (Claude Opus 4.6) |
 | 2026-03-07 | 1.2 | Code review #2: 6 issues found (0 critical, 1 high, 2 medium, 3 low), all fixed. H1: Added vi.mock('nostr-tools') to publish-event.test.ts per project convention. M1: Added 5 missing files to story File List. M2: Checked off all completed ATDD implementation tasks. L1: Replaced non-null assertion with optional chain. L2: Added post-stop() publishEvent test (T-2.6-10). L3: Added exact amount verification test (T-2.6-11). 1,454 tests pass (2 new), 0 lint errors, format clean. | Review (Claude Opus 4.6) |
 | 2026-03-07 | 1.3 | Code review #3: 5 issues found (0 critical, 1 high, 2 medium, 2 low), all fixed. H1: Added type import of PublishEventResult from SDK index to verify AC#5 export path. M1: Added TOON encoder failure test (T-2.6-12). M2: Updated epic-2 status to done in sprint-status.yaml. L1: Fixed misleading AC#5 comment in test header. L2: Added afterEach with vi.clearAllMocks() per project convention. 1,455 tests pass (1 new), 0 lint errors, format clean. | Review (Claude Opus 4.6) |

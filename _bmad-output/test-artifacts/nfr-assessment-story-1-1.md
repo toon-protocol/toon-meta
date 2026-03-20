@@ -123,8 +123,8 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** 0 critical, 0 high vulnerabilities in SDK direct dependencies
-- **Actual:** 0 critical, 0 high vulnerabilities in @crosstown/sdk direct dependencies
-- **Evidence:** `pnpm audit` -- all 29 reported vulnerabilities are in `packages/client > @crosstown/connector > @aws-sdk/*` (transitive AWS SDK deps), not in @crosstown/sdk. SDK deps (@noble/curves ^2.0, @noble/hashes ^2.0, @scure/bip32 ^2.0, @scure/bip39 ^2.0, nostr-tools ^2.20) are audited cryptographic libraries with no known vulnerabilities.
+- **Actual:** 0 critical, 0 high vulnerabilities in @toon-protocol/sdk direct dependencies
+- **Evidence:** `pnpm audit` -- all 29 reported vulnerabilities are in `packages/client > @toon-protocol/connector > @aws-sdk/*` (transitive AWS SDK deps), not in @toon-protocol/sdk. SDK deps (@noble/curves ^2.0, @noble/hashes ^2.0, @scure/bip32 ^2.0, @scure/bip39 ^2.0, nostr-tools ^2.20) are audited cryptographic libraries with no known vulnerabilities.
 - **Findings:** SDK dependency tree is clean. Monorepo-level vulnerabilities are in unrelated packages.
 
 ### Compliance (if applicable)
@@ -168,7 +168,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** Invalid inputs must produce descriptive errors, not crashes
 - **Actual:** All error paths throw typed IdentityError with descriptive messages
-- **Evidence:** `errors.ts` defines `IdentityError extends CrosstownError` with code `'IDENTITY_ERROR'`. Test T-1.1-10 and T-1.1-NEW verify error messages include specifics. `fromMnemonic` validates mnemonic before derivation. `fromSecretKey` validates length before computation. `toChecksumAddress` includes bounds checking.
+- **Evidence:** `errors.ts` defines `IdentityError extends ToonError` with code `'IDENTITY_ERROR'`. Test T-1.1-10 and T-1.1-NEW verify error messages include specifics. `fromMnemonic` validates mnemonic before derivation. `fromSecretKey` validates length before computation. `toChecksumAddress` includes bounds checking.
 - **Findings:** Defensive coding pattern: validate first, then compute. No uncaught exceptions possible for any input.
 
 ### CI Burn-In (Stability)
@@ -218,7 +218,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** No known technical debt introduced
 - **Actual:** 0 debt items identified
-- **Evidence:** Code review: single-responsibility functions, shared `deriveIdentity()` helper avoids duplication between `fromMnemonic` and `fromSecretKey`. Error hierarchy extends `CrosstownError` from core (no ad-hoc Error subclasses). Module is 176 lines -- well within maintainability limits.
+- **Evidence:** Code review: single-responsibility functions, shared `deriveIdentity()` helper avoids duplication between `fromMnemonic` and `fromSecretKey`. Error hierarchy extends `ToonError` from core (no ad-hoc Error subclasses). Module is 176 lines -- well within maintainability limits.
 - **Findings:** Clean implementation with no shortcuts. The `toChecksumAddress` function includes bounds checking that could theoretically be removed (addresses are always 40 chars), but the defensive check is appropriate for a cryptographic module.
 
 ### Documentation Completeness

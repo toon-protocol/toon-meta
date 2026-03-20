@@ -26,7 +26,7 @@ The SPSP handshake (kind:23194/23195) exists to negotiate settlement details bet
 - `tokenNetworkAddress` -> kind:10032 `tokenNetworks`
 - `channelId` -> Opened unilaterally by sender
 
-Since Crosstown uses TOON-over-ILP (not STREAM), there is no shared secret to negotiate. The sender reads the peer's kind:10032 from the relay, selects the best matching chain locally, and opens a channel unilaterally.
+Since TOON uses TOON-over-ILP (not STREAM), there is no shared secret to negotiate. The sender reads the peer's kind:10032 from the relay, selects the best matching chain locally, and opens a channel unilaterally.
 
 ## Acceptance Criteria
 
@@ -36,25 +36,25 @@ Since Crosstown uses TOON-over-ILP (not STREAM), there is no shared secret to ne
 
 3. Given `node.peerWith(pubkey)` currently performs connector registration + SPSP handshake, when this story is completed, then `peerWith()` performs: read peer's kind:10032 from relay -> select chain locally -> register with connector (including settlement info) -> open channel unilaterally -> done. No kind:23194/23195 events are created or processed.
 
-4. Given the SPSP code in `@crosstown/core` and `@crosstown/town`, when this story is completed, then:
-   - `NostrSpspServer`, `NostrSpspClient`, `IlpSpspClient`, and SPSP event builders/parsers are removed from `@crosstown/core`
-   - `createSpspHandshakeHandler()` is removed from `@crosstown/town`
+4. Given the SPSP code in `@toon-protocol/core` and `@toon-protocol/town`, when this story is completed, then:
+   - `NostrSpspServer`, `NostrSpspClient`, `IlpSpspClient`, and SPSP event builders/parsers are removed from `@toon-protocol/core`
+   - `createSpspHandshakeHandler()` is removed from `@toon-protocol/town`
    - Event kinds 23194 and 23195 are no longer used by the protocol
-   - The SDK stub `spsp-handshake-handler.ts` is removed from `@crosstown/sdk`
-   - `SPSP_REQUEST_KIND` and `SPSP_RESPONSE_KIND` constants are removed from `@crosstown/core`
-   - `SpspError` and `SpspTimeoutError` error classes are removed from `@crosstown/core`
+   - The SDK stub `spsp-handshake-handler.ts` is removed from `@toon-protocol/sdk`
+   - `SPSP_REQUEST_KIND` and `SPSP_RESPONSE_KIND` constants are removed from `@toon-protocol/core`
+   - `SpspError` and `SpspTimeoutError` error classes are removed from `@toon-protocol/core`
 
-5. Given the `RelayMonitor` component in `@crosstown/core`, when this story is completed, then `RelayMonitor.peerWith()` no longer performs SPSP handshake -- it only does: register peer with connector (including settlement info from kind:10032) -> open channel unilaterally. The `IlpSpspClient` dependency is removed.
+5. Given the `RelayMonitor` component in `@toon-protocol/core`, when this story is completed, then `RelayMonitor.peerWith()` no longer performs SPSP handshake -- it only does: register peer with connector (including settlement info from kind:10032) -> open channel unilaterally. The `IlpSpspClient` dependency is removed.
 
 6. Given all existing tests, when run after SPSP removal, then all remaining tests pass with the simplified flow (no SPSP handshake), payment channel creation works via unilateral opening during registration, and the total test count reflects removal of SPSP-specific test files.
 
 7. Given the `bootstrap:handshake-failed` event type in `BootstrapEvent`, when this story is completed, then the event is renamed to `bootstrap:settlement-failed` to reflect that settlement negotiation can still fail (no chain match, channel open failure) but this is now a non-fatal event during the registration phase, not a separate handshaking phase.
 
-8. Given SPSP JSDoc comments and references in `@crosstown/core` infrastructure files (`compose.ts`, `direct-bls-client.ts`), `@crosstown/sdk` (`create-node.ts`), and test/documentation files, when this story is completed, then all SPSP-referencing comments, JSDoc, and assertions are updated to reflect the new settlement-during-registration flow.
+8. Given SPSP JSDoc comments and references in `@toon-protocol/core` infrastructure files (`compose.ts`, `direct-bls-client.ts`), `@toon-protocol/sdk` (`create-node.ts`), and test/documentation files, when this story is completed, then all SPSP-referencing comments, JSDoc, and assertions are updated to reflect the new settlement-during-registration flow.
 
 ## Tasks / Subtasks
 
-### Task 1: Remove SPSP module from `@crosstown/core` (AC: #4)
+### Task 1: Remove SPSP module from `@toon-protocol/core` (AC: #4)
 
 - [x] Delete the entire `packages/core/src/spsp/` directory:
   - `IlpSpspClient.ts` + `IlpSpspClient.test.ts`
@@ -65,7 +65,7 @@ Since Crosstown uses TOON-over-ILP (not STREAM), there is no shared secret to ne
   - `index.ts`
   - **KEEP** `settlement.ts` + `settlement.test.ts` -- move to `packages/core/src/settlement/` (or `packages/core/src/bootstrap/settlement.ts`) because `negotiateSettlementChain()` and `resolveTokenForChain()` are still needed for local chain selection during registration
 - [x] Remove `SPSP_REQUEST_KIND` and `SPSP_RESPONSE_KIND` from `packages/core/src/constants.ts` (keep `ILP_PEER_INFO_KIND`)
-- [x] Remove `SpspError` and `SpspTimeoutError` from `packages/core/src/errors.ts` (keep `CrosstownError`, `InvalidEventError`, `PeerDiscoveryError`)
+- [x] Remove `SpspError` and `SpspTimeoutError` from `packages/core/src/errors.ts` (keep `ToonError`, `InvalidEventError`, `PeerDiscoveryError`)
 - [x] Update `packages/core/src/errors.test.ts` to remove SPSP error tests
 - [x] Remove SPSP-related types from `packages/core/src/types.ts`:
   - Remove `SpspInfo`, `SpspRequest`, `SpspResponse`
@@ -191,7 +191,7 @@ Since Crosstown uses TOON-over-ILP (not STREAM), there is no shared secret to ne
 ### Task 8: Update remaining source files and references (AC: #6, #8)
 
 **Core infrastructure files (SPSP JSDoc/comment cleanup):**
-- [x] Update `packages/core/src/compose.ts` -- update 8 SPSP references in JSDoc and comments: module description (line 5), `HandlePacketAcceptResponse.data` comment (line 58), `handlePacket` JSDoc (lines 86-89), `CrosstownNodeConfig.handlePacket` JSDoc (line 156), `CrosstownNodeConfig.settlementInfo` comment (line 178), `CrosstownNodeConfig.claimSigner` comment (line 192), `CrosstownNode.peerWith` JSDoc (line 249)
+- [x] Update `packages/core/src/compose.ts` -- update 8 SPSP references in JSDoc and comments: module description (line 5), `HandlePacketAcceptResponse.data` comment (line 58), `handlePacket` JSDoc (lines 86-89), `ToonNodeConfig.handlePacket` JSDoc (line 156), `ToonNodeConfig.settlementInfo` comment (line 178), `ToonNodeConfig.claimSigner` comment (line 192), `ToonNode.peerWith` JSDoc (line 249)
 - [x] Update `packages/core/src/bootstrap/direct-bls-client.ts` -- update 3 SPSP references in JSDoc (lines 2, 5, 24: "Direct BLS HTTP client for bootstrap SPSP handshakes" -> "Direct BLS HTTP client for bootstrap operations")
 
 **BLS package cleanup:**
@@ -602,7 +602,7 @@ Claude Opus 4.6 (claude-opus-4-6)
 - 2026-03-07: Code review #3 record added. Security-focused review found 0 critical, 0 high, 2 medium, 2 low issues. Fixed CWE-209 info leak in entrypoint.ts, uncaught JSON.parse in BootstrapService.ts, and !body.amount truthiness bugs in both Docker entrypoints. OWASP top 10 analysis performed -- no additional findings. All 1299 tests pass, 0 lint errors.
 - 2026-03-07: Code review #2 record added. Review found 0 critical, 0 high, 1 medium, 0 low issues. Fixed `ilpAddress` property in `SettlementConfig` object in `packages/bls/src/entrypoint.ts` (TS2353 type error). All 1299 tests pass, 0 lint errors.
 - 2026-03-07: Code review #1 record added. Review found 0 critical, 0 high, 0 medium, 15 low issues (all stale SPSP references in project-context.md and MEMORY.md). All 15 fixed. No follow-up tasks created.
-- 2026-03-07: Test-arch review (yolo, second pass). Found and fixed 5 issues: (1) `packages/core/src/bootstrap/index.ts` module description said "ILP-first handshake" -- updated to "settlement negotiation". (2) `packages/client/src/CrosstownClient.ts` had 3 "handshake" references in JSDoc/comments -- updated to settlement/registration terminology. (3) AC#8 source-scan test now includes `client/src` and `docker/src` directories (were missing). (4) AC#8 source-scan test skip logic refined -- "removed/deprecated/eliminated" exception now only applies to comment lines, not code lines. (5) `BootstrapService.test.ts` "Phase 3" section comment updated to "Phase 2" for consistency with two-phase description. All 1299 tests pass, 0 lint errors.
+- 2026-03-07: Test-arch review (yolo, second pass). Found and fixed 5 issues: (1) `packages/core/src/bootstrap/index.ts` module description said "ILP-first handshake" -- updated to "settlement negotiation". (2) `packages/client/src/ToonClient.ts` had 3 "handshake" references in JSDoc/comments -- updated to settlement/registration terminology. (3) AC#8 source-scan test now includes `client/src` and `docker/src` directories (were missing). (4) AC#8 source-scan test skip logic refined -- "removed/deprecated/eliminated" exception now only applies to comment lines, not code lines. (5) `BootstrapService.test.ts` "Phase 3" section comment updated to "Phase 2" for consistency with two-phase description. All 1299 tests pass, 0 lint errors.
 - 2026-03-07: Test-arch review pass. Created `packages/core/src/bootstrap/spsp-removal-verification.test.ts` with 25 new tests covering all 8 ACs. Tests verify: no handshaking phase (AC#1), settlement field in addPeer (AC#2), peerWith flow without SPSP (AC#3/#5), SPSP file deletion and export removal (AC#4), bootstrap:settlement-failed event (AC#7), SPSP reference cleanup in source files (AC#8). Total: 1299 tests pass, 0 lint errors, format passes.
 - 2026-03-07: NFR review pass (test-arch). Found and fixed 10 remaining SPSP references in package.json metadata, pricing tests (kind 23194 -> 30023), BootstrapService.test.ts phase comment, service-discovery.test.ts supportedKinds, client types comment, and Dockerfile. Build + lint + 1274 tests all pass.
 - 2026-03-07: Review cleanup pass. Found and fixed 30+ remaining SPSP references in comments, test names, JSDoc, env files, and package.json across 15 files. Renamed `createSpspInfo` test helper to `createKind10047Event` in toon.test.ts. Updated root package.json description and keywords. Removed SPSP_MIN_PRICE from .env.example and .env.peer2. Build passes, lint 0 errors, 1274 tests pass. Status: review.

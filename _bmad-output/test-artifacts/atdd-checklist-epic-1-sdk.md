@@ -41,7 +41,7 @@ inputDocuments:
 
 | Story | Title                                                | Test Level                | Priority |
 | ----- | ---------------------------------------------------- | ------------------------- | -------- |
-| 1.0   | Extract TOON Codec to @crosstown/core                | Unit                      | P1       |
+| 1.0   | Extract TOON Codec to @toon-protocol/core                | Unit                      | P1       |
 | 1.1   | Unified Identity from Seed Phrase                    | Unit                      | P0       |
 | 1.2   | Handler Registry with Kind-Based Routing             | Unit                      | P0       |
 | 1.3   | HandlerContext with TOON Passthrough and Lazy Decode | Unit                      | P0       |
@@ -289,7 +289,7 @@ Real crypto libraries used throughout:
 
 - `nostr-tools/pure` — generateSecretKey, getPublicKey, finalizeEvent
 - `@scure/bip39` — validateMnemonic
-- `@crosstown/core/toon` (once implemented) — encodeEventToToon, decodeEventFromToon, shallowParseToon
+- `@toon-protocol/core/toon` (once implemented) — encodeEventToToon, decodeEventFromToon, shallowParseToon
 
 ---
 
@@ -395,9 +395,9 @@ npx vitest -t "\[P0\]" packages/sdk/src/
 
 ## Key Risks and Assumptions
 
-1. **TOON Codec dependency**: Stories 1.4+ depend on Story 1.0 (TOON codec in @crosstown/core). Must be implemented first.
+1. **TOON Codec dependency**: Stories 1.4+ depend on Story 1.0 (TOON codec in @toon-protocol/core). Must be implemented first.
 2. **Integration test infrastructure**: Network Discovery tests (Story 1.9) require running genesis node. Tests skip gracefully when infra is unavailable.
-3. **Type definitions**: Tests import types that don't exist yet (`EmbeddableConnectorLike`, `HandlePacketRequest`, etc.). These must be defined in `@crosstown/core` or `@crosstown/sdk`.
+3. **Type definitions**: Tests import types that don't exist yet (`EmbeddableConnectorLike`, `HandlePacketRequest`, etc.). These must be defined in `@toon-protocol/core` or `@toon-protocol/sdk`.
 4. **NIP-06 test vector**: The `abandon` mnemonic test vector is from the Nostr ecosystem. The expected private key `7f7ff03d...` should be verified against NIP-06 reference implementations.
 
 ---

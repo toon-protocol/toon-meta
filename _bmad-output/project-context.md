@@ -1,5 +1,5 @@
 ---
-project_name: 'crosstown'
+project_name: 'toon'
 user_name: 'Jonathan'
 date: '2026-03-17'
 sections_completed:
@@ -43,14 +43,14 @@ _This file contains critical rules and patterns that AI agents must follow when 
 **Key Dependencies:**
 
 - **Nostr:** nostr-tools ^2.20.0
-- **TOON Format:** @toon-format/toon ^1.0 (in @crosstown/core)
+- **TOON Format:** @toon-format/toon ^1.0 (in @toon-protocol/core)
 - **Cryptography:** @noble/curves ^2.0 (secp256k1 Schnorr), @noble/hashes ^2.0 (keccak, sha3)
 - **Identity:** @scure/bip39 ^2.0 (mnemonic), @scure/bip32 ^2.0 (HD derivation)
 - **Database:** better-sqlite3 ^11.0
 - **WebSockets:** ws ^8.0
 - **Web Framework:** hono ^4.0 (BLS HTTP API, Town HTTP API, Attestation Server)
 - **Ethereum:** viem ^2.47 (client package, x402 settlement, EIP-3009, EIP-712)
-- **ILP Connector:** @crosstown/connector ^1.7.0 (optional peer dependency)
+- **ILP Connector:** @toon-protocol/connector ^1.7.0 (optional peer dependency)
 
 **TypeScript Compiler Options (Critical):**
 
@@ -70,17 +70,17 @@ _This file contains critical rules and patterns that AI agents must follow when 
 ## Project Structure (Post-Epic 5)
 
 ```
-crosstown/
+toon/
 ├── packages/
-│   ├── town/        # @crosstown/town -- SDK-based relay with x402, service discovery, health, TEE health, DVM skill config (Epics 2+3+4+5)
-│   ├── sdk/         # @crosstown/sdk -- SDK for building ILP-gated Nostr services + DVM lifecycle (Epics 1+5)
-│   ├── core/        # @crosstown/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds
-│   ├── bls/         # @crosstown/bls -- Business Logic Server (payment validation, event storage)
-│   ├── relay/       # @crosstown/relay -- Nostr relay + TOON encoding
-│   ├── client/      # @crosstown/client -- Client SDK with payment channel support
-│   ├── faucet/      # @crosstown/faucet -- Token distribution for dev testing (plain JS, dev-only)
-│   ├── examples/    # @crosstown/examples -- Demo applications
-│   └── rig/         # @crosstown/rig -- (ATDD stubs only, Epic 7, not yet implemented)
+│   ├── town/        # @toon-protocol/town -- SDK-based relay with x402, service discovery, health, TEE health, DVM skill config (Epics 2+3+4+5)
+│   ├── sdk/         # @toon-protocol/sdk -- SDK for building ILP-gated Nostr services + DVM lifecycle (Epics 1+5)
+│   ├── core/        # @toon-protocol/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds
+│   ├── bls/         # @toon-protocol/bls -- Business Logic Server (payment validation, event storage)
+│   ├── relay/       # @toon-protocol/relay -- Nostr relay + TOON encoding
+│   ├── client/      # @toon-protocol/client -- Client SDK with payment channel support
+│   ├── faucet/      # @toon-protocol/faucet -- Token distribution for dev testing (plain JS, dev-only)
+│   ├── examples/    # @toon-protocol/examples -- Demo applications
+│   └── rig/         # @toon-protocol/rig -- (ATDD stubs only, Epic 8, not yet implemented)
 ├── docker/          # Container entrypoint (pnpm workspace member)
 │   ├── src/
 │   │   ├── shared.ts              # Config parsing, admin client, health check utilities
@@ -90,7 +90,7 @@ crosstown/
 │   ├── Dockerfile.oyster          # Extended multi-stage build for Oyster CVM (Story 4.1)
 │   ├── Dockerfile.nix             # Nix expression for deterministic Docker image (Story 4.5)
 │   ├── docker-compose-oyster.yml  # Oyster CVM deployment manifest (Story 4.1)
-│   └── supervisord.conf           # Multi-process orchestration (crosstown + attestation)
+│   └── supervisord.conf           # Multi-process orchestration (toon + attestation)
 ├── flake.nix                      # Nix flake for reproducible Docker builds (Story 4.5)
 ├── deploy-genesis-node.sh
 └── deploy-peers.sh
@@ -99,15 +99,15 @@ crosstown/
 **Package Dependency Graph:**
 
 ```
-@crosstown/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds)
+@toon-protocol/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds)
     ^          ^
-@crosstown/bls    @crosstown/sdk    <-- siblings, both depend on core
+@toon-protocol/bls    @toon-protocol/sdk    <-- siblings, both depend on core
     ^                 ^
     |           +-----+-------+
-    |     @crosstown/town     @crosstown/rig    <-- (Town: Epics 2+3+4+5 DONE, Rig: Epic 7)
+    |     @toon-protocol/town     @toon-protocol/rig    <-- (Town: Epics 2+3+4+5 DONE, Rig: Epic 8)
     |       (+ relay + viem)
     |
-@crosstown/relay   <-- Town depends on relay for EventStore + NostrRelayServer
+@toon-protocol/relay   <-- Town depends on relay for EventStore + NostrRelayServer
 ```
 
 **Boundary Rules:**
@@ -117,9 +117,9 @@ crosstown/
 - Rig will import SDK -- never core/bls directly (except core types)
 - No package imports from town or rig (they are leaf nodes)
 - Connector accessed only through `EmbeddableConnectorLike` structural type
-- Town handlers import from `@crosstown/sdk` (Handler, HandlerContext, HandlerResponse types) and `@crosstown/core` (event builders, bootstrap, chain config)
+- Town handlers import from `@toon-protocol/sdk` (Handler, HandlerContext, HandlerResponse types) and `@toon-protocol/core` (event builders, bootstrap, chain config)
 - Town x402 handler imports viem directly for EIP-3009 settlement and EIP-712 verification
-- Docker entrypoints import from `@crosstown/core` (attestation events, KMS identity), `@crosstown/sdk`, `@crosstown/town`, and `@crosstown/relay`
+- Docker entrypoints import from `@toon-protocol/core` (attestation events, KMS identity), `@toon-protocol/sdk`, `@toon-protocol/town`, and `@toon-protocol/relay`
 
 ## Epic Roadmap
 
@@ -130,10 +130,11 @@ Epic 3: Production Protocol Economics            COMPLETE (6/6 stories, 26/26 AC
 Epic 4: Marlin TEE Deployment                    COMPLETE (6/6 stories, 32/33 ACs)
 Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 ACs)
 Epic 6: Advanced DVM Coordination + TEE          PLANNED
-Epic 7: The Rig -- ILP-Gated Git Forge           PLANNED
+Epic 7: ILP Address Hierarchy & Protocol Econ    PLANNED (7 stories, design decisions D7-001 through D7-007)
+Epic 8: The Rig -- ILP-Gated Git Forge           PLANNED
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination -> Build applications on top.
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination -> Hierarchical addressing & protocol economics -> Build applications on top.
 
 ## Production Architecture Decisions (Party Mode 2026-03-05/06)
 
@@ -147,12 +148,12 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 - Chain presets: `resolveChainConfig('anvil' | 'arbitrum-sepolia' | 'arbitrum-one')` (Story 3.2)
 
 **x402 Integration (Epic 3 -- Implemented):**
-- Crosstown nodes act as x402 facilitators via `/publish` HTTP endpoint on the node (not a separate gateway)
+- TOON nodes act as x402 facilitators via `/publish` HTTP endpoint on the node (not a separate gateway)
 - x402 constructs the same ILP PREPARE packets (with TOON data) that the network already routes
-- Both rails produce identical packets via shared `buildIlpPrepare()` in `@crosstown/core` -- the BLS and destination relay cannot distinguish them
+- Both rails produce identical packets via shared `buildIlpPrepare()` in `@toon-protocol/core` -- the BLS and destination relay cannot distinguish them
 - EIP-3009 `transferWithAuthorization` for gasless USDC transfers (user signs off-chain, facilitator pays gas)
 - 6-check pre-flight validation pipeline prevents gas griefing (no on-chain tx until all checks pass)
-- Opt-in via `x402Enabled: true` / `CROSSTOWN_X402_ENABLED=true` (disabled by default)
+- Opt-in via `x402Enabled: true` / `TOON_X402_ENABLED=true` (disabled by default)
 
 **TEE Architecture (Epic 4 -- Implemented):**
 - **Decision 12: "Trust degrades; money doesn't."** Attestation state changes (VALID -> STALE -> UNATTESTED) never trigger payment channel closure. Trust is a gradient, not a gate.
@@ -163,7 +164,7 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 - Nix reproducible builds enable independent PCR verification (`NixBuilder`, `verifyPcrReproducibility()`)
 
 **Component Boundaries (Critical):**
-- The **Crosstown node** (`startTown()` / entrypoint) owns all public-facing endpoints: Nostr relay (WS), `/publish` (x402), `/health`
+- The **TOON node** (`startTown()` / entrypoint) owns all public-facing endpoints: Nostr relay (WS), `/publish` (x402), `/health`
 - The **BLS** handles only `/handle-packet` -- ILP packet processing and pricing validation. No public-facing surface
 - The **Connector** routes ILP packets between peers
 - The **Attestation Server** (Oyster CVM only) serves `/attestation/raw` and publishes kind:10033 events to the local relay
@@ -173,7 +174,7 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 - Discovery mode selectable: `discovery: 'genesis'` (default) or `discovery: 'seed-list'` (production)
 - TEE attestation (kind:10033) is the bootstrap trust anchor in production (Epic 4)
 - Attestation-first bootstrap verifies seed relay attestation before trusting peer lists (Story 4.6)
-- Event kinds 10032-10099 reserved for Crosstown service advertisement
+- Event kinds 10032-10099 reserved for TOON service advertisement
 
 **Nostr Event Kinds:**
 | Kind | Name | Status |
@@ -193,17 +194,29 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 | ~~23194~~ | ~~SPSP Request~~ | Removed (Story 2.7) |
 | ~~23195~~ | ~~SPSP Response~~ | Removed (Story 2.7) |
 
+**Prepaid Protocol Model (Party Mode 2026-03-20 -- shapes Epic 7):**
+- **"Sending a message and sending money are the same action"** -- protocol thesis, all monetized flows must respect it
+- **Prepaid DVM (D7-001):** Kind 5xxx request's ILP PREPARE amount = provider's advertised price from `SkillDescriptor.pricing`. Request packet IS the payment. `settleCompute()` deprecated.
+- **Supply-driven marketplace (D7-002):** Providers advertise capabilities + pricing in `SkillDescriptor` (kind:10035). Customers discover, compare, and pay on submission. Not a request-for-quote system.
+- **Prefix claim single-packet (D7-003):** Prefix claim event's ILP PREPARE amount = prefix price. Handler validates `ctx.amount >= prefixPricing.basePrice`. Same pattern as prepaid DVM.
+- **Unified payment pattern (D7-004):** All monetized flows: (1) advertise price in replaceable Nostr event, (2) customer discovers, (3) message + payment in ONE ILP packet.
+- **Prefix claims use own kinds (D7-005):** Control-plane operation (routing topology mutation), not DVM. Event kinds in 10032-10099 range.
+- **Bid semantic shift (D7-006):** `bid` tag = client-side safety cap ("won't pay more than X"), not an offer. Actual payment from `SkillDescriptor.pricing`.
+- **publishEvent() amount override (D7-007):** Optional `amount` param overrides `basePricePerByte × bytes` calculation. Enables prepaid DVM and prefix claim flows.
+- **settleCompute() deprecation path:** Still functional in Epic 7 (backward compat) but `@deprecated`. Kind 6xxx `amount` tag becomes informational, not an invoice.
+- Full decision record: `_bmad-output/planning-artifacts/research/party-mode-prepaid-protocol-decisions-2026-03-20.md`
+
 **Terminology:**
 - "ILP client" not "ILP/SPSP client" -- SPSP is not part of the protocol
-- "Crosstown node" not "BLS" when referring to public-facing capabilities
-- No STREAM protocol -- Crosstown sends raw ILP PREPARE/FULFILL with TOON data payloads
+- "TOON node" not "BLS" when referring to public-facing capabilities
+- No STREAM protocol -- TOON sends raw ILP PREPARE/FULFILL with TOON data payloads
 - "USDC" not "AGENT" -- AGENT token eliminated in Story 3.1
 - "Attestation" not "verification" when referring to TEE state publication (kind:10033 is an attestation event)
 - "PCR" (Platform Configuration Register) -- SHA-384 hashes measured by TEE hardware
 - "DVM" (Data Vending Machine) -- NIP-90 compute marketplace protocol
 - "Skill descriptor" -- Structured metadata in kind:10035 events advertising DVM capabilities
 
-## @crosstown/core (Post-Epic 5)
+## @toon-protocol/core (Post-Epic 5)
 
 Core now includes chain configuration, x402 support, seed relay discovery, service discovery, TEE attestation events, attestation verification, KMS identity derivation, Nix reproducible build infrastructure, and NIP-90 DVM event builders/parsers.
 
@@ -281,7 +294,7 @@ type AttestationVerifierConfig = { knownGoodPcrs: Map<string, boolean>, validity
 
 // KMS Identity Derivation (Story 4.4)
 deriveFromKmsSeed(seed: Uint8Array, options?: DeriveFromKmsSeedOptions): KmsKeypair
-class KmsIdentityError extends CrosstownError
+class KmsIdentityError extends ToonError
 type KmsKeypair = { secretKey: Uint8Array, pubkey: string }
 type DeriveFromKmsSeedOptions = { mnemonic?: string, accountIndex?: number }
 
@@ -293,7 +306,7 @@ class NixBuilder {
 verifyPcrReproducibility(buildA: NixBuildResult, buildB: NixBuildResult, options?: VerifyOptions): Promise<PcrReproducibilityResult>
 analyzeDockerfileForNonDeterminism(content: string, forbiddenPatterns: ForbiddenPattern[]): DeterminismReport
 readDockerfileNix(filePath: string): Promise<string>
-class PcrReproducibilityError extends CrosstownError
+class PcrReproducibilityError extends ToonError
 type NixBuildResult = { imageHash, pcr0, pcr1, pcr2, imagePath, buildTimestamp }
 type NixBuilderConfig = { projectRoot, dockerfilePath, sourceOverride? }
 type PcrReproducibilityResult = { reproducible, pcr0Match, pcr1Match, pcr2Match, imageHashMatch, details, summary }
@@ -379,9 +392,9 @@ SERVICE_DISCOVERY_KIND = 10035
 SEED_RELAY_LIST_KIND = 10036
 ```
 
-## @crosstown/sdk (Epics 1+5 -- Complete)
+## @toon-protocol/sdk (Epics 1+5 -- Complete)
 
-The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities. It provides a developer-facing abstraction for building ILP-gated Nostr services with the Crosstown protocol.
+The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities. It provides a developer-facing abstraction for building ILP-gated Nostr services with the TOON protocol.
 
 **SDK Source Files (Post-Epic 5):**
 
@@ -397,7 +410,7 @@ packages/sdk/src/
 ├── payment-handler-bridge.ts   # isTransit fire-and-forget vs await semantics
 ├── create-node.ts              # createNode() composition + ServiceNode lifecycle + DVM methods (Stories 5.3, 5.4)
 ├── skill-descriptor.ts         # buildSkillDescriptor() -- computes SkillDescriptor from registry (Story 5.4)
-├── event-storage-handler.ts    # Stub -- throws, directs users to @crosstown/town
+├── event-storage-handler.ts    # Stub -- throws, directs users to @toon-protocol/town
 └── __integration__/
     ├── create-node.test.ts
     └── network-discovery.test.ts
@@ -473,7 +486,7 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - Zero production code changes required for DVM job submission (Story 5.2): pipeline is kind-agnostic
 - `direct-ilp-client.ts` fix: empty-data guard enables pure value transfers for compute settlement (Story 5.3)
 
-## @crosstown/town (Epics 2+3+4+5 -- Complete)
+## @toon-protocol/town (Epics 2+3+4+5 -- Complete)
 
 The Town package is the main deliverable of Epics 2 and 3, extended in Epic 4 with TEE health integration and in Epic 5 with DVM skill descriptor propagation. It validates the SDK by reimplementing the Nostr relay as composable SDK handlers, with x402 HTTP payment on-ramp, service discovery, seed relay discovery, enriched health endpoints, TEE attestation state reporting, and DVM capability advertisement.
 
@@ -527,7 +540,7 @@ interface TownConfig {
   // Network
   relayPort?: number;                     // default: 7100
   blsPort?: number;                       // default: 3100
-  ilpAddress?: string;                    // default: g.crosstown.<pubkeyShort>
+  ilpAddress?: string;                    // default: g.toon.<pubkeyShort>
   btpEndpoint?: string;                   // default: ws://localhost:3000
 
   // Chain / Settlement
@@ -577,7 +590,7 @@ settleEip3009(auth, config): Promise<X402SettlementResult>
 
 ## TEE Integration (Epic 4 -- Complete)
 
-Epic 4 delivered the TEE (Trusted Execution Environment) integration layer for the Crosstown protocol, enabling verifiable code integrity guarantees.
+Epic 4 delivered the TEE (Trusted Execution Environment) integration layer for the TOON protocol, enabling verifiable code integrity guarantees.
 
 **Epic 4 Stories:**
 | Story | Title | Package | Deliverables |
@@ -609,12 +622,13 @@ Epic 4 delivered the TEE (Trusted Execution Environment) integration layer for t
    -> Degraded mode fallback when no attested relays found
 ```
 
-**Oyster CVM Container Architecture (Story 4.1):**
+**Oyster CVM Container Architecture (Story 4.1, updated 2026-03-18):**
 
 ```
 +--------------- Oyster CVM ---------------+
-|  crosstown (priority=10):                |
-|    Relay (WS:7100) + BLS (HTTP:3100)     |
+|  toon (priority=10):                     |
+|    Embedded ConnectorNode (BTP:3000)     |
+|    + Relay (WS:7100) + BLS (HTTP:3100)   |
 |    + Bootstrap Service                   |
 |  attestation-server (priority=20):       |
 |    HTTP (:1300) /attestation/raw         |
@@ -624,10 +638,32 @@ Epic 4 delivered the TEE (Trusted Execution Environment) integration layer for t
     Public Internet
 ```
 
-- **supervisord** manages two processes: crosstown (priority=10) and attestation (priority=20)
-- The connector is EXTERNAL -- runs outside the Oyster CVM enclave
+- **supervisord** manages two processes: toon (priority=10) and attestation (priority=20)
+- The connector is **EMBEDDED** -- ConnectorNode runs in-process via `entrypoint-sdk.js`
+- The enclave is fully self-contained; no external connector container needed
 - Marlin's dual-proxy architecture handles networking (inbound/outbound vsock)
-- Non-root `crosstown` user (uid 1001) for container execution
+- Non-root `toon` user (uid 1001) for container execution
+
+**Oyster CVM Testnet Deployment (2026-03-18):**
+
+Dual-chain architecture:
+- **CVM payment**: Arbitrum One (42161) -- pays Marlin for enclave runtime
+- **TOON settlement**: Arbitrum Sepolia (421614) -- payment channels between nodes
+
+Wallet inventory (keys in `.env.oyster`, gitignored):
+
+| Role | Address | Arb Sepolia ETH | Arb Sepolia USDC |
+|------|---------|-----------------|------------------|
+| Deployer (CVM payment) | `0x1caac55...468F` | ~0.085 (reserve) | 17 (reserve) |
+| Town Node 1 (Oyster) | `0xa5faA17...4320` | 0.005 | 1 |
+| Town Node 2 (test peer) | `0xc2cB0db...2F8D` | 0.005 | 1 |
+| Client (end user) | `0x81CD520...bBb0` | 0.005 | 1 |
+
+- Deployer also holds 0.005 ETH + 5 USDC on Arbitrum One for CVM instance payment
+- Settlement USDC (Arb Sepolia): `0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d`
+- Circle testnet faucet: https://faucet.circle.com/ (20 USDC per request)
+- `TOON_CHAIN=arbitrum-sepolia` activates the chain preset via `resolveChainConfig()`
+- **TokenNetwork contract not yet deployed on Arbitrum Sepolia** -- needed for payment channel settlement
 
 **Attestation Server (Stories 4.1 + 4.2):**
 
@@ -637,7 +673,7 @@ GET /attestation/raw  // Returns attestation document (placeholder in Story 4.1)
 GET /health           // Returns { status: 'ok', tee: boolean }
 
 // Lifecycle
-// 1. Starts after crosstown node (priority=20 vs priority=10)
+// 1. Starts after toon node (priority=20 vs priority=10)
 // 2. Reads attestation data from TEE environment (placeholder: readAttestationData())
 // 3. Publishes kind:10033 event to local relay via WebSocket
 // 4. Refreshes on ATTESTATION_REFRESH_INTERVAL (default: 300s)
@@ -648,7 +684,7 @@ ATTESTATION_REFRESH_INTERVAL // Seconds between refreshes (default: 300)
 TEE_ENABLED                  // Set by Oyster CVM runtime when in enclave
 NOSTR_SECRET_KEY             // 64-char hex secret key for event signing
 WS_PORT                      // WebSocket relay port (default: 7100)
-CROSSTOWN_CHAIN              // Chain preset name (default: '31337')
+TOON_CHAIN              // Chain preset name (default: '31337')
 EXTERNAL_RELAY_URL           // External relay URL for attestation tags
 ```
 
@@ -674,8 +710,8 @@ VALID (within validitySeconds, default 300s)
 - Raw seed is always validated (proves KMS reachability) even when mnemonic is used
 - Best-effort key material zeroing in `finally` block (masterKey.wipePrivateData(), childKey.wipePrivateData())
 - Defensive copy of private key returned to prevent external mutation
-- `KmsIdentityError` extends `CrosstownError` -- signals security-critical condition that must NEVER fall back to random keys
-- Lives in `@crosstown/core` (not SDK) because Docker entrypoints import from core
+- `KmsIdentityError` extends `ToonError` -- signals security-critical condition that must NEVER fall back to random keys
+- Lives in `@toon-protocol/core` (not SDK) because Docker entrypoints import from core
 
 **Nix Reproducible Builds (Story 4.5):**
 
@@ -725,7 +761,7 @@ VALID (within validitySeconds, default 300s)
 
 ## DVM Compute Marketplace (Epic 5 -- Complete)
 
-Epic 5 delivered the DVM (Data Vending Machine) Compute Marketplace foundation for the Crosstown protocol, enabling ILP-native compute job submission, result delivery, settlement, and programmatic agent-to-agent service discovery.
+Epic 5 delivered the DVM (Data Vending Machine) Compute Marketplace foundation for the TOON protocol, enabling ILP-native compute job submission, result delivery, settlement, and programmatic agent-to-agent service discovery.
 
 **Epic 5 Stories:**
 | Story | Title | Package | Deliverables |
@@ -767,14 +803,14 @@ Customer                    Provider                    Customer
 - **Kind 5xxx tags (optional):** `['p', targetProvider]`, `['param', key, value]`, `['relays', url1, ...]`
 - **Kind 6xxx tags (required):** `['e', requestEventId]`, `['p', customerPubkey]`, `['amount', cost, 'usdc']`
 - **Kind 7000 tags (required):** `['e', requestEventId]`, `['p', customerPubkey]`, `['status', statusValue]`
-- **Crosstown extension:** `bid` and `amount` tags include a third element `'usdc'` for explicit currency declaration (NIP-90 uses satoshis; Crosstown uses USDC micro-units)
+- **TOON extension:** `bid` and `amount` tags include a third element `'usdc'` for explicit currency declaration (NIP-90 uses satoshis; TOON uses USDC micro-units)
 
 **Skill Descriptor (Story 5.4):**
 
 ```typescript
 // Embedded in kind:10035 ServiceDiscoveryContent.skill field
 interface SkillDescriptor {
-  name: string;           // e.g., 'crosstown-dvm'
+  name: string;           // e.g., 'toon-dvm'
   version: string;        // e.g., '1.0'
   kinds: number[];        // supported DVM kinds, e.g., [5100, 5200]
   features: string[];     // capability list, e.g., ['text-generation', 'streaming']
@@ -827,7 +863,7 @@ packages/sdk/tests/e2e/
 | Acceptance criteria | 27 total, 27 covered (100%) |
 | Story-specific tests | 279 |
 | Monorepo test count (start) | 1,843 passed / 79 skipped (1,922 total) |
-| Monorepo test count (end) | 2,095 passed / 79 skipped (2,174 total) |
+| Monorepo test count (end) | 2,159 passed / 79 skipped (2,238 total) |
 | Code review issues | 33 found, 24 fixed, 9 acknowledged, 0 remaining |
 | Security scan findings (production) | 0 |
 | NFR assessments | 4/4 PASS (second 100% consecutive epic) |
@@ -851,12 +887,12 @@ packages/sdk/tests/e2e/
 - **Export all public APIs from package `index.ts`** -- Every package must export its public interface through `src/index.ts`
 - **Use structural typing for cross-package interfaces** -- Suffix with `Like` (e.g., `EmbeddableConnectorLike`, `ConnectorNodeLike`, `ConnectorAdminLike`, `EventStoreLike`) to keep peer dependencies optional
 - **No re-exporting types from `nostr-tools`** -- Use nostr-tools types directly, don't redefine
-- **Core sub-path exports** -- `@crosstown/core/toon` and `@crosstown/core/nip34` are valid import paths (configured in core's package.json `exports`)
+- **Core sub-path exports** -- `@toon-protocol/core/toon` and `@toon-protocol/core/nip34` are valid import paths (configured in core's package.json `exports`)
 
 **Error Handling:**
 
-- **Core errors:** `CrosstownError` (base), `InvalidEventError`, `PeerDiscoveryError`, `KmsIdentityError` (Epic 4), `PcrReproducibilityError` (Epic 4)
-- **SDK errors (extend CrosstownError):** `IdentityError`, `NodeError`, `HandlerError`, `VerificationError`, `PricingError`
+- **Core errors:** `ToonError` (base), `InvalidEventError`, `PeerDiscoveryError`, `KmsIdentityError` (Epic 4), `PcrReproducibilityError` (Epic 4)
+- **SDK errors (extend ToonError):** `IdentityError`, `NodeError`, `HandlerError`, `VerificationError`, `PricingError`
 - **Error code mapping to ILP:** VerificationError -> F06, PricingError -> F04, HandlerError -> T00, No handler -> F00
 - **All async operations must handle errors** -- No unhandled promise rejections
 - **Validate external data at boundaries** -- Always validate Nostr event signatures before processing
@@ -864,7 +900,7 @@ packages/sdk/tests/e2e/
 
 **TOON Format Handling (Critical):**
 
-- **TOON codec lives in `@crosstown/core/toon`** -- Extracted from BLS as part of Epic 1 Story 1.0
+- **TOON codec lives in `@toon-protocol/core/toon`** -- Extracted from BLS as part of Epic 1 Story 1.0
 - **Functions:** `encodeEventToToon()`, `decodeEventFromToon()`, `shallowParseToon()`
 - **ToonRoutingMeta** -- Shallow parse returns `{ kind, pubkey, id, sig, rawBytes }` without full decode
 - **Events are TOON strings, not JSON objects** -- The relay returns TOON format strings in EVENT messages
@@ -905,7 +941,7 @@ packages/sdk/tests/e2e/
 
 **createNode() Composition:**
 
-- **Delegates to `createCrosstownNode()` from core** -- For bootstrap, relay monitor, and lifecycle wiring
+- **Delegates to `createToonNode()` from core** -- For bootstrap, relay monitor, and lifecycle wiring
 - **Wires the full pipeline as `handlePacket` callback** -- Size check -> shallow parse -> verify -> price -> dispatch
 - **Config-based handler registration** -- `config.handlers` and `config.defaultHandler` are alternatives to post-creation `.on()`
 - **Max payload: 1MB base64** -- `MAX_PAYLOAD_BASE64_LENGTH = 1_048_576`, rejected before allocation (DoS mitigation)
@@ -916,7 +952,7 @@ packages/sdk/tests/e2e/
 
 - **TOON-encodes the event** -- Uses the configured encoder (defaults to core's `encodeEventToToon`)
 - **Computes payment amount** -- `basePricePerByte * toonData.length` (not hardcoded)
-- **Sends via runtimeClient** -- `crosstownNode.runtimeClient.sendIlpPacket({ destination, amount, data })`
+- **Sends via runtimeClient** -- `toonNode.runtimeClient.sendIlpPacket({ destination, amount, data })`
 - **Requires node to be started** -- Throws `NodeError` if called before `start()`
 - **Requires destination** -- Throws `NodeError` if `options.destination` is missing
 
@@ -961,7 +997,7 @@ packages/sdk/tests/e2e/
   6. Destination reachability check (local lookup, ~0.1ms)
 - **Settlement atomicity:** If settlement fails, no ILP PREPARE. If settlement succeeds but ILP PREPARE is rejected, no refund.
 - **Routing buffer:** `calculateX402Price()` adds configurable buffer (default 10%) for multi-hop overhead
-- **Packet equivalence:** Uses `buildIlpPrepare()` from `@crosstown/core` -- identical to ILP-native rail
+- **Packet equivalence:** Uses `buildIlpPrepare()` from `@toon-protocol/core` -- identical to ILP-native rail
 
 **Docker Reference Implementation (Post-Epic 4):**
 
@@ -969,9 +1005,9 @@ packages/sdk/tests/e2e/
 - **entrypoint-sdk.ts** -- SDK-based entrypoint with direct component wiring
 - **attestation-server.ts** -- TEE attestation HTTP server + kind:10033 publisher (Stories 4.1 + 4.2)
 - **shared.ts** -- Configuration parsing, admin client creation, health check utilities shared by both entrypoints
-- **shared.ts supports Epic 3 features:** `x402Enabled`, `discoveryMode`, `seedRelays`, `publishSeedEntry`, `externalRelayUrl`, `CROSSTOWN_CHAIN` convenience shorthand
+- **shared.ts supports Epic 3 features:** `x402Enabled`, `discoveryMode`, `seedRelays`, `publishSeedEntry`, `externalRelayUrl`, `TOON_CHAIN` convenience shorthand
 - **entrypoint-town.ts TEE integration:** TEE_ENABLED detection, placeholder tee field in /health response (to be migrated to `createHealthResponse()`)
-- **Supervisord multi-process management:** crosstown (priority=10), attestation (priority=20)
+- **Supervisord multi-process management:** toon (priority=10), attestation (priority=20)
 
 ### TEE-Specific Rules (Epic 4)
 
@@ -1030,8 +1066,8 @@ packages/sdk/tests/e2e/
 - **Kind 5xxx request validation:** kind must be 5000-5999, input.data allows empty string (not undefined/null), input.type required, bid must be non-empty string, output MIME type required
 - **Kind 6xxx result validation:** kind must be 6000-6999, requestEventId must be 64-char hex, customerPubkey must be 64-char hex, amount must be non-empty string
 - **Kind 7000 feedback validation:** requestEventId/customerPubkey must be 64-char hex, status must be one of: processing, error, success, partial
-- **targetProvider validation in builders:** throws `CrosstownError` with `DVM_INVALID_PUBKEY` code for non-hex pubkeys
-- **Currency declaration:** Crosstown extends NIP-90 with `'usdc'` as third element in `bid` and `amount` tags (NIP-90 uses satoshis)
+- **targetProvider validation in builders:** throws `ToonError` with `DVM_INVALID_PUBKEY` code for non-hex pubkeys
+- **Currency declaration:** TOON extends NIP-90 with `'usdc'` as third element in `bid` and `amount` tags (NIP-90 uses satoshis)
 - **All amounts are strings** -- USDC micro-units (6 decimals), bigint-compatible. Not numbers (precision loss), not BigInt (JSON incompatible).
 
 **DVM Event Parsers (Story 5.1):**
@@ -1068,11 +1104,11 @@ packages/sdk/tests/e2e/
 
 **resolveChainConfig() (Story 3.2):**
 
-- **Resolution order:** `CROSSTOWN_CHAIN` env var -> `chain` parameter -> `'anvil'` default
+- **Resolution order:** `TOON_CHAIN` env var -> `chain` parameter -> `'anvil'` default
 - **Three presets:** `anvil` (31337, localhost), `arbitrum-sepolia` (421614), `arbitrum-one` (42161)
-- **Env var overrides:** `CROSSTOWN_RPC_URL` overrides rpcUrl, `CROSSTOWN_TOKEN_NETWORK` overrides tokenNetworkAddress
+- **Env var overrides:** `TOON_RPC_URL` overrides rpcUrl, `TOON_TOKEN_NETWORK` overrides tokenNetworkAddress
 - **Returns defensive copy** -- Callers can mutate the result without affecting shared preset objects
-- **Throws CrosstownError** for unrecognized chain names
+- **Throws ToonError** for unrecognized chain names
 - **Auto-populates settlement** -- `startTown()` derives `chainRpcUrls`, `preferredTokens`, `tokenNetworks` from chain preset when not explicitly configured
 
 **Chain Presets:**
@@ -1121,7 +1157,7 @@ packages/sdk/tests/e2e/
 
 **ILP Connector Integration:**
 
-- **@crosstown/connector is an optional peer dependency** -- Both core and SDK declare it as optional
+- **@toon-protocol/connector is an optional peer dependency** -- Both core and SDK declare it as optional
 - **Use `EmbeddableConnectorLike` structural type** -- Defined in core, combines sendPacket + registerPeer + removePeer + setPacketHandler + optional channel methods
 - **Bootstrap requires connector** -- BootstrapService needs a connector instance to function
 - **Channel support is optional** -- `openChannel()` and `getChannelState()` are optional methods on `EmbeddableConnectorLike`
@@ -1248,7 +1284,7 @@ packages/sdk/tests/e2e/
 - **Index exports** -- All public APIs exported from `packages/*/src/index.ts`
 - **Type definitions** -- Define types in `types.ts` or alongside implementation (e.g., `x402-types.ts`)
 - **Constants file** -- Event kinds and constants in `constants.ts`
-- **Error classes** -- Custom errors in `errors.ts` per package (core: `CrosstownError`, `KmsIdentityError`, `PcrReproducibilityError`)
+- **Error classes** -- Custom errors in `errors.ts` per package (core: `ToonError`, `KmsIdentityError`, `PcrReproducibilityError`)
 - **Handler subdirectory** -- Town handlers organized in `src/handlers/` with co-located tests
 - **x402 module organization** -- Types (`x402-types.ts`), pricing (`x402-pricing.ts`), preflight (`x402-preflight.ts`), settlement (`x402-settlement.ts`), handler (`x402-publish-handler.ts`)
 - **Chain config subdirectory** -- Core chain configuration in `src/chain/` (usdc.ts, chain-config.ts)
@@ -1295,9 +1331,9 @@ packages/sdk/tests/e2e/
 **Deployment:**
 
 - **Docker Compose for local deployment** -- Multiple compose files for different setups
-- **Genesis node:** `docker compose -p crosstown-genesis -f docker-compose-genesis.yml up -d`
+- **Genesis node:** `docker compose -p toon-genesis -f docker-compose-genesis.yml up -d`
 - **Peer nodes:** `./deploy-peers.sh <count>` script for automated peer deployment
-- **Oyster CVM:** `docker build -f docker/Dockerfile.oyster -t crosstown:oyster .` then `oyster-cvm build --docker-compose docker/docker-compose-oyster.yml`
+- **Oyster CVM:** `docker build -f docker/Dockerfile.oyster -t toon:oyster .` then `oyster-cvm build --docker-compose docker/docker-compose-oyster.yml`
 - **Nix reproducible build:** `nix build .#docker-image && docker load < result`
 - **Port allocation:** Genesis (BLS: 3100, Relay: 7100), Peers (BLS: 3100+N*10, Relay: 7100+N*10), Attestation: 1300
 
@@ -1318,9 +1354,9 @@ packages/sdk/tests/e2e/
 
 **npm Publishing:**
 
-- **@crosstown/sdk:** Published, public access, `dist/` only
-- **@crosstown/town:** Build-ready, tested, not yet published (retro A14: manual `npm publish --access public` required)
-- **Package names:** `@crosstown/sdk`, `@crosstown/town`, `@crosstown/rig` (future)
+- **@toon-protocol/sdk:** Published, public access, `dist/` only
+- **@toon-protocol/town:** Build-ready, tested, not yet published (retro A14: manual `npm publish --access public` required)
+- **Package names:** `@toon-protocol/sdk`, `@toon-protocol/town`, `@toon-protocol/rig` (future)
 - **Files:** Only `dist/` directory is published
 - **Repository field:** Points to monorepo with `directory: "packages/<name>"`
 
@@ -1338,9 +1374,9 @@ packages/sdk/tests/e2e/
 - **NEVER use property access on index signatures** -- Use bracket notation `obj['key']` not `obj.key`
 - **NEVER return response objects from handlers** -- Use `ctx.accept()` / `ctx.reject()` methods (exception: handlers returning data in ILP FULFILL return directly)
 - **NEVER decode TOON before verification** -- Shallow parse first, verify, then optionally decode (correctness requirement)
-- **NEVER use `exec()` for git operations** -- Use `execFile()` to prevent command injection (Rig, Epic 7)
+- **NEVER use `exec()` for git operations** -- Use `execFile()` to prevent command injection (Rig, Epic 8)
 - **NEVER reference AGENT token** -- AGENT eliminated in Story 3.1; production uses USDC on Arbitrum One
-- **NEVER call the BLS a public-facing component** -- BLS handles only `/handle-packet`; the Crosstown node owns all public endpoints
+- **NEVER call the BLS a public-facing component** -- BLS handles only `/handle-packet`; the TOON node owns all public endpoints
 - **NEVER use `!body.amount` for validation** -- Fails for amount=0 (truthiness bug). Use `=== undefined || === null`
 - **NEVER expose internal error details in HTTP responses** -- CWE-209: return generic messages, log full errors server-side
 - **NEVER submit on-chain transactions without pre-flight validation** -- x402 pre-flight pipeline prevents gas griefing (Story 3.3)
@@ -1356,7 +1392,7 @@ packages/sdk/tests/e2e/
 - **Payment amounts must match TOON length** -- `publishEvent` amount = `basePricePerByte * toonData.length` (not hardcoded)
 - **Relay WebSocket returns TOON strings** -- EVENT messages contain TOON strings, not JSON objects
 - **Channel nonce conflicts require retry** -- Payment channel operations may need retry logic for blockchain transaction conflicts
-- **SDK stubs direct to Town** -- `createEventStorageHandler()` in SDK throws with message directing users to `@crosstown/town`
+- **SDK stubs direct to Town** -- `createEventStorageHandler()` in SDK throws with message directing users to `@toon-protocol/town`
 - **Handler fulfillment is placeholder** -- `ctx.accept()` returns `fulfillment: 'default-fulfillment'`; in production BLS computes SHA-256(eventId)
 - **Data-returning handlers bypass ctx.accept()** -- Return response directly because `data` must be top-level for ILP FULFILL relay (pattern valid for future handlers)
 - **Bootstrap phases simplified** -- discovering -> registering -> announcing (handshaking phase eliminated in Story 2.7)
@@ -1415,7 +1451,7 @@ packages/sdk/tests/e2e/
 **Architecture-Specific Gotchas:**
 
 - **TOON is the native format** -- Events are stored and served as TOON throughout the stack
-- **TOON codec now in core, not BLS** -- Extracted as Story 1.0; import from `@crosstown/core/toon` or main `@crosstown/core` export
+- **TOON codec now in core, not BLS** -- Extracted as Story 1.0; import from `@toon-protocol/core/toon` or main `@toon-protocol/core` export
 - **Pay to write, free to read** -- Relay gates EVENT writes with ILP micropayments, REQ/EOSE are free
 - **Discovery != Peering** -- RelayMonitor discovers peers but doesn't auto-peer; use `peerWith()` explicitly
 - **Bootstrap creates payment channels** -- When settlement is enabled, bootstrap opens channels unilaterally using kind:10032 settlement data (no SPSP handshake)
@@ -1429,7 +1465,7 @@ packages/sdk/tests/e2e/
 - **TEE health info omission** -- Same semantics: when not in TEE, `tee` field is entirely absent from health response
 - **EIP-712 domain collision risk** -- USDC's `transferWithAuthorization` domain (`USD Coin`, version `2`) differs from TokenNetwork balance proof domain (`TokenNetwork`, version `1`). x402 handler must use the USDC domain.
 - **kind:10033 is NIP-16 replaceable** -- No `d` tag. Replaces by pubkey + kind only.
-- **Attestation server is a separate process** -- Runs alongside the Crosstown node, managed by supervisord (priority=20 vs priority=10)
+- **Attestation server is a separate process** -- Runs alongside the TOON node, managed by supervisord (priority=20 vs priority=10)
 - **KMS identity lives in core, not SDK** -- Docker entrypoints import from core. No EVM address derivation (SDK concern).
 - **Nix flake requires x86_64-linux** -- Docker image output is system-specific (`packages.x86_64-linux.docker-image`)
 - **flake.lock pins all inputs** -- Must be committed to version control for reproducibility
@@ -1437,7 +1473,7 @@ packages/sdk/tests/e2e/
 - **DVM job events use standard SDK pipeline** -- Kind 5xxx events flow through the same pipeline as all other kinds (shallow parse -> verify -> price -> dispatch). No DVM-specific pipeline stages.
 - **ILP layer supports both data-bearing and data-free payments** -- Event publishing: payment + data together. Compute settlement: payment alone (empty data). The `direct-ilp-client.ts` `data.length > 0` guard enables this.
 - **Skill descriptors extend kind:10035, not a new event kind** -- DVM capabilities are embedded in the existing service discovery event type via the `skill` field
-- **NIP-90 currency extension** -- Crosstown adds `'usdc'` as third element in `bid` and `amount` tags. Standard NIP-90 uses satoshis. The currency tag enables cross-ecosystem interoperability.
+- **NIP-90 currency extension** -- TOON adds `'usdc'` as third element in `bid` and `amount` tags. Standard NIP-90 uses satoshis. The currency tag enables cross-ecosystem interoperability.
 - **Docker E2E tests share helpers** -- `docker-e2e-setup.ts` contains shared constants, ABIs, node factories, and health checks used by all SDK E2E test files
 
 ---
@@ -1445,30 +1481,30 @@ packages/sdk/tests/e2e/
 ## Known Action Items (From Epic 5 Final Retro)
 
 **Must-Do for Epic 6:**
-- A1: Standardize test counting between pipeline steps -- Story 5-1 showed -16 discrepancy between post-dev and regression counts
+- ~~A1: Standardize test counting between pipeline steps~~ RESOLVED (Epic 6 start: root vitest.config.ts now includes `docker/src/**/*.test.ts`; 58 docker tests previously missing from root count)
 - ~~A2: Update project-context.md DVM event kinds table~~ RESOLVED (this regeneration)
-- A3: Enforce ATDD RED-phase discipline -- ATDD step should produce failing tests only, never production code (Story 5-4 deviation)
+- A3: Enforce ATDD RED-phase discipline -- ATDD step should produce failing tests only, never production code (Story 5-4 deviation). ACKNOWLEDGED: process agreement, no code change needed.
 
 **Should-Do:**
-- A4: Split large test files -- 3 epics deferred. `dvm.test.ts` (2,704 lines) is now the largest. At minimum split by builder/parser/lifecycle.
-- A5: Add direct WebSocket subscription test for DVM events -- Indirect coverage via pipeline; direct test requires genesis infra in CI (now available)
-- A6: Implement multi-hop routing fee E2E test -- P3 nightly priority. Validates fee accumulation across ILP hops for compute settlement.
-- A7: Harden parseJobResult() numeric amount validation -- Non-numeric amount from malicious provider caught by settleCompute() BigInt guard but error message is confusing.
-- A8: Set up facilitator ETH monitoring -- 3 epics deferred (carried from Epic 3 A8). x402 facilitator account needs ETH monitoring.
-- A9: Commit flake.lock -- 2 epics deferred (carried from Epic 4 A5). Requires Nix installation. Needed for reproducible builds.
-- A10: Establish load testing infrastructure -- All Epic 5 NFRs flagged this. DVM compute workloads make performance baselines urgent.
+- ~~A4: Split large test files~~ RESOLVED (Epic 6 start: `dvm.test.ts` (2,704 lines) split into `dvm-builders.test.ts`, `dvm-parsers.test.ts`, `dvm-roundtrip.test.ts`, `dvm-constants.test.ts` + shared `dvm-test-helpers.ts`. 149 tests preserved.)
+- A5: Add direct WebSocket subscription test for DVM events -- Deferred to story-level work. Indirect coverage via pipeline; direct test requires genesis infra in CI (now available).
+- A6: Implement multi-hop routing fee E2E test -- Deferred to story-level work. P3 nightly priority. Validates fee accumulation across ILP hops for compute settlement.
+- ~~A7: Harden parseJobResult() numeric amount validation~~ RESOLVED (Epic 6 start: added `/^\d+$/` regex validation in `parseJobResult()`. Non-numeric, decimal, negative amounts now return null. 6 new tests added.)
+- A8: Set up facilitator ETH monitoring -- Deferred: requires infrastructure setup. 3 epics deferred (carried from Epic 3 A8). x402 facilitator account needs ETH monitoring.
+- ~~A9: Commit flake.lock~~ RESOLVED (Epic 6 start: verified flake.lock is not gitignored; file does not exist yet because `nix flake lock` has not been run. Will be auto-tracked when generated.)
+- A10: Establish load testing infrastructure -- Deferred: requires significant setup beyond epic start. All Epic 5 NFRs flagged this. DVM compute workloads make performance baselines urgent.
 
 **Nice-to-Have:**
 - A11: Runtime re-publication of kind:10035 on handler change -- Story 5-4 stretch goal. `getSkillDescriptor()` reads live; no auto re-publish.
 - A12: Docker E2E for full schema-to-request agent path -- Story 5-4 T-INT-05. Unit-level composition test exists; Docker E2E deferred.
-- A13: Publish @crosstown/town to npm -- Carried from Epic 2 A3, 3 A14, 4 A14.
+- A13: Publish @toon-protocol/town to npm -- Carried from Epic 2 A3, 3 A14, 4 A14.
 - A14: Add real Nix integration tests -- Carried from Epic 4 A12. Requires Nix in CI runner.
 - A15: Implement deferred P3 E2E tests from Epics 3-5 -- T-3.4-12, 3.6-E2E-001, T-4.1-03, T-4.1-04, T-RISK-02.
 - A16: Fix NIP-33/NIP-16 doc discrepancy -- Carried from Epic 3 A13, 4 A16.
 
 **Resolved Action Items (from Epic 4 retro, resolved at Epic 5 start):**
 - ~~A1: Set up genesis node in CI~~ RESOLVED (CI pipeline enhanced with security audit, format check, SDK E2E infra)
-- ~~A2: Replace `console.error` with structured logger~~ RESOLVED (`createLogger()` in `@crosstown/core/logger.ts`, 17 tests)
+- ~~A2: Replace `console.error` with structured logger~~ RESOLVED (`createLogger()` in `@toon-protocol/core/logger.ts`, 17 tests)
 - ~~A3: Deploy FiatTokenV2_2 on Anvil~~ RESOLVED (`scripts/deploy-mock-usdc.sh`)
 - ~~A4: Create project-level semgrep configuration~~ RESOLVED (`.semgrep.yml` + `.semgrepignore`)
 - ~~A5: Address transitive dependency vulnerabilities~~ RESOLVED (pnpm.overrides patched 8 vulns)

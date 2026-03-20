@@ -79,8 +79,8 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Memory Usage**
   - **Status:** PASS
   - **Threshold:** Minimal additional overhead from supervisord + attestation server
-  - **Actual:** supervisord adds ~5-10MB; attestation server (Hono) adds ~20-30MB -- negligible compared to the Crosstown node process
-  - **Evidence:** `docker/supervisord.conf` -- 2 programs total (crosstown + attestation); `docker/src/attestation-server.ts` -- 98 lines, minimal Hono server
+  - **Actual:** supervisord adds ~5-10MB; attestation server (Hono) adds ~20-30MB -- negligible compared to the TOON node process
+  - **Evidence:** `docker/supervisord.conf` -- 2 programs total (toon + attestation); `docker/src/attestation-server.ts` -- 98 lines, minimal Hono server
 
 ### Scalability
 
@@ -98,8 +98,8 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** Non-root user for process execution; supervisord security model correct
-- **Actual:** supervisord runs as root (required to switch users) but all programs execute as `crosstown` user (UID 1001)
-- **Evidence:** `docker/Dockerfile.oyster` lines 113-116: `adduser -D -u 1001 -G crosstown crosstown`; `docker/supervisord.conf` lines 21, 31: `user=crosstown`; T-4.1-02g test verifies both programs run as crosstown user
+- **Actual:** supervisord runs as root (required to switch users) but all programs execute as `toon` user (UID 1001)
+- **Evidence:** `docker/Dockerfile.oyster` lines 113-116: `adduser -D -u 1001 -G toon toon`; `docker/supervisord.conf` lines 21, 31: `user=toon`; T-4.1-02g test verifies both programs run as toon user
 - **Findings:** Security model is correct: supervisord needs root to manage process users, but application code runs as non-root. This follows Docker security best practices.
 
 ### Authorization Controls
@@ -116,7 +116,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Threshold:** No sensitive data exposed by new endpoints
 - **Actual:** Attestation server returns only placeholder status, TEE boolean, and timestamp. No private keys, no user data, no secrets.
 - **Evidence:** `docker/src/attestation-server.ts` lines 51-57 (TEE response), lines 61-69 (non-TEE response), lines 80-83 (health response)
-- **Findings:** TEE_ENABLED is a boolean environment variable, not a secret. NOSTR_SECRET_KEY is in the crosstown service env vars but is never accessed by the attestation server process (separate supervisord program).
+- **Findings:** TEE_ENABLED is a boolean environment variable, not a secret. NOSTR_SECRET_KEY is in the toon service env vars but is never accessed by the attestation server process (separate supervisord program).
 
 ### Vulnerability Management
 
@@ -160,14 +160,14 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Threshold:** supervisord autorestart for process recovery
 - **Actual:** Both supervisord programs configured with `autorestart=true`
 - **Evidence:** `docker/supervisord.conf` lines 22, 32: `autorestart=true`
-- **Findings:** If the Crosstown node or attestation server crashes, supervisord automatically restarts the process. Recovery time is near-instant (process restart, not container restart). This is the standard pattern for Marlin Oyster CVM deployments (see 3DNS case study).
+- **Findings:** If the TOON node or attestation server crashes, supervisord automatically restarts the process. Recovery time is near-instant (process restart, not container restart). This is the standard pattern for Marlin Oyster CVM deployments (see 3DNS case study).
 
 ### Fault Tolerance
 
 - **Status:** PASS
 - **Threshold:** Process ordering and startup delay correctly configured
-- **Actual:** Attestation server has `startsecs=5` to allow relay startup before attestation begins; crosstown priority=10 < attestation priority=20
-- **Evidence:** `docker/supervisord.conf` line 33: `startsecs=5`; T-4.1-02d test verifies crosstown priority < attestation priority; T-4.1-02j test verifies startsecs=5
+- **Actual:** Attestation server has `startsecs=5` to allow relay startup before attestation begins; toon priority=10 < attestation priority=20
+- **Evidence:** `docker/supervisord.conf` line 33: `startsecs=5`; T-4.1-02d test verifies toon priority < attestation priority; T-4.1-02j test verifies startsecs=5
 - **Findings:** Process ordering is enforced by supervisord priority values. The 5-second startup delay provides additional safety margin for relay initialization. This mitigates Risk R-E4-007 (supervisord process ordering failure, score 2) from the test design.
 
 ### CI Burn-In (Stability)
@@ -244,7 +244,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 - **Status:** PASS
 - **Threshold:** Compose file compatible with `oyster-cvm build` CLI format; correct services, ports, images
-- **Actual:** docker-compose-oyster.yml defines exactly 2 services (crosstown, attestation-server) with correct images (crosstown:optimized) and ports (3100, 7100, 1300). Valid YAML format parseable by standard tools.
+- **Actual:** docker-compose-oyster.yml defines exactly 2 services (toon, attestation-server) with correct images (toon:optimized) and ports (3100, 7100, 1300). Valid YAML format parseable by standard tools.
 - **Evidence:** T-4.1-01 test suite (8 tests, all pass): service count (T-4.1-01a), service names (T-4.1-01a), port mappings (T-4.1-01b, T-4.1-01c), image references (T-4.1-01d, T-4.1-01e), environment variables (T-4.1-01f, T-4.1-01g), YAML validity (T-4.1-01h)
 - **Findings:** The compose file is structurally compatible with the oyster-cvm CLI tool. Actual PCR measurement verification is deferred to when CVM tooling is available in CI (documented in AC #4 note).
 
@@ -254,7 +254,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Threshold:** No hardcoded localhost in server bindings; external URLs from env vars
 - **Actual:** entrypoint-town.ts uses `0.0.0.0` for server binding (via Hono `serve()`); connector URLs come from env vars (`config.connectorUrl`, `config.connectorAdminUrl`)
 - **Evidence:** T-4.1-07 test suite (2 tests, all pass): T-4.1-07a verifies no localhost in server listen calls, T-4.1-07b verifies env-var-driven external URLs
-- **Findings:** The existing Crosstown code works unmodified behind Marlin's vsock dual-proxy architecture. Internal `ws://localhost:${port}` references are for same-container relay URLs, which is correct for the vsock model (inbound proxy forwards to these local addresses).
+- **Findings:** The existing TOON code works unmodified behind Marlin's vsock dual-proxy architecture. Internal `ws://localhost:${port}` references are for same-container relay URLs, which is correct for the vsock model (inbound proxy forwards to these local addresses).
 
 ---
 
@@ -285,8 +285,8 @@ No immediate actions required. All CRITICAL and HIGH items pass.
 ### Long-term (Backlog) - LOW Priority
 
 1. **Add image size verification to CI** - LOW - 2 hours - DevOps
-   - Build crosstown:oyster image and verify size < 500MB
-   - Compare with crosstown:optimized baseline (currently 1.18GB, needs investigation)
+   - Build toon:oyster image and verify size < 500MB
+   - Compare with toon:optimized baseline (currently 1.18GB, needs investigation)
    - Validation: CI step that fails if image exceeds size budget
 
 2. **Correct ATDD stubs in attestation-bootstrap.test.ts** - LOW - 1 hour - Dev
@@ -326,7 +326,7 @@ No immediate actions required. All CRITICAL and HIGH items pass.
 
 ### Process Ordering (Reliability)
 
-- [x] supervisord priority ordering ensures relay starts before attestation (crosstown priority=10, attestation priority=20)
+- [x] supervisord priority ordering ensures relay starts before attestation (toon priority=10, attestation priority=20)
   - **Owner:** Dev
   - **Estimated Effort:** Implemented
 
@@ -369,7 +369,7 @@ No immediate actions required. All CRITICAL and HIGH items pass.
 - [ ] **Docker image size measurement** (Performance)
   - **Owner:** DevOps
   - **Deadline:** Story 4.5 (Nix reproducible builds)
-  - **Suggested Evidence:** `docker images crosstown:oyster` output; compare with size budget
+  - **Suggested Evidence:** `docker images toon:oyster` output; compare with size budget
   - **Impact:** LOW -- Alpine base + supervisor adds ~2MB to existing image
 
 ---
@@ -404,7 +404,7 @@ No immediate actions required. All CRITICAL and HIGH items pass.
 
 4. **Disaster Recovery (1/3):** RTO/RPO (CONCERNS -- undefined for enclave restarts), Failover (CONCERNS -- no multi-enclave failover strategy yet), Backups (PASS -- /data volume can be backed up).
 
-5. **Security (4/4):** AuthN/AuthZ (PASS -- non-root user enforced, read-only endpoints), Encryption (PASS -- no secrets in attestation responses), Secrets (PASS -- secret key in crosstown service only, not accessible by attestation server), Input Validation (PASS -- attestation server has no user input, VITEST guard on startup).
+5. **Security (4/4):** AuthN/AuthZ (PASS -- non-root user enforced, read-only endpoints), Encryption (PASS -- no secrets in attestation responses), Secrets (PASS -- secret key in toon service only, not accessible by attestation server), Input Validation (PASS -- attestation server has no user input, VITEST guard on startup).
 
 6. **Monitorability (3/4):** Tracing (PASS -- console logging to stdout/stderr for external capture), Logs (PASS -- maxbytes=0 disables rotation, logs go to stdout/stderr), Metrics (CONCERNS -- no /metrics endpoint on attestation server), Config (PASS -- all configuration via env vars).
 

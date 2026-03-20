@@ -31,7 +31,7 @@ inputDocuments:
 
 ## Epic Summary
 
-From repository to one-command service deployment on Marlin Oyster — starting with the relay as reference implementation. Packages the Crosstown Docker image for Oyster CVM, adds TEE attestation (kind:10033), implements attestation-aware peering, integrates Nautilus KMS for persistent enclave-bound identity, and establishes Nix reproducible builds for deterministic PCR values.
+From repository to one-command service deployment on Marlin Oyster — starting with the relay as reference implementation. Packages the TOON Docker image for Oyster CVM, adds TEE attestation (kind:10033), implements attestation-aware peering, integrates Nautilus KMS for persistent enclave-bound identity, and establishes Nix reproducible builds for deterministic PCR values.
 
 **Stories:** 4.1-4.6 (6 stories, 34 test cases from test design)
 **Risk Profile:** 4 high-priority risks (Score >=6), all SEC/TECH category

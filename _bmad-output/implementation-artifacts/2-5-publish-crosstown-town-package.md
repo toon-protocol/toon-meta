@@ -1,31 +1,31 @@
-# Story 2.5: Publish @crosstown/town Package
+# Story 2.5: Publish @toon-protocol/town Package
 
 Status: done
 
 ## Story
 
 As a **network operator**,
-I want to `npm install @crosstown/town` and deploy a relay with minimal configuration,
-So that I can join the Crosstown network by running a single command with my seed phrase.
+I want to `npm install @toon-protocol/town` and deploy a relay with minimal configuration,
+So that I can join the TOON network by running a single command with my seed phrase.
 
-**FRs covered:** FR-RELAY-1 (The SDK-based relay SHALL be published as `@crosstown/town` on npm with a `startTown(config)` function, CLI entrypoint, and Docker image). Note: The Docker image portion of FR-RELAY-1 was delivered in Story 2.3 (E2E Test Validation). This story covers `startTown()`, CLI, and npm publishability.
+**FRs covered:** FR-RELAY-1 (The SDK-based relay SHALL be published as `@toon-protocol/town` on npm with a `startTown(config)` function, CLI entrypoint, and Docker image). Note: The Docker image portion of FR-RELAY-1 was delivered in Story 2.3 (E2E Test Validation). This story covers `startTown()`, CLI, and npm publishability.
 
-**Dependencies:** Stories 2.1 (Event Storage Handler -- done), 2.2 (SPSP Handshake Handler -- done), 2.3 (E2E Test Validation -- done), 2.4 (Cleanup & Reference Implementation -- done). Requires: `@crosstown/town` package infrastructure (created in Story 2.1), both handler implementations working (done), SDK-based Docker entrypoint validated E2E (done), reference implementation documented (Story 2.4). The Docker image is already built and validated in Story 2.3 -- this story adds the programmatic `startTown()` API and CLI on top of the existing handler implementations.
+**Dependencies:** Stories 2.1 (Event Storage Handler -- done), 2.2 (SPSP Handshake Handler -- done), 2.3 (E2E Test Validation -- done), 2.4 (Cleanup & Reference Implementation -- done). Requires: `@toon-protocol/town` package infrastructure (created in Story 2.1), both handler implementations working (done), SDK-based Docker entrypoint validated E2E (done), reference implementation documented (Story 2.4). The Docker image is already built and validated in Story 2.3 -- this story adds the programmatic `startTown()` API and CLI on top of the existing handler implementations.
 
 ## Acceptance Criteria
 
-1. Given the `@crosstown/town` package, when I inspect `package.json`, then it depends on `@crosstown/sdk`, `@crosstown/relay`, and `@crosstown/core`, it has `"type": "module"` with TypeScript strict mode, and it has a `bin` entry for CLI usage.
-2. Given the package entry point, when I import from `@crosstown/town`, then it exports a `startTown(config)` function and a `TownConfig` type, and config accepts: `mnemonic` (or `secretKey`), `relayPort`, `blsPort`, `knownPeers`, settlement config, and optional overrides.
+1. Given the `@toon-protocol/town` package, when I inspect `package.json`, then it depends on `@toon-protocol/sdk`, `@toon-protocol/relay`, and `@toon-protocol/core`, it has `"type": "module"` with TypeScript strict mode, and it has a `bin` entry for CLI usage.
+2. Given the package entry point, when I import from `@toon-protocol/town`, then it exports a `startTown(config)` function and a `TownConfig` type, and config accepts: `mnemonic` (or `secretKey`), `relayPort`, `blsPort`, `knownPeers`, settlement config, and optional overrides.
 3. Given a minimal configuration with a mnemonic and connector URL, when I call `startTown({ mnemonic: '...', connectorUrl: '...' })`, then a relay node starts with sensible defaults (ports 7100/3100, default pricing, discovery enabled), bootstrap runs, peers are discovered, and the relay is accepting events. (Note: `connectorUrl` is required for the initial implementation; embedded connector mode is deferred.)
-4. Given the package includes a CLI entrypoint, when I run `npx @crosstown/town --mnemonic "..." --connector-url "..."` (or `--secret-key`), then a relay node starts with environment variable and CLI flag configuration.
+4. Given the package includes a CLI entrypoint, when I run `npx @toon-protocol/town --mnemonic "..." --connector-url "..."` (or `--secret-key`), then a relay node starts with environment variable and CLI flag configuration.
 5. Given a started `TownInstance`, when I call `instance.stop()`, then the relay WebSocket server, BLS HTTP server, relay monitor, and bootstrap service are cleanly shut down, and `instance.isRunning()` returns `false`.
-6. Given the package is built, when published to npm with `--access public`, then it is available as `@crosstown/town` with correct ESM exports and TypeScript declarations.
+6. Given the package is built, when published to npm with `--access public`, then it is available as `@toon-protocol/town` with correct ESM exports and TypeScript declarations.
 
 ## Tasks / Subtasks
 
 - [x] Task 1: Define TownConfig, TownInstance, and startTown() types (AC: #2)
   - [x]Create `packages/town/src/town.ts` with:
-    - `TownConfig` interface with required fields: `mnemonic` (string) OR `secretKey` (Uint8Array), `connectorUrl` (string, required for initial implementation -- embedded connector mode deferred), and optional: `relayPort` (default 7100), `blsPort` (default 3100), `basePricePerByte` (default 10n), `knownPeers` (array of `{ pubkey, relayUrl, btpEndpoint }`), `chainRpcUrls` (Record<string, string>), `tokenNetworks` (Record<string, string>), `preferredTokens` (Record<string, string>), `devMode` (boolean), `dataDir` (string, default './data'), `relayUrls` (string[], public Nostr relays for social discovery), `ardriveEnabled` (boolean, default false), `ilpAddress` (string, default `g.crosstown.${pubkeyShort}`), `btpEndpoint` (string), `assetCode` (default 'USD'), `assetScale` (default 6)
+    - `TownConfig` interface with required fields: `mnemonic` (string) OR `secretKey` (Uint8Array), `connectorUrl` (string, required for initial implementation -- embedded connector mode deferred), and optional: `relayPort` (default 7100), `blsPort` (default 3100), `basePricePerByte` (default 10n), `knownPeers` (array of `{ pubkey, relayUrl, btpEndpoint }`), `chainRpcUrls` (Record<string, string>), `tokenNetworks` (Record<string, string>), `preferredTokens` (Record<string, string>), `devMode` (boolean), `dataDir` (string, default './data'), `relayUrls` (string[], public Nostr relays for social discovery), `ardriveEnabled` (boolean, default false), `ilpAddress` (string, default `g.toon.${pubkeyShort}`), `btpEndpoint` (string), `assetCode` (default 'USD'), `assetScale` (default 6)
     - `TownInstance` interface with: `isRunning(): boolean`, `stop(): Promise<void>`, `pubkey: string`, `evmAddress: string`, `config: ResolvedTownConfig` (resolved with defaults applied), `bootstrapResult: { peerCount: number, channelCount: number }`
     - `ResolvedTownConfig` type with all defaults applied (non-optional ports, pricing, etc.)
   - [x]Export `TownConfig`, `TownInstance`, and `ResolvedTownConfig` types from `packages/town/src/index.ts`
@@ -33,12 +33,12 @@ So that I can join the Crosstown network by running a single command with my see
 - [x] Task 2: Implement startTown() function (AC: #2, #3, #5)
   - [x]Implement `startTown(config: TownConfig): Promise<TownInstance>` in `packages/town/src/town.ts`
   - [x]The function composes the full relay lifecycle:
-    1. **Identity** -- Derive identity from `config.mnemonic` (via `fromMnemonic()`) or `config.secretKey` (via `fromSecretKey()`) from `@crosstown/sdk`. Exactly one of mnemonic/secretKey must be provided; throw if both or neither.
-    2. **EventStore** -- Create `SqliteEventStore` from `@crosstown/relay` with `config.dataDir` path (default `./data/events.db`). Create `dataDir` if it doesn't exist.
+    1. **Identity** -- Derive identity from `config.mnemonic` (via `fromMnemonic()`) or `config.secretKey` (via `fromSecretKey()`) from `@toon-protocol/sdk`. Exactly one of mnemonic/secretKey must be provided; throw if both or neither.
+    2. **EventStore** -- Create `SqliteEventStore` from `@toon-protocol/relay` with `config.dataDir` path (default `./data/events.db`). Create `dataDir` if it doesn't exist.
     3. **SDK Pipeline** -- Build the 5-stage pipeline using SDK components (`createVerificationPipeline`, `createPricingValidator`, `HandlerRegistry`, `createHandlerContext`), following the same composition pattern as `docker/src/entrypoint-town.ts`.
     4. **Handler Registration** -- Register `createEventStorageHandler({ eventStore })` as default handler, register `createSpspHandshakeHandler({ secretKey, ilpAddress, eventStore, settlementConfig, channelClient, adminClient })` for kind:23194.
     5. **BLS HTTP Server** -- Start Hono server on `config.blsPort` (default 3100) with `/health` and `/handle-packet` endpoints. The `/health` endpoint returns `{ status: 'healthy', sdk: true, pubkey, ilpAddress, peerCount, channelCount }`.
-    6. **WebSocket Relay** -- Start `NostrRelayServer` from `@crosstown/relay` on `config.relayPort` (default 7100).
+    6. **WebSocket Relay** -- Start `NostrRelayServer` from `@toon-protocol/relay` on `config.relayPort` (default 7100).
     7. **Bootstrap** -- Run `BootstrapService` with `config.knownPeers`, discover peers, perform SPSP handshakes, and optionally open payment channels.
     8. **Relay Monitor** -- Start `RelayMonitor` to watch for new kind:10032 peers.
     9. **Self-write** -- Publish the node's own kind:10032 ILP Peer Info event to the local relay.
@@ -52,13 +52,13 @@ So that I can join the Crosstown network by running a single command with my see
   - [x]**Settlement configuration mapping:** Map `config.chainRpcUrls`, `config.tokenNetworks`, `config.preferredTokens` to the `SettlementNegotiationConfig` format expected by the SPSP handler and BootstrapService. Extract `supportedChains` from the keys of these maps. Settlement is optional -- if none of `chainRpcUrls`/`tokenNetworks`/`preferredTokens` are provided, settlement is disabled.
   - [x]**External vs embedded connector:** `startTown()` must support both modes:
     - If `config.connectorUrl` is provided, use external connector mode (HTTP-based admin/channel clients, like `docker/src/entrypoint-town.ts`)
-    - If `config.connectorUrl` is NOT provided, use `createNode()` from `@crosstown/sdk` with embedded connector mode. For the initial implementation, require `connectorUrl` and add embedded connector support as a follow-up. Document this decision.
+    - If `config.connectorUrl` is NOT provided, use `createNode()` from `@toon-protocol/sdk` with embedded connector mode. For the initial implementation, require `connectorUrl` and add embedded connector support as a follow-up. Document this decision.
   - [x]**IMPORTANT:** The pipeline composition mirrors `docker/src/entrypoint-town.ts` but is wrapped in a reusable function. The entrypoint is the reference implementation; `startTown()` is the programmatic API. Both use the same SDK components.
 
 - [x] Task 3: Create CLI entrypoint (AC: #4)
   - [x]Create `packages/town/src/cli.ts` with:
     - Parse CLI flags: `--mnemonic`, `--secret-key` (hex), `--relay-port`, `--bls-port`, `--known-peers` (JSON string), `--data-dir`, `--dev-mode`, `--connector-url`
-    - Support environment variables: `CROSSTOWN_MNEMONIC`, `CROSSTOWN_SECRET_KEY`, `CROSSTOWN_RELAY_PORT`, `CROSSTOWN_BLS_PORT`, `CROSSTOWN_KNOWN_PEERS`, `CROSSTOWN_DATA_DIR`, `CROSSTOWN_DEV_MODE`, `CROSSTOWN_CONNECTOR_URL`
+    - Support environment variables: `TOON_MNEMONIC`, `TOON_SECRET_KEY`, `TOON_RELAY_PORT`, `TOON_BLS_PORT`, `TOON_KNOWN_PEERS`, `TOON_DATA_DIR`, `TOON_DEV_MODE`, `TOON_CONNECTOR_URL`
     - CLI flags override environment variables
     - Call `startTown(config)` with parsed config
     - Wire SIGINT/SIGTERM to `instance.stop()`
@@ -68,9 +68,9 @@ So that I can join the Crosstown network by running a single command with my see
   - [x]**IMPORTANT:** The CLI is a thin wrapper around `startTown()`. All logic lives in `town.ts`, not `cli.ts`.
 
 - [x] Task 4: Update package.json for publishability (AC: #1, #6)
-  - [x]Add `bin` field to `packages/town/package.json`: `{ "crosstown-town": "./dist/cli.js" }` (or `"town"` if available)
+  - [x]Add `bin` field to `packages/town/package.json`: `{ "toon-town": "./dist/cli.js" }` (or `"town"` if available)
   - [x]Add `@hono/node-server` and `hono` as runtime dependencies (needed for the BLS HTTP server in `startTown()`)
-  - [x]Add `ws` as a runtime dependency (needed by `NostrRelayServer` transitively through `@crosstown/relay`)
+  - [x]Add `ws` as a runtime dependency (needed by `NostrRelayServer` transitively through `@toon-protocol/relay`)
   - [x]Verify `better-sqlite3` is a runtime dependency (needed by `SqliteEventStore`). Currently it's a devDependency -- move to `dependencies` since `startTown()` creates `SqliteEventStore` at runtime.
   - [x]Add `nostr-tools` as a runtime dependency (needed by handler implementations at runtime, not just types)
   - [x]Update tsup config to include `cli.ts` as an additional entry point (so `dist/cli.js` is generated)
@@ -122,7 +122,7 @@ This is the **capstone story** for Epic 2. Stories 2.1-2.4 built and validated a
 
 This story takes the validated pieces and wraps them in a publishable package with:
 1. **`startTown(config)`** -- programmatic API for starting a relay
-2. **CLI entrypoint** -- `npx @crosstown/town --mnemonic "..."` for command-line use
+2. **CLI entrypoint** -- `npx @toon-protocol/town --mnemonic "..."` for command-line use
 3. **Package publishability** -- bin entry, correct dependencies, npm publish readiness
 
 ### Architecture: startTown() vs docker/src/entrypoint-town.ts
@@ -153,7 +153,7 @@ interface TownConfig {
   // Network (all optional with sensible defaults)
   relayPort?: number;      // default: 7100
   blsPort?: number;        // default: 3100
-  ilpAddress?: string;     // default: g.crosstown.<pubkeyShort>
+  ilpAddress?: string;     // default: g.toon.<pubkeyShort>
   btpEndpoint?: string;    // default: ws://localhost:3000
   connectorUrl?: string;   // external connector URL (REQUIRED for initial impl -- throws if omitted; embedded connector mode deferred)
 
@@ -211,24 +211,24 @@ interface TownInstance {
 
 ### Dependency Changes
 
-The `@crosstown/town` package currently has these runtime dependencies:
-- `@crosstown/sdk` (workspace)
-- `@crosstown/core` (workspace)
-- `@crosstown/relay` (workspace)
+The `@toon-protocol/town` package currently has these runtime dependencies:
+- `@toon-protocol/sdk` (workspace)
+- `@toon-protocol/core` (workspace)
+- `@toon-protocol/relay` (workspace)
 
 Story 2.5 adds:
 - `hono` + `@hono/node-server` -- BLS HTTP server (needed for `/health` and `/handle-packet`)
 - `better-sqlite3` -- moves from devDependencies to dependencies (SqliteEventStore creation at runtime)
 - `nostr-tools` -- moves from devDependencies to dependencies (runtime usage in handlers and TOON operations)
 
-The `ws` package is transitively available via `@crosstown/relay` but should be listed explicitly if the CLI or `startTown()` imports it directly.
+The `ws` package is transitively available via `@toon-protocol/relay` but should be listed explicitly if the CLI or `startTown()` imports it directly.
 
 ### CLI Design
 
 The CLI is intentionally minimal -- a thin wrapper around `startTown()`:
 
 ```
-Usage: crosstown-town [options]
+Usage: toon-town [options]
 
 Options:
   --mnemonic <words>       BIP-39 mnemonic (12 or 24 words)
@@ -242,14 +242,14 @@ Options:
   --help                   Show this help message
 
 Environment Variables:
-  CROSSTOWN_MNEMONIC       Same as --mnemonic
-  CROSSTOWN_SECRET_KEY     Same as --secret-key
-  CROSSTOWN_RELAY_PORT     Same as --relay-port
-  CROSSTOWN_BLS_PORT       Same as --bls-port
-  CROSSTOWN_DATA_DIR       Same as --data-dir
-  CROSSTOWN_CONNECTOR_URL  Same as --connector-url
-  CROSSTOWN_KNOWN_PEERS    Same as --known-peers
-  CROSSTOWN_DEV_MODE       Same as --dev-mode (set to "true")
+  TOON_MNEMONIC       Same as --mnemonic
+  TOON_SECRET_KEY     Same as --secret-key
+  TOON_RELAY_PORT     Same as --relay-port
+  TOON_BLS_PORT       Same as --bls-port
+  TOON_DATA_DIR       Same as --data-dir
+  TOON_CONNECTOR_URL  Same as --connector-url
+  TOON_KNOWN_PEERS    Same as --known-peers
+  TOON_DEV_MODE       Same as --dev-mode (set to "true")
 ```
 
 Uses `node:util` `parseArgs()` (built-in, no external dependency).
@@ -259,17 +259,17 @@ Uses `node:util` `parseArgs()` (built-in, no external dependency).
 | ATDD Test ID | Test Name | AC | Test-Design ID | Risk Link | Priority | Level |
 |---|---|---|---|---|---|---|
 | T-2.5-01 | `should start relay with minimal mnemonic config and accept events` | #2, #3 | 2.5-E2E-001 | E2-R010 | P0 | E2E |
-| T-2.5-02 | `should export startTown() and TownConfig from @crosstown/town` | #2 | 2.5-UNIT-002 | -- | P1 | Unit |
+| T-2.5-02 | `should export startTown() and TownConfig from @toon-protocol/town` | #2 | 2.5-UNIT-002 | -- | P1 | Unit |
 | T-2.5-03 | `should use default ports (7100/3100) when not specified` | #3 | 2.5-UNIT-001 | E2-R012 | P1 | Unit |
 | T-2.5-04 | `should run bootstrap and discover peers on start` | #3 | 2.5-INT-002 | -- | P1 | E2E |
 | T-2.5-05 | `should stop cleanly via lifecycle stop` | #5 | 2.5-INT-001 | E2-R010 | P1 | E2E |
-| T-2.5-06 | `package.json should depend on @crosstown/sdk, relay, core` | #1 | -- | -- | P2 | Unit |
+| T-2.5-06 | `package.json should depend on @toon-protocol/sdk, relay, core` | #1 | -- | -- | P2 | Unit |
 
 **Test file location:** `packages/town/tests/e2e/town-lifecycle.test.ts` (6 tests, currently RED/describe.skip)
 
 **NOTE:** Tests T-2.5-01, T-2.5-04, T-2.5-05 require genesis node infrastructure (Anvil, Connector, Relay). They will gracefully skip if infrastructure is not available (existing pattern in beforeAll). T-2.5-02, T-2.5-03, T-2.5-06 are unit-level tests that run without infrastructure.
 
-**NOTE:** The existing test file imports `startTown`, `TownConfig`, and `TownInstance` from `@crosstown/town`. The test expects a `bin` field in package.json (T-2.5-06). The dev agent should review all 6 tests and update assertions to match the actual implementation.
+**NOTE:** The existing test file imports `startTown`, `TownConfig`, and `TownInstance` from `@toon-protocol/town`. The test expects a `bin` field in package.json (T-2.5-06). The dev agent should review all 6 tests and update assertions to match the actual implementation.
 
 ### Existing Files
 
@@ -338,9 +338,9 @@ Uses `node:util` `parseArgs()` (built-in, no external dependency).
 
 2. **Task 2 (startTown() implementation):** Implemented full 14-step lifecycle in `packages/town/src/town.ts`: identity derivation, config resolution with defaults, data directory creation, SqliteEventStore, settlement config mapping, HTTP connector admin/channel/runtime clients, SDK 5-stage pipeline (size check -> shallow TOON parse -> Schnorr verify -> pricing validate -> handler dispatch), BLS HTTP server (Hono), WebSocket relay, BootstrapService with event listener, connector health wait, self-write kind:10032, RelayMonitor, SocialPeerDiscovery. Returns TownInstance with `stop()` for graceful shutdown (reverse order: unsubscribe monitors, stop relay, close BLS, close EventStore).
 
-3. **Task 3 (CLI entrypoint):** Created `packages/town/src/cli.ts` using `node:util` `parseArgs()`. Supports all flags (`--mnemonic`, `--secret-key`, `--relay-port`, `--bls-port`, `--data-dir`, `--connector-url`, `--connector-admin-url`, `--known-peers`, `--dev-mode`, `--help`) and environment variables (`CROSSTOWN_*`). CLI flags override env vars. Prints startup banner with pubkey, EVM address, ports, ILP address, peer/channel counts. Wires SIGINT/SIGTERM to `instance.stop()`.
+3. **Task 3 (CLI entrypoint):** Created `packages/town/src/cli.ts` using `node:util` `parseArgs()`. Supports all flags (`--mnemonic`, `--secret-key`, `--relay-port`, `--bls-port`, `--data-dir`, `--connector-url`, `--connector-admin-url`, `--known-peers`, `--dev-mode`, `--help`) and environment variables (`TOON_*`). CLI flags override env vars. Prints startup banner with pubkey, EVM address, ports, ILP address, peer/channel counts. Wires SIGINT/SIGTERM to `instance.stop()`.
 
-4. **Task 4 (package.json updates):** Added `bin` field (`crosstown-town` -> `./dist/cli.js`). Moved `better-sqlite3` and `nostr-tools` from devDependencies to dependencies. Added `hono` and `@hono/node-server` as runtime dependencies. Updated package description.
+4. **Task 4 (package.json updates):** Added `bin` field (`toon-town` -> `./dist/cli.js`). Moved `better-sqlite3` and `nostr-tools` from devDependencies to dependencies. Added `hono` and `@hono/node-server` as runtime dependencies. Updated package description.
 
 5. **Task 5 (index.ts exports):** Added `startTown`, `TownConfig`, `TownInstance`, `ResolvedTownConfig` exports. Preserved existing handler exports.
 
@@ -412,7 +412,7 @@ Uses `node:util` `parseArgs()` (built-in, no external dependency).
 |---|------|-------------|--------|
 | D | INFO | `config.mnemonic as string` (line 289) and `config.secretKey as Uint8Array` (line 290) use type assertions | Safe -- guarded by `hasMnemonic`/`hasSecretKey` boolean checks with prior validation (lines 275-285). The only alternative would be non-null assertion which is stylistically equivalent. |
 | E | INFO | `import.meta.dirname` usage in test file (line 548) requires Node.js >= 20.11 | Project engines field specifies `node >= 20` and docs recommend 24.x for local dev. This is within the supported range. |
-| F | INFO | Two `createHttpRuntimeClient` functions exist in core (agent-runtime-client.ts vs http-runtime-client.ts); town.ts imports from the agent-runtime-client.ts version via `@crosstown/core` | Correct -- the agent-runtime-client.ts version sends to `/admin/ilp/send` (admin endpoint), which matches the connector's actual API. The http-runtime-client.ts version (exported as `createHttpRuntimeClientV2`) sends to `/send-packet` (runtime endpoint). Both are valid for different connector configurations. |
+| F | INFO | Two `createHttpRuntimeClient` functions exist in core (agent-runtime-client.ts vs http-runtime-client.ts); town.ts imports from the agent-runtime-client.ts version via `@toon-protocol/core` | Correct -- the agent-runtime-client.ts version sends to `/admin/ilp/send` (admin endpoint), which matches the connector's actual API. The http-runtime-client.ts version (exported as `createHttpRuntimeClientV2`) sends to `/send-packet` (runtime endpoint). Both are valid for different connector configurations. |
 
 ### Verification (Pass #2)
 

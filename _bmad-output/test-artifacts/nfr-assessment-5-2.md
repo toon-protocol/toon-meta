@@ -173,7 +173,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 - **Status:** PASS
 - **Threshold:** All 21 Story 5.2 tests pass consistently
 - **Actual:** All 21 tests (10 unit + 11 integration) pass on first enable with zero production code changes. SDK package: 190/190 tests pass. Integration: 35/35 tests pass.
-- **Evidence:** `pnpm --filter @crosstown/sdk test` (190 passed, 0 failed); `pnpm --filter @crosstown/sdk test:integration` (35 passed, 0 failed); `pnpm lint` (0 errors, 571 warnings -- all pre-existing)
+- **Evidence:** `pnpm --filter @toon-protocol/sdk test` (190 passed, 0 failed); `pnpm --filter @toon-protocol/sdk test:integration` (35 passed, 0 failed); `pnpm lint` (0 errors, 571 warnings -- all pre-existing)
 - **Findings:** Tests are deterministic (fixed timestamps, fixed keys, in-memory mocks). No flakiness observed.
 
 ### Disaster Recovery (if applicable)

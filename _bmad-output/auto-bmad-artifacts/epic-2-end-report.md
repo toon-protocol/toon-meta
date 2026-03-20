@@ -9,7 +9,7 @@
 - **Final test count**: 1484 (1299 passing, 185 skipped, 0 failures)
 
 ## What Was Built
-Epic 2 rebuilt the relay BLS using the SDK's handler registry, proving SDK completeness. It added event storage handlers, E2E validation, published `@crosstown/town` as an installable package, added `publishEvent()` to ServiceNode, removed the SPSP handshake protocol, simplified peer discovery to a 3-phase bootstrap, and added a relay subscription API on TownInstance.
+Epic 2 rebuilt the relay BLS using the SDK's handler registry, proving SDK completeness. It added event storage handlers, E2E validation, published `@toon-protocol/town` as an installable package, added `publishEvent()` to ServiceNode, removed the SPSP handshake protocol, simplified peer discovery to a 3-phase bootstrap, and added a relay subscription API on TownInstance.
 
 ## Stories Delivered
 | Story | Title | Status |
@@ -18,7 +18,7 @@ Epic 2 rebuilt the relay BLS using the SDK's handler registry, proving SDK compl
 | 2-2 | SPSP Handshake Handler (DEPRECATED — removed by 2-7) | done |
 | 2-3 | E2E Test Validation | done |
 | 2-4 | Remove git-proxy and Document Reference Implementation | done |
-| 2-5 | Publish @crosstown/town Package | done |
+| 2-5 | Publish @toon-protocol/town Package | done |
 | 2-6 | Add publishEvent() to ServiceNode | done |
 | 2-7 | SPSP Removal and Peer Discovery Cleanup | done |
 | 2-8 | Relay Subscription API on TownInstance | done |
@@ -53,7 +53,7 @@ Key takeaways from the retrospective:
 - **Top successes**: SDK proved its abstraction value (300+ lines reduced to ~73 lines of composition); mid-epic scope change from 5 to 8 stories managed without quality regression; Story 2-7 SPSP removal was the most impactful cleanup story in the project's history; 100% AC coverage maintained throughout
 - **Top challenges**: Stories 2-5 and 2-7 were 3x+ average duration (capstone and protocol-removal stories); Story 2-2 was fully built then deleted by Story 2-7 (~90 minutes throwaway); Stories 2-7 and 2-8 shared a commit breaking 1-commit-per-story convention
 - **Key insights**: Three-pass code review model catches security issues that earlier passes miss; protocol-level implementations should be deferred until architectural decisions are final; NFR CONCERNS consistently driven by infrastructure gaps, not story-level quality
-- **Critical action items for next epic**: A2 (CI genesis node — deferred 2 epics, increasingly urgent), A3 (npm publish @crosstown/town), A4 (clean stale docs), A5 (dep vulnerabilities)
+- **Critical action items for next epic**: A2 (CI genesis node — deferred 2 epics, increasingly urgent), A3 (npm publish @toon-protocol/town), A4 (clean stale docs), A5 (dep vulnerabilities)
 
 ## Pipeline Steps
 
@@ -153,12 +153,12 @@ Key takeaways from the retrospective:
 - **Next epic**: 3 — Production Protocol Economics
 - **Dependencies met**: yes (Epic 1: done, Epic 2: done)
 - **Stories**: 6 (3-1 USDC Migration, 3-2 Multi-Environment Chain Config, 3-3 x402 /publish, 3-4 Seed Relay Discovery, 3-5 kind:10035 Service Discovery, 3-6 Enriched /health)
-- **Prep tasks**: A2 (CI genesis node — must-do), A3 (npm publish @crosstown/town — must-do), A4-A8 (quality improvements — should-do)
+- **Prep tasks**: A2 (CI genesis node — must-do), A3 (npm publish @toon-protocol/town — must-do), A4-A8 (quality improvements — should-do)
 - **Recommended next step**: `auto-bmad:epic-start 3`
 
 ## Known Risks & Tech Debt
 - **A2 (CI)**: No automated E2E test pipeline — deferred through 2 full epics, increasingly urgent for Epic 3's heavier E2E requirements
-- **A3 (npm publish)**: `@crosstown/town` is build-ready but not published to npm
+- **A3 (npm publish)**: `@toon-protocol/town` is build-ready but not published to npm
 - **A5 (dep vulns)**: 33 transitive dependency vulnerabilities (2 critical, 12 high) from fast-xml-parser via AWS SDK — upstream issue
 - **A8 (CWE-214)**: CLI `--mnemonic`/`--secret-key` flags visible in process listings
 - **324 ESLint warnings**: All `no-explicit-any`/`no-non-null-assertion` in test files — stable, intentional at current config
@@ -169,4 +169,4 @@ Key takeaways from the retrospective:
 ---
 
 ## TL;DR
-Epic 2 delivered all 8 stories (100%) — rebuilding the relay on the SDK, publishing `@crosstown/town`, adding `publishEvent()`, removing the SPSP protocol, and adding relay subscriptions. All quality gates passed: 40/40 ACs covered (100%), 61 code review issues found and fixed (0 remaining), 1299 tests passing with 0 failures. Epic 3 (Production Protocol Economics, 6 stories) is ready to start — all dependencies met, but CI setup (A2) and npm publish (A3) should be addressed first.
+Epic 2 delivered all 8 stories (100%) — rebuilding the relay on the SDK, publishing `@toon-protocol/town`, adding `publishEvent()`, removing the SPSP protocol, and adding relay subscriptions. All quality gates passed: 40/40 ACs covered (100%), 61 code review issues found and fixed (0 remaining), 1299 tests passing with 0 failures. Epic 3 (Production Protocol Economics, 6 stories) is ready to start — all dependencies met, but CI setup (A2) and npm publish (A3) should be addressed first.

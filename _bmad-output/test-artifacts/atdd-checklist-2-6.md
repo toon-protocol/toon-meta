@@ -30,7 +30,7 @@ inputDocuments:
 
 Add a `publishEvent(event, options)` method to the SDK's `ServiceNode` interface that sends Nostr events through the embedded connector as outbound ILP packets. This completes the symmetric API: inbound events arrive via handlers (`node.on(kind, handler)`), outbound events depart via `node.publishEvent(event, { destination })`.
 
-**As a** developer building on the Crosstown SDK
+**As a** developer building on the TOON SDK
 **I want** `ServiceNode` to expose a `publishEvent(event, options)` method
 **So that** I can send outbound ILP packets without manually encoding TOON, computing conditions, or calling low-level connector APIs
 
@@ -42,7 +42,7 @@ Add a `publishEvent(event, options)` method to the SDK's `ServiceNode` interface
 2. Given a started `ServiceNode`, when I call `node.publishEvent(event)` without options or with an empty destination, then a `NodeError` is thrown with a clear message indicating that `destination` is required.
 3. Given a `ServiceNode` that has not been started, when I call `node.publishEvent(event, { destination })`, then a `NodeError` is thrown with message "Cannot publish: node not started. Call start() first."
 4. Given a successful publish, `publishEvent()` returns `{ success: true, eventId, fulfillment }`. Given a rejected publish, it returns `{ success: false, eventId, code, message }`.
-5. Given the `@crosstown/sdk` package, `PublishEventResult` type is exported alongside existing exports, and `ServiceNode` includes the `publishEvent` method in its type definition.
+5. Given the `@toon-protocol/sdk` package, `PublishEventResult` type is exported alongside existing exports, and `ServiceNode` includes the `publishEvent` method in its type definition.
 6. Given the existing SDK test suite, all existing tests pass and new unit tests cover `publishEvent()` success, rejection, not-started error, and missing-destination error scenarios.
 
 ---
@@ -255,7 +255,7 @@ N/A -- This story uses co-located inline test helpers following the existing pro
 }
 ```
 
-**Notes:** The mock connector records all `sendPacket` calls in `connector.sendPacketCalls[]` for assertion. The `DirectRuntimeClient` created internally by `createCrosstownNode()` wraps `connector.sendPacket()`, so mocking at the connector level exercises the full chain: `publishEvent() -> sendIlpPacket() -> sendPacket()`.
+**Notes:** The mock connector records all `sendPacket` calls in `connector.sendPacketCalls[]` for assertion. The `DirectRuntimeClient` created internally by `createToonNode()` wraps `connector.sendPacket()`, so mocking at the connector level exercises the full chain: `publishEvent() -> sendIlpPacket() -> sendPacket()`.
 
 ### nostr-tools Mock
 
@@ -277,8 +277,8 @@ N/A -- This is a pure backend/SDK story with no UI components. No data-testid at
 
 **Tasks to make this test pass:**
 
-- [x] Add `runtimeClient` property to `CrosstownNode` interface in `packages/core/src/compose.ts`
-- [x] Return `directRuntimeClient` as `runtimeClient` in `createCrosstownNode()` return object
+- [x] Add `runtimeClient` property to `ToonNode` interface in `packages/core/src/compose.ts`
+- [x] Return `directRuntimeClient` as `runtimeClient` in `createToonNode()` return object
 - [x] Add `PublishEventResult` type to `packages/sdk/src/create-node.ts`
 - [x] Add `publishEvent()` method signature to `ServiceNode` interface
 - [x] Implement `publishEvent()` in `createNode()` closure: TOON-encode, compute amount, base64 convert, call `sendIlpPacket()`
@@ -422,7 +422,7 @@ N/A -- This is a pure backend/SDK story with no UI components. No data-testid at
 
 **Tasks to make this test pass:**
 
-- [x] Import `encodeEventToToon` from `@crosstown/core/toon` and verify exact `basePricePerByte * BigInt(toonData.length)` match
+- [x] Import `encodeEventToToon` from `@toon-protocol/core/toon` and verify exact `basePricePerByte * BigInt(toonData.length)` match
 - [x] Run test: `npx vitest run packages/sdk/src/publish-event.test.ts`
 - [x] Test passes (green phase)
 
@@ -519,7 +519,7 @@ pnpm test:coverage
 
 **DEV Agent Responsibilities (All Complete):**
 
-1. Exposed `runtimeClient` from `CrosstownNode` in `packages/core/src/compose.ts`
+1. Exposed `runtimeClient` from `ToonNode` in `packages/core/src/compose.ts`
 2. Added `PublishEventResult` type and `publishEvent()` to `ServiceNode` interface + implementation in `packages/sdk/src/create-node.ts`
 3. Updated SDK exports in `packages/sdk/src/index.ts`
 4. Removed exclusion from both `vitest.config.ts` (root) and `packages/sdk/vitest.config.ts`

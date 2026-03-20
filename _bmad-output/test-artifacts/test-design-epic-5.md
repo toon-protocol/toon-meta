@@ -94,9 +94,9 @@ lastSaved: '2026-03-04'
 ## Entry Criteria
 
 - [ ] SDK (Epic 1) complete and published
-- [ ] `@crosstown/core` TOON codec extraction done (Story 1.0)
+- [ ] `@toon-protocol/core` TOON codec extraction done (Story 1.0)
 - [ ] `git` binary available in development environment PATH
-- [ ] NIP-34 types available in `@crosstown/core/nip34`
+- [ ] NIP-34 types available in `@toon-protocol/core/nip34`
 - [ ] Test fixtures: git repo factory function for creating test repos with commits
 
 ## Exit Criteria
@@ -340,15 +340,15 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 ### Assumptions
 
 1. SDK (Epic 1) is complete and stable before Rig development begins
-2. `@crosstown/core` TOON codec extraction (Story 1.0) is done
+2. `@toon-protocol/core` TOON codec extraction (Story 1.0) is done
 3. NIP-34 types in `packages/core/src/nip34/` remain stable (no breaking changes during Epic 5)
 4. The `git` binary (>= 2.x) is available in all development and CI environments
 5. Eta template engine supports auto-escape by default (verified: Eta ^4.5 does)
 
 ### Dependencies
 
-1. `@crosstown/sdk` package — Required for `createNode()`, handler registry, `HandlerContext`. Required by: All stories.
-2. `@crosstown/core` NIP-34 types — Required for `RepositoryAnnouncement`, `PatchEvent`, `IssueEvent`, `StatusEvent`. Required by: All handler stories.
+1. `@toon-protocol/sdk` package — Required for `createNode()`, handler registry, `HandlerContext`. Required by: All stories.
+2. `@toon-protocol/core` NIP-34 types — Required for `RepositoryAnnouncement`, `PatchEvent`, `IssueEvent`, `StatusEvent`. Required by: All handler stories.
 3. System `git` binary — Required for all git operations (init, am, merge, ls-tree, show, log, diff, blame, http-backend). Required by: Stories 5.1-5.10.
 4. `better-sqlite3` — Required for `RepoMetadataStore`. Required by: Story 5.1.
 5. `express` ^5.2 + `eta` ^4.5 — Required for web UI. Required by: Stories 5.7-5.11.
@@ -369,9 +369,9 @@ No nightly or weekly cadence needed — all tests are fast and infrastructure-li
 
 | Service/Component            | Impact                                                            | Regression Scope                             |
 | ---------------------------- | ----------------------------------------------------------------- | -------------------------------------------- |
-| **@crosstown/sdk**           | Rig depends on `createNode()`, handler registry, `HandlerContext` | SDK unit + integration tests must pass       |
-| **@crosstown/core (NIP-34)** | Rig uses NIP-34 types, constants, `parseRepositoryReference()`    | Core NIP-34 tests must pass                  |
-| **@crosstown/core (TOON)**   | SDK pipeline uses TOON codec (shallow parse → verify → dispatch)  | Core TOON codec roundtrip tests must pass    |
+| **@toon-protocol/sdk**           | Rig depends on `createNode()`, handler registry, `HandlerContext` | SDK unit + integration tests must pass       |
+| **@toon-protocol/core (NIP-34)** | Rig uses NIP-34 types, constants, `parseRepositoryReference()`    | Core NIP-34 tests must pass                  |
+| **@toon-protocol/core (TOON)**   | SDK pipeline uses TOON codec (shallow parse → verify → dispatch)  | Core TOON codec roundtrip tests must pass    |
 | **Relay (WebSocket)**        | Rig queries relay for issues/PRs/comments at render time          | Relay WebSocket subscription tests must pass |
 
 ---

@@ -33,7 +33,7 @@
   - **2.2** SPSP Handshake Handler (3 ACs)
   - **2.3** E2E Test Validation (3 ACs)
   - **2.4** Remove packages/git-proxy and Document Reference Implementation (3 ACs)
-  - **2.5** Publish @crosstown/town Package (5 ACs)
+  - **2.5** Publish @toon-protocol/town Package (5 ACs)
 - **Oversized stories** (>8 ACs): none
 - **Dependencies**: 2.1 and 2.2 are independent (parallelizable); 2.3 requires both 2.1+2.2; 2.5 requires 2.3; 2.4 is fully independent
 - **Cross-epic**: Epic 1 complete (all 12 stories done) — no unmet dependencies
