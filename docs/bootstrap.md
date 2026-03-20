@@ -60,9 +60,9 @@ Bootstrap and ongoing discovery are separate concerns:
 | Concern | When | What |
 |---------|------|------|
 | **Bootstrap** | Node startup (once) | Discover known peers, register them, announce yourself |
-| **DiscoveryTracker** | After bootstrap, ongoing | Process incoming kind:10032 events delivered via ILP |
+| **DiscoveryTracker** | After bootstrap, ongoing | Maintain a live list of available peers from incoming kind:10032 events |
 
-Bootstrap uses the `knownPeers` list to find initial peers. Once bootstrap completes, the DiscoveryTracker takes over — it processes new kind:10032 events that arrive via ILP packets and auto-registers newly discovered peers with the local connector.
+Bootstrap uses the `knownPeers` list to find and eagerly peer with initial seed nodes. Once bootstrap completes, the DiscoveryTracker takes over — it continuously processes new kind:10032 events that arrive via ILP packets, maintaining an up-to-date list of available peers. Discovery is passive; peering only happens when explicitly requested via `peerWith()`.
 
 ## Discovery Sources
 

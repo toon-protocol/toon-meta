@@ -104,7 +104,7 @@ development_status:
   # Dependencies: Epic 4 (TEE) + Epic 5 (base DVM)
   epic-6: in-progress
   6-1-workflow-chains: done
-  6-2-agent-swarms: backlog
+  6-2-agent-swarms: done
   6-3-tee-attested-dvm-results: backlog
   6-4-reputation-scoring-system: backlog
   epic-6-retrospective: optional

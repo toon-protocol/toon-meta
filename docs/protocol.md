@@ -1,6 +1,6 @@
 # Protocol
 
-TOON extends Nostr with custom event kinds for ILP peering and uses TOON encoding for efficient data transport.
+TOON Protocol extends [Nostr](https://github.com/nostr-protocol/nips) with custom event kinds for ILP peering and uses [TOON format](https://github.com/toon-format/toon) encoding for efficient data transport.
 
 ## Event Kinds
 
@@ -10,17 +10,18 @@ TOON extends Nostr with custom event kinds for ILP peering and uses TOON encodin
 |------|------|------|---------|
 | **10032** | ILP Peer Info | Replaceable | Advertise node's ILP address, BTP endpoint, supported chains, settlement addresses, and TokenNetwork contracts |
 
-Kind 10032 is a replaceable event — publishing a new one with the same `d` tag replaces the old one. It serves as a node's business card: what chains it supports, where to settle, and how to connect.
+Kind 10032 is a [replaceable event](https://github.com/nostr-protocol/nips/blob/master/01.md) — publishing a new one with the same `d` tag replaces the old one. It serves as a node's business card: what chains it supports, where to settle, how to connect, and what it charges to forward traffic.
 
 **Example kind:10032 content:**
 
 ```json
 {
-  "ilpAddress": "g.toon.peer1",
-  "btpEndpoint": "ws://peer1.example.com:3000",
-  "supportedChains": ["evm:base:84532"],
-  "settlementAddresses": { "evm:base:84532": "0xABC..." },
-  "tokenNetworks": { "evm:base:84532": "0x733..." }
+  "ilpAddress": "g.toon.a1b2c3d4",
+  "btpEndpoint": "ws://node-a.example.com:3000",
+  "feePerByte": "2",
+  "supportedChains": ["evm:arbitrum-sepolia:421614"],
+  "settlementAddresses": { "evm:arbitrum-sepolia:421614": "0xABC..." },
+  "tokenNetworks": { "evm:arbitrum-sepolia:421614": "0x733..." }
 }
 ```
 
@@ -39,7 +40,7 @@ NIP-34 events are payment-gated — submitting a patch requires micropayments vi
 
 ## TOON Format
 
-[TOON](https://toonformat.dev) is a compact, human-readable encoding of the JSON data model. TOON uses it natively throughout the entire stack — from ingestion to storage to delivery.
+[TOON](https://github.com/toon-format/toon) is a compact, human-readable encoding of the JSON data model. TOON Protocol uses it natively throughout the entire stack — from ingestion to storage to delivery.
 
 **Why TOON over JSON?**
 
@@ -74,6 +75,119 @@ sig: cccc...cccc
 3. Relay reads TOON from disk → sends TOON to WebSocket subscribers
 4. No JSON round-trips at any stage
 
+## ILP Address Hierarchy
+
+### Identity, Address, and Route
+
+These three concepts are distinct. Confusing them is the most common source of misunderstanding in the protocol.
+
+| Concept | What it is | Lifetime | Example |
+|---------|-----------|----------|---------|
+| **Identity** | Nostr pubkey (secp256k1) | Permanent — one per agent | `a1b2c3d4e5f6...` (64-char hex) |
+| **Address** | ILP address — how to reach a node through a specific peer | Ephemeral — one per upstream peering | `g.toon.a1b2c3d4` |
+| **Route** | Dynamic advertisement — which paths exist in the network | Changes as peers join/leave | Advertised in kind:10032 events |
+
+An agent has **one identity** but may have **multiple addresses** if it peers with multiple upstream nodes. Each address represents a path through the network, not the node itself. Think of it like having one name but multiple phone numbers from different carriers.
+
+### Address Derivation
+
+ILP addresses are derived deterministically from the peering topology. No manual configuration needed.
+
+**Rules:**
+
+1. The **root prefix** is `g.toon` — this is a protocol constant. The genesis node IS `g.toon`.
+2. When a node connects to an upstream peer, the upstream assigns a child address: the upstream's own prefix plus the first 8 characters of the connecting node's Nostr pubkey.
+3. If a node peers with multiple upstream nodes, it receives a separate address from each one.
+
+**Example network:**
+
+```
+Genesis node (g.toon)
+├── Node A connects → assigned g.toon.a1b2c3d4
+│   ├── Node C connects to A → assigned g.toon.a1b2c3d4.c9d8e7f6
+│   └── Node D connects to A → assigned g.toon.a1b2c3d4.d4e5f6a7
+└── Node B connects → assigned g.toon.b5c6d7e8
+    └── Node C also connects to B → assigned g.toon.b5c6d7e8.c9d8e7f6
+```
+
+Node C has two addresses — one through A, one through B. Both are valid paths to reach it. The address tells senders *which route* to use, not *who* the destination is.
+
+**Why 8 characters?** The first 8 hex characters of a Nostr pubkey provide 4 billion possible values — enough to be collision-resistant within any single peer's address space while keeping addresses short and human-scannable.
+
+### Vanity Prefixes
+
+Peers can claim human-readable prefixes from their upstream node by paying for them. Instead of `g.toon.a1b2c3d4`, a node might claim `g.toon.useast` or `g.toon.btc`. This creates a domain-registrar business model where upstream nodes earn revenue from prefix sales.
+
+Vanity prefix claims use a dedicated Nostr event kind (not DVM kinds) because they are **stateful control-plane operations** — they mutate the routing topology and persist.
+
+### Fee Advertisement
+
+Each node advertises a `feePerByte` in its kind:10032 peer info event. This tells the network how much the node charges to forward a byte of data through it.
+
+**Example kind:10032 with fee advertisement:**
+
+```json
+{
+  "ilpAddress": "g.toon.a1b2c3d4",
+  "btpEndpoint": "ws://node-a.example.com:3000",
+  "feePerByte": "2",
+  "supportedChains": ["evm:arbitrum-sepolia:421614"],
+  "settlementAddresses": { "evm:arbitrum-sepolia:421614": "0xABC..." },
+  "tokenNetworks": { "evm:arbitrum-sepolia:421614": "0x733..." }
+}
+```
+
+## Protocol Economics
+
+### One Primitive: Message = Money
+
+Every monetized action in TOON Protocol follows the same pattern: **the message and the payment travel in a single ILP PREPARE packet.** There is no separate payment step. The packet IS the payment.
+
+This applies to all three monetized flows:
+
+| Flow | What's advertised | Where it's advertised | What the sender pays |
+|------|------------------|----------------------|---------------------|
+| **Relay write** | Price per byte | kind:10035 `basePricePerByte` | Event size in bytes × price per byte |
+| **DVM compute** | Job price | kind:10035 `SkillDescriptor.pricing` | The provider's advertised price |
+| **Prefix claim** | Prefix price | kind:10032 `prefixPricing` | The upstream's advertised prefix price |
+
+One protocol primitive. Three use cases. The pattern is always: provider advertises a price, customer sends data + payment in one packet, provider validates and processes.
+
+### Multi-Hop Fee Calculation
+
+When a message travels through intermediary nodes, each one takes a forwarding fee. The total cost to the sender is:
+
+> **Total = destination write fee + sum of each intermediary's fee-per-byte × packet size**
+
+The SDK computes this automatically. Callers never see individual hop fees — they experience a single total cost.
+
+**Example: 3-hop delivery of a 500-byte event**
+
+```
+Sender → Node A (2/byte fee) → Node B (3/byte fee) → Destination (10/byte write price)
+
+Destination write fee:  500 bytes × 10 per byte = 5,000
+Node B forwarding fee:  500 bytes ×  3 per byte = 1,500
+Node A forwarding fee:  500 bytes ×  2 per byte = 1,000
+                                          ─────────────
+Total paid by sender:                           7,500
+```
+
+The sender pays 7,500 in a single ILP PREPARE. Each intermediary deducts its fee and forwards the remainder. The destination receives exactly its write fee.
+
+### Supply-Driven Marketplace
+
+The TOON Protocol marketplace is **supply-driven**: providers advertise their capabilities and pricing, customers discover providers, compare offerings, and send paid requests directly. Prices in advertisements are authoritative — not negotiation starting points.
+
+This applies to both DVM compute (providers list skills and prices in kind:10035) and prefix claims (upstream nodes list prefix pricing in kind:10032).
+
+### Pricing at the Destination
+
+Each destination node sets its own base price per byte for storing events. The default is 10 micro-USDC per byte (roughly $0.01 per kilobyte). Nodes can override pricing for specific event kinds — for example, making kind:0 (profile metadata) free while charging a premium for kind:30023 (long-form content).
+
+- **Self-write bypass**: Events signed by the node owner's own pubkey are free
+- **Per-kind overrides**: A JSON map of event kind numbers to custom per-byte prices
+
 ## ILP Integration
 
 ### Payment Flow
@@ -92,12 +206,30 @@ Writer                    ILP Network                 Relay
   │ <────────────────────────│<──────────────────────  │
 ```
 
-### Pricing Model
+### Multi-Hop Payment Flow
 
-- **Base price**: `basePricePerByte` (default: 10 units per byte)
-- **Required amount**: `toonData.length * basePricePerByte`
-- **Self-write bypass**: Events from the relay owner's pubkey are free
-- **Per-kind overrides**: Different event kinds can have custom pricing
+When the destination is multiple hops away, each intermediary deducts its fee and forwards:
+
+```
+Sender          Node A            Node B            Destination
+  │               │                 │                    │
+  │  PREPARE      │                 │                    │
+  │  amount=7500  │                 │                    │
+  │ ────────────>│  PREPARE        │                    │
+  │               │  amount=6500   │                    │
+  │               │ ──────────────>│  PREPARE           │
+  │               │                 │  amount=5000      │
+  │               │                 │ ─────────────────>│
+  │               │                 │                    │ validate + store
+  │               │                 │  FULFILL           │
+  │               │  FULFILL        │<─────────────────│
+  │  FULFILL      │<──────────────│                    │
+  │<────────────│                 │                    │
+  │               │                 │                    │
+  │  Node A kept: 1000 (fee)       │                    │
+  │               │  Node B kept: 1500 (fee)            │
+  │               │                 │  Dest kept: 5000 (write fee)
+```
 
 ### Validation Pipeline
 
