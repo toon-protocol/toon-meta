@@ -68,7 +68,7 @@ const node = createNode({
 });
 ```
 
-> **Note:** The SDK uses an embedded connector that runs in-process. If you prefer an external connector (simpler setup), use [`@toon-protocol/town`](../town) instead — it takes a `connectorUrl` and manages the connection for you.
+> **Note:** The SDK uses an embedded connector that runs in-process for zero-latency direct function calls. [`@toon-protocol/town`](../town) also uses embedded mode by default, or can connect to an external connector via `connectorUrl` for advanced deployments.
 
 ### NodeConfig Reference
 

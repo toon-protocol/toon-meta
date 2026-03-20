@@ -85,7 +85,7 @@ npx @toon-protocol/town [options]
 Options:
   --mnemonic <phrase>          BIP-39 mnemonic for node identity
   --secret-key <hex>           64-char hex secret key (alternative to mnemonic)
-  --connector-url <url>        ILP connector HTTP endpoint (required)
+  --connector-url <url>        ILP connector HTTP endpoint (omit for embedded connector)
   --connector-admin-url <url>  Connector admin endpoint
   --relay-port <port>          WebSocket relay port (default: 7100)
   --bls-port <port>            BLS HTTP port (default: 3100)

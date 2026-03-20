@@ -2,9 +2,9 @@
 
 Bootstrap is a **one-time startup sequence** that runs when a node joins the network. It is not an ongoing loop — once complete, the node is connected and the bootstrap service's job is done. Ongoing peer discovery is handled separately by the DiscoveryTracker.
 
-When a new node starts, it goes through three phases to join the network.
+When a new node starts, it goes through four phases to join the network.
 
-## The Three Phases
+## The Four Phases
 
 ```
 New Node                               Existing Node
@@ -24,6 +24,9 @@ New Node                               Existing Node
    │  ─────────────────────────────────────────> │
    │                                              │  Store event
    │  Now visible to other nodes                 │
+   │                                              │
+   │  Phase 4: READY                              │
+   │  Bootstrap complete, node is connected       │
 ```
 
 ### Phase 1: Discover
@@ -45,6 +48,10 @@ No handshake protocol is needed — all required information is publicly availab
 The node pays to publish its own kind:10032 event to the network. BTP claims in the payment are self-describing (include chainId, tokenNetworkAddress, channelId). The receiving node verifies the channel on-chain, then stores the event.
 
 After announcement, other nodes can discover and peer with the new node.
+
+### Phase 4: Ready
+
+Bootstrap is complete. The node is connected to its initial peers and visible on the network. The BootstrapService emits `bootstrap:ready` and hands off to the DiscoveryTracker for ongoing peer management.
 
 ## Bootstrap vs Ongoing Discovery
 
@@ -106,6 +113,6 @@ Monitor bootstrap progress with lifecycle events:
 ```typescript
 node.on('bootstrap', (event) => {
   console.log(`Phase: ${event.phase}`);
-  // Phases: discovering → registering → announcing
+  // Phases: discovering → registering → announcing → ready
 });
 ```
