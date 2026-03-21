@@ -1,7 +1,7 @@
 ---
 project_name: 'toon'
 user_name: 'Jonathan'
-date: '2026-03-17'
+date: '2026-03-20'
 sections_completed:
   [
     'technology_stack',
@@ -13,7 +13,7 @@ sections_completed:
     'critical_rules',
   ]
 status: 'complete'
-rule_count: 412
+rule_count: 456
 optimized_for_llm: true
 ---
 
@@ -67,14 +67,14 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - @noble/curves and @scure libraries share the same secp256k1 implementation as nostr-tools' @noble/curves dependency
 - viem 2.x required for EIP-3009 settlement and EIP-712 typed data verification
 
-## Project Structure (Post-Epic 5)
+## Project Structure (Post-Epic 6)
 
 ```
 toon/
 ├── packages/
 │   ├── town/        # @toon-protocol/town -- SDK-based relay with x402, service discovery, health, TEE health, DVM skill config (Epics 2+3+4+5)
-│   ├── sdk/         # @toon-protocol/sdk -- SDK for building ILP-gated Nostr services + DVM lifecycle (Epics 1+5)
-│   ├── core/        # @toon-protocol/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds
+│   ├── sdk/         # @toon-protocol/sdk -- SDK for building ILP-gated Nostr services + DVM lifecycle + workflow/swarm coordination (Epics 1+5+6)
+│   ├── core/        # @toon-protocol/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events (Epics 1+3+4+5+6)
 │   ├── bls/         # @toon-protocol/bls -- Business Logic Server (payment validation, event storage)
 │   ├── relay/       # @toon-protocol/relay -- Nostr relay + TOON encoding
 │   ├── client/      # @toon-protocol/client -- Client SDK with payment channel support
@@ -99,9 +99,9 @@ toon/
 **Package Dependency Graph:**
 
 ```
-@toon-protocol/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds)
+@toon-protocol/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events)
     ^          ^
-@toon-protocol/bls    @toon-protocol/sdk    <-- siblings, both depend on core
+@toon-protocol/bls    @toon-protocol/sdk    <-- siblings, both depend on core (SDK adds workflow orchestrator, swarm coordinator)
     ^                 ^
     |           +-----+-------+
     |     @toon-protocol/town     @toon-protocol/rig    <-- (Town: Epics 2+3+4+5 DONE, Rig: Epic 8)
@@ -129,12 +129,12 @@ Epic 2: Relay Reference Implementation           COMPLETE (8/8 stories, 40/40 AC
 Epic 3: Production Protocol Economics            COMPLETE (6/6 stories, 26/26 ACs)
 Epic 4: Marlin TEE Deployment                    COMPLETE (6/6 stories, 32/33 ACs)
 Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 ACs)
-Epic 6: Advanced DVM Coordination + TEE          PLANNED
-Epic 7: ILP Address Hierarchy & Protocol Econ    PLANNED (7 stories, design decisions D7-001 through D7-007)
+Epic 6: Advanced DVM Coordination + TEE          COMPLETE (4/4 stories, 21/21 ACs)
+Epic 7: ILP Address Hierarchy & Protocol Econ    PLANNED (6 stories, design decisions D7-001 through D7-007)
 Epic 8: The Rig -- ILP-Gated Git Forge           PLANNED
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination -> Hierarchical addressing & protocol economics -> Build applications on top.
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics -> Build applications on top.
 
 ## Production Architecture Decisions (Party Mode 2026-03-05/06)
 
@@ -179,18 +179,21 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 **Nostr Event Kinds:**
 | Kind | Name | Status |
 |------|------|--------|
-| 5000-5999 | DVM Job Request (NIP-90) | Implemented (Epic 5, Story 5.1) |
+| 5000-5999 | DVM Job Request (NIP-90) | Implemented (Epic 5, Story 5.1; extended Epic 6 with swarm tags) |
 | 5100 | Text Generation DVM | Reference kind (Story 5.1) |
 | 5200 | Image Generation DVM | Defined (Story 5.1) |
 | 5300 | Text-to-Speech DVM | Defined (Story 5.1) |
 | 5302 | Translation DVM | Defined (Story 5.1) |
-| 6000-6999 | DVM Job Result (NIP-90) | Implemented (Epic 5, Story 5.3) |
-| 7000 | DVM Job Feedback (NIP-90) | Implemented (Epic 5, Story 5.3) |
+| 6000-6999 | DVM Job Result (NIP-90) | Implemented (Epic 5, Story 5.3; extended Epic 6 with attestation tag) |
+| 7000 | DVM Job Feedback (NIP-90) | Implemented (Epic 5, Story 5.3; extended Epic 6 with swarm selection/winner tag) |
 | 10032 | ILP Peer Info | Existing |
 | 10033 | TEE Attestation | Implemented (Epic 4, Stories 4.2/4.3/4.6) |
 | 10034 | TEE Verification | Reserved |
-| 10035 | Service Discovery | Implemented (Story 3.5, extended Story 5.4 with skill descriptors) |
+| 10035 | Service Discovery | Implemented (Story 3.5, extended Story 5.4 with skill descriptors, extended Story 6.4 with reputation) |
 | 10036 | Seed Relay List | Implemented (Story 3.4) |
+| 10040 | Workflow Chain Definition | Implemented (Epic 6, Story 6.1) -- NIP-33 parameterized replaceable |
+| 30382 | Web of Trust Declaration | Implemented (Epic 6, Story 6.4) -- NIP-33 parameterized replaceable |
+| 31117 | Job Review | Implemented (Epic 6, Story 6.4) -- NIP-33 parameterized replaceable |
 | ~~23194~~ | ~~SPSP Request~~ | Removed (Story 2.7) |
 | ~~23195~~ | ~~SPSP Response~~ | Removed (Story 2.7) |
 
@@ -216,11 +219,28 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 - "DVM" (Data Vending Machine) -- NIP-90 compute marketplace protocol
 - "Skill descriptor" -- Structured metadata in kind:10035 events advertising DVM capabilities
 
-## @toon-protocol/core (Post-Epic 5)
+## @toon-protocol/core (Post-Epic 6)
 
-Core now includes chain configuration, x402 support, seed relay discovery, service discovery, TEE attestation events, attestation verification, KMS identity derivation, Nix reproducible build infrastructure, and NIP-90 DVM event builders/parsers.
+Core now includes chain configuration, x402 support, seed relay discovery, service discovery, TEE attestation events, attestation verification, KMS identity derivation, Nix reproducible build infrastructure, NIP-90 DVM event builders/parsers, workflow chain events, agent swarm events, TEE-attested result verification, and reputation scoring (reviews, WoT, composite scores).
 
-**New Core Modules (Epic 5):**
+**New Core Modules (Epic 6):**
+
+```
+packages/core/src/
+├── events/
+│   ├── workflow.ts               # buildWorkflowDefinitionEvent(), parseWorkflowDefinition() (Story 6.1)
+│   ├── swarm.ts                  # buildSwarmRequestEvent(), buildSwarmSelectionEvent(),
+│   │                             # parseSwarmRequest(), parseSwarmSelection() (Story 6.2)
+│   ├── attested-result-verifier.ts # AttestedResultVerifier class, hasRequireAttestation() (Story 6.3)
+│   ├── reputation.ts             # buildJobReviewEvent(), parseJobReview(), buildWotDeclarationEvent(),
+│   │                             # parseWotDeclaration(), ReputationScoreCalculator, hasMinReputation() (Story 6.4)
+│   ├── dvm.ts                    # +attestationEventId in JobResultParams/ParsedJobResult (Story 6.3)
+│   └── service-discovery.ts      # +reputation field in SkillDescriptor (Story 6.4)
+└── constants.ts                  # +WORKFLOW_CHAIN_KIND (10040), JOB_REVIEW_KIND (31117),
+                                  #  WEB_OF_TRUST_KIND (30382) (Stories 6.1, 6.4)
+```
+
+**Core Modules (Epic 5):**
 
 ```
 packages/core/src/
@@ -364,6 +384,62 @@ type SkillDescriptor = { name, version, kinds: number[], features: string[], inp
 // parseServiceDiscovery() validates SkillDescriptor when present (lenient parse)
 ```
 
+**Core Public API Additions (Epic 6):**
+
+```typescript
+// Workflow Chain Events (Story 6.1)
+WORKFLOW_CHAIN_KIND = 10040
+buildWorkflowDefinitionEvent(params: WorkflowDefinitionParams, secretKey: Uint8Array): NostrEvent
+parseWorkflowDefinition(event: NostrEvent): ParsedWorkflowDefinition | null
+type WorkflowStep = { kind, description, targetProvider?, bidAllocation? }
+type WorkflowDefinitionParams = { steps: WorkflowStep[], initialInput: { data, type }, totalBid }
+type ParsedWorkflowDefinition = { steps: WorkflowStep[], initialInput: { data, type }, totalBid, workflowId }
+
+// Agent Swarm Events (Story 6.2)
+buildSwarmRequestEvent(params: SwarmRequestParams, secretKey: Uint8Array): NostrEvent
+buildSwarmSelectionEvent(params: SwarmSelectionParams, secretKey: Uint8Array): NostrEvent
+parseSwarmRequest(event: NostrEvent): ParsedSwarmRequest | null
+parseSwarmSelection(event: NostrEvent): ParsedSwarmSelection | null
+type SwarmRequestParams = JobRequestParams & { maxProviders, judge? }
+type SwarmSelectionParams = { requestEventId, customerPubkey, winnerResultEventId, content? }
+type ParsedSwarmRequest = ParsedJobRequest & { maxProviders, judge }
+type ParsedSwarmSelection = { requestEventId, customerPubkey, winnerResultEventId, status, content }
+
+// TEE-Attested DVM Result Verification (Story 6.3)
+class AttestedResultVerifier {
+  constructor(options: AttestedResultVerificationOptions)
+  verifyAttestedResult(resultEvent, parsedResult, attestationEvent, parsedAttestation): AttestedResultVerificationResult
+}
+hasRequireAttestation(params: { key, value }[]): boolean
+type AttestedResultVerificationOptions = { attestationVerifier: AttestationVerifier }
+type AttestedResultVerificationResult = { valid, reason?, attestationState? }
+// JobResultParams extended with optional attestationEventId: string
+// ParsedJobResult extended with optional attestationEventId: string
+
+// Reputation Scoring System (Story 6.4)
+JOB_REVIEW_KIND = 31117
+WEB_OF_TRUST_KIND = 30382
+buildJobReviewEvent(params: JobReviewParams, secretKey: Uint8Array): NostrEvent
+parseJobReview(event: NostrEvent): ParsedJobReview | null
+buildWotDeclarationEvent(params: WotDeclarationParams, secretKey: Uint8Array): NostrEvent
+parseWotDeclaration(event: NostrEvent): ParsedWotDeclaration | null
+class ReputationScoreCalculator {
+  constructor()
+  calculate(signals: ReputationSignals): ReputationScore
+}
+hasMinReputation(params: { key, value }[]): { required: boolean, threshold: number }
+type JobReviewParams = { jobRequestEventId, targetPubkey, rating, role, content? }
+type ParsedJobReview = { jobRequestEventId, targetPubkey, rating, role, content }
+type WotDeclarationParams = { targetPubkey, content? }
+type ParsedWotDeclaration = { targetPubkey, declarerPubkey, content }
+type ReputationSignals = { trustedBy, channelVolumeUsdc, jobsCompleted, avgRating }
+type ReputationScore = { score, signals: ReputationSignals }
+
+// SkillDescriptor extended (Stories 6.3 + 6.4)
+// SkillDescriptor now includes optional `reputation?: ReputationScore` field (Story 6.4)
+// SkillDescriptor.attestation field now populated by buildSkillDescriptor() (Story 6.3)
+```
+
 **Core Public API (Epics 1-3 -- unchanged):**
 
 ```typescript
@@ -392,15 +468,15 @@ SERVICE_DISCOVERY_KIND = 10035
 SEED_RELAY_LIST_KIND = 10036
 ```
 
-## @toon-protocol/sdk (Epics 1+5 -- Complete)
+## @toon-protocol/sdk (Epics 1+5+6 -- Complete)
 
-The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities. It provides a developer-facing abstraction for building ILP-gated Nostr services with the TOON protocol.
+The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities and in Epic 6 with stateful orchestration components (workflow chains, agent swarms). It provides a developer-facing abstraction for building ILP-gated Nostr services with the TOON protocol.
 
-**SDK Source Files (Post-Epic 5):**
+**SDK Source Files (Post-Epic 6):**
 
 ```
 packages/sdk/src/
-├── index.ts                    # Public API exports (+ skill descriptor, SkillDescriptor re-export)
+├── index.ts                    # Public API exports (+ workflow orchestrator, swarm coordinator, skill descriptor)
 ├── identity.ts                 # generateMnemonic(), fromMnemonic(), fromSecretKey()
 ├── errors.ts                   # IdentityError, NodeError, HandlerError, VerificationError, PricingError
 ├── handler-registry.ts         # HandlerRegistry: .on(kind), .onDefault(), dispatch(), getDvmKinds() (Story 5.4)
@@ -409,14 +485,16 @@ packages/sdk/src/
 ├── pricing-validator.ts        # Per-byte, per-kind pricing with self-write bypass
 ├── payment-handler-bridge.ts   # isTransit fire-and-forget vs await semantics
 ├── create-node.ts              # createNode() composition + ServiceNode lifecycle + DVM methods (Stories 5.3, 5.4)
-├── skill-descriptor.ts         # buildSkillDescriptor() -- computes SkillDescriptor from registry (Story 5.4)
+├── skill-descriptor.ts         # buildSkillDescriptor() -- computes SkillDescriptor from registry (Stories 5.4, 6.3, 6.4)
+├── workflow-orchestrator.ts    # WorkflowOrchestrator -- multi-step DVM pipeline state machine (Story 6.1)
+├── swarm-coordinator.ts        # SwarmCoordinator -- competitive DVM bidding state machine (Story 6.2)
 ├── event-storage-handler.ts    # Stub -- throws, directs users to @toon-protocol/town
 └── __integration__/
     ├── create-node.test.ts
     └── network-discovery.test.ts
 ```
 
-**SDK Public API (Post-Epic 5):**
+**SDK Public API (Post-Epic 6):**
 
 ```typescript
 // Identity
@@ -427,10 +505,10 @@ fromSecretKey(secretKey: Uint8Array): NodeIdentity
 // Node composition
 createNode(config: NodeConfig): ServiceNode
 
-// Skill descriptor builder (Story 5.4)
+// Skill descriptor builder (Stories 5.4, 6.3, 6.4)
 buildSkillDescriptor(registry: HandlerRegistry, config?: BuildSkillDescriptorConfig): SkillDescriptor | undefined
 
-// ServiceNode interface (extended in Epic 5)
+// ServiceNode interface (extended in Epics 5+6)
 interface ServiceNode {
   pubkey: string;
   evmAddress: string;
@@ -451,9 +529,41 @@ interface ServiceNode {
   getSkillDescriptor(): SkillDescriptor | undefined;                                                          // Story 5.4
 }
 
+// Workflow Orchestrator (Story 6.1)
+class WorkflowOrchestrator {
+  constructor(node: ServiceNode, workflow: ParsedWorkflowDefinition, options?: WorkflowOrchestratorOptions)
+  getState(): WorkflowState;
+  getCurrentStepIndex(): number;
+  start(): Promise<void>;              // Publishes step 0 job request
+  handleStepResult(resultEvent: NostrEvent): Promise<void>;  // Advance to next step or complete
+  handleStepFailure(feedbackEvent: NostrEvent): Promise<void>;  // Abort workflow
+}
+type WorkflowState = 'pending' | `step_${number}_running` | `step_${number}_failed` | 'completed'
+interface WorkflowEventStore { store(event): Promise<void>; query(filter): Promise<NostrEvent[]> }
+interface WorkflowOrchestratorOptions { secretKey?, stepTimeoutMs?, now?, eventStore?, destination?, workflowEventId?, customerPubkey? }
+
+// Swarm Coordinator (Story 6.2)
+class SwarmCoordinator {
+  constructor(node: ServiceNode, options?: SwarmCoordinatorOptions)
+  getState(): SwarmState;
+  getSubmissions(): NostrEvent[];
+  startSwarm(swarmRequestEvent: NostrEvent): void;         // Begin collecting submissions
+  handleSubmission(resultEvent: NostrEvent): void;          // Collect provider submissions
+  selectWinner(selectionEvent: NostrEvent): Promise<void>;  // Pay winner via settleCompute()
+}
+type SwarmState = 'collecting' | 'judging' | 'settled' | 'failed'
+interface SwarmCoordinatorOptions { secretKey?, timeoutMs?, eventStore?, destination? }
+
 // HandlerRegistry additions (Epic 5)
 class HandlerRegistry {
   getDvmKinds(): number[];  // Returns registered kinds in 5000-5999 range (Story 5.4)
+}
+
+// BuildSkillDescriptorConfig additions (Epic 6)
+interface BuildSkillDescriptorConfig {
+  // ... existing fields from Epic 5 ...
+  reputation?: ReputationScore;                    // Story 6.4: pre-computed reputation score
+  attestation?: { eventId, enclaveImageHash };    // Story 6.3: TEE attestation metadata
 }
 ```
 
@@ -485,6 +595,15 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - `buildSkillDescriptor()` exported: auto-populates `SkillDescriptor` from registry's DVM kinds and pricing config (Story 5.4)
 - Zero production code changes required for DVM job submission (Story 5.2): pipeline is kind-agnostic
 - `direct-ilp-client.ts` fix: empty-data guard enables pure value transfers for compute settlement (Story 5.3)
+
+**SDK Changes in Epic 6 (Advanced DVM Coordination + TEE):**
+- `WorkflowOrchestrator` class added: stateful multi-step DVM pipeline orchestration with state machine, step advancement, per-step settlement, timeout handling, and failure propagation (Story 6.1)
+- `SwarmCoordinator` class added: competitive DVM execution with submission collection, winner selection, settlement to winner only, timeout-based judging (Story 6.2)
+- `BuildSkillDescriptorConfig.attestation` field added: TEE attestation metadata (eventId, enclaveImageHash) for skill descriptor (Story 6.3)
+- `BuildSkillDescriptorConfig.reputation` field added: pre-computed `ReputationScore` for skill descriptor (Story 6.4)
+- `buildSkillDescriptor()` now validates attestation eventId format (64-char hex) when provided (Story 6.3)
+- `SkillDescriptor.reputation` field populated from config when `ReputationScore` is provided (Story 6.4)
+- Both orchestration components are the first **stateful** SDK components -- they maintain internal state machines across multiple ILP packet cycles
 
 ## @toon-protocol/town (Epics 2+3+4+5 -- Complete)
 
@@ -759,9 +878,9 @@ VALID (within validitySeconds, default 300s)
 | Test regressions | 0 |
 | New runtime dependencies | @scure/bip32, @scure/bip39 |
 
-## DVM Compute Marketplace (Epic 5 -- Complete)
+## DVM Compute Marketplace (Epics 5+6 -- Complete)
 
-Epic 5 delivered the DVM (Data Vending Machine) Compute Marketplace foundation for the TOON protocol, enabling ILP-native compute job submission, result delivery, settlement, and programmatic agent-to-agent service discovery.
+Epics 5 and 6 together delivered the full DVM (Data Vending Machine) Compute Marketplace for the TOON protocol: ILP-native compute job submission, result delivery, settlement, programmatic agent-to-agent service discovery (Epic 5), plus multi-step workflow pipelines, competitive agent swarms, TEE-attested results with cryptographic verification, and composite reputation scoring with sybil defenses (Epic 6).
 
 **Epic 5 Stories:**
 | Story | Title | Package | Deliverables |
@@ -869,6 +988,131 @@ packages/sdk/tests/e2e/
 | NFR assessments | 4/4 PASS (second 100% consecutive epic) |
 | Test regressions | 0 |
 | New runtime dependencies | 0 |
+
+## Advanced DVM Coordination + TEE Integration (Epic 6 -- Complete)
+
+Epic 6 delivered the Advanced DVM Coordination and TEE Integration layer: multi-step workflow pipelines, competitive agent swarms, TEE-attested DVM results with cryptographic verification, and composite reputation scoring with sybil defenses.
+
+**Epic 6 Stories:**
+| Story | Title | Package | Deliverables |
+|-------|-------|---------|-------------|
+| 6-1 | Workflow Chains | core + sdk | Kind:10040 workflow definition, WorkflowOrchestrator state machine, step advancement, per-step settlement |
+| 6-2 | Agent Swarms | core + sdk | Swarm request/selection events, SwarmCoordinator state machine, competitive submission collection, winner-only settlement |
+| 6-3 | TEE-Attested DVM Results | core + sdk | AttestedResultVerifier (3-check chain), attestationEventId in Kind 6xxx, hasRequireAttestation(), skill descriptor attestation field |
+| 6-4 | Reputation Scoring System | core + sdk | Kind 31117 (Job Review), Kind 30382 (WoT), ReputationScoreCalculator, hasMinReputation(), reputation in SkillDescriptor |
+
+**Workflow Chains (Story 6.1):**
+
+```
+Customer                    WorkflowOrchestrator              Provider A      Provider B
+   │                              │                              │                │
+   │  Kind 10040 (Workflow Def)   │                              │                │
+   │  steps: [A(5100), B(5200)]   │                              │                │
+   │  totalBid: 1000              │                              │                │
+   │ ─────────────────────────────►                              │                │
+   │                              │  Kind 5100 (Step 0 Request)  │                │
+   │                              │ ─────────────────────────────►                │
+   │                              │  Kind 6100 (Step 0 Result)   │                │
+   │                              │◄──────────────────────────── │                │
+   │                              │  settleCompute(step 0)       │                │
+   │                              │ ─────────────────────────────►                │
+   │                              │  Kind 5200 (Step 1 Request)  │                │
+   │                              │  input = step 0 result       │                │
+   │                              │ ──────────────────────────────────────────────►
+   │                              │  Kind 6200 (Step 1 Result)   │                │
+   │                              │◄──────────────────────────────────────────────│
+   │                              │  settleCompute(step 1)       │                │
+   │                              │ ──────────────────────────────────────────────►
+   │  Kind 7000 (Complete)        │                              │                │
+   │◄──────────────────────────── │                              │                │
+```
+
+- **State machine:** `pending` -> `step_N_running` -> `step_N_failed` (abort) or -> `completed` (all steps done)
+- **Per-step settlement:** `sum(step_amounts) <= total_bid` validated before each settlement
+- **Timeout handling:** Configurable per-step timeout (default 5 min); timeout -> `step_N_failed`
+- **Forward-compatible with Epic 7 prepaid protocol:** Settlement logic isolated in `handleStepResult()`
+
+**Agent Swarms (Story 6.2):**
+
+```
+Customer                    SwarmCoordinator        Provider 1    Provider 2    Provider 3
+   │                              │                    │             │             │
+   │  Kind 5xxx (Swarm Request)   │                    │             │             │
+   │  tags: swarm=3, judge=cust   │                    │             │             │
+   │ ─────────────────────────────►                    │             │             │
+   │                              │ ──[broadcast]──────►─────────────►─────────────►
+   │                              │  Kind 6xxx (sub1)  │             │             │
+   │                              │◄───────────────────│             │             │
+   │                              │  Kind 6xxx (sub2)  │             │             │
+   │                              │◄──────────────────────────────── │             │
+   │                              │  Kind 6xxx (sub3)  │             │             │
+   │                              │◄─────────────────────────────────────────────── │
+   │                              │  -> state: judging │             │             │
+   │  Kind 7000 (Selection)       │                    │             │             │
+   │  tags: winner=sub2_event_id  │                    │             │             │
+   │ ─────────────────────────────►                    │             │             │
+   │                              │  settleCompute()   │             │             │
+   │                              │ ──────────────────────────────── ►             │
+```
+
+- **State machine:** `collecting` -> `judging` (timeout or max reached) -> `settled` (winner paid) or `failed`
+- **Swarm tags are additive:** Standard Kind 5xxx with `['swarm', maxProviders]` and `['judge', judgeId]` tags. Non-swarm-aware providers can still participate.
+- **Winner-only settlement:** Only the winning provider receives compute payment. Losers paid relay write fees only (sunk cost by design).
+- **Deduplication:** Duplicate submissions from same provider are silently ignored.
+
+**TEE-Attested DVM Results (Story 6.3):**
+
+```
+1. Provider runs in TEE, has kind:10033 attestation on relay
+2. Provider receives Kind 5xxx request with require_attestation=true param
+3. Provider attaches attestation reference: ['attestation', attestationEventId] tag on Kind 6xxx result
+4. Customer fetches kind:10033 from relay
+5. AttestedResultVerifier performs 3-check chain:
+   (a) Pubkey match: attestationEvent.pubkey === resultEvent.pubkey
+   (b) PCR validity: AttestationVerifier.verify(parsedAttestation.attestation)
+   (c) Time validity: attestation was VALID at resultEvent.created_at
+6. Result: { valid: true/false, reason?, attestationState? }
+```
+
+- **AttestedResultVerifier is pure logic** -- No transport concerns; caller provides attestation event
+- **Time injection at call site** -- Uses `resultEvent.created_at` as the `now` parameter (not constructor-injected)
+- **`hasRequireAttestation(params)`** -- Utility to check if job request includes `require_attestation=true`
+- **Skill descriptor attestation field** -- `buildSkillDescriptor()` now accepts `attestation: { eventId, enclaveImageHash }` config
+
+**Reputation Scoring System (Story 6.4):**
+
+```
+Composite Formula:
+  score = (trustedBy * 100) + (log10(max(1, channelVolumeUsdc)) * 10) + (jobsCompleted * 5) + (avgRating * 20)
+
+Signals:
+  - trustedBy: Count of Kind 30382 WoT declarations from non-zero-volume declarers (sybil defense)
+  - channelVolumeUsdc: Total USDC settled through payment channels (logarithmic dampening)
+  - jobsCompleted: Count of Kind 6xxx results published (linear scaling)
+  - avgRating: Mean of Kind 31117 reviews rated 1-5 (customer-gated: only job participants can review)
+```
+
+- **Kind 31117 (Job Review):** NIP-33 parameterized replaceable. `d` tag = job request event ID enforces one review per job per reviewer. Tags: `d`, `p` (target), `rating` (1-5), `role` (customer/provider).
+- **Kind 30382 (Web of Trust):** NIP-33 parameterized replaceable. `d` tag = target pubkey enforces one WoT declaration per declarer per target.
+- **ReputationScoreCalculator:** Pure logic class. `calculate(signals)` returns `{ score, signals }`. Handles NaN/Infinity/negative inputs defensively (returns finite score or 0).
+- **`hasMinReputation(params)`:** Extracts `min_reputation` threshold from parsed job request params. Enables provider self-filtering.
+- **Self-reported reputation:** Providers embed scores in Kind 10035 skill descriptors. Independently verifiable but not protocol-enforced (acknowledged design tradeoff).
+- **Sybil defenses:** Customer-gated reviews (only job participants can review), threshold WoT (endorsements from established nodes only).
+
+**Epic 6 Metrics (Final -- 4/4 stories):**
+
+| Metric | Value |
+|--------|-------|
+| Stories delivered | 4/4 (100%) |
+| Acceptance criteria | 21 total, 21 covered (100%) |
+| Story-specific tests | 286 |
+| Monorepo test count (start) | 2,144 passed (baseline after epic start cleanup) |
+| Monorepo test count (end) | 2,526 passed |
+| Code review issues | 44 found, 38 fixed, 6 acknowledged (low), 0 remaining |
+| Security scan findings (production) | 0 (3rd consecutive epic) |
+| NFR assessments | 4/4 PASS (3rd consecutive 100%) |
+| Test regressions | 0 (6th consecutive epic) |
+| New runtime dependencies | 0 (2nd consecutive epic) |
 
 ## Critical Implementation Rules
 
@@ -1091,14 +1335,57 @@ packages/sdk/tests/e2e/
 - **settleCompute() validates providerIlpAddress** -- Non-empty, non-whitespace string required
 - **Bid validation is customer-side** -- Provider cannot override the check; customer's `originalBid` parameter controls whether overcharge is allowed
 
-**Skill Descriptors (Story 5.4):**
+**Skill Descriptors (Stories 5.4, 6.3, 6.4):**
 
 - **`buildSkillDescriptor()` returns `undefined` when no DVM handlers** -- Backward compatible with pre-DVM nodes
 - **`SkillDescriptor.pricing` uses string keys and string values** -- Kind numbers as strings (JSON keys must be strings), amounts as strings (bigint-compatible)
 - **`Object.hasOwn()` for kindPricing lookup** -- Prototype-safe access pattern (consistent with pricing validator)
 - **`parseServiceDiscovery()` validates skill field** -- All SkillDescriptor fields validated with type guards; invalid skill field -> returns null
 - **Town propagation:** `TownConfig.skill` -> `serviceDiscoveryContent.skill` -> `buildServiceDiscoveryEvent()` -> kind:10035 event
-- **attestation field is placeholder** -- Reserved for Epic 6 Story 6.3 (TEE-attested DVM results)
+- **attestation field populated from config** -- `buildSkillDescriptor()` validates eventId as 64-char hex (Story 6.3)
+- **reputation field populated from config** -- `buildSkillDescriptor()` passes `ReputationScore` through to `SkillDescriptor.reputation` (Story 6.4)
+
+### Coordination-Specific Rules (Epic 6)
+
+**Workflow Orchestrator (Story 6.1):**
+
+- **WorkflowOrchestrator is a stateful component** -- First stateful SDK component. Maintains state machine across multiple ILP packet cycles.
+- **State machine pattern:** Explicit states (`pending`, `step_N_running`, `step_N_failed`, `completed`), guarded transitions, timeout-driven progression
+- **Per-step settlement validates `sum(step_amounts) <= total_bid`** -- Prevents total settlement from exceeding the workflow's total bid
+- **Injectable `now()` for deterministic testing** -- `options.now` provides injectable time source
+- **WorkflowEventStore interface is minimal** -- Only `store()` and `query()` methods required. Keeps the dependency surface small.
+- **Timeout is a failure mode, not a separate state** -- Timeout produces `step_N_failed` with timeout cause in notification content
+- **Forward-compatible with Epic 7 prepaid protocol** -- Settlement logic isolated in `handleStepResult()` for easy swap to prepaid per-step payment
+
+**Swarm Coordinator (Story 6.2):**
+
+- **SwarmCoordinator manages a single swarm per instance** -- For concurrent swarms, create multiple instances sharing the same ServiceNode
+- **4-state machine:** `collecting` -> `judging` -> `settled` or `failed`
+- **Swarm tags are additive to standard Kind 5xxx** -- Non-swarm-aware providers can still participate via standard Kind 5xxx path
+- **Winner-only settlement** -- Only winning provider receives compute payment. Losers pay relay write fees only (sunk cost by design).
+- **`setTimeout` divergence (known tech debt)** -- Uses `setTimeout` directly instead of injectable `now()` pattern. Works with Vitest fake timers but inconsistent with WorkflowOrchestrator pattern. (Epic 6 retro A2)
+- **Deduplication by provider pubkey** -- Duplicate submissions from same provider silently ignored
+- **Winner selection requires valid swarm selection event** -- `parseSwarmSelection()` must return valid result with matching requestEventId
+
+**TEE-Attested DVM Results (Story 6.3):**
+
+- **AttestedResultVerifier is pure logic** -- No transport layer, no WebSocket connections (follows AttestationVerifier pattern from Story 4.3)
+- **3-check verification chain:** (a) pubkey match, (b) PCR validity, (c) time validity
+- **Time injection at call site, not constructor** -- Uses `resultEvent.created_at` as `now` parameter in `getAttestationState()`
+- **`hasRequireAttestation()` is a simple param scanner** -- Returns boolean based on `require_attestation=true` in params array
+- **attestationEventId in Kind 6xxx is optional** -- Backward compatible. Non-TEE providers omit the tag. Parsers return `undefined` for missing tag.
+- **Skill descriptor attestation eventId validated** -- `buildSkillDescriptor()` throws `ToonError` for non-64-char-hex attestation eventId
+
+**Reputation Scoring (Story 6.4):**
+
+- **ReputationScoreCalculator is pure logic** -- No state, no transport. `calculate(signals)` is a pure function.
+- **Composite formula uses logarithmic dampening for volume** -- `log10(max(1, channelVolumeUsdc))` prevents volume dominance
+- **All amounts are numbers (not strings) in ReputationSignals** -- Unlike DVM bid/amount which are strings, reputation signals use native numbers for formula computation
+- **Handles non-finite inputs defensively** -- NaN, Infinity, negative values produce finite score (0 or reasonable default)
+- **Kind 31117 uses NIP-33 parameterized replaceable semantics** -- `d` tag = job request event ID, allowing one review per job per reviewer
+- **Kind 30382 uses NIP-33 parameterized replaceable semantics** -- `d` tag = target pubkey, enforcing one WoT declaration per declarer per target
+- **Rating validated as integer 1-5** -- Builder throws `ToonError` for out-of-range or non-integer ratings
+- **Self-reported reputation is a design tradeoff** -- Providers embed own scores in kind:10035. Independently verifiable from raw review/WoT events but not protocol-enforced.
 
 ### Chain Configuration Rules (Epic 3)
 
@@ -1125,7 +1412,7 @@ packages/sdk/tests/e2e/
 
 - **Always mock SimplePool in tests** -- Never connect to live relays in unit or integration tests (use `vi.mock('nostr-tools')`)
 - **Validate event signatures before processing** -- Never trust unsigned/unverified Nostr events
-- **Use proper event kinds** -- Kind 10032 (ILP Peer Info), Kind 10033 (TEE Attestation), Kind 10035 (Service Discovery), Kind 10036 (Seed Relay List), Kinds 5000-5999 (DVM Job Request), Kinds 6000-6999 (DVM Job Result), Kind 7000 (DVM Job Feedback). Kinds 23194/23195 (SPSP) have been removed (Story 2.7)
+- **Use proper event kinds** -- Kind 10032 (ILP Peer Info), Kind 10033 (TEE Attestation), Kind 10035 (Service Discovery), Kind 10036 (Seed Relay List), Kind 10040 (Workflow Chain), Kinds 5000-5999 (DVM Job Request), Kinds 6000-6999 (DVM Job Result), Kind 7000 (DVM Job Feedback), Kind 31117 (Job Review), Kind 30382 (Web of Trust). Kinds 23194/23195 (SPSP) have been removed (Story 2.7)
 - **NIP-44 encryption** -- Available for private event exchange when needed
 - **SimplePool `ReferenceError: window is not defined` is non-fatal** -- This error appears in Node.js but doesn't break functionality
 - **Use raw `ws` WebSocket for server-side relay communication** -- SeedRelayDiscovery and attestation server avoid SimplePool for Node.js compatibility
@@ -1261,20 +1548,21 @@ packages/sdk/tests/e2e/
 
 **Naming Conventions:**
 
-- **Files (source):** PascalCase for classes, kebab-case for utilities and SDK modules (`BusinessLogicServer.ts`, `handler-registry.ts`, `create-node.ts`, `town.ts`, `x402-publish-handler.ts`, `AttestationVerifier.ts`, `AttestationBootstrap.ts`, `nix-builder.ts`, `pcr-validator.ts`, `kms-identity.ts`, `dvm.ts`, `skill-descriptor.ts`)
-- **Files (test):** Match source with `.test.ts` suffix (`handler-registry.test.ts`, `town.test.ts`, `attestation.test.ts`, `kms-identity.test.ts`, `nix-reproducibility.test.ts`, `attestation-bootstrap.test.ts`, `dvm.test.ts`, `skill-descriptor.test.ts`, `dvm-handler-dispatch.test.ts`, `dvm-lifecycle.test.ts`)
-- **Classes:** PascalCase (`SocialPeerDiscovery`, `HandlerRegistry`, `SeedRelayDiscovery`, `AttestationVerifier`, `AttestationBootstrap`, `NixBuilder`)
-- **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`, `ChainPreset`, `ServiceDiscoveryContent`, `TeeAttestation`, `ParsedAttestation`, `AttestationVerifierConfig`, `KmsKeypair`, `NixBuildResult`, `PcrReproducibilityResult`, `TeeHealthInfo`, `JobRequestParams`, `JobResultParams`, `JobFeedbackParams`, `ParsedJobRequest`, `ParsedJobResult`, `ParsedJobFeedback`, `SkillDescriptor`, `BuildSkillDescriptorConfig`)
-- **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`, `startTown`, `resolveChainConfig`, `buildIlpPrepare`, `deriveFromKmsSeed`, `verifyPcrReproducibility`, `analyzeDockerfileForNonDeterminism`)
+- **Files (source):** PascalCase for classes, kebab-case for utilities and SDK modules (`BusinessLogicServer.ts`, `handler-registry.ts`, `create-node.ts`, `town.ts`, `x402-publish-handler.ts`, `AttestationVerifier.ts`, `AttestationBootstrap.ts`, `nix-builder.ts`, `pcr-validator.ts`, `kms-identity.ts`, `dvm.ts`, `skill-descriptor.ts`, `workflow.ts`, `swarm.ts`, `attested-result-verifier.ts`, `reputation.ts`, `workflow-orchestrator.ts`, `swarm-coordinator.ts`)
+- **Files (test):** Match source with `.test.ts` suffix (`handler-registry.test.ts`, `town.test.ts`, `attestation.test.ts`, `kms-identity.test.ts`, `nix-reproducibility.test.ts`, `attestation-bootstrap.test.ts`, `dvm-builders.test.ts`, `dvm-parsers.test.ts`, `dvm-roundtrip.test.ts`, `dvm-constants.test.ts`, `skill-descriptor.test.ts`, `dvm-handler-dispatch.test.ts`, `dvm-lifecycle.test.ts`, `workflow.test.ts`, `swarm.test.ts`, `attested-result-verifier.test.ts`, `reputation.test.ts`, `workflow-orchestrator.test.ts`, `swarm-coordinator.test.ts`)
+- **Classes:** PascalCase (`SocialPeerDiscovery`, `HandlerRegistry`, `SeedRelayDiscovery`, `AttestationVerifier`, `AttestationBootstrap`, `NixBuilder`, `WorkflowOrchestrator`, `SwarmCoordinator`, `AttestedResultVerifier`, `ReputationScoreCalculator`)
+- **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`, `ChainPreset`, `ServiceDiscoveryContent`, `TeeAttestation`, `ParsedAttestation`, `AttestationVerifierConfig`, `KmsKeypair`, `NixBuildResult`, `PcrReproducibilityResult`, `TeeHealthInfo`, `JobRequestParams`, `JobResultParams`, `JobFeedbackParams`, `ParsedJobRequest`, `ParsedJobResult`, `ParsedJobFeedback`, `SkillDescriptor`, `BuildSkillDescriptorConfig`, `WorkflowStep`, `WorkflowDefinitionParams`, `ParsedWorkflowDefinition`, `SwarmRequestParams`, `SwarmSelectionParams`, `ParsedSwarmRequest`, `ParsedSwarmSelection`, `AttestedResultVerificationOptions`, `AttestedResultVerificationResult`, `JobReviewParams`, `ParsedJobReview`, `WotDeclarationParams`, `ParsedWotDeclaration`, `ReputationSignals`, `ReputationScore`, `WorkflowEventStore`, `WorkflowOrchestratorOptions`, `SwarmCoordinatorOptions`)
+- **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`, `startTown`, `resolveChainConfig`, `buildIlpPrepare`, `deriveFromKmsSeed`, `verifyPcrReproducibility`, `analyzeDockerfileForNonDeterminism`, `hasRequireAttestation`, `hasMinReputation`)
 - **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `createEventStorageHandler`, `createX402Handler`, `createHealthResponse`)
 - **Lifecycle functions:** `start*` prefix (`startTown`)
-- **Builder functions:** `build*` prefix (`buildIlpPrepare`, `buildSeedRelayListEvent`, `buildServiceDiscoveryEvent`, `buildEip712Domain`, `buildIlpPeerInfoEvent`, `buildAttestationEvent`, `buildJobRequestEvent`, `buildJobResultEvent`, `buildJobFeedbackEvent`, `buildSkillDescriptor`)
-- **Parser functions:** `parse*` prefix (`parseSeedRelayList`, `parseServiceDiscovery`, `parseIlpPeerInfo`, `parseAttestation`, `parseJobRequest`, `parseJobResult`, `parseJobFeedback`)
+- **Builder functions:** `build*` prefix (`buildIlpPrepare`, `buildSeedRelayListEvent`, `buildServiceDiscoveryEvent`, `buildEip712Domain`, `buildIlpPeerInfoEvent`, `buildAttestationEvent`, `buildJobRequestEvent`, `buildJobResultEvent`, `buildJobFeedbackEvent`, `buildSkillDescriptor`, `buildWorkflowDefinitionEvent`, `buildSwarmRequestEvent`, `buildSwarmSelectionEvent`, `buildJobReviewEvent`, `buildWotDeclarationEvent`)
+- **Parser functions:** `parse*` prefix (`parseSeedRelayList`, `parseServiceDiscovery`, `parseIlpPeerInfo`, `parseAttestation`, `parseJobRequest`, `parseJobResult`, `parseJobFeedback`, `parseWorkflowDefinition`, `parseSwarmRequest`, `parseSwarmSelection`, `parseJobReview`, `parseWotDeclaration`)
 - **Derivation functions:** `derive*` prefix (`deriveFromKmsSeed`)
-- **Verification functions:** `verify*` prefix (`verifyPcrReproducibility`)
-- **Constants:** UPPER_SNAKE_CASE (`ILP_PEER_INFO_KIND`, `MAX_PAYLOAD_BASE64_LENGTH`, `SERVICE_DISCOVERY_KIND`, `SEED_RELAY_LIST_KIND`, `MOCK_USDC_ADDRESS`, `USDC_DECIMALS`, `TEE_ATTESTATION_KIND`, `JOB_REQUEST_KIND_BASE`, `JOB_RESULT_KIND_BASE`, `JOB_FEEDBACK_KIND`, `TEXT_GENERATION_KIND`, `IMAGE_GENERATION_KIND`, `TEXT_TO_SPEECH_KIND`, `TRANSLATION_KIND`)
+- **Verification functions:** `verify*` prefix (`verifyPcrReproducibility`, `verifyAttestedResult`)
+- **Predicate functions:** `has*` prefix (`hasRequireAttestation`, `hasMinReputation`)
+- **Constants:** UPPER_SNAKE_CASE (`ILP_PEER_INFO_KIND`, `MAX_PAYLOAD_BASE64_LENGTH`, `SERVICE_DISCOVERY_KIND`, `SEED_RELAY_LIST_KIND`, `MOCK_USDC_ADDRESS`, `USDC_DECIMALS`, `TEE_ATTESTATION_KIND`, `JOB_REQUEST_KIND_BASE`, `JOB_RESULT_KIND_BASE`, `JOB_FEEDBACK_KIND`, `TEXT_GENERATION_KIND`, `IMAGE_GENERATION_KIND`, `TEXT_TO_SPEECH_KIND`, `TRANSLATION_KIND`, `WORKFLOW_CHAIN_KIND`, `JOB_REVIEW_KIND`, `WEB_OF_TRUST_KIND`)
 - **Enums:** PascalCase names, string values (`AttestationState.VALID = 'valid'`)
-- **Type aliases:** PascalCase (`TrustScore`, `BootstrapPhase`, `ToonRoutingMeta`, `ResolvedTownConfig`, `ChainName`, `AttestationBootstrapEvent`, `DvmJobStatus`)
+- **Type aliases:** PascalCase (`TrustScore`, `BootstrapPhase`, `ToonRoutingMeta`, `ResolvedTownConfig`, `ChainName`, `AttestationBootstrapEvent`, `DvmJobStatus`, `WorkflowState`, `SwarmState`)
 - **Event types:** Discriminated unions with `type` field (`BootstrapEvent`, `AttestationBootstrapEvent`)
 
 **Code Organization:**
@@ -1291,7 +1579,7 @@ packages/sdk/tests/e2e/
 - **Identity subdirectory** -- Core identity derivation in `src/identity/` (kms-identity.ts)
 - **Build subdirectory** -- Core Nix build infrastructure in `src/build/` (nix-builder.ts, pcr-validator.ts)
 - **Bootstrap subdirectory** -- Core attestation classes in `src/bootstrap/` (AttestationVerifier.ts, AttestationBootstrap.ts alongside BootstrapService.ts)
-- **Events subdirectory** -- Core event builders/parsers in `src/events/` (attestation.ts, dvm.ts, seed-relay.ts, service-discovery.ts)
+- **Events subdirectory** -- Core event builders/parsers in `src/events/` (attestation.ts, dvm.ts, seed-relay.ts, service-discovery.ts, workflow.ts, swarm.ts, attested-result-verifier.ts, reputation.ts)
 - **tsconfig.json excludes** -- Root tsconfig excludes `packages/rig` and `archive`
 
 **Documentation:**
@@ -1308,7 +1596,7 @@ packages/sdk/tests/e2e/
 **Git/Repository:**
 
 - **Main branch:** `main` (default for PRs)
-- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics, `epic-4` for TEE, `epic-5` for DVM)
+- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics, `epic-4` for TEE, `epic-5` for DVM, `epic-6` for Advanced DVM Coordination)
 - **Monorepo with pnpm workspaces** -- All packages managed together
 - **Conventional commits** -- Use prefixes: `feat(story):`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`
 - **Story-scoped commits** -- `feat(4-2): TEE attestation events`
@@ -1475,32 +1763,44 @@ packages/sdk/tests/e2e/
 - **Skill descriptors extend kind:10035, not a new event kind** -- DVM capabilities are embedded in the existing service discovery event type via the `skill` field
 - **NIP-90 currency extension** -- TOON adds `'usdc'` as third element in `bid` and `amount` tags. Standard NIP-90 uses satoshis. The currency tag enables cross-ecosystem interoperability.
 - **Docker E2E tests share helpers** -- `docker-e2e-setup.ts` contains shared constants, ABIs, node factories, and health checks used by all SDK E2E test files
+- **WorkflowOrchestrator is the first stateful SDK component** -- Maintains state machine across multiple ILP packet cycles. Correctness depends on state transitions, not just input/output transformations.
+- **SwarmCoordinator uses setTimeout directly** -- Known divergence from WorkflowOrchestrator's injectable `now()` pattern. Works with Vitest fake timers but inconsistent (Epic 6 retro A2).
+- **Workflow step advancement feeds step N output as step N+1 input** -- The `data` field from the step N result event becomes the `data` field in the step N+1 job request
+- **Swarm tags are additive to standard Kind 5xxx** -- `['swarm', maxProviders]` and `['judge', judgeId]` tags. Non-swarm-aware providers can participate without modification.
+- **Kind 6xxx attestationEventId tag is optional** -- Backward compatible. Non-TEE providers omit it. `parseJobResult()` returns `undefined` for missing tag.
+- **AttestedResultVerifier uses resultEvent.created_at as `now`** -- Not constructor-injected time. The result event's timestamp determines whether attestation was valid.
+- **Self-reported reputation is a design tradeoff** -- Providers embed own scores in kind:10035. Independently verifiable but not protocol-enforced. Full enforcement would require consensus or a trusted aggregator.
+- **Kind 31117 and Kind 30382 use NIP-33 parameterized replaceable semantics** -- Unlike kind:10033 (NIP-16 replaceable), these require `d` tags for parameterized replacement.
+- **ReputationScoreCalculator handles non-finite inputs** -- NaN, Infinity, negative values produce finite scores (defensive programming)
+- **Zero E2E tests executed in Epic 6** -- All 9 deferred E2E test IDs require live infrastructure. This is the first epic with zero E2E execution.
 
 ---
 
-## Known Action Items (From Epic 5 Final Retro)
+## Known Action Items (From Epic 6 Final Retro)
 
-**Must-Do for Epic 6:**
-- ~~A1: Standardize test counting between pipeline steps~~ RESOLVED (Epic 6 start: root vitest.config.ts now includes `docker/src/**/*.test.ts`; 58 docker tests previously missing from root count)
-- ~~A2: Update project-context.md DVM event kinds table~~ RESOLVED (this regeneration)
-- A3: Enforce ATDD RED-phase discipline -- ATDD step should produce failing tests only, never production code (Story 5-4 deviation). ACKNOWLEDGED: process agreement, no code change needed.
+**Must-Do for Epic 7:**
+- A1: **Address accumulated E2E test debt (17+ deferred items)** -- Zero E2E tests executed in Epic 6. Cumulative deferred count is 17+ across Epics 3-6. Prioritize T-6.1-16 and T-6.2-14 (multi-step coordination with real infrastructure).
+- A2: **Standardize injectable time pattern across coordination components** -- SwarmCoordinator uses `setTimeout` while WorkflowOrchestrator uses injectable `now()`. Standardize before adding more coordination components.
 
 **Should-Do:**
-- ~~A4: Split large test files~~ RESOLVED (Epic 6 start: `dvm.test.ts` (2,704 lines) split into `dvm-builders.test.ts`, `dvm-parsers.test.ts`, `dvm-roundtrip.test.ts`, `dvm-constants.test.ts` + shared `dvm-test-helpers.ts`. 149 tests preserved.)
-- A5: Add direct WebSocket subscription test for DVM events -- Deferred to story-level work. Indirect coverage via pipeline; direct test requires genesis infra in CI (now available).
-- A6: Implement multi-hop routing fee E2E test -- Deferred to story-level work. P3 nightly priority. Validates fee accumulation across ILP hops for compute settlement.
-- ~~A7: Harden parseJobResult() numeric amount validation~~ RESOLVED (Epic 6 start: added `/^\d+$/` regex validation in `parseJobResult()`. Non-numeric, decimal, negative amounts now return null. 6 new tests added.)
-- A8: Set up facilitator ETH monitoring -- Deferred: requires infrastructure setup. 3 epics deferred (carried from Epic 3 A8). x402 facilitator account needs ETH monitoring.
-- ~~A9: Commit flake.lock~~ RESOLVED (Epic 6 start: verified flake.lock is not gitignored; file does not exist yet because `nix flake lock` has not been run. Will be auto-tracked when generated.)
-- A10: Establish load testing infrastructure -- Deferred: requires significant setup beyond epic start. All Epic 5 NFRs flagged this. DVM compute workloads make performance baselines urgent.
+- A3: Establish load testing infrastructure -- Deferred 6 epics (from Epic 1 NFR). All Epic 6 NFRs flagged this. Stateful orchestration and swarm coordination need performance baselines.
+- A4: Set up facilitator ETH monitoring -- Deferred 4 epics (from Epic 3 A8). x402 facilitator account needs ETH monitoring.
+- A5: Commit flake.lock -- Deferred 3 epics (from Epic 4 A5). Requires Nix installation.
+- A6: Add protocol-level reputation score verification -- Self-reported reputation is acknowledged tradeoff. Consider lightweight verification (relay-side score recomputation) when marketplace usage grows.
+- A7: Formal SLOs for DVM job lifecycle -- With workflow chains and swarm coordination, job lifecycle SLOs (submission-to-result latency, settlement time) are increasingly relevant.
 
 **Nice-to-Have:**
-- A11: Runtime re-publication of kind:10035 on handler change -- Story 5-4 stretch goal. `getSkillDescriptor()` reads live; no auto re-publish.
-- A12: Docker E2E for full schema-to-request agent path -- Story 5-4 T-INT-05. Unit-level composition test exists; Docker E2E deferred.
-- A13: Publish @toon-protocol/town to npm -- Carried from Epic 2 A3, 3 A14, 4 A14.
-- A14: Add real Nix integration tests -- Carried from Epic 4 A12. Requires Nix in CI runner.
-- A15: Implement deferred P3 E2E tests from Epics 3-5 -- T-3.4-12, 3.6-E2E-001, T-4.1-03, T-4.1-04, T-RISK-02.
-- A16: Fix NIP-33/NIP-16 doc discrepancy -- Carried from Epic 3 A13, 4 A16.
+- A8: Runtime re-publication of kind:10035 on handler/reputation change -- Carried from Epic 5 A11. Reputation scores embedded in skill descriptors are static after initial publication.
+- A9: Weighted WoT model for reputation scoring -- Threshold WoT is simpler but less nuanced. Weighted trust propagation would improve sybil resistance.
+- A10: Publish @toon-protocol/town to npm -- Carried from Epic 2 A3, 3 A14, 4 A14, 5 A13.
+- A11: Fix NIP-33/NIP-16 doc discrepancy -- Carried from Epic 3 A13, 4 A16, 5 A16.
+- A12: Docker E2E for full workflow chain lifecycle -- T-6.1-16: requires 2+ DVM providers in Docker with relay orchestration.
+- A13: Docker E2E for swarm competitive execution -- T-6.2-14: requires multiple competing providers in Docker.
+
+**Resolved Action Items (from Epic 5 retro, resolved at Epic 6 start):**
+- ~~A1: Standardize test counting between pipeline steps~~ RESOLVED (root vitest.config.ts now includes `docker/src/**/*.test.ts`)
+- ~~A4: Split large test files~~ RESOLVED (`dvm.test.ts` split into `dvm-builders.test.ts`, `dvm-parsers.test.ts`, `dvm-roundtrip.test.ts`, `dvm-constants.test.ts`)
+- ~~A7: Harden parseJobResult() numeric amount validation~~ RESOLVED (added `/^\d+$/` regex validation, 6 new tests)
 
 **Resolved Action Items (from Epic 4 retro, resolved at Epic 5 start):**
 - ~~A1: Set up genesis node in CI~~ RESOLVED (CI pipeline enhanced with security audit, format check, SDK E2E infra)
@@ -1530,7 +1830,11 @@ packages/sdk/tests/e2e/
 - Use string amounts for DVM bid/cost values (bigint-compatible, JSON-safe)
 - Use lenient parse pattern (return null) for DVM event parsers (consistent with service-discovery and attestation parsers)
 - Use thin wrapper pattern for DVM lifecycle methods (publishFeedback/publishResult delegate to publishEvent)
-- Budget 1-2x test amplification for extension stories, 3-5x for novel stories (Epic 5 amplification was 1.1-1.8x)
+- Budget 1.5-2x test amplification for novel stories, 1-1.5x for extension stories (Epic 6 amplification averaged 1.55x)
+- Use state machine pattern for coordination components: explicit states, guarded transitions, timeout-driven progression (Epic 6)
+- Use injectable `now()` functions for testable time-dependent components (Epic 6, team agreement #10)
+- Use DI callbacks for orchestration classes (WorkflowOrchestrator EventStore/settle, SwarmCoordinator EventStore/settle)
+- Use NIP-33 parameterized replaceable semantics (with `d` tag) for per-entity-per-author deduplication (Kind 31117, Kind 30382)
 
 **For Humans:**
 
@@ -1539,4 +1843,4 @@ packages/sdk/tests/e2e/
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-03-17
+Last Updated: 2026-03-20

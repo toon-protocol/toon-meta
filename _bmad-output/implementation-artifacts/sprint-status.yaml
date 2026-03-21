@@ -107,7 +107,7 @@ development_status:
   6-2-agent-swarms: done
   6-3-tee-attested-dvm-results: done
   6-4-reputation-scoring-system: done
-  epic-6-retrospective: optional
+  epic-6-retrospective: done
 
   # Epic 7: ILP Address Hierarchy & Protocol Economics
   # Decision source: Party Mode 2026-03-20 — ILP addressing + fee calculation
