@@ -1,26 +1,33 @@
 # Architecture
 
-TOON is a monorepo with packages organized into three layers. Each layer has a single responsibility.
+TOON Protocol is a monorepo with packages organized into four layers. Each layer has a single responsibility.
 
 ## System Layers
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Discovery Layer                                    │
-│  @toon-protocol/core                                    │
+│  @toon-protocol/core                                │
 │  Find peers via Nostr events (kind:10032)           │
 │  Bootstrap into the network                         │
 ├─────────────────────────────────────────────────────┤
+│  Addressing Layer                                   │
+│  Hierarchical ILP addresses from peering topology   │
+│  g.toon → g.toon.{peer} → g.toon.{peer}.{child}    │
+│  Fee-per-byte advertisement for routing economics   │
+├─────────────────────────────────────────────────────┤
 │  Payment Layer                                      │
-│  ILP Connector (@toon-protocol/connector)               │
+│  ILP Connector (@toon-protocol/connector)           │
 │  Route micropayments between peers                  │
-│  Manage payment channels                            │
+│  Each hop deducts its fee and forwards the rest     │
 ├─────────────────────────────────────────────────────┤
 │  Storage Layer                                      │
-│  @toon-protocol/relay + @toon-protocol/bls                  │
+│  @toon-protocol/relay + @toon-protocol/bls          │
 │  Accept paid events, store them, serve for free     │
 └─────────────────────────────────────────────────────┘
 ```
+
+**Key distinction:** Identity (Nostr pubkey) is permanent. ILP addresses are ephemeral — derived from peering topology, one per upstream connection. A node with two upstream peers has two ILP addresses. See [Protocol — ILP Address Hierarchy](protocol.md#ilp-address-hierarchy) for details.
 
 ## Package Dependency Graph
 
@@ -36,9 +43,9 @@ TOON is a monorepo with packages organized into three layers. Each layer has a s
 └── @toon-protocol/core
 ```
 
-- **`@toon-protocol/core`** — Foundation with no TOON dependencies. Provides bootstrap, discovery, settlement negotiation, TOON codec, and NIP-34 handling.
+- **`@toon-protocol/core`** — Foundation with no TOON dependencies. Provides bootstrap, discovery, settlement negotiation, [TOON](https://github.com/toon-format/toon) codec, and [NIP-34](https://github.com/nostr-protocol/nips/blob/master/34.md) handling.
 - **`@toon-protocol/sdk`** — Framework layer. Adds identity derivation, handler registry, verification pipeline, pricing validation, and node composition on top of core.
-- **`@toon-protocol/relay`** — Nostr relay server with WebSocket (NIP-01), SQLite event store, and upstream relay propagation.
+- **`@toon-protocol/relay`** — [Nostr](https://github.com/nostr-protocol/nips) relay server with WebSocket ([NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md)), SQLite event store, and upstream relay propagation.
 - **`@toon-protocol/town`** — Production relay. Composes SDK + relay + BLS + storage into a single `startTown()` call.
 - **`@toon-protocol/bls`** — Standalone business logic server. HTTP endpoint that validates ILP packets and stores events.
 - **`@toon-protocol/faucet`** — Development tool. Distributes test ETH and tokens for local development.
@@ -79,7 +86,7 @@ Client              Relay
   │ <─────────────── │
 ```
 
-Reads use the standard Nostr WebSocket protocol (NIP-01). Events are served in TOON format.
+Reads use the standard [Nostr](https://github.com/nostr-protocol/nips) WebSocket protocol ([NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md)). Events are served in [TOON format](https://github.com/toon-format/toon).
 
 ## Deployment Modes
 

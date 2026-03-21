@@ -58,7 +58,7 @@ Inspired by [@aoTheComputer](https://x.com/aoTheComputer) banner — minimal, te
 |-------|-------|
 | **Dimensions** | 3000x1000 (2x of X's recommended 1500x500 for Retina sharpness) |
 | **Background** | Parchment `#ece7d3` (solid fill) |
-| **Text** | `WHERE EVERY TOKEN COUNTS.` |
+| **Text** | `The Incentive Computer.` |
 | **Font** | Courier New, 72px |
 | **Text color** | Charcoal `#1b1b1f` |
 | **Position** | Right-aligned with 200px right margin, vertically centered (offset -20px above true center) |
@@ -74,7 +74,7 @@ img = Image.new('RGB', (W, H), (236, 231, 211))
 draw = ImageDraw.Draw(img)
 font = ImageFont.truetype('Courier New.ttf', 72)  # or system path
 
-text = 'WHERE EVERY TOKEN COUNTS.'
+text = 'The Incentive Computer.'
 bbox = draw.textbbox((0, 0), text, font=font)
 tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
 

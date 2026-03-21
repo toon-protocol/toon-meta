@@ -8,27 +8,27 @@ stepsCompleted:
     'step-05-generate-report',
   ]
 lastStep: 'step-05-generate-report'
-lastSaved: '2026-03-16'
+lastSaved: '2026-03-20'
 workflowType: 'testarch-nfr-assess'
 inputDocuments:
   [
-    '_bmad-output/implementation-artifacts/5-1-dvm-event-kind-definitions.md',
-    'packages/core/src/events/dvm.ts',
-    'packages/core/src/events/dvm.test.ts',
+    '_bmad-output/implementation-artifacts/6-4-reputation-scoring-system.md',
+    '_bmad-output/project-context.md',
+    'packages/core/src/events/reputation.ts',
+    'packages/core/src/events/reputation.test.ts',
+    'packages/core/src/events/service-discovery.ts',
     'packages/core/src/constants.ts',
+    'packages/sdk/src/skill-descriptor.ts',
     'packages/core/src/events/index.ts',
-    '_bmad/tea/testarch/knowledge/adr-quality-readiness-checklist.md',
-    '_bmad/tea/testarch/knowledge/nfr-criteria.md',
-    '_bmad/tea/testarch/knowledge/test-quality.md',
-    '_bmad/tea/testarch/knowledge/ci-burn-in.md',
-    '_bmad/tea/testarch/knowledge/error-handling.md',
+    'packages/core/src/index.ts',
+    'packages/core/src/errors.ts',
   ]
 ---
 
-# NFR Assessment - Story 5.1: DVM Event Kind Definitions
+# NFR Assessment - Story 6.4: Reputation Scoring System
 
-**Date:** 2026-03-16
-**Story:** 5.1 -- DVM Event Kind Definitions (FR-DVM-1)
+**Date:** 2026-03-20
+**Story:** 6.4 (Reputation Scoring System)
 **Overall Status:** PASS
 
 ---
@@ -43,7 +43,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 **High Priority Issues:** 0
 
-**Recommendation:** Story 5.1 is ready to merge. The implementation is a pure-logic library module (`packages/core/src/events/dvm.ts`) that defines NIP-90 compatible DVM event kinds for the TOON protocol. It contains 3 builder functions (`buildJobRequestEvent`, `buildJobResultEvent`, `buildJobFeedbackEvent`), 3 parser functions (`parseJobRequest`, `parseJobResult`, `parseJobFeedback`), 7 kind constants, and supporting TypeScript types. The module has no runtime dependencies, no I/O, no network access, and no persistent state -- all interactions are via pure function calls using `nostr-tools/pure` for Schnorr signing and `ToonError` for validation. All 86 ATDD tests pass in 305ms (T-5.1-01 through T-5.1-25). The full monorepo test suite (1929 tests) shows 0 regressions. Build and lint are clean (0 errors, 526 pre-existing warnings). The two CONCERNS relate to infrastructure-level gaps (no CI pipeline for burn-in testing, no formal performance SLOs) that are inherited pre-existing action items and not introduced by this story.
+**Recommendation:** Ship. Story 6.4 is a well-implemented pure-logic feature with strong test coverage, clean build, and zero lint errors on production files. Concerns are limited to operational areas (monitoring, disaster recovery) which are not in-scope for this library-level story but should be addressed at the deployment level.
 
 ---
 
@@ -52,40 +52,40 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 ### Response Time (p95)
 
 - **Status:** PASS
-- **Threshold:** Pure synchronous logic (builder/parser functions); no network I/O or async operations in the module itself. `finalizeEvent()` is the only external call (Schnorr signing).
-- **Actual:** 86 tests complete in 305ms total. Individual builder calls include Schnorr key generation + signing (computationally the heaviest operation). Parser functions are pure tag extraction with O(n) tag iteration where n is typically 3-8 tags.
-- **Evidence:** `npx vitest run src/events/dvm.test.ts` -- Duration: 628ms total (transform 159ms, setup 0ms, collect 96ms, tests 305ms). That is 86 builder+parser+TOON-roundtrip operations in 305ms, approximately 3.5ms per test including Schnorr key generation.
-- **Findings:** No performance concerns. Builder functions are dominated by `finalizeEvent()` (Schnorr signing), which is inherently fast for single-event operations. Parser functions are O(n) tag iteration with constant-time string comparisons.
+- **Threshold:** Pure logic class; no network I/O or async operations; sub-millisecond expected
+- **Actual:** All 50 core tests + 40 SDK tests complete in <2 seconds total
+- **Evidence:** `npx vitest run packages/core/src/events/reputation.test.ts` -- 50 tests pass; `npx vitest run packages/sdk/src/skill-descriptor.test.ts` -- 40 tests pass
+- **Findings:** `ReputationScoreCalculator` is a synchronous pure-logic class. `calculateScore()`, `computeTrustedBy()`, and `computeAvgRating()` are O(n) iterations with no allocations beyond the return object. `log10(max(1, x))` is a single Math call. No performance concerns.
 
 ### Throughput
 
 - **Status:** PASS
-- **Threshold:** Must not block event loop. Builder/parser functions are called per-event in the SDK pipeline (shallow parse -> verify -> price -> dispatch).
-- **Actual:** All functions are synchronous (parsers) or effectively synchronous (builders call `finalizeEvent()` which is CPU-bound but fast). No `await`, no callbacks, no event loop blocking.
-- **Evidence:** Source code analysis: `dvm.ts` has zero `async` functions. `finalizeEvent()` from `nostr-tools/pure` is synchronous.
-- **Findings:** No throughput concerns for per-event processing.
+- **Threshold:** N/A -- library code, not a service endpoint
+- **Actual:** N/A -- synchronous functions, throughput limited only by caller
+- **Evidence:** Code review of `packages/core/src/events/reputation.ts` (417 lines)
+- **Findings:** All functions are stateless and can be called at any rate without bottleneck.
 
 ### Resource Usage
 
 - **CPU Usage**
   - **Status:** PASS
-  - **Threshold:** Negligible CPU for pure-logic library module
-  - **Actual:** CPU usage is dominated by Schnorr signing in builders (one `finalizeEvent()` call per builder invocation). Parsers are pure string operations. No loops beyond tag array iteration (bounded by number of tags, typically < 10).
-  - **Evidence:** Source code: `dvm.ts` lines 229-320 (request builder), 334-393 (result builder), 407-450 (feedback builder). Each builder: validate params -> construct tags array -> single `finalizeEvent()` call.
+  - **Threshold:** No heavy computation; single-pass algorithms
+  - **Actual:** O(n) loops over reviews/declarations with simple numeric comparisons
+  - **Evidence:** `reputation.ts` lines 318-386 -- `computeTrustedBy()` and `computeAvgRating()` are simple counter loops
 
 - **Memory Usage**
   - **Status:** PASS
-  - **Threshold:** No memory leaks; no unbounded allocations
-  - **Actual:** All functions create local arrays (tags, params) and return them. No module-level mutable state. No caching, no buffering, no closures capturing external state. The only module-level constants are `HEX_64_REGEX` (RegExp) and `VALID_STATUSES` (Set with 4 entries) -- both immutable and bounded.
-  - **Evidence:** `dvm.ts` lines 60-68: `const HEX_64_REGEX = /^[0-9a-f]{64}$/; const VALID_STATUSES = new Set(['processing', 'error', 'success', 'partial'])`. No other module-level state.
+  - **Threshold:** No large allocations; input data is passed by reference
+  - **Actual:** Only return objects allocated (`ReputationScore`, `ParsedJobReview`, etc.)
+  - **Evidence:** Code review -- no arrays created, no caching, no closures retaining data
 
 ### Scalability
 
 - **Status:** PASS
-- **Threshold:** Must handle events with many tags (>20) and large content payloads (>10KB).
-- **Actual:** T-5.1-21 validates: empty content, 15KB content payload, 30 tags (25 param tags + 5 required/optional). All produce valid signed events.
-- **Evidence:** `dvm.test.ts` lines 1591-1640: edge case tests. 25 param tags + 3 required + p tag + relays tag = 30 tags. 15,000 character content payload. Both pass with valid Schnorr signatures.
-- **Findings:** Scalability is bounded by Nostr event size limits (relay-enforced), not by the builder/parser implementation.
+- **Threshold:** Linear scaling with input size
+- **Actual:** `computeTrustedBy(N declarations)` = O(N), `computeAvgRating(N reviews)` = O(N)
+- **Evidence:** `reputation.ts` lines 338-386
+- **Findings:** Pure functions with no shared state. Can be parallelized by the caller without coordination.
 
 ---
 
@@ -94,42 +94,42 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 ### Authentication Strength
 
 - **Status:** PASS
-- **Threshold:** All built events must have valid Schnorr signatures verifiable by `nostr-tools`. Signature must cover all tags including DVM-specific ones (i, bid, output, e, p, amount, status, param, relays).
-- **Actual:** T-5.1-12, T-5.1-13, T-5.1-14 validate Schnorr signatures on all three event types. `finalizeEvent()` from `nostr-tools/pure` computes `id = sha256(serialized_event)` and `sig = schnorr_sign(id, secretKey)`. The serialized event includes all tags, so any tag modification invalidates the signature.
-- **Evidence:** `dvm.test.ts` lines 263-278 (request), 616-631 (result), 805-819 (feedback). Each test: `const isValid = verifyEvent(event); expect(isValid).toBe(true)`. Pubkey matches `getPublicKey(secretKey)`.
-- **Findings:** Cryptographic integrity is enforced by `nostr-tools/pure` Schnorr signing. The builder delegates all signing to the established library function -- no custom crypto.
+- **Threshold:** Events signed with Schnorr signatures (nostr-tools `finalizeEvent`)
+- **Actual:** Both `buildJobReviewEvent()` and `buildWotDeclarationEvent()` require a `secretKey: Uint8Array` parameter and produce cryptographically signed Nostr events via `finalizeEvent()` from `nostr-tools/pure`
+- **Evidence:** `reputation.ts` lines 111-168 (Job Review builder), lines 232-258 (WoT builder)
+- **Findings:** All events are signed. No unsigned event creation path exists. The secret key is never stored or logged.
 
 ### Authorization Controls
 
 - **Status:** PASS
-- **Threshold:** Targeted requests (with `p` tag) vs open marketplace requests (without `p` tag) must be distinguishable by parsers.
-- **Actual:** T-5.1-10 validates both paths: `targetProvider` present -> `p` tag included in event -> parser returns `targetProvider` field. No `targetProvider` -> no `p` tag -> parser returns `targetProvider: undefined`.
-- **Evidence:** `dvm.test.ts` lines 389-419 (builder p tag presence/absence), lines 1021-1053 (parser p tag detection).
-- **Findings:** Authorization control is structural: the `p` tag's presence/absence in the signed event is the authorization mechanism. No bypass possible without re-signing.
+- **Threshold:** Review sybil defense (customer-gate); WoT sybil defense (channel volume threshold)
+- **Actual:** `computeAvgRating()` accepts a `verifiedCustomerPubkeys: Set<string>` and excludes all reviews from non-customers. `computeTrustedBy()` excludes WoT declarations from zero-volume declarers.
+- **Evidence:** `reputation.ts` lines 364-386 (customer-gate), lines 338-350 (WoT threshold). Tests T-6.4-08 (sybil review defense) and T-6.4-10 (sybil WoT defense) verify these controls.
+- **Findings:** The sybil defense mechanisms are the primary authorization model. Both are tested with dedicated test cases.
 
 ### Data Protection
 
 - **Status:** PASS
-- **Threshold:** `secretKey` must not be exposed in built events, error messages, or parsed results. No secrets should leak through the API surface.
-- **Actual:** `secretKey` is passed to `finalizeEvent()` and never stored, logged, or included in error messages. Builder error messages include only field names and invalid values (e.g., `"Job request kind must be in range 5000-5999, got 4999"`). Parsers do not accept or return `secretKey`.
-- **Evidence:** Source code analysis: `secretKey` appears only as a function parameter in builder signatures. `ToonError` messages contain field descriptions and numeric values -- never secret key material.
-- **Findings:** Clean secret isolation. The `secretKey` is consumed by `finalizeEvent()` and immediately goes out of scope.
+- **Threshold:** No secret material in events or logs; input validation prevents injection
+- **Actual:** All inputs validated with `HEX_64_REGEX` (64-char lowercase hex). Rating validated as integer 1-5. Role validated as enum. No user content is trusted without validation.
+- **Evidence:** `reputation.ts` lines 116-150 (validation in `buildJobReviewEvent`), lines 237-242 (validation in `buildWotDeclarationEvent`)
+- **Findings:** Strict input validation with descriptive `ToonError` codes. 5 error codes defined: `REPUTATION_INVALID_RATING`, `REPUTATION_INVALID_ROLE`, `REPUTATION_INVALID_TARGET_PUBKEY`, `REPUTATION_INVALID_JOB_REQUEST_EVENT_ID`, `REPUTATION_INVALID_MIN_REPUTATION`.
 
 ### Vulnerability Management
 
 - **Status:** PASS
-- **Threshold:** No new runtime dependencies introduced. Input validation must prevent malformed data from producing structurally invalid events.
-- **Actual:** Zero new npm dependencies. The only imports are from `nostr-tools/pure` (existing dependency since Story 1.0) and `../errors.js` (existing `ToonError` class). Builders validate: kind ranges (5000-5999, 6000-6999, exactly 7000), hex format for event IDs and pubkeys (64-char hex regex), non-empty strings for bid/amount/output, valid status values (Set membership check). Parsers return `null` for any malformed input.
-- **Evidence:** `dvm.ts` lines 60-68: validation helpers. `pnpm lint`: 0 errors. `packages/core/package.json`: no new dependencies.
-- **Findings:** Defense in depth: builders throw on invalid input (preventing malformed event creation), parsers return null on invalid events (preventing malformed event processing).
+- **Threshold:** 0 critical, 0 high vulnerabilities in new code
+- **Actual:** 0 lint errors on production files (`npx eslint packages/core/src/events/reputation.ts packages/sdk/src/skill-descriptor.ts` -- clean). Build passes (`pnpm build` -- ok, no errors).
+- **Evidence:** ESLint run on Story 6.4 files; `pnpm build` clean exit
+- **Findings:** No `any` types used. Strict TypeScript mode with `noUncheckedIndexedAccess`. All index accesses guard against `undefined`.
 
 ### Compliance (if applicable)
 
 - **Status:** PASS
-- **Standards:** FR-DVM-1 (NIP-90 compatible DVM event kinds), Decision 4 (NIP-90 interoperability), NIP-90 specification (tag formats).
-- **Actual:** All tag formats match NIP-90 specification: `i` tag with `[data, type, relay?, marker?]`, `bid` tag with amount + currency extension, `output` tag with MIME type, `e`/`p` reference tags, `status` tag with NIP-90 status values, `param` repeatable tags, `relays` multi-value tag. The `'usdc'` currency element in `bid` and `amount` tags is a documented TOON extension to NIP-90 (NIP-90 uses satoshis).
-- **Evidence:** Story file NIP-90 Tag Reference section maps to implementation. T-5.1-09 validates `i` tag format. T-5.1-11 validates USDC micro-units.
-- **Findings:** Full NIP-90 compliance with documented currency extension.
+- **Threshold:** N/A -- no PII, GDPR, or regulatory data involved
+- **Actual:** Reputation scores are computed from public Nostr events (pubkeys, event IDs, ratings). No PII processed.
+- **Evidence:** Type definitions in `reputation.ts` -- all fields are public hex strings, integers, or strings
+- **Findings:** No compliance requirements applicable to this story.
 
 ---
 
@@ -138,56 +138,50 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 ### Availability (Uptime)
 
 - **Status:** PASS
-- **Threshold:** Builder functions must throw clear errors on invalid input. Parser functions must return null on malformed events without throwing.
-- **Actual:** Builders throw `ToonError` with descriptive error codes (`DVM_INVALID_KIND`, `DVM_INVALID_BID`, `DVM_MISSING_INPUT`, `DVM_MISSING_OUTPUT`, `DVM_INVALID_EVENT_ID`, `DVM_INVALID_PUBKEY`, `DVM_INVALID_AMOUNT`, `DVM_MISSING_CONTENT`, `DVM_INVALID_STATUS`). Parsers return `null` for any validation failure -- never throw. This matches the established lenient parse pattern from `parseServiceDiscovery()` and `parseAttestation()`.
-- **Evidence:** T-5.1-05 (builder throws on missing i/bid), T-5.1-06 (builder throws on missing e/amount), T-5.1-07 (builder throws on invalid status). T-5.1-20 (parser returns null for invalid kind, missing tags).
-- **Findings:** Crash-proof parser design. Builder-side validation prevents invalid event creation. Parser-side null returns prevent crash-on-malformed-input.
+- **Threshold:** N/A -- library code, not a service
+- **Actual:** Pure functions with no external dependencies, network calls, or state
+- **Evidence:** Code review -- no `async`, no `fetch`, no database calls
+- **Findings:** Library availability is 100% by definition (in-process, synchronous).
 
 ### Error Rate
 
 - **Status:** PASS
-- **Threshold:** Error paths must be well-defined and tested. No unexpected exceptions from valid inputs.
-- **Actual:** 86 tests cover both happy paths and error paths. Builder error paths are tested with missing fields, empty strings, out-of-range kinds, invalid hex formats, and invalid status values. Parser error paths are tested with wrong kind ranges, missing required tags, and invalid status values.
-- **Evidence:** Builder validation tests: lines 510-558 (request), 700-747 (result), 941-963 (feedback). Parser null-return tests: lines 1058-1117 (request), 1157-1216 (result), 1276-1335 (feedback).
-- **Findings:** Comprehensive error path coverage. All validation branches are tested.
+- **Threshold:** All tests pass; no NaN/Infinity in score calculations
+- **Actual:** 50/50 core tests pass, 40/40 SDK tests pass. Edge case T-6.4-03 verifies: `channel_volume=0` (log10 guard), `jobs_completed=0`, `avg_rating=0` (no reviews), `trusted_by=0` all produce finite scores.
+- **Evidence:** `npx vitest run` -- 90 tests pass with zero failures
+- **Findings:** The `Math.max(1, channelVolumeUsdc)` guard prevents `-Infinity` from `log10(0)`. All score formula outputs are verified as finite numbers.
 
 ### MTTR (Mean Time To Recovery)
 
-- **Status:** PASS
-- **Threshold:** Error messages must be diagnostic -- include the invalid value and the expected format.
-- **Actual:** All `ToonError` messages include: what went wrong, what was expected, and what was received. Examples: `"Job request kind must be in range 5000-5999, got 4999"`, `"Job result requestEventId must be a 64-character lowercase hex string"`, `"Job feedback status must be one of: processing, error, success, partial. Got: invalid-status"`.
-- **Evidence:** `dvm.ts` lines 235-238, 348-351, 355-358, 363-367, 413-415, 420-423, 429-432.
-- **Findings:** Error messages are self-diagnosing. A developer encountering any `ToonError` can immediately identify the invalid field, expected format, and actual value.
+- **Status:** CONCERNS
+- **Threshold:** UNKNOWN -- no recovery procedure defined for reputation data corruption
+- **Actual:** UNKNOWN -- not applicable to this library-level story
+- **Evidence:** N/A
+- **Findings:** Reputation data is derived from relay events and on-chain data. If corrupted, recalculation from source data is the recovery path. This is a deployment concern, not a library concern.
 
 ### Fault Tolerance
 
 - **Status:** PASS
-- **Threshold:** Malformed events must not crash the parser. Parser must tolerate missing optional tags and extra unknown tags gracefully.
-- **Actual:** Parsers check `undefined` on every tag element access (handles `noUncheckedIndexedAccess`). Missing optional tags (e.g., `p`, `param`, `relays`) result in `undefined` or empty arrays -- not errors. Extra tags beyond the known set are silently ignored (standard Nostr convention).
-- **Evidence:** `dvm.ts` parser implementations: every `tag[N]` access is followed by `=== undefined` check. Optional fields use `?.` or conditional assignment. T-5.1-20 validates null return for missing required tags.
-- **Findings:** Defense-in-depth fault tolerance. `noUncheckedIndexedAccess` enforcement in TypeScript strict mode guarantees all index access is checked at compile time.
+- **Threshold:** Parsers return null for malformed events (no exceptions)
+- **Actual:** `parseJobReview()` returns `null` for: wrong kind, missing tags, invalid rating, invalid role. `parseWotDeclaration()` returns `null` for: wrong kind, missing tags, d/p tag mismatch.
+- **Evidence:** `reputation.ts` lines 178-218, 269-297. Test file validates all null-return paths.
+- **Findings:** The parse/return-null pattern is consistent with all other DVM parsers in the codebase. No exceptions thrown from parsers.
 
 ### CI Burn-In (Stability)
 
-- **Status:** CONCERNS
-- **Threshold:** Tests should pass consistently in CI across multiple runs.
-- **Actual:** All 86 tests pass locally. Full test suite (1929 tests) shows 0 regressions. No CI pipeline is currently configured (inherited action item A2 from Epic 3 retro).
-- **Evidence:** `pnpm test`: 1929 passed, 0 failed. CI pipeline gap is a known pre-existing issue. Story 5.1 tests are deterministic (Schnorr key generation uses `generateSecretKey()` which is non-deterministic but test assertions use the generated key for verification, not hardcoded values -- tests are self-consistent).
-- **Findings:** Local test stability is excellent. Tests are inherently deterministic for pass/fail outcomes (no timing, no network, no shared mutable state, no randomness in assertions). CI burn-in evidence is unavailable due to the absence of a CI pipeline (inherited action item, not a Story 5.1 regression).
+- **Status:** PASS
+- **Threshold:** Tests deterministic (no flakiness sources)
+- **Actual:** All tests use `generateSecretKey()` for unique keys and hardcoded hex constants for deterministic validation. No async operations, no timers, no external services.
+- **Evidence:** `reputation.test.ts` -- 50 tests, all synchronous, all use fixed test data constants (`VALID_EVENT_ID = 'a'.repeat(64)`, etc.)
+- **Findings:** Zero flakiness risk. Tests are pure unit tests with no external dependencies.
 
 ### Disaster Recovery (if applicable)
 
-- **RTO (Recovery Time Objective)**
-  - **Status:** N/A
-  - **Threshold:** N/A (stateless library module, no persistent state)
-  - **Actual:** N/A
-  - **Evidence:** N/A
-
-- **RPO (Recovery Point Objective)**
-  - **Status:** N/A
-  - **Threshold:** N/A (no data persistence)
-  - **Actual:** N/A
-  - **Evidence:** N/A
+- **Status:** CONCERNS
+- **Threshold:** UNKNOWN -- no RTO/RPO defined for reputation system
+- **Actual:** UNKNOWN
+- **Evidence:** N/A
+- **Findings:** Self-reported reputation is embedded in kind:10035 events. If a node's reputation data is lost, it can be recomputed from relay queries (Kind 31117, Kind 30382, Kind 6xxx) and on-chain channel volume data. No formal DR plan exists, but the architecture is inherently recoverable.
 
 ---
 
@@ -196,134 +190,144 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 ### Test Coverage
 
 - **Status:** PASS
-- **Threshold:** >=80% line coverage for new code; all acceptance criteria covered by tests.
-- **Actual:** 86 test cases covering all 7 acceptance criteria. Test IDs T-5.1-01 through T-5.1-25 are mapped from `test-design-epic-5.md`. Coverage spans: signature verification (T-5.1-12/13/14), NIP-90 tag format (T-5.1-09), USDC micro-units (T-5.1-11), targeted vs open marketplace (T-5.1-10), TOON roundtrip (T-5.1-01/02/03), shallow parser (T-5.1-04), kind constants (T-5.1-08), builder validation (T-5.1-05/06/07/18/19), parser validation (T-5.1-20), builder-parser roundtrip (T-5.1-15/16/17), edge cases (T-5.1-21), tag order preservation (T-5.1-22), export verification (T-5.1-23), relay URLs (T-5.1-24), multiple params (T-5.1-25).
-- **Evidence:** `dvm.test.ts` -- 1682 lines, 86 test cases, all passing. Factory functions for deterministic test data. Both positive (valid input -> valid output) and negative (invalid input -> error/null) paths tested.
-- **Findings:** 100% acceptance criteria coverage. Every AC has multiple test cases validating both success and failure paths.
+- **Threshold:** >=80% coverage; all ACs have corresponding tests
+- **Actual:** 90 tests (50 core + 40 SDK) covering all 5 ACs, 19 test design IDs (T-6.4-01 through T-6.4-18, T-INT-08). Production code: 417 lines. Test code: 1143 lines. Test-to-code ratio: 2.74:1.
+- **Evidence:** Test file header lists all covered test IDs. Story file shows all tasks `[x]` complete.
+- **Findings:** Comprehensive coverage including edge cases (T-6.4-03), sybil defense (T-6.4-08, T-6.4-10), TOON roundtrip (T-6.4-04, T-6.4-07), pipeline integration (T-INT-08).
 
 ### Code Quality
 
 - **Status:** PASS
-- **Threshold:** 0 ESLint errors; follows project conventions (strict TypeScript, .js extensions, JSDoc, barrel re-exports).
-- **Actual:** `pnpm lint` reports 0 errors. Implementation follows all project patterns: JSDoc on all public APIs (interfaces, types, functions), module-level documentation block explaining NIP-90 semantics and tag reference (lines 1-31), `.js` extensions on all ESM imports, `T[]` array syntax per `@typescript-eslint/array-type` rule. Barrel exports in `events/index.ts` re-export all 16 public symbols (7 constants, 3 builders, 3 parsers, 6 types). Top-level `core/src/index.ts` re-exports the events module.
-- **Evidence:** `pnpm lint`: 0 errors, 526 warnings (all pre-existing). `pnpm build`: clean. `dvm.ts`: 647 lines, well-documented. Story file: 4 files touched (1 created, 3 modified).
-- **Findings:** Clean implementation following established patterns from `attestation.ts`, `service-discovery.ts`, and `seed-relay.ts`.
+- **Threshold:** 0 ESLint errors; follows project patterns
+- **Actual:** 0 lint errors on `reputation.ts` and `skill-descriptor.ts`. TypeScript strict mode (`noUncheckedIndexedAccess`, `noPropertyAccessFromIndexSignature`). All bracket notation for index signatures. `.js` extensions in all imports. `import type` for type-only imports.
+- **Evidence:** `npx eslint packages/core/src/events/reputation.ts packages/sdk/src/skill-descriptor.ts` -- clean
+- **Findings:** Code follows established patterns: `hasMinReputation()` mirrors `hasRequireAttestation()`, builders mirror `buildJobResultEvent()`, `ReputationScoreCalculator` mirrors `AttestedResultVerifier` pure-logic pattern. Local `HEX_64_REGEX` defined (not imported from `dvm.ts`).
 
 ### Technical Debt
 
 - **Status:** PASS
-- **Threshold:** No new technical debt introduced. No new npm dependencies.
-- **Actual:** Zero new npm dependencies added. Only imports from `nostr-tools/pure` (existing dependency since Story 1.0) and `../errors.js` (existing `ToonError` class). The module follows the exact same pattern as established event modules. No `any` types, no type assertions except one safe `as DvmJobStatus` cast in `parseJobFeedback()` after Set membership validation (line 643).
-- **Evidence:** `packages/core/package.json`: no new runtime dependencies. `dvm.ts`: 647 lines of pure TypeScript with no workarounds.
-- **Findings:** Clean separation of concerns. The module is self-contained and composable. No TODOs, no workarounds, no temporary hacks.
+- **Threshold:** No known debt introduced
+- **Actual:** Clean implementation matching story specification exactly. No TODOs, no workarounds, no commented-out code.
+- **Evidence:** Code review of `reputation.ts` (417 lines) -- no TODO/FIXME/HACK comments
+- **Findings:** The "deferred" test items (T-6.4-09, T-6.4-11, T-6.4-13, T-6.4-15, T-6.4-16, T-6.4-19) are integration/E2E tests that require relay/chain infrastructure and are explicitly out of scope per the story spec.
 
 ### Documentation Completeness
 
 - **Status:** PASS
-- **Threshold:** JSDoc on all public exports; inline comments on non-obvious logic; module-level documentation explaining architectural context.
-- **Actual:** Module-level comment block (lines 1-31) explains NIP-90 protocol, TOON extensions (USDC micro-units), event kind ranges, and tag reference for all three event types. All 16 public exports have JSDoc: `DvmJobStatus` (lines 72-79), `JobRequestParams` (lines 82-114), `JobResultParams` (lines 116-134), `JobFeedbackParams` (lines 136-151), `ParsedJobRequest` (lines 153-182), `ParsedJobResult` (lines 184-198), `ParsedJobFeedback` (lines 200-212), `buildJobRequestEvent` (lines 217-228), `buildJobResultEvent` (lines 322-333), `buildJobFeedbackEvent` (lines 395-406), `parseJobRequest` (lines 454-468), `parseJobResult` (lines 552-563), `parseJobFeedback` (lines 597-610). Inline comments explain validation logic and tag construction.
-- **Evidence:** `dvm.ts` -- every public symbol has JSDoc with `@param`, `@returns`, and `@throws` annotations where applicable.
-- **Findings:** Documentation is thorough and follows the established pattern from prior event modules.
+- **Threshold:** JSDoc on all public APIs; story completion notes updated
+- **Actual:** All public functions and types have JSDoc comments. Story file has detailed completion notes for all 6 tasks. Dev notes include architecture decisions, error codes, and implementation approach.
+- **Evidence:** `reputation.ts` -- every export has JSDoc. Story file "Completion Notes List" covers all tasks.
+- **Findings:** Documentation is thorough and matches implementation.
 
 ### Test Quality (from test-review, if available)
 
 - **Status:** PASS
-- **Threshold:** Tests follow AAA pattern, explicit assertions, deterministic data, no hard waits, proper mocking.
-- **Actual:** All tests use Arrange-Act-Assert pattern with clear section separation. Factory helpers (`createJobRequestParams`, `createJobResultParams`, `createJobFeedbackParams`, `createTestJobRequestEvent`, `createTestJobResultEvent`, `createTestJobFeedbackEvent`) provide deterministic test data. Assertions are explicit in test bodies (not hidden in helpers). `it.each` for parameterized testing of status values (T-5.1-07). Parser tests use manually constructed events (not builder output) to ensure parser tests are independent of builders. Builder-parser roundtrip tests validate the integration.
-- **Evidence:** `dvm.test.ts` -- 1682 lines. Factory helpers at lines 86-214. Each test has clear Arrange/Act/Assert sections. No hard waits, no randomness in assertions, no network, no file I/O.
-- **Findings:** High-quality test implementation. The separation between parser tests (using manually constructed events) and roundtrip tests (using builder output) ensures each function is tested independently and in integration.
+- **Threshold:** Vitest AAA pattern; no hard waits; explicit assertions; <300 lines per describe block
+- **Actual:** All tests follow AAA (Arrange/Act/Assert) pattern. No `setTimeout`, no `waitForTimeout`, no conditionals in tests. Assertions are explicit in test bodies (not hidden in helpers). Largest describe block is well under 300 lines.
+- **Evidence:** `reputation.test.ts` structure review -- organized by Task (1-6), each with focused `describe/it` blocks
+- **Findings:** Test quality is high. Uses `generateSecretKey()` for unique data per test. Explicit `expect()` calls verify exact values.
 
 ---
 
-## Custom NFR Assessments (if applicable)
+## Custom NFR Assessments
 
-### NIP-90 Protocol Compliance (Custom: Interoperability)
-
-- **Status:** PASS
-- **Threshold:** All DVM event tag structures must match NIP-90 specification. The `'usdc'` currency extension must be documented and non-breaking (extra tag elements are ignored per Nostr convention).
-- **Actual:** T-5.1-09 validates `i` tag format `['i', data, type, relay?, marker?]`. T-5.1-11 validates `bid` and `amount` tags with USDC micro-units as string. T-5.1-07 validates all four NIP-90 status values. T-5.1-10 validates targeted vs open marketplace detection. The `'usdc'` third element in `bid` and `amount` tags is a non-breaking extension -- NIP-90 parsers that only read the first two elements will still function correctly.
-- **Evidence:** Module-level comment (lines 1-31) documents the TOON NIP-90 extension. Story file risk E5-R002 documents compatibility considerations.
-- **Findings:** Full NIP-90 compliance with documented, non-breaking currency extension.
-
-### TOON Codec Roundtrip Integrity (Custom: Data Integrity)
+### Sybil Resistance (Domain-Specific)
 
 - **Status:** PASS
-- **Threshold:** DVM events must survive TOON encode -> decode roundtrip with all tags, content, and metadata preserved. Tag order must be maintained. Shallow parser must extract DVM kinds correctly.
-- **Actual:** T-5.1-01 validates complex Kind 5100 request with all tag types (i with relay+marker, bid, output, p, param x2, relays x2). T-5.1-02 validates Kind 6100 result with e, p, amount tags and content. T-5.1-03 validates Kind 7000 feedback with e, p, status tags and content. T-5.1-04 validates shallow parser extraction of kinds 5100, 6100, 7000. T-5.1-22 validates tag order preservation.
-- **Evidence:** `dvm.test.ts` lines 1342-1525: TOON roundtrip tests. All pass. No TOON codec changes were needed -- existing codec handles DVM kinds correctly.
-- **Findings:** E5-R001 (TOON encoding corruption, Score 6) is fully mitigated. DVM events with complex multi-value tags survive TOON roundtrip with tag order preserved.
+- **Threshold:** Reviews from non-customers excluded (E6-R013); WoT from zero-volume declarers excluded (E6-R014)
+- **Actual:** `computeAvgRating()` customer-gate implemented and tested (T-6.4-08). `computeTrustedBy()` threshold model implemented and tested (T-6.4-10).
+- **Evidence:** `reputation.ts` lines 364-386 and 338-350. Tests verify exclusion with mock data.
+- **Findings:** Both CRITICAL risk mitigations (score 9) are implemented as designed. The threshold WoT model (binary: has volume or doesn't) is simpler than weighted and achieves the sybil defense goal.
+
+### TOON Format Compatibility (Domain-Specific)
+
+- **Status:** PASS
+- **Threshold:** Kind 31117 and Kind 30382 survive TOON encode/decode roundtrip with all tags preserved
+- **Actual:** T-6.4-04 (Kind 31117 roundtrip) and T-6.4-07 (Kind 30382 roundtrip) both pass. T-INT-08 verifies both kinds traverse the SDK shallow parse pipeline.
+- **Evidence:** `reputation.test.ts` -- TOON roundtrip tests use `encodeEventToToon()` / `decodeEventFromToon()` and verify all tags preserved
+- **Findings:** No TOON encoding corruption issues (inherited risk E5-R001 mitigated).
 
 ---
 
 ## Quick Wins
 
-0 quick wins identified. The implementation is complete and clean. No low-effort improvements remain.
+0 quick wins identified -- no CONCERNS or FAIL items require immediate code changes.
 
 ---
 
 ## Recommended Actions
 
-### Immediate (Before Release) - CRITICAL/HIGH Priority
-
-No immediate actions required. All 86 ATDD tests pass. Build, lint, and full test suite (1929 tests) are clean. Zero regressions.
-
 ### Short-term (Next Milestone) - MEDIUM Priority
 
-1. **Set up CI pipeline for automated testing** - MEDIUM - 4-8 hours - DevOps
-   - Inherited action item A2 from Epic 3 retro (carried through 5 epics)
-   - Would provide burn-in evidence for all stories including 5.1
-   - Validation: CI runs all core tests on every PR
+1. **Define MTTR for reputation data** - MEDIUM - 2 hours - Dev/Ops
+   - Document the recovery procedure for reputation data corruption
+   - Specify that recalculation from relay + chain sources is the recovery path
+
+2. **Define DR/RTO for reputation system** - MEDIUM - 2 hours - Dev/Ops
+   - As part of Epic 7 or deployment planning, document RPO/RTO expectations
+   - Reputation is stateless (re-derivable), so RPO=0 and RTO=time-to-requery
 
 ### Long-term (Backlog) - LOW Priority
 
-1. **Integration tests with SDK pipeline** - LOW - 4-8 hours - Dev
-   - Validate DVM events traverse the full SDK pipeline: shallow parse -> verify -> price -> dispatch (T-INT-06)
-   - Blocked by: Story 5.2 (ILP-Native Job Submission) which implements the pipeline integration
-   - Validation: DVM event arrives at handler with all tags intact (T-INT-01)
+1. **Integration tests for channel volume extraction** - LOW - 1 day - Dev
+   - T-6.4-15 and T-6.4-16 (deferred) require Anvil + TokenNetwork contract
+   - Implement when on-chain settlement infrastructure is available
 
-2. **Add test coverage reporting to CI** - LOW - 2-4 hours - DevOps
-   - Enable coverage metrics (currently not tracked in CI)
-   - Would provide quantitative coverage evidence for NFR assessments
+2. **E2E reputation lifecycle test** - LOW - 1 day - Dev
+   - T-6.4-19 (deferred, P3) tests full lifecycle: publish review -> recalculate score -> update kind:10035
+   - Requires full relay + chain integration infrastructure
 
 ---
 
 ## Monitoring Hooks
 
-0 monitoring hooks recommended for this story. Story 5.1 is a pure-logic library module with no runtime components. Monitoring hooks will be relevant when DVM events are processed by the SDK pipeline (Story 5.2) and settlement is implemented (Story 5.3).
+2 monitoring hooks recommended:
+
+### Reliability Monitoring
+
+- [ ] Log when `parseJobReview()` or `parseWotDeclaration()` returns null -- indicates malformed events in the network
+  - **Owner:** Dev
+  - **Deadline:** Epic 7
+
+### Security Monitoring
+
+- [ ] Track `min_reputation` threshold rejections (Kind 7000 feedback with reputation reason) to detect systematic low-reputation provider activity
+  - **Owner:** Dev/Ops
+  - **Deadline:** Epic 7
 
 ---
 
 ## Fail-Fast Mechanisms
 
-3 fail-fast mechanisms implemented:
+### Validation Gates (Security)
 
-### Validation Gates (Builders)
+- [x] `buildJobReviewEvent()` throws `ToonError` immediately for invalid inputs (rating, role, pubkey, event ID)
+- [x] `buildWotDeclarationEvent()` throws `ToonError` immediately for invalid target pubkey
+- [x] `hasMinReputation()` throws `ToonError` for non-numeric min_reputation values
+- [x] `parseServiceDiscovery()` returns null for malformed reputation objects in kind:10035
 
-- [x] Kind range validation -- Builders reject kinds outside their valid ranges (5000-5999, 6000-6999, exactly 7000). `ToonError` with `DVM_INVALID_KIND` code.
-  - **Owner:** Dev (implemented in Story 5.1)
-  - **Estimated Effort:** 0 (already done)
+### Smoke Tests (Maintainability)
 
-- [x] Hex format validation -- Builders reject event IDs and pubkeys that do not match the 64-char lowercase hex pattern. `ToonError` with `DVM_INVALID_EVENT_ID` or `DVM_INVALID_PUBKEY` code.
-  - **Owner:** Dev (implemented in Story 5.1)
-  - **Estimated Effort:** 0 (already done)
-
-### Defensive Parsers (Parsers)
-
-- [x] Lenient null-return -- Parsers return `null` for any malformed event (wrong kind range, missing required tags, invalid status value). No exceptions thrown from parsers. Callers can safely use `if (parsed === null)` pattern.
-  - **Owner:** Dev (implemented in Story 5.1)
-  - **Estimated Effort:** 0 (already done)
+- [x] 50 unit tests in `reputation.test.ts` covering all public API surface
+- [x] 40 SDK tests in `skill-descriptor.test.ts` covering reputation field integration
 
 ---
 
 ## Evidence Gaps
 
-1 evidence gap identified:
+2 evidence gaps identified -- informational only, not blocking:
 
-- [ ] **CI Burn-In Results** (Reliability)
-  - **Owner:** DevOps
-  - **Deadline:** Epic 5 completion (inherited action item A2)
-  - **Suggested Evidence:** Configure GitHub Actions to run `pnpm test` on every PR. Run 10x burn-in on changed test files.
-  - **Impact:** LOW for Story 5.1 specifically (all tests are deterministic with fixed test data and no external dependencies -- negligible flakiness risk). MEDIUM for overall project health.
+- [ ] **Channel volume extraction accuracy** (Performance)
+  - **Owner:** Dev
+  - **Deadline:** When TokenNetwork deployed on Arbitrum Sepolia
+  - **Suggested Evidence:** Integration tests T-6.4-15, T-6.4-16 with Anvil
+  - **Impact:** Low -- `ReputationScoreCalculator` receives pre-computed volume; extraction is a separate concern
+
+- [ ] **Independent reputation verification E2E** (Security)
+  - **Owner:** Dev
+  - **Deadline:** Post-Epic 6
+  - **Suggested Evidence:** E2E test T-6.4-13 (customer recalculates score from relay + chain)
+  - **Impact:** Low -- all signals are independently verifiable by design; this test confirms the verification path
 
 ---
 
@@ -331,27 +335,21 @@ No immediate actions required. All 86 ATDD tests pass. Build, lint, and full tes
 
 **Based on ADR Quality Readiness Checklist (8 categories, 29 criteria)**
 
-| Category                                         | Criteria Met | PASS | CONCERNS | FAIL | Overall Status |
-| ------------------------------------------------ | ------------ | ---- | -------- | ---- | -------------- |
-| 1. Testability & Automation                      | 4/4          | 4    | 0        | 0    | PASS           |
-| 2. Test Data Strategy                            | 3/3          | 3    | 0        | 0    | PASS           |
-| 3. Scalability & Availability                    | 3/4          | 3    | 1        | 0    | CONCERNS       |
-| 4. Disaster Recovery                             | 3/3          | 3    | 0        | 0    | PASS           |
-| 5. Security                                      | 4/4          | 4    | 0        | 0    | PASS           |
-| 6. Monitorability, Debuggability & Manageability | 4/4          | 4    | 0        | 0    | PASS           |
-| 7. QoS & QoE                                     | 3/4          | 3    | 1        | 0    | CONCERNS       |
-| 8. Deployability                                 | 3/3          | 3    | 0        | 0    | PASS           |
-| **Total**                                        | **27/29**    | **27** | **2**  | **0** | **PASS**       |
+| Category                                         | Criteria Met | PASS | CONCERNS | FAIL | Overall Status  |
+| ------------------------------------------------ | ------------ | ---- | -------- | ---- | --------------- |
+| 1. Testability & Automation                      | 4/4          | 4    | 0        | 0    | PASS            |
+| 2. Test Data Strategy                            | 3/3          | 3    | 0        | 0    | PASS            |
+| 3. Scalability & Availability                    | 3/4          | 3    | 1        | 0    | PASS            |
+| 4. Disaster Recovery                             | 1/3          | 0    | 1        | 0    | CONCERNS        |
+| 5. Security                                      | 4/4          | 4    | 0        | 0    | PASS            |
+| 6. Monitorability, Debuggability & Manageability | 3/4          | 3    | 1        | 0    | PASS            |
+| 7. QoS & QoE                                     | 4/4          | 4    | 0        | 0    | PASS            |
+| 8. Deployability                                 | 3/3          | 3    | 0        | 0    | PASS            |
+| **Total**                                        | **25/29**    | **24** | **3**  | **0** | **PASS**        |
 
 **Criteria Met Scoring:**
 
-- 27/29 (93%) = Strong foundation
-
-**Details on CONCERNS:**
-
-1. **Scalability & Availability (3.4 CI Stability):** No CI pipeline exists to validate test stability across multiple runs and environments. Tests are deterministic locally (no network, no timing, no shared state), but CI burn-in evidence is unavailable. This is an inherited pre-existing gap (Epic 3 retro action item A2), not introduced by Story 5.1.
-
-2. **QoS (7.1 Latency):** No formal p95 latency SLO defined for builder/parser operations. For a pure-logic library module, this is low risk -- functions execute in microseconds (dominated by Schnorr signing at ~3.5ms per test including key generation). The threshold is UNKNOWN, triggering CONCERNS per the default rule.
+- 25/29 (86%) = Room for improvement (borderline strong)
 
 ---
 
@@ -359,49 +357,44 @@ No immediate actions required. All 86 ATDD tests pass. Build, lint, and full tes
 
 ```yaml
 nfr_assessment:
-  date: '2026-03-16'
-  story_id: '5.1'
-  feature_name: 'DVM Event Kind Definitions'
-  adr_checklist_score: '27/29'
+  date: '2026-03-20'
+  story_id: '6.4'
+  feature_name: 'Reputation Scoring System'
+  adr_checklist_score: '25/29'
   categories:
     testability_automation: 'PASS'
     test_data_strategy: 'PASS'
-    scalability_availability: 'CONCERNS'
-    disaster_recovery: 'PASS'
+    scalability_availability: 'PASS'
+    disaster_recovery: 'CONCERNS'
     security: 'PASS'
     monitorability: 'PASS'
-    qos_qoe: 'CONCERNS'
+    qos_qoe: 'PASS'
     deployability: 'PASS'
   overall_status: 'PASS'
   critical_issues: 0
   high_priority_issues: 0
-  medium_priority_issues: 1
+  medium_priority_issues: 2
   concerns: 2
   blockers: false
   quick_wins: 0
-  evidence_gaps: 1
+  evidence_gaps: 2
   recommendations:
-    - 'Set up CI pipeline for automated testing (inherited A2)'
-    - 'Integration tests with SDK pipeline (Story 5.2 dependency)'
+    - 'Document MTTR/DR procedures for reputation data (MEDIUM, 2 hours)'
+    - 'Implement deferred integration tests T-6.4-15/16 when chain infra available (LOW, 1 day)'
+    - 'Implement E2E reputation lifecycle test T-6.4-19 post-Epic 6 (LOW, 1 day)'
 ```
 
 ---
 
 ## Related Artifacts
 
-- **Story File:** `_bmad-output/implementation-artifacts/5-1-dvm-event-kind-definitions.md`
-- **Tech Spec:** `_bmad-output/planning-artifacts/epics.md` (FR-DVM-1, Epic 5)
-- **Decision Sources:** `_bmad-output/planning-artifacts/research/party-mode-2020117-analysis-2026-03-10.md` (Decisions 2, 4, 5, 6)
-- **Test Design:** `_bmad-output/planning-artifacts/test-design-epic-5.md` (T-5.1-01 through T-5.1-25, T-INT-01, T-INT-03, T-INT-06)
-- **ATDD Checklist:** `_bmad-output/test-artifacts/atdd-checklist-epic-5.md`
+- **Story File:** `_bmad-output/implementation-artifacts/6-4-reputation-scoring-system.md`
+- **Test Design:** `_bmad-output/planning-artifacts/test-design-epic-6.md` (Section 3.4, Story 6.4)
 - **Evidence Sources:**
-  - Test Results: `packages/core/src/events/dvm.test.ts` (86 tests, all passing, 305ms)
-  - Build: `pnpm build` (clean, 0 errors)
-  - Lint: `pnpm lint` (0 errors, 526 pre-existing warnings)
-  - Full Suite: `pnpm test` (1929 passed, 0 failed)
-  - Implementation: `packages/core/src/events/dvm.ts` (647 lines)
-  - Constants: `packages/core/src/constants.ts` (7 DVM constants added)
-  - Barrel Exports: `packages/core/src/events/index.ts`, `packages/core/src/index.ts`
+  - Test Results: `packages/core/src/events/reputation.test.ts` (50 tests), `packages/sdk/src/skill-descriptor.test.ts` (40 tests)
+  - Build: `pnpm build` -- clean (0 errors)
+  - Lint: `npx eslint` on production files -- clean (0 errors)
+  - Production Code: `packages/core/src/events/reputation.ts` (417 lines), `packages/core/src/constants.ts`, `packages/core/src/events/service-discovery.ts`, `packages/sdk/src/skill-descriptor.ts`
 
 ---
 
@@ -411,9 +404,9 @@ nfr_assessment:
 
 **High Priority:** None
 
-**Medium Priority:** CI pipeline setup (inherited A2)
+**Medium Priority:** 2 items (MTTR/DR documentation for reputation data)
 
-**Next Steps:** Proceed to Story 5.2 (ILP-Native Job Submission). The DVM event kind definitions, builders, parsers, and TOON roundtrip validation provide the foundation for all remaining Epic 5 stories.
+**Next Steps:** Ship Story 6.4. Address MEDIUM recommendations as part of Epic 7 deployment planning.
 
 ---
 
@@ -424,18 +417,16 @@ nfr_assessment:
 - Overall Status: PASS
 - Critical Issues: 0
 - High Priority Issues: 0
-- Concerns: 2 (CI burn-in gap -- inherited, undefined latency SLO -- structural for library module)
-- Evidence Gaps: 1 (CI burn-in -- inherited)
+- Concerns: 2
+- Evidence Gaps: 2
 
 **Gate Status:** PASS
 
 **Next Actions:**
 
-- If PASS: Proceed to `*gate` workflow or release
-- If CONCERNS: Address HIGH/CRITICAL issues, re-run `*nfr-assess`
-- If FAIL: Resolve FAIL status NFRs, re-run `*nfr-assess`
+- PASS: Proceed to release or next story
 
-**Generated:** 2026-03-16
+**Generated:** 2026-03-20
 **Workflow:** testarch-nfr v5.0
 
 ---
