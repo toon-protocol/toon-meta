@@ -124,7 +124,7 @@ development_status:
   # Restructured (2026-03-22): NIP-34 skill stories moved to Epic 9
   # 7 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 Publish
   epic-8: in-progress
-  8-0-arweave-storage-dvm-provider: backlog
+  8-0-arweave-storage-dvm-provider: done
   8-1-forge-ui-layout-and-repository-list: backlog
   8-2-forge-ui-file-tree-and-blob-view: backlog
   8-3-forge-ui-commit-log-and-diff-view: backlog
