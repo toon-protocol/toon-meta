@@ -111,14 +111,14 @@ development_status:
 
   # Epic 7: ILP Address Hierarchy & Protocol Economics
   # Decision source: Party Mode 2026-03-20 — ILP addressing + fee calculation
-  epic-7: in-progress
+  epic-7: done
   7-1-deterministic-address-derivation: done
   7-2-btp-address-assignment-handshake: done
   7-3-multi-address-support-for-multi-peered-nodes: done
   7-4-fee-per-byte-advertisement-in-kind-10032: done
   7-5-sdk-route-aware-fee-calculation: done
   7-6-prepaid-protocol-and-prefix-claims: done
-  epic-7-retrospective: optional
+  epic-7-retrospective: done
 
   # Epic 8: The Rig — Arweave DVM + Forge-UI
   # Restructured (2026-03-22): NIP-34 skill stories moved to Epic 9

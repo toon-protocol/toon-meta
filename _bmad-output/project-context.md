@@ -1,7 +1,7 @@
 ---
 project_name: 'toon'
 user_name: 'Jonathan'
-date: '2026-03-20'
+date: '2026-03-22'
 sections_completed:
   [
     'technology_stack',
@@ -67,14 +67,14 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - @noble/curves and @scure libraries share the same secp256k1 implementation as nostr-tools' @noble/curves dependency
 - viem 2.x required for EIP-3009 settlement and EIP-712 typed data verification
 
-## Project Structure (Post-Epic 6)
+## Project Structure (Post-Epic 7)
 
 ```
 toon/
 ├── packages/
 │   ├── town/        # @toon-protocol/town -- SDK-based relay with x402, service discovery, health, TEE health, DVM skill config (Epics 2+3+4+5)
-│   ├── sdk/         # @toon-protocol/sdk -- SDK for building ILP-gated Nostr services + DVM lifecycle + workflow/swarm coordination (Epics 1+5+6)
-│   ├── core/        # @toon-protocol/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events (Epics 1+3+4+5+6)
+│   ├── sdk/         # @toon-protocol/sdk -- SDK for building ILP-gated Nostr services + DVM lifecycle + workflow/swarm coordination + prefix claims (Epics 1+5+6+7)
+│   ├── core/        # @toon-protocol/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events, ILP address hierarchy, fee calculation (Epics 1+3+4+5+6+7)
 │   ├── bls/         # @toon-protocol/bls -- Business Logic Server (payment validation, event storage)
 │   ├── relay/       # @toon-protocol/relay -- Nostr relay + TOON encoding
 │   ├── client/      # @toon-protocol/client -- Client SDK with payment channel support
@@ -99,9 +99,9 @@ toon/
 **Package Dependency Graph:**
 
 ```
-@toon-protocol/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events)
+@toon-protocol/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events, ILP address hierarchy, fee calculation, prefix claim events)
     ^          ^
-@toon-protocol/bls    @toon-protocol/sdk    <-- siblings, both depend on core (SDK adds workflow orchestrator, swarm coordinator)
+@toon-protocol/bls    @toon-protocol/sdk    <-- siblings, both depend on core (SDK adds workflow orchestrator, swarm coordinator, prefix claim handler)
     ^                 ^
     |           +-----+-------+
     |     @toon-protocol/town     @toon-protocol/rig    <-- (Town: Epics 2+3+4+5 DONE, Rig: Epic 8)
@@ -130,12 +130,12 @@ Epic 3: Production Protocol Economics            COMPLETE (6/6 stories, 26/26 AC
 Epic 4: Marlin TEE Deployment                    COMPLETE (6/6 stories, 32/33 ACs)
 Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 ACs)
 Epic 6: Advanced DVM Coordination + TEE          COMPLETE (4/4 stories, 21/21 ACs)
-Epic 7: ILP Address Hierarchy & Protocol Econ    PLANNED (6 stories, design decisions D7-001 through D7-007)
+Epic 7: ILP Address Hierarchy & Protocol Econ    COMPLETE (6/6 stories, 35/35 ACs)
 Epic 8: The Rig -- Arweave DVM + Forge-UI        PLANNED (7 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 Publish; NIP-34 skill stories moved to Epic 9)
 Epic 9: NIP-to-TOON Skill Pipeline + Socialverse  PLANNED (34 stories: 9.0-9.3 Pipeline + 9.4-9.25 Socialverse NIP Skills + 9.26-9.30 NIP-34 Git [from E8] + 9.31-9.32 DVM + 9.33-9.34 Publish)
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics -> Build applications on top -> Teach agents the protocol (skills pipeline + socialverse).
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics (DONE) -> Build applications on top -> Teach agents the protocol (skills pipeline + socialverse).
 
 ## Production Architecture Decisions (Party Mode 2026-03-05/06)
 
@@ -261,9 +261,33 @@ A skill factory that converts any Nostr NIP into a TOON-aware Claude Agent Skill
 - "DVM" (Data Vending Machine) -- NIP-90 compute marketplace protocol
 - "Skill descriptor" -- Structured metadata in kind:10035 events advertising DVM capabilities
 
-## @toon-protocol/core (Post-Epic 6)
+## @toon-protocol/core (Post-Epic 7)
 
-Core now includes chain configuration, x402 support, seed relay discovery, service discovery, TEE attestation events, attestation verification, KMS identity derivation, Nix reproducible build infrastructure, NIP-90 DVM event builders/parsers, workflow chain events, agent swarm events, TEE-attested result verification, and reputation scoring (reviews, WoT, composite scores).
+Core now includes chain configuration, x402 support, seed relay discovery, service discovery, TEE attestation events, attestation verification, KMS identity derivation, Nix reproducible build infrastructure, NIP-90 DVM event builders/parsers, workflow chain events, agent swarm events, TEE-attested result verification, reputation scoring (reviews, WoT, composite scores), ILP address hierarchy (derivation, assignment, registry, BTP prefix exchange), route-aware fee calculation, and prefix claim/grant events.
+
+**New Core Modules (Epic 7):**
+
+```
+packages/core/src/
+├── address/
+│   ├── derive-child-address.ts       # deriveChildAddress(parentPrefix, pubkey) (Story 7.1)
+│   ├── ilp-address-validation.ts     # isValidIlpAddressStructure(), validateIlpAddress() (Story 7.1)
+│   ├── btp-prefix-exchange.ts        # extractPrefixFromHandshake(), buildPrefixHandshakeData(),
+│   │                                 # validatePrefixConsistency(), checkAddressCollision() (Story 7.2)
+│   ├── address-assignment.ts         # assignAddressFromHandshake(), isGenesisNode() (Story 7.2)
+│   ├── address-registry.ts           # AddressRegistry class (Story 7.3)
+│   ├── prefix-validation.ts          # validatePrefix() (Story 7.6)
+│   └── index.ts                      # Re-exports
+├── fee/
+│   ├── resolve-route-fees.ts         # resolveRouteFees() -- LCA-based route resolution (Story 7.5)
+│   ├── calculate-route-amount.ts     # calculateRouteAmount() -- pure fee arithmetic (Story 7.5)
+│   └── index.ts                      # Re-exports
+├── events/
+│   └── prefix-claim.ts              # buildPrefixClaimEvent(), parsePrefixClaimEvent(),
+│                                     # buildPrefixGrantEvent(), parsePrefixGrantEvent() (Story 7.6)
+└── constants.ts                      # +PREFIX_CLAIM_KIND (10034), PREFIX_GRANT_KIND (10037),
+                                      #  ILP_ROOT_PREFIX ('g.toon') (Stories 7.1, 7.6)
+```
 
 **New Core Modules (Epic 6):**
 
@@ -482,6 +506,70 @@ type ReputationScore = { score, signals: ReputationSignals }
 // SkillDescriptor.attestation field now populated by buildSkillDescriptor() (Story 6.3)
 ```
 
+**Core Public API Additions (Epic 7):**
+
+```typescript
+// ILP Address Hierarchy Constants (Story 7.1)
+ILP_ROOT_PREFIX = 'g.toon'               // Root prefix for TOON network
+PREFIX_CLAIM_KIND = 10034                 // Prefix claim event kind (Story 7.6)
+PREFIX_GRANT_KIND = 10037                 // Prefix grant event kind (Story 7.6)
+
+// Deterministic Address Derivation (Story 7.1)
+deriveChildAddress(parentPrefix: string, pubkey: string): string
+// Derives child ILP address: `${parentPrefix}.${pubkey.slice(0, 8).toLowerCase()}`
+
+// ILP Address Validation (Story 7.1)
+isValidIlpAddressStructure(address: string): boolean
+validateIlpAddress(address: string): { valid: boolean, reason?: string }
+
+// BTP Prefix Exchange (Story 7.2)
+extractPrefixFromHandshake(handshakeData: Record<string, unknown>): string  // fail-closed
+buildPrefixHandshakeData(prefix: string): BtpHandshakeExtension
+validatePrefixConsistency(prefix: string, expectedParent: string): boolean
+checkAddressCollision(address: string, existingAddresses: string[]): boolean
+type BtpHandshakeExtension = { prefix: string }
+
+// Address Assignment (Story 7.2)
+assignAddressFromHandshake(handshakeData: Record<string, unknown>, ownPubkey: string): string
+isGenesisNode(config: { ilpAddress?: string }): boolean
+
+// AddressRegistry (Story 7.3)
+class AddressRegistry {
+  addAddress(upstreamPrefix: string, derivedAddress: string): void
+  removeAddress(upstreamPrefix: string): string | undefined
+  getAddresses(): string[]        // insertion-order stable
+  hasPrefix(upstreamPrefix: string): boolean
+  getPrimaryAddress(): string | undefined
+  size(): number
+}
+
+// IlpPeerInfo extended (Stories 7.3, 7.4, 7.6)
+// ilpAddresses?: string[]          -- all ILP addresses (multi-peered); defaults to [ilpAddress]
+// feePerByte?: string              -- routing fee per byte as non-negative integer string; defaults to '0'
+// prefixPricing?: { basePrice: string }  -- prefix claim marketplace pricing
+
+// Prefix Validation (Story 7.6)
+validatePrefix(prefix: string): PrefixValidationResult
+type PrefixValidationResult = { valid: boolean, reason?: string }
+// Rules: lowercase alphanumeric, 2-16 chars, no reserved words (toon, ilp, local, peer, test)
+
+// Prefix Claim/Grant Events (Story 7.6)
+buildPrefixClaimEvent(content: PrefixClaimContent, secretKey: Uint8Array): NostrEvent
+parsePrefixClaimEvent(event: NostrEvent): PrefixClaimContent | null
+buildPrefixGrantEvent(content: PrefixGrantContent, secretKey: Uint8Array): NostrEvent
+parsePrefixGrantEvent(event: NostrEvent): PrefixGrantContent | null
+type PrefixClaimContent = { requestedPrefix: string }
+type PrefixGrantContent = { grantedPrefix: string, claimerPubkey: string, ilpAddress: string }
+
+// Route-Aware Fee Calculation (Story 7.5)
+resolveRouteFees(params: ResolveRouteFeesParams): ResolveRouteFeesResult
+calculateRouteAmount(params: CalculateRouteAmountParams): bigint
+type ResolveRouteFeesParams = { destination: string, ownIlpAddress: string, discoveredPeers: DiscoveredPeer[] }
+type ResolveRouteFeesResult = { hopFees: bigint[], warnings: string[] }
+type CalculateRouteAmountParams = { basePricePerByte: bigint, packetByteLength: number, hopFees: bigint[] }
+// Formula: totalAmount = basePricePerByte * bytes + SUM(hopFees[i] * bytes)
+```
+
 **Core Public API (Epics 1-3 -- unchanged):**
 
 ```typescript
@@ -510,15 +598,15 @@ SERVICE_DISCOVERY_KIND = 10035
 SEED_RELAY_LIST_KIND = 10036
 ```
 
-## @toon-protocol/sdk (Epics 1+5+6 -- Complete)
+## @toon-protocol/sdk (Epics 1+5+6+7 -- Complete)
 
-The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities and in Epic 6 with stateful orchestration components (workflow chains, agent swarms). It provides a developer-facing abstraction for building ILP-gated Nostr services with the TOON protocol.
+The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities, in Epic 6 with stateful orchestration components (workflow chains, agent swarms), and in Epic 7 with route-aware fee calculation, prepaid protocol model, and prefix claim handler. It provides a developer-facing abstraction for building ILP-gated Nostr services with the TOON protocol.
 
-**SDK Source Files (Post-Epic 6):**
+**SDK Source Files (Post-Epic 7):**
 
 ```
 packages/sdk/src/
-├── index.ts                    # Public API exports (+ workflow orchestrator, swarm coordinator, skill descriptor)
+├── index.ts                    # Public API exports (+ workflow orchestrator, swarm coordinator, skill descriptor, prefix claim handler)
 ├── identity.ts                 # generateMnemonic(), fromMnemonic(), fromSecretKey()
 ├── errors.ts                   # IdentityError, NodeError, HandlerError, VerificationError, PricingError
 ├── handler-registry.ts         # HandlerRegistry: .on(kind), .onDefault(), dispatch(), getDvmKinds() (Story 5.4)
@@ -526,17 +614,18 @@ packages/sdk/src/
 ├── verification-pipeline.ts    # Schnorr verification (or devMode skip)
 ├── pricing-validator.ts        # Per-byte, per-kind pricing with self-write bypass
 ├── payment-handler-bridge.ts   # isTransit fire-and-forget vs await semantics
-├── create-node.ts              # createNode() composition + ServiceNode lifecycle + DVM methods (Stories 5.3, 5.4)
+├── create-node.ts              # createNode() composition + ServiceNode lifecycle + DVM methods + route-aware fees + claimPrefix (Stories 5.3, 5.4, 7.5, 7.6)
 ├── skill-descriptor.ts         # buildSkillDescriptor() -- computes SkillDescriptor from registry (Stories 5.4, 6.3, 6.4)
 ├── workflow-orchestrator.ts    # WorkflowOrchestrator -- multi-step DVM pipeline state machine (Story 6.1)
 ├── swarm-coordinator.ts        # SwarmCoordinator -- competitive DVM bidding state machine (Story 6.2)
+├── prefix-claim-handler.ts     # createPrefixClaimHandler() -- kind:10034 prefix claim handler factory (Story 7.6)
 ├── event-storage-handler.ts    # Stub -- throws, directs users to @toon-protocol/town
 └── __integration__/
     ├── create-node.test.ts
     └── network-discovery.test.ts
 ```
 
-**SDK Public API (Post-Epic 6):**
+**SDK Public API (Post-Epic 7):**
 
 ```typescript
 // Identity
@@ -562,13 +651,20 @@ interface ServiceNode {
   start(): Promise<StartResult>;
   stop(): Promise<void>;
   peerWith(pubkey: string): Promise<void>;
-  publishEvent(event: NostrEvent, options?: { destination: string }): Promise<PublishEventResult>;
+  publishEvent(event: NostrEvent, options?: { destination: string; amount?: bigint; bid?: bigint }): Promise<PublishEventResult>;
+  // amount: overrides basePricePerByte * bytes (prepaid model, Story 7.6)
+  // bid: client-side safety cap -- throws if destination amount exceeds bid (Story 7.6)
+  // Route fees from resolveRouteFees() are added automatically on top of the destination amount (Story 7.5)
 
   // DVM methods (Epic 5)
   publishFeedback(requestEventId, customerPubkey, status, content?, options?): Promise<PublishEventResult>;  // Story 5.3
   publishResult(requestEventId, customerPubkey, amount, content, options?): Promise<PublishEventResult>;      // Story 5.3
+  /** @deprecated Use publishEvent() with { amount } option instead (prepaid model, Story 7.6) */
   settleCompute(resultEvent, providerIlpAddress, options?): Promise<IlpSendResult>;                          // Story 5.3
   getSkillDescriptor(): SkillDescriptor | undefined;                                                          // Story 5.4
+
+  // Prefix claim (Epic 7)
+  claimPrefix(prefix: string, upstreamDestination: string, options?: { prefixPrice?: bigint }): Promise<PublishEventResult>;  // Story 7.6
 }
 
 // Workflow Orchestrator (Story 6.1)
@@ -646,6 +742,14 @@ ILP Packet -> ConnectorNode.setPacketHandler()
 - `buildSkillDescriptor()` now validates attestation eventId format (64-char hex) when provided (Story 6.3)
 - `SkillDescriptor.reputation` field populated from config when `ReputationScore` is provided (Story 6.4)
 - Both orchestration components are the first **stateful** SDK components -- they maintain internal state machines across multiple ILP packet cycles
+
+**SDK Changes in Epic 7 (ILP Address Hierarchy & Protocol Economics):**
+- `publishEvent()` signature extended with optional `amount` and `bid` parameters (Story 7.6): `amount` overrides the default `basePricePerByte * bytes` calculation (prepaid model); `bid` is a client-side safety cap that throws before sending if the destination amount exceeds the bid
+- Route-aware fee calculation wired transparently into `publishEvent()` (Story 7.5): `resolveRouteFees()` computes per-hop fees from discovered peers' kind:10032 `feePerByte` data, `calculateRouteAmount()` sums destination write fee plus intermediary hop fees -- zero API surface change for callers
+- `settleCompute()` deprecated (Story 7.6): still functional for backward compatibility, but emits deprecation warning. Prepaid model replaces it -- use `publishEvent()` with `{ amount }` option instead
+- `claimPrefix()` method added to `ServiceNode` (Story 7.6): sends kind:10034 prefix claim event with payment via `publishEvent()` amount override. Looks up upstream's `prefixPricing.basePrice` from discovery if no explicit `prefixPrice` option provided
+- `createPrefixClaimHandler()` factory function added (Story 7.6): creates a handler for kind:10034 prefix claim events with payment validation, prefix format validation, atomicity via injectable `claimPrefix` callback, and grant event publication
+- `PrefixClaimHandlerOptions` type exported: `{ prefixPricing, secretKey, getClaimedPrefixes, claimPrefix, publishGrant, ilpAddressPrefix? }`
 
 ## @toon-protocol/town (Epics 2+3+4+5 -- Complete)
 
@@ -1156,6 +1260,98 @@ Signals:
 | Test regressions | 0 (6th consecutive epic) |
 | New runtime dependencies | 0 (2nd consecutive epic) |
 
+## ILP Address Hierarchy & Protocol Economics (Epic 7 -- Complete)
+
+Epic 7 delivered hierarchical ILP addressing, multi-hop fee calculation, and a prefix claim marketplace for the TOON protocol. The flat addressing model (`g.toon.genesis`, `g.toon.peer1`) was replaced with topology-derived hierarchy where addresses are deterministically computed as `${parentPrefix}.${childPubkey.slice(0, 8)}`. Fee calculation became invisible to SDK users -- `publishEvent()` sums intermediary fees along the route path internally. The prepaid protocol model was introduced, deprecating `settleCompute()` in favor of single-packet payment-with-message semantics.
+
+**Epic 7 Stories:**
+| Story | Title | Package | Deliverables |
+|-------|-------|---------|-------------|
+| 7-1 | Deterministic Address Derivation | core | deriveChildAddress(), ILP_ROOT_PREFIX, address validation |
+| 7-2 | BTP Address Assignment Handshake | core | BTP prefix exchange, assignAddressFromHandshake(), isGenesisNode() |
+| 7-3 | Multi-Address Support for Multi-Peered Nodes | core | AddressRegistry class, ilpAddresses field in IlpPeerInfo |
+| 7-4 | Fee-Per-Byte Advertisement in kind:10032 | core | feePerByte field in IlpPeerInfo, builder/parser extensions |
+| 7-5 | SDK Route-Aware Fee Calculation | core + sdk | resolveRouteFees() LCA algorithm, calculateRouteAmount(), transparent publishEvent() integration |
+| 7-6 | Prepaid Protocol and Prefix Claims | core + sdk | publishEvent() amount/bid options, settleCompute() deprecation, kind:10034/10037 events, createPrefixClaimHandler(), claimPrefix() |
+
+**Address Hierarchy:**
+
+```
+g.toon                          (genesis node -- ILP_ROOT_PREFIX)
+├── g.toon.ef567890             (peer A, derived from pubkey[:8])
+│   ├── g.toon.ef567890.ab12cd34  (peer A's downstream)
+│   └── g.toon.ef567890.useast    (vanity prefix via prefix claim)
+└── g.toon.12345678             (peer B)
+```
+
+- **Genesis nodes** use `ILP_ROOT_PREFIX` (`g.toon`) directly -- `isGenesisNode()` checks this
+- **All other nodes** derive addresses via `deriveChildAddress(upstreamPrefix, ownPubkey)` -- appends first 8 hex chars of pubkey as lowercase segment
+- **Multi-peered nodes** have multiple addresses (one per upstream peer), tracked by `AddressRegistry`
+- **BTP handshake** communicates the upstream prefix via `BtpHandshakeExtension` -- fail-closed: throws if prefix is absent or invalid (no fallback to hardcoded addresses)
+- **Vanity prefixes** (e.g., `useast`) obtained via kind:10034 prefix claim marketplace -- payment + claim in one ILP packet
+
+**Route-Aware Fee Calculation (Story 7.5 -- architectural centerpiece):**
+
+```
+Sender (g.toon.aaaa)  -->  Intermediary (g.toon)  -->  Destination (g.toon.bbbb)
+                           feePerByte: 2n                basePricePerByte: 10n
+
+Total = basePricePerByte * bytes + SUM(hopFees[i] * bytes)
+      = 10n * 100 + 2n * 100 = 1200n
+```
+
+- **LCA-based route resolution:** `resolveRouteFees()` splits sender and destination ILP addresses into segments, finds Lowest Common Ancestor, identifies intermediary hops on the path
+- **Fee map built from kind:10032 peer discovery data:** each discovered peer's `feePerByte` field is mapped to its ILP address
+- **Unknown intermediaries default to `feePerByte: 0n` with warning** -- graceful degradation for partially-discovered networks
+- **Transparently wired into `publishEvent()`** -- zero API surface change; callers do not see fees, fee parameters, or route information
+
+**Prepaid Protocol Model (Story 7.6):**
+
+All monetized protocol flows follow the same single-packet payment-with-message pattern (D7-004):
+1. Provider advertises capability + price in replaceable Nostr event
+2. Customer discovers price via kind:10032/10035
+3. Customer sends message + payment in ONE ILP PREPARE packet via `publishEvent({ amount })`
+
+Three use cases now follow this pattern:
+- **Relay write:** `publishEvent(event, { destination })` -- amount defaults to `basePricePerByte * bytes`
+- **DVM compute:** `publishEvent(jobRequestEvent, { destination, amount: providerPrice })` -- amount from `SkillDescriptor.pricing`
+- **Prefix claim:** `claimPrefix(prefix, upstream)` or `publishEvent(claimEvent, { destination, amount })` -- amount from `prefixPricing.basePrice`
+
+**Prefix Claim Marketplace (Story 7.6):**
+
+```
+Customer                    Upstream Node
+   │                           │
+   │  Kind 10034 (Claim)       │  ILP PREPARE: amount >= prefixPricing.basePrice
+   │  content: { requestedPrefix: 'useast' }
+   │ ─────────────────────────►│
+   │                           │  validates: payment, format, availability
+   │                           │  atomically claims via claimPrefix callback
+   │  Kind 10037 (Grant)       │
+   │  content: { grantedPrefix, claimerPubkey, ilpAddress }
+   │◄───────────────────────── │
+```
+
+- **`createPrefixClaimHandler()`** validates payment >= `prefixPricing.basePrice`, prefix format via `validatePrefix()`, and availability via injectable `claimPrefix` callback
+- **Prefix format rules:** lowercase alphanumeric, 2-16 chars, no reserved words (`toon`, `ilp`, `local`, `peer`, `test`)
+- **Atomicity:** in-memory `Set` via injectable `claimPrefix` callback; single-process Node.js event loop guarantees no concurrent races
+- **`claimPrefix()` on ServiceNode:** looks up upstream's `prefixPricing.basePrice` from discovery if no explicit `prefixPrice` option provided
+
+**Epic 7 Metrics (Final -- 6/6 stories):**
+
+| Metric | Value |
+|--------|-------|
+| Stories delivered | 6/6 (100%; 7.6 and 7.7 consolidated) |
+| Acceptance criteria | 35 total, 35 covered (100%) |
+| Story-specific tests | ~223 |
+| Monorepo test count (start) | 2,526 passed |
+| Monorepo test count (end) | 2,659 passed / 79 skipped (2,738 total) |
+| Code review issues | 28 found, 25 fixed, 3 noted, 0 remaining |
+| Security scan findings (production) | 4 (all fixed, Story 7-5) |
+| NFR assessments | 6/6 PASS (4th consecutive 100%) |
+| Test regressions | 0 (7th consecutive epic) |
+| New runtime dependencies | 0 (3rd consecutive epic) |
+
 ## Critical Implementation Rules
 
 ### Language-Specific Rules (TypeScript)
@@ -1234,10 +1430,12 @@ Signals:
 - **Dev mode log sanitization** -- User-controlled fields (amount, destination) are sanitized to prevent log injection
 - **Chain-aware settlement** -- `config.chain` resolves via `resolveChainConfig()` to populate default settlement fields (Epic 3)
 
-**publishEvent() (Story 2.6):**
+**publishEvent() (Stories 2.6, 7.5, 7.6):**
 
 - **TOON-encodes the event** -- Uses the configured encoder (defaults to core's `encodeEventToToon`)
-- **Computes payment amount** -- `basePricePerByte * toonData.length` (not hardcoded)
+- **Computes payment amount** -- Default: `basePricePerByte * toonData.length`; overridden by `options.amount` (prepaid model)
+- **Route-aware fee calculation (Story 7.5)** -- Automatically resolves intermediary hop fees via `resolveRouteFees()` and adds them on top of the destination amount. When `amount` override is provided, only hop fees are added (not `basePricePerByte`)
+- **Bid safety cap (Story 7.6)** -- If `options.bid` is set and destination amount exceeds bid, throws `NodeError` before sending any ILP packet
 - **Sends via runtimeClient** -- `toonNode.runtimeClient.sendIlpPacket({ destination, amount, data })`
 - **Requires node to be started** -- Throws `NodeError` if called before `start()`
 - **Requires destination** -- Throws `NodeError` if `options.destination` is missing
@@ -1592,7 +1790,7 @@ Signals:
 
 - **Files (source):** PascalCase for classes, kebab-case for utilities and SDK modules (`BusinessLogicServer.ts`, `handler-registry.ts`, `create-node.ts`, `town.ts`, `x402-publish-handler.ts`, `AttestationVerifier.ts`, `AttestationBootstrap.ts`, `nix-builder.ts`, `pcr-validator.ts`, `kms-identity.ts`, `dvm.ts`, `skill-descriptor.ts`, `workflow.ts`, `swarm.ts`, `attested-result-verifier.ts`, `reputation.ts`, `workflow-orchestrator.ts`, `swarm-coordinator.ts`)
 - **Files (test):** Match source with `.test.ts` suffix (`handler-registry.test.ts`, `town.test.ts`, `attestation.test.ts`, `kms-identity.test.ts`, `nix-reproducibility.test.ts`, `attestation-bootstrap.test.ts`, `dvm-builders.test.ts`, `dvm-parsers.test.ts`, `dvm-roundtrip.test.ts`, `dvm-constants.test.ts`, `skill-descriptor.test.ts`, `dvm-handler-dispatch.test.ts`, `dvm-lifecycle.test.ts`, `workflow.test.ts`, `swarm.test.ts`, `attested-result-verifier.test.ts`, `reputation.test.ts`, `workflow-orchestrator.test.ts`, `swarm-coordinator.test.ts`)
-- **Classes:** PascalCase (`SocialPeerDiscovery`, `HandlerRegistry`, `SeedRelayDiscovery`, `AttestationVerifier`, `AttestationBootstrap`, `NixBuilder`, `WorkflowOrchestrator`, `SwarmCoordinator`, `AttestedResultVerifier`, `ReputationScoreCalculator`)
+- **Classes:** PascalCase (`SocialPeerDiscovery`, `HandlerRegistry`, `SeedRelayDiscovery`, `AttestationVerifier`, `AttestationBootstrap`, `NixBuilder`, `WorkflowOrchestrator`, `SwarmCoordinator`, `AttestedResultVerifier`, `ReputationScoreCalculator`, `AddressRegistry`)
 - **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`, `ChainPreset`, `ServiceDiscoveryContent`, `TeeAttestation`, `ParsedAttestation`, `AttestationVerifierConfig`, `KmsKeypair`, `NixBuildResult`, `PcrReproducibilityResult`, `TeeHealthInfo`, `JobRequestParams`, `JobResultParams`, `JobFeedbackParams`, `ParsedJobRequest`, `ParsedJobResult`, `ParsedJobFeedback`, `SkillDescriptor`, `BuildSkillDescriptorConfig`, `WorkflowStep`, `WorkflowDefinitionParams`, `ParsedWorkflowDefinition`, `SwarmRequestParams`, `SwarmSelectionParams`, `ParsedSwarmRequest`, `ParsedSwarmSelection`, `AttestedResultVerificationOptions`, `AttestedResultVerificationResult`, `JobReviewParams`, `ParsedJobReview`, `WotDeclarationParams`, `ParsedWotDeclaration`, `ReputationSignals`, `ReputationScore`, `WorkflowEventStore`, `WorkflowOrchestratorOptions`, `SwarmCoordinatorOptions`, `PrefixClaimContent`, `PrefixGrantContent`, `PrefixClaimHandlerOptions`, `PrefixValidationResult`)
 - **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`, `startTown`, `resolveChainConfig`, `buildIlpPrepare`, `deriveFromKmsSeed`, `verifyPcrReproducibility`, `analyzeDockerfileForNonDeterminism`, `hasRequireAttestation`, `hasMinReputation`, `validatePrefix`, `claimPrefix`)
 - **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `createEventStorageHandler`, `createX402Handler`, `createHealthResponse`, `createPrefixClaimHandler`)
@@ -1621,7 +1819,9 @@ Signals:
 - **Identity subdirectory** -- Core identity derivation in `src/identity/` (kms-identity.ts)
 - **Build subdirectory** -- Core Nix build infrastructure in `src/build/` (nix-builder.ts, pcr-validator.ts)
 - **Bootstrap subdirectory** -- Core attestation classes in `src/bootstrap/` (AttestationVerifier.ts, AttestationBootstrap.ts alongside BootstrapService.ts)
-- **Events subdirectory** -- Core event builders/parsers in `src/events/` (attestation.ts, dvm.ts, seed-relay.ts, service-discovery.ts, workflow.ts, swarm.ts, attested-result-verifier.ts, reputation.ts)
+- **Events subdirectory** -- Core event builders/parsers in `src/events/` (attestation.ts, dvm.ts, seed-relay.ts, service-discovery.ts, workflow.ts, swarm.ts, attested-result-verifier.ts, reputation.ts, prefix-claim.ts)
+- **Address subdirectory** -- Core ILP address hierarchy in `src/address/` (derive-child-address.ts, ilp-address-validation.ts, btp-prefix-exchange.ts, address-assignment.ts, address-registry.ts, prefix-validation.ts)
+- **Fee subdirectory** -- Core route-aware fee calculation in `src/fee/` (resolve-route-fees.ts, calculate-route-amount.ts)
 - **tsconfig.json excludes** -- Root tsconfig excludes `packages/rig` and `archive`
 
 **Documentation:**
@@ -1638,7 +1838,7 @@ Signals:
 **Git/Repository:**
 
 - **Main branch:** `main` (default for PRs)
-- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics, `epic-4` for TEE, `epic-5` for DVM, `epic-6` for Advanced DVM Coordination)
+- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics, `epic-4` for TEE, `epic-5` for DVM, `epic-6` for Advanced DVM Coordination, `epic-7` for ILP Address Hierarchy)
 - **Monorepo with pnpm workspaces** -- All packages managed together
 - **Conventional commits** -- Use prefixes: `feat(story):`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`
 - **Story-scoped commits** -- `feat(4-2): TEE attestation events`
@@ -1719,7 +1919,7 @@ Signals:
 
 - **SimplePool `window is not defined` error is non-fatal** -- This ReferenceError appears in Node.js but doesn't break functionality
 - **SPSP removed from protocol** -- Kinds 23194/23195 removed in Story 2.7; settlement negotiation uses kind:10032 public data + on-chain verification
-- **Payment amounts must match TOON length** -- `publishEvent` amount = `basePricePerByte * toonData.length` (not hardcoded)
+- **Payment amounts default to TOON length** -- `publishEvent` amount defaults to `basePricePerByte * toonData.length`, overridable via `options.amount` (prepaid model, Epic 7)
 - **Relay WebSocket returns TOON strings** -- EVENT messages contain TOON strings, not JSON objects
 - **Channel nonce conflicts require retry** -- Payment channel operations may need retry logic for blockchain transaction conflicts
 - **SDK stubs direct to Town** -- `createEventStorageHandler()` in SDK throws with message directing users to `@toon-protocol/town`
@@ -1741,6 +1941,17 @@ Signals:
 - **Default result kind is 6100** -- publishResult() defaults to 6100 (text generation result = 5100 + 1000) when `options.kind` is not specified
 - **getSkillDescriptor() is computed on each call** -- Not cached; reads live registry state. Callers should cache if needed.
 - **kind:10035 skill field is omitted for non-DVM nodes** -- Same omission semantics as x402 and TEE fields
+- **ILP addresses are topology-derived, not manually assigned** -- `deriveChildAddress(parentPrefix, pubkey)` appends `pubkey.slice(0, 8).toLowerCase()`. Genesis node uses `ILP_ROOT_PREFIX` directly. No hardcoded addresses.
+- **BTP prefix exchange is fail-closed** -- `extractPrefixFromHandshake()` throws `ToonError` if prefix is absent or invalid. Nodes MUST NOT fall back to hardcoded addresses.
+- **Multi-peered nodes have multiple ILP addresses** -- One per upstream peer, tracked by `AddressRegistry`. Primary address is the first inserted (insertion-order stable via Map).
+- **IlpPeerInfo backward compatibility** -- Pre-Epic-7 kind:10032 events lack `ilpAddresses` and `feePerByte`. Parsers default to `ilpAddresses: [ilpAddress]` and `feePerByte: '0'`. No migration required.
+- **resolveRouteFees() rebuilds fee map per call** -- Acceptable for v1 (tens to low hundreds of peers). Needs caching for 1000+ peers (Epic 7 retro A7).
+- **Unknown intermediaries default to feePerByte 0n** -- `resolveRouteFees()` emits a warning but does not fail. Graceful degradation for partially-discovered networks.
+- **publishEvent() amount override changes fee semantics** -- Without amount: total = `basePricePerByte * bytes + hopFees`. With amount: total = `amount + hopFees` (basePricePerByte is NOT added on top).
+- **settleCompute() is deprecated but functional** -- Emits console warning. Prepaid model replaces it: use `publishEvent()` with `{ amount }` option.
+- **Prefix claim atomicity is single-process only** -- `createPrefixClaimHandler` uses in-memory Set via injectable callback. Cluster mode would require distributed locking.
+- **claimPrefix() looks up pricing from discovery** -- If no explicit `prefixPrice` option, looks up `prefixPricing.basePrice` from discovered peers. Throws if not found.
+- **Prefix validation rejects reserved words** -- `toon`, `ilp`, `local`, `peer`, `test` cannot be claimed as vanity prefixes
 
 **Security Rules:**
 
@@ -1799,7 +2010,7 @@ Signals:
 - **KMS identity lives in core, not SDK** -- Docker entrypoints import from core. No EVM address derivation (SDK concern).
 - **Nix flake requires x86_64-linux** -- Docker image output is system-specific (`packages.x86_64-linux.docker-image`)
 - **flake.lock pins all inputs** -- Must be committed to version control for reproducibility
-- **Connector is external in Oyster CVM** -- Accessed via CONNECTOR_URL and CONNECTOR_ADMIN_URL env vars
+- **Connector is embedded in Oyster CVM** -- ConnectorNode runs in-process via `entrypoint-sdk.js`
 - **DVM job events use standard SDK pipeline** -- Kind 5xxx events flow through the same pipeline as all other kinds (shallow parse -> verify -> price -> dispatch). No DVM-specific pipeline stages.
 - **ILP layer supports both data-bearing and data-free payments** -- Event publishing: payment + data together. Compute settlement: payment alone (empty data). The `direct-ilp-client.ts` `data.length > 0` guard enables this.
 - **Skill descriptors extend kind:10035, not a new event kind** -- DVM capabilities are embedded in the existing service discovery event type via the `skill` field
@@ -1814,30 +2025,35 @@ Signals:
 - **Self-reported reputation is a design tradeoff** -- Providers embed own scores in kind:10035. Independently verifiable but not protocol-enforced. Full enforcement would require consensus or a trusted aggregator.
 - **Kind 31117 and Kind 30382 use NIP-33 parameterized replaceable semantics** -- Unlike kind:10033 (NIP-16 replaceable), these require `d` tags for parameterized replacement.
 - **ReputationScoreCalculator handles non-finite inputs** -- NaN, Infinity, negative values produce finite scores (defensive programming)
-- **Zero E2E tests executed in Epic 6** -- All 9 deferred E2E test IDs require live infrastructure. This is the first epic with zero E2E execution.
+- **Zero E2E tests executed in Epics 6 and 7** -- All deferred E2E test IDs require live infrastructure. Two consecutive epics with zero E2E execution.
+- **Address hierarchy enables protocol economics** -- The hierarchical structure `g.toon.parent.child` creates a natural fee accumulation model: each segment corresponds to a node that can charge `feePerByte`. Fee model derives from address hierarchy.
+- **Prefix claim marketplace creates domain-registrar business model** -- Upstream nodes sell human-readable namespace to downstream nodes. Vanity prefixes like `g.toon.useast` are emergent economic properties of the address hierarchy.
+- **kind:10032 republication not yet implemented for lifecycle changes** -- `addUpstreamPeer`/`removeUpstreamPeer` and prefix claims update in-memory state but `BootstrapService.republish()` does not exist. Kind:10032 re-advertisement after topology changes is blocked (Epic 7 retro A2).
+- **Unified payment pattern (D7-004)** -- All monetized flows (relay write, DVM compute, prefix claim) use the same `publishEvent()` with optional `{ amount }` override. New monetized flows must conform to this pattern.
 
 ---
 
-## Known Action Items (From Epic 6 Final Retro)
+## Known Action Items (From Epic 7 Final Retro)
 
-**Must-Do for Epic 7:**
-- A1: **Address accumulated E2E test debt (17+ deferred items)** -- Zero E2E tests executed in Epic 6. Cumulative deferred count is 17+ across Epics 3-6. Prioritize T-6.1-16 and T-6.2-14 (multi-step coordination with real infrastructure).
-- A2: **Standardize injectable time pattern across coordination components** -- SwarmCoordinator uses `setTimeout` while WorkflowOrchestrator uses injectable `now()`. Standardize before adding more coordination components.
+**Must-Do for Epic 8:**
+- A1: **Address accumulated E2E test debt (~31 deferred items across Epics 3-7)** -- Zero E2E tests executed for 2nd consecutive epic. Cumulative deferred count is now ~31 items. This is the project's highest-priority quality risk.
+- A2: **Implement BootstrapService.republish() for kind:10032 re-advertisement** -- `addUpstreamPeer`/`removeUpstreamPeer` and prefix claims update in-memory state but cannot trigger kind:10032 republication. Blocks correct multi-address advertisement after topology changes.
 
 **Should-Do:**
-- A3: Establish load testing infrastructure -- Deferred 6 epics (from Epic 1 NFR). All Epic 6 NFRs flagged this. Stateful orchestration and swarm coordination need performance baselines.
-- A4: Set up facilitator ETH monitoring -- Deferred 4 epics (from Epic 3 A8). x402 facilitator account needs ETH monitoring.
-- A5: Commit flake.lock -- Deferred 3 epics (from Epic 4 A5). Requires Nix installation.
-- A6: Add protocol-level reputation score verification -- Self-reported reputation is acknowledged tradeoff. Consider lightweight verification (relay-side score recomputation) when marketplace usage grows.
-- A7: Formal SLOs for DVM job lifecycle -- With workflow chains and swarm coordination, job lifecycle SLOs (submission-to-result latency, settlement time) are increasingly relevant.
+- A3: Standardize injectable time pattern across coordination components -- SwarmCoordinator uses `setTimeout` while WorkflowOrchestrator uses injectable `now()`. Not exacerbated in Epic 7 but still inconsistent. (Carried from Epic 6 A2, 2 epics deferred)
+- A4: Establish load testing infrastructure -- Deferred 7 epics (from Epic 1 NFR). Route-aware fee calculation and multi-address resolution need performance baselines.
+- A5: Set up facilitator ETH monitoring -- Deferred 5 epics (from Epic 3 A8). x402 facilitator account needs ETH monitoring.
+- A6: Commit flake.lock -- Deferred 4 epics (from Epic 4 A5). Requires Nix installation.
+- A7: Add caching to resolveRouteFees() -- Per-call Map rebuild from discovered peers is acceptable for v1 but will not scale to 1000+ peers. Cache with invalidation on peer discovery updates. (New from Story 7-5 NFR)
+- A8: Formal SLOs for DVM job lifecycle -- With prepaid model and route-aware fees, end-to-end latency SLOs are increasingly relevant. (Carried from Epic 6 A7, 2 epics deferred)
 
 **Nice-to-Have:**
-- A8: Runtime re-publication of kind:10035 on handler/reputation change -- Carried from Epic 5 A11. Reputation scores embedded in skill descriptors are static after initial publication.
-- A9: Weighted WoT model for reputation scoring -- Threshold WoT is simpler but less nuanced. Weighted trust propagation would improve sybil resistance.
-- A10: Publish @toon-protocol/town to npm -- Carried from Epic 2 A3, 3 A14, 4 A14, 5 A13.
-- A11: Fix NIP-33/NIP-16 doc discrepancy -- Carried from Epic 3 A13, 4 A16, 5 A16.
-- A12: Docker E2E for full workflow chain lifecycle -- T-6.1-16: requires 2+ DVM providers in Docker with relay orchestration.
-- A13: Docker E2E for swarm competitive execution -- T-6.2-14: requires multiple competing providers in Docker.
+- A9: Runtime re-publication of kind:10035 on handler/reputation change -- Carried from Epic 5 A11. Now also relevant for kind:10032 (see A2).
+- A10: Weighted WoT model for reputation scoring -- Carried from Epic 6 A9.
+- A11: Publish @toon-protocol/town to npm -- Carried from Epic 2 A3 (6 epics deferred).
+- A12: Fix NIP-33/NIP-16 doc discrepancy -- Carried from Epic 3 A13 (5 epics deferred).
+- A13: Add protocol-level reputation score verification -- Carried from Epic 6 A6.
+- A14: Docker E2E for workflow chain + swarm coordination -- Carried from Epic 6 A12/A13.
 
 **Resolved Action Items (from Epic 5 retro, resolved at Epic 6 start):**
 - ~~A1: Standardize test counting between pipeline steps~~ RESOLVED (root vitest.config.ts now includes `docker/src/**/*.test.ts`)
@@ -1877,6 +2093,10 @@ Signals:
 - Use injectable `now()` functions for testable time-dependent components (Epic 6, team agreement #10)
 - Use DI callbacks for orchestration classes (WorkflowOrchestrator EventStore/settle, SwarmCoordinator EventStore/settle)
 - Use NIP-33 parameterized replaceable semantics (with `d` tag) for per-entity-per-author deduplication (Kind 31117, Kind 30382)
+- Use backward-compatible field additions with sensible defaults when extending shared types like `IlpPeerInfo` (Epic 7, team agreement #11)
+- Use unified payment pattern (D7-004) for all new monetized flows: advertise price in replaceable event, discover, message + payment in one `publishEvent()` call (Epic 7, team agreement #10)
+- Use injectable callbacks for handler factories (e.g., `createPrefixClaimHandler`'s `claimPrefix` callback for atomicity) (Epic 7, team agreement #12)
+- Story consolidation is valid when two stories share the same modified files and infrastructure (Epic 7, team agreement #9)
 
 **For Humans:**
 
@@ -1885,4 +2105,4 @@ Signals:
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-03-20
+Last Updated: 2026-03-22
