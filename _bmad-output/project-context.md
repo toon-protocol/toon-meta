@@ -1394,7 +1394,7 @@ Customer                    Upstream Node
 **Handler Pattern:**
 
 - **Handlers use void return with `ctx` methods** -- Call `ctx.accept()` or `ctx.reject()`, do NOT return response objects
-- **Exception: handlers returning data in ILP FULFILL** -- Return `{ accept: true, fulfillment, data }` directly to put response in top-level `data` field (pattern valid for handlers that need to relay data back via ILP FULFILL)
+- **Exception: handlers returning data in ILP FULFILL** -- Return `{ accept: true, data }` directly to put response in top-level `data` field (pattern valid for handlers that need to relay data back via ILP FULFILL)
 - **Handler signature:** `(ctx: HandlerContext) => Promise<HandlerResponse>`
 - **Handler registration is chainable** -- `createNode(config).on(kind1, h1).on(kind2, h2).onDefault(hd)`
 - **`node.on(number, ...)` = handler registration, `node.on(string, ...)` = lifecycle event listener** -- Disambiguated by first argument type
@@ -1923,8 +1923,8 @@ Customer                    Upstream Node
 - **Relay WebSocket returns TOON strings** -- EVENT messages contain TOON strings, not JSON objects
 - **Channel nonce conflicts require retry** -- Payment channel operations may need retry logic for blockchain transaction conflicts
 - **SDK stubs direct to Town** -- `createEventStorageHandler()` in SDK throws with message directing users to `@toon-protocol/town`
-- **Handler fulfillment is placeholder** -- `ctx.accept()` returns `fulfillment: 'default-fulfillment'`; in production BLS computes SHA-256(eventId)
-- **Data-returning handlers bypass ctx.accept()** -- Return response directly because `data` must be top-level for ILP FULFILL relay (pattern valid for future handlers)
+- **Connector v2.0.0 removed fulfillment/condition** -- `ctx.accept()` returns `{ accept: true }` with optional `data` and `metadata`. No SHA-256 computation needed. The connector handles fulfillment internally at the wire level.
+- **Data-returning handlers bypass ctx.accept()** -- Return `{ accept: true, data }` directly because `data` must be top-level for ILP FULFILL relay (pattern valid for future handlers)
 - **Bootstrap phases simplified** -- discovering -> registering -> announcing (handshaking phase eliminated in Story 2.7)
 - **Anvil mock USDC has 18 decimals, not 6** -- On-chain mock differs from production USDC. Pricing pipeline is denomination-agnostic.
 - **x402 viem clients wired in startTown() conditionally when x402Enabled** -- `walletClient` and `publicClient` created from node identity key and chain RPC (Quick-Spec wire-viem-x402-town)

@@ -140,7 +140,7 @@ This document provides the epic and story breakdown for `@toon-protocol/sdk`, de
 
 - Service contract is `POST /handle-packet` with `HandlePacketRequest`/`HandlePacketResponse`
 - These types already exist in `packages/core/src/compose.ts`
-- The connector's `PaymentHandler` auto-computes fulfillment (SDK doesn't need to SHA-256)
+- Connector v2.0.0 removed fulfillment/condition from application API — handlers return `{ accept: boolean }`, no SHA-256 needed
 - `isTransit` flag on `PaymentRequest` signals fire-and-forget vs await semantics
 - Nostr pubkeys are universal identity (no service-specific auth)
 - TOON is the AI-native wire format — handlers receive raw TOON for direct LLM consumption
