@@ -281,8 +281,8 @@ Hierarchical ILP addressing with deterministic address derivation, multi-hop fee
 ### Epic 8: The Rig — ILP-Gated TypeScript Git Forge
 
 A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. Published as `@toon-protocol/rig` so operators can `npx @toon-protocol/rig` and add git collaboration to their node. No Go dependency, no Docker required. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis.
-**FRs covered:** FR-NIP34-1, FR-NIP34-2, FR-NIP34-3, FR-NIP34-4, FR-NIP34-5, FR-NIP34-6
-**Stories:** 12 (decomposed for proper sizing)
+**FRs covered:** FR-NIP34-1, FR-NIP34-2, FR-NIP34-3, FR-NIP34-4, FR-NIP34-5, FR-NIP34-6, FR-ARWEAVE-1
+**Stories:** 13 (8.0: Arweave Storage DVM prerequisite + 8.1-8.12: NIP-34 Git Forge + Forge-UI)
 **Reference:** [forgejo](https://codeberg.org/forgejo/forgejo) (Go, GPL-3.0) — source for mechanical template port
 **Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM), 7 (ILP Addressing) — the Rig exercises the complete stack
 
@@ -1729,22 +1729,83 @@ Hierarchical ILP addressing with deterministic address derivation, multi-hop fee
 
 ## Epic 8: The Rig — ILP-Gated TypeScript Git Forge
 
-A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis.
+A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig begins with an Arweave Storage DVM provider (Story 8.0) that enables permanent, decentralized file storage via ILP — the foundation for all subsequent git operations. Code blobs are uploaded to Arweave via kind:5094 DVM jobs; NIP-34 events on the relay handle the social layer (repos, patches, issues, PRs). The Forge-UI is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Nostr pubkeys are the native identity — no user database, no identity mapping. Published as `@toon-protocol/rig` so operators can deploy a git forge alongside their TOON node. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis. TOON Protocol users are agents — this is agent-native infrastructure, not a human-centric GitHub clone.
 
 **Reference:** [forgejo](https://codeberg.org/forgejo/forgejo) (Go, GPL-3.0) — source for mechanical template port
 
 **Architecture notes:**
 
 - **Pure TypeScript** — no Go dependency, no Docker required, no external database
+- **Phase 1: Arweave Storage DVM (Story 8.0)** — kind:5094 DVM provider that accepts blobs via ILP, uploads to Arweave (Irys bundler), returns Arweave tx ID in FULFILL data field. Single-packet: blob + payment in one ILP PREPARE. Chunked upload for large blobs. No Blossom, no relay involvement in storage flow — reads via Arweave gateways. This is a standalone DVM provider (independently valuable) and prerequisite for all NIP-34 stories.
+- **Phase 2: NIP-34 Handlers (Stories 8.1-8.6)** — repo creation (kind:30617), patches (kind:1617), issues/comments (kind:1621/1622), git HTTP backend, pubkey identity, PR lifecycle (kind:1630-1633). After local git operations, changed blobs are uploaded to Arweave via kind:5094. kind:30617 repo announcements include Arweave manifest/tx references as permanent clone sources.
+- **Phase 3: Forge-UI (Stories 8.7-8.11)** — read-only web UI mechanically ported from Forgejo's Go HTML templates to Eta templates, served by Express. Git binary operations on local mirror for rendering (tree, blame, diff, log). Issues/PRs sourced from relay NIP-34 events.
+- **Phase 4: Publish (Story 8.12)** — `@toon-protocol/rig` npm package
 - **Git HTTP backend** via `child_process` spawning the `git` binary (git-http-backend for clone/fetch, direct git commands for repo init/management)
-- **Read-only web UI** mechanically ported from Forgejo's Go HTML templates to Eta templates, served by Express
-- **Issues/PRs/comments from relay** — the Rig subscribes to the relay for NIP-34 events (kind:1621 issues, kind:1617 patches, kind:1622 comments) and renders them in the web UI; there is NO issues/PR database
+- **Issues/PRs/comments from relay** — the Rig subscribes to the relay for NIP-34 events and renders them in the web UI; there is NO issues/PR database
 - **Nostr pubkeys ARE usernames** — no identity mapping layer, no user database; pubkeys display directly in the UI (with optional NIP-05/kind:0 profile enrichment)
-- **Write path**: ILP packet → SDK handler → `ctx.decode()` → execute git operation (init repo, apply patch) → `ctx.accept()`
-- **Read path**: HTTP request → Express route → git binary (for code/tree/blob) + relay subscription (for issues/PRs) → Eta template → HTML response
+- **Write path**: ILP packet → SDK handler → `ctx.decode()` → execute git operation (init repo, apply patch) → upload blobs to Arweave (kind:5094) → `ctx.accept()`
+- **Read path**: HTTP request → Express route → git binary (for code/tree/blob, local mirror) + relay subscription (for issues/PRs) → Eta template → HTML response
+- **Arweave read path**: `arweave.net/<tx-id>` or `gateway.irys.xyz/<tx-id>` — public, free, permanent
 - **Template port scope**: repository list, file tree, blob viewer, commit log, commit diff, blame — NOT: admin panels, user settings, OAuth, notification system, dashboard
 - Existing `packages/core/src/nip34/` provides NIP34Handler, GitOperations as foundation (ForgejoClient to be replaced)
+- **Agent-first design**: TOON Protocol users are agents. Discovery via kind:10035, programmatic NIP-34 event submission, ILP-gated writes. The Forge-UI is a convenience layer, not the primary interface.
+- **NIP-90 DVM for code review (future)**: The DVM marketplace naturally extends to code review — providers advertise as reviewers, run CI/TDD pipelines, publish results. Not in Epic 8 scope but architecturally enabled by the DVM infrastructure.
 - **Validates Epics 1-7**: The Rig exercises SDK handlers (Epic 1), relay event storage (Epic 2), USDC/x402 payments (Epic 3), TEE attestation (Epic 4), DVM marketplace (Epic 5), advanced DVM coordination (Epic 6), and ILP address hierarchy (Epic 7) in a single service
+
+### Story 8.0: Arweave Storage DVM Provider (kind:5094)
+
+As a **TOON agent**,
+I want to upload blobs to permanent storage by sending a single ILP packet to an Arweave DVM provider,
+So that I can store files permanently without knowing about Arweave, holding AR tokens, or making multiple round trips.
+
+**Dependencies:** Epic 7 Story 7.6 (prepaid DVM model, `publishEvent()` amount override)
+
+**Design Decisions:** D7-001 (prepaid model), D7-004 (unified payment pattern — blob + payment in ONE ILP PREPARE)
+
+**Acceptance Criteria:**
+
+**Given** a kind:5094 event builder
+**When** I call `buildBlobStorageRequest({ keypair, blobData, contentType?, params? })`
+**Then** a valid kind:5094 event is produced with the blob base64-encoded in the `i` tag (type: `blob`)
+**And** a `parseBlobStorageRequest()` parser returns `{ blobData, contentType, uploadId?, chunkIndex?, totalChunks? }` or null for malformed events
+
+**Given** an Arweave DVM provider node with `kindPricing[5094]` configured
+**When** it starts and publishes kind:10035 service discovery
+**Then** the `SkillDescriptor` includes `kinds: [5094]` and `pricing: { '5094': '<price-per-byte>' }`
+**And** agents can discover the provider by querying relays for kind:10035 events with kind:5094 support
+
+**Given** a client sends a kind:5094 ILP PREPARE to the provider's ILP address
+**And** the amount equals `kindPricing[5094] × blobSize` (D7-001 prepaid model)
+**When** the provider's handler receives the packet
+**Then** the pricing validator confirms `ctx.amount >= kindPricing[5094] × rawBytes.length`
+**And** the handler extracts the blob, uploads to Irys (instant receipt)
+**And** returns `ctx.accept()` with the Arweave transaction ID in the FULFILL packet's data field
+**And** the client receives the Arweave tx ID from the FULFILL response
+
+**Given** the Arweave tx ID returned in the FULFILL
+**When** the client fetches `https://arweave.net/<tx-id>` or `https://gateway.irys.xyz/<tx-id>`
+**Then** the original blob bytes are returned (permanent, immutable, publicly accessible)
+
+**Given** a blob larger than the single-packet threshold (~512KB)
+**When** the client calls the chunked upload helper
+**Then** the blob is split into chunks, each sent as a separate kind:5094 ILP PREPARE
+**And** each chunk includes `uploadId`, `chunkIndex`, `totalChunks` params
+**And** each chunk is its own message+payment (protocol thesis: "sending a message and sending money are the same action")
+**And** the provider accumulates chunks, uploads the assembled blob to Arweave when all arrive
+**And** the final chunk's FULFILL data field contains the Arweave tx ID
+**And** intermediate chunk FULFILLs contain acknowledgment data (e.g., `ack:<chunkIndex>`)
+
+**Given** a chunked upload where not all chunks arrive within the provider's timeout
+**When** the timeout expires
+**Then** the provider discards partial chunks (no Arweave upload, no cost incurred)
+
+**Given** the provider receives a kind:5094 request with insufficient payment
+**When** `ctx.amount < kindPricing[5094] × rawBytes.length`
+**Then** the handler rejects with F04 (Insufficient Payment) and no Arweave upload occurs
+
+**Test Approach:** Unit test: kind:5094 event builder/parser roundtrip. Unit test: single-packet upload — mock Irys, verify tx ID in FULFILL data. Unit test: chunked upload — multiple packets, verify assembly and final tx ID. Unit test: insufficient payment rejection. Integration test: full prepaid flow — discover provider pricing from kind:10035, send blob + payment, receive tx ID, verify blob accessible via Arweave gateway URL. E2E test: Docker infra with Irys devnet or mock, verify end-to-end upload and retrieval.
+
+---
 
 ### Story 8.1: SDK Node Setup and Repository Creation Handler
 

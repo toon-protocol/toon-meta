@@ -131,7 +131,7 @@ Epic 4: Marlin TEE Deployment                    COMPLETE (6/6 stories, 32/33 AC
 Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 ACs)
 Epic 6: Advanced DVM Coordination + TEE          COMPLETE (4/4 stories, 21/21 ACs)
 Epic 7: ILP Address Hierarchy & Protocol Econ    PLANNED (6 stories, design decisions D7-001 through D7-007)
-Epic 8: The Rig -- ILP-Gated Git Forge           PLANNED
+Epic 8: The Rig -- ILP-Gated Git Forge           PLANNED (13 stories: 8.0 Arweave Storage DVM + 8.1-8.12 NIP-34 Git Forge + Forge-UI)
 ```
 
 **Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics -> Build applications on top.
@@ -194,6 +194,15 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 | 10040 | Workflow Chain Definition | Implemented (Epic 6, Story 6.1) -- NIP-33 parameterized replaceable |
 | 30382 | Web of Trust Declaration | Implemented (Epic 6, Story 6.4) -- NIP-33 parameterized replaceable |
 | 31117 | Job Review | Implemented (Epic 6, Story 6.4) -- NIP-33 parameterized replaceable |
+| 5094 | Arweave Blob Storage DVM (NIP-90) | Planned (Epic 8, Story 8.0) -- storage job request |
+| 6094 | Arweave Blob Storage Result (NIP-90) | Planned (Epic 8, Story 8.0) -- storage result (informational, prepaid model) |
+| 30617 | Repository Announcement (NIP-34) | Planned (Epic 8, Story 8.1) -- NIP-33 parameterized replaceable |
+| 1617 | Patch (NIP-34) | Planned (Epic 8, Story 8.2) |
+| 1618 | Pull Request (NIP-34) | Planned (Epic 8) |
+| 1619 | PR Status Update (NIP-34) | Planned (Epic 8) |
+| 1621 | Issue (NIP-34) | Planned (Epic 8, Story 8.3) |
+| 1622 | Comment (NIP-34) | Planned (Epic 8, Story 8.3) |
+| 1630-1633 | Status Events (NIP-34) | Planned (Epic 8, Story 8.6) -- open/applied/closed/draft |
 | ~~23194~~ | ~~SPSP Request~~ | Removed (Story 2.7) |
 | ~~23195~~ | ~~SPSP Response~~ | Removed (Story 2.7) |
 
@@ -208,6 +217,20 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 - **publishEvent() amount override (D7-007):** Optional `amount` param overrides `basePricePerByte × bytes` calculation. Enables prepaid DVM and prefix claim flows.
 - **settleCompute() deprecation path:** Still functional in Epic 7 (backward compat) but `@deprecated`. Kind 6xxx `amount` tag becomes informational, not an invoice.
 - Full decision record: `_bmad-output/planning-artifacts/research/party-mode-prepaid-protocol-decisions-2026-03-20.md`
+
+**Arweave Storage DVM Architecture (Party Mode 2026-03-22 -- shapes Epic 8):**
+
+The Arweave Storage DVM is a DVM provider (kind:5094) that accepts blob data via ILP, uploads to Arweave (via Irys bundler), and returns the Arweave transaction ID in the ILP FULFILL packet's data field. It respects the protocol thesis: blob + payment travel in ONE ILP PREPARE; the tx ID returns in the FULFILL data. No separate settlement, no relay involvement in the storage flow. Reads use public Arweave gateways (`arweave.net/<tx-id>` or `gateway.irys.xyz/<tx-id>`).
+
+- **Kind 5094 (Arweave Blob Storage):** DVM job request carrying blob data + payment. Provider advertises `kindPricing[5094]` in kind:10035 `SkillDescriptor`. Amount covers Arweave upload cost + provider margin.
+- **Single-packet flow:** Client sends ILP PREPARE (TOON-encoded kind:5094 event with base64 blob in `i` tag, amount = `kindPricing[5094] × blobSize`). Provider uploads to Irys (instant receipt), returns Arweave tx ID in FULFILL data field. Done.
+- **Chunked upload (large blobs):** Files exceeding single-packet size (~512KB) are split into chunks. Each chunk is a separate kind:5094 ILP PREPARE with `uploadId`, `chunkIndex`, `totalChunks` params. Each chunk is its own message+payment (protocol thesis holds). Provider accumulates chunks, uploads assembled blob to Arweave when all arrive, returns tx ID in final chunk's FULFILL.
+- **No Blossom, no relay involvement:** Provider has zero HTTP endpoints for storage. Reads go through public Arweave gateways. The provider is a pure ILP-to-Arweave bridge.
+- **Agent-first design:** Agents are the primary users. No human UI assumptions. Agents discover providers via kind:10035, send blobs, get tx IDs, reference them in NIP-34 events or anywhere else.
+- **Prerequisite for NIP-34 Git:** Arweave storage (Story 8.0) must be built before the Rig can store code permanently. Git objects (blobs, trees) are uploaded via kind:5094; NIP-34 events (repos, patches, issues) reference Arweave tx IDs.
+- **NIP-90 DVM for code review (future):** The DVM marketplace naturally extends to code review — providers advertise as reviewers, run CI/TDD pipelines, publish results. Not in Epic 8 scope but architecturally enabled.
+- **NIP alignment:** NIP-90 (DVM job protocol), NIP-94 (kind:1063 file metadata, optional), NIP-73 (external content IDs for `arweave:tx:` references), NIP-34 (git collaboration), NIP-B7/Blossom (SHA-256 content addressing concept, not used as transport)
+- Full decision record: `_bmad-output/planning-artifacts/research/party-mode-arweave-dvm-decisions-2026-03-22.md`
 
 **Terminology:**
 - "ILP client" not "ILP/SPSP client" -- SPSP is not part of the protocol
