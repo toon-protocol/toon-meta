@@ -278,13 +278,13 @@ Hierarchical ILP addressing with deterministic address derivation, multi-hop fee
 **Stories:** 6
 **Decision source:** Party Mode 2026-03-20 — ILP Address Generation & Fee Calculation
 
-### Epic 8: The Rig — ILP-Gated TypeScript Git Forge
+### Epic 8: The Rig — Fully Decentralized ILP-Gated Git
 
-A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Issues, PRs, and comments are Nostr events stored on the relay — not a database. All write operations (repo creation, patches, issues) require ILP-gated NIP-34 events. Nostr pubkeys are the native identity — no user database, no identity mapping. Published as `@toon-protocol/rig` so operators can `npx @toon-protocol/rig` and add git collaboration to their node. No Go dependency, no Docker required. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis.
+Fully decentralized git: repos exist on the protocol, not on any server. Git objects on Arweave, NIP-34 events on relays, NIP-34 Git Agent Skill teaches agents the protocol, Forge-UI static frontend on Arweave for humans. No server, no SDK library, no local git cache. Agents use skill + `@toon-protocol/client`.
 **FRs covered:** FR-NIP34-1, FR-NIP34-2, FR-NIP34-3, FR-NIP34-4, FR-NIP34-5, FR-NIP34-6, FR-ARWEAVE-1
-**Stories:** 13 (8.0: Arweave Storage DVM prerequisite + 8.1-8.12: NIP-34 Git Forge + Forge-UI)
-**Reference:** [forgejo](https://codeberg.org/forgejo/forgejo) (Go, GPL-3.0) — source for mechanical template port
-**Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM), 7 (ILP Addressing) — the Rig exercises the complete stack
+**Stories:** 13 (8.0: Arweave DVM + 8.1-8.6: NIP-34 Git Agent Skill + 8.7-8.11: Forge-UI + 8.12: Publish)
+**Decision source:** Party Mode 2026-03-22 — Arweave DVM + Agent Skills
+**Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM), 7 (ILP Addressing)
 
 ---
 
@@ -1727,30 +1727,31 @@ Hierarchical ILP addressing with deterministic address derivation, multi-hop fee
 
 ---
 
-## Epic 8: The Rig — ILP-Gated TypeScript Git Forge
+## Epic 8: The Rig — Arweave DVM + Forge-UI
 
-A TypeScript-native git forge built on the SDK, proving the full production stack — SDK, USDC, x402, TEE, DVM — works end-to-end for a non-relay service. The Rig begins with an Arweave Storage DVM provider (Story 8.0) that enables permanent, decentralized file storage via ILP — the foundation for all subsequent git operations. Code blobs are uploaded to Arweave via kind:5094 DVM jobs; NIP-34 events on the relay handle the social layer (repos, patches, issues, PRs). The Forge-UI is a mechanical port of Forgejo's read-only code browsing UI (Go HTML templates → Eta templates) with a git HTTP backend (via `child_process` git binary). Nostr pubkeys are the native identity — no user database, no identity mapping. Published as `@toon-protocol/rig` so operators can deploy a git forge alongside their TOON node. The Rig serves as the third SDK example and the first non-relay, non-DVM service on the emergent compute substrate, validating the platform generality thesis. TOON Protocol users are agents — this is agent-native infrastructure, not a human-centric GitHub clone.
+A fully decentralized git system where repositories exist on the protocol, not on any server. Git objects (blobs, trees, commits) are stored permanently on Arweave. NIP-34 events on relays handle the social layer (repos, patches, issues, PRs, status). Epic 8 delivers two infrastructure artifacts: (1) an **Arweave Storage DVM provider** (kind:5094), and (2) the **Forge-UI** — a static read-only web frontend hosted on Arweave for human browsing. The NIP-34 Git Agent Skill (teaching AI agents the protocol) has been moved to **Epic 9** (Stories 9.26-9.30) as part of the NIP-to-TOON Skill Pipeline.
 
-**Reference:** [forgejo](https://codeberg.org/forgejo/forgejo) (Go, GPL-3.0) — source for mechanical template port
+**FRs covered:** FR-ARWEAVE-1, FR-NIP34-3 (Forge-UI subset)
+**Stories:** 7 (8.0: Arweave DVM + 8.1-8.5: Forge-UI + 8.6: Publish)
+**Reference:** [forgejo](https://codeberg.org/forgejo/forgejo) (Go, GPL-3.0) — visual reference for Forge-UI template port
+**Decision source:** Party Mode 2026-03-22 — Arweave DVM + Fully Decentralized Git + Agent Skills; Party Mode 2026-03-22 — NIP Skills Epic restructuring (NIP-34 skill stories moved to Epic 9)
+**Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM), 7 (ILP Addressing)
+**Depends on:** Epic 9 Phase 8 (NIP-34 skill, stories 9.26-9.30) for agent protocol knowledge consumed by Forge-UI's design
 
 **Architecture notes:**
 
-- **Pure TypeScript** — no Go dependency, no Docker required, no external database
-- **Phase 1: Arweave Storage DVM (Story 8.0)** — kind:5094 DVM provider that accepts blobs via ILP, uploads to Arweave (Irys bundler), returns Arweave tx ID in FULFILL data field. Single-packet: blob + payment in one ILP PREPARE. Chunked upload for large blobs. No Blossom, no relay involvement in storage flow — reads via Arweave gateways. This is a standalone DVM provider (independently valuable) and prerequisite for all NIP-34 stories.
-- **Phase 2: NIP-34 Handlers (Stories 8.1-8.6)** — repo creation (kind:30617), patches (kind:1617), issues/comments (kind:1621/1622), git HTTP backend, pubkey identity, PR lifecycle (kind:1630-1633). After local git operations, changed blobs are uploaded to Arweave via kind:5094. kind:30617 repo announcements include Arweave manifest/tx references as permanent clone sources.
-- **Phase 3: Forge-UI (Stories 8.7-8.11)** — read-only web UI mechanically ported from Forgejo's Go HTML templates to Eta templates, served by Express. Git binary operations on local mirror for rendering (tree, blame, diff, log). Issues/PRs sourced from relay NIP-34 events.
-- **Phase 4: Publish (Story 8.12)** — `@toon-protocol/rig` npm package
-- **Git HTTP backend** via `child_process` spawning the `git` binary (git-http-backend for clone/fetch, direct git commands for repo init/management)
-- **Issues/PRs/comments from relay** — the Rig subscribes to the relay for NIP-34 events and renders them in the web UI; there is NO issues/PR database
-- **Nostr pubkeys ARE usernames** — no identity mapping layer, no user database; pubkeys display directly in the UI (with optional NIP-05/kind:0 profile enrichment)
-- **Write path**: ILP packet → SDK handler → `ctx.decode()` → execute git operation (init repo, apply patch) → upload blobs to Arweave (kind:5094) → `ctx.accept()`
-- **Read path**: HTTP request → Express route → git binary (for code/tree/blob, local mirror) + relay subscription (for issues/PRs) → Eta template → HTML response
-- **Arweave read path**: `arweave.net/<tx-id>` or `gateway.irys.xyz/<tx-id>` — public, free, permanent
-- **Template port scope**: repository list, file tree, blob viewer, commit log, commit diff, blame — NOT: admin panels, user settings, OAuth, notification system, dashboard
-- Existing `packages/core/src/nip34/` provides NIP34Handler, GitOperations as foundation (ForgejoClient to be replaced)
-- **Agent-first design**: TOON Protocol users are agents. Discovery via kind:10035, programmatic NIP-34 event submission, ILP-gated writes. The Forge-UI is a convenience layer, not the primary interface.
-- **NIP-90 DVM for code review (future)**: The DVM marketplace naturally extends to code review — providers advertise as reviewers, run CI/TDD pipelines, publish results. Not in Epic 8 scope but architecturally enabled by the DVM infrastructure.
-- **Validates Epics 1-7**: The Rig exercises SDK handlers (Epic 1), relay event storage (Epic 2), USDC/x402 payments (Epic 3), TEE attestation (Epic 4), DVM marketplace (Epic 5), advanced DVM coordination (Epic 6), and ILP address hierarchy (Epic 7) in a single service
+- **No server, no SDK library.** The Rig is: (1) an Arweave DVM provider (SDK required for hosting handler), (2) a Forge-UI static frontend on Arweave. The NIP-34 Git Agent Skill is in Epic 9.
+- **Transport is `@toon-protocol/client`, not SDK.** Agents send events via the client's `publishEvent()`. The SDK (`createNode()`, handler registry, embedded connector) is only for providers (like the Arweave DVM). Agents are clients, not nodes.
+- **Arweave is the source of truth for code.** Every git object (blob, tree, commit) uploaded to Arweave via kind:5094 with Irys tags (`Git-SHA`, `Git-Type`, `Repo`). Content-addressed: git SHA → Arweave tx ID. Resolvable via Arweave GraphQL or manifest transaction.
+- **NIP-34 events on relays are the source of truth for collaboration.** kind:30617 (repos), kind:1617 (patches), kind:1621/1622 (issues/comments), kind:1618/1619 (PRs), kind:1630-1633 (status), kind:30618 (refs/branches). All ILP-gated on TOON relays.
+- **Repos are portable.** A repo = Arweave transactions + NIP-34 events. Any agent can interact with any repo.
+- **Forge-UI is a static web app on Arweave.** Read-only HTML/JS querying relays + Arweave gateways. Permanently hosted, censorship-resistant. Scope: repo list, file tree, blob viewer, commit log, diff, blame, issues, PRs.
+- **Nostr pubkeys ARE identity.** No user database. Maintainer permissions from kind:30617 `maintainers` tags.
+- **NIP-90 DVM for code review (future).** DVM marketplace extends to CI/TDD review pipelines. Not in Epic 8 scope.
+- **Phase 1: Arweave Storage DVM (Story 8.0)** — kind:5094 provider (SDK required for hosting handler)
+- **Phase 2: NIP-34 Git Agent Skill (Stories 8.1-8.6)** — skill authoring: SKILL.md, Level 3 resources per kind, git object format, Arweave integration, workflow examples, evals
+- **Phase 3: Forge-UI (Stories 8.7-8.11)** — static web frontend on Arweave
+- **Phase 4: Publish (Story 8.12)** — skill package + Forge-UI deployment to Arweave
 
 ### Story 8.0: Arweave Storage DVM Provider (kind:5094)
 
@@ -1807,336 +1808,707 @@ So that I can store files permanently without knowing about Arweave, holding AR 
 
 ---
 
-### Story 8.1: SDK Node Setup and Repository Creation Handler
+### Story 8.1: Forge-UI — Layout and Repository List
 
-As a **network operator**,
-I want a Rig service node built on the SDK that accepts kind:30617 (Repository Announcement) events via ILP and initializes git repositories,
-So that repositories can be created through paid Nostr events.
+As a **human user**,
+I want a web interface to discover and browse repositories,
+So that I can explore code without needing a Nostr client or understanding the protocol.
 
-**Dependencies:** Epic 1 (SDK must be complete)
-
-**Acceptance Criteria:**
-
-**Given** an SDK `createNode()` with handlers registered for NIP-34 kinds
-**When** the Rig node starts
-**Then** it connects to the embedded connector and begins accepting ILP packets
-**And** each NIP-34 kind is routed to its specific handler via `.on(kind, handler)`
-**And** an Express HTTP server starts serving on the configured port
-
-**Given** an incoming ILP packet with a kind:30617 (Repository Announcement) event
-**When** the handler calls `ctx.decode()` and processes the event
-**Then** a bare git repository is initialized on disk via `git init --bare` (child_process)
-**And** repository metadata (name, description, pubkey-owner) is stored in SQLite via RepoMetadataStore
-**And** `ctx.accept()` is called with the repository metadata
-
-**Given** the system has `git` installed (required dependency)
-**When** the Rig starts
-**Then** it verifies that `git` is available in PATH and logs the version
-**And** if `git` is not found, it exits with a clear error message
-
-**Given** an unsupported or malformed NIP-34 event
-**When** the handler cannot process it
-**Then** `ctx.reject('F00', 'Unsupported NIP-34 kind')` is called
-
-### Story 8.2: Patch Handler
-
-As a **contributor**,
-I want to submit code patches as kind:1617 events via ILP,
-So that my patches are applied to the repository through the standard NIP-34 workflow.
-
-**Dependencies:** Story 8.1 (repositories must exist)
+**Dependencies:** Epic 9 Stories 9.26-9.30 (NIP-34 skill defines event structures Forge-UI queries)
 
 **Acceptance Criteria:**
 
-**Given** an incoming kind:1617 (Patch) event referencing an existing repository
-**When** the handler calls `ctx.decode()` and processes the event
-**Then** the patch content is applied to the repository via `git am` or `git apply` (child_process)
-**And** the patch event ID is recorded for relay-sourced PR rendering
-**And** `ctx.accept()` is called
-
-**Given** a kind:1617 event referencing a non-existent repository
-**When** the handler processes it
-**Then** `ctx.reject('F00', 'Repository not found')` is called
-
-**Given** a malformed patch that cannot be applied
-**When** `git am` or `git apply` fails
-**Then** `ctx.reject('F00', 'Patch application failed')` is called with the git error message
-
-### Story 8.3: Issue and Comment Handlers
-
-As a **contributor**,
-I want to submit issues (kind:1621) and comments (kind:1622) via ILP,
-So that my discussions are acknowledged by the Rig and stored on the relay for web UI rendering.
-
-**Dependencies:** Story 8.1 (repositories must exist)
-
-**Acceptance Criteria:**
-
-**Given** an incoming kind:1621 (Issue) event referencing an existing repository
-**When** the handler processes it
-**Then** `ctx.accept()` is called (the issue is a Nostr event stored on the relay — the Rig acknowledges receipt)
-
-**Given** an incoming kind:1622 (Comment) event referencing an existing issue or PR
-**When** the handler processes it
-**Then** `ctx.accept()` is called (the comment is stored on the relay)
-
-**Given** a kind:1621 or kind:1622 event referencing a non-existent repository
-**When** the handler processes it
-**Then** `ctx.reject('F00', 'Repository not found')` is called
-
-### Story 8.4: Git HTTP Backend for Clone and Fetch
-
-As a **developer**,
-I want to clone and fetch repositories hosted on the Rig via standard git HTTP protocol,
-So that I can work with Rig repositories using any standard git client.
-
-**Dependencies:** Story 8.1 (repositories must exist)
-
-**Acceptance Criteria:**
-
-**Given** a git clone request over HTTP (`GET /{owner}/{repo}.git/info/refs?service=git-upload-pack`)
-**When** the HTTP server receives it
-**Then** the request is proxied to `git-http-backend` via child_process (CGI protocol)
-**And** the repository is served for read (clone/fetch is free, no ILP payment required)
-
-**Given** a git fetch request for an existing repository
-**When** the HTTP server receives it
-**Then** the fetch completes successfully via the git HTTP backend
-
-**Given** a clone/fetch request for a non-existent repository
-**When** the HTTP server receives it
-**Then** a 404 response is returned
-
-**Given** a git push request over HTTP
-**When** the HTTP server receives it
-**Then** the request is rejected (write operations go through ILP-gated NIP-34 events, not HTTP push)
-
-### Story 8.5: Nostr Pubkey-Native Git Identity
-
-As a **contributor**,
-I want my Nostr pubkey to be my git identity on the Rig,
-So that my commits, issues, and PRs are attributed to my cryptographic identity without any registration or mapping.
-
-**Dependencies:** None (identity module is independent)
-
-**Acceptance Criteria:**
-
-**Given** a NIP-34 event (any kind) from a pubkey
-**When** the Rig processes the event
-**Then** the pubkey is used directly as the author identity — no user database lookup, no Forgejo user creation
-**And** git commits attribute authorship via `GIT_AUTHOR_NAME=<pubkey_short>` and `GIT_AUTHOR_EMAIL=<pubkey>@nostr`
-
-**Given** a pubkey that has published a kind:0 (Profile Metadata) event on the relay
-**When** the web UI renders that pubkey's activity (commits, issues, PRs)
-**Then** the display name and avatar from the kind:0 event are shown alongside the pubkey
-**And** if no kind:0 profile exists, the truncated pubkey is displayed (e.g., `npub1abc...xyz`)
-
-**Given** a kind:30617 (Repository Announcement) event
-**When** a repository is created
-**Then** the event's pubkey is recorded as the repository owner
-**And** repository permissions (who can merge, who can push) are determined by pubkey lists in the repository's NIP-34 maintainer tags
-
-**Given** a NIP-34 event that modifies a repository (patch, merge, close)
-**When** the handler checks authorization
-**Then** the event's pubkey is checked against the repository's maintainer list (from the latest kind:30617 event's `maintainers` tags)
-**And** unauthorized pubkeys receive `ctx.reject('F06', 'Unauthorized')`
-
-### Story 8.6: NIP-34 Status Events and PR Lifecycle
-
-As a **contributor**,
-I want my pull request status tracked through NIP-34 status events (kinds 1630-1633),
-So that the PR lifecycle (open, applied/merged, closed, draft) is managed through Nostr events with ILP payment.
-
-**Dependencies:** Stories 8.1, 8.2 (repositories and patches must exist)
-
-**Acceptance Criteria:**
-
-**Given** a kind:1630 (Status Open) event referencing a patch event (kind:1617)
-**When** the Rig processes it
-**Then** the patch is marked as an open PR in the repository metadata
-**And** the event pubkey is verified as the patch author or a repo maintainer
-
-**Given** a kind:1631 (Status Applied/Merged) event
-**When** the Rig processes it
-**Then** the patch branch is merged into the target branch via `git merge` (child_process)
-**And** the merge commit attributes the merger's pubkey
-**And** only pubkeys listed as maintainers in the repository's kind:30617 event can merge
-
-**Given** a kind:1632 (Status Closed) event
-**When** the Rig processes it
-**Then** the PR is marked as closed in repository metadata (no git merge occurs)
-
-**Given** a kind:1633 (Status Draft) event
-**When** the Rig processes it
-**Then** the PR is marked as draft in repository metadata
-
-**Given** a status event from a pubkey without appropriate permissions
-**When** the handler checks authorization
-**Then** `ctx.reject('F06', 'Unauthorized: pubkey lacks maintainer permissions')` is called
-
-### Story 8.7: Layout and Repository List Page
-
-As a **developer**,
-I want to see a list of all repositories hosted on the Rig through a web UI,
-So that I can discover and navigate to projects without needing a specialized client.
-
-**Dependencies:** Story 8.1 (repositories must exist), Story 8.5 (pubkey display)
-
-**Acceptance Criteria:**
-
-**Given** the Rig is running with at least one repository
-**When** I visit the web UI root (`/`)
-**Then** a repository list is displayed showing all hosted repos with name, description, owner pubkey, and last commit date
-**And** the HTML is rendered from Eta templates (mechanically ported from Forgejo's Go HTML templates)
-**And** a shared layout template (`layout.eta`) provides the HTML shell, navigation header, and CSS
+**Given** a static web app (HTML/JS/CSS)
+**When** I visit the Forge-UI URL (hosted on Arweave or any static host)
+**Then** a repository list is displayed by querying a configured relay for kind:30617 events
+**And** each repo shows: name, description, owner pubkey (with kind:0 profile enrichment), and default branch
+**And** a shared layout provides navigation header and CSS (mechanically ported from Forgejo's Go HTML templates to client-side templates)
 
 **Given** the repository list
 **When** I click on a repository name
 **Then** I am navigated to the repository's file tree view
 
-**Given** no repositories exist
-**When** I visit the root
-**Then** an empty state message is displayed
+**Given** the Forge-UI is a static web app
+**When** it is deployed to Arweave via kind:5094
+**Then** it is permanently accessible via `arweave.net/<tx-id>` or an ArNS name
+**And** the relay URL is configurable via URL parameter or settings
 
-### Story 8.8: File Tree and Blob View
+**Test Approach:** Unit test: relay query for kind:30617 produces correct repo list. Integration test: static HTML renders repo list from mock relay data.
 
-As a **developer**,
+### Story 8.2: Forge-UI — File Tree and Blob View
+
+As a **human user**,
 I want to browse a repository's file tree and view individual file contents,
-So that I can explore the codebase through the web UI.
+So that I can explore code through the web interface.
 
-**Dependencies:** Story 8.7 (layout must exist)
+**Dependencies:** Story 8.1 (layout)
 
 **Acceptance Criteria:**
 
-**Given** a repository page (`/{owner}/{repo}`)
+**Given** a repository page
 **When** I browse the file tree
-**Then** the tree view shows directories and files at the current ref (default branch)
-**And** clicking a file shows syntax-highlighted content (blob view)
-**And** clicking a directory navigates into it
-**And** data is fetched via `git ls-tree`, `git show`, etc. (child_process)
+**Then** the Forge-UI fetches kind:30618 → commit SHA → tree object from Arweave → renders directory listing
+**And** clicking a file fetches the blob from Arweave and displays syntax-highlighted content
+**And** clicking a directory navigates into it (fetches subtree from Arweave)
 
-**Given** a file blob view (`/{owner}/{repo}/blob/{ref}/{path}`)
+**Given** a file blob view
 **When** I view a file
-**Then** the file content is displayed with syntax highlighting
-**And** the file size and last commit info are shown
+**Then** the content is fetched from `arweave.net/<blob-tx-id>` and displayed with syntax highlighting
 
-**Given** a path that does not exist in the repository
-**When** I navigate to it
-**Then** a 404 page is displayed
+**Test Approach:** Unit test: tree object parsing renders correct file list. Unit test: blob fetch and syntax highlight rendering. Integration test: navigate tree from Arweave mock data.
 
-### Story 8.9: Commit Log and Diff View
+### Story 8.3: Forge-UI — Commit Log and Diff View
 
-As a **developer**,
+As a **human user**,
 I want to view commit history and individual commit diffs,
 So that I can understand the change history of a repository.
 
-**Dependencies:** Story 8.7 (layout must exist)
+**Dependencies:** Story 8.1 (layout)
 
 **Acceptance Criteria:**
 
-**Given** a repository with commits
-**When** I view the commit log (`/{owner}/{repo}/commits`)
-**Then** commits are listed with hash, message, author (pubkey with optional profile enrichment), and date
+**Given** a commit log page
+**When** I view it
+**Then** the Forge-UI walks the commit chain from Arweave (commit → parent commit → ...) and renders: hash, message, author pubkey (with profile enrichment), date
 **And** clicking a commit shows the diff view
 
-**Given** a commit diff view (`/{owner}/{repo}/commit/{sha}`)
+**Given** a commit diff view
 **When** I view it
-**Then** the diff is rendered with syntax-highlighted additions/deletions
-**And** the diff is generated via `git diff` (child_process)
-**And** the commit metadata (author, date, message) is displayed
+**Then** the Forge-UI fetches the commit's tree and parent's tree from Arweave, computes the diff, and renders syntax-highlighted additions/deletions
 
-**Given** an invalid commit SHA
-**When** I navigate to it
-**Then** a 404 page is displayed
+**Test Approach:** Unit test: commit chain walking from Arweave mock. Unit test: tree-to-tree diff computation. Integration test: render commit log and diff from Arweave data.
 
-### Story 8.10: Blame View
+### Story 8.4: Forge-UI — Blame View
 
-As a **developer**,
+As a **human user**,
 I want to view per-line blame information for any file,
 So that I can see who last modified each line and when.
 
-**Dependencies:** Story 8.7 (layout must exist)
+**Dependencies:** Story 8.1 (layout)
 
 **Acceptance Criteria:**
 
-**Given** a blame view (`/{owner}/{repo}/blame/{ref}/{path}`)
+**Given** a blame view
 **When** I view a file's blame
-**Then** each line shows the commit hash, author pubkey, and date of last modification
-**And** the blame data is generated via `git blame` (child_process)
+**Then** the Forge-UI walks the commit history from Arweave to determine the last commit that modified each line
+**And** each line shows: commit hash, author pubkey, date
 
-**Given** a file that does not exist at the specified ref
-**When** I navigate to its blame view
-**Then** a 404 page is displayed
+**Test Approach:** Unit test: blame computation from Arweave commit/tree/blob chain. Note: blame is computationally expensive — may require progressive loading or caching.
 
-### Story 8.11: Issues and PRs from Nostr Events on Relay
+### Story 8.5: Forge-UI — Issues and PRs from Relay
 
-As a **developer**,
-I want to view issues, pull requests, and comments in the web UI,
-So that I can follow project discussions sourced from Nostr events without needing a Nostr client.
+As a **human user**,
+I want to view issues, pull requests, and comments in the web interface,
+So that I can follow project discussions without a Nostr client.
 
-**Dependencies:** Story 8.7 (layout must exist), Story 8.1 (repositories must exist)
+**Dependencies:** Story 8.1 (layout)
 
 **Acceptance Criteria:**
 
-**Given** a repository page with the issues tab (`/{owner}/{repo}/issues`)
-**When** I view the issues list
-**Then** the Rig queries the connected relay for kind:1621 events tagged with this repository's event ID
-**And** issues are rendered with title, content, author pubkey (with profile enrichment), and creation date
-**And** issue replies (kind:1622 events referencing the issue) are shown as comments
+**Given** an issues page
+**When** I view it
+**Then** the Forge-UI queries the relay for kind:1621 events tagged with the repository's event ID
+**And** issues are rendered with title, content (markdown), author pubkey (with profile enrichment), and creation date
+**And** kind:1622 comment events are rendered as threaded replies
 
-**Given** a repository page with the pull requests tab (`/{owner}/{repo}/pulls`)
-**When** I view the PR list
-**Then** the Rig queries the relay for kind:1617 (Patch) events tagged with this repository
-**And** PRs are rendered with title, patch summary, author pubkey, status (from latest kind:1630-1633 event), and creation date
-
-**Given** a specific issue or PR detail page
-**When** I view the discussion thread
-**Then** kind:1622 (Comment) events referencing the issue/PR are rendered chronologically
-**And** each comment shows author pubkey (with profile enrichment), content, and timestamp
-
-**Given** the relay subscription
-**When** new NIP-34 events appear on the relay for a repository
-**Then** the Rig caches recent events locally for fast page rendering
-**And** the cache is refreshed on page load (or via WebSocket subscription for real-time updates)
+**Given** a pull requests page
+**When** I view it
+**Then** the Forge-UI queries for kind:1617 patches + kind:1618 PRs tagged with the repository
+**And** PRs show: title, author, status (from latest kind:1630-1633 event), creation date
 
 **Given** any issue/PR/comment page
 **When** a visitor wants to contribute
-**Then** a banner explains that participation requires an ILP/Nostr client
-**And** includes a link to documentation on submitting NIP-34 events via `@toon-protocol/client`
+**Then** a banner explains that participation requires a TOON agent or Nostr client with ILP capability
 
-### Story 8.12: Publish @toon-protocol/rig Package
+**Test Approach:** Unit test: relay query filters for NIP-34 events. Unit test: markdown rendering. Integration test: render issues and PRs from mock relay data.
 
-As a **network operator**,
-I want to `npm install @toon-protocol/rig` and deploy a TypeScript git forge alongside my relay,
-So that I can add git collaboration to my TOON node with a single command.
+### Story 8.6: Deploy Forge-UI to Arweave
 
-**Dependencies:** Stories 8.1-8.11 (all Rig functionality must be complete)
+As a **TOON developer**,
+I want the Forge-UI permanently deployed to Arweave,
+So that humans can browse repos via a censorship-resistant web interface.
+
+**Dependencies:** Stories 8.0-8.5 (Arweave DVM and all Forge-UI views must be complete)
 
 **Acceptance Criteria:**
 
-**Given** the `@toon-protocol/rig` package
-**When** I inspect `package.json`
-**Then** it depends on `@toon-protocol/sdk`, `@toon-protocol/core` (for NIP-34 types, GitOperations), `eta` (template engine), `express` (HTTP server)
-**And** it has `"type": "module"` with TypeScript strict mode
-**And** it does NOT depend on Go, Forgejo, or any external database
+**Given** the Forge-UI static web app
+**When** built and uploaded to Arweave via kind:5094
+**Then** it is permanently accessible via `arweave.net/<tx-id>` or an ArNS name
+**And** the Arweave tx ID is documented in kind:30617 repo announcements
 
-**Given** the package entry point
-**When** I import from `@toon-protocol/rig`
-**Then** it exports a `startRig(config)` function and a `RigConfig` type
-**And** config accepts: `mnemonic` (or `secretKey`), `repoDir` (git repo storage path), `httpPort` (web UI port), `relayUrl` (for event queries), `knownPeers`, `settlementConfig`, and optional overrides
+**Given** the TOON Protocol's own codebase
+**When** the Arweave DVM + Forge-UI are deployed
+**Then** the TOON Protocol repository itself can be browsed via Forge-UI (dogfooding)
 
-**Given** a minimal configuration
-**When** I call `startRig({ mnemonic: '...', relayUrl: 'ws://localhost:7100' })`
-**Then** a Rig node starts with sensible defaults (httpPort 3000, repoDir ./repos)
-**And** NIP-34 handlers are registered for all supported kinds
-**And** the web UI starts serving on the configured port
-**And** bootstrap runs and the Rig begins accepting ILP packets
+**Test Approach:** Integration test: build Forge-UI, upload via kind:5094, verify accessibility via Arweave gateway URL.
 
-**Given** the package includes a CLI entrypoint
-**When** I run `npx @toon-protocol/rig --mnemonic "..." --relay-url "ws://localhost:7100"`
-**Then** a Rig node starts with environment variable and CLI flag configuration
-**And** a Docker image is also published for container deployments
+---
 
-**Given** the package is built
-**When** published to npm with `--access public`
-**Then** it is available as `@toon-protocol/rig` with correct ESM exports and TypeScript declarations
+## Epic 9: NIP-to-TOON Skill Pipeline + Socialverse Skills
+
+A skill factory and comprehensive NIP skills library for the TOON Protocol socialverse. Phase 0 builds the pipeline — a `nip-to-toon-skill` skill that converts any Nostr NIP into a TOON-aware Claude Agent Skill with social intelligence, TOON write/read model integration, and skill-creator-compatible evals. Phases 1-10 run NIPs through the pipeline to produce the socialverse skill set. Each skill follows Anthropic's SKILL.md format with three-level progressive disclosure, includes a `## Social Context` section encoding interaction etiquette, and is tested via the skill-creator's eval/benchmark/description-optimization methodology.
+
+**Stories:** 34 (9.0-9.3: Pipeline + 9.4-9.25: Socialverse NIP Skills + 9.26-9.30: NIP-34 Git Skills [from Epic 8] + 9.31-9.32: DVM Skills + 9.33-9.34: Publication)
+**Decision source:** Party Mode 2026-03-22 — NIP Skills Epic, socialverse prioritization, pipeline architecture, skill-creator methodology adoption
+**Validates:** Epics 1-8 (skills teach agents to interact with every layer of TOON Protocol)
+**References:** [Anthropic skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator), [Skill authoring blog](https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills), [Nostr NIPs](https://github.com/nostr-protocol/nips)
+
+**Design Decisions:**
+
+| ID | Decision | Rationale |
+|----|----------|-----------|
+| D9-001 | Pipeline over catalog | Build a skill factory (`nip-to-toon-skill`), not just a skill collection. Enables future NIP conversion without re-scoping |
+| D9-002 | TOON-first, NIP-compatible | Every skill teaches TOON protocol (ILP-gated writes, TOON format reads) with vanilla NIP as baseline reference |
+| D9-003 | Social intelligence is cross-cutting | `nostr-social-intelligence` base skill + per-NIP `## Social Context` sections. Layered architecture: base handles universal social judgment, NIP skills handle interaction-specific etiquette |
+| D9-004 | Economics shape social norms | ILP paid-writes documented as social feature — creates quality floor, shapes interaction norms. `references/economics-of-interaction.md` in base skill |
+| D9-005 | No condition/fulfillment | Simplified write model: `publishEvent(event, { amount })`. No SHA-256 double-hash computation on client side |
+| D9-006 | No ILP-peer NIPs | Excluded: NIP-13 (PoW), NIP-42 (relay auth), NIP-47 (wallet connect), NIP-57 (zaps), NIP-98 (HTTP auth) — ILP handles all these functions |
+| D9-007 | Skill-creator methodology adopted | `evals/evals.json` format, `grading.json`, `benchmark.json`, description optimization via `scripts.run_loop`, with/without baseline testing — all from Anthropic's skill-creator |
+| D9-008 | Why over rules | Skills explain reasoning ("TOON uses ILP for writes because..."), not rigid ALWAYS/NEVER patterns. LLMs generalize better from explained reasoning |
+| D9-009 | Eval framework is Phase 0 | Test as you build — framework adopted before first NIP skill authored |
+| D9-010 | Protocol changes propagate | `toon-protocol-context.md` is single source of truth for TOON write/read model. Update once, re-run affected skills through pipeline |
+
+**Architecture notes:**
+
+- **Pipeline skill (`nip-to-toon-skill`) is the lasting asset.** The 30 NIP skills are the first batch. When NIP-XX lands, any agent with the pipeline skill produces a TOON-compliant skill for it.
+- **Three-level progressive disclosure per skill.** Level 1: YAML frontmatter (~100 tokens, includes social-situation triggers). Level 2: SKILL.md body (<5k tokens, protocol mechanics + TOON write/read model + social context). Level 3: `references/` folder (unlimited, NIP spec, TOON extensions, scenarios, anti-patterns).
+- **Social intelligence base skill.** Cross-cutting `nostr-social-intelligence` skill provides: interaction decision trees (react vs comment vs repost vs ignore), context-dependent behavior norms (feed vs group vs DM), trust signal interpretation, conflict resolution escalation ladder, pseudonymous culture norms, economics of interaction (ILP paid-writes), and anti-patterns (over-reactor, template responder, context-blind engager, sycophant).
+- **TOON write model (simplified).** Discover pricing (kind:10032 or NIP-11 `/health`) → calculate fee (`basePricePerByte × serialized event bytes`) → send via `client.publishEvent(event, { amount })`. No condition/fulfillment computation. Client handles ILP transport.
+- **TOON read model.** Standard NIP-01 subscriptions (`["REQ", ...]`), but relay returns TOON-format strings, not JSON objects.
+- **Skill-creator compatible output.** Pipeline produces: `evals/evals.json` (8-10 trigger + 4-6 output evals), `grading.json` (objective assertions), `benchmark.json` (pass rate, timing, tokens). Description optimization via 20 trigger queries and `scripts.run_loop --max-iterations 5`.
+- **TOON compliance assertions.** Auto-injected by pipeline: `toon-write-check` (uses `publishEvent()`), `toon-fee-check` (fee calculation present), `toon-format-check` (TOON format handling), `social-context-check` (`## Social Context` section exists), `trigger-coverage` (social-situation triggers in description).
+- **With/without baseline testing.** Every skill tested with-skill vs baseline Claude to prove it adds value. If baseline handles a NIP correctly, the skill is unnecessary overhead. Social intelligence skills are most durable — social judgment unlikely in any model's baseline training.
+- **Skill categories.** Capability uplift: `nostr-social-intelligence` (teaches social judgment). Encoded preference: most NIP skills (sequence capabilities per TOON workflow). Different testing approaches per category.
+- **`toon-protocol-context.md` reference file.** Single source of truth injected into every generated skill. Contains: TOON write model, TOON read model, transport (`@toon-protocol/client`), relay discovery (enriched NIP-11), social economics. When protocol changes, update this one file and re-run pipeline.
+
+**NIP exclusions (D9-006):** NIP-13 (Proof of Work — ILP payment replaces PoW spam prevention), NIP-42 (Relay Auth — ILP gating IS auth), NIP-47 (Wallet Connect — ILP replaces Lightning wallet integration), NIP-57 (Zaps — ILP replaces Lightning zaps), NIP-98 (HTTP Auth — x402 already handles this).
+
+---
+
+### Phase 0 — Pipeline Foundation
+
+### Story 9.0: Social Intelligence Base Skill (`nostr-social-intelligence`)
+
+As a **TOON agent**,
+I want a cross-cutting social intelligence skill that teaches me when and why to use each interaction type,
+So that I behave as a thoughtful social participant rather than a protocol-executing bot.
+
+**Dependencies:** None (foundational)
+
+**Acceptance Criteria:**
+
+**Given** the `nostr-social-intelligence/SKILL.md` file
+**When** an agent faces a social decision (react vs comment vs repost vs ignore, group etiquette, conflict handling)
+**Then** the skill triggers and provides the relevant decision framework
+
+**Given** the SKILL.md description field
+**Then** it triggers on social-situation questions ("should I react to this?", "what's appropriate here?", "how do I handle this disagreement?") not just protocol questions
+
+**Given** the `references/interaction-decisions.md` file
+**Then** it provides a conditional decision tree: (1) Does the content deserve amplification? → repost/quote. (2) Do you have substantive thoughts? → comment. (3) Want to acknowledge? → react. (4) Nothing to add? → silence is fine. With context modifiers for group size, feed vs DM, long-form vs short notes.
+
+**Given** the `references/context-norms.md` file
+**Then** it provides a behavior matrix by context: public feed (liberal reactions, substantive comments), small NIP-29 groups (thoughtful reactions, encouraged comments), large groups (free reactions, focused comments), DMs (direct, personal), long-form (considered, detailed)
+
+**Given** the `references/trust-signals.md` file
+**Then** it documents: follow count is not authority, relay membership matters (ILP-gated = skin-in-the-game), NIP-05 = domain ownership not identity, new accounts deserve benefit of the doubt
+
+**Given** the `references/conflict-resolution.md` file
+**Then** it documents the escalation ladder: ignore → mute (NIP-51) → block → report (NIP-56). In NIP-29 groups: defer to admins, don't relitigate publicly.
+
+**Given** the `references/pseudonymous-culture.md` file
+**Then** it documents: don't assume identity from keys, relay diversity is normal, ILP-gated relays create implicit quality floors, censorship resistance is a value, interoperability is expected
+
+**Given** the `references/economics-of-interaction.md` file
+**Then** it documents how ILP payment shapes social norms: reactions are cheap but not free (be selective), long-form content has real cost (signals investment), chat messages cost per-byte (natural conciseness incentive), even deletion costs (think before publishing)
+
+**Given** the `references/anti-patterns.md` file
+**Then** it documents: The Over-Reactor (reacting to everything), The Template Responder ("Great post!"), The Context-Blind Engager (thumbs-up on bad news), The Engagement Maximizer (quantity over quality), The Sycophant (never disagrees), The Over-Explainer ("As an AI agent..."), The Instant Responder (zero-latency engagement)
+
+**Test Approach:** Skill-creator evals: agent presented with social scenarios (e.g., "someone shared bad news in a small group, should you react?"). Grading verifies agent chooses appropriate interaction type with reasoning. With/without baseline comparison to prove social intelligence uplift.
+
+---
+
+### Story 9.1: TOON Protocol Core Skill (`nostr-protocol-core`)
+
+As a **TOON agent**,
+I want a foundational skill teaching TOON's NIP-01 implementation (ILP-gated writes, TOON format reads),
+So that every interaction I make respects the pay-to-write, free-to-read model.
+
+**Dependencies:** None (foundational, parallel with 9.0)
+
+**NIPs covered:** NIP-01 (Basic Protocol) + NIP-10 (Threads) + NIP-19 (bech32 entities)
+
+**Acceptance Criteria:**
+
+**Given** the `nostr-protocol-core/SKILL.md` file
+**When** an agent needs to construct, send, or read Nostr events on TOON
+**Then** the skill teaches TOON-first protocol with vanilla NIP-01 as baseline
+
+**Given** the TOON write model section
+**Then** it documents: (1) discover pricing from kind:10032 or NIP-11 `/health`, (2) calculate fee: `basePricePerByte × serialized event bytes`, (3) send via `client.publishEvent(event, { amount })` — NOT raw WebSocket `["EVENT", ...]`. No condition/fulfillment computation.
+
+**Given** the TOON read model section
+**Then** it documents: standard NIP-01 subscriptions (`["REQ", <sub_id>, <filters>]`), but relay returns TOON-format strings not JSON objects. Parse TOON strings accordingly.
+
+**Given** the `references/toon-write-model.md` file
+**Then** it provides complete ILP payment flow with code examples using `@toon-protocol/client`, including `publishEvent()` API, amount calculation, and error handling (F04 Insufficient Payment)
+
+**Given** the `references/toon-read-model.md` file
+**Then** it provides subscription handling, TOON format parsing, and examples
+
+**Given** the `references/fee-calculation.md` file
+**Then** it documents kind:10032 pricing discovery, per-byte calculation, amount override for DVM kinds (D7-007), and kind-specific pricing
+
+**Given** NIP-10 threading coverage
+**Then** it documents `e` tags (reply markers: root, reply, mention), `p` tags, and thread construction
+
+**Given** NIP-19 entity encoding coverage
+**Then** it documents bech32 npub/nsec/note/nevent/nprofile/naddr encoding/decoding
+
+**Given** the `## Social Context` section
+**Then** it states: "Publishing on TOON costs money. This creates a natural quality floor — every post has skin-in-the-game. Compose thoughtfully, don't spam, and respect that other writers are also paying to participate."
+
+**Test Approach:** Skill-creator evals: agent constructs events using `publishEvent()` (not raw WebSocket), calculates fees correctly, handles TOON read format. TOON compliance assertions: uses `publishEvent()`, fee calculation present, no bare `["EVENT", ...]`. Description optimization with 20 trigger queries.
+
+---
+
+### Story 9.2: NIP-to-TOON Skill Pipeline (`nip-to-toon-skill`)
+
+As a **skill author**,
+I want a pipeline skill that converts any Nostr NIP into a TOON-aware Claude Agent Skill,
+So that future NIPs can be converted to TOON skills without re-scoping the epic.
+
+**Dependencies:** Stories 9.0 (social intelligence patterns), 9.1 (TOON protocol context)
+
+**Acceptance Criteria:**
+
+**Given** the `nip-to-toon-skill/SKILL.md` file
+**When** an agent is asked to create a TOON skill for a specific NIP
+**Then** it follows a 13-step pipeline producing a complete, skill-creator-compatible skill
+
+**Given** the pipeline Step 1 (NIP Analysis)
+**Then** the agent reads the NIP spec, classifies it as read-only / write-capable / both, identifies event kinds, tag structures, content formats, and flags TOON-specific considerations
+
+**Given** the pipeline Step 2 (TOON Context Injection)
+**Then** write-capable skills get: TOON write model section referencing `nostr-protocol-core`, fee calculation for typical payload size, `publishEvent()` usage. Read-capable skills get: TOON read model (TOON format parsing). All skills get: relay discovery context (enriched NIP-11).
+
+**Given** the pipeline Step 3 (Social Context Layer)
+**Then** it generates a `## Social Context` section using `references/social-context-template.md`: when is this interaction appropriate, what does paying mean socially, context-specific norms, anti-patterns. Adds pointer to `nostr-social-intelligence`.
+
+**Given** the pipeline Step 4 (Skill Authoring)
+**Then** it generates: SKILL.md with frontmatter (name, description with social-situation triggers), body (<5k tokens), and Level 3 references (`references/nip-spec.md`, `references/toon-extensions.md`, `references/scenarios.md`)
+
+**Given** the pipeline Step 5 (Eval Generation)
+**Then** it generates `evals/evals.json` in skill-creator format: 8-10 should-trigger queries (including social-situation triggers), 8-10 should-not-trigger queries, 4-6 output evals with `id`, `prompt`, `expected_output`, `files`, `assertions`
+
+**Given** the pipeline Step 6 (TOON Assertions)
+**Then** it auto-injects TOON compliance assertions: `toon-write-check`, `toon-fee-check`, `toon-format-check`, `social-context-check`, `trigger-coverage`
+
+**Given** the pipeline Step 7 (Description Optimization)
+**Then** it runs `scripts.run_loop` with 20 trigger queries, max 5 iterations, producing `best_description`
+
+**Given** the pipeline Step 8 (With/Without Testing)
+**Then** it spawns parallel subagents: one with the skill loaded, one without (baseline). Results saved to `with_skill/outputs/` and `without_skill/outputs/`
+
+**Given** the pipeline Step 9-10 (Grading + Benchmarking)
+**Then** it produces `grading.json` (assertions with `text`, `passed`, `evidence`) and `benchmark.json` (pass rate, timing mean ± stddev, token usage)
+
+**Given** the pipeline Step 11 (TOON Compliance Validation)
+**Then** it runs TOON-specific assertion checks — red = skill isn't TOON-ready
+
+**Given** the pipeline Step 12-13 (Eval Viewer + Iterate)
+**Then** it generates HTML review via `eval-viewer/generate_review.py`, collects `feedback.json`, reads feedback, refines, re-runs into `iteration-2+/`
+
+**Given** the `references/toon-protocol-context.md` file
+**Then** it contains the single source of truth: TOON write model (no condition/fulfillment), TOON read model, transport (`@toon-protocol/client`), relay discovery (enriched NIP-11, kind:10032), social economics
+
+**Given** the `references/skill-structure-template.md` file
+**Then** it provides a SKILL.md skeleton with required sections: frontmatter, protocol mechanics, TOON write/read model, Social Context, Level 3 pointers
+
+**Given** the `scripts/validate-skill.sh` script
+**Then** it lints generated skills: required sections present, frontmatter valid (name format, description length), references exist, evals valid JSON, no vanilla Nostr write patterns (bare `["EVENT", ...]`)
+
+**Test Approach:** Meta-eval: run the pipeline on 3 test NIPs (one read-only, one write-capable, one both). Verify each produced skill passes TOON compliance validation, has correct evals format, and triggers appropriately.
+
+---
+
+### Story 9.3: Skill Eval Framework (TOON-Extended Skill-Creator)
+
+As a **skill author**,
+I want an eval framework that adopts the skill-creator's methodology and extends it with TOON compliance checks,
+So that every skill is tested consistently and protocol compliance is automated.
+
+**Dependencies:** Stories 9.0, 9.1 (skills to test against)
+
+**Acceptance Criteria:**
+
+**Given** the eval framework
+**When** a skill is tested
+**Then** it uses the skill-creator's standard toolchain: `evals/evals.json` format, `grading.json` assertion format, `benchmark.json` aggregation, `eval-viewer/generate_review.py`, `scripts.run_loop` for description optimization, `scripts.aggregate_benchmark` for benchmarking, `scripts.package_skill` for packaging
+
+**Given** the TOON compliance test suite
+**Then** it provides assertion templates auto-injected by the pipeline:
+- `toon-write-check`: write skills reference `publishEvent()`, never bare `["EVENT", ...]`
+- `toon-fee-check`: write skills include fee calculation or reference to fee docs
+- `toon-format-check`: read skills handle TOON format, not assume JSON
+- `social-context-check`: all skills have `## Social Context` section
+- `trigger-coverage`: description covers both protocol AND social-situation triggers
+- `eval-completeness`: at least 6 trigger evals + 4 output evals per skill
+
+**Given** a batch runner
+**When** invoked on the full skills directory
+**Then** it runs all skills through eval + benchmark in one pass, producing an aggregate compliance report
+
+**Given** the iteration workspace structure
+**Then** it follows skill-creator convention: `workspace/iteration-N/eval-NAME/{with_skill,without_skill}/outputs/`, `eval_metadata.json`, `timing.json`, `grading.json`
+
+**Test Approach:** Run framework against Stories 9.0 and 9.1 skills. Verify correct eval execution, grading output, benchmark aggregation, and TOON compliance report generation.
+
+---
+
+### Phase 1 — Identity & Profiles
+
+### Story 9.4: Social Identity Skill (`social-identity`)
+
+As a **TOON agent**, I want a skill teaching identity management on Nostr/TOON, so that I can create profiles, manage follow lists, and understand identity verification.
+
+**NIPs covered:** NIP-02 (Follow List) + NIP-05 (DNS Identifiers) + NIP-24 (Extra Metadata) + NIP-39 (External Identities)
+**Dependencies:** Stories 9.0, 9.1 (social intelligence + protocol core)
+**Acceptance Criteria:** Skill produced via pipeline (9.2). Covers kind:0 (profile), kind:3 (contacts), NIP-05 verification, external identity linking. TOON write model for profile updates (paid). Social context: profile is your identity — invest in it; follow lists are public signals. Evals in skill-creator format. TOON compliance passing. Description optimization run.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+---
+
+### Phase 2 — Content & Publishing
+
+### Story 9.5: Long-form Content Skill (`long-form-content`)
+
+As a **TOON agent**, I want a skill teaching long-form content publishing, so that I can create and manage articles on TOON relays.
+
+**NIPs covered:** NIP-23 (Long-form Content) + NIP-14 (Subject Tags)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:30023 (long-form), subject tags, summary tags, published_at. TOON write model: long-form has higher cost (more bytes) — worth it for quality content. Social context: long-form signals investment and seriousness; structure with headers; include meaningful titles. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.6: Social Interactions Skill (`social-interactions`)
+
+As a **TOON agent**, I want a skill teaching social engagement patterns, so that I can react, comment, and repost appropriately.
+
+**NIPs covered:** NIP-22 (Comment) + NIP-18 (Reposts) + NIP-25 (Reactions)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:7 (reactions), kind:6 (reposts), kind:1111 (comments). TOON write model: reactions are cheap but not free — be selective. Social context: interaction decision tree from 9.0 referenced; "-" downvote is confrontational; don't react-spam; context-blind engagement is tone-deaf. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle. Social scenario evals critical.
+
+### Story 9.7: Content References Skill (`content-references`)
+
+As a **TOON agent**, I want a skill teaching content linking and referencing, so that I can create rich, interconnected content.
+
+**NIPs covered:** NIP-27 (Text Note References) + NIP-21 (`nostr:` URI Scheme)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers `nostr:` URI construction, text note references, inline mentions. Read-focused (URI parsing) + write-capable (constructing references). Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+---
+
+### Phase 3 — Community & Groups
+
+### Story 9.8: Relay Groups Skill (`relay-groups`)
+
+As a **TOON agent**, I want a skill teaching relay-based group participation, so that I can join and interact in TOON community spaces.
+
+**NIPs covered:** NIP-29 (Relay-based Groups)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers group creation, membership, group events, admin roles. TOON write model: group access may have ILP-gated entry. Social context: small groups feel personal (reactions = direct address); defer to admins; group culture varies by relay. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.9: Moderated Communities Skill (`moderated-communities`)
+
+As a **TOON agent**, I want a skill teaching moderated community governance, so that I can participate in and understand community structures.
+
+**NIPs covered:** NIP-72 (Moderated Communities)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers community definitions, approval flows, moderation actions. Social context: respect moderation decisions; contribute constructively. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.10: Public Chat Skill (`public-chat`)
+
+As a **TOON agent**, I want a skill teaching real-time public chat, so that I can participate in chat channels on TOON relays.
+
+**NIPs covered:** NIP-28 (Public Chat)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:40 (channel create), kind:41 (channel metadata), kind:42 (channel message), kind:43 (hide message), kind:44 (mute user). TOON write model: chat messages cost per-byte — natural conciseness incentive. Social context: real-time norms; stay on topic; don't flood. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+---
+
+### Phase 4 — Curation & Discovery
+
+### Story 9.11: Lists and Labels Skill (`lists-and-labels`)
+
+As a **TOON agent**, I want a skill teaching content curation and labeling, so that I can organize and categorize content.
+
+**NIPs covered:** NIP-51 (Lists) + NIP-32 (Labeling)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:30000 (categorized people), kind:30001 (categorized bookmarks), kind:10000 (mute list), kind:1985 (labels). TOON write model: list curation has cost. Social context: mute lists are private conflict resolution; labels should be honest. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.12: Search Skill (`search`)
+
+As a **TOON agent**, I want a skill teaching relay search capabilities, so that I can find content and people.
+
+**NIPs covered:** NIP-50 (Search Capability)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers search filter extension, relay search support detection. Read-focused skill. Social context: search responsibly; respect that results may include paid content. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.13: App Handlers Skill (`app-handlers`)
+
+As a **TOON agent**, I want a skill teaching application and DVM discovery, so that I can find services and recommend handlers.
+
+**NIPs covered:** NIP-89 (Recommended Application Handlers)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:31990 (handler information), kind:31989 (handler recommendation). Links to TOON's kind:10035 service discovery for DVM integration. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+---
+
+### Phase 5 — Rich Media
+
+### Story 9.14: Media and Files Skill (`media-and-files`)
+
+As a **TOON agent**, I want a skill teaching media attachment and file metadata handling, so that I can work with rich media content including Arweave references.
+
+**NIPs covered:** NIP-92 (Media Attachments) + NIP-94 (File Metadata) + NIP-73 (External Content IDs)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers `imeta` tags, kind:1063 (file metadata), external content IDs including `arweave:tx:` references (critical for TOON/Arweave integration). Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.15: Visual Media Skill (`visual-media`)
+
+As a **TOON agent**, I want a skill teaching picture-first and video content handling, so that I can work with visual media on TOON.
+
+**NIPs covered:** NIP-68 (Picture-first Feeds) + NIP-71 (Video Events)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:20 (picture), kind:34235 (video). Social context: visual content has higher byte cost — curate carefully. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.16: File Storage Skill (`file-storage`)
+
+As a **TOON agent**, I want a skill teaching HTTP file storage integration, so that I can upload and retrieve files via NIP-96 servers.
+
+**NIPs covered:** NIP-96 (HTTP File Storage Integration)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers NIP-96 server discovery, upload API, download URLs. Complements Arweave storage (kind:5094) with HTTP-based alternatives. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+---
+
+### Phase 6 — Privacy & Content Control
+
+### Story 9.17: Encrypted Messaging Skill (`encrypted-messaging`)
+
+As a **TOON agent**, I want a skill teaching encrypted payload handling, so that I can send and receive encrypted content.
+
+**NIPs covered:** NIP-44 (Encrypted Payloads) + NIP-59 (Gift Wrap)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers NIP-44 versioned encryption, gift wrap for metadata protection. TOON write model: encryption increases byte size → higher fee. Social context: encryption is for privacy, not hiding — respect the trust. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.18: Private DMs Skill (`private-dms`)
+
+As a **TOON agent**, I want a skill teaching private direct messaging, so that I can have private conversations.
+
+**NIPs covered:** NIP-17 (Private Direct Messages)
+**Dependencies:** Stories 9.0, 9.1, 9.17 (encrypted messaging)
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:14 (private DM), gift-wrapped delivery. TOON write model: DMs cost per-byte. Social context: DMs are personal — don't cold-DM; respect boundaries. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.19: Content Control Skill (`content-control`)
+
+As a **TOON agent**, I want a skill teaching content lifecycle management, so that I can delete, protect, and manage my published content.
+
+**NIPs covered:** NIP-09 (Event Deletion Request) + NIP-62 (Request to Vanish) + NIP-70 (Protected Events)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:5 (deletion request), vanish requests, protected event markers. TOON write model: even deletion costs money — think before publishing. Social context: deletion is a request not a guarantee in decentralized systems; use protection proactively. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.20: Sensitive Content Skill (`sensitive-content`)
+
+As a **TOON agent**, I want a skill teaching content warning and sensitivity handling, so that I can appropriately mark and handle sensitive content.
+
+**NIPs covered:** NIP-36 (Sensitive Content)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers content-warning tag, reason tags. Social context: content warnings are community care — use proactively; respect others' boundaries. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+---
+
+### Phase 7 — Advanced Social Features
+
+### Story 9.21: User Statuses Skill (`user-statuses`)
+
+As a **TOON agent**, I want a skill teaching user status management, so that I can set and read presence/activity indicators.
+
+**NIPs covered:** NIP-38 (User Statuses)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:30315 (user status). Social context: statuses signal availability — respect "busy" indicators. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.22: Badges Skill (`badges`)
+
+As a **TOON agent**, I want a skill teaching badge creation and display, so that I can work with reputation and achievement systems.
+
+**NIPs covered:** NIP-58 (Badges)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:30009 (badge definition), kind:8 (badge award), kind:30008 (profile badges). Social context: badges are reputation signals — award meaningfully; display selectively. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.23: Highlights Skill (`highlights`)
+
+As a **TOON agent**, I want a skill teaching social reading and annotation, so that I can highlight and share notable content passages.
+
+**NIPs covered:** NIP-84 (Highlights)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:9802 (highlights). Social context: highlights surface quality — curate thoughtfully. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.24: Polls Skill (`polls`)
+
+As a **TOON agent**, I want a skill teaching poll creation and participation, so that I can facilitate community decision-making.
+
+**NIPs covered:** NIP-88 (Polls)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers poll creation, voting, results. TOON write model: voting costs money — prevents ballot stuffing. Social context: polls should be well-formed; respect results. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.25: Drafts and Expiration Skill (`drafts-and-expiration`)
+
+As a **TOON agent**, I want a skill teaching draft management and content expiration, so that I can manage content lifecycle.
+
+**NIPs covered:** NIP-37 (Draft Events) + NIP-40 (Expiration Timestamp)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:31234 (drafts), expiration tag. Social context: drafts enable thoughtful composition; expiration for time-sensitive content. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+---
+
+### Phase 8 — NIP-34 Git Skills (moved from Epic 8)
+
+### Story 9.26: NIP-34 Kind Resources Skill (`git-collaboration`)
+
+As an **AI agent**, I want detailed Level 3 resource files for each NIP-34 event kind, so that I can construct valid git collaboration events by loading the relevant kind's resource on demand.
+
+**NIPs covered:** NIP-34 (all event kinds)
+**Dependencies:** Stories 9.0, 9.1, 9.2 (pipeline)
+**Origin:** Was Epic 8 Story 8.1
+
+**Acceptance Criteria:** Skill produced via pipeline. Each NIP-34 kind has its own Level 3 resource: kind:30617 (repo announcement), kind:30618 (repo state), kind:1617 (patch), kind:1618 (PR), kind:1619 (PR update), kind:1621 (issue), kind:1622 (comment), kind:1630-1633 (status), kind:5094 (Arweave blob storage). Each resource contains: kind number, purpose, required tags, optional tags, content format, validation rules, 2-3 complete examples. TOON write model for all write operations. Social context: code collaboration etiquette — review patches constructively, attribute contributions. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle. Per-kind event construction evals.
+
+### Story 9.27: Git Object Format Skill (`git-objects`)
+
+As an **AI agent**, I want a resource documenting git's binary object format, so that I can construct valid git objects for upload to Arweave.
+
+**Dependencies:** Story 9.26
+**Origin:** Was Epic 8 Story 8.2
+
+**Acceptance Criteria:** Level 3 resource covering: blob format, tree format, commit format, SHA-1 computation, Nostr pubkey-to-git-author mapping, diff application. Evals verify SHA-1 matches pre-computed values.
+**Test Approach:** Skill-creator evals with pre-computed SHA-1 verification.
+
+### Story 9.28: Git-Arweave Integration Skill (`git-arweave`)
+
+As an **AI agent**, I want a resource documenting how git objects map to Arweave transactions, so that I can upload objects and navigate the DAG.
+
+**Dependencies:** Stories 9.26, 9.27
+**Origin:** Was Epic 8 Story 8.3
+
+**Acceptance Criteria:** Level 3 resource covering: upload via kind:5094 with Irys tags, SHA resolution (GraphQL, manifest, gateways), DAG navigation (kind:30618 → commit → tree → blob). Evals verify correct upload flow and resolution.
+**Test Approach:** Skill-creator evals with DAG traversal verification.
+
+### Story 9.29: Git Workflow Examples Skill (`git-workflows`)
+
+As an **AI agent**, I want step-by-step workflow examples for git operations, so that I can execute complete operations.
+
+**Dependencies:** Stories 9.26, 9.27, 9.28
+**Origin:** Was Epic 8 Story 8.4
+
+**Acceptance Criteria:** Level 3 resources: `create-repo.md`, `submit-patch.md`, `merge-patch.md`, `fetch-file.md`. Each workflow is complete end-to-end using `@toon-protocol/client`. Evals verify correct operation sequences.
+**Test Approach:** Skill-creator evals with workflow step verification.
+
+### Story 9.30: Git Identity, SKILL.md, and Evals (`git-identity-evals`)
+
+As a **skill author**, I want the NIP-34 Git Skill's identity resource, SKILL.md, and comprehensive evals, so that the skill is complete, triggers correctly, and quality is measurable.
+
+**Dependencies:** Stories 9.26-9.29
+**Origin:** Was Epic 8 Stories 8.5 + 8.6
+
+**Acceptance Criteria:** Identity resource covering: pubkey-only identity, maintainer authorization, permission model. SKILL.md with description optimized for triggering (git/NIP-34/code collaboration). `evals/evals.json` with 8-12 test cases. 20 trigger queries (10 should-trigger, 10 should-not-trigger). With/without baseline comparison. Target: >80% eval pass rate, 18/20 trigger accuracy. Packagable via `scripts.package_skill`.
+**Test Approach:** Full skill-creator evaluation cycle.
+
+---
+
+### Phase 9 — DVM & Marketplace Skills
+
+### Story 9.31: DVM Protocol Skill (`dvm-protocol`)
+
+As a **TOON agent**, I want a skill teaching the Data Vending Machine protocol, so that I can submit and handle DVM jobs on TOON.
+
+**NIPs covered:** NIP-90 (Data Vending Machines) + NIP-78 (Application-specific Data)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:5xxx (job requests), kind:6xxx (job results), kind:7000 (feedback), kind:10035 (service discovery with SkillDescriptor). TOON-specific: prepaid model (D7-001), `kindPricing` from SkillDescriptor, job request IS payment (no settleCompute). Social context: DVM providers are paid professionals — submit clear requests, provide fair feedback. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+### Story 9.32: Marketplace Skill (`marketplace`)
+
+As a **TOON agent**, I want a skill teaching marketplace and listing patterns, so that I can participate in DVM service marketplaces.
+
+**NIPs covered:** NIP-15 (Nostr Marketplace) + NIP-99 (Classified Listings)
+**Dependencies:** Stories 9.0, 9.1, 9.31 (DVM protocol)
+**Acceptance Criteria:** Skill produced via pipeline. Covers kind:30017 (stall), kind:30018 (product), kind:30402 (classified listing). Maps to TOON DVM service marketplace patterns. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+---
+
+### Phase 10 — Relay Discovery (from Phase 0 dependency)
+
+### Story 9.33: Relay Discovery Skill (`relay-discovery`)
+
+As a **TOON agent**, I want a skill teaching relay discovery and network navigation, so that I can find and evaluate TOON relays.
+
+**NIPs covered:** NIP-11 (Relay Information Document) + NIP-65 (Relay List Metadata) + NIP-66 (Relay Discovery and Liveness)
+**Dependencies:** Stories 9.0, 9.1
+**Acceptance Criteria:** Skill produced via pipeline. Covers NIP-11 (TOON-enriched: pricing, ILP capabilities, chain config, x402 status, TEE attestation), kind:10002 (relay list), relay liveness monitoring. Read-focused skill. Social context: relay choice matters — ILP-gated relays signal quality. Evals + TOON compliance passing.
+**Test Approach:** Pipeline output validation + skill-creator eval cycle.
+
+---
+
+### Phase 11 — Publication
+
+### Story 9.34: Publish All Skills to Registry
+
+As a **TOON developer**, I want all skills published and installable, so that any TOON agent can learn the full protocol.
+
+**Dependencies:** Stories 9.0-9.33 (all skills must be complete and passing evals)
+
+**Acceptance Criteria:**
+
+**Given** all 30+ skills in the skills directory
+**When** packaged via skill-creator's `scripts.package_skill`
+**Then** each produces a `.skill` file for distribution
+**And** skills can be installed in Claude Code (`.claude/skills/`), uploaded via Claude API, or added in claude.ai settings
+
+**Given** the aggregate benchmark
+**When** run across all skills
+**Then** overall pass rate, timing, and token metrics are reported
+**And** regression baseline is established for future model versions
+
+**Given** the pipeline skill (`nip-to-toon-skill`)
+**When** published alongside the NIP skills
+**Then** the community can produce additional TOON skills for new NIPs using the pipeline
+
+**Given** the `nip-to-toon-skill` pipeline documentation
+**Then** it includes: pipeline overview, step-by-step guide, TOON compliance requirements, contribution guidelines
+
+**Test Approach:** Verify all skills install and trigger correctly. Run aggregate benchmark. Verify pipeline documentation completeness.

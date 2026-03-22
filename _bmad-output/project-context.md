@@ -131,10 +131,11 @@ Epic 4: Marlin TEE Deployment                    COMPLETE (6/6 stories, 32/33 AC
 Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 ACs)
 Epic 6: Advanced DVM Coordination + TEE          COMPLETE (4/4 stories, 21/21 ACs)
 Epic 7: ILP Address Hierarchy & Protocol Econ    PLANNED (6 stories, design decisions D7-001 through D7-007)
-Epic 8: The Rig -- ILP-Gated Git Forge           PLANNED (13 stories: 8.0 Arweave Storage DVM + 8.1-8.12 NIP-34 Git Forge + Forge-UI)
+Epic 8: The Rig -- Arweave DVM + Forge-UI        PLANNED (7 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 Publish; NIP-34 skill stories moved to Epic 9)
+Epic 9: NIP-to-TOON Skill Pipeline + Socialverse  PLANNED (34 stories: 9.0-9.3 Pipeline + 9.4-9.25 Socialverse NIP Skills + 9.26-9.30 NIP-34 Git [from E8] + 9.31-9.32 DVM + 9.33-9.34 Publish)
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics -> Build applications on top.
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics -> Build applications on top -> Teach agents the protocol (skills pipeline + socialverse).
 
 ## Production Architecture Decisions (Party Mode 2026-03-05/06)
 
@@ -188,21 +189,22 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 | 7000 | DVM Job Feedback (NIP-90) | Implemented (Epic 5, Story 5.3; extended Epic 6 with swarm selection/winner tag) |
 | 10032 | ILP Peer Info | Existing |
 | 10033 | TEE Attestation | Implemented (Epic 4, Stories 4.2/4.3/4.6) |
-| 10034 | TEE Verification | Reserved |
+| 10034 | Prefix Claim | Implemented (Epic 7, Story 7.6) -- prefix marketplace claim request |
 | 10035 | Service Discovery | Implemented (Story 3.5, extended Story 5.4 with skill descriptors, extended Story 6.4 with reputation) |
 | 10036 | Seed Relay List | Implemented (Story 3.4) |
+| 10037 | Prefix Grant | Implemented (Epic 7, Story 7.6) -- prefix marketplace grant confirmation |
 | 10040 | Workflow Chain Definition | Implemented (Epic 6, Story 6.1) -- NIP-33 parameterized replaceable |
 | 30382 | Web of Trust Declaration | Implemented (Epic 6, Story 6.4) -- NIP-33 parameterized replaceable |
 | 31117 | Job Review | Implemented (Epic 6, Story 6.4) -- NIP-33 parameterized replaceable |
 | 5094 | Arweave Blob Storage DVM (NIP-90) | Planned (Epic 8, Story 8.0) -- storage job request |
 | 6094 | Arweave Blob Storage Result (NIP-90) | Planned (Epic 8, Story 8.0) -- storage result (informational, prepaid model) |
-| 30617 | Repository Announcement (NIP-34) | Planned (Epic 8, Story 8.1) -- NIP-33 parameterized replaceable |
-| 1617 | Patch (NIP-34) | Planned (Epic 8, Story 8.2) |
-| 1618 | Pull Request (NIP-34) | Planned (Epic 8) |
-| 1619 | PR Status Update (NIP-34) | Planned (Epic 8) |
-| 1621 | Issue (NIP-34) | Planned (Epic 8, Story 8.3) |
-| 1622 | Comment (NIP-34) | Planned (Epic 8, Story 8.3) |
-| 1630-1633 | Status Events (NIP-34) | Planned (Epic 8, Story 8.6) -- open/applied/closed/draft |
+| 30617 | Repository Announcement (NIP-34) | Planned (Epic 9, Story 9.26) -- NIP-33 parameterized replaceable |
+| 1617 | Patch (NIP-34) | Planned (Epic 9, Story 9.26) |
+| 1618 | Pull Request (NIP-34) | Planned (Epic 9, Story 9.26) |
+| 1619 | PR Status Update (NIP-34) | Planned (Epic 9, Story 9.26) |
+| 1621 | Issue (NIP-34) | Planned (Epic 9, Story 9.26) |
+| 1622 | Comment (NIP-34) | Planned (Epic 9, Story 9.26) |
+| 1630-1633 | Status Events (NIP-34) | Planned (Epic 9, Story 9.26) -- open/applied/closed/draft |
 | ~~23194~~ | ~~SPSP Request~~ | Removed (Story 2.7) |
 | ~~23195~~ | ~~SPSP Response~~ | Removed (Story 2.7) |
 
@@ -218,19 +220,36 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 - **settleCompute() deprecation path:** Still functional in Epic 7 (backward compat) but `@deprecated`. Kind 6xxx `amount` tag becomes informational, not an invoice.
 - Full decision record: `_bmad-output/planning-artifacts/research/party-mode-prepaid-protocol-decisions-2026-03-20.md`
 
-**Arweave Storage DVM Architecture (Party Mode 2026-03-22 -- shapes Epic 8):**
+**Fully Decentralized Git Architecture (Party Mode 2026-03-22 -- shapes Epics 8 + 9):**
 
-The Arweave Storage DVM is a DVM provider (kind:5094) that accepts blob data via ILP, uploads to Arweave (via Irys bundler), and returns the Arweave transaction ID in the ILP FULFILL packet's data field. It respects the protocol thesis: blob + payment travel in ONE ILP PREPARE; the tx ID returns in the FULFILL data. No separate settlement, no relay involvement in the storage flow. Reads use public Arweave gateways (`arweave.net/<tx-id>` or `gateway.irys.xyz/<tx-id>`).
+Repositories exist on the protocol, not on any server. Git objects (blobs, trees, commits) are stored permanently on Arweave via kind:5094 DVM. NIP-34 events on relays handle collaboration (repos, patches, issues, PRs, status, refs). There is no Rig server, no SDK library, no local git cache, no central authority. Epic 8 delivers infrastructure (Arweave DVM + Forge-UI). Epic 9 delivers agent knowledge (NIP-34 skill + socialverse skills + skill pipeline).
 
-- **Kind 5094 (Arweave Blob Storage):** DVM job request carrying blob data + payment. Provider advertises `kindPricing[5094]` in kind:10035 `SkillDescriptor`. Amount covers Arweave upload cost + provider margin.
-- **Single-packet flow:** Client sends ILP PREPARE (TOON-encoded kind:5094 event with base64 blob in `i` tag, amount = `kindPricing[5094] × blobSize`). Provider uploads to Irys (instant receipt), returns Arweave tx ID in FULFILL data field. Done.
-- **Chunked upload (large blobs):** Files exceeding single-packet size (~512KB) are split into chunks. Each chunk is a separate kind:5094 ILP PREPARE with `uploadId`, `chunkIndex`, `totalChunks` params. Each chunk is its own message+payment (protocol thesis holds). Provider accumulates chunks, uploads assembled blob to Arweave when all arrive, returns tx ID in final chunk's FULFILL.
-- **No Blossom, no relay involvement:** Provider has zero HTTP endpoints for storage. Reads go through public Arweave gateways. The provider is a pure ILP-to-Arweave bridge.
-- **Agent-first design:** Agents are the primary users. No human UI assumptions. Agents discover providers via kind:10035, send blobs, get tx IDs, reference them in NIP-34 events or anywhere else.
-- **Prerequisite for NIP-34 Git:** Arweave storage (Story 8.0) must be built before the Rig can store code permanently. Git objects (blobs, trees) are uploaded via kind:5094; NIP-34 events (repos, patches, issues) reference Arweave tx IDs.
-- **NIP-90 DVM for code review (future):** The DVM marketplace naturally extends to code review — providers advertise as reviewers, run CI/TDD pipelines, publish results. Not in Epic 8 scope but architecturally enabled.
-- **NIP alignment:** NIP-90 (DVM job protocol), NIP-94 (kind:1063 file metadata, optional), NIP-73 (external content IDs for `arweave:tx:` references), NIP-34 (git collaboration), NIP-B7/Blossom (SHA-256 content addressing concept, not used as transport)
+- **Agent Skill replaces SDK.** Instead of a library with functions, agents learn protocols through Claude Agent Skills with progressive disclosure (Level 3 resources per kind). Skills follow skill-creator best practices (evals, description optimization, with/without baseline testing).
+- **Transport is `@toon-protocol/client`, not SDK.** Agents send events via the client's `publishEvent()`. The SDK (`createNode()`, handler registry) is only for providers (like the Arweave DVM).
+- **Arweave is the source of truth for code.** Every git object uploaded to Arweave via kind:5094 with Irys tags (`Git-SHA`, `Git-Type`, `Repo`). Content-addressed: git SHA → Arweave tx ID. Resolvable via Arweave GraphQL or manifest transaction.
+- **NIP-34 events are the source of truth for collaboration.** kind:30617 (repos), kind:1617 (patches), kind:1621/1622 (issues/comments), kind:1618/1619 (PRs), kind:1630-1633 (status), kind:30618 (refs/branches). All ILP-gated on TOON relays.
+- **Agents interact directly.** No server in the loop. Read: kind:30618 → commit → tree → blob from Arweave. Submit: kind:1617 to relay via client. Merge: maintainer agent fetches from Arweave, applies patch, uploads new objects, publishes kind:1631 + updated kind:30618.
+- **Repos are portable.** A repo = Arweave transactions + NIP-34 events. No single point of failure.
+- **Forge-UI is a static web app on Arweave.** Read-only HTML/JS querying relays + Arweave gateways. Permanently hosted, censorship-resistant.
+- **Kind 5094 (Arweave Blob Storage):** DVM job request carrying blob data + payment. Provider advertises `kindPricing[5094]` in kind:10035 `SkillDescriptor`. Single-packet: blob + payment in ONE ILP PREPARE, Arweave tx ID in FULFILL data field. Chunked upload for large blobs (each chunk is its own message+payment). No Blossom, no relay involvement in storage flow.
+- **NIP-90 DVM for code review (future):** DVM marketplace extends to code review — providers run CI/TDD pipelines, publish results. Not in Epic 8 scope but architecturally enabled.
+- **NIP alignment:** NIP-90 (DVM), NIP-34 (git), NIP-73 (external content IDs `arweave:tx:`), NIP-94 (file metadata, optional)
 - Full decision record: `_bmad-output/planning-artifacts/research/party-mode-arweave-dvm-decisions-2026-03-22.md`
+
+**NIP-to-TOON Skill Pipeline Architecture (Party Mode 2026-03-22 -- shapes Epic 9):**
+
+A skill factory that converts any Nostr NIP into a TOON-aware Claude Agent Skill. Phase 0 builds the pipeline; Phases 1-10 run NIPs through it to produce the socialverse skill set. Skills encode social intelligence — when and why, not just how.
+
+- **Pipeline over catalog (D9-001).** `nip-to-toon-skill` pipeline skill enables future NIP conversion. The 30 NIP skills are the first batch through the pipeline.
+- **TOON-first, NIP-compatible (D9-002).** Every skill teaches TOON protocol (ILP-gated writes via `publishEvent()`, TOON-format reads) with vanilla NIP as baseline. No condition/fulfillment (D9-005) — simplified write model.
+- **Social intelligence is cross-cutting (D9-003).** `nostr-social-intelligence` base skill provides interaction decision trees, context norms, trust signals, conflict resolution, anti-patterns. Each NIP skill adds a `## Social Context` section with interaction-specific etiquette.
+- **Economics shape social norms (D9-004).** ILP paid-writes create quality floor. Cost-per-byte shapes interaction norms (reactions cheap but not free, long-form signals investment, chat incentivizes conciseness).
+- **Skill-creator methodology adopted (D9-007).** `evals/evals.json` format, `grading.json`, `benchmark.json`, description optimization via `scripts.run_loop`, with/without baseline testing, blind comparison via comparator agents.
+- **Why over rules (D9-008).** Skills explain reasoning, not rigid ALWAYS/NEVER. LLMs generalize better from explained reasoning.
+- **Protocol changes propagate (D9-010).** `toon-protocol-context.md` is single source of truth. Update once, re-run affected skills through pipeline.
+- **No ILP-peer NIPs (D9-006).** Excluded: NIP-13 (PoW), NIP-42 (relay auth), NIP-47 (wallet connect), NIP-57 (zaps), NIP-98 (HTTP auth) — ILP handles all these functions.
+- **Socialverse prioritization.** Skills ordered by social fabric value: identity → content → community → curation → media → privacy → advanced social → git → DVM.
+- Full decision record: Party Mode 2026-03-22 conversation (NIP Skills Epic)
 
 **Terminology:**
 - "ILP client" not "ILP/SPSP client" -- SPSP is not part of the protocol
@@ -1435,7 +1454,7 @@ Signals:
 
 - **Always mock SimplePool in tests** -- Never connect to live relays in unit or integration tests (use `vi.mock('nostr-tools')`)
 - **Validate event signatures before processing** -- Never trust unsigned/unverified Nostr events
-- **Use proper event kinds** -- Kind 10032 (ILP Peer Info), Kind 10033 (TEE Attestation), Kind 10035 (Service Discovery), Kind 10036 (Seed Relay List), Kind 10040 (Workflow Chain), Kinds 5000-5999 (DVM Job Request), Kinds 6000-6999 (DVM Job Result), Kind 7000 (DVM Job Feedback), Kind 31117 (Job Review), Kind 30382 (Web of Trust). Kinds 23194/23195 (SPSP) have been removed (Story 2.7)
+- **Use proper event kinds** -- Kind 10032 (ILP Peer Info), Kind 10033 (TEE Attestation), Kind 10034 (Prefix Claim), Kind 10035 (Service Discovery), Kind 10036 (Seed Relay List), Kind 10037 (Prefix Grant), Kind 10040 (Workflow Chain), Kinds 5000-5999 (DVM Job Request), Kinds 6000-6999 (DVM Job Result), Kind 7000 (DVM Job Feedback), Kind 31117 (Job Review), Kind 30382 (Web of Trust). Kinds 23194/23195 (SPSP) have been removed (Story 2.7)
 - **NIP-44 encryption** -- Available for private event exchange when needed
 - **SimplePool `ReferenceError: window is not defined` is non-fatal** -- This error appears in Node.js but doesn't break functionality
 - **Use raw `ws` WebSocket for server-side relay communication** -- SeedRelayDiscovery and attestation server avoid SimplePool for Node.js compatibility
@@ -1574,16 +1593,16 @@ Signals:
 - **Files (source):** PascalCase for classes, kebab-case for utilities and SDK modules (`BusinessLogicServer.ts`, `handler-registry.ts`, `create-node.ts`, `town.ts`, `x402-publish-handler.ts`, `AttestationVerifier.ts`, `AttestationBootstrap.ts`, `nix-builder.ts`, `pcr-validator.ts`, `kms-identity.ts`, `dvm.ts`, `skill-descriptor.ts`, `workflow.ts`, `swarm.ts`, `attested-result-verifier.ts`, `reputation.ts`, `workflow-orchestrator.ts`, `swarm-coordinator.ts`)
 - **Files (test):** Match source with `.test.ts` suffix (`handler-registry.test.ts`, `town.test.ts`, `attestation.test.ts`, `kms-identity.test.ts`, `nix-reproducibility.test.ts`, `attestation-bootstrap.test.ts`, `dvm-builders.test.ts`, `dvm-parsers.test.ts`, `dvm-roundtrip.test.ts`, `dvm-constants.test.ts`, `skill-descriptor.test.ts`, `dvm-handler-dispatch.test.ts`, `dvm-lifecycle.test.ts`, `workflow.test.ts`, `swarm.test.ts`, `attested-result-verifier.test.ts`, `reputation.test.ts`, `workflow-orchestrator.test.ts`, `swarm-coordinator.test.ts`)
 - **Classes:** PascalCase (`SocialPeerDiscovery`, `HandlerRegistry`, `SeedRelayDiscovery`, `AttestationVerifier`, `AttestationBootstrap`, `NixBuilder`, `WorkflowOrchestrator`, `SwarmCoordinator`, `AttestedResultVerifier`, `ReputationScoreCalculator`)
-- **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`, `ChainPreset`, `ServiceDiscoveryContent`, `TeeAttestation`, `ParsedAttestation`, `AttestationVerifierConfig`, `KmsKeypair`, `NixBuildResult`, `PcrReproducibilityResult`, `TeeHealthInfo`, `JobRequestParams`, `JobResultParams`, `JobFeedbackParams`, `ParsedJobRequest`, `ParsedJobResult`, `ParsedJobFeedback`, `SkillDescriptor`, `BuildSkillDescriptorConfig`, `WorkflowStep`, `WorkflowDefinitionParams`, `ParsedWorkflowDefinition`, `SwarmRequestParams`, `SwarmSelectionParams`, `ParsedSwarmRequest`, `ParsedSwarmSelection`, `AttestedResultVerificationOptions`, `AttestedResultVerificationResult`, `JobReviewParams`, `ParsedJobReview`, `WotDeclarationParams`, `ParsedWotDeclaration`, `ReputationSignals`, `ReputationScore`, `WorkflowEventStore`, `WorkflowOrchestratorOptions`, `SwarmCoordinatorOptions`)
-- **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`, `startTown`, `resolveChainConfig`, `buildIlpPrepare`, `deriveFromKmsSeed`, `verifyPcrReproducibility`, `analyzeDockerfileForNonDeterminism`, `hasRequireAttestation`, `hasMinReputation`)
-- **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `createEventStorageHandler`, `createX402Handler`, `createHealthResponse`)
+- **Interfaces:** PascalCase, no `I-` prefix (`IlpPeerInfo`, `HandlePacketRequest`, `HandlerContext`, `TownConfig`, `TownInstance`, `ChainPreset`, `ServiceDiscoveryContent`, `TeeAttestation`, `ParsedAttestation`, `AttestationVerifierConfig`, `KmsKeypair`, `NixBuildResult`, `PcrReproducibilityResult`, `TeeHealthInfo`, `JobRequestParams`, `JobResultParams`, `JobFeedbackParams`, `ParsedJobRequest`, `ParsedJobResult`, `ParsedJobFeedback`, `SkillDescriptor`, `BuildSkillDescriptorConfig`, `WorkflowStep`, `WorkflowDefinitionParams`, `ParsedWorkflowDefinition`, `SwarmRequestParams`, `SwarmSelectionParams`, `ParsedSwarmRequest`, `ParsedSwarmSelection`, `AttestedResultVerificationOptions`, `AttestedResultVerificationResult`, `JobReviewParams`, `ParsedJobReview`, `WotDeclarationParams`, `ParsedWotDeclaration`, `ReputationSignals`, `ReputationScore`, `WorkflowEventStore`, `WorkflowOrchestratorOptions`, `SwarmCoordinatorOptions`, `PrefixClaimContent`, `PrefixGrantContent`, `PrefixClaimHandlerOptions`, `PrefixValidationResult`)
+- **Functions:** camelCase (`discoverPeers`, `createNode`, `createPricingValidator`, `startTown`, `resolveChainConfig`, `buildIlpPrepare`, `deriveFromKmsSeed`, `verifyPcrReproducibility`, `analyzeDockerfileForNonDeterminism`, `hasRequireAttestation`, `hasMinReputation`, `validatePrefix`, `claimPrefix`)
+- **Factory functions:** `create*` prefix (`createNode`, `createHandlerContext`, `createVerificationPipeline`, `createPricingValidator`, `createEventStorageHandler`, `createX402Handler`, `createHealthResponse`, `createPrefixClaimHandler`)
 - **Lifecycle functions:** `start*` prefix (`startTown`)
-- **Builder functions:** `build*` prefix (`buildIlpPrepare`, `buildSeedRelayListEvent`, `buildServiceDiscoveryEvent`, `buildEip712Domain`, `buildIlpPeerInfoEvent`, `buildAttestationEvent`, `buildJobRequestEvent`, `buildJobResultEvent`, `buildJobFeedbackEvent`, `buildSkillDescriptor`, `buildWorkflowDefinitionEvent`, `buildSwarmRequestEvent`, `buildSwarmSelectionEvent`, `buildJobReviewEvent`, `buildWotDeclarationEvent`)
-- **Parser functions:** `parse*` prefix (`parseSeedRelayList`, `parseServiceDiscovery`, `parseIlpPeerInfo`, `parseAttestation`, `parseJobRequest`, `parseJobResult`, `parseJobFeedback`, `parseWorkflowDefinition`, `parseSwarmRequest`, `parseSwarmSelection`, `parseJobReview`, `parseWotDeclaration`)
+- **Builder functions:** `build*` prefix (`buildIlpPrepare`, `buildSeedRelayListEvent`, `buildServiceDiscoveryEvent`, `buildEip712Domain`, `buildIlpPeerInfoEvent`, `buildAttestationEvent`, `buildJobRequestEvent`, `buildJobResultEvent`, `buildJobFeedbackEvent`, `buildSkillDescriptor`, `buildWorkflowDefinitionEvent`, `buildSwarmRequestEvent`, `buildSwarmSelectionEvent`, `buildJobReviewEvent`, `buildWotDeclarationEvent`, `buildPrefixClaimEvent`, `buildPrefixGrantEvent`)
+- **Parser functions:** `parse*` prefix (`parseSeedRelayList`, `parseServiceDiscovery`, `parseIlpPeerInfo`, `parseAttestation`, `parseJobRequest`, `parseJobResult`, `parseJobFeedback`, `parseWorkflowDefinition`, `parseSwarmRequest`, `parseSwarmSelection`, `parseJobReview`, `parseWotDeclaration`, `parsePrefixClaimEvent`, `parsePrefixGrantEvent`)
 - **Derivation functions:** `derive*` prefix (`deriveFromKmsSeed`)
 - **Verification functions:** `verify*` prefix (`verifyPcrReproducibility`, `verifyAttestedResult`)
 - **Predicate functions:** `has*` prefix (`hasRequireAttestation`, `hasMinReputation`)
-- **Constants:** UPPER_SNAKE_CASE (`ILP_PEER_INFO_KIND`, `MAX_PAYLOAD_BASE64_LENGTH`, `SERVICE_DISCOVERY_KIND`, `SEED_RELAY_LIST_KIND`, `MOCK_USDC_ADDRESS`, `USDC_DECIMALS`, `TEE_ATTESTATION_KIND`, `JOB_REQUEST_KIND_BASE`, `JOB_RESULT_KIND_BASE`, `JOB_FEEDBACK_KIND`, `TEXT_GENERATION_KIND`, `IMAGE_GENERATION_KIND`, `TEXT_TO_SPEECH_KIND`, `TRANSLATION_KIND`, `WORKFLOW_CHAIN_KIND`, `JOB_REVIEW_KIND`, `WEB_OF_TRUST_KIND`)
+- **Constants:** UPPER_SNAKE_CASE (`ILP_PEER_INFO_KIND`, `MAX_PAYLOAD_BASE64_LENGTH`, `SERVICE_DISCOVERY_KIND`, `SEED_RELAY_LIST_KIND`, `MOCK_USDC_ADDRESS`, `USDC_DECIMALS`, `TEE_ATTESTATION_KIND`, `JOB_REQUEST_KIND_BASE`, `JOB_RESULT_KIND_BASE`, `JOB_FEEDBACK_KIND`, `TEXT_GENERATION_KIND`, `IMAGE_GENERATION_KIND`, `TEXT_TO_SPEECH_KIND`, `TRANSLATION_KIND`, `WORKFLOW_CHAIN_KIND`, `JOB_REVIEW_KIND`, `WEB_OF_TRUST_KIND`, `PREFIX_CLAIM_KIND`, `PREFIX_GRANT_KIND`)
 - **Enums:** PascalCase names, string values (`AttestationState.VALID = 'valid'`)
 - **Type aliases:** PascalCase (`TrustScore`, `BootstrapPhase`, `ToonRoutingMeta`, `ResolvedTownConfig`, `ChainName`, `AttestationBootstrapEvent`, `DvmJobStatus`, `WorkflowState`, `SwarmState`)
 - **Event types:** Discriminated unions with `type` field (`BootstrapEvent`, `AttestationBootstrapEvent`)
