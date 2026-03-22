@@ -78,7 +78,7 @@ const node = createNode({
 | `connector` | `EmbeddableConnectorLike` | **required** | ILP connector instance |
 | `basePricePerByte` | `bigint` | `10n` | Price per byte of TOON data |
 | `devMode` | `boolean` | `false` | Skip verification and pricing |
-| `ilpAddress` | `string` | `g.toon.local` | Node's ILP address |
+| `ilpAddress` | `string` | derived from pubkey | Node's ILP address (default: `deriveChildAddress('g.toon', pubkey)`) |
 | `assetCode` | `string` | `USD` | Settlement asset code |
 | `assetScale` | `number` | `6` | Settlement asset scale |
 | `knownPeers` | `KnownPeer[]` | `[]` | Seed peers for bootstrap |

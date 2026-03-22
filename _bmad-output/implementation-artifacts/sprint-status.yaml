@@ -111,29 +111,77 @@ development_status:
 
   # Epic 7: ILP Address Hierarchy & Protocol Economics
   # Decision source: Party Mode 2026-03-20 — ILP addressing + fee calculation
-  epic-7: in-progress
-  7-1-deterministic-address-derivation: backlog
-  7-2-btp-address-assignment-handshake: backlog
-  7-3-multi-address-support-for-multi-peered-nodes: backlog
-  7-4-fee-per-byte-advertisement-in-kind-10032: backlog
-  7-5-sdk-route-aware-fee-calculation: backlog
-  7-6-prefix-claim-kind-and-marketplace: backlog
-  epic-7-retrospective: optional
+  epic-7: done
+  7-1-deterministic-address-derivation: done
+  7-2-btp-address-assignment-handshake: done
+  7-3-multi-address-support-for-multi-peered-nodes: done
+  7-4-fee-per-byte-advertisement-in-kind-10032: done
+  7-5-sdk-route-aware-fee-calculation: done
+  7-6-prepaid-protocol-and-prefix-claims: done
+  epic-7-retrospective: done
 
-  # Epic 8: The Rig - ILP-Gated TypeScript Git Forge
-  # Renumbered from Epic 7 (2026-03-20) to accommodate ILP addressing epic
-  # Originally renumbered from Epic 5 (2026-03-10) to accommodate DVM epics
+  # Epic 8: The Rig — Arweave DVM + Forge-UI
+  # Restructured (2026-03-22): NIP-34 skill stories moved to Epic 9
+  # 7 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 Publish
   epic-8: backlog
-  8-1-sdk-node-setup-and-repository-creation-handler: backlog
-  8-2-patch-handler: backlog
-  8-3-issue-and-comment-handlers: backlog
-  8-4-git-http-backend-for-clone-and-fetch: backlog
-  8-5-nostr-pubkey-native-git-identity: backlog
-  8-6-nip-34-status-events-and-pr-lifecycle: backlog
-  8-7-layout-and-repository-list-page: backlog
-  8-8-file-tree-and-blob-view: backlog
-  8-9-commit-log-and-diff-view: backlog
-  8-10-blame-view: backlog
-  8-11-issues-and-prs-from-nostr-events-on-relay: backlog
-  8-12-publish-toon-rig-package: backlog
+  8-0-arweave-storage-dvm-provider: backlog
+  8-1-forge-ui-layout-and-repository-list: backlog
+  8-2-forge-ui-file-tree-and-blob-view: backlog
+  8-3-forge-ui-commit-log-and-diff-view: backlog
+  8-4-forge-ui-blame-view: backlog
+  8-5-forge-ui-issues-and-prs-from-relay: backlog
+  8-6-deploy-forge-ui-to-arweave: backlog
   epic-8-retrospective: optional
+
+  # Epic 9: NIP-to-TOON Skill Pipeline + Socialverse Skills
+  # Decision source: Party Mode 2026-03-22 — NIP Skills Epic
+  # 34 stories: 9.0-9.3 Pipeline + 9.4-9.25 Socialverse + 9.26-9.30 NIP-34 Git [from E8] + 9.31-9.32 DVM + 9.33-9.34 Publish
+  # Phase 0: Pipeline Foundation (9.0-9.3)
+  # Phase 1: Identity (9.4)
+  # Phase 2: Content (9.5-9.7)
+  # Phase 3: Community (9.8-9.10)
+  # Phase 4: Curation (9.11-9.13)
+  # Phase 5: Media (9.14-9.16)
+  # Phase 6: Privacy (9.17-9.20)
+  # Phase 7: Advanced Social (9.21-9.25)
+  # Phase 8: NIP-34 Git (9.26-9.30, moved from Epic 8)
+  # Phase 9: DVM (9.31-9.32)
+  # Phase 10: Relay Discovery (9.33)
+  # Phase 11: Publication (9.34)
+  epic-9: backlog
+  9-0-social-intelligence-base-skill: backlog
+  9-1-toon-protocol-core-skill: backlog
+  9-2-nip-to-toon-skill-pipeline: backlog
+  9-3-skill-eval-framework: backlog
+  9-4-social-identity-skill: backlog
+  9-5-long-form-content-skill: backlog
+  9-6-social-interactions-skill: backlog
+  9-7-content-references-skill: backlog
+  9-8-relay-groups-skill: backlog
+  9-9-moderated-communities-skill: backlog
+  9-10-public-chat-skill: backlog
+  9-11-lists-and-labels-skill: backlog
+  9-12-search-skill: backlog
+  9-13-app-handlers-skill: backlog
+  9-14-media-and-files-skill: backlog
+  9-15-visual-media-skill: backlog
+  9-16-file-storage-skill: backlog
+  9-17-encrypted-messaging-skill: backlog
+  9-18-private-dms-skill: backlog
+  9-19-content-control-skill: backlog
+  9-20-sensitive-content-skill: backlog
+  9-21-user-statuses-skill: backlog
+  9-22-badges-skill: backlog
+  9-23-highlights-skill: backlog
+  9-24-polls-skill: backlog
+  9-25-drafts-and-expiration-skill: backlog
+  9-26-nip34-kind-resources-skill: backlog
+  9-27-git-object-format-skill: backlog
+  9-28-git-arweave-integration-skill: backlog
+  9-29-git-workflow-examples-skill: backlog
+  9-30-git-identity-evals-skill: backlog
+  9-31-dvm-protocol-skill: backlog
+  9-32-marketplace-skill: backlog
+  9-33-relay-discovery-skill: backlog
+  9-34-publish-all-skills: backlog
+  epic-9-retrospective: optional

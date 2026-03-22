@@ -485,7 +485,7 @@ node.on(30617, async (ctx: HandlerContext) => {
 
 // WRONG — do not return response objects
 node.on(30617, async (ctx) => {
-  return { accept: true, fulfillment: '...' };
+  return { accept: true };
 });
 ```
 
