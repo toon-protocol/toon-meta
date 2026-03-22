@@ -1742,16 +1742,15 @@ A fully decentralized git system where repositories exist on the protocol, not o
 
 - **No server, no SDK library.** The Rig is: (1) an Arweave DVM provider (SDK required for hosting handler), (2) a Forge-UI static frontend on Arweave. The NIP-34 Git Agent Skill is in Epic 9.
 - **Transport is `@toon-protocol/client`, not SDK.** Agents send events via the client's `publishEvent()`. The SDK (`createNode()`, handler registry, embedded connector) is only for providers (like the Arweave DVM). Agents are clients, not nodes.
-- **Arweave is the source of truth for code.** Every git object (blob, tree, commit) uploaded to Arweave via kind:5094 with Irys tags (`Git-SHA`, `Git-Type`, `Repo`). Content-addressed: git SHA → Arweave tx ID. Resolvable via Arweave GraphQL or manifest transaction.
+- **Arweave is the source of truth for code.** Every git object (blob, tree, commit) uploaded to Arweave via kind:5094 using ArDrive/Turbo (`@ardrive/turbo-sdk`). Arweave data item tags (`Git-SHA`, `Git-Type`, `Repo`). Content-addressed: git SHA → Arweave tx ID. Resolvable via Arweave GraphQL or manifest transaction. Dev: `TurboFactory.unauthenticated()` (free ≤100KB); Prod: `TurboFactory.authenticated()` (paid, uncapped).
 - **NIP-34 events on relays are the source of truth for collaboration.** kind:30617 (repos), kind:1617 (patches), kind:1621/1622 (issues/comments), kind:1618/1619 (PRs), kind:1630-1633 (status), kind:30618 (refs/branches). All ILP-gated on TOON relays.
 - **Repos are portable.** A repo = Arweave transactions + NIP-34 events. Any agent can interact with any repo.
 - **Forge-UI is a static web app on Arweave.** Read-only HTML/JS querying relays + Arweave gateways. Permanently hosted, censorship-resistant. Scope: repo list, file tree, blob viewer, commit log, diff, blame, issues, PRs.
 - **Nostr pubkeys ARE identity.** No user database. Maintainer permissions from kind:30617 `maintainers` tags.
 - **NIP-90 DVM for code review (future).** DVM marketplace extends to CI/TDD review pipelines. Not in Epic 8 scope.
-- **Phase 1: Arweave Storage DVM (Story 8.0)** — kind:5094 provider (SDK required for hosting handler)
-- **Phase 2: NIP-34 Git Agent Skill (Stories 8.1-8.6)** — skill authoring: SKILL.md, Level 3 resources per kind, git object format, Arweave integration, workflow examples, evals
-- **Phase 3: Forge-UI (Stories 8.7-8.11)** — static web frontend on Arweave
-- **Phase 4: Publish (Story 8.12)** — skill package + Forge-UI deployment to Arweave
+- **Phase 1: Arweave Storage DVM (Story 8.0)** — kind:5094 provider using ArDrive/Turbo (SDK required for hosting handler)
+- **Phase 2: Forge-UI (Stories 8.1-8.5)** — static web frontend on Arweave
+- **Phase 3: Publish (Story 8.6)** — Forge-UI deployment to Arweave via kind:5094
 
 ### Story 8.0: Arweave Storage DVM Provider (kind:5094)
 
@@ -1779,7 +1778,7 @@ So that I can store files permanently without knowing about Arweave, holding AR 
 **And** the amount equals `kindPricing[5094] × blobSize` (D7-001 prepaid model)
 **When** the provider's handler receives the packet
 **Then** the pricing validator confirms `ctx.amount >= kindPricing[5094] × rawBytes.length`
-**And** the handler extracts the blob, uploads to Irys (instant receipt)
+**And** the handler extracts the blob, uploads to ArDrive/Turbo via `TurboAuthenticatedClient.uploadFile()` (instant receipt)
 **And** returns `ctx.accept()` with the Arweave transaction ID in the FULFILL packet's data field
 **And** the client receives the Arweave tx ID from the FULFILL response
 
@@ -1804,7 +1803,7 @@ So that I can store files permanently without knowing about Arweave, holding AR 
 **When** `ctx.amount < kindPricing[5094] × rawBytes.length`
 **Then** the handler rejects with F04 (Insufficient Payment) and no Arweave upload occurs
 
-**Test Approach:** Unit test: kind:5094 event builder/parser roundtrip. Unit test: single-packet upload — mock Irys, verify tx ID in FULFILL data. Unit test: chunked upload — multiple packets, verify assembly and final tx ID. Unit test: insufficient payment rejection. Integration test: full prepaid flow — discover provider pricing from kind:10035, send blob + payment, receive tx ID, verify blob accessible via Arweave gateway URL. E2E test: Docker infra with Irys devnet or mock, verify end-to-end upload and retrieval.
+**Test Approach:** Unit test: kind:5094 event builder/parser roundtrip. Unit test: insufficient payment rejection. Integration test: single-packet upload — real ArDrive/Turbo free tier (≤100KB test payloads), verify tx ID in FULFILL data, verify blob accessible via `arweave.net/<tx-id>`. Integration test: chunked upload — multiple packets with small chunks (each ≤100KB, free tier), verify assembly and final tx ID. Integration test: full prepaid flow — discover provider pricing from kind:10035, send blob + payment, receive tx ID. E2E test: Docker infra with deployed TOON Protocol peers (`sdk-e2e-infra.sh`), one peer runs Arweave DVM handler, client sends kind:5094 via ILP, provider uploads to ArDrive/Turbo (real Arweave, no mocks), verify end-to-end upload and retrieval.
 
 ---
 
