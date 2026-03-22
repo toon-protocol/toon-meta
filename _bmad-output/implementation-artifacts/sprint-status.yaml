@@ -114,7 +114,7 @@ development_status:
   epic-7: in-progress
   7-1-deterministic-address-derivation: done
   7-2-btp-address-assignment-handshake: done
-  7-3-multi-address-support-for-multi-peered-nodes: backlog
+  7-3-multi-address-support-for-multi-peered-nodes: done
   7-4-fee-per-byte-advertisement-in-kind-10032: backlog
   7-5-sdk-route-aware-fee-calculation: backlog
   7-6-prefix-claim-kind-and-marketplace: backlog
