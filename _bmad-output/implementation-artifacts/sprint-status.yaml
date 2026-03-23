@@ -185,3 +185,24 @@ development_status:
   9-33-relay-discovery-skill: backlog
   9-34-publish-all-skills: backlog
   epic-9-retrospective: optional
+
+  # Epic 10: Compute Primitive (kind:5250)
+  # Decision source: Party Mode 2026-03-22 — Network Primitives Strategy
+  # Stateless compute-for-hire DVM; backends: Oyster CVM, Akash, Docker
+  # Two-phase model: sync submit (kind:5250) + async result (kind:5251/6250)
+  # Convenience fee pricing: providers are resellers, kindPricing covers backend + margin
+  # Dependencies: Epic 8 (blob storage pattern), Epic 5 (DVM kinds), Epic 6 (TEE + reputation)
+  # Stories: TBD (to be decomposed when epic starts)
+  epic-10: backlog
+  epic-10-retrospective: optional
+
+  # Epic 11: Chain Bridge Primitive (kind:5260)
+  # Decision source: Party Mode 2026-03-22 — Network Primitives Strategy
+  # Broadcast signed tx to any blockchain: Ethereum, Solana, Arbitrum, Base, AO
+  # Tier 1 only: trustless broadcast (agent signs locally, provider submits + pays gas)
+  # Multi-chain in one ILP packet; per-chain tx hash receipts
+  # AO/HyperBEAM is a chain target, NOT a compute backend
+  # Dependencies: Epic 8 (receipt pattern), Epic 5 (DVM kinds), Epic 3 (multi-chain config)
+  # Stories: TBD (to be decomposed when epic starts)
+  epic-11: backlog
+  epic-11-retrospective: optional

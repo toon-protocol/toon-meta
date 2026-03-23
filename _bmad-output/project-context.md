@@ -131,11 +131,15 @@ Epic 4: Marlin TEE Deployment                    COMPLETE (6/6 stories, 32/33 AC
 Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 ACs)
 Epic 6: Advanced DVM Coordination + TEE          COMPLETE (4/4 stories, 21/21 ACs)
 Epic 7: ILP Address Hierarchy & Protocol Econ    COMPLETE (6/6 stories, 35/35 ACs)
-Epic 8: The Rig -- Arweave DVM + Forge-UI        PLANNED (7 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 Publish; NIP-34 skill stories moved to Epic 9)
+Epic 8: The Rig -- Arweave DVM + Forge-UI        IN-PROGRESS (7 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 Publish; NIP-34 skill stories moved to Epic 9)
 Epic 9: NIP-to-TOON Skill Pipeline + Socialverse  PLANNED (34 stories: 9.0-9.3 Pipeline + 9.4-9.25 Socialverse NIP Skills + 9.26-9.30 NIP-34 Git [from E8] + 9.31-9.32 DVM + 9.33-9.34 Publish)
+Epic 10: Compute Primitive (kind:5250)             PLANNED (Stateless compute-for-hire via DVM; backends: Oyster CVM, Akash, Docker)
+Epic 11: Chain Bridge Primitive (kind:5260)        PLANNED (Broadcast signed tx to any blockchain: Ethereum, Solana, Arbitrum, Base, AO; Tier 1 trustless broadcast only)
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics (DONE) -> Build applications on top -> Teach agents the protocol (skills pipeline + socialverse).
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics (DONE) -> Build applications on top (blob storage primitive + Forge-UI) -> Teach agents the protocol (skills pipeline + socialverse) -> Compute primitive (stateless compute-for-hire) -> Chain bridge primitive (blockchain interaction as a service).
+
+**Strategic North Star (Party Mode 2026-03-22):** TOON Protocol = "Stripe for decentralized services." Four network primitives — Messaging (kind:1), Blob Storage (kind:5094), Compute (kind:5250), Chain Bridge (kind:5260) — with unified ILP payment, Nostr discovery (kind:10035), self-describing receipts, and competing providers. DVM providers are resellers who earn convenience fees for abstracting backend complexity. Full decision record: `_bmad-output/planning-artifacts/research/party-mode-network-primitives-strategy-2026-03-22.md`
 
 ## Production Architecture Decisions (Party Mode 2026-03-05/06)
 
@@ -196,8 +200,12 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 | 10040 | Workflow Chain Definition | Implemented (Epic 6, Story 6.1) -- NIP-33 parameterized replaceable |
 | 30382 | Web of Trust Declaration | Implemented (Epic 6, Story 6.4) -- NIP-33 parameterized replaceable |
 | 31117 | Job Review | Implemented (Epic 6, Story 6.4) -- NIP-33 parameterized replaceable |
-| 5094 | Arweave Blob Storage DVM (NIP-90) | Planned (Epic 8, Story 8.0) -- storage job request |
-| 6094 | Arweave Blob Storage Result (NIP-90) | Planned (Epic 8, Story 8.0) -- storage result (informational, prepaid model) |
+| 5094 | Arweave Blob Storage DVM (NIP-90) | Implemented (Epic 8, Story 8.0) -- storage job request (network primitive #2) |
+| 6094 | Arweave Blob Storage Result (NIP-90) | Implemented (Epic 8, Story 8.0) -- storage result with self-describing receipt |
+| 5250 | Compute DVM (NIP-90) | Planned (Epic 10) -- stateless compute job request (network primitive #3) |
+| 6250 | Compute DVM Result (NIP-90) | Planned (Epic 10) -- compute result with self-describing receipt |
+| 5260 | Chain Bridge DVM (NIP-90) | Planned (Epic 11) -- broadcast signed tx to any blockchain (network primitive #4) |
+| 6260 | Chain Bridge Result (NIP-90) | Planned (Epic 11) -- per-chain tx hash receipt |
 | 30617 | Repository Announcement (NIP-34) | Planned (Epic 9, Story 9.26) -- NIP-33 parameterized replaceable |
 | 1617 | Patch (NIP-34) | Planned (Epic 9, Story 9.26) |
 | 1618 | Pull Request (NIP-34) | Planned (Epic 9, Story 9.26) |
@@ -235,6 +243,32 @@ Repositories exist on the protocol, not on any server. Git objects (blobs, trees
 - **NIP-90 DVM for code review (future):** DVM marketplace extends to code review — providers run CI/TDD pipelines, publish results. Not in Epic 8 scope but architecturally enabled.
 - **NIP alignment:** NIP-90 (DVM), NIP-34 (git), NIP-73 (external content IDs `arweave:tx:`), NIP-94 (file metadata, optional)
 - Full decision record: `_bmad-output/planning-artifacts/research/party-mode-arweave-dvm-decisions-2026-03-22.md`
+
+**Network Primitives Strategy (Party Mode 2026-03-22 -- shapes Epics 10 + 11):**
+
+TOON Protocol's strategic architecture: four network primitives with unified ILP payment, Nostr discovery, self-describing receipts, and competing providers. Positioning: "Stripe for decentralized services" -- demand-side protocol layer above infrastructure providers, below agent applications.
+
+- **Four Network Primitives:**
+  1. **Messaging** (kind:1) -- relay events, pay per byte. DONE (Epic 1).
+  2. **Blob Storage** (kind:5094/6094) -- store data permanently, backend-agnostic (Arweave, Filecoin, IPFS). DONE (Epic 8).
+  3. **Compute** (kind:5250/6250) -- run code anywhere, backend-agnostic (Oyster CVM, Akash, Docker). PLANNED (Epic 10).
+  4. **Chain Bridge** (kind:5260/6260) -- broadcast signed tx to any blockchain (Ethereum, Solana, Arbitrum, Base, AO). PLANNED (Epic 11).
+
+- **Primitive criteria:** Payment-native (ILP), Discovery-native (kind:10035), Composable (outputs feed other primitives).
+
+- **Convenience fee model (D8-PM-004):** DVM providers are resellers. `client_pays = backend_cost + provider_convenience_fee`. PricingValidator handles everything -- no metering, no refunds. Providers set `kindPricing` to cover backend cost + margin.
+
+- **Self-describing receipts (D8-PM-002):** All FULFILL responses must include structured tags: storage-type/backend + identifier + gateway + status. Clients retrieve/verify without knowing the backend. MUST be implemented before Forge-UI (8.1-8.6) to prevent Arweave coupling.
+
+- **Compute primitive (D8-PM-005):** Two-phase model. Phase 1: synchronous submit (kind:5250 ILP PREPARE → jobId in FULFILL, fits ILP timeout). Phase 2: async result (poll via kind:5251 or provider publishes kind:6250 to relay). Backends: Oyster CVM (TEE), Akash (GPU/bulk), Docker (dev). NOT AO -- AO is a blockchain, not compute-for-hire.
+
+- **Chain Bridge primitive (D8-PM-006):** Tier 1 only (trustless broadcast). Agent signs tx locally, provider submits and pays gas. Multi-chain in one packet. Targets: Ethereum, Solana, Arbitrum, Base, AO. Future tiers: Tier 2 (construct + broadcast), Tier 3 (custodial execute with TEE -- significant security implications).
+
+- **AO/HyperBEAM (D8-PM-008 REVISED):** AO is a blockchain -- agents broadcast signed AO messages via Chain Bridge (kind:5260), NOT a compute backend (kind:5250). Provider has AO wallet/HyperBEAM node, pays p4 fee from convenience margin, returns slot receipt.
+
+- **Composition examples:** Blob Storage + Compute = decentralized CI/CD. Blob Storage + Chain Bridge = cross-chain asset deployment. All four = full decentralized deployment pipeline.
+
+- Full decision record: `_bmad-output/planning-artifacts/research/party-mode-network-primitives-strategy-2026-03-22.md`
 
 **NIP-to-TOON Skill Pipeline Architecture (Party Mode 2026-03-22 -- shapes Epic 9):**
 

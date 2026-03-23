@@ -100,6 +100,24 @@ This document provides the epic and story breakdown for `@toon-protocol/sdk`, de
 - FR-ADDR-5: The SDK SHALL compute total cost internally as `destinationWriteFee + Σ(hop[i].feePerByte × packetBytes)`, making fee calculation invisible to `publishEvent()` callers
 - FR-ADDR-6: A new Nostr event kind SHALL enable peers to claim human-readable vanity prefixes (e.g., `useast`, `btc`) from their upstream peer by paying for the prefix, creating an ILP address marketplace
 
+**Network Primitives — Compute (derived from Party Mode Network Primitives Strategy 2026-03-22)**
+
+- FR-COMPUTE-1: The protocol SHALL define kind:5250 (Compute DVM Request) and kind:6250 (Compute DVM Result) event kinds following the NIP-90 DVM pattern, with TOON encoding/decoding support
+- FR-COMPUTE-2: The compute primitive SHALL use a two-phase model: Phase 1 synchronous submit (kind:5250 ILP PREPARE returns jobId in FULFILL within ILP timeout), Phase 2 asynchronous result (poll via kind:5251 or provider publishes kind:6250 to relay)
+- FR-COMPUTE-3: The compute handler SHALL use a backend-agnostic `ComputeAdapter` interface enabling pluggable backends (Oyster CVM, Akash, Docker) without protocol changes
+- FR-COMPUTE-4: Compute DVM providers SHALL set pricing via `kindPricing[5250]` covering backend cost + convenience fee margin. PricingValidator handles payment validation upstream — no metering or refund logic in handlers
+- FR-COMPUTE-5: Compute results SHALL use self-describing receipts with tags: `['backend', type]`, `['job-id', id]`, `['gateway', url]`, `['compute-ms', duration]`, `['attestation', proof]` (if TEE)
+- FR-COMPUTE-6: A `JobTracker` state manager SHALL handle Phase 2 async state (pending jobs, timeout cleanup, result delivery) following the `ChunkManager` pattern from blob storage
+
+**Network Primitives — Chain Bridge (derived from Party Mode Network Primitives Strategy 2026-03-22)**
+
+- FR-BRIDGE-1: The protocol SHALL define kind:5260 (Chain Bridge DVM Request) and kind:6260 (Chain Bridge DVM Result) event kinds following the NIP-90 DVM pattern
+- FR-BRIDGE-2: Tier 1 (trustless broadcast) SHALL be the initial implementation: agent signs transaction locally, provider submits to target chain(s) and pays gas, provider can only submit or not submit — zero custody risk
+- FR-BRIDGE-3: Multi-chain broadcast SHALL be supported in a single ILP packet via `['param', 'chains', 'ethereum,arbitrum,base,ao']` tag, with per-chain tx hash results in the receipt
+- FR-BRIDGE-4: Chain bridge results SHALL use self-describing receipts with per-chain tags: `['chain', chainName, txHash, status]`
+- FR-BRIDGE-5: Chain bridge providers SHALL advertise supported chains in their kind:10035 SkillDescriptor with per-chain pricing covering gas cost + convenience fee
+- FR-BRIDGE-6: AO/HyperBEAM SHALL be treated as a blockchain target (kind:5260), NOT a compute backend (kind:5250). Providers broadcast signed AO messages via HyperBEAM's HTTP API
+
 **NIP-34 Git Forge — The Rig (derived from TOON Service Protocol + NIP-34)**
 
 - FR-NIP34-1: The Rig SHALL be an SDK-based service node that receives NIP-34 git events (kinds 30617, 1617, 1618, 1619, 1621, 1622, 1630-1633) via ILP packets and executes git operations via TypeScript-native git HTTP backend
@@ -217,6 +235,18 @@ FR-NIP34-3: Epic 8, Stories 8.7-8.10 - Read-only code browsing web UI (split acr
 FR-NIP34-4: Epic 8, Story 8.6 - PR lifecycle via NIP-34 status events
 FR-NIP34-5: Epic 8, Story 8.11 - Issues/PRs from Nostr events on relay
 FR-NIP34-6: Epic 8, Story 8.12 - Publish @toon-protocol/rig package
+FR-COMPUTE-1: Epic 10 - Compute DVM event kinds (kind:5250/6250)
+FR-COMPUTE-2: Epic 10 - Two-phase compute model (submit + async result)
+FR-COMPUTE-3: Epic 10 - Backend-agnostic ComputeAdapter interface
+FR-COMPUTE-4: Epic 10 - Convenience fee pricing via kindPricing
+FR-COMPUTE-5: Epic 10 - Self-describing compute receipts
+FR-COMPUTE-6: Epic 10 - JobTracker async state management
+FR-BRIDGE-1: Epic 11 - Chain Bridge DVM event kinds (kind:5260/6260)
+FR-BRIDGE-2: Epic 11 - Tier 1 trustless broadcast
+FR-BRIDGE-3: Epic 11 - Multi-chain broadcast in single ILP packet
+FR-BRIDGE-4: Epic 11 - Self-describing per-chain receipts
+FR-BRIDGE-5: Epic 11 - Chain-specific pricing in SkillDescriptor
+FR-BRIDGE-6: Epic 11 - AO/HyperBEAM as chain target (not compute backend)
 
 ## Epic List
 
@@ -285,6 +315,39 @@ Fully decentralized git: repos exist on the protocol, not on any server. Git obj
 **Stories:** 13 (8.0: Arweave DVM + 8.1-8.6: NIP-34 Git Agent Skill + 8.7-8.11: Forge-UI + 8.12: Publish)
 **Decision source:** Party Mode 2026-03-22 — Arweave DVM + Agent Skills
 **Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM), 7 (ILP Addressing)
+
+### Epic 10: Compute Primitive (kind:5250)
+
+Stateless compute-for-hire as a network primitive. Agents send kind:5250 ILP PREPARE packets with a WASM reference (from blob storage) + input data + payment, and receive compute results via a two-phase model (synchronous job submission, async result delivery). Backend-agnostic via `ComputeAdapter` interface — providers can use Oyster CVM (TEE-attested), Akash (GPU/bulk), or local Docker (dev). Providers are resellers who set `kindPricing[5250]` to cover backend compute cost + convenience fee margin. Same DVM handler pattern as blob storage (Epic 8): adapter interface, handler factory, registry auto-populates SkillDescriptor.
+
+**FRs covered:** FR-COMPUTE-1, FR-COMPUTE-2, FR-COMPUTE-3, FR-COMPUTE-4, FR-COMPUTE-5, FR-COMPUTE-6
+**Stories:** TBD (to be decomposed when epic starts)
+**Dependencies:** Epic 8 (blob storage primitive pattern, self-describing receipts), Epic 5 (DVM event kinds), Epic 6 (TEE-attested results, reputation)
+**Decision source:** Party Mode 2026-03-22 — Network Primitives Strategy (D8-PM-003, D8-PM-004, D8-PM-005)
+
+**Key Design Decisions:**
+- Two-phase model: Phase 1 submit (synchronous, fits ILP timeout) returns jobId. Phase 2 result (async poll via kind:5251 or provider publishes kind:6250).
+- Convenience fee pricing: providers are resellers, `kindPricing` covers backend + margin, no metering infrastructure.
+- `ComputeAdapter` interface: `execute(request) → Promise<ComputeResult>`. No pricing methods — provider handles pricing externally.
+- `JobTracker` manages async state (like `ChunkManager` manages chunked uploads).
+- Self-describing receipts: `backend`, `job-id`, `gateway`, `compute-ms`, `attestation` tags.
+- AO/HyperBEAM is NOT a compute backend — it is a blockchain (see Epic 11).
+
+### Epic 11: Chain Bridge Primitive (kind:5260)
+
+Broadcast signed transactions to any blockchain as a DVM service. Agents send kind:5260 ILP PREPARE packets with a signed transaction + target chain(s) + payment, and receive per-chain tx hash receipts. Tier 1 (trustless broadcast) ships first: agent signs locally, provider only submits and pays gas — zero custody risk. Multi-chain broadcast in a single ILP packet. Targets: Ethereum, Solana, Arbitrum, Base, AO (HyperBEAM). Providers earn convenience fees covering gas cost + margin.
+
+**FRs covered:** FR-BRIDGE-1, FR-BRIDGE-2, FR-BRIDGE-3, FR-BRIDGE-4, FR-BRIDGE-5, FR-BRIDGE-6
+**Stories:** TBD (to be decomposed when epic starts)
+**Dependencies:** Epic 8 (self-describing receipt pattern), Epic 5 (DVM event kinds), Epic 3 (multi-chain config)
+**Decision source:** Party Mode 2026-03-22 — Network Primitives Strategy (D8-PM-003, D8-PM-006, D8-PM-008)
+
+**Key Design Decisions:**
+- Tier 1 only for initial implementation: trustless broadcast. Provider cannot steal funds — only submit or not submit.
+- Multi-chain in one packet: `['param', 'chains', 'ethereum,arbitrum,base,ao']`. Receipt has per-chain tags.
+- AO is a blockchain target, not a compute backend. Provider has AO wallet/HyperBEAM node, pays p4 fee, returns slot receipt.
+- Future tiers deferred: Tier 2 (construct + broadcast), Tier 3 (custodial execute with TEE) have significant security implications.
+- Chain-specific pricing in SkillDescriptor (different gas costs per chain).
 
 ---
 
