@@ -151,7 +151,7 @@ development_status:
   # Phase 10: Relay Discovery (9.33)
   # Phase 11: Publication (9.34)
   epic-9: in-progress
-  9-0-social-intelligence-base-skill: backlog
+  9-0-social-intelligence-base-skill: done
   9-1-toon-protocol-core-skill: backlog
   9-2-nip-to-toon-skill-pipeline: backlog
   9-3-skill-eval-framework: backlog
