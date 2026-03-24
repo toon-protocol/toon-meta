@@ -80,7 +80,8 @@ toon/
 │   ├── client/      # @toon-protocol/client -- Client SDK with payment channel support
 │   ├── faucet/      # @toon-protocol/faucet -- Token distribution for dev testing (plain JS, dev-only)
 │   ├── examples/    # @toon-protocol/examples -- Demo applications
-│   └── rig/         # @toon-protocol/rig -- (ATDD stubs only, Epic 8, not yet implemented)
+│   ├── rig/         # @toon-protocol/rig -- (ATDD stubs only, Epic 8, not yet implemented)
+│   └── loony/       # @toon-protocol/loony -- (planned, Epic 12: autonomous agent example application)
 ├── docker/          # Container entrypoint (pnpm workspace member)
 │   ├── src/
 │   │   ├── shared.ts              # Config parsing, admin client, health check utilities
@@ -133,13 +134,14 @@ Epic 6: Advanced DVM Coordination + TEE          COMPLETE (4/4 stories, 21/21 AC
 Epic 7: ILP Address Hierarchy & Protocol Econ    COMPLETE (6/6 stories, 35/35 ACs)
 Epic 8: The Rig -- Arweave DVM + Forge-UI        IN-PROGRESS (7 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 Publish; NIP-34 skill stories moved to Epic 9)
 Epic 9: NIP-to-TOON Skill Pipeline + Socialverse  PLANNED (34 stories: 9.0-9.3 Pipeline + 9.4-9.25 Socialverse NIP Skills + 9.26-9.30 NIP-34 Git [from E8] + 9.31-9.32 DVM + 9.33-9.34 Publish)
-Epic 10: Compute Primitive (kind:5250)             PLANNED (Stateless compute-for-hire via DVM; backends: Oyster CVM, Akash, Docker)
-Epic 11: Chain Bridge Primitive (kind:5260)        PLANNED (Broadcast signed tx to any blockchain: Ethereum, Solana, Arbitrum, Base, AO; Tier 1 trustless broadcast only)
+Epic 10: Compute Primitive (kind:5250)             PLANNED (Provider protocol spec + consumer DX + test harness + provider handoff docs; provider implementations out of scope)
+Epic 11: Chain Bridge Primitive (kind:5260)        PLANNED (Provider protocol spec + consumer DX + test harness + provider handoff docs; provider implementations out of scope)
+Epic 12: Loony — Autonomous Agent                  PLANNED (Example application proving all four primitives + composition; self-bootstrapping agent lifecycle)
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics (DONE) -> Build applications on top (blob storage primitive + Forge-UI) -> Teach agents the protocol (skills pipeline + socialverse) -> Compute primitive (stateless compute-for-hire) -> Chain bridge primitive (blockchain interaction as a service).
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics (DONE) -> Build applications on top (blob storage primitive + Forge-UI) -> Teach agents the protocol (skills pipeline + socialverse) -> Compute provider protocol + DX (spec, test harness, handoff docs) -> Chain bridge provider protocol + DX (spec, test harness, handoff docs) -> Loony autonomous agent (demand-side proof composing all four primitives).
 
-**Strategic North Star (Party Mode 2026-03-22):** TOON Protocol = "Stripe for decentralized services." Four network primitives — Messaging (kind:1), Blob Storage (kind:5094), Compute (kind:5250), Chain Bridge (kind:5260) — with unified ILP payment, Nostr discovery (kind:10035), self-describing receipts, and competing providers. DVM providers are resellers who earn convenience fees for abstracting backend complexity. Full decision record: `_bmad-output/planning-artifacts/research/party-mode-network-primitives-strategy-2026-03-22.md`
+**Strategic North Star (Party Mode 2026-03-22, updated 2026-03-23):** TOON Protocol = "Stripe for decentralized services." Four network primitives — Messaging (kind:1), Blob Storage (kind:5094), Compute (kind:5250), Chain Bridge (kind:5260) — with unified ILP payment, Nostr discovery (kind:10035), self-describing receipts, and competing providers. DVM providers are resellers who earn convenience fees for abstracting backend complexity. Protocol proves itself through example applications: **Forge** (decentralized git) and **Loony** (autonomous agent). Provider implementations are out of scope — TOON defines the provider protocol + ships handoff docs; third-party teams build providers for their platforms (HyperBEAM, Oyster CVM, Akash, per-chain bridge operators). Full decision record: `_bmad-output/planning-artifacts/research/party-mode-network-primitives-strategy-2026-03-22.md`
 
 ## Production Architecture Decisions (Party Mode 2026-03-05/06)
 
@@ -260,15 +262,62 @@ TOON Protocol's strategic architecture: four network primitives with unified ILP
 
 - **Self-describing receipts (D8-PM-002):** All FULFILL responses must include structured tags: storage-type/backend + identifier + gateway + status. Clients retrieve/verify without knowing the backend. MUST be implemented before Forge-UI (8.1-8.6) to prevent Arweave coupling.
 
-- **Compute primitive (D8-PM-005):** Two-phase model. Phase 1: synchronous submit (kind:5250 ILP PREPARE → jobId in FULFILL, fits ILP timeout). Phase 2: async result (poll via kind:5251 or provider publishes kind:6250 to relay). Backends: Oyster CVM (TEE), Akash (GPU/bulk), Docker (dev). NOT AO -- AO is a blockchain, not compute-for-hire.
+- **Compute primitive (D8-PM-005):** Two-phase model. Phase 1: synchronous submit (kind:5250 ILP PREPARE → jobId in FULFILL, fits ILP timeout). Phase 2: async result (poll via kind:5251 or provider publishes kind:6250 to relay). Target provider platforms: Oyster CVM (TEE), Akash (GPU/bulk), HyperBEAM (pure compute/Lua/WASM), Docker (dev). NOT AO -- AO is a blockchain, not compute-for-hire. **Provider implementations are out of scope** -- TOON defines the protocol spec, ships a test harness, and provides per-platform handoff docs. Third-party teams build their own providers.
 
-- **Chain Bridge primitive (D8-PM-006):** Tier 1 only (trustless broadcast). Agent signs tx locally, provider submits and pays gas. Multi-chain in one packet. Targets: Ethereum, Solana, Arbitrum, Base, AO. Future tiers: Tier 2 (construct + broadcast), Tier 3 (custodial execute with TEE -- significant security implications).
+- **Chain Bridge primitive (D8-PM-006):** Tier 1 only (trustless broadcast). Agent signs tx locally, provider submits and pays gas. Multi-chain in one packet. Targets: Ethereum, Solana, Arbitrum, Base, AO. Future tiers: Tier 2 (construct + broadcast), Tier 3 (custodial execute with TEE -- significant security implications). **Provider implementations are out of scope** -- same model as compute: protocol spec + test harness + handoff docs.
 
-- **AO/HyperBEAM (D8-PM-008 REVISED):** AO is a blockchain -- agents broadcast signed AO messages via Chain Bridge (kind:5260), NOT a compute backend (kind:5250). Provider has AO wallet/HyperBEAM node, pays p4 fee from convenience margin, returns slot receipt.
+- **AO/HyperBEAM (D8-PM-008 REVISED):** AO is a blockchain -- agents broadcast signed AO messages via Chain Bridge (kind:5260), NOT a compute backend (kind:5250). Provider has AO wallet/HyperBEAM node, pays p4 fee from convenience margin, returns slot receipt. The `~toon-client@1.0` Erlang device is built by the HyperBEAM community using TOON's provider handoff doc.
 
 - **Composition examples:** Blob Storage + Compute = decentralized CI/CD. Blob Storage + Chain Bridge = cross-chain asset deployment. All four = full decentralized deployment pipeline.
 
 - Full decision record: `_bmad-output/planning-artifacts/research/party-mode-network-primitives-strategy-2026-03-22.md`
+
+**TOON Agent Architecture (Party Mode 2026-03-23 -- shapes Epics 10, 11, 12):**
+
+TOON Protocol proves itself through example applications. The protocol defines the four primitives, ILP routing, and marketplace discovery. Applications demonstrate what you can build on top. This is the protocol-vs-platform distinction: TOON is a protocol (permissionless, open), not a platform (locked-in, proprietary).
+
+- **Example Applications:**
+
+| Application | Package | Proves | Built On |
+|---|---|---|---|
+| **Forge** | `packages/rig` | Decentralized git hosting | Blob Storage + Messaging |
+| **Loony** | `packages/loony` (planned) | Autonomous agent lifecycle | All four primitives + Composition |
+
+- **Six-Layer Protocol Capability Model:**
+
+```
+Layer 1: Identity & Trust       (secp256k1 keypair, TEE attestation kind:10033, WoT kind:30382, reputation kind:31117)
+Layer 2: Payment & Routing      (ILP multi-hop, payment channels, cross-chain FX routing, fee accumulation)
+Layer 3: Discovery & Marketplace (kind:10035 SkillDescriptors, kindPricing, features filter, provider reputation)
+Layer 4: Primitives             (Messaging kind:1, Storage kind:5094, Compute kind:5250, Chain Bridge kind:5260)
+Layer 5: Composition            (Workflows kind:10040, Swarms, per-step TEE attestation = end-to-end audit trail)
+Layer 6: Agent Lifecycle        (Bootstrap → Perceive → Reason → Act → Earn → Extend)
+```
+
+- **Decoupled Inference Model:** LLM providers (Oyster CVM running Llama, Akash running Mixtral, HyperBEAM running small WASM models) are kind:5250 DVM providers consumed via standard marketplace discovery. Agent reasoning is a service consumed through the compute primitive, not embedded in the TOON node. The TOON node orchestrates; inference providers supply the brain. This means agents can switch LLM providers at runtime based on pricing, reputation, and features.
+
+- **Provider Protocol, Not Provider Implementation:** TOON defines the DVM provider protocol (event kinds, receipt formats, SkillDescriptor schemas, pricing model). Third-party teams build providers for their own platforms:
+  - HyperBEAM team builds `~toon-client@1.0` Erlang device (own repo)
+  - Oyster CVM team builds a Docker-based compute provider (own repo)
+  - Akash team builds a GPU compute provider (own repo)
+  - Chain Bridge providers build per-chain tx broadcasters (own repos)
+  - TOON ships provider handoff documents, protocol specs, and a test harness for validation
+
+- **Emergent Protocol Evolution:** The permissionless Nostr kind system allows agents to propose and adopt new event kinds without protocol upgrades. Agents that need negotiation semantics, shared observations, or new service types can define new kinds and publish SkillDescriptors for them. Other agents discover and adopt useful new kinds through the marketplace. The marketplace IS the extension mechanism. This is not a feature — it is an architectural property of combining Nostr's open event model with LLM-readable SkillDescriptors.
+
+- **Composition Attestation via Per-Step TEE:** When each step in a workflow chain (kind:10040) runs on a TEE provider (HyperBEAM `~snp@1.0` or Oyster Nitro), the workflow's attestation is the conjunction of individual step attestations. Each kind:6xxx result carries TEE attestation tags + self-describing receipt + permanent Arweave storage. No separate composition attestation layer needed — the chain of per-step proofs IS the composition proof.
+
+- **Agent Lifecycle Pattern (Layer 6):** Any entity on the TOON network that uses all four primitives follows this lifecycle:
+  1. **Bootstrap** — Generate keypair, fund wallet, connect to relay, discover peers
+  2. **Perceive** — Subscribe to relay events (free reads), query kind:10035 marketplace
+  3. **Reason** — Consume LLM inference via kind:5250 (decoupled, any provider)
+  4. **Act** — Publish events (messaging), store data (kind:5094), dispatch compute (kind:5250), broadcast tx (kind:5260), compose workflows (kind:10040)
+  5. **Earn** — Register as DVM provider (publish kind:10035 SkillDescriptor), accept jobs, earn convenience fees
+  6. **Extend** — Discover new services at runtime, compose novel workflows from discovered primitives, publish compositions as new SkillDescriptors, propose new event kinds (new NIPs)
+
+- **HyperBEAM Integration Strategy:** Detailed in `_bmad-output/planning-artifacts/research/toon-hyperbeam-integration-strategy.md`. Key insight: HyperBEAM nodes are potential multi-primitive TOON providers (compute via Lua/WASM, storage via native Arweave, chain bridge via AO wallet) with near-zero backend cost and two-config-line onboarding. The `~toon-client@1.0` device (~500 lines Erlang) is built by the HyperBEAM community, not the TOON team. TOON provides the handoff doc.
+
+- Full decision record: Party Mode 2026-03-23 conversation (Architecture + Loony + Provider Model)
 
 **NIP-to-TOON Skill Pipeline Architecture (Party Mode 2026-03-22 -- shapes Epic 9):**
 

@@ -100,23 +100,34 @@ This document provides the epic and story breakdown for `@toon-protocol/sdk`, de
 - FR-ADDR-5: The SDK SHALL compute total cost internally as `destinationWriteFee + Σ(hop[i].feePerByte × packetBytes)`, making fee calculation invisible to `publishEvent()` callers
 - FR-ADDR-6: A new Nostr event kind SHALL enable peers to claim human-readable vanity prefixes (e.g., `useast`, `btc`) from their upstream peer by paying for the prefix, creating an ILP address marketplace
 
-**Network Primitives — Compute (derived from Party Mode Network Primitives Strategy 2026-03-22)**
+**Network Primitives — Compute Provider Protocol (derived from Party Mode Network Primitives Strategy 2026-03-22, reframed 2026-03-23)**
 
 - FR-COMPUTE-1: The protocol SHALL define kind:5250 (Compute DVM Request) and kind:6250 (Compute DVM Result) event kinds following the NIP-90 DVM pattern, with TOON encoding/decoding support
 - FR-COMPUTE-2: The compute primitive SHALL use a two-phase model: Phase 1 synchronous submit (kind:5250 ILP PREPARE returns jobId in FULFILL within ILP timeout), Phase 2 asynchronous result (poll via kind:5251 or provider publishes kind:6250 to relay)
-- FR-COMPUTE-3: The compute handler SHALL use a backend-agnostic `ComputeAdapter` interface enabling pluggable backends (Oyster CVM, Akash, Docker) without protocol changes
-- FR-COMPUTE-4: Compute DVM providers SHALL set pricing via `kindPricing[5250]` covering backend cost + convenience fee margin. PricingValidator handles payment validation upstream — no metering or refund logic in handlers
-- FR-COMPUTE-5: Compute results SHALL use self-describing receipts with tags: `['backend', type]`, `['job-id', id]`, `['gateway', url]`, `['compute-ms', duration]`, `['attestation', proof]` (if TEE)
-- FR-COMPUTE-6: A `JobTracker` state manager SHALL handle Phase 2 async state (pending jobs, timeout cleanup, result delivery) following the `ChunkManager` pattern from blob storage
+- FR-COMPUTE-3: ~~The compute handler SHALL use a backend-agnostic `ComputeAdapter` interface~~ REMOVED — provider implementations are out of scope; providers own their backend integration
+- FR-COMPUTE-4: The protocol spec SHALL document that compute DVM providers set pricing via `kindPricing[5250]` covering backend cost + convenience fee margin
+- FR-COMPUTE-5: The protocol spec SHALL define self-describing receipt tags: `['backend', type]`, `['job-id', id]`, `['gateway', url]`, `['compute-ms', duration]`, `['attestation', proof]` (if TEE)
+- FR-COMPUTE-6: ~~A `JobTracker` state manager SHALL handle Phase 2 async state~~ DEFERRED — may be added to consumer SDK if DX demands it
+- FR-COMPUTE-7: (NEW) TOON SHALL ship a provider test harness that validates third-party provider compliance against the protocol spec
+- FR-COMPUTE-8: (NEW) TOON SHALL ship provider handoff documents for HyperBEAM, Oyster CVM, and Akash ecosystems
 
-**Network Primitives — Chain Bridge (derived from Party Mode Network Primitives Strategy 2026-03-22)**
+**Network Primitives — Chain Bridge Provider Protocol (derived from Party Mode Network Primitives Strategy 2026-03-22, reframed 2026-03-23)**
 
 - FR-BRIDGE-1: The protocol SHALL define kind:5260 (Chain Bridge DVM Request) and kind:6260 (Chain Bridge DVM Result) event kinds following the NIP-90 DVM pattern
-- FR-BRIDGE-2: Tier 1 (trustless broadcast) SHALL be the initial implementation: agent signs transaction locally, provider submits to target chain(s) and pays gas, provider can only submit or not submit — zero custody risk
+- FR-BRIDGE-2: Tier 1 (trustless broadcast) SHALL be the initial protocol: agent signs transaction locally, provider submits to target chain(s) and pays gas, provider can only submit or not submit — zero custody risk
 - FR-BRIDGE-3: Multi-chain broadcast SHALL be supported in a single ILP packet via `['param', 'chains', 'ethereum,arbitrum,base,ao']` tag, with per-chain tx hash results in the receipt
 - FR-BRIDGE-4: Chain bridge results SHALL use self-describing receipts with per-chain tags: `['chain', chainName, txHash, status]`
 - FR-BRIDGE-5: Chain bridge providers SHALL advertise supported chains in their kind:10035 SkillDescriptor with per-chain pricing covering gas cost + convenience fee
 - FR-BRIDGE-6: AO/HyperBEAM SHALL be treated as a blockchain target (kind:5260), NOT a compute backend (kind:5250). Providers broadcast signed AO messages via HyperBEAM's HTTP API
+- FR-BRIDGE-7: (NEW) TOON SHALL ship provider handoff documents for Ethereum/EVM, Solana, and AO/HyperBEAM chain bridge operators
+
+**Loony — Autonomous Agent Application (derived from Party Mode 2026-03-23)**
+
+- FR-LOONY-1: Loony SHALL be an example application (`packages/loony`) that demonstrates all six layers of the TOON Agent Architecture: identity, payment, discovery, primitives, composition, and agent lifecycle
+- FR-LOONY-2: Loony SHALL consume LLM inference from kind:5250 compute providers discovered via marketplace (decoupled inference — no embedded LLM)
+- FR-LOONY-3: Loony SHALL register as a DVM provider for composite services (workflows composed from discovered primitives), earning revenue to sustain operations
+- FR-LOONY-4: Loony SHALL discover new services at runtime via kind:10035 SkillDescriptors and integrate them without code changes (emergent capability extension)
+- FR-LOONY-5: Loony SHALL exercise all four network primitives: messaging (kind:1), blob storage (kind:5094), compute (kind:5250), chain bridge (kind:5260)
 
 **NIP-34 Git Forge — The Rig (derived from TOON Service Protocol + NIP-34)**
 
@@ -235,18 +246,26 @@ FR-NIP34-3: Epic 8, Stories 8.7-8.10 - Read-only code browsing web UI (split acr
 FR-NIP34-4: Epic 8, Story 8.6 - PR lifecycle via NIP-34 status events
 FR-NIP34-5: Epic 8, Story 8.11 - Issues/PRs from Nostr events on relay
 FR-NIP34-6: Epic 8, Story 8.12 - Publish @toon-protocol/rig package
-FR-COMPUTE-1: Epic 10 - Compute DVM event kinds (kind:5250/6250)
-FR-COMPUTE-2: Epic 10 - Two-phase compute model (submit + async result)
-FR-COMPUTE-3: Epic 10 - Backend-agnostic ComputeAdapter interface
-FR-COMPUTE-4: Epic 10 - Convenience fee pricing via kindPricing
-FR-COMPUTE-5: Epic 10 - Self-describing compute receipts
-FR-COMPUTE-6: Epic 10 - JobTracker async state management
-FR-BRIDGE-1: Epic 11 - Chain Bridge DVM event kinds (kind:5260/6260)
-FR-BRIDGE-2: Epic 11 - Tier 1 trustless broadcast
-FR-BRIDGE-3: Epic 11 - Multi-chain broadcast in single ILP packet
-FR-BRIDGE-4: Epic 11 - Self-describing per-chain receipts
-FR-BRIDGE-5: Epic 11 - Chain-specific pricing in SkillDescriptor
+FR-COMPUTE-1: Epic 10 - Compute DVM event kind protocol spec (kind:5250/6250)
+FR-COMPUTE-2: Epic 10 - Two-phase compute model protocol spec (submit + async result)
+FR-COMPUTE-3: REMOVED - ComputeAdapter interface (provider implementations out of scope)
+FR-COMPUTE-4: Epic 10 - Convenience fee pricing documentation in protocol spec
+FR-COMPUTE-5: Epic 10 - Self-describing compute receipt spec
+FR-COMPUTE-6: DEFERRED - JobTracker async state management (may be added to consumer SDK if DX demands)
+FR-COMPUTE-7: Epic 10 - Provider test harness for compliance validation
+FR-COMPUTE-8: Epic 10 - Provider handoff docs (HyperBEAM, Oyster CVM, Akash)
+FR-BRIDGE-1: Epic 11 - Chain Bridge DVM event kind protocol spec (kind:5260/6260)
+FR-BRIDGE-2: Epic 11 - Tier 1 trustless broadcast protocol spec
+FR-BRIDGE-3: Epic 11 - Multi-chain broadcast packet format spec
+FR-BRIDGE-4: Epic 11 - Self-describing per-chain receipt spec
+FR-BRIDGE-5: Epic 11 - Chain-specific pricing in SkillDescriptor spec
 FR-BRIDGE-6: Epic 11 - AO/HyperBEAM as chain target (not compute backend)
+FR-BRIDGE-7: Epic 11 - Provider handoff docs (Ethereum/EVM, Solana, AO)
+FR-LOONY-1: Epic 12 - Autonomous agent demonstrating all six architecture layers
+FR-LOONY-2: Epic 12 - Decoupled LLM inference via marketplace discovery
+FR-LOONY-3: Epic 12 - Revenue generation as composite service DVM provider
+FR-LOONY-4: Epic 12 - Emergent capability extension via runtime SkillDescriptor discovery
+FR-LOONY-5: Epic 12 - Exercise all four network primitives end-to-end
 
 ## Epic List
 
@@ -316,31 +335,62 @@ Fully decentralized git: repos exist on the protocol, not on any server. Git obj
 **Decision source:** Party Mode 2026-03-22 — Arweave DVM + Agent Skills
 **Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM), 7 (ILP Addressing)
 
-### Epic 10: Compute Primitive (kind:5250)
+### Epic 10: Compute Primitive — Provider Protocol & DX (kind:5250)
 
-Stateless compute-for-hire as a network primitive. Agents send kind:5250 ILP PREPARE packets with a WASM reference (from blob storage) + input data + payment, and receive compute results via a two-phase model (synchronous job submission, async result delivery). Backend-agnostic via `ComputeAdapter` interface — providers can use Oyster CVM (TEE-attested), Akash (GPU/bulk), or local Docker (dev). Providers are resellers who set `kindPricing[5250]` to cover backend compute cost + convenience fee margin. Same DVM handler pattern as blob storage (Epic 8): adapter interface, handler factory, registry auto-populates SkillDescriptor.
+Define the compute provider protocol, refine the consumer DX, and ship provider handoff documents. **Provider implementations are out of scope** — third-party teams (HyperBEAM, Oyster CVM, Akash) build their own providers using TOON's protocol spec and test harness. TOON ships the marketplace definition; providers integrate.
 
-**FRs covered:** FR-COMPUTE-1, FR-COMPUTE-2, FR-COMPUTE-3, FR-COMPUTE-4, FR-COMPUTE-5, FR-COMPUTE-6
+**Scope — What TOON ships:**
+1. **Provider Protocol Specification** — Definitive doc for "how to build a TOON compute provider": kind:5250 request format, kind:6250 result format, kind:7000 feedback, SkillDescriptor requirements for compute, self-describing receipt tags, two-phase async pattern (D8-PM-005), pricing model, registration flow.
+2. **Provider Test Harness** — Validation tool for provider teams: `npx @toon-protocol/provider-test --kind 5250 --endpoint <url>`. Validates job handling, receipt format, SkillDescriptor correctness, two-phase async pattern.
+3. **Consumer SDK Refinements** — Ensure `@toon-protocol/client` and `@toon-protocol/sdk` have excellent DX for consuming compute: job submission, result polling/subscription, receipt verification, provider discovery by features.
+4. **Provider Handoff Documents** — One per target ecosystem:
+   - `provider-handoff-hyperbeam.md` — `~toon-client@1.0` Erlang device architecture, R&D phases, HyperBEAM-specific integration (based on `toon-hyperbeam-integration-strategy.md`)
+   - `provider-handoff-oyster-cvm.md` — Docker-based compute provider, TEE attestation integration, Nitro enclave patterns
+   - `provider-handoff-akash.md` — GPU compute provider, SDL templates, Akash marketplace integration
+5. **DVM Event Kind Refinements** — Finalize kind:5250/6250/5251 schemas, validate against blob storage (kind:5094) patterns, ensure consistency across all DVM kinds.
+
+**Scope — What TOON does NOT ship:**
+- No `ComputeAdapter` interface or backend implementations — providers own their backend integration
+- No Oyster CVM provider code, no Akash provider code, no HyperBEAM `~toon-client@1.0` device
+- No Docker-based reference provider (providers build to spec, validated by test harness)
+
+**FRs covered:** FR-COMPUTE-1, FR-COMPUTE-2, FR-COMPUTE-4, FR-COMPUTE-5 (reframed as protocol spec, not implementation)
+**FRs removed from scope:** FR-COMPUTE-3 (ComputeAdapter interface — providers own their backend), FR-COMPUTE-6 (JobTracker — consumer-side async state, may be added if DX demands it)
 **Stories:** TBD (to be decomposed when epic starts)
 **Dependencies:** Epic 8 (blob storage primitive pattern, self-describing receipts), Epic 5 (DVM event kinds), Epic 6 (TEE-attested results, reputation)
-**Decision source:** Party Mode 2026-03-22 — Network Primitives Strategy (D8-PM-003, D8-PM-004, D8-PM-005)
+**Decision source:** Party Mode 2026-03-22 — Network Primitives Strategy (D8-PM-003, D8-PM-004, D8-PM-005); Party Mode 2026-03-23 — Provider Protocol Model
 
 **Key Design Decisions:**
 - Two-phase model: Phase 1 submit (synchronous, fits ILP timeout) returns jobId. Phase 2 result (async poll via kind:5251 or provider publishes kind:6250).
 - Convenience fee pricing: providers are resellers, `kindPricing` covers backend + margin, no metering infrastructure.
-- `ComputeAdapter` interface: `execute(request) → Promise<ComputeResult>`. No pricing methods — provider handles pricing externally.
-- `JobTracker` manages async state (like `ChunkManager` manages chunked uploads).
 - Self-describing receipts: `backend`, `job-id`, `gateway`, `compute-ms`, `attestation` tags.
 - AO/HyperBEAM is NOT a compute backend — it is a blockchain (see Epic 11).
+- **Provider implementations are out of scope** — TOON defines the protocol, providers integrate. Handoff docs are the key deliverable for third-party adoption.
+- **Provider test harness is the force multiplier** — Validates provider compliance without requiring TOON team involvement.
+- **Decoupled inference model** — LLM providers (Oyster CVM running Llama, Akash running Mixtral, HyperBEAM running WASM models) are just kind:5250 DVM providers. Agent reasoning is a service consumed via the marketplace, not embedded.
 
-### Epic 11: Chain Bridge Primitive (kind:5260)
+### Epic 11: Chain Bridge Primitive — Provider Protocol & DX (kind:5260)
 
-Broadcast signed transactions to any blockchain as a DVM service. Agents send kind:5260 ILP PREPARE packets with a signed transaction + target chain(s) + payment, and receive per-chain tx hash receipts. Tier 1 (trustless broadcast) ships first: agent signs locally, provider only submits and pays gas — zero custody risk. Multi-chain broadcast in a single ILP packet. Targets: Ethereum, Solana, Arbitrum, Base, AO (HyperBEAM). Providers earn convenience fees covering gas cost + margin.
+Define the chain bridge provider protocol, refine the consumer DX, and ship provider handoff documents. **Provider implementations are out of scope** — per-chain bridge operators build their own providers. Same model as Epic 10: TOON defines the marketplace, providers integrate.
 
-**FRs covered:** FR-BRIDGE-1, FR-BRIDGE-2, FR-BRIDGE-3, FR-BRIDGE-4, FR-BRIDGE-5, FR-BRIDGE-6
+**Scope — What TOON ships:**
+1. **Provider Protocol Specification** — Definitive doc for "how to build a TOON chain bridge provider": kind:5260 request format, kind:6260 result format, Tier 1 trustless broadcast semantics, multi-chain packet format, per-chain receipt tags, chain-specific pricing.
+2. **Provider Test Harness** — Extend the Epic 10 test harness for kind:5260: validates tx broadcast handling, per-chain receipt format, multi-chain packet parsing, SkillDescriptor chain-specific pricing.
+3. **Consumer SDK Refinements** — Ensure consumer DX for chain bridge: tx submission, receipt verification, multi-chain result parsing, chain discovery by SkillDescriptor features.
+4. **Provider Handoff Documents** — One per target blockchain:
+   - `provider-handoff-ethereum.md` — EVM tx broadcast, gas estimation, receipt format
+   - `provider-handoff-solana.md` — Solana tx broadcast, slot receipts
+   - `provider-handoff-ao.md` — AO message broadcast via HyperBEAM node, p4 fee model, slot receipt
+5. **DVM Event Kind Definitions** — Finalize kind:5260/6260 schemas.
+
+**Scope — What TOON does NOT ship:**
+- No per-chain provider implementations — bridge operators own their chain integrations
+- No EVM node operation, no Solana validator, no AO/HyperBEAM node operation
+
+**FRs covered:** FR-BRIDGE-1, FR-BRIDGE-2, FR-BRIDGE-3, FR-BRIDGE-4, FR-BRIDGE-5, FR-BRIDGE-6 (reframed as protocol spec, not implementation)
 **Stories:** TBD (to be decomposed when epic starts)
-**Dependencies:** Epic 8 (self-describing receipt pattern), Epic 5 (DVM event kinds), Epic 3 (multi-chain config)
-**Decision source:** Party Mode 2026-03-22 — Network Primitives Strategy (D8-PM-003, D8-PM-006, D8-PM-008)
+**Dependencies:** Epic 8 (self-describing receipt pattern), Epic 5 (DVM event kinds), Epic 3 (multi-chain config), Epic 10 (shared test harness infrastructure)
+**Decision source:** Party Mode 2026-03-22 — Network Primitives Strategy (D8-PM-003, D8-PM-006, D8-PM-008); Party Mode 2026-03-23 — Provider Protocol Model
 
 **Key Design Decisions:**
 - Tier 1 only for initial implementation: trustless broadcast. Provider cannot steal funds — only submit or not submit.
@@ -348,6 +398,42 @@ Broadcast signed transactions to any blockchain as a DVM service. Agents send ki
 - AO is a blockchain target, not a compute backend. Provider has AO wallet/HyperBEAM node, pays p4 fee, returns slot receipt.
 - Future tiers deferred: Tier 2 (construct + broadcast), Tier 3 (custodial execute with TEE) have significant security implications.
 - Chain-specific pricing in SkillDescriptor (different gas costs per chain).
+- **Provider implementations are out of scope** — same model as compute primitive.
+
+### Epic 12: Loony — Autonomous Agent Application
+
+Loony is an example application that proves TOON Protocol can support a self-bootstrapping, self-sustaining, self-extending autonomous agent. Like Forge proves decentralized git, Loony proves the autonomous agent lifecycle. Loony exercises all four network primitives (messaging, storage, compute, chain bridge) plus composition (workflows, marketplace discovery, provider selection).
+
+**Relationship to Protocol:**
+- Loony is an APPLICATION, not a protocol feature — same relationship as Forge (`packages/rig`) to blob storage
+- Loony is a CONSUMER of DVM services, not a provider — it discovers providers via kind:10035 and pays for services via ILP
+- Loony validates the protocol by being the first entity on the network that isn't a node operator or human — it's an autonomous participant
+
+**Agent Lifecycle (what Loony demonstrates):**
+1. **Bootstrap** — Generate identity from seed phrase, fund wallet, connect to TOON relay, discover peers and services
+2. **Perceive** — Subscribe to relay events (free reads), build map of available services from kind:10035 SkillDescriptors
+3. **Reason** — Consume LLM inference from a kind:5250 compute provider (decoupled — Loony picks the best inference provider from the marketplace based on pricing/reputation/features)
+4. **Act** — Publish events (messaging), store data on Arweave (kind:5094), dispatch compute jobs (kind:5250), broadcast transactions (kind:5260), compose multi-step workflows (kind:10040)
+5. **Earn** — Register as a DVM provider (publish kind:10035 SkillDescriptor) for services Loony can offer (e.g., composed workflows, curated analysis, brokered compute). Accept jobs from other agents, earn convenience fees.
+6. **Extend** — Discover new services at runtime that didn't exist when Loony was deployed. Read SkillDescriptors (TOON format, LLM-readable), understand new service APIs, compose novel workflows from discovered primitives, publish compositions as new SkillDescriptors for others to use.
+
+**What Loony is NOT:**
+- Not a general-purpose AI agent framework (use LangGraph, CrewAI, etc. for that)
+- Not a chatbot or assistant
+- Not coupled to any specific LLM (switches providers at runtime via marketplace)
+- Not a protocol extension — uses only existing event kinds and primitives
+
+**Stories:** TBD (to be decomposed when epic starts)
+**Dependencies:** Epic 8 (blob storage primitive), Epic 9 (agent skills for protocol understanding), Epic 10 (compute provider protocol — at least one third-party provider must exist), Epic 11 (chain bridge provider protocol — at least one third-party provider must exist)
+**Decision source:** Party Mode 2026-03-23 — Architecture + Loony + Provider Model
+
+**Key Design Decisions:**
+- `packages/loony` is the package — a TOON SDK consumer application, not a library
+- Loony imports `@toon-protocol/sdk` (or `@toon-protocol/client`) — never core/bls directly (leaf node, same as Forge)
+- LLM inference is decoupled — Loony discovers compute providers via kind:10035, picks based on pricing/reputation, consumes via kind:5250. No embedded LLM.
+- Earning model — Loony acts as a DVM provider for composite services (workflows it has composed from discovered primitives). Revenue sustains its operation.
+- Emergent capability extension — Loony discovers new kind:10035 SkillDescriptors at runtime, reads them (LLM-readable TOON format), and integrates new capabilities without code changes. The marketplace IS the extension mechanism.
+- Self-sustaining economics — Loony earns by providing services and spends by consuming them. If it discovers a profitable composition (e.g., "verified code deploy" = lint + test + deploy), it publishes that as a new service and earns margin on each execution.
 
 ---
 

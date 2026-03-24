@@ -122,7 +122,8 @@ development_status:
 
   # Epic 8: The Rig — Arweave DVM + Forge-UI
   # Restructured (2026-03-22): NIP-34 skill stories moved to Epic 9
-  # 7 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 Publish
+  # 8 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 E2E Validation + 8.7 Publish
+  # Story 8.6 added (2026-03-23): E2E validation gate before immutable Arweave deploy
   epic-8: in-progress
   8-0-arweave-storage-dvm-provider: done
   8-1-forge-ui-layout-and-repository-list: done
@@ -130,7 +131,8 @@ development_status:
   8-3-forge-ui-commit-log-and-diff-view: done
   8-4-forge-ui-blame-view: done
   8-5-forge-ui-issues-and-prs-from-relay: done
-  8-6-deploy-forge-ui-to-arweave: backlog
+  8-6-forge-ui-e2e-validation: done
+  8-7-deploy-forge-ui-to-arweave: backlog
   epic-8-retrospective: optional
 
   # Epic 9: NIP-to-TOON Skill Pipeline + Socialverse Skills
