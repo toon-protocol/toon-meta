@@ -150,7 +150,7 @@ development_status:
   # Phase 9: DVM (9.31-9.32)
   # Phase 10: Relay Discovery (9.33)
   # Phase 11: Publication (9.34)
-  epic-9: backlog
+  epic-9: in-progress
   9-0-social-intelligence-base-skill: backlog
   9-1-toon-protocol-core-skill: backlog
   9-2-nip-to-toon-skill-pipeline: backlog
