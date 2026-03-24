@@ -1,7 +1,7 @@
 ---
 project_name: 'toon'
 user_name: 'Jonathan'
-date: '2026-03-22'
+date: '2026-03-24'
 sections_completed:
   [
     'technology_stack',
@@ -13,7 +13,7 @@ sections_completed:
     'critical_rules',
   ]
 status: 'complete'
-rule_count: 456
+rule_count: 512
 optimized_for_llm: true
 ---
 
@@ -42,8 +42,8 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 **Key Dependencies:**
 
-- **Nostr:** nostr-tools ^2.20.0
-- **TOON Format:** @toon-format/toon ^1.0 (in @toon-protocol/core)
+- **Nostr:** nostr-tools ^2.23.1
+- **TOON Format:** @toon-format/toon ^1.0 (in @toon-protocol/core, @toon-protocol/rig)
 - **Cryptography:** @noble/curves ^2.0 (secp256k1 Schnorr), @noble/hashes ^2.0 (keccak, sha3)
 - **Identity:** @scure/bip39 ^2.0 (mnemonic), @scure/bip32 ^2.0 (HD derivation)
 - **Database:** better-sqlite3 ^11.0
@@ -51,6 +51,9 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Web Framework:** hono ^4.0 (BLS HTTP API, Town HTTP API, Attestation Server)
 - **Ethereum:** viem ^2.47 (client package, x402 settlement, EIP-3009, EIP-712)
 - **ILP Connector:** @toon-protocol/connector ^1.7.0 (optional peer dependency)
+- **Arweave:** arweave ^1.15.5, @ardrive/turbo-sdk ^1.41.0 (blob storage DVM, Forge-UI deployment)
+- **Git:** simple-git (core nip34 module)
+- **Forge-UI Build:** vite ^5.0 (static SPA build), marked ^17.0 (markdown rendering), @playwright/test ^1.42 (E2E)
 
 **TypeScript Compiler Options (Critical):**
 
@@ -67,20 +70,21 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - @noble/curves and @scure libraries share the same secp256k1 implementation as nostr-tools' @noble/curves dependency
 - viem 2.x required for EIP-3009 settlement and EIP-712 typed data verification
 
-## Project Structure (Post-Epic 7)
+## Project Structure (Post-Epic 8)
 
 ```
 toon/
 ├── packages/
 │   ├── town/        # @toon-protocol/town -- SDK-based relay with x402, service discovery, health, TEE health, DVM skill config (Epics 2+3+4+5)
-│   ├── sdk/         # @toon-protocol/sdk -- SDK for building ILP-gated Nostr services + DVM lifecycle + workflow/swarm coordination + prefix claims (Epics 1+5+6+7)
-│   ├── core/        # @toon-protocol/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events, ILP address hierarchy, fee calculation (Epics 1+3+4+5+6+7)
+│   ├── sdk/         # @toon-protocol/sdk -- SDK for building ILP-gated Nostr services + DVM lifecycle + workflow/swarm coordination + prefix claims + Arweave DVM (Epics 1+5+6+7+8)
+│   ├── core/        # @toon-protocol/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events, ILP address hierarchy, fee calculation, NIP-34 types/handler, Arweave blob storage events (Epics 1+3+4+5+6+7+8)
 │   ├── bls/         # @toon-protocol/bls -- Business Logic Server (payment validation, event storage)
 │   ├── relay/       # @toon-protocol/relay -- Nostr relay + TOON encoding
 │   ├── client/      # @toon-protocol/client -- Client SDK with payment channel support
 │   ├── faucet/      # @toon-protocol/faucet -- Token distribution for dev testing (plain JS, dev-only)
 │   ├── examples/    # @toon-protocol/examples -- Demo applications
-│   ├── rig/         # @toon-protocol/rig -- (ATDD stubs only, Epic 8, not yet implemented)
+│   ├── rig/         # @toon-protocol/rig -- Forge-UI: decentralized git forge web interface (Epic 8, Vite SPA on Arweave)
+│   ├── overmind/    # Overmind Protocol spike code (Epics 13-17, spike only)
 │   └── loony/       # @toon-protocol/loony -- (planned, Epic 12: autonomous agent example application)
 ├── docker/          # Container entrypoint (pnpm workspace member)
 │   ├── src/
@@ -92,6 +96,9 @@ toon/
 │   ├── Dockerfile.nix             # Nix expression for deterministic Docker image (Story 4.5)
 │   ├── docker-compose-oyster.yml  # Oyster CVM deployment manifest (Story 4.1)
 │   └── supervisord.conf           # Multi-process orchestration (toon + attestation)
+├── scripts/
+│   ├── deploy-forge-ui.mjs        # Arweave deployment script for Forge-UI (Story 8.7)
+│   └── deploy-helpers.mjs         # Shared helpers for Arweave deployment (manifest, MIME, CLI)
 ├── flake.nix                      # Nix flake for reproducible Docker builds (Story 4.5)
 ├── deploy-genesis-node.sh
 └── deploy-peers.sh
@@ -100,12 +107,12 @@ toon/
 **Package Dependency Graph:**
 
 ```
-@toon-protocol/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events, ILP address hierarchy, fee calculation, prefix claim events)
+@toon-protocol/core          <-- foundation (TOON codec, types, bootstrap, discovery, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events, ILP address hierarchy, fee calculation, prefix claim events, NIP-34 types/handler, Arweave blob storage events)
     ^          ^
-@toon-protocol/bls    @toon-protocol/sdk    <-- siblings, both depend on core (SDK adds workflow orchestrator, swarm coordinator, prefix claim handler)
+@toon-protocol/bls    @toon-protocol/sdk    <-- siblings, both depend on core (SDK adds workflow orchestrator, swarm coordinator, prefix claim handler, Arweave DVM handler + chunked upload)
     ^                 ^
     |           +-----+-------+
-    |     @toon-protocol/town     @toon-protocol/rig    <-- (Town: Epics 2+3+4+5 DONE, Rig: Epic 8)
+    |     @toon-protocol/town     @toon-protocol/rig    <-- (Town: Epics 2+3+4+5 DONE, Rig: Epic 8 DONE -- static SPA, depends only on @toon-format/toon)
     |       (+ relay + viem)
     |
 @toon-protocol/relay   <-- Town depends on relay for EventStore + NostrRelayServer
@@ -115,7 +122,7 @@ toon/
 
 - SDK imports core only -- never relay or bls directly
 - Town imports SDK, core, relay, and viem -- the relay reference implementation with x402 support
-- Rig will import SDK -- never core/bls directly (except core types)
+- Rig depends only on @toon-format/toon (browser SPA, no Node.js deps) -- never core/sdk/bls directly
 - No package imports from town or rig (they are leaf nodes)
 - Connector accessed only through `EmbeddableConnectorLike` structural type
 - Town handlers import from `@toon-protocol/sdk` (Handler, HandlerContext, HandlerResponse types) and `@toon-protocol/core` (event builders, bootstrap, chain config)
@@ -132,7 +139,7 @@ Epic 4: Marlin TEE Deployment                    COMPLETE (6/6 stories, 32/33 AC
 Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 ACs)
 Epic 6: Advanced DVM Coordination + TEE          COMPLETE (4/4 stories, 21/21 ACs)
 Epic 7: ILP Address Hierarchy & Protocol Econ    COMPLETE (6/6 stories, 35/35 ACs)
-Epic 8: The Rig -- Arweave DVM + Forge-UI        IN-PROGRESS (7 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 Publish; NIP-34 skill stories moved to Epic 9)
+Epic 8: The Rig -- Arweave DVM + Forge-UI        COMPLETE (8 stories: 8.0 Arweave DVM + 8.1-8.6 Forge-UI + 8.7 Arweave Deploy)
 Epic 9: NIP-to-TOON Skill Pipeline + Socialverse  PLANNED (34 stories: 9.0-9.3 Pipeline + 9.4-9.25 Socialverse NIP Skills + 9.26-9.30 NIP-34 Git [from E8] + 9.31-9.32 DVM + 9.33-9.34 Publish)
 Epic 10: Compute Primitive (kind:5250)             PLANNED (Provider protocol spec + consumer DX + test harness + provider handoff docs; provider implementations out of scope)
 Epic 11: Chain Bridge Primitive (kind:5260)        PLANNED (Provider protocol spec + consumer DX + test harness + provider handoff docs; provider implementations out of scope)
@@ -144,7 +151,7 @@ Epic 16: Overmind Biography                          PLANNED (5 stories; recursi
 Epic 17: Overmind Swarm                              PLANNED (5 stories; sub-agent spawning, NIP-44 parent-child comms, DVM task delegation, swarm treasury management)
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics (DONE) -> Build applications on top (blob storage primitive + Forge-UI) -> Teach agents the protocol (skills pipeline + socialverse) -> Compute provider protocol + DX (spec, test harness, handoff docs) -> Chain bridge provider protocol + DX (spec, test harness, handoff docs) -> Loony autonomous agent (demand-side proof composing all four primitives) -> Overmind sovereign agents (Mina VRF + Arweave state + TEE identity + ILP economics).
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics -> Build applications on top: blob storage primitive + Forge-UI (DONE) -> Teach agents the protocol (skills pipeline + socialverse) -> Compute provider protocol + DX (spec, test harness, handoff docs) -> Chain bridge provider protocol + DX (spec, test harness, handoff docs) -> Loony autonomous agent (demand-side proof composing all four primitives) -> Overmind sovereign agents (Mina VRF + Arweave state + TEE identity + ILP economics).
 
 **Strategic North Star (Party Mode 2026-03-22, updated 2026-03-24):** TOON Protocol = "Stripe for decentralized services." Four network primitives — Messaging (kind:1), Blob Storage (kind:5094), Compute (kind:5250), Chain Bridge (kind:5260) — with unified ILP payment, Nostr discovery (kind:10035), self-describing receipts, and competing providers. DVM providers are resellers who earn convenience fees for abstracting backend complexity. Protocol proves itself through example applications: **Forge** (decentralized git), **Loony** (autonomous agent), and **Overmind** (sovereign agent living on the network — Mina ZK adjudication, Arweave permanent memory, TEE-born identity, self-funding economics). Provider implementations are out of scope — TOON defines the provider protocol + ships handoff docs; third-party teams build providers for their platforms (HyperBEAM, Oyster CVM, Akash, per-chain bridge operators). Full decision records: `_bmad-output/planning-artifacts/research/party-mode-network-primitives-strategy-2026-03-22.md`, `_bmad-output/planning-artifacts/research/party-mode-overmind-protocol-decisions-2026-03-24.md`
 
@@ -352,9 +359,31 @@ A skill factory that converts any Nostr NIP into a TOON-aware Claude Agent Skill
 - "DVM" (Data Vending Machine) -- NIP-90 compute marketplace protocol
 - "Skill descriptor" -- Structured metadata in kind:10035 events advertising DVM capabilities
 
-## @toon-protocol/core (Post-Epic 7)
+## @toon-protocol/core (Post-Epic 8)
 
-Core now includes chain configuration, x402 support, seed relay discovery, service discovery, TEE attestation events, attestation verification, KMS identity derivation, Nix reproducible build infrastructure, NIP-90 DVM event builders/parsers, workflow chain events, agent swarm events, TEE-attested result verification, reputation scoring (reviews, WoT, composite scores), ILP address hierarchy (derivation, assignment, registry, BTP prefix exchange), route-aware fee calculation, and prefix claim/grant events.
+Core now includes chain configuration, x402 support, seed relay discovery, service discovery, TEE attestation events, attestation verification, KMS identity derivation, Nix reproducible build infrastructure, NIP-90 DVM event builders/parsers, workflow chain events, agent swarm events, TEE-attested result verification, reputation scoring (reviews, WoT, composite scores), ILP address hierarchy (derivation, assignment, registry, BTP prefix exchange), route-aware fee calculation, prefix claim/grant events, Arweave blob storage DVM events (kind:5094/6094), and NIP-34 Git collaboration types/handler/constants.
+
+**New Core Modules (Epic 8):**
+
+```
+packages/core/src/
+├── events/
+│   └── arweave-storage.ts          # buildBlobStorageRequest(), parseBlobStorageRequest(),
+│                                    # BlobStorageRequestParams, ParsedBlobStorageRequest (Story 8.0)
+├── nip34/                           # NIP-34: Git Stuff sub-path export (@toon-protocol/core/nip34)
+│   ├── index.ts                     # Re-exports all NIP-34 modules
+│   ├── constants.ts                 # REPOSITORY_ANNOUNCEMENT_KIND (30617), PATCH_KIND (1617),
+│   │                                # PULL_REQUEST_KIND (1618), PR_STATUS_UPDATE_KIND (1619),
+│   │                                # ISSUE_KIND (1621), STATUS_OPEN_KIND (1630), STATUS_APPLIED_KIND (1631),
+│   │                                # STATUS_CLOSED_KIND (1632), STATUS_DRAFT_KIND (1633),
+│   │                                # NIP34_EVENT_KINDS, isNIP34Event()
+│   ├── types.ts                     # RepositoryAnnouncement, PatchEvent, PullRequestEvent,
+│   │                                # IssueEvent, StatusEvent, NIP34Event, getTag(), getTags()
+│   ├── ForgejoClient.ts             # ForgejoClient class -- Forgejo REST API wrapper
+│   ├── NIP34Handler.ts              # NIP34Handler class -- maps NIP-34 events to Forgejo operations
+│   └── GitOperations.ts             # Git operations via simple-git (init, apply patch, etc.)
+└── constants.ts                     # +BLOB_STORAGE_REQUEST_KIND (5094), BLOB_STORAGE_RESULT_KIND (6094)
+```
 
 **New Core Modules (Epic 7):**
 
@@ -689,15 +718,15 @@ SERVICE_DISCOVERY_KIND = 10035
 SEED_RELAY_LIST_KIND = 10036
 ```
 
-## @toon-protocol/sdk (Epics 1+5+6+7 -- Complete)
+## @toon-protocol/sdk (Epics 1+5+6+7+8 -- Complete)
 
-The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities, in Epic 6 with stateful orchestration components (workflow chains, agent swarms), and in Epic 7 with route-aware fee calculation, prepaid protocol model, and prefix claim handler. It provides a developer-facing abstraction for building ILP-gated Nostr services with the TOON protocol.
+The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities, in Epic 6 with stateful orchestration components (workflow chains, agent swarms), in Epic 7 with route-aware fee calculation, prepaid protocol model, and prefix claim handler, and in Epic 8 with the Arweave blob storage DVM handler and client-side upload helpers. It provides a developer-facing abstraction for building ILP-gated Nostr services with the TOON protocol.
 
-**SDK Source Files (Post-Epic 7):**
+**SDK Source Files (Post-Epic 8):**
 
 ```
 packages/sdk/src/
-├── index.ts                    # Public API exports (+ workflow orchestrator, swarm coordinator, skill descriptor, prefix claim handler)
+├── index.ts                    # Public API exports (+ workflow orchestrator, swarm coordinator, skill descriptor, prefix claim handler, Arweave DVM)
 ├── identity.ts                 # generateMnemonic(), fromMnemonic(), fromSecretKey()
 ├── errors.ts                   # IdentityError, NodeError, HandlerError, VerificationError, PricingError
 ├── handler-registry.ts         # HandlerRegistry: .on(kind), .onDefault(), dispatch(), getDvmKinds() (Story 5.4)
@@ -711,6 +740,12 @@ packages/sdk/src/
 ├── swarm-coordinator.ts        # SwarmCoordinator -- competitive DVM bidding state machine (Story 6.2)
 ├── prefix-claim-handler.ts     # createPrefixClaimHandler() -- kind:10034 prefix claim handler factory (Story 7.6)
 ├── event-storage-handler.ts    # Stub -- throws, directs users to @toon-protocol/town
+├── arweave/                    # Arweave DVM submodule (Story 8.0)
+│   ├── index.ts                # Re-exports all Arweave DVM exports
+│   ├── arweave-dvm-handler.ts  # createArweaveDvmHandler() -- kind:5094 handler with chunked upload support
+│   ├── turbo-adapter.ts        # TurboUploadAdapter -- @ardrive/turbo-sdk wrapper (ArweaveUploadAdapter interface)
+│   ├── chunk-manager.ts        # ChunkManager -- multi-packet upload state management (timeout, memory cap)
+│   └── chunked-upload.ts       # uploadBlob(), uploadBlobChunked() -- client-side upload helpers
 └── __integration__/
     ├── create-node.test.ts
     └── network-discovery.test.ts
@@ -808,6 +843,17 @@ ILP Packet -> ConnectorNode.setPacketHandler()
             -> Handler(ctx) -> ctx.accept()/ctx.reject()
               -> HandlePacketResponse back to connector
 ```
+
+**SDK Changes in Epic 8 (Arweave Blob Storage DVM):**
+- `createArweaveDvmHandler()` factory function added: creates a kind:5094 handler with single-packet and chunked upload support. Returns `{ accept: true, data: txId }` with Arweave tx ID in ILP FULFILL data field (Story 8.0)
+- `TurboUploadAdapter` class added: wraps `@ardrive/turbo-sdk` behind `ArweaveUploadAdapter` interface. Lazy-imports turbo-sdk on first use (dev: unauthenticated free <=100KB, prod: authenticated paid uncapped) (Story 8.0)
+- `ChunkManager` class added: manages multi-packet upload state with configurable timeout (5 min default), max active uploads (100), max bytes per upload (50MB). Assembles chunks in order, discards on timeout (Story 8.0)
+- `uploadBlob()` helper added: single-packet client-side upload using `publishEvent()` with amount override (D7-007) (Story 8.0)
+- `uploadBlobChunked()` helper added: multi-packet upload splitting large blobs into chunks, each sent as separate `publishEvent()` call. Returns Arweave tx ID from final chunk's FULFILL data (Story 8.0)
+- `ArweaveUploadAdapter` interface exported: `upload(data: Buffer, tags?: Record<string, string>): Promise<{ txId: string }>` -- enables custom backends beyond @ardrive/turbo-sdk
+- `PublishableNode` interface exported: minimal `publishEvent()` contract for upload helpers (decoupled from full `ServiceNode`)
+- MIME content type sanitization: `sanitizeContentType()` defends against header injection (CWE-113) in Arweave data item tags
+- All Arweave DVM exports added to SDK `index.ts`: `createArweaveDvmHandler`, `TurboUploadAdapter`, `ChunkManager`, `uploadBlob`, `uploadBlobChunked` + all associated types
 
 **SDK Changes in Epic 3:**
 - `NodeConfig.chain` field added (default: `'anvil'`): uses `resolveChainConfig()` from core for chain-aware settlement defaults
@@ -1443,6 +1489,116 @@ Customer                    Upstream Node
 | Test regressions | 0 (7th consecutive epic) |
 | New runtime dependencies | 0 (3rd consecutive epic) |
 
+## The Rig -- Arweave DVM + Forge-UI (Epic 8 -- Complete)
+
+Epic 8 delivered two major components: (1) the Arweave Blob Storage DVM provider (kind:5094) in the SDK, and (2) Forge-UI, a static web application for browsing decentralized git repositories. Together they prove the Blob Storage network primitive (primitive #2) and deliver the first TOON application.
+
+**Epic 8 Stories:**
+| Story | Title | Package | Deliverables |
+|-------|-------|---------|-------------|
+| 8-0 | Arweave Storage DVM Provider | core + sdk | kind:5094/6094 event builders/parsers, createArweaveDvmHandler(), TurboUploadAdapter, ChunkManager, uploadBlob(), uploadBlobChunked() |
+| 8-1 | Forge-UI Layout and Repository List | rig | Vite SPA scaffold, relay client, NIP-34 parsers, repo list template, router |
+| 8-2 | Forge-UI File Tree and Blob View | rig | Arweave gateway client, git object parsers (tree/blob/commit), tree view, blob view with syntax display |
+| 8-3 | Forge-UI Commit Log and Diff View | rig | Commit walker, tree diff algorithm, unified diff renderer, commit log/diff templates |
+| 8-4 | Forge-UI Blame View | rig | Per-line commit attribution, blame template with commit linking |
+| 8-5 | Forge-UI Issues and PRs from Relay | rig | Issue list/detail, PR list/detail, comment threads, status resolution |
+| 8-6 | Forge-UI Polish and E2E Validation | rig | Forgejo-style tree view, markdown rendering (marked), clean URLs, Playwright E2E tests, seed data script |
+| 8-7 | Deploy Forge-UI to Arweave | rig + scripts | Vite build config, Arweave path manifest, deploy-forge-ui.mjs script, deploy-helpers.mjs |
+
+**Arweave Blob Storage DVM (Story 8.0 -- architectural centerpiece):**
+
+```
+Customer                    Arweave DVM Provider             Arweave
+   │                              │                              │
+   │  Kind 5094 (Blob Request)    │                              │
+   │  i: [base64Blob, 'blob']    │                              │
+   │  bid: [amount, 'usdc']      │                              │
+   │  ILP PREPARE: amount >= price│                              │
+   │ ─────────────────────────────►                              │
+   │                              │  TurboUploadAdapter.upload() │
+   │                              │ ─────────────────────────────►
+   │                              │  { txId: 'ar://...' }       │
+   │  ILP FULFILL: data = txId   │◄──────────────────────────── │
+   │◄──────────────────────────── │                              │
+```
+
+- **Single-packet upload:** Blob data base64-encoded in `i` tag, payment in ILP PREPARE amount. Provider uploads to Arweave via `TurboUploadAdapter`, returns tx ID in ILP FULFILL `data` field.
+- **Chunked upload:** Large blobs split by `uploadBlobChunked()` into chunks (default 500KB). Each chunk is a separate kind:5094 event with `uploadId`, `chunkIndex`, `totalChunks` params. `ChunkManager` accumulates chunks, uploads assembled blob on completion.
+- **Pricing validation:** SDK pricing pipeline validates `amount >= kindPricing[5094]` BEFORE handler is invoked. Handler does NOT validate pricing.
+- **FULFILL data pattern:** Handler returns `{ accept: true, data: txId }` directly (NOT via `ctx.accept()`) to put Arweave tx ID in the ILP FULFILL response data field.
+- **Adapter isolation:** Only `turbo-adapter.ts` imports `@ardrive/turbo-sdk`. All other code uses the `ArweaveUploadAdapter` interface (risk E8-R002).
+- **ChunkManager limits:** timeout 5 min (configurable), max 100 concurrent uploads, max 50MB per upload. Exceeded limits reject with error message.
+
+**Forge-UI Architecture (Stories 8.1-8.7):**
+
+Forge-UI is a static single-page application (SPA) built with Vite, deployable to Arweave for permanent hosting. It has zero backend dependencies -- reads from TOON relays (NIP-34 events) and Arweave gateways (git objects) directly in the browser.
+
+```
+packages/rig/src/
+├── index.ts                      # startRig() stub (ATDD placeholder, not yet implemented)
+├── cli.ts                        # CLI entrypoint (ATDD placeholder)
+├── git/
+│   └── operations.ts             # Git operations stubs (ATDD placeholder, uses execFile not exec)
+├── handlers/
+│   ├── repo-creation-handler.ts  # kind:30617 repo creation handler (ATDD placeholder)
+│   ├── pr-lifecycle-handler.ts   # kind:1618/1619 PR lifecycle handler (ATDD placeholder)
+│   └── issue-comment-handler.ts  # kind:1621/1622 issue/comment handler (ATDD placeholder)
+├── identity/
+│   └── pubkey-identity.ts        # Nostr pubkey → git author identity (ATDD placeholder)
+└── web/                          # Forge-UI static SPA (fully implemented)
+    ├── main.ts                   # SPA entry point, routing, view rendering
+    ├── router.ts                 # History API router, clean URLs, relay URL parsing
+    ├── relay-client.ts           # WebSocket relay client (TOON format decode, Nostr filters)
+    ├── arweave-client.ts         # Arweave gateway client (GraphQL SHA→txId, multi-gateway fallback)
+    ├── git-objects.ts            # Git object parsers (tree, blob, commit from raw bytes)
+    ├── nip34-parsers.ts          # NIP-34 event parsers (repos, issues, PRs, comments, status, refs)
+    ├── templates.ts              # HTML template renderers (repo list, tree, blob, commits, issues, PRs)
+    ├── layout.ts                 # Page layout shell with navigation
+    ├── commit-walker.ts          # Commit history traversal from Arweave
+    ├── tree-diff.ts              # Tree-to-tree diff algorithm for commit diffs
+    ├── unified-diff.ts           # Unified diff format renderer
+    ├── blame.ts                  # Per-line commit attribution (blame view)
+    ├── ref-resolver.ts           # Default branch/ref resolution from kind:30618
+    ├── profile-cache.ts          # kind:0 profile cache for display names
+    ├── npub.ts                   # Nostr npub encoding (bech32)
+    ├── escape.ts                 # HTML entity escaping (XSS prevention)
+    ├── markdown-safe.ts          # Markdown sanitization pipeline
+    ├── markdown-renderer.ts      # Markdown → HTML via marked library
+    ├── date-utils.ts             # Relative date formatting
+    ├── csp.ts                    # Content Security Policy headers
+    ├── env.d.ts                  # Vite env type declarations
+    ├── index.html                # SPA HTML shell
+    └── __integration__/          # Integration tests (15 test files)
+```
+
+**Key Forge-UI Design Decisions:**
+- **Browser-only, no Node.js APIs** -- All code uses browser-native `fetch()`, `WebSocket`, `AbortSignal.timeout()`. No `node:` imports.
+- **TOON format decoding** -- Relay client imports `@toon-format/toon` (the only runtime dependency) to decode TOON-encoded relay responses.
+- **Multi-gateway fallback** -- Arweave client tries gateways in order: `ar-io.dev` → `arweave.net` → `permagate.io`. SHA→txId resolution via Arweave GraphQL with bounded in-memory cache (10K entries max).
+- **Relay URL configuration** -- Priority: (1) `#relay=` hash fragment, (2) `?relay=` query param, (3) `VITE_DEFAULT_RELAY` build-time env var, (4) default `wss://localhost:7100`.
+- **Clean URLs via History API** -- Routes like `/<npub>/<repo>/tree/<ref>/<path>` use `pushState`/`popstate`, not hash fragments.
+- **XSS prevention** -- All user content HTML-escaped via `escape.ts`. Markdown rendered through `marked` with sanitization pipeline.
+- **Playwright E2E tests** -- 6 spec files testing navigation, repo list, tree view, blob view, issues, and PRs.
+- **Arweave deployment** -- `scripts/deploy-forge-ui.mjs` builds with Vite, uploads each file to Arweave via `@ardrive/turbo-sdk`, creates Arweave path manifest for SPA routing. Supports `--dev` (free tier), `--wallet` (paid), `--dry-run` modes.
+
+**NIP-34 Event Kinds Used by Forge-UI:**
+| Kind | Usage |
+|------|-------|
+| 30617 | Repository Announcement -- repo metadata (name, description, clone URL, maintainers) |
+| 30618 | Repository Refs -- branch/tag → commit SHA mappings |
+| 1617 | Patch -- git format-patch content |
+| 1618 | Pull Request -- branch-based changes |
+| 1619 | PR Status Update -- status changes on PRs |
+| 1621 | Issue -- bug reports and feature requests |
+| 1622 | Comment -- replies on issues and PRs |
+| 1630-1633 | Status Events -- open/applied/closed/draft |
+| 0 | Profile -- display names for pubkey rendering |
+
+**Core Sub-Path Exports (Post-Epic 8):**
+- `@toon-protocol/core` -- main exports (TOON codec, types, constants, chain config, etc.)
+- `@toon-protocol/core/toon` -- TOON codec only (encodeEventToToon, decodeEventFromToon, shallowParseToon)
+- `@toon-protocol/core/nip34` -- NIP-34 types, constants, ForgejoClient, NIP34Handler, GitOperations
+
 ## Critical Implementation Rules
 
 ### Language-Specific Rules (TypeScript)
@@ -1460,7 +1616,7 @@ Customer                    Upstream Node
 - **Export all public APIs from package `index.ts`** -- Every package must export its public interface through `src/index.ts`
 - **Use structural typing for cross-package interfaces** -- Suffix with `Like` (e.g., `EmbeddableConnectorLike`, `ConnectorNodeLike`, `ConnectorAdminLike`, `EventStoreLike`) to keep peer dependencies optional
 - **No re-exporting types from `nostr-tools`** -- Use nostr-tools types directly, don't redefine
-- **Core sub-path exports** -- `@toon-protocol/core/toon` and `@toon-protocol/core/nip34` are valid import paths (configured in core's package.json `exports`)
+- **Core sub-path exports** -- `@toon-protocol/core/toon` and `@toon-protocol/core/nip34` are valid import paths (configured in core's package.json `exports`). Rig web code imports from `@toon-format/toon` directly (browser bundle, not core).
 
 **Error Handling:**
 
@@ -1718,6 +1874,35 @@ Customer                    Upstream Node
 - **Rating validated as integer 1-5** -- Builder throws `ToonError` for out-of-range or non-integer ratings
 - **Self-reported reputation is a design tradeoff** -- Providers embed own scores in kind:10035. Independently verifiable from raw review/WoT events but not protocol-enforced.
 
+### Arweave DVM Rules (Epic 8)
+
+**Arweave Blob Storage Handler (Story 8.0):**
+
+- **Handler returns data in ILP FULFILL** -- Returns `{ accept: true, data: txId }` directly, NOT via `ctx.accept()`. The `data` field must be top-level for ILP FULFILL relay (same pattern as data-returning handlers documented in Epic 2).
+- **Pricing validated by SDK pipeline** -- The handler does NOT validate pricing. The SDK pricing validator (`packages/sdk/src/pricing-validator.ts`) runs BEFORE the handler is invoked.
+- **MIME sanitization** -- `sanitizeContentType()` strips parameters, validates against MIME regex, rejects to `application/octet-stream` on invalid input (CWE-113 defense).
+- **Adapter isolation** -- Only `turbo-adapter.ts` imports `@ardrive/turbo-sdk`. All other code uses the `ArweaveUploadAdapter` interface. This is a deliberate risk mitigation (E8-R002).
+- **Lazy Turbo SDK import** -- `TurboUploadAdapter.getClient()` lazy-imports `@ardrive/turbo-sdk/node` on first use, avoiding load overhead when the adapter is not needed.
+- **ChunkManager timeout cleanup** -- Partial uploads are discarded after timeout (default 5 min). Timer is cleared on successful completion. `dispose()` cleans all active uploads.
+- **ChunkManager memory bounds** -- Max 100 concurrent uploads, max 50MB per upload. Both configurable. Exceeded limits return `{ complete: false, error: '...' }`.
+- **Chunk validation** -- `chunkIndex` must be non-negative integer < `totalChunks`. `totalChunks` must be positive integer. `uploadId` must be valid UUID v4. All validated before state mutation.
+- **Client upload helpers use publishEvent() amount override** -- `uploadBlob()` and `uploadBlobChunked()` compute `amount = pricePerByte * blob.length` and pass via `publishEvent({ amount })` (D7-007 prepaid model).
+
+### Rig-Specific Rules (Epic 8)
+
+**Forge-UI Architecture:**
+
+- **Browser-only code** -- All `src/web/` code must be browser-compatible. No `node:` imports, no Node.js APIs. Use `fetch()`, `WebSocket`, `AbortSignal.timeout()`.
+- **Single runtime dependency** -- `@toon-format/toon` is the only runtime dependency. All other deps are devDependencies (vite, vitest, playwright, jsdom, marked, typescript).
+- **Vite SPA build** -- `vite build` outputs to `dist/`. Entry point is `src/web/index.html`. Base path is `./` (relative, for Arweave deployment).
+- **Router clean URLs** -- History API `pushState`/`popstate` for navigation. No hash routing. Routes: `/<npub>/<repo>/tree/<ref>/<path>`, `/<npub>/<repo>/blob/<ref>/<path>`, etc.
+- **XSS prevention** -- ALL user-generated content must pass through `escape()` from `escape.ts` before HTML insertion. Markdown rendered through `marked` + sanitization pipeline in `markdown-safe.ts`.
+- **Arweave multi-gateway fallback** -- Arweave client tries gateways in order with `AbortSignal.timeout(15000)`. Cache bounded to 10K entries.
+- **ATDD stubs coexist with implemented code** -- `index.ts` (startRig), `cli.ts`, `git/operations.ts`, `handlers/`, `identity/` are ATDD stubs that throw. `web/` is fully implemented. Both exist in the same package.
+- **ESLint excluded** -- `packages/rig/` is excluded from ESLint (different coding style for browser SPA code).
+- **Playwright for E2E** -- `@playwright/test` for browser E2E tests in `tests/e2e/`. Vitest for unit and integration tests.
+- **NEVER use `exec()` for git operations** -- Always use `execFile()` to prevent command injection (applies to ATDD stubs in `git/operations.ts`).
+
 ### Chain Configuration Rules (Epic 3)
 
 **resolveChainConfig() (Story 3.2):**
@@ -1910,10 +2095,12 @@ Customer                    Upstream Node
 - **Identity subdirectory** -- Core identity derivation in `src/identity/` (kms-identity.ts)
 - **Build subdirectory** -- Core Nix build infrastructure in `src/build/` (nix-builder.ts, pcr-validator.ts)
 - **Bootstrap subdirectory** -- Core attestation classes in `src/bootstrap/` (AttestationVerifier.ts, AttestationBootstrap.ts alongside BootstrapService.ts)
-- **Events subdirectory** -- Core event builders/parsers in `src/events/` (attestation.ts, dvm.ts, seed-relay.ts, service-discovery.ts, workflow.ts, swarm.ts, attested-result-verifier.ts, reputation.ts, prefix-claim.ts)
+- **Events subdirectory** -- Core event builders/parsers in `src/events/` (attestation.ts, dvm.ts, seed-relay.ts, service-discovery.ts, workflow.ts, swarm.ts, attested-result-verifier.ts, reputation.ts, prefix-claim.ts, arweave-storage.ts)
+- **NIP-34 subdirectory** -- Core NIP-34 Git collaboration in `src/nip34/` (constants.ts, types.ts, ForgejoClient.ts, NIP34Handler.ts, GitOperations.ts) -- sub-path export `@toon-protocol/core/nip34`
+- **Arweave subdirectory** -- SDK Arweave DVM in `src/arweave/` (arweave-dvm-handler.ts, turbo-adapter.ts, chunk-manager.ts, chunked-upload.ts)
 - **Address subdirectory** -- Core ILP address hierarchy in `src/address/` (derive-child-address.ts, ilp-address-validation.ts, btp-prefix-exchange.ts, address-assignment.ts, address-registry.ts, prefix-validation.ts)
 - **Fee subdirectory** -- Core route-aware fee calculation in `src/fee/` (resolve-route-fees.ts, calculate-route-amount.ts)
-- **tsconfig.json excludes** -- Root tsconfig excludes `packages/rig` and `archive`
+- **tsconfig.json excludes** -- Root tsconfig excludes `packages/rig`, `packages/overmind`, and `archive`
 
 **Documentation:**
 
@@ -1929,7 +2116,7 @@ Customer                    Upstream Node
 **Git/Repository:**
 
 - **Main branch:** `main` (default for PRs)
-- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics, `epic-4` for TEE, `epic-5` for DVM, `epic-6` for Advanced DVM Coordination, `epic-7` for ILP Address Hierarchy)
+- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics, `epic-4` for TEE, `epic-5` for DVM, `epic-6` for Advanced DVM Coordination, `epic-7` for ILP Address Hierarchy, `epic-8` for The Rig)
 - **Monorepo with pnpm workspaces** -- All packages managed together
 - **Conventional commits** -- Use prefixes: `feat(story):`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`
 - **Story-scoped commits** -- `feat(4-2): TEE attestation events`
@@ -2120,31 +2307,42 @@ Customer                    Upstream Node
 - **Address hierarchy enables protocol economics** -- The hierarchical structure `g.toon.parent.child` creates a natural fee accumulation model: each segment corresponds to a node that can charge `feePerByte`. Fee model derives from address hierarchy.
 - **Prefix claim marketplace creates domain-registrar business model** -- Upstream nodes sell human-readable namespace to downstream nodes. Vanity prefixes like `g.toon.useast` are emergent economic properties of the address hierarchy.
 - **kind:10032 republication not yet implemented for lifecycle changes** -- `addUpstreamPeer`/`removeUpstreamPeer` and prefix claims update in-memory state but `BootstrapService.republish()` does not exist. Kind:10032 re-advertisement after topology changes is blocked (Epic 7 retro A2).
-- **Unified payment pattern (D7-004)** -- All monetized flows (relay write, DVM compute, prefix claim) use the same `publishEvent()` with optional `{ amount }` override. New monetized flows must conform to this pattern.
+- **Unified payment pattern (D7-004)** -- All monetized flows (relay write, DVM compute, prefix claim, blob storage) use the same `publishEvent()` with optional `{ amount }` override. New monetized flows must conform to this pattern.
+- **Arweave DVM handler returns tx ID in FULFILL data** -- `createArweaveDvmHandler()` returns `{ accept: true, data: txId }` directly. The Arweave transaction ID is in the ILP FULFILL response, NOT published as a kind:6094 event.
+- **ChunkManager is single-process only** -- In-memory Map state. No distributed locking. Cluster mode would require shared state.
+- **TurboUploadAdapter lazy imports** -- `@ardrive/turbo-sdk/node` is imported on first upload, not at module load time. This prevents startup overhead when the adapter is constructed but not used.
+- **Forge-UI has ATDD stubs alongside implemented web code** -- `packages/rig/src/index.ts`, `cli.ts`, `git/`, `handlers/`, `identity/` are all stubs that throw. Only `src/web/` is implemented. Both coexist in the same package.
+- **Forge-UI relay client decodes TOON format** -- The browser WebSocket client imports `decode` from `@toon-format/toon` to handle TOON-encoded EVENT messages from relays.
+- **Arweave path manifest enables SPA routing** -- `deploy-forge-ui.mjs` creates an Arweave path manifest that maps all URLs to the SPA's `index.html`, enabling clean URL routing on Arweave.
 
 ---
 
-## Known Action Items (From Epic 7 Final Retro)
+## Known Action Items (From Epic 8 Final Retro)
 
-**Must-Do for Epic 8:**
-- A1: **Address accumulated E2E test debt (~31 deferred items across Epics 3-7)** -- Zero E2E tests executed for 2nd consecutive epic. Cumulative deferred count is now ~31 items. This is the project's highest-priority quality risk.
-- A2: **Implement BootstrapService.republish() for kind:10032 re-advertisement** -- `addUpstreamPeer`/`removeUpstreamPeer` and prefix claims update in-memory state but cannot trigger kind:10032 republication. Blocks correct multi-address advertisement after topology changes.
+**Must-Do for Epic 9:**
+- A1: **Address accumulated E2E test debt (~31+ deferred items across Epics 3-8)** -- Forge-UI added Playwright E2E tests but SDK/core E2E debt remains. This is the project's highest-priority quality risk. (Carried from Epic 7 A1, 2 epics deferred)
+- A2: **Implement BootstrapService.republish() for kind:10032 re-advertisement** -- `addUpstreamPeer`/`removeUpstreamPeer` and prefix claims update in-memory state but cannot trigger kind:10032 republication. Blocks correct multi-address advertisement after topology changes. (Carried from Epic 7 A2, 2 epics deferred)
 
 **Should-Do:**
-- A3: Standardize injectable time pattern across coordination components -- SwarmCoordinator uses `setTimeout` while WorkflowOrchestrator uses injectable `now()`. Not exacerbated in Epic 7 but still inconsistent. (Carried from Epic 6 A2, 2 epics deferred)
-- A4: Establish load testing infrastructure -- Deferred 7 epics (from Epic 1 NFR). Route-aware fee calculation and multi-address resolution need performance baselines.
-- A5: Set up facilitator ETH monitoring -- Deferred 5 epics (from Epic 3 A8). x402 facilitator account needs ETH monitoring.
-- A6: Commit flake.lock -- Deferred 4 epics (from Epic 4 A5). Requires Nix installation.
-- A7: Add caching to resolveRouteFees() -- Per-call Map rebuild from discovered peers is acceptable for v1 but will not scale to 1000+ peers. Cache with invalidation on peer discovery updates. (New from Story 7-5 NFR)
-- A8: Formal SLOs for DVM job lifecycle -- With prepaid model and route-aware fees, end-to-end latency SLOs are increasingly relevant. (Carried from Epic 6 A7, 2 epics deferred)
+- A3: Standardize injectable time pattern across coordination components -- SwarmCoordinator uses `setTimeout` while WorkflowOrchestrator uses injectable `now()`. (Carried from Epic 6 A2, 3 epics deferred)
+- A4: Establish load testing infrastructure -- Deferred 8 epics (from Epic 1 NFR). Route-aware fee calculation and multi-address resolution need performance baselines.
+- A5: Set up facilitator ETH monitoring -- Deferred 6 epics (from Epic 3 A8). x402 facilitator account needs ETH monitoring.
+- A6: Commit flake.lock -- Deferred 5 epics (from Epic 4 A5). Requires Nix installation.
+- A7: Add caching to resolveRouteFees() -- Per-call Map rebuild from discovered peers is acceptable for v1 but will not scale to 1000+ peers. (Carried from Epic 7 A7, 2 epics deferred)
+- A8: Formal SLOs for DVM job lifecycle -- With prepaid model and route-aware fees, end-to-end latency SLOs are increasingly relevant. (Carried from Epic 6 A7, 3 epics deferred)
+- A9: Implement startRig() server mode -- `packages/rig/src/index.ts` is an ATDD stub. The server-side rig (NIP-34 event handling, Forgejo integration, git operations) is not yet implemented. ATDD stubs exist for handlers, identity, and git operations. (New from Epic 8)
+- A10: Production Arweave deployment -- `deploy-forge-ui.mjs` supports `--wallet` mode for paid authenticated uploads but has not been run against production Arweave. Free tier (`--dev`) limited to 100KB per file. (New from Epic 8)
 
 **Nice-to-Have:**
-- A9: Runtime re-publication of kind:10035 on handler/reputation change -- Carried from Epic 5 A11. Now also relevant for kind:10032 (see A2).
-- A10: Weighted WoT model for reputation scoring -- Carried from Epic 6 A9.
-- A11: Publish @toon-protocol/town to npm -- Carried from Epic 2 A3 (6 epics deferred).
-- A12: Fix NIP-33/NIP-16 doc discrepancy -- Carried from Epic 3 A13 (5 epics deferred).
-- A13: Add protocol-level reputation score verification -- Carried from Epic 6 A6.
-- A14: Docker E2E for workflow chain + swarm coordination -- Carried from Epic 6 A12/A13.
+- A11: Runtime re-publication of kind:10035 on handler/reputation change -- Carried from Epic 5 A11. Now also relevant for kind:10032 (see A2).
+- A12: Weighted WoT model for reputation scoring -- Carried from Epic 6 A9.
+- A13: Publish @toon-protocol/town to npm -- Carried from Epic 2 A3 (7 epics deferred).
+- A14: Fix NIP-33/NIP-16 doc discrepancy -- Carried from Epic 3 A13 (6 epics deferred).
+- A15: Add protocol-level reputation score verification -- Carried from Epic 6 A6.
+- A16: Docker E2E for workflow chain + swarm coordination -- Carried from Epic 6 A12/A13.
+
+**Resolved Action Items (from Epic 7 retro, resolved during Epic 8):**
+- ~~A1 (partial): E2E test debt~~ PARTIALLY ADDRESSED -- Forge-UI added 6 Playwright E2E spec files + 15 integration test files. Core/SDK E2E debt remains.
 
 **Resolved Action Items (from Epic 5 retro, resolved at Epic 6 start):**
 - ~~A1: Standardize test counting between pipeline steps~~ RESOLVED (root vitest.config.ts now includes `docker/src/**/*.test.ts`)
@@ -2188,6 +2386,11 @@ Customer                    Upstream Node
 - Use unified payment pattern (D7-004) for all new monetized flows: advertise price in replaceable event, discover, message + payment in one `publishEvent()` call (Epic 7, team agreement #10)
 - Use injectable callbacks for handler factories (e.g., `createPrefixClaimHandler`'s `claimPrefix` callback for atomicity) (Epic 7, team agreement #12)
 - Story consolidation is valid when two stories share the same modified files and infrastructure (Epic 7, team agreement #9)
+- Use adapter isolation for external SDK dependencies (e.g., `ArweaveUploadAdapter` wraps `@ardrive/turbo-sdk` behind an interface, only one file imports the external dep) (Epic 8, risk E8-R002)
+- Use chunk manager pattern for multi-packet upload state: timeout, memory cap, ordered assembly, dispose cleanup (Epic 8, `ChunkManager`)
+- Use FULFILL data field (not ctx.accept()) when handler needs to relay data back via ILP FULFILL -- return `{ accept: true, data }` directly (Epic 8, Arweave DVM handler pattern)
+- Use multi-gateway fallback with timeout for Arweave gateway access (Epic 8, Forge-UI arweave-client)
+- Browser SPA code must use zero Node.js APIs -- all `fetch()`, `WebSocket`, `AbortSignal.timeout()` (Epic 8, Forge-UI)
 
 **For Humans:**
 
@@ -2196,4 +2399,4 @@ Customer                    Upstream Node
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-03-22
+Last Updated: 2026-03-24
