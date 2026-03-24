@@ -124,7 +124,7 @@ development_status:
   # Restructured (2026-03-22): NIP-34 skill stories moved to Epic 9
   # 8 stories: 8.0 Arweave DVM + 8.1-8.5 Forge-UI + 8.6 E2E Validation + 8.7 Publish
   # Story 8.6 added (2026-03-23): E2E validation gate before immutable Arweave deploy
-  epic-8: in-progress
+  epic-8: done
   8-0-arweave-storage-dvm-provider: done
   8-1-forge-ui-layout-and-repository-list: done
   8-2-forge-ui-file-tree-and-blob-view: done
@@ -132,7 +132,7 @@ development_status:
   8-4-forge-ui-blame-view: done
   8-5-forge-ui-issues-and-prs-from-relay: done
   8-6-forge-ui-e2e-validation: done
-  8-7-deploy-forge-ui-to-arweave: backlog
+  8-7-deploy-forge-ui-to-arweave: done
   epic-8-retrospective: optional
 
   # Epic 9: NIP-to-TOON Skill Pipeline + Socialverse Skills
@@ -188,14 +188,24 @@ development_status:
   9-34-publish-all-skills: backlog
   epic-9-retrospective: optional
 
-  # Epic 10: Compute Primitive (kind:5250)
-  # Decision source: Party Mode 2026-03-22 — Network Primitives Strategy
-  # Stateless compute-for-hire DVM; backends: Oyster CVM, Akash, Docker
+  # Epic 10: Compute Primitive — Provider Protocol & DX (kind:5250)
+  # Decision source: Party Mode 2026-03-22 — Network Primitives Strategy (D8-PM-003/004/005)
+  # Stateless compute-for-hire DVM; backends: Oyster CVM, Akash, Docker (all out-of-scope)
   # Two-phase model: sync submit (kind:5250) + async result (kind:5251/6250)
   # Convenience fee pricing: providers are resellers, kindPricing covers backend + margin
   # Dependencies: Epic 8 (blob storage pattern), Epic 5 (DVM kinds), Epic 6 (TEE + reputation)
-  # Stories: TBD (to be decomposed when epic starts)
+  # TOON ships: protocol spec, consumer SDK, test harness, provider handoff docs
+  # TOON does NOT ship: provider implementations (Oyster, Akash, HyperBEAM teams build their own)
+  # 8 stories: 10.1-10.3 Protocol + SDK, 10.4-10.5 Consumer DX, 10.6 Test Harness, 10.7 Handoff Docs, 10.8 Publish
   epic-10: backlog
+  10-1-compute-event-kind-definitions: backlog
+  10-2-two-phase-async-result-protocol: backlog
+  10-3-self-describing-compute-receipts: backlog
+  10-4-consumer-sdk-job-submission: backlog
+  10-5-compute-provider-skill-descriptor: backlog
+  10-6-provider-test-harness: backlog
+  10-7-provider-handoff-documents: backlog
+  10-8-publish-compute-primitive: backlog
   epic-10-retrospective: optional
 
   # Epic 11: Chain Bridge Primitive (kind:5260)
