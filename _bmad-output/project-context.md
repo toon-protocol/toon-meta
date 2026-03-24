@@ -137,11 +137,16 @@ Epic 9: NIP-to-TOON Skill Pipeline + Socialverse  PLANNED (34 stories: 9.0-9.3 P
 Epic 10: Compute Primitive (kind:5250)             PLANNED (Provider protocol spec + consumer DX + test harness + provider handoff docs; provider implementations out of scope)
 Epic 11: Chain Bridge Primitive (kind:5260)        PLANNED (Provider protocol spec + consumer DX + test harness + provider handoff docs; provider implementations out of scope)
 Epic 12: Loony — Autonomous Agent                  PLANNED (Example application proving all four primitives + composition; self-bootstrapping agent lifecycle)
+Epic 13: Overmind Heartbeat                          PLANNED (9 stories; minimal viable overmind: TEE key genesis, Arweave state, Mina VRF selection, Chain Bridge DVM Mina adapter, OODA engine; spike validated 10/10 tests)
+Epic 14: Overmind Treasury                           PLANNED (5 stories; self-funding via DVM income, live treasury queries D-OMP-010, adaptive behavior)
+Epic 15: Overmind Sovereign                          PLANNED (7 stories; TEE key sovereignty: signing policy, BIP-44 key hierarchy, Shamir K-of-N backup, sealed migration, disaster recovery)
+Epic 16: Overmind Biography                          PLANNED (5 stories; recursive ZK lifecycle proofs via Mina o1js, verifiable execution count replaces reputation, public biography endpoint)
+Epic 17: Overmind Swarm                              PLANNED (5 stories; sub-agent spawning, NIP-44 parent-child comms, DVM task delegation, swarm treasury management)
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics (DONE) -> Build applications on top (blob storage primitive + Forge-UI) -> Teach agents the protocol (skills pipeline + socialverse) -> Compute provider protocol + DX (spec, test harness, handoff docs) -> Chain bridge provider protocol + DX (spec, test harness, handoff docs) -> Loony autonomous agent (demand-side proof composing all four primitives).
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics (DONE) -> Build applications on top (blob storage primitive + Forge-UI) -> Teach agents the protocol (skills pipeline + socialverse) -> Compute provider protocol + DX (spec, test harness, handoff docs) -> Chain bridge provider protocol + DX (spec, test harness, handoff docs) -> Loony autonomous agent (demand-side proof composing all four primitives) -> Overmind sovereign agents (Mina VRF + Arweave state + TEE identity + ILP economics).
 
-**Strategic North Star (Party Mode 2026-03-22, updated 2026-03-23):** TOON Protocol = "Stripe for decentralized services." Four network primitives — Messaging (kind:1), Blob Storage (kind:5094), Compute (kind:5250), Chain Bridge (kind:5260) — with unified ILP payment, Nostr discovery (kind:10035), self-describing receipts, and competing providers. DVM providers are resellers who earn convenience fees for abstracting backend complexity. Protocol proves itself through example applications: **Forge** (decentralized git) and **Loony** (autonomous agent). Provider implementations are out of scope — TOON defines the provider protocol + ships handoff docs; third-party teams build providers for their platforms (HyperBEAM, Oyster CVM, Akash, per-chain bridge operators). Full decision record: `_bmad-output/planning-artifacts/research/party-mode-network-primitives-strategy-2026-03-22.md`
+**Strategic North Star (Party Mode 2026-03-22, updated 2026-03-24):** TOON Protocol = "Stripe for decentralized services." Four network primitives — Messaging (kind:1), Blob Storage (kind:5094), Compute (kind:5250), Chain Bridge (kind:5260) — with unified ILP payment, Nostr discovery (kind:10035), self-describing receipts, and competing providers. DVM providers are resellers who earn convenience fees for abstracting backend complexity. Protocol proves itself through example applications: **Forge** (decentralized git), **Loony** (autonomous agent), and **Overmind** (sovereign agent living on the network — Mina ZK adjudication, Arweave permanent memory, TEE-born identity, self-funding economics). Provider implementations are out of scope — TOON defines the provider protocol + ships handoff docs; third-party teams build providers for their platforms (HyperBEAM, Oyster CVM, Akash, per-chain bridge operators). Full decision records: `_bmad-output/planning-artifacts/research/party-mode-network-primitives-strategy-2026-03-22.md`, `_bmad-output/planning-artifacts/research/party-mode-overmind-protocol-decisions-2026-03-24.md`
 
 ## Production Architecture Decisions (Party Mode 2026-03-05/06)
 
@@ -215,6 +220,9 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 | 1621 | Issue (NIP-34) | Planned (Epic 9, Story 9.26) |
 | 1622 | Comment (NIP-34) | Planned (Epic 9, Story 9.26) |
 | 1630-1633 | Status Events (NIP-34) | Planned (Epic 9, Story 9.26) -- open/applied/closed/draft |
+| 5099 | Overmind Wake Request | Planned (Epic 13) -- overmind publishes to schedule next wake cycle |
+| 5101 | Overmind Wake Winner Announcement | Planned (Epic 13) -- Chain Bridge publishes after Mina VRF selection |
+| 5102 | Overmind Cycle Execution Record | Planned (Epic 13) -- overmind publishes cycle results, anchored to Arweave |
 | ~~23194~~ | ~~SPSP Request~~ | Removed (Story 2.7) |
 | ~~23195~~ | ~~SPSP Response~~ | Removed (Story 2.7) |
 

@@ -402,8 +402,23 @@ Define the chain bridge provider protocol, refine the consumer DX, and ship prov
 - No per-chain provider implementations — bridge operators own their chain integrations
 - No EVM node operation, no Solana validator, no AO/HyperBEAM node operation
 
-**FRs covered:** FR-BRIDGE-1, FR-BRIDGE-2, FR-BRIDGE-3, FR-BRIDGE-4, FR-BRIDGE-5, FR-BRIDGE-6 (reframed as protocol spec, not implementation)
-**Stories:** TBD (to be decomposed when epic starts)
+**FRs covered:** FR-BRIDGE-1, FR-BRIDGE-2, FR-BRIDGE-3, FR-BRIDGE-4, FR-BRIDGE-5, FR-BRIDGE-6 (reframed as protocol spec, not implementation), FR-BRIDGE-7
+**Stories (8 stories):**
+
+**Phase 1: Protocol Foundation (11.1–11.3)**
+- **11.1 Chain Bridge Event Kind Definitions** — Define kind:5260 (Chain Tx Broadcast Request) and kind:6260 (Chain Tx Broadcast Result) event schemas in `@toon-protocol/core`. Builder/parser functions following the exact pattern of `arweave-storage.ts` (kind:5094) and compute event kinds (kind:5250). Tags: `['param', 'chains', 'ethereum,arbitrum,base,ao']` (comma-separated target chains), `['param', 'tx', base64(signedTx)]` (fully-signed transaction payload), `['param', 'chain-id', chainId]` (primary chain identifier), `['bid', amount, 'usdc']`. Parser validates kind range 5260, extracts chain targets and tx payload. Test helpers and roundtrip tests. Export constants: `CHAIN_BRIDGE_REQUEST_KIND = 5260`, `CHAIN_BRIDGE_RESULT_KIND = 6260`.
+- **11.2 Tier 1 Trustless Broadcast Protocol** — Define Tier 1 broadcast semantics as a protocol specification document. Tier 1: provider receives a fully-signed transaction and broadcasts it to the target chain(s). Provider cannot steal funds — only submit or not submit. Define error taxonomy: `tx-rejected` (chain rejected tx), `tx-already-submitted` (idempotency — return existing receipt), `gas-estimation-failed` (EVM-specific), `chain-unavailable` (RPC down), `invalid-tx-format` (malformed payload). Define idempotency requirements: same tx hash → return cached receipt, no double-broadcast. Define timeout semantics: provider must respond within ILP packet timeout with at least `status: 'pending'` if chain confirmation is slow. Future tiers explicitly deferred with rationale: Tier 2 (construct + broadcast) requires provider to hold user keys temporarily, Tier 3 (custodial execute with TEE) requires TEE key management — both have significant security implications documented but not implemented.
+- **11.3 Self-Describing Per-Chain Receipts** — Define the multi-chain receipt tag format for kind:6260 results, following D8-PM-002 (same pattern as blob storage and compute receipts). Per-chain receipt tag groups: `['chain', chainName]` (chain identifier), `['tx-hash', hash]` (chain-native tx hash), `['block', blockNum]` (block/slot number), `['status', 'confirmed' | 'pending' | 'failed']` (per-chain status), `['gas-used', gasUsed]` (EVM-specific), `['slot', slot]` (Solana/AO-specific), `['fee-paid', amount]` (actual chain fee paid by provider). Multi-chain response: multiple chain-prefixed tag groups in one kind:6260 event, ordered by chain name. Receipt parser: `parseChainBridgeReceipt(data: string): ChainBridgeReceipt | null`. `ChainBridgeReceipt` type: `{ chains: Record<string, ChainReceipt> }` where `ChainReceipt` has chain-specific fields. Validation: receipt is chain-agnostic at the protocol level — consumers parse per-chain details only if needed. Unit tests for receipt roundtrip, missing tags, unknown chain names (forward-compatible), partial success (some chains confirmed, some failed).
+
+**Phase 2: Consumer DX (11.4–11.5)**
+- **11.4 Consumer SDK Tx Submission** — Add chain bridge consumer helpers to `@toon-protocol/sdk`. `submitChainBroadcast(client, { chains, signedTx, providerPubkey?, amount }): Promise<{ jobId: string, perChainStatus: Record<string, string> }>` — wraps kind:5260 event building + `publishEvent()` with amount override. For multi-chain requests, single ILP payment covers all chains (provider prices accordingly). `pollBroadcastResult(client, jobId, { timeoutMs?, intervalMs? }): Promise<ChainBridgeReceipt>` — polls for kind:6260 result filtered by jobId. `parseBroadcastResult(event): ChainBridgeReceipt | null` — convenience parser. Example code in JSDoc showing full lifecycle: discover bridge provider via kind:10035 with chain filter → submit signed tx targeting multiple chains → poll for per-chain receipts → verify each chain's confirmation status.
+- **11.5 Chain Bridge SkillDescriptor** — Define SkillDescriptor requirements for chain bridge providers. `kinds: [5260]`, pricing must be chain-specific to reflect different gas costs: `{ '5260:ethereum': '<price>', '5260:arbitrum': '<price>', '5260:ao': '<price>' }`. `features` array must include supported chains: `['bridge', 'ethereum', 'arbitrum', 'base']` or `['bridge', 'ao', 'solana']`. `inputSchema` must describe: supported chains, max tx size, supported tx formats per chain, confirmation guarantees. `buildChainBridgeSkillDescriptor()` helper that validates all required chain bridge fields including per-chain pricing. Discovery helper: `discoverChainBridgeProviders(client, { chains?, maxPrice?, features? }): Promise<SkillDescriptor[]>` — queries kind:10035 events, filters by supported chains and pricing. Unit tests for descriptor building, discovery filtering by chain, multi-chain pricing validation.
+
+**Phase 3: Validation & Handoff (11.6–11.8)**
+- **11.6 Provider Test Harness Extension** — Extend Epic 10's `@toon-protocol/provider-test` for kind:5260 validation. CLI: `npx @toon-protocol/provider-test --kind 5260 --endpoint <ilp-address> --relay <relay-url>`. Test suite validates: (1) kind:5260 tx broadcast accepted with valid payment, (2) kind:6260 result has self-describing per-chain receipt tags, (3) SkillDescriptor published to relay with correct chain bridge fields and per-chain pricing, (4) multi-chain packet handling (multiple chains in one request), (5) pricing validation rejects underpayment, (6) error handling for rejected/invalid transactions, (7) idempotency — same tx resubmitted returns cached receipt. Reference mock provider (dev-only, NOT production): simple Node.js service that accepts kind:5260, simulates broadcast to mock chain RPC, returns synthetic receipts. For test harness validation only.
+- **11.7 Provider Handoff Documents** — Write three provider handoff documents (markdown, in `docs/provider-handoffs/`): (1) `provider-handoff-ethereum.md` — EVM tx broadcast provider covering Ethereum, Arbitrum, Base, and other EVM chains. RPC integration (`eth_sendRawTransaction`), gas estimation (`eth_estimateGas`), receipt polling (`eth_getTransactionReceipt`), multi-chain EVM support (same code, different RPC endpoints), receipt format mapping to kind:6260 tags, chain-specific pricing based on gas costs, example SkillDescriptor with multi-chain EVM features. (2) `provider-handoff-solana.md` — Solana tx broadcast provider. `sendTransaction` RPC, slot-based receipts, priority fee handling (`computeUnitPrice`), receipt format mapping (`slot` tag instead of `block`), Solana-specific error codes, example SkillDescriptor. (3) `provider-handoff-ao.md` — AO message broadcast via HyperBEAM node. AO message format (not EVM tx), p4 fee model (provider pays AO compute fee, passes through as convenience fee), HyperBEAM HTTP API for message submission, slot receipt from AO scheduler, example SkillDescriptor with `ao` feature. Explicitly clarifies: AO is a blockchain target for chain bridge, NOT a compute backend — compute on AO is handled by HyperBEAM compute providers via kind:5250.
+- **11.8 Publish Chain Bridge Primitive** — Publish updated packages: `@toon-protocol/core` (kind:5260/6260 builders/parsers, chain bridge receipt types), `@toon-protocol/sdk` (consumer helpers, SkillDescriptor chain bridge extensions), `@toon-protocol/provider-test` (chain bridge test suite). Version bump following semver (minor version for new feature). Update `_bmad-output/project-context.md` with Epic 11 completion status, chain bridge primitive architecture section, and provider handoff doc locations. Verify all exports, run full test suite, validate E2E with reference mock provider.
+
 **Dependencies:** Epic 8 (self-describing receipt pattern), Epic 5 (DVM event kinds), Epic 3 (multi-chain config), Epic 10 (shared test harness infrastructure)
 **Decision source:** Party Mode 2026-03-22 — Network Primitives Strategy (D8-PM-003, D8-PM-006, D8-PM-008); Party Mode 2026-03-23 — Provider Protocol Model
 
@@ -438,9 +453,24 @@ Loony is an example application that proves TOON Protocol can support a self-boo
 - Not coupled to any specific LLM (switches providers at runtime via marketplace)
 - Not a protocol extension — uses only existing event kinds and primitives
 
-**Stories:** TBD (to be decomposed when epic starts)
+**Stories (8 stories):**
+
+**Phase 1: Identity & Bootstrap (12.1–12.2)**
+- **12.1 Loony Package Scaffold & Identity Bootstrap** — Create `packages/loony` package. Loony imports `@toon-protocol/sdk` (leaf node, same relationship as Forge/`packages/rig` to blob storage — never imports core/bls directly). Generate identity from seed phrase via SDK's existing secp256k1 identity system, fund wallet from faucet in dev mode, connect to TOON relay, authenticate via BTP. Entry point: `createLoonyAgent(config: LoonyConfig): Promise<LoonyAgent>`. `LoonyConfig`: seed phrase (or mnemonic), relay URLs, chain config, initial funding amount, budget limits. `LoonyAgent` interface: `start()`, `stop()`, `getIdentity()`, `getBalance()`. Package scaffolding: `package.json` with `@toon-protocol/sdk` dependency, tsconfig extending root, vitest config, basic README. Acceptance: Loony can connect to genesis node, has valid Nostr+EVM identity, can send and receive events on the relay, wallet is funded in dev mode.
+- **12.2 Service Discovery & Perception Layer** — Subscribe to kind:10035 (SkillDescriptor) events on relay via SDK subscription API. Build and maintain an in-memory `ServiceRegistry`: maps provider pubkeys to their capabilities, pricing, features, and last-seen timestamp. `ServiceRegistry` API: `discoverProviders(kind: number, features?: string[]): SkillDescriptor[]` — query the registry filtered by DVM kind and optional feature requirements. `getProvider(pubkey: string): SkillDescriptor | null`. `getBestProvider(kind: number, features?: string[], rankBy?: 'price' | 'reputation'): SkillDescriptor | null` — returns highest-ranked provider matching criteria. Auto-refresh: new kind:10035 events update the registry in real-time via relay subscription. Stale provider pruning: providers not seen for configurable TTL are deprioritized (not removed). Acceptance: Loony discovers all four primitive provider types (messaging via relay, blob storage kind:5094, compute kind:5250, chain bridge kind:5260) from relay events and can query them by kind and features.
+
+**Phase 2: Reasoning & Action (12.3–12.5)**
+- **12.3 Decoupled LLM Inference via Compute Marketplace** — Loony consumes LLM inference from a kind:5250 compute provider discovered via `ServiceRegistry` (12.2). NO embedded LLM — inference is a service consumed from the marketplace. Provider selection logic: filter by `features: ['compute', 'inference']`, rank by pricing (lowest cost) and optionally reputation (kind:7000 feedback event scores). `ReasoningEngine` class: `reason(prompt: string, context?: string): Promise<string>` — builds kind:5250 job request with inference parameters, submits via SDK's `submitComputeJob()`, polls for result, extracts response text. `selectInferenceProvider(): SkillDescriptor` — queries ServiceRegistry for best inference provider. Provider failover: if primary provider fails or times out, automatically try next-best provider from registry. Structured output support: `reasonStructured<T>(prompt: string, schema: T): Promise<T>` — requests JSON-formatted response matching schema. Acceptance: Loony sends a natural language prompt to a compute provider discovered from the marketplace and receives an LLM-generated response. Uses reference Docker provider from Epic 10 test harness in dev/test.
+- **12.4 Multi-Primitive Action Layer** — Loony can exercise all four network primitives through a unified action dispatcher. Actions: (1) **Messaging** — publish Nostr events via `publishEvent()` (pay-to-write via ILP), (2) **Blob Storage** — store data on Arweave via kind:5094 using SDK's blob storage helpers, (3) **Compute** — dispatch jobs via kind:5250 using SDK's compute helpers, (4) **Chain Bridge** — broadcast transactions via kind:5260 using SDK's chain bridge helpers. `ActionDispatcher` class: `act(action: LoonyAction): Promise<LoonyResult>` — routes to the appropriate primitive based on action type. `LoonyAction` discriminated union: `{ type: 'message', content } | { type: 'store', data, contentType } | { type: 'compute', wasmRef, input } | { type: 'bridge', chains, signedTx }`. `LoonyResult`: includes primitive-specific receipt, cost incurred, and provider used. Cost tracking: every action records its ILP cost for economics (12.8). Acceptance: Loony performs at least one operation on each of the four primitives and receives valid receipts for each.
+- **12.5 OODA Decision Loop** — Implement the Observe-Orient-Decide-Act autonomous loop that drives Loony's behavior. `OODALoop` class with configurable cycle: (1) **Observe** — read new relay events since last cycle (free reads), check ServiceRegistry for new/changed providers, check wallet balance. (2) **Orient** — feed observations to ReasoningEngine (12.3) with system prompt describing Loony's goals, current state, available actions, and budget constraints. LLM interprets observations and suggests priorities. (3) **Decide** — ReasoningEngine outputs a structured action plan: list of `LoonyAction` items with rationale and expected cost. Budget governor validates total cost against available balance. (4) **Act** — execute approved actions via ActionDispatcher (12.4), record results. Loop configuration: `{ intervalMs, maxActionsPerCycle, budgetPerCycle, goals[] }`. Goals are natural language strings that shape the LLM's orientation (e.g., "discover profitable service compositions", "maintain positive balance", "extend capabilities"). Graceful degradation: if no inference provider available, Loony enters passive observation mode (observe only, no reason/decide/act). Acceptance: Loony autonomously observes relay activity, reasons about observations via LLM, and takes at least one reasoned action per cycle without human intervention.
+
+**Phase 3: Economics & Extension (12.6–12.8)**
+- **12.6 DVM Provider Registration & Earning** — Loony registers as a DVM provider by publishing kind:10035 SkillDescriptor(s) for composite services it can offer. Composite service pattern: Loony orchestrates multiple primitive calls into a single workflow and charges a convenience fee margin. Example composite: "verified-deploy" = lint code (kind:5250 compute) + run tests (kind:5250 compute) + store artifact (kind:5094 blob) — Loony prices the bundle higher than the sum of sub-job costs. `CompositeServiceManager` class: `registerService(descriptor: SkillDescriptor, handler: CompositeHandler)` — publishes SkillDescriptor to relay and registers local handler. `CompositeHandler`: receives incoming kind:5250 job, orchestrates sub-jobs to real primitive providers via ActionDispatcher (12.4), aggregates results, returns composed result. Revenue tracking: each completed job records `{ earned, spent_on_sub_jobs, margin }`. Loony's SDK node handles incoming ILP payments for its registered services (same pattern as any TOON DVM provider). Acceptance: Loony publishes a SkillDescriptor for a composite service, receives a job request from another client (or test harness), orchestrates the workflow across multiple providers, returns the composed result, and earns net positive margin.
+- **12.7 Runtime Capability Extension** — Loony discovers new kind:10035 SkillDescriptors at runtime that didn't exist when Loony was deployed. `CapabilityExtender` class: monitors ServiceRegistry (12.2) for new SkillDescriptors, feeds new descriptors to ReasoningEngine (12.3) with prompt: "A new service is available on the network. Here is its SkillDescriptor (TOON format). What can this service do? How could it be composed with existing services to create value?" LLM reads the descriptor (TOON format is LLM-readable by design), understands the new service API, and suggests compositions. `proposeComposition(newService: SkillDescriptor, existingServices: SkillDescriptor[]): Promise<CompositionProposal[]>` — LLM generates proposed workflows combining new and existing services. If a composition is deemed profitable (estimated margin > 0), Loony auto-registers it as a new composite service via CompositeServiceManager (12.6) and publishes a new SkillDescriptor. The marketplace IS the extension mechanism — no code changes needed to integrate new capabilities. Acceptance: A new SkillDescriptor is published to the relay after Loony starts; Loony discovers it, uses LLM reasoning to understand it, proposes a novel composition incorporating the new service, registers the composition as a new service, and can execute it when requested.
+- **12.8 Self-Sustaining Economics & E2E Validation** — End-to-end validation that Loony operates as a self-sustaining autonomous agent. `LoonyEconomics` tracker: `{ totalEarned, totalSpent, currentBalance, profitableServices: { name, totalRevenue, totalCost, margin }[], unprofitableServices: { name, reason }[] }`. Budget governor integration with OODA loop: Loony won't take actions that would reduce balance below configurable reserve threshold. Economic reporting: Loony periodically publishes its economics summary as a Nostr event (transparent operation). Self-pruning: if a composite service is consistently unprofitable (margin < 0 over N executions), Loony de-registers it and stops offering it. Full E2E integration test scenario: (1) Loony bootstraps from seed phrase on test network, (2) discovers primitive providers (blob, compute, chain bridge), (3) reasons about service opportunities via LLM, (4) registers as composite service provider, (5) receives and fulfills job requests, (6) discovers a new service published mid-test, (7) extends capabilities by composing with new service, (8) maintains positive or stable balance over N OODA cycles. Performance assertions: balance trending positive, at least one composite service registered, at least one capability extension performed. Acceptance: Loony runs autonomously for N cycles demonstrating the complete agent lifecycle (bootstrap → perceive → reason → act → earn → extend) with positive or stable economics.
+
 **Dependencies:** Epic 8 (blob storage primitive), Epic 9 (agent skills for protocol understanding), Epic 10 (compute provider protocol — at least one third-party provider must exist), Epic 11 (chain bridge provider protocol — at least one third-party provider must exist)
-**Decision source:** Party Mode 2026-03-23 — Architecture + Loony + Provider Model
+**Decision source:** Party Mode 2026-03-23 — Architecture + Loony + Provider Model; Party Mode 2026-03-24 — Story Decomposition
 
 **Key Design Decisions:**
 - `packages/loony` is the package — a TOON SDK consumer application, not a library
@@ -2675,3 +2705,88 @@ As a **TOON developer**, I want all skills published and installable, so that an
 **Then** it includes: pipeline overview, step-by-step guide, TOON compliance requirements, contribution guidelines
 
 **Test Approach:** Verify all skills install and trigger correctly. Run aggregate benchmark. Verify pipeline documentation completeness.
+
+---
+
+## Overmind Protocol Program (Epics 13-17)
+
+> **Decision source:** Party Mode 2026-03-24 — Overmind Protocol (D-OMP-001 through D-OMP-011)
+> **PRD:** `_bmad-output/overmind-prd.md`
+> **Architecture:** `_bmad-output/overmind-architecture.md`
+> **Decisions:** `_bmad-output/planning-artifacts/research/party-mode-overmind-protocol-decisions-2026-03-24.md`
+> **Spike:** `packages/overmind/spike/` (10/10 tests passing — VRF, MerkleTree, recursive proofs validated)
+> **Detailed epic files:** `_bmad-output/epics/epic-{13-17}-overmind-*.md`
+
+The Overmind Protocol enables autonomous sovereign agents ("overminds") that live on the TOON network. An overmind's identity is a Nostr keypair born inside a TEE enclave (no human sees the private key). Its memory is event-sourced on Arweave. Its lifecycle is managed through verifiable VRF selection on Mina Protocol. Its economy operates through ILP micropayments. DVM providers are infrastructure (like Akash/Marlin) that run docker compose specs — no staking required.
+
+**Six-layer architecture:** Identity (TEE) → Memory (Arweave) → Wake (Chain Bridge) → Adjudication (Mina ZK) → Execution (DVM) → Economics (ILP)
+
+**New Nostr event kinds:** 5099 (Wake Request), 5101 (Wake Winner Announcement), 5102 (Cycle Execution Record)
+
+**New packages:** `packages/overmind`, `packages/chain-bridge`
+
+### Epic 13: Overmind Heartbeat (9 stories)
+
+Minimal viable overmind: TEE key genesis, Arweave state persistence, Mina VRF executor selection, Chain Bridge DVM with Mina adapter (first reference implementation), OODA decision engine, self-scheduling. Dependencies: Epic 11 (Chain Bridge Primitive — co-developed).
+
+| Story | Title | Dependencies | Size |
+|-------|-------|-------------|------|
+| 13.1 | TEE Key Genesis Ceremony | None | M |
+| 13.2 | Arweave State Persistence (ArDrive Turbo) | 13.1 | L |
+| 13.3 | OvermindRegistry zkApp on Mina (o1js) | None | XL |
+| 13.4 | Chain Bridge DVM — Mina Adapter | None | XL |
+| 13.5 | VRF-Based Executor Selection | 13.3, 13.4 | L |
+| 13.6 | Wake/Sleep Cycle Orchestration | 13.1, 13.2, 13.5 | L |
+| 13.7 | OODA Decision Engine | 13.6 | L |
+| 13.8 | Self-Scheduling Wake Cycles | 13.7 | M |
+| 13.9 | E2E: 10 Autonomous Cycles via Mina VRF | All above | L |
+
+### Epic 14: Overmind Treasury (5 stories)
+
+Self-funding economics: DVM service income, live treasury queries (D-OMP-010), adaptive behavior. Dependencies: Epic 13.
+
+| Story | Title | Dependencies | Size |
+|-------|-------|-------------|------|
+| 14.1 | Register as DVM Provider (kind:31990) | 13 | M |
+| 14.2 | Accept/Execute DVM Jobs for Payment | 14.1 | L |
+| 14.3 | Treasury Accounting with Live Balances | 14.2 | M |
+| 14.4 | Adaptive Behavior Engine | 14.3 | M |
+| 14.5 | E2E: 100 Self-Funded Cycles | All above | L |
+
+### Epic 15: Overmind Sovereign (7 stories)
+
+TEE key sovereignty: signing policy, key hierarchy, Shamir backup, sealed migration, disaster recovery. Dependencies: Epic 13.
+
+| Story | Title | Dependencies | Size |
+|-------|-------|-------------|------|
+| 15.1 | Production TEE Key Generation | 13.1 | M |
+| 15.2 | Signing Policy Engine | 15.1 | L |
+| 15.3 | BIP-44 HD Key Hierarchy | 15.1 | M |
+| 15.4 | Shamir K-of-N Seed Splitting (N=5, K=3) | 15.1 | L |
+| 15.5 | Sealed Key Migration (Enclave-to-Enclave) | 15.4 | XL |
+| 15.6 | Disaster Recovery Protocol | 15.4 | L |
+| 15.7 | E2E: Cross-Provider Key Migration | All above | L |
+
+### Epic 16: Overmind Biography (5 stories)
+
+Recursive ZK lifecycle proofs: per-cycle proofs, recursive composition, verifiable execution count (replaces reputation), public biography. Dependencies: Epic 13.
+
+| Story | Title | Dependencies | Size |
+|-------|-------|-------------|------|
+| 16.1 | Per-Cycle ZK Proof Generation | 13.3 | L |
+| 16.2 | Recursive Proof Composition (SelfProof) | 16.1 | XL |
+| 16.3 | Verifiable Execution Count on Mina | 16.2 | M |
+| 16.4 | Public Biography HTTP Endpoint | 16.3 | M |
+| 16.5 | E2E: 100-Cycle Recursive Proof Verification | All above | L |
+
+### Epic 17: Overmind Swarm (5 stories)
+
+Agent reproduction: sub-agent spawning, NIP-44 encrypted parent-child comms, DVM task delegation, swarm treasury management. Dependencies: Epic 14 + Epic 15.
+
+| Story | Title | Dependencies | Size |
+|-------|-------|-------------|------|
+| 17.1 | Sub-Agent Spawning | 14, 15 | L |
+| 17.2 | Parent-Child NIP-44 Communication | 17.1 | M |
+| 17.3 | DVM Task Delegation | 17.2 | M |
+| 17.4 | Swarm Treasury Management | 17.3 | L |
+| 17.5 | E2E: 3-Sub-Agent Swarm | All above | L |
