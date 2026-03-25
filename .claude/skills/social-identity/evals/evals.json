@@ -1,0 +1,163 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I update my display name on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does NIP-05 verification work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What does my follow list say about me on a paid network?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I link my GitHub identity to my Nostr profile?",
+      "should_trigger": true
+    },
+    {
+      "query": "Should I update my profile picture or is it not worth the cost?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the i tag format for NIP-39 external identities?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I set up a _nostr.json well-known file for NIP-05?",
+      "should_trigger": true
+    },
+    {
+      "query": "What fields can I put in a kind:0 profile metadata event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I react to a post on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "What are the norms for group chat on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I encrypt a direct message using NIP-44?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a community moderation event?",
+      "should_trigger": false
+    },
+    {
+      "query": "What is the fee calculation for multi-hop routing on ILP?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I construct a threaded reply using NIP-10 e-tag markers?",
+      "should_trigger": false
+    },
+    {
+      "query": "Should I repost this content or quote it?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "profile-creation",
+      "prompt": "I want to create my first profile on a TOON relay. I want to set my name to 'alice', add a bio, and include my website. The relay's basePricePerByte is 10 micro-USDC. How do I do this?",
+      "rubric": {
+        "correct": "Constructs a kind:0 event with JSON content containing name, about, and website fields (NIP-24). Publishes via publishEvent() from @toon-protocol/client. Calculates approximate fee based on basePricePerByte * serialized event bytes. Mentions that kind:0 is replaceable so include all desired fields in the first publish. Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses publishEvent() and constructs a kind:0 event with the right fields, but may not calculate exact fee or mention replaceable semantics.",
+        "incorrect": "Uses raw WebSocket EVENT patterns, omits payment entirely, or constructs the wrong event kind."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation or cost awareness",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has NIP-specific Social Context section",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
+        "Response constructs a kind:0 event with name, about, and website fields"
+      ]
+    },
+    {
+      "id": "follow-list-management",
+      "prompt": "I currently follow 50 people on TOON. I want to add a new follow and remove two existing follows. The relay charges basePricePerByte of 10n. How do I update my follow list and what will it cost?",
+      "rubric": {
+        "correct": "Explains that kind:3 is replaceable and the entire follow list must be republished. Steps: fetch current kind:3, parse existing p tags, add the new pubkey tag, remove the two target tags, construct new kind:3 with 49 p tags, sign, and publish via publishEvent(). Calculates approximate cost for ~49 follows (~1500 bytes = ~$0.015). Mentions that TOON relay responses use TOON-format strings when fetching the current list.",
+        "acceptable": "Correctly describes the fetch-modify-republish flow and uses publishEvent(), but may not calculate exact costs or mention TOON format for the read step.",
+        "incorrect": "Suggests sending individual follow/unfollow commands, uses raw WebSocket patterns, or does not account for the full list replacement."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for the full list republish",
+        "toon-format-check: Response mentions TOON-format strings when reading current follow list",
+        "social-context-check: Skill has NIP-specific Social Context section",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
+        "Response explains kind:3 replaceable semantics (full list replacement)"
+      ]
+    },
+    {
+      "id": "nip05-verification-flow",
+      "prompt": "I control the domain example.com and want to set up NIP-05 verification for my Nostr identity. Walk me through the complete process on TOON.",
+      "rubric": {
+        "correct": "Describes the full NIP-05 flow: create /.well-known/nostr.json with names-to-pubkey mapping, set CORS headers, fetch existing kind:0 profile (TOON-format response), merge nip05 field, publish updated profile via publishEvent() on TOON. Explains that verification is client-side (relay does not verify). Mentions the cost of updating the profile. Notes that NIP-05 proves domain control, not identity.",
+        "acceptable": "Gets the well-known file setup and profile update correct, uses publishEvent(), but may not emphasize client-side verification or the distinction between domain control and identity.",
+        "incorrect": "Suggests the relay verifies NIP-05, omits the well-known file setup, or does not publish the updated profile via publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() to update the profile",
+        "toon-fee-check: Response mentions cost of publishing the updated kind:0",
+        "toon-format-check: Response mentions TOON-format when fetching current profile before update",
+        "social-context-check: Skill has NIP-specific Social Context section",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
+        "Response describes the /.well-known/nostr.json file with correct structure",
+        "Response explains NIP-05 is client-side verification, not relay-side"
+      ]
+    },
+    {
+      "id": "external-identity-linking",
+      "prompt": "I want to link my GitHub account 'alice-dev' to my Nostr profile using NIP-39. I already have a profile on TOON. How do I add this external identity claim?",
+      "rubric": {
+        "correct": "Describes creating a public gist on GitHub containing the Nostr pubkey as proof. Explains the i tag format: [\"i\", \"github:alice-dev\", \"<gist-url>\"]. Instructs to fetch current kind:0 profile (TOON-format response), merge the new i tag with existing fields and tags, then publish via publishEvent(). Notes that the claim is self-asserted and verifiers must check the proof URL independently.",
+        "acceptable": "Gets the i tag format and publishEvent() flow correct, but may not emphasize the self-asserted nature or the need to merge with existing profile data.",
+        "incorrect": "Uses wrong tag format, suggests the relay verifies the claim, or does not use publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes cost awareness for the profile update",
+        "toon-format-check: Response mentions TOON-format when fetching current profile",
+        "social-context-check: Skill has NIP-specific Social Context section",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
+        "Response shows correct i tag format for GitHub identity claim"
+      ]
+    },
+    {
+      "id": "profile-read-toon-format",
+      "prompt": "I want to look up another user's profile on a TOON relay. I have their pubkey. How do I fetch and parse their kind:0 profile?",
+      "rubric": {
+        "correct": "Subscribes using NIP-01 filter with kinds:[0] and authors:[<pubkey>]. Explains that TOON relays return TOON-format strings in EVENT messages, not JSON objects. Instructs to use the TOON decoder (@toon-format/toon) to parse the response back to a NostrEvent object. Then parse the content field as JSON to extract profile fields. Reading is free (no ILP payment needed).",
+        "acceptable": "Correctly describes the subscription filter and mentions TOON format, but may not reference the specific decoder package or fully explain the parsing steps.",
+        "incorrect": "Assumes standard JSON responses from the relay, suggests JSON.parse directly on the EVENT message, or suggests payment is needed to read."
+      },
+      "assertions": [
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has NIP-specific Social Context section",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
+        "Response uses NIP-01 filter with kinds:[0] and authors filter",
+        "Response mentions reading is free on TOON"
+      ]
+    }
+  ]
+}

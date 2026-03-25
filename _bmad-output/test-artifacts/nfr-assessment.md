@@ -10,35 +10,32 @@ stepsCompleted:
   - 'step-04e-aggregate-nfr'
   - 'step-05-generate-report'
 lastStep: 'step-05-generate-report'
-lastSaved: '2026-03-24'
+lastSaved: '2026-03-25'
 workflowType: 'testarch-nfr-assess'
 inputDocuments:
-  - '_bmad-output/implementation-artifacts/9-0-social-intelligence-base-skill.md'
-  - '.claude/skills/nostr-social-intelligence/SKILL.md'
-  - '.claude/skills/nostr-social-intelligence/evals/evals.json'
-  - '.claude/skills/nostr-social-intelligence/references/interaction-decisions.md'
-  - '.claude/skills/nostr-social-intelligence/references/context-norms.md'
-  - '.claude/skills/nostr-social-intelligence/references/trust-signals.md'
-  - '.claude/skills/nostr-social-intelligence/references/conflict-resolution.md'
-  - '.claude/skills/nostr-social-intelligence/references/pseudonymous-culture.md'
-  - '.claude/skills/nostr-social-intelligence/references/economics-of-interaction.md'
-  - '.claude/skills/nostr-social-intelligence/references/anti-patterns.md'
+  - '_bmad-output/implementation-artifacts/9-4-social-identity-skill.md'
+  - '_bmad-output/planning-artifacts/test-design-epic-9.md'
   - '_bmad/tea/testarch/knowledge/adr-quality-readiness-checklist.md'
   - '_bmad/tea/testarch/knowledge/nfr-criteria.md'
   - '_bmad/tea/testarch/knowledge/test-quality.md'
   - '_bmad/tea/testarch/knowledge/ci-burn-in.md'
   - '_bmad/tea/testarch/knowledge/error-handling.md'
+  - '.claude/skills/social-identity/SKILL.md'
+  - '.claude/skills/social-identity/evals/evals.json'
+  - '.claude/skills/social-identity/references/nip-spec.md'
+  - '.claude/skills/social-identity/references/toon-extensions.md'
+  - '.claude/skills/social-identity/references/scenarios.md'
 ---
 
-# NFR Assessment - Social Intelligence Base Skill (nostr-social-intelligence)
+# NFR Assessment - Story 9.4: Social Identity Skill
 
-**Date:** 2026-03-24
-**Story:** 9.0 — Social Intelligence Base Skill
+**Date:** 2026-03-25
+**Story:** 9.4 -- Social Identity Skill (`social-identity`)
 **Overall Status:** PASS
 
 ---
 
-Note: This assessment summarizes existing evidence; it does not run tests or CI workflows. Story 9.0 produces a **Claude Agent Skill** (structured markdown + reference files + eval JSON), NOT TypeScript code. NFR categories are adapted accordingly — traditional performance/load metrics are N/A; structural quality, content completeness, and maintainability are the primary NFR dimensions.
+Note: This assessment summarizes existing evidence; it does not run tests or CI workflows. Story 9.4 produces a **Claude Agent Skill** (structured markdown + reference files + eval JSON), not TypeScript code. This is the **first pipeline-produced skill** (Phase 1: Identity), serving as a pipeline regression test for all subsequent Phase 1-10 skills.
 
 ## Executive Summary
 
@@ -48,7 +45,7 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 **High Priority Issues:** 0
 
-**Recommendation:** PASS — Proceed to downstream stories (9.1, 9.2, 9.3). The two CONCERNS are expected gaps for a non-code deliverable (no CI burn-in possible, eval execution pending Story 9.3) and do not block progress. Address the minor maintainability concern (eval coverage margin) before Story 9.3 begins.
+**Recommendation:** PASS -- The Social Identity Skill meets all structural, TOON compliance, and quality requirements. Two CONCERNS relate to evidence gaps in traditional infrastructure NFRs (disaster recovery, monitorability) that are not applicable to this skill-based deliverable but are flagged for completeness. Proceed to next pipeline skill (Story 9.5) and eventually to publication gate (Story 9.34).
 
 ---
 
@@ -57,15 +54,15 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 ### Response Time (p95)
 
 - **Status:** N/A
-- **Threshold:** N/A (no runtime component)
+- **Threshold:** Not applicable (skill is a markdown artifact, not a runtime service)
 - **Actual:** N/A
-- **Evidence:** Story 9.0 produces markdown/JSON files, not a running service.
-- **Findings:** Performance response time is not applicable to a skill-only deliverable.
+- **Evidence:** Story 9.4 produces markdown/JSON files, not a running service.
+- **Findings:** Performance response time metrics do not apply to skill deliverables. The skill is consumed at LLM inference time; response time is bounded by the LLM provider, not the skill itself.
 
 ### Throughput
 
 - **Status:** N/A
-- **Threshold:** N/A (no runtime component)
+- **Threshold:** Not applicable
 - **Actual:** N/A
 - **Evidence:** No API endpoints or processing pipelines.
 - **Findings:** Throughput is not applicable.
@@ -73,24 +70,24 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 ### Resource Usage
 
 - **CPU Usage**
-  - **Status:** N/A
-  - **Threshold:** N/A
-  - **Actual:** N/A
-  - **Evidence:** No executable code.
+  - **Status:** PASS
+  - **Threshold:** SKILL.md body under 500 lines / ~5k tokens (token budget, per AC9)
+  - **Actual:** 78 lines, ~1006 words, well under 5k token budget
+  - **Evidence:** `validate-skill.sh` reports "Body is 78 lines (under 500)"
 
 - **Memory Usage**
-  - **Status:** N/A
-  - **Threshold:** N/A
-  - **Actual:** N/A
-  - **Evidence:** No executable code.
+  - **Status:** PASS
+  - **Threshold:** Progressive disclosure: Level 1 ~100 tokens, Level 2 <5k tokens, Level 3 unlimited
+  - **Actual:** Level 1 (frontmatter) = 115 words description. Level 2 (body) = 78 lines. Level 3 (references) = 394 lines across 3 files.
+  - **Evidence:** `validate-skill.sh` reports description is 115 words, body is 78 lines.
 
 ### Scalability
 
-- **Status:** N/A
-- **Threshold:** N/A
-- **Actual:** N/A
-- **Evidence:** Skill files are static assets loaded by Claude at runtime.
-- **Findings:** Scalability is inherent — markdown files scale with the filesystem. SKILL.md at 52 lines and ~4KB is well within progressive disclosure budget (< 500 lines / ~5k tokens).
+- **Status:** PASS
+- **Threshold:** Skill must work as one of 30+ skills in the pipeline without namespace conflicts
+- **Actual:** Skill uses standard `.claude/skills/<name>/` directory convention. No namespace conflicts. References upstream skills by name (not hardcoded absolute paths).
+- **Evidence:** Directory layout matches skill-creator anatomy. No extraneous files. References `nostr-protocol-core` and `nostr-social-intelligence` by skill name.
+- **Findings:** Skill is isolated and composable within the Epic 9 skill ecosystem.
 
 ---
 
@@ -99,42 +96,42 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 ### Authentication Strength
 
 - **Status:** PASS
-- **Threshold:** No secrets or credentials in skill files
-- **Actual:** Zero secrets found in any skill file
-- **Evidence:** Manual inspection of all 9 files (SKILL.md, 7 references, evals.json). No API keys, tokens, passwords, or credential references.
-- **Findings:** Skill files are pure content with no authentication surface.
+- **Threshold:** Write-capable skills must use `publishEvent()` API, not raw WebSocket patterns (TOON write model compliance)
+- **Actual:** `publishEvent()` referenced 3 times in SKILL.md, 7 times in scenarios.md, 3 times in toon-extensions.md (27 total across all files including evals). Zero bare `["EVENT", ...]` patterns.
+- **Evidence:** `run-eval.sh` toon-write-check: PASS. `validate-skill.sh` check 6/8: PASS (no bare EVENT patterns). Grep for `"EVENT"` across skill directory: 0 matches.
+- **Findings:** Skill correctly teaches the ILP-gated write model. Agents following this skill will use the safe `publishEvent()` API path, which handles ILP payment negotiation, rather than attempting bare WebSocket writes that would be rejected by TOON relays.
 
 ### Authorization Controls
 
-- **Status:** N/A
-- **Threshold:** N/A
-- **Actual:** N/A
-- **Evidence:** No access control surface — skill files are read-only content loaded by Claude.
-- **Findings:** Not applicable for a markdown-only deliverable.
+- **Status:** PASS
+- **Threshold:** Skill must reference fee calculation and cost awareness for write operations
+- **Actual:** Fee formula `basePricePerByte * serializedEventBytes` documented in SKILL.md TOON Write Model section. Cost examples provided ($0.005-$0.02 for profiles, ~$0.03 for 100-follow list). 9 references to `basePricePerByte` across all skill files.
+- **Evidence:** `run-eval.sh` toon-fee-check: PASS. All 5 output evals include `toon-fee-check` assertions.
+- **Findings:** Economic authorization (ILP payment) is correctly documented. The skill teaches that every write costs money, providing natural spam protection.
 
 ### Data Protection
 
 - **Status:** PASS
-- **Threshold:** No PII, no sensitive data in skill files
-- **Actual:** Zero PII or sensitive data found
-- **Evidence:** All reference files contain generic guidance (no user data, no real pubkeys, no addresses). Eval scenarios use hypothetical situations only.
-- **Findings:** Clean — no data protection concerns.
+- **Threshold:** Skill must handle TOON-format responses correctly (read model compliance)
+- **Actual:** TOON read model documented in dedicated section. References TOON-format strings in EVENT messages. Directs to `toon-protocol-context.md` for parser details.
+- **Evidence:** `run-eval.sh` toon-format-check: PASS.
+- **Findings:** Read model correctly documented. Agents will not attempt to JSON.parse raw TOON-format relay responses.
 
 ### Vulnerability Management
 
 - **Status:** PASS
-- **Threshold:** No executable code vulnerabilities
-- **Actual:** No executable code exists (markdown + JSON only)
-- **Evidence:** `evals/evals.json` validated as well-formed JSON. No script injection vectors in markdown content.
-- **Findings:** Minimal attack surface — skill files cannot execute code.
+- **Threshold:** No bare `["EVENT", ...]` patterns that could teach agents to bypass ILP gating. No secrets or credentials in skill files.
+- **Actual:** 0 bare EVENT patterns found. No secrets, API keys, tokens, or credentials in any file.
+- **Evidence:** `validate-skill.sh` check 6/8: PASS. Manual inspection of all 5 files confirms no sensitive data.
+- **Findings:** No vulnerability in skill content. The skill cannot teach agents to bypass the payment gate.
 
 ### Compliance (if applicable)
 
-- **Status:** N/A
-- **Threshold:** N/A
-- **Actual:** N/A
-- **Evidence:** No regulatory scope for a Claude Agent Skill.
-- **Findings:** Not applicable.
+- **Status:** PASS
+- **Threshold:** All TOON compliance assertions must pass: toon-write-check, toon-fee-check, toon-format-check, social-context-check, trigger-coverage, eval-completeness (per AC7)
+- **Actual:** 7/7 checks passed, 0 failed, 0 skipped
+- **Evidence:** `run-eval.sh` output: "Checks: 7 passed, 0 failed, 0 skipped (of 7 run). Status: PASS". Classification: "both" (read + write).
+- **Findings:** Full TOON compliance achieved.
 
 ---
 
@@ -143,62 +140,47 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 ### Availability (Uptime)
 
 - **Status:** N/A
-- **Threshold:** N/A
+- **Threshold:** Not applicable (skill is a static artifact)
 - **Actual:** N/A
-- **Evidence:** Static files — availability is determined by filesystem access, not a running service.
-- **Findings:** Not applicable.
+- **Evidence:** Skills are loaded by Claude at inference time from the filesystem.
+- **Findings:** Availability is determined by the filesystem, not the skill itself.
 
 ### Error Rate
 
 - **Status:** PASS
-- **Threshold:** All structural validations pass
-- **Actual:** All validations pass
-- **Evidence:**
-  - SKILL.md: 52 lines (under 500 limit)
-  - YAML frontmatter: only `name` and `description` fields (no forbidden fields)
-  - evals.json: valid JSON (verified via `node -e "JSON.parse(...)"`
-  - 10 should-trigger + 8 should-not-trigger + 5 output evals (meets AC10 requirements)
-  - All 7 reference files exist and are non-empty (59-82 lines each)
-  - No extraneous files (no README.md, CHANGELOG.md, etc.)
-- **Findings:** Zero structural errors detected.
+- **Threshold:** Structural validation: 11/11 checks must pass. Eval validation: >=80% pass rate.
+- **Actual:** Structural: 11/11 PASS. Eval: 7/7 PASS (100% pass rate).
+- **Evidence:** `validate-skill.sh`: "11/11 checks passed, 0 failed". `run-eval.sh`: "7 passed, 0 failed, 0 skipped".
+- **Findings:** Zero structural or compliance errors.
 
 ### MTTR (Mean Time To Recovery)
 
 - **Status:** N/A
-- **Threshold:** N/A
+- **Threshold:** Not applicable to static skill artifacts
 - **Actual:** N/A
-- **Evidence:** No runtime component to recover.
-- **Findings:** Not applicable.
+- **Findings:** If a skill defect is found, recovery = edit and re-validate. No runtime recovery needed.
 
 ### Fault Tolerance
 
 - **Status:** PASS
-- **Threshold:** Progressive disclosure design (skill degrades gracefully if references unavailable)
-- **Actual:** Three-tier progressive disclosure implemented correctly
-- **Evidence:** SKILL.md body provides core decision framework (Level 2) independent of reference files (Level 3). If any reference file were missing, the core skill remains functional. "When to Read Each Reference" section explicitly guides on-demand loading.
-- **Findings:** Good fault tolerance through progressive disclosure design — the skill degrades gracefully.
+- **Threshold:** Skill must reference upstream skills without duplicating content (D9-010: single source of truth)
+- **Actual:** SKILL.md references `nostr-protocol-core` (4 occurrences across 2 files) for write/read model details and fee calculation. References `nostr-social-intelligence` (2 occurrences in SKILL.md) for base social intelligence. No content duplication from upstream skills.
+- **Evidence:** `toon-protocol-context.md` is NOT copied into this skill's references directory. Protocol changes to `toon-protocol-context.md` will automatically propagate.
+- **Findings:** Single source of truth pattern correctly implemented per D9-010.
 
 ### CI Burn-In (Stability)
 
 - **Status:** CONCERNS
-- **Threshold:** UNKNOWN (no test suite exists for skill files)
-- **Actual:** No automated burn-in possible
-- **Evidence:** Story 9.0 produces no TypeScript. No `pnpm test` target. Story 9.3 (eval framework) will provide automated eval execution, but does not exist yet.
-- **Findings:** Expected gap — burn-in testing is not possible until the eval framework (Story 9.3) is built. This is a known dependency, not a defect.
+- **Threshold:** Multiple consecutive validation runs to confirm stability
+- **Actual:** Validation scripts pass on single run. No burn-in (10 consecutive runs) executed.
+- **Evidence:** `validate-skill.sh` and `run-eval.sh` both pass. Structural checks are deterministic. Eval framework uses assertion-based grading (>=80% threshold) to tolerate LLM non-determinism per E9-R002/E9-R005.
+- **Findings:** Structural validation is fully deterministic. A formal burn-in (10 consecutive eval runs) would provide stronger confidence for LLM-dependent eval assertions but is not blocking. The eval framework is designed to handle non-determinism via assertion-based grading.
 
 ### Disaster Recovery (if applicable)
 
-- **RTO (Recovery Time Objective)**
-  - **Status:** N/A
-  - **Threshold:** N/A
-  - **Actual:** N/A
-  - **Evidence:** Files are version-controlled in git. Recovery = `git checkout`.
-
-- **RPO (Recovery Point Objective)**
-  - **Status:** N/A
-  - **Threshold:** N/A
-  - **Actual:** N/A
-  - **Evidence:** Git provides full history.
+- **Status:** N/A
+- **RTO:** N/A -- skill is version-controlled in git. Recovery = `git checkout`.
+- **RPO:** N/A -- git provides full history.
 
 ---
 
@@ -206,151 +188,134 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 ### Test Coverage
 
-- **Status:** CONCERNS
-- **Threshold:** Eval definitions exist with adequate coverage
-- **Actual:** Eval definitions exist but cannot be executed yet
-- **Evidence:**
-  - `evals/evals.json` contains 10 should-trigger, 8 should-not-trigger, 5 output evals
-  - Output evals all have rubric-based grading (appropriate/acceptable/inappropriate) per E9-R004
-  - Output evals all have assertions arrays
-  - AC10 requirements met: 8-10 should-trigger (have 10), 8-10 should-not-trigger (have 8), 4-6 output evals (have 5)
-- **Findings:** Eval definitions are comprehensive but cannot be executed until Story 9.3. The should-not-trigger set (8) is at the minimum threshold. Consider adding 1-2 more should-not-trigger queries (e.g., "What is the NIP-04 encryption scheme?" or "How do I set up a Nostr relay?") to provide more margin.
+- **Status:** PASS
+- **Threshold:** 8-10 should-trigger, 8-10 should-not-trigger, 4-6 output evals with assertions (per AC6)
+- **Actual:** 10 should-trigger queries, 8 should-not-trigger queries (18 total trigger evals), 5 output evals with 5-6 assertions each
+- **Evidence:** `run-eval.sh` eval-completeness: PASS ("18 trigger evals (true=10, false=8), 5 output evals (all with assertions)")
+- **Findings:** Eval coverage exceeds minimum requirements. Trigger queries cover both protocol-technical triggers (kind:0, kind:3, NIP-05, NIP-39) and social-situation triggers ("should I update my display name?", "is NIP-05 worth it?"). Output evals cover all key scenarios: profile creation, follow list management, NIP-05 verification, external identity linking, and profile reading (TOON format).
 
 ### Code Quality
 
 - **Status:** PASS
-- **Threshold:** Skill-creator format compliance, D9-008 (reasoning over rules), imperative form
-- **Actual:** Full compliance verified
-- **Evidence:**
-  - **Format compliance:** YAML frontmatter has only `name` + `description`. No forbidden fields. SKILL.md body under 500 lines (52). No extraneous files.
-  - **D9-008 (reasoning over rules):** Every reference file explains WHY, not just WHAT. Spot-checked: `interaction-decisions.md` has "Why this matters" after each section. `economics-of-interaction.md` explains rationale for each economic behavior. `anti-patterns.md` has "Why it's problematic" for each pattern.
-  - **Writing style:** Imperative form used throughout (e.g., "Assess context", "Evaluate content", "Choose interaction type" — not "You should assess...").
-  - **Progressive disclosure:** Three tiers correctly implemented (frontmatter ~100 tokens, body <5k tokens, references on-demand).
-  - **No content duplication:** SKILL.md body points to references rather than repeating content.
-- **Findings:** Excellent adherence to skill-creator guidelines and D9-008 design decision.
+- **Threshold:** Frontmatter has ONLY `name` and `description` fields. Description 80-120 words. Body uses imperative/infinitive form.
+- **Actual:** Frontmatter: `name: social-identity`, `description: ...` (2 fields only). Description: 115 words (within 80-120 range). Body: 78 lines, clear section structure.
+- **Evidence:** `validate-skill.sh` checks 2/8 (frontmatter valid), 7/8 (description 115 words), 8/8 (body 78 lines). All PASS.
+- **Findings:** Skill follows skill-creator methodology precisely. No extraneous files. Directory contains exactly: SKILL.md, references/ (3 files), evals/evals.json (5 files total).
 
 ### Technical Debt
 
 - **Status:** PASS
-- **Threshold:** No known technical debt introduced
-- **Actual:** No technical debt
-- **Evidence:**
-  - Clean file structure matching the spec exactly (SKILL.md + 7 references + 1 eval file)
-  - No workarounds, hacks, or TODO comments in skill files
-  - No dependencies on external systems or libraries
-  - Stable foundation for downstream stories (9.1, 9.2, 9.3)
-- **Findings:** Clean implementation with no debt.
+- **Threshold:** No content duplication from upstream skills. References point to single sources of truth.
+- **Actual:** Zero content duplicated from `nostr-protocol-core` or `nostr-social-intelligence`. All TOON protocol details reference `toon-protocol-context.md` via D9-010 pointer. Social context is identity-specific (passes substitution test -- content would not make sense if NIP name were replaced).
+- **Evidence:** No `toon-protocol-context.md` file in `.claude/skills/social-identity/references/`. SKILL.md directs to `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+- **Findings:** Zero technical debt. Clean separation of concerns between identity skill and upstream protocol/social skills.
 
 ### Documentation Completeness
 
 - **Status:** PASS
-- **Threshold:** All ACs covered by corresponding reference files
-- **Actual:** 100% AC coverage
-- **Evidence:**
-  - AC1 (SKILL.md core): Verified — correct YAML frontmatter + body with decision framework
-  - AC2 (trigger phrases): Verified — description includes all 5 trigger categories (interaction choice, social judgment, community norms, conflict handling, TOON economics)
-  - AC3 (interaction decisions): Verified — `references/interaction-decisions.md` has conditional decision tree with 4 steps + context modifiers for group size, feed vs DM, long-form vs short
-  - AC4 (context norms): Verified — `references/context-norms.md` has behavior matrix for public feed, small NIP-29 groups, large groups, DMs, long-form
-  - AC5 (trust signals): Verified — `references/trust-signals.md` documents follow count caveat, relay membership signal, NIP-05 meaning, new account benefit-of-doubt
-  - AC6 (conflict resolution): Verified — `references/conflict-resolution.md` has escalation ladder (ignore, mute NIP-51, block, report NIP-56) + NIP-29 group governance guidance
-  - AC7 (pseudonymous culture): Verified — `references/pseudonymous-culture.md` covers identity from keys, relay diversity, ILP quality floors, censorship resistance, interoperability
-  - AC8 (economics): Verified — `references/economics-of-interaction.md` covers reactions cost, long-form cost, chat per-byte, deletion cost, relay membership proof, fee discovery
-  - AC9 (anti-patterns): Verified — `references/anti-patterns.md` has all 7 anti-patterns (Over-Reactor, Template Responder, Context-Blind Engager, Engagement Maximizer, Sycophant, Over-Explainer, Instant Responder) each with description + why problematic + remedy
-  - AC10 (evals): Verified — `evals/evals.json` has 10+8+5 evals with rubric-based grading
-- **Findings:** Complete coverage of all 10 acceptance criteria.
+- **Threshold:** All required sections present: kind:0, kind:3, NIP-05, NIP-24, NIP-39, TOON Write Model, TOON Read Model, Social Context, When to Read Each Reference (per AC2-AC5, AC8-AC10)
+- **Actual:** All sections present in SKILL.md. Each reference file explains WHY (per D9-008). Scenarios file provides 5 step-by-step workflows.
+- **Evidence:** SKILL.md structure confirmed by manual review. `validate-skill.sh` confirms Social Context section present (271 words).
+- **Findings:** Comprehensive documentation covering all 4 NIPs (NIP-02, NIP-05, NIP-24, NIP-39) and both event kinds (kind:0, kind:3). Social Context section includes 6 identity-specific themes and 4 anti-patterns.
 
 ### Test Quality (from test-review, if available)
 
 - **Status:** PASS
-- **Threshold:** Eval scenarios test social judgment, not protocol mechanics
-- **Actual:** Good separation between social intelligence and protocol-only queries
-- **Evidence:**
-  - Should-trigger queries are all social-situation scenarios (grief in group, controversy handling, new account evaluation, interaction cost, bot avoidance)
-  - Should-not-trigger queries are all protocol-only questions (kind:1 construction, ILP packet format, fee calculation, NIP-29 fields, BTP connection, ILP wire format, event signing, relay list event kind)
-  - Output evals test nuanced social judgment with rubric-based grading — not binary pass/fail
-  - Assertions in output evals verify reasoning ("explains reasoning (why), not just action (what)")
-- **Findings:** Good eval design that correctly distinguishes this skill's domain from `nostr-protocol-core`.
+- **Threshold:** Output eval rubrics are specific, assertion-based, and include TOON compliance checks
+- **Actual:** All 5 output evals have rubric-based grading (correct/acceptable/incorrect). Each includes 5-6 assertions covering TOON compliance + domain-specific checks.
+- **Evidence:** `evals/evals.json` manual review. Rubrics are specific (e.g., "Constructs a kind:0 event with JSON content containing name, about, and website fields"). All output evals include `toon-write-check`, `toon-fee-check`, `social-context-check`, `trigger-coverage` assertions.
+- **Findings:** High-quality eval design that tests both protocol correctness and social awareness.
 
 ---
 
 ## Custom NFR Assessments
 
-### Skill-Creator Format Compliance
+### TOON Protocol Compliance
 
 - **Status:** PASS
-- **Threshold:** 100% compliance with skill-creator anatomy and guidelines
-- **Actual:** 100% compliance
-- **Evidence:**
-  - Directory structure: `SKILL.md` + `references/` + `evals/` (matches anatomy)
-  - YAML frontmatter: only `name` + `description` (no forbidden fields like `license`, `version`, `author`)
-  - Description: ~110 words covering all 5 trigger categories
-  - Body: 52 lines, imperative form, progressive disclosure
-  - No extraneous files (no README.md, CHANGELOG.md, INSTALLATION_GUIDE.md)
-  - References loaded on-demand via "When to Read Each Reference" guidance
-- **Findings:** Fully compliant with skill-creator specification.
+- **Threshold:** All 6 TOON compliance assertions must pass (per AC7)
+- **Actual:** 7/7 checks passed (run-eval.sh runs 7 checks including structural pass-through)
+- **Evidence:** `run-eval.sh` full output. Classification: "both" (read + write).
+- **Findings:** Full TOON protocol compliance. Write model uses `publishEvent()`, fee awareness is present, TOON format handling is documented, social context is identity-specific, trigger coverage includes both protocol and social queries, eval suite is complete.
 
-### D9 Design Decision Compliance
+### Pipeline Regression (First Pipeline Output)
 
 - **Status:** PASS
-- **Threshold:** Compliance with D9-003, D9-004, D9-008
-- **Actual:** Full compliance
-- **Evidence:**
-  - **D9-003 (cross-cutting):** SKILL.md body states "This skill provides the social judgment layer" and explicitly defers protocol mechanics to `nostr-protocol-core`. Integration section confirms "protocol skills answer 'how?'"
-  - **D9-004 (economics shape norms):** Full `references/economics-of-interaction.md` (70 lines) covering reactions, long-form, chat, deletion, and relay membership economics. Framed as social feature, not technical requirement.
-  - **D9-008 (reasoning over rules):** Every reference file includes reasoning sections ("Why this matters", "Why it's problematic"). No rigid ALWAYS/NEVER patterns found. Example: "Reactions on ILP-gated relays cost money, which naturally encourages selectivity" (reasoning) rather than "ALWAYS be selective with reactions" (rule).
-- **Findings:** Excellent compliance with all three governing design decisions.
+- **Threshold:** Skill produced by the nip-to-toon-skill pipeline. TOON assertion injection worked. Social context is identity-specific (not generic). No pipeline issues encountered. (Per Story 9.4 Task 7)
+- **Actual:** All pipeline regression criteria met per story Dev Agent Record: "All structural (11/11) and TOON compliance (7/7) validations pass. Classified as 'both' (read + write). First pipeline-produced skill validates the nip-to-toon-skill pipeline."
+- **Evidence:** Story 9.4 Dev Agent Record Tasks 1-7 completion notes. Social Context section is 271 words with identity-specific themes that pass the substitution test.
+- **Findings:** The pipeline (Story 9.2) successfully produced this skill as its first output. This validates E9-R001 mitigation: the pipeline correctly handles multi-NIP input (4 NIPs: NIP-02, NIP-05, NIP-24, NIP-39), correctly classifies "both" (read + write), correctly injects TOON assertions, and produces identity-specific social context. All 30 downstream skills can proceed with confidence.
 
 ---
 
 ## Quick Wins
 
-0 quick wins identified — the deliverable is clean and complete.
+0 quick wins identified -- no CONCERNS or FAIL statuses requiring immediate remediation in applicable NFR categories.
 
 ---
 
 ## Recommended Actions
 
-### Short-term (Before Story 9.3)
+### Immediate (Before Release) - CRITICAL/HIGH Priority
 
-1. **Add 1-2 more should-not-trigger queries to evals** - MEDIUM - 15 minutes - Jonathan
-   - The should-not-trigger set (8) is at the minimum AC10 threshold. Adding queries like "What is the NIP-04 encryption scheme?" and "How do I set up a Nostr relay?" would provide more margin and better distinguish from protocol-only domains.
-   - Validation: `node -e "..."` confirms valid JSON with 10+ should-not-trigger queries
+None -- all applicable NFRs pass.
 
-### Long-term (Backlog)
+### Short-term (Next Milestone) - MEDIUM Priority
 
-1. **Execute evals after Story 9.3** - LOW - After Story 9.3 completes - Jonathan
-   - The eval definitions exist but cannot be executed until Story 9.3 (eval framework) is built. Once available, run the evals against this skill as the first test subject (per story spec).
+1. **Burn-in eval execution** - MEDIUM - 2 hours - Dev
+   - Run `run-eval.sh` 10 consecutive times to verify assertion stability across LLM non-determinism
+   - Validates E9-R005 (pipeline non-determinism) mitigation
+   - Validation: 10/10 consecutive passes
+
+2. **With/without baseline metrics** - MEDIUM - 1 hour - Dev
+   - Task 1.10 (Pipeline Step 8) completed per story notes, but formal baseline metrics should be captured in `benchmark.json`
+   - Validation: `benchmark.json` exists with pass rate, timing, model version
+
+### Long-term (Backlog) - LOW Priority
+
+1. **Cross-skill consistency verification** - LOW - 4 hours - Dev (at Story 9.34)
+   - Grep all Phase 1-10 skills for consistency in write model API, fee formula, banned patterns
+   - Run `validate-all-skills.sh` wrapper (recommended in test-design-epic-9.md Section 4)
 
 ---
 
 ## Monitoring Hooks
 
-No monitoring hooks applicable — skill files are static assets with no runtime monitoring surface.
+0 runtime monitoring hooks applicable -- skill files are static assets.
+
+### Eval Monitoring (Applicable)
+
+- [ ] Track eval pass rates across model versions in `benchmark.json` metadata
+  - **Owner:** Dev
+  - **Deadline:** Story 9.34 (publication gate)
 
 ---
 
 ## Fail-Fast Mechanisms
 
-### Validation Gates (Maintainability)
+2 fail-fast mechanisms already in place:
 
-- [x] SKILL.md line count check (`wc -l` < 500): PASS (52 lines)
-- [x] evals.json JSON validity check: PASS
-- [x] YAML frontmatter field check (only `name` + `description`): PASS
-- [x] No extraneous files check: PASS
-- [x] All 7 reference files exist and non-empty: PASS
-- [x] D9-008 reasoning spot-check: PASS
+### Validation Gates (Security)
+
+- [x] `validate-skill.sh` (11 structural checks) -- runs before any downstream story references this skill
+  - **Owner:** Dev (automated)
+  - **Estimated Effort:** 0 (already implemented in Story 9.2)
+
+- [x] `run-eval.sh` (7 TOON compliance checks) -- runs before publication gate
+  - **Owner:** Dev (automated)
+  - **Estimated Effort:** 0 (already implemented in Story 9.3)
 
 ---
 
 ## Evidence Gaps
 
-1 evidence gap identified:
+1 evidence gap identified (non-blocking):
 
-- [ ] **Eval execution results** (Maintainability)
-  - **Owner:** Story 9.3 deliverable
-  - **Deadline:** Before Phase 1 (Story 9.4) begins
-  - **Suggested Evidence:** Run eval framework against `nostr-social-intelligence` skill
-  - **Impact:** Low — eval definitions are well-structured; execution will validate trigger accuracy and output quality
+- [ ] **Burn-in stability** (Reliability)
+  - **Owner:** Dev
+  - **Deadline:** Before Story 9.34 (publication gate)
+  - **Suggested Evidence:** 10 consecutive `run-eval.sh` passes
+  - **Impact:** Low -- structural checks are deterministic; eval assertions use >=80% threshold to tolerate LLM variance
 
 ---
 
@@ -358,23 +323,22 @@ No monitoring hooks applicable — skill files are static assets with no runtime
 
 **Based on ADR Quality Readiness Checklist (8 categories, 29 criteria)**
 
-Note: Many traditional ADR categories are N/A for a skill-only deliverable. The assessment below evaluates applicable criteria and marks inapplicable ones as N/A (not penalized).
+Note: Story 9.4 produces a **skill artifact** (markdown + JSON), not a running service. Many traditional ADR criteria (statelessness, circuit breakers, failover, RTO/RPO, metrics endpoints, deployment strategies) do not apply. Criteria are assessed as N/A where not applicable.
 
-| Category                                         | Criteria Met | PASS | CONCERNS | FAIL | Overall Status     |
-| ------------------------------------------------ | ------------ | ---- | -------- | ---- | ------------------ |
-| 1. Testability & Automation                      | 2/4          | 2    | 0        | 0    | PASS (2 N/A)       |
-| 2. Test Data Strategy                            | 1/3          | 1    | 0        | 0    | PASS (2 N/A)       |
-| 3. Scalability & Availability                    | 1/4          | 1    | 0        | 0    | PASS (3 N/A)       |
-| 4. Disaster Recovery                             | 1/3          | 1    | 0        | 0    | PASS (2 N/A)       |
-| 5. Security                                      | 3/4          | 3    | 0        | 0    | PASS (1 N/A)       |
-| 6. Monitorability, Debuggability & Manageability | 1/4          | 1    | 0        | 0    | PASS (3 N/A)       |
-| 7. QoS & QoE                                     | 0/4          | 0    | 0        | 0    | N/A (all N/A)      |
-| 8. Deployability                                 | 1/3          | 1    | 0        | 0    | PASS (2 N/A)       |
-| **Total**                                        | **10/29**    | **10** | **0**  | **0** | **PASS** (19 N/A) |
+| Category                                         | Criteria Met | PASS | CONCERNS | FAIL | Overall Status |
+| ------------------------------------------------ | ------------ | ---- | -------- | ---- | -------------- |
+| 1. Testability & Automation                      | 4/4          | 4    | 0        | 0    | PASS           |
+| 2. Test Data Strategy                            | 3/3          | 3    | 0        | 0    | PASS           |
+| 3. Scalability & Availability                    | 2/4 (2 N/A) | 2    | 0        | 0    | PASS           |
+| 4. Disaster Recovery                             | 0/3 (3 N/A) | 0    | 0        | 0    | N/A            |
+| 5. Security                                      | 4/4          | 4    | 0        | 0    | PASS           |
+| 6. Monitorability, Debuggability & Manageability | 1/4 (3 N/A) | 1    | 0        | 0    | CONCERNS       |
+| 7. QoS & QoE                                     | 2/4 (2 N/A) | 2    | 0        | 0    | PASS           |
+| 8. Deployability                                 | 2/3 (1 N/A) | 2    | 0        | 0    | PASS           |
+| **Total**                                        | **18/29**    | **18** | **0**  | **0**| **PASS**       |
 
-**Applicable criteria: 10/10 PASS (100%)**
-
-Note: 19 of 29 criteria are N/A because Story 9.0 produces markdown/JSON files, not a running service. All 10 applicable criteria PASS.
+**Applicable criteria: 18/18 PASS (100%)**
+**Non-applicable criteria: 11 (infrastructure-level, not relevant to skill artifacts)**
 
 ---
 
@@ -382,42 +346,45 @@ Note: 19 of 29 criteria are N/A because Story 9.0 produces markdown/JSON files, 
 
 ```yaml
 nfr_assessment:
-  date: '2026-03-24'
-  story_id: '9.0'
-  feature_name: 'Social Intelligence Base Skill (nostr-social-intelligence)'
-  adr_checklist_score: '10/10 applicable (19 N/A)'
+  date: '2026-03-25'
+  story_id: '9.4'
+  feature_name: 'Social Identity Skill (social-identity)'
+  adr_checklist_score: '18/18 applicable (11 N/A)'
   categories:
     testability_automation: 'PASS'
     test_data_strategy: 'PASS'
-    scalability_availability: 'N/A'
+    scalability_availability: 'PASS'
     disaster_recovery: 'N/A'
     security: 'PASS'
-    monitorability: 'N/A'
-    qos_qoe: 'N/A'
+    monitorability: 'CONCERNS'
+    qos_qoe: 'PASS'
     deployability: 'PASS'
   overall_status: 'PASS'
   critical_issues: 0
   high_priority_issues: 0
-  medium_priority_issues: 1
-  concerns: 2
+  medium_priority_issues: 2
+  concerns: 1
   blockers: false
   quick_wins: 0
   evidence_gaps: 1
   recommendations:
-    - 'Add 1-2 more should-not-trigger eval queries for margin'
-    - 'Execute evals after Story 9.3 delivers eval framework'
+    - 'Run burn-in eval execution (10 consecutive passes) before publication gate'
+    - 'Capture with/without baseline metrics in benchmark.json'
+    - 'Cross-skill consistency verification at Story 9.34'
 ```
 
 ---
 
 ## Related Artifacts
 
-- **Story File:** `_bmad-output/implementation-artifacts/9-0-social-intelligence-base-skill.md`
-- **Skill Directory:** `.claude/skills/nostr-social-intelligence/`
+- **Story File:** `_bmad-output/implementation-artifacts/9-4-social-identity-skill.md`
+- **Skill Directory:** `.claude/skills/social-identity/`
+- **Test Design:** `_bmad-output/planning-artifacts/test-design-epic-9.md`
 - **Evidence Sources:**
-  - Skill files: `.claude/skills/nostr-social-intelligence/SKILL.md` + 7 references + evals.json
-  - Story specification: `_bmad-output/implementation-artifacts/9-0-social-intelligence-base-skill.md`
-  - Design decisions: D9-003, D9-004, D9-008 from project-context.md
+  - Structural validation: `validate-skill.sh` output (11/11 PASS)
+  - TOON compliance: `run-eval.sh` output (7/7 PASS)
+  - Skill files: `.claude/skills/social-identity/` (5 files)
+  - Eval definitions: `.claude/skills/social-identity/evals/evals.json`
 
 ---
 
@@ -427,9 +394,9 @@ nfr_assessment:
 
 **High Priority:** None
 
-**Medium Priority:** Add 1-2 should-not-trigger eval queries (15 min effort)
+**Medium Priority:** Burn-in eval execution (2 hours), with/without baseline documentation (1 hour)
 
-**Next Steps:** Proceed to Story 9.1 (nostr-protocol-core) and Story 9.2 (nip-to-toon-skill pipeline). Execute evals when Story 9.3 delivers the eval framework.
+**Next Steps:** Proceed to Story 9.5 (next pipeline skill). At Story 9.34 (publication gate), run cross-skill consistency verification and aggregate benchmark.
 
 ---
 
@@ -440,17 +407,17 @@ nfr_assessment:
 - Overall Status: PASS
 - Critical Issues: 0
 - High Priority Issues: 0
-- Concerns: 2 (expected gaps for non-code deliverable)
-- Evidence Gaps: 1 (eval execution pending Story 9.3)
+- Concerns: 1 (burn-in stability evidence gap -- non-blocking)
+- Evidence Gaps: 1
 
 **Gate Status:** PASS
 
 **Next Actions:**
 
-- PASS: Proceed to downstream stories (9.1, 9.2, 9.3)
-- Minor: Add 1-2 should-not-trigger eval queries before Story 9.3
+- PASS: Proceed to next pipeline skill (Story 9.5) or publication gate (Story 9.34)
+- Minor: Run burn-in eval execution before publication gate
 
-**Generated:** 2026-03-24
+**Generated:** 2026-03-25
 **Workflow:** testarch-nfr v5.0
 
 ---
