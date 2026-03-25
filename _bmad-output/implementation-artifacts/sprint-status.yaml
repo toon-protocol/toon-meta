@@ -152,7 +152,7 @@ development_status:
   # Phase 11: Publication (9.34)
   epic-9: in-progress
   9-0-social-intelligence-base-skill: done
-  9-1-toon-protocol-core-skill: backlog
+  9-1-toon-protocol-core-skill: done
   9-2-nip-to-toon-skill-pipeline: backlog
   9-3-skill-eval-framework: backlog
   9-4-social-identity-skill: backlog
