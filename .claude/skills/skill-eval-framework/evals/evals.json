@@ -1,0 +1,164 @@
+{
+  "trigger_evals": [
+    {
+      "query": "Evaluate this TOON skill for compliance and quality",
+      "should_trigger": true
+    },
+    {
+      "query": "Run evals on the nostr-protocol-core skill",
+      "should_trigger": true
+    },
+    {
+      "query": "Check if this skill passes TOON compliance",
+      "should_trigger": true
+    },
+    {
+      "query": "Validate this skill's quality before publication",
+      "should_trigger": true
+    },
+    {
+      "query": "Benchmark this skill's performance and pass rate",
+      "should_trigger": true
+    },
+    {
+      "query": "Run batch validation on all skills in the catalog",
+      "should_trigger": true
+    },
+    {
+      "query": "Grade this skill's output evals and produce a grading report",
+      "should_trigger": true
+    },
+    {
+      "query": "Is this skill ready for publication? Run the readiness checks.",
+      "should_trigger": true
+    },
+    {
+      "query": "Compare with and without skill to measure effectiveness",
+      "should_trigger": true
+    },
+    {
+      "query": "Run the aggregate compliance report across all TOON skills",
+      "should_trigger": true
+    },
+    {
+      "query": "Create a new TOON skill from NIP-25",
+      "should_trigger": false
+    },
+    {
+      "query": "Convert NIP-23 to a TOON skill using the pipeline",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish an event on a TOON relay?",
+      "should_trigger": false
+    },
+    {
+      "query": "What are the social norms for reacting to posts on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I calculate fees for publishing on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "Should I react to this controversial post?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I construct a threaded reply using NIP-10?",
+      "should_trigger": false
+    },
+    {
+      "query": "What is the TOON format for relay responses?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "validate-known-good-skill",
+      "prompt": "I have the nostr-protocol-core skill at .claude/skills/nostr-protocol-core/. Run TOON compliance validation on it and tell me the results for each of the 6 assertions.",
+      "expected_output": "All applicable TOON compliance assertions pass for nostr-protocol-core. It is classified as both (write + read capable). toon-write-check passes because it references publishEvent(). toon-fee-check passes because it mentions basePricePerByte and fee calculation. toon-format-check passes because it documents TOON-format strings. social-context-check passes because it has a specific Social Context section. trigger-coverage passes because the description includes both protocol-technical and social-situation triggers. eval-completeness passes because it has sufficient trigger and output evals.",
+      "rubric": {
+        "correct": "Correctly classifies nostr-protocol-core as write+read capable (both). Reports all 6 assertions with pass status. Provides evidence for each assertion referencing specific content from the skill (publishEvent, basePricePerByte, TOON-format, Social Context section). Does not report any false failures.",
+        "acceptable": "Correctly identifies the skill as passing compliance with mostly correct assertion results. May miss one assertion or provide incomplete evidence. Classification is correct.",
+        "incorrect": "Reports false failures on known-good skill. Misclassifies the skill. Does not run all 6 assertions. Reports passing without checking."
+      },
+      "assertions": [
+        "Response classifies nostr-protocol-core as write-capable or both",
+        "Response reports toon-write-check as passing",
+        "Response reports toon-fee-check as passing",
+        "Response reports social-context-check as passing",
+        "Response provides evidence referencing publishEvent",
+        "Response provides evidence referencing basePricePerByte or fee"
+      ]
+    },
+    {
+      "id": "catch-defective-skill",
+      "prompt": "I have a skill that teaches agents to send events using raw WebSocket relay.send() calls with no mention of publishEvent() or fees. It has no Social Context section. Its description only mentions 'NIP-25 reactions' with no social triggers. Its evals.json has only 2 trigger evals and 1 output eval. What TOON compliance assertions would this skill fail?",
+      "expected_output": "This skill would fail multiple TOON compliance assertions. toon-write-check fails because it uses raw WebSocket patterns instead of publishEvent(). toon-fee-check fails because there is no fee awareness. social-context-check fails because the Social Context section is missing. trigger-coverage fails because the description lacks social-situation triggers. eval-completeness fails because it has fewer than 6 trigger evals and fewer than 4 output evals.",
+      "rubric": {
+        "correct": "Identifies all 5 failing assertions (toon-write-check, toon-fee-check, social-context-check, trigger-coverage, eval-completeness) with specific reasons for each failure. Explains why each failure matters for agent behavior on TOON.",
+        "acceptable": "Identifies at least 4 of 5 failing assertions with reasons. May miss one assertion or provide less detailed reasoning.",
+        "incorrect": "Identifies fewer than 3 failing assertions. Reports the skill as passing. Does not explain why failures matter."
+      },
+      "assertions": [
+        "Response identifies toon-write-check as failing",
+        "Response identifies toon-fee-check as failing",
+        "Response identifies social-context-check as failing",
+        "Response identifies trigger-coverage as failing",
+        "Response identifies eval-completeness as failing",
+        "Response explains why raw WebSocket usage is problematic on TOON"
+      ]
+    },
+    {
+      "id": "toon-compliance-write-skill",
+      "prompt": "I have a write-capable TOON skill for NIP-25 reactions. What TOON compliance assertions apply to it, and what does each check for?",
+      "expected_output": "For a write-capable skill, 5 of 6 assertions apply (toon-format-check is skipped unless it also reads). toon-write-check verifies the skill uses publishEvent() API. toon-fee-check verifies fee awareness. social-context-check verifies the Social Context section exists and is specific. trigger-coverage verifies both protocol and social triggers in the description. eval-completeness verifies sufficient eval coverage.",
+      "rubric": {
+        "correct": "Correctly identifies which assertions apply to write-capable skills. Explains what each assertion checks and why. Notes that toon-format-check only applies if the skill also reads. Mentions the 80% pass rate threshold for overall evaluation.",
+        "acceptable": "Correctly lists most applicable assertions with reasonable explanations. May not fully explain the classification-based filtering.",
+        "incorrect": "Lists wrong assertions for write-capable classification. Does not explain what assertions check. Applies read-only assertions to a write-only skill."
+      },
+      "assertions": [
+        "Response identifies toon-write-check as applicable to write-capable skills",
+        "Response identifies toon-fee-check as applicable to write-capable skills",
+        "Response identifies social-context-check as universal",
+        "Response explains publishEvent requirement for write skills",
+        "Response mentions fee awareness or basePricePerByte for write skills"
+      ]
+    },
+    {
+      "id": "batch-report-interpretation",
+      "prompt": "I ran the batch validator and got this result: 3 skills discovered, 2 passed, 1 failed. The failed skill (nostr-nip25-reactions) failed toon-fee-check and eval-completeness. What should I do to fix it?",
+      "expected_output": "Two fixes needed: (1) Add fee awareness to the NIP-25 skill -- mention basePricePerByte, include approximate cost for reaction events, or reference the fee calculation in nostr-protocol-core. (2) Add more evals -- the skill needs at least 6 trigger evals with a mix of should-trigger and should-not-trigger, plus at least 4 output evals with assertions. After fixing, re-run run-eval.sh on the skill to verify, then re-run run-batch.sh to confirm the aggregate report shows all passing.",
+      "rubric": {
+        "correct": "Provides specific, actionable fixes for both failures. For fee check: mentions basePricePerByte or fee documentation. For eval completeness: states the minimum thresholds (6 trigger, 4 output). Recommends re-validation after fixes.",
+        "acceptable": "Provides reasonable fixes for both failures but may lack specificity on thresholds or re-validation steps.",
+        "incorrect": "Provides vague advice like 'fix the issues'. Does not address both failures specifically. Does not mention re-validation."
+      },
+      "assertions": [
+        "Response addresses toon-fee-check failure with specific fix",
+        "Response addresses eval-completeness failure with specific fix",
+        "Response mentions minimum eval thresholds (6 trigger, 4 output)",
+        "Response recommends re-running validation after fixes"
+      ]
+    },
+    {
+      "id": "malformed-input-handling",
+      "prompt": "I tried to run the eval framework on a directory that has a SKILL.md but no evals/ directory, no references/ directory, and the SKILL.md has no YAML frontmatter. What should happen?",
+      "expected_output": "The framework should fail gracefully at the structural validation step. validate-skill.sh would report failures: missing YAML frontmatter, missing references/ directory, missing evals/evals.json. The TOON compliance checks would not run because structural validation is a prerequisite. The overall result is FAIL with specific error messages for each structural issue. The developer should fix the structural issues first, then re-run.",
+      "rubric": {
+        "correct": "Explains that structural validation runs first and catches all three issues. Lists specific failures (frontmatter, references, evals). Explains that TOON compliance is skipped because structural validation failed. Recommends fixing structural issues before attempting compliance checks.",
+        "acceptable": "Identifies that the skill would fail validation with most structural issues listed. May not fully explain the prerequisite relationship between structural and compliance checks.",
+        "incorrect": "Suggests running TOON compliance anyway. Does not identify the structural failures. Crashes or produces unhelpful output."
+      },
+      "assertions": [
+        "Response identifies missing frontmatter as a failure",
+        "Response identifies missing references directory as a failure",
+        "Response identifies missing evals directory as a failure",
+        "Response explains structural validation runs before compliance checks",
+        "Response recommends fixing structural issues first"
+      ]
+    }
+  ]
+}
