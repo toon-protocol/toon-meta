@@ -1,6 +1,6 @@
 # Story 9.2: NIP-to-TOON Skill Pipeline (`nip-to-toon-skill`)
 
-Status: complete
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
