@@ -1,0 +1,173 @@
+{
+  "trigger_evals": [
+    {
+      "query": "Someone shared bad news in a small group, should I react or comment?",
+      "should_trigger": true
+    },
+    {
+      "query": "What's the appropriate way to engage with a controversial post on my feed?",
+      "should_trigger": true
+    },
+    {
+      "query": "Should I repost this or just react to it?",
+      "should_trigger": true
+    },
+    {
+      "query": "How should I handle a disagreement in a NIP-29 group chat?",
+      "should_trigger": true
+    },
+    {
+      "query": "Is it appropriate to react with a thumbs-up to someone's grief post?",
+      "should_trigger": true
+    },
+    {
+      "query": "What are the community norms for engaging in large Nostr groups?",
+      "should_trigger": true
+    },
+    {
+      "query": "Does paying to post on TOON relays change how I should interact socially?",
+      "should_trigger": true
+    },
+    {
+      "query": "When should I mute or block someone on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I avoid looking like a bot when engaging on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What's the right response when someone posts something I disagree with?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I construct a kind:1 event in Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "What is the ILP packet format for TOON payments?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I calculate the fee for publishing an event?",
+      "should_trigger": false
+    },
+    {
+      "query": "What fields are required in a NIP-29 group creation event?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I set up a BTP connection to a TOON relay?",
+      "should_trigger": false
+    },
+    {
+      "query": "What is the wire format for ILP prepare packets?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I sign a Nostr event with my private key?",
+      "should_trigger": false
+    },
+    {
+      "query": "What NIP defines the relay list metadata event kind?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "social-scenario-grief",
+      "prompt": "A friend posted about losing a family member in a small NIP-29 group with 12 members. Several people have already reacted with heart emojis. Should I react, comment, or do something else?",
+      "rubric": {
+        "appropriate": "Recommends a thoughtful comment expressing genuine sympathy rather than another generic reaction. Reasons about group size (small, intimate), emotional weight (grief), and the diminishing value of stacked identical reactions. May suggest a reaction is acceptable if paired with genuine words.",
+        "acceptable": "Recommends either a comment or a heartfelt reaction with some reasoning about context. Acknowledges the emotional weight but may not fully consider group dynamics or the stack of existing reactions.",
+        "inappropriate": "Recommends a generic reaction without considering context. Suggests a thumbs-up or celebratory emoji. Provides no reasoning about why one interaction type fits better than another."
+      },
+      "assertions": [
+        "Response considers group size context (small group)",
+        "Response considers emotional weight (grief)",
+        "Response explains reasoning (why), not just action (what)",
+        "Response does not recommend context-blind engagement",
+        "social-context-check: Response includes social context reasoning appropriate to the scenario"
+      ]
+    },
+    {
+      "id": "social-scenario-controversy",
+      "prompt": "Someone posted a provocative opinion about a technical topic in a large Nostr group (500+ members). The replies are getting heated. You have a different perspective. What should you do?",
+      "rubric": {
+        "appropriate": "Advises careful consideration before engaging. Suggests that if commenting, address the technical substance specifically rather than the controversy itself. Considers group size (large, high-visibility), recommends measured and specific disagreement if engaging at all, and acknowledges that disengaging is also valid.",
+        "acceptable": "Recommends engaging with the substance or staying out of it, with some reasoning about the heated context. May not fully address the large-group dynamics or the risk of amplifying controversy.",
+        "inappropriate": "Recommends jumping into the heated debate without considering context. Suggests reposting controversial content for engagement. Ignores the emotional temperature of the conversation."
+      },
+      "assertions": [
+        "Response considers large group dynamics",
+        "Response advises measured or considered engagement",
+        "Response acknowledges silence/disengagement as valid",
+        "Response distinguishes substance from controversy",
+        "social-context-check: Response includes social context reasoning appropriate to the scenario"
+      ]
+    },
+    {
+      "id": "social-scenario-new-account",
+      "prompt": "A brand new account (created today) posted an insightful technical analysis in a group you're part of. No NIP-05, no followers. How should you evaluate and engage with this content?",
+      "rubric": {
+        "appropriate": "Evaluates the content on its merits rather than account age or follower count. Explicitly notes that new accounts deserve benefit of the doubt in pseudonymous networks. Engages with the substance of the analysis. May note that if the content is genuinely good, the author's newness is irrelevant.",
+        "acceptable": "Engages with the content positively but notes the lack of verification as a caveat. Doesn't dismiss the account but also doesn't fully embrace the pseudonymous-first approach.",
+        "inappropriate": "Dismisses or discounts the content because the account is new. Treats lack of NIP-05 or followers as disqualifying. Recommends ignoring or treating with suspicion by default."
+      },
+      "assertions": [
+        "Response evaluates content quality over account age",
+        "Response does not dismiss based on lack of followers or NIP-05",
+        "Response acknowledges pseudonymous culture norms",
+        "social-context-check: Response includes social context reasoning appropriate to the scenario"
+      ]
+    },
+    {
+      "id": "social-scenario-economics",
+      "prompt": "You're an agent on a TOON relay and you see 50 posts in your feed today. You want to be a good community member. How do you decide which ones to engage with, considering that every interaction costs money?",
+      "rubric": {
+        "appropriate": "Applies the interaction decision tree with economic awareness. Acknowledges that the cost of engagement on ILP-gated relays encourages selectivity. Recommends engaging with content that genuinely resonates rather than attempting to engage with everything. Distinguishes between different engagement types (react vs comment vs repost) and their relative costs. Does not recommend minimizing all engagement to save money.",
+        "acceptable": "Acknowledges the cost factor and recommends some selectivity, but may not fully articulate the decision framework or may lean too heavily toward either maximizing engagement or minimizing cost.",
+        "inappropriate": "Recommends engaging with all 50 posts regardless of cost. Alternatively, recommends engaging with none to minimize costs. Treats the economic aspect as purely a budget problem without connecting it to social quality."
+      },
+      "assertions": [
+        "Response connects economic cost to interaction quality",
+        "Response recommends selectivity without being stingy",
+        "Response distinguishes engagement types by cost and value",
+        "Response frames economics as a quality mechanism, not just a budget",
+        "social-context-check: Response includes social context reasoning appropriate to the scenario"
+      ]
+    },
+    {
+      "id": "social-scenario-over-reactor",
+      "prompt": "Review this agent behavior pattern: the agent reacted to 47 out of 50 posts it saw today, all with heart emojis, responded to 30 posts with 'Great insight!', and reposted 15 posts. Is this good social behavior? What should change?",
+      "rubric": {
+        "appropriate": "Identifies multiple anti-patterns: over-reacting (47/50), template responding ('Great insight!'), engagement maximizing (high volume across all types). Explains why each pattern is problematic — reactions lose meaning, template comments add noise, volume doesn't equal value. Recommends specific changes: be selective with reactions, make comments specific to content, repost only genuinely exceptional content.",
+        "acceptable": "Identifies at least two anti-patterns and recommends changes. May not fully articulate why the patterns are problematic or may miss one of the three patterns.",
+        "inappropriate": "Praises the behavior as active community participation. Fails to identify any anti-patterns. Recommends continuing or increasing the engagement volume."
+      },
+      "assertions": [
+        "Response identifies over-reacting pattern",
+        "Response identifies template responding pattern",
+        "Response explains why these patterns are problematic",
+        "Response recommends specific improvements",
+        "social-context-check: Response includes social context reasoning appropriate to the scenario"
+      ]
+    },
+    {
+      "id": "social-scenario-dm-engagement",
+      "prompt": "Someone sent you a direct message asking for your opinion on a technical project they've been working on for months. You've read their description but you're not sure what to say yet. How should you handle this?",
+      "rubric": {
+        "appropriate": "Recognizes that DMs have different social expectations than public feeds — silence in a DM is a negative signal. Recommends acknowledging receipt (a reaction or brief message like 'Looking at this now') before taking time to formulate a thoughtful response. Addresses the personal investment the sender has made and the directness expected in DM context.",
+        "acceptable": "Recommends responding in some way, acknowledging that the DM context requires engagement. May not fully articulate why DMs differ from public feeds or may not suggest the acknowledge-then-respond pattern.",
+        "inappropriate": "Suggests ignoring the message until ready to respond fully. Treats DMs the same as public feed posts where silence is acceptable. Sends a template response without engaging with the specific project."
+      },
+      "assertions": [
+        "Response recognizes DM context differs from public feeds",
+        "Response recommends acknowledging receipt before full response",
+        "Response considers the sender's personal investment",
+        "Response explains reasoning (why), not just action (what)",
+        "social-context-check: Response includes social context reasoning appropriate to the scenario"
+      ]
+    }
+  ]
+}
