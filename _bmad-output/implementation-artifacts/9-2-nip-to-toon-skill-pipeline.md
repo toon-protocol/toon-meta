@@ -1,6 +1,6 @@
 # Story 9.2: NIP-to-TOON Skill Pipeline (`nip-to-toon-skill`)
 
-Status: ready-for-dev
+Status: complete
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -87,57 +87,57 @@ So that future NIPs can be converted to TOON skills without re-scoping the epic.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create skill directory structure (AC: #1)
-  - [ ] 1.1 Create `.claude/skills/nip-to-toon-skill/` directory
-  - [ ] 1.2 Create `SKILL.md` with YAML frontmatter (`name`, `description`)
-  - [ ] 1.3 Create `references/` subdirectory
-  - [ ] 1.4 Create `evals/` subdirectory
-  - [ ] 1.5 Create `scripts/` subdirectory
-  - [ ] 1.6 Verify directory layout matches skill-creator anatomy
+- [x] Task 1: Create skill directory structure (AC: #1)
+  - [x] 1.1 Create `.claude/skills/nip-to-toon-skill/` directory
+  - [x] 1.2 Create `SKILL.md` with YAML frontmatter (`name`, `description`)
+  - [x] 1.3 Create `references/` subdirectory
+  - [x] 1.4 Create `evals/` subdirectory
+  - [x] 1.5 Create `scripts/` subdirectory
+  - [x] 1.6 Verify directory layout matches skill-creator anatomy
 
-- [ ] Task 2: Author SKILL.md frontmatter and body (AC: #1, #2 through #12)
-  - [ ] 2.1 Write `name: nip-to-toon-skill`
-  - [ ] 2.2 Write `description` with explicit trigger phrases for NIP-to-TOON conversion scenarios. Target ~80-120 words covering: creating a TOON skill from a NIP, converting a NIP to a skill, building a Nostr protocol skill for TOON, and skill pipeline execution.
-  - [ ] 2.3 Write SKILL.md body: the 13-step pipeline procedure. Each step must be actionable and concise. Steps: (1) NIP Analysis, (2) TOON Context Injection, (3) Social Context Layer, (4) Skill Authoring, (5) Eval Generation, (6) TOON Assertions, (7) Description Optimization, (8) With/Without Testing, (9) Grading, (10) Benchmarking, (11) TOON Compliance Validation, (12) Eval Viewer, (13) Iterate.
-  - [ ] 2.4 Keep body under 500 lines / ~5k tokens (pipeline details go in references)
-  - [ ] 2.5 Use imperative/infinitive form per skill-creator writing guidelines
-  - [ ] 2.6 Include explicit "When to read each reference" section in body
-  - [ ] 2.7 Include a "NIP Classification" sub-section explaining read-only / write-capable / both classification and how it affects pipeline behavior
+- [x] Task 2: Author SKILL.md frontmatter and body (AC: #1, #2 through #12)
+  - [x] 2.1 Write `name: nip-to-toon-skill`
+  - [x] 2.2 Write `description` with explicit trigger phrases for NIP-to-TOON conversion scenarios. Target ~80-120 words covering: creating a TOON skill from a NIP, converting a NIP to a skill, building a Nostr protocol skill for TOON, and skill pipeline execution.
+  - [x] 2.3 Write SKILL.md body: the 13-step pipeline procedure. Each step must be actionable and concise. Steps: (1) NIP Analysis, (2) TOON Context Injection, (3) Social Context Layer, (4) Skill Authoring, (5) Eval Generation, (6) TOON Assertions, (7) Description Optimization, (8) With/Without Testing, (9) Grading, (10) Benchmarking, (11) TOON Compliance Validation, (12) Eval Viewer, (13) Iterate.
+  - [x] 2.4 Keep body under 500 lines / ~5k tokens (pipeline details go in references)
+  - [x] 2.5 Use imperative/infinitive form per skill-creator writing guidelines
+  - [x] 2.6 Include explicit "When to read each reference" section in body
+  - [x] 2.7 Include a "NIP Classification" sub-section explaining read-only / write-capable / both classification and how it affects pipeline behavior
 
-- [ ] Task 3: Author reference files (AC: #3, #4, #5, #7, #8, #13)
-  - [ ] 3.1 Write `references/toon-protocol-context.md` -- Copy or derive from `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (Story 9.1, AC10). This is the canonical protocol context injected into every pipeline-generated skill (D9-010). Must be self-contained: TOON write model, TOON read model, transport, relay discovery, social economics.
-  - [ ] 3.2 Write `references/skill-structure-template.md` -- Skeleton SKILL.md for generated skills. Required sections: YAML frontmatter (`name`, `description`), protocol mechanics, TOON write/read model (conditional on classification), `## Social Context`, Level 3 reference pointers. Token budget: body <5k tokens.
-  - [ ] 3.3 Write `references/social-context-template.md` -- Template for generating `## Social Context` sections. Prompts: when is this interaction appropriate, what does paying mean socially, context-specific norms, anti-patterns. Must produce NIP-specific content, not generic placeholder.
-  - [ ] 3.4 Write `references/eval-generation-guide.md` -- How to create skill-creator-compatible evals. Format: `trigger_evals` array (8-10 should-trigger, 8-10 should-not-trigger), `output_evals` array (4-6 with id, prompt, expected_output, assertions). TOON assertions auto-injected per AC7.
-  - [ ] 3.5 Write `references/toon-compliance-assertions.md` -- The 5 TOON assertion templates: `toon-write-check`, `toon-fee-check`, `toon-format-check`, `social-context-check`, `trigger-coverage`. Each assertion with: what it checks, when it applies (read-only / write / both), pass/fail criteria.
-  - [ ] 3.6 Write `references/description-optimization-guide.md` -- How to run `scripts.run_loop` for description optimization: 20 trigger queries, max 5 iterations, convergence detection, best_description selection.
-  - [ ] 3.7 Every reference file must explain WHY (reasoning), not just list rules (D9-008 compliance)
+- [x] Task 3: Author reference files (AC: #3, #4, #5, #7, #8, #13)
+  - [x] 3.1 Write `references/toon-protocol-context.md` -- Copy or derive from `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (Story 9.1, AC10). This is the canonical protocol context injected into every pipeline-generated skill (D9-010). Must be self-contained: TOON write model, TOON read model, transport, relay discovery, social economics.
+  - [x] 3.2 Write `references/skill-structure-template.md` -- Skeleton SKILL.md for generated skills. Required sections: YAML frontmatter (`name`, `description`), protocol mechanics, TOON write/read model (conditional on classification), `## Social Context`, Level 3 reference pointers. Token budget: body <5k tokens.
+  - [x] 3.3 Write `references/social-context-template.md` -- Template for generating `## Social Context` sections. Prompts: when is this interaction appropriate, what does paying mean socially, context-specific norms, anti-patterns. Must produce NIP-specific content, not generic placeholder.
+  - [x] 3.4 Write `references/eval-generation-guide.md` -- How to create skill-creator-compatible evals. Format: `trigger_evals` array (8-10 should-trigger, 8-10 should-not-trigger), `output_evals` array (4-6 with id, prompt, expected_output, assertions). TOON assertions auto-injected per AC7.
+  - [x] 3.5 Write `references/toon-compliance-assertions.md` -- The 5 TOON assertion templates: `toon-write-check`, `toon-fee-check`, `toon-format-check`, `social-context-check`, `trigger-coverage`. Each assertion with: what it checks, when it applies (read-only / write / both), pass/fail criteria.
+  - [x] 3.6 Write `references/description-optimization-guide.md` -- How to run `scripts.run_loop` for description optimization: 20 trigger queries, max 5 iterations, convergence detection, best_description selection.
+  - [x] 3.7 Every reference file must explain WHY (reasoning), not just list rules (D9-008 compliance)
 
-- [ ] Task 4: Create validate-skill.sh script (AC: #14)
-  - [ ] 4.1 Write `scripts/validate-skill.sh` -- Bash script that takes a skill directory path and validates: (1) SKILL.md exists, (2) YAML frontmatter has `name` and `description`, (3) `references/` directory exists, (4) `evals/evals.json` exists and is valid JSON, (5) `## Social Context` section exists in SKILL.md, (6) No bare `["EVENT", ...]` patterns in any `.md` file, (7) Description length is 50-200 words, (8) Body is under 500 lines.
-  - [ ] 4.2 Script must exit 0 on valid skill, non-zero on failure with clear error messages
-  - [ ] 4.3 Script must be executable (`chmod +x`)
-  - [ ] 4.4 Test the script against existing skills: `nostr-protocol-core` (should pass), `nostr-social-intelligence` (should pass)
+- [x] Task 4: Create validate-skill.sh script (AC: #14)
+  - [x] 4.1 Write `scripts/validate-skill.sh` -- Bash script that takes a skill directory path and validates: (1) SKILL.md exists, (2) YAML frontmatter has `name` and `description`, (3) `references/` directory exists, (4) `evals/evals.json` exists and is valid JSON, (5) `## Social Context` section exists in SKILL.md, (6) No bare `["EVENT", ...]` patterns in any `.md` file, (7) Description length is 50-200 words, (8) Body is under 500 lines.
+  - [x] 4.2 Script must exit 0 on valid skill, non-zero on failure with clear error messages
+  - [x] 4.3 Script must be executable (`chmod +x`)
+  - [x] 4.4 Test the script against existing skills: `nostr-protocol-core` (should pass), `nostr-social-intelligence` (should pass)
 
-- [ ] Task 5: Create evals (AC: #1, #6, #7)
-  - [ ] 5.1 Create `evals/evals.json` in skill-creator format: 8-10 should-trigger queries + 8-10 should-not-trigger queries + 4-6 output evals
-  - [ ] 5.2 Should-trigger queries: "create a TOON skill for NIP-25", "convert NIP-23 to a TOON skill", "build a skill from this NIP spec", "run the NIP-to-TOON pipeline", "I need a skill for reactions on TOON", "how do I make a TOON-compatible skill from a NIP?"
-  - [ ] 5.3 Should-not-trigger queries: "how do I publish an event on TOON?" (protocol-core), "should I react to this post?" (social-intelligence), "how do I calculate fees?" (protocol-core), "what are NIP-29 group rules?" (group-specific, not pipeline)
-  - [ ] 5.4 Output evals: agent presented with a NIP spec, grading verifies correct pipeline step execution, TOON context injection, social context generation, eval format compliance
-  - [ ] 5.5 Include TOON compliance assertions matching the 5 assertion templates from AC7
-  - [ ] 5.6 Use rubric-based grading categories: `correct` / `acceptable` / `incorrect`
+- [x] Task 5: Create evals (AC: #1, #6, #7)
+  - [x] 5.1 Create `evals/evals.json` in skill-creator format: 8-10 should-trigger queries + 8-10 should-not-trigger queries + 4-6 output evals
+  - [x] 5.2 Should-trigger queries: "create a TOON skill for NIP-25", "convert NIP-23 to a TOON skill", "build a skill from this NIP spec", "run the NIP-to-TOON pipeline", "I need a skill for reactions on TOON", "how do I make a TOON-compatible skill from a NIP?"
+  - [x] 5.3 Should-not-trigger queries: "how do I publish an event on TOON?" (protocol-core), "should I react to this post?" (social-intelligence), "how do I calculate fees?" (protocol-core), "what are NIP-29 group rules?" (group-specific, not pipeline)
+  - [x] 5.4 Output evals: agent presented with a NIP spec, grading verifies correct pipeline step execution, TOON context injection, social context generation, eval format compliance
+  - [x] 5.5 Include TOON compliance assertions matching the 5 assertion templates from AC7
+  - [x] 5.6 Use rubric-based grading categories: `correct` / `acceptable` / `incorrect`
 
-- [ ] Task 6: Quality validation (AC: all)
-  - [ ] 6.1 Run `scripts/validate-skill.sh` on the generated `nip-to-toon-skill` directory (self-validation)
-  - [ ] 6.2 Verify SKILL.md body is under 500 lines
-  - [ ] 6.3 Verify all reference files exist and are non-empty
-  - [ ] 6.4 Verify `evals/evals.json` is valid JSON
-  - [ ] 6.5 Verify description field includes pipeline trigger phrases
-  - [ ] 6.6 Verify no extraneous files (no README.md, CHANGELOG.md, etc.)
-  - [ ] 6.7 Verify YAML frontmatter has ONLY `name` and `description` fields
-  - [ ] 6.8 Verify every reference file explains reasoning (WHY per D9-008)
-  - [ ] 6.9 Verify `toon-protocol-context.md` is consistent with Story 9.1's version
-  - [ ] 6.10 Verify `validate-skill.sh` catches 5+ planted defects (test with intentionally broken skill)
+- [x] Task 6: Quality validation (AC: all)
+  - [x] 6.1 Run `scripts/validate-skill.sh` on the generated `nip-to-toon-skill` directory (self-validation)
+  - [x] 6.2 Verify SKILL.md body is under 500 lines
+  - [x] 6.3 Verify all reference files exist and are non-empty
+  - [x] 6.4 Verify `evals/evals.json` is valid JSON
+  - [x] 6.5 Verify description field includes pipeline trigger phrases
+  - [x] 6.6 Verify no extraneous files (no README.md, CHANGELOG.md, etc.)
+  - [x] 6.7 Verify YAML frontmatter has ONLY `name` and `description` fields
+  - [x] 6.8 Verify every reference file explains reasoning (WHY per D9-008)
+  - [x] 6.9 Verify `toon-protocol-context.md` is consistent with Story 9.1's version
+  - [x] 6.10 Verify `validate-skill.sh` catches 5+ planted defects (test with intentionally broken skill)
 
 ## Dev Notes
 
@@ -373,10 +373,38 @@ Key pattern from existing skills: descriptions are comprehensive trigger lists, 
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
+None required -- no runtime errors during implementation.
+
 ### Completion Notes List
 
+- **Task 1**: Created `.claude/skills/nip-to-toon-skill/` directory with `references/`, `evals/`, and `scripts/` subdirectories. Layout matches skill-creator anatomy.
+- **Task 2**: Authored SKILL.md with 127-word description covering all trigger scenarios, 141-line body with full 13-step pipeline, NIP Classification table, "When to Read Each Reference" section, Social Context section, and Integration section. Imperative form throughout.
+- **Task 3**: Authored 6 reference files, each with WHY reasoning (D9-008). `toon-protocol-context.md` is identical to Story 9.1's canonical version (verified via diff). Social context template includes substitution test for NIP-specificity validation.
+- **Task 4**: Created `validate-skill.sh` with 8 checks (11 sub-checks). Validated against `nostr-protocol-core` (11/11 pass), `nostr-social-intelligence` (11/11 pass), self (11/11 pass), and a deliberately broken skill (5 defects caught: extra frontmatter, invalid JSON, missing Social Context, bare EVENT pattern, short description).
+- **Task 5**: Created `evals/evals.json` with 9 should-trigger, 9 should-not-trigger, and 5 output evals covering write-capable (NIP-25), read-only (NIP-50), both (NIP-23), social context quality, and excluded NIP (NIP-57) scenarios. All output evals include `expected_output`, `rubric` (correct/acceptable/incorrect), and TOON compliance assertions.
+- **Task 6**: All quality validations passed. Self-validation 11/11. Body 141 lines (under 500). All references non-empty. Valid JSON. Description includes pipeline triggers. No extraneous files. Frontmatter has only name + description. Protocol context consistent with 9.1. Validator catches 5+ planted defects.
+- **Fix**: Initial self-validation caught bare EVENT pattern in `toon-compliance-assertions.md` explanatory text -- replaced with non-triggering wording.
+- **Fix**: Existing test suite expected `expected_output` field on output evals -- added to all 5 output evals alongside `rubric`.
+
 ### File List
+
+- `.claude/skills/nip-to-toon-skill/SKILL.md` (create)
+- `.claude/skills/nip-to-toon-skill/references/toon-protocol-context.md` (create)
+- `.claude/skills/nip-to-toon-skill/references/skill-structure-template.md` (create)
+- `.claude/skills/nip-to-toon-skill/references/social-context-template.md` (create)
+- `.claude/skills/nip-to-toon-skill/references/eval-generation-guide.md` (create)
+- `.claude/skills/nip-to-toon-skill/references/toon-compliance-assertions.md` (create)
+- `.claude/skills/nip-to-toon-skill/references/description-optimization-guide.md` (create)
+- `.claude/skills/nip-to-toon-skill/evals/evals.json` (create)
+- `.claude/skills/nip-to-toon-skill/scripts/validate-skill.sh` (create)
+- `_bmad-output/implementation-artifacts/9-2-nip-to-toon-skill-pipeline.md` (modify)
+
+### Change Log
+
+| Date | Summary |
+|------|---------|
+| 2026-03-25 | Story 9.2 implementation: Created NIP-to-TOON skill pipeline with SKILL.md (13-step pipeline, 141 lines), 6 reference files (protocol context, skill template, social context template, eval guide, compliance assertions, description optimization), evals (9+9 triggers, 5 output evals with rubrics), and validate-skill.sh (8 checks, catches 5+ defects). All 109 existing tests pass. Self-validation 11/11. |
