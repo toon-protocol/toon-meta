@@ -1,0 +1,169 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I link to another note on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is a nostr: URI and how does it work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I mention someone inline in my post?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is nprofile1 and when should I use it instead of npub1?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I reference a long-form article using naddr1?",
+      "should_trigger": true
+    },
+    {
+      "query": "NIP-27 text note references -- how do inline mentions work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I embed a note in my post on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the best way to link to an article in my content?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I parse nostr: URIs from received events?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is bech32 encoding and how does NIP-21 use it?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do reactions work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I repost something on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a group chat on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does encrypted messaging work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I store files using Nostr DVM?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "uri-construction",
+      "prompt": "I want to mention another user in a short note on TOON. Their hex pubkey is abc123...def. How do I construct the nostr: URI and what tags do I need?",
+      "expected_output": "Encode the hex pubkey to bech32 npub1 format (or nprofile1 with relay hints for cross-relay resolution). Place nostr:npub1... inline in the kind:1 event content field. Add a corresponding [\"p\", \"<hex-pubkey>\"] tag. Publish via publishEvent() from @toon-protocol/client. The mention adds ~69 bytes (URI) + ~70 bytes (tag) = ~139 bytes to the event, costing approximately $0.001 at default basePricePerByte.",
+      "rubric": {
+        "correct": "Encodes the pubkey to bech32 npub1 (or nprofile1). Places nostr:npub1... inline in the content field. Adds a p tag with the hex pubkey. Publishes via publishEvent() from @toon-protocol/client. Calculates approximate byte cost of the reference (~69 bytes URI + ~70 bytes tag). Mentions that references add bytes to the event fee.",
+        "acceptable": "Uses publishEvent() and constructs the correct nostr: URI with p tag, but may not calculate exact byte overhead or discuss fee implications.",
+        "incorrect": "Uses raw WebSocket patterns, omits the p tag, uses wrong bech32 prefix, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for reference byte cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has reference-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response constructs a nostr:npub1 or nostr:nprofile1 URI with corresponding p tag"
+      ]
+    },
+    {
+      "id": "inline-mention-with-tags",
+      "prompt": "I am writing a kind:1 note that mentions two users and references one article. What nostr: URIs do I need and what tags must I include?",
+      "expected_output": "Three inline URIs: nostr:npub1... (or nostr:nprofile1...) for each user mention, and nostr:naddr1... for the article reference. Three corresponding tags: two [\"p\", \"<hex-pubkey>\"] tags and one [\"a\", \"<kind>:<pubkey>:<d-tag>\"] tag. Tags provide machine-readable metadata; inline URIs provide human-readable placement. Both are required. Total reference overhead: ~200-300 bytes of URI data plus ~240+ bytes of tags. Publish via publishEvent().",
+      "rubric": {
+        "correct": "Identifies three inline URIs (two user mentions, one article reference). Specifies correct tag types: p tags for users, a tag for the naddr1 article reference. Explains that both inline URIs and tags are needed. Calculates approximate byte overhead. Publishes via publishEvent(). Notes the fee impact of multiple references.",
+        "acceptable": "Correctly identifies the three URIs and their corresponding tags with publishEvent(), but may not calculate exact byte overhead or explain why both URIs and tags are needed.",
+        "incorrect": "Omits tags for inline URIs, uses e tag instead of a tag for naddr1, or uses raw WebSocket patterns."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes cost awareness for multiple references",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has reference-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes p tags for user mentions and a tag for naddr1 article reference",
+        "Response explains that both inline URIs and corresponding tags are required"
+      ]
+    },
+    {
+      "id": "naddr1-article-reference",
+      "prompt": "I want to link to a kind:30023 article in my content. The article has d tag 'my-article', author pubkey abc123, and is available on wss://relay.example.com. Should I use note1, nevent1, or naddr1?",
+      "expected_output": "Use naddr1 for parameterized replaceable events like kind:30023 articles. naddr1 encodes kind (30023) + pubkey + d-tag + relay hints using TLV encoding. It always resolves to the latest version of the article, unlike note1 or nevent1 which point to a fixed event ID. Embed nostr:naddr1... in content and add an [\"a\", \"30023:abc123:my-article\"] tag. The naddr1 URI is ~80-150 bytes. Publish via publishEvent().",
+      "rubric": {
+        "correct": "Recommends naddr1 as the correct entity type for parameterized replaceable events. Explains TLV encoding with kind, pubkey, d-tag, and relay hints. Notes that naddr1 resolves to the latest version (unlike note1/nevent1). Specifies the a tag format. Mentions byte cost. Publishes via publishEvent().",
+        "acceptable": "Correctly recommends naddr1 with a tag and publishEvent(), but may not fully explain TLV encoding or the version-resolution advantage.",
+        "incorrect": "Recommends note1 or nevent1 for an article, uses e tag instead of a tag, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes byte cost awareness for naddr1 references",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has reference-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response recommends naddr1 for parameterized replaceable events and uses a tag format"
+      ]
+    },
+    {
+      "id": "reference-fee-impact",
+      "prompt": "I am writing a short note with 5 user mentions on TOON. How much do the references add to the event cost compared to a note with no mentions?",
+      "expected_output": "A plain short note costs ~$0.003-$0.005 (~200-500 bytes). Adding 5 npub1 mentions adds ~345 bytes of URI data (5 * ~69 bytes) plus ~350 bytes of p tags (5 * ~70 bytes) = ~695 bytes of reference overhead. Total event size roughly triples from ~300 to ~995 bytes, costing approximately $0.010. Using nprofile1 instead of npub1 would add more bytes due to relay hints but improve cross-relay resolution. On TOON, each mention is a deliberate economic signal of attribution.",
+      "rubric": {
+        "correct": "Calculates approximate byte cost per reference (~69 bytes URI + ~70 bytes tag = ~137 per mention). Totals for 5 mentions (~695 bytes overhead). Compares to base note cost. Notes the cost roughly triples. Mentions the tradeoff between npub1 (compact) and nprofile1 (relay hints). Discusses the economic signal of mentions on TOON.",
+        "acceptable": "Provides reasonable byte estimates and compares to base note cost, but may not distinguish npub1 vs nprofile1 or discuss the social signal.",
+        "incorrect": "Does not calculate byte overhead, claims references are free, or ignores tag bytes in the calculation."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes detailed fee calculation for multiple references",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has reference-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response calculates per-reference byte cost including both URI and tag bytes",
+        "Response compares referenced note cost to base note cost"
+      ]
+    },
+    {
+      "id": "parsing-references",
+      "prompt": "I received an event from a TOON relay that contains nostr: URIs in its content. How do I extract and resolve the references?",
+      "expected_output": "First decode the TOON-format response using the TOON decoder -- TOON relays return TOON-format strings, not standard JSON objects. Then scan the content field for nostr: prefix followed by bech32 data. Identify entity type from bech32 prefix (npub1, note1, nprofile1, nevent1, naddr1). Decode bech32 per NIP-19 to extract hex pubkeys, event IDs, relay hints, kinds, and d-tags. For TLV entities, use relay hints for cross-relay resolution. Reading referenced events is free on TOON.",
+      "rubric": {
+        "correct": "Explains TOON-format decoding first (not standard JSON). Describes scanning content for nostr: prefix. Identifies entity types by bech32 prefix. Explains NIP-19 decoding for both simple and TLV entities. Mentions relay hints for cross-relay resolution. Notes reading is free.",
+        "acceptable": "Correctly describes TOON-format parsing and nostr: URI extraction, but may not fully explain TLV decoding or relay hint resolution.",
+        "incorrect": "Assumes standard JSON responses from the relay, does not mention TOON format, or suggests payment is needed to read."
+      },
+      "assertions": [
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has reference-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response describes TOON-format decoding before URI extraction",
+        "Response mentions reading is free on TOON"
+      ]
+    }
+  ]
+}
