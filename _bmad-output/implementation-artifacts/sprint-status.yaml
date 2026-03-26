@@ -157,7 +157,7 @@ development_status:
   9-3-skill-eval-framework: done
   9-4-social-identity-skill: done
   9-5-long-form-content-skill: done
-  9-6-social-interactions-skill: backlog
+  9-6-social-interactions-skill: done
   9-7-content-references-skill: backlog
   9-8-relay-groups-skill: backlog
   9-9-moderated-communities-skill: backlog
@@ -217,6 +217,14 @@ development_status:
   # Dependencies: Epic 8 (receipt pattern), Epic 5 (DVM kinds), Epic 3 (multi-chain config)
   # Stories: TBD (to be decomposed when epic starts)
   epic-11: backlog
+  11-1-chain-bridge-event-kind-definitions: backlog
+  11-2-tier-1-trustless-broadcast-protocol: backlog
+  11-3-self-describing-per-chain-receipts: backlog
+  11-4-consumer-sdk-tx-submission: backlog
+  11-5-chain-bridge-skill-descriptor: backlog
+  11-6-provider-test-harness-extension: backlog
+  11-7-provider-handoff-documents: backlog
+  11-8-publish-chain-bridge-primitive: backlog
   epic-11-retrospective: optional
 
   # Epic 12: Loony — Autonomous Agent Example Application
@@ -224,6 +232,14 @@ development_status:
   # Example application proving all four primitives + composition; self-bootstrapping agent lifecycle
   # Dependencies: Epics 10 + 11 (primitives)
   epic-12: backlog
+  12-1-loony-package-scaffold-and-identity-bootstrap: backlog
+  12-2-service-discovery-and-perception-layer: backlog
+  12-3-decoupled-llm-inference-via-compute-marketplace: backlog
+  12-4-multi-primitive-action-layer: backlog
+  12-5-ooda-decision-loop: backlog
+  12-6-dvm-provider-registration-and-earning: backlog
+  12-7-runtime-capability-extension: backlog
+  12-8-self-sustaining-economics-and-e2e-validation: backlog
   epic-12-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════

@@ -1,0 +1,164 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "type": "text", "id": "title", "x": 160, "y": 20, "width": 400, "height": 35,
+      "text": "Loony — OODA Decision Loop", "originalText": "Loony — OODA Decision Loop",
+      "fontSize": 28, "fontFamily": 3, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#1e40af", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3001, "version": 1, "versionNonce": 3002,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "subtitle", "x": 110, "y": 58, "width": 500, "height": 18,
+      "text": "Continuous cycle. Loony is always on, running every intervalMs.", "originalText": "Continuous cycle. Loony is always on, running every intervalMs.",
+      "fontSize": 14, "fontFamily": 3, "textAlign": "center", "verticalAlign": "top",
+      "strokeColor": "#64748b", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3003, "version": 1, "versionNonce": 3004,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "lineHeight": 1.25
+    },
+
+    {
+      "type": "rectangle", "id": "observe", "x": 60, "y": 120, "width": 200, "height": 80,
+      "strokeColor": "#1e3a5f", "backgroundColor": "#93c5fd",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3010, "version": 1, "versionNonce": 3011,
+      "isDeleted": false, "groupIds": [],
+      "boundElements": [{"id": "observe_t", "type": "text"}, {"id": "a_obs_ori", "type": "arrow"}, {"id": "a_act_obs", "type": "arrow"}],
+      "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "observe_t", "x": 70, "y": 125, "width": 180, "height": 70,
+      "text": "OBSERVE\nRead relay events (FREE)\nCheck ServiceRegistry\nCheck wallet balance", "originalText": "OBSERVE\nRead relay events (FREE)\nCheck ServiceRegistry\nCheck wallet balance",
+      "fontSize": 12, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#1e3a5f", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3012, "version": 1, "versionNonce": 3013,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "observe", "lineHeight": 1.25
+    },
+
+    {
+      "type": "rectangle", "id": "orient", "x": 500, "y": 120, "width": 200, "height": 80,
+      "strokeColor": "#6d28d9", "backgroundColor": "#ddd6fe",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3020, "version": 1, "versionNonce": 3021,
+      "isDeleted": false, "groupIds": [],
+      "boundElements": [{"id": "orient_t", "type": "text"}, {"id": "a_obs_ori", "type": "arrow"}, {"id": "a_ori_dec", "type": "arrow"}],
+      "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "orient_t", "x": 510, "y": 125, "width": 180, "height": 70,
+      "text": "ORIENT\nSend to LLM (kind:5250)\nPay inference provider\nGet situation assessment", "originalText": "ORIENT\nSend to LLM (kind:5250)\nPay inference provider\nGet situation assessment",
+      "fontSize": 12, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#6d28d9", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3022, "version": 1, "versionNonce": 3023,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "orient", "lineHeight": 1.25
+    },
+
+    {
+      "type": "rectangle", "id": "decide", "x": 500, "y": 300, "width": 200, "height": 80,
+      "strokeColor": "#b45309", "backgroundColor": "#fef3c7",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3030, "version": 1, "versionNonce": 3031,
+      "isDeleted": false, "groupIds": [],
+      "boundElements": [{"id": "decide_t", "type": "text"}, {"id": "a_ori_dec", "type": "arrow"}, {"id": "a_dec_act", "type": "arrow"}],
+      "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "decide_t", "x": 510, "y": 305, "width": 180, "height": 70,
+      "text": "DECIDE\nLLM outputs action plan\nBudget governor validates\nApprove or defer", "originalText": "DECIDE\nLLM outputs action plan\nBudget governor validates\nApprove or defer",
+      "fontSize": 12, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#b45309", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3032, "version": 1, "versionNonce": 3033,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "decide", "lineHeight": 1.25
+    },
+
+    {
+      "type": "rectangle", "id": "act", "x": 60, "y": 300, "width": 200, "height": 80,
+      "strokeColor": "#047857", "backgroundColor": "#a7f3d0",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3040, "version": 1, "versionNonce": 3041,
+      "isDeleted": false, "groupIds": [],
+      "boundElements": [{"id": "act_t", "type": "text"}, {"id": "a_dec_act", "type": "arrow"}, {"id": "a_act_obs", "type": "arrow"}],
+      "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "act_t", "x": 70, "y": 305, "width": 180, "height": 70,
+      "text": "ACT — 4 Primitives\nMessage (publishEvent)\nStore (kind:5094)\nCompute (kind:5250)\nBridge (kind:5260)", "originalText": "ACT — 4 Primitives\nMessage (publishEvent)\nStore (kind:5094)\nCompute (kind:5250)\nBridge (kind:5260)",
+      "fontSize": 12, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#047857", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3042, "version": 1, "versionNonce": 3043,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "act", "lineHeight": 1.25
+    },
+
+    {
+      "type": "arrow", "id": "a_obs_ori", "x": 265, "y": 140, "width": 230, "height": 0,
+      "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3050, "version": 1, "versionNonce": 3051,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [115, -25], [230, 0]],
+      "startBinding": {"elementId": "observe", "focus": -0.3, "gap": 5},
+      "endBinding": {"elementId": "orient", "focus": 0.3, "gap": 5},
+      "startArrowhead": null, "endArrowhead": "arrow",
+      "roundness": {"type": 2}
+    },
+
+    {
+      "type": "arrow", "id": "a_ori_dec", "x": 720, "y": 205, "width": 0, "height": 90,
+      "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3060, "version": 1, "versionNonce": 3061,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [25, 45], [0, 90]],
+      "startBinding": {"elementId": "orient", "focus": -0.3, "gap": 5},
+      "endBinding": {"elementId": "decide", "focus": 0.3, "gap": 5},
+      "startArrowhead": null, "endArrowhead": "arrow",
+      "roundness": {"type": 2}
+    },
+
+    {
+      "type": "arrow", "id": "a_dec_act", "x": 495, "y": 360, "width": 230, "height": 0,
+      "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3070, "version": 1, "versionNonce": 3071,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [-115, 25], [-230, 0]],
+      "startBinding": {"elementId": "decide", "focus": -0.3, "gap": 5},
+      "endBinding": {"elementId": "act", "focus": 0.3, "gap": 5},
+      "startArrowhead": null, "endArrowhead": "arrow",
+      "roundness": {"type": 2}
+    },
+
+    {
+      "type": "arrow", "id": "a_act_obs", "x": 40, "y": 295, "width": 0, "height": 90,
+      "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 3080, "version": 1, "versionNonce": 3081,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [-25, -45], [0, -90]],
+      "startBinding": {"elementId": "act", "focus": -0.3, "gap": 5},
+      "endBinding": {"elementId": "observe", "focus": 0.3, "gap": 5},
+      "startArrowhead": null, "endArrowhead": "arrow",
+      "roundness": {"type": 2}
+    }
+  ],
+  "appState": {
+    "gridSize": null,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}
