@@ -1,0 +1,161 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is kind:30023 and how do I use it?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I update an existing article on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "Should I publish this as a long-form article or a short note?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do subject tags work on Nostr articles?",
+      "should_trigger": true
+    },
+    {
+      "query": "What makes a good article summary on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I add metadata tags like title and image to a kind:30023 event?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the difference between a draft and a published article on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How much does it cost to publish an article on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-23 and how does it work with NIP-14?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does encrypted messaging work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a group chat on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "What is the fee calculation for multi-hop routing on ILP?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I store files using Nostr DVM?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I set up NIP-05 DNS verification?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "article-creation",
+      "prompt": "I want to publish my first long-form article on a TOON relay. The article is about 4000 bytes of markdown content, with a title, summary, and cover image. The relay's basePricePerByte is 10 micro-USDC. Walk me through the process.",
+      "rubric": {
+        "correct": "Constructs a kind:30023 event with markdown content, d tag (unique article identifier), title tag, summary tag, image tag, and published_at tag. Publishes via publishEvent() from @toon-protocol/client. Calculates approximate fee: ~4000+ bytes * 10n = ~$0.04-$0.05. Explains parameterized replaceable semantics (d tag identifies the article for future updates). Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses publishEvent() and constructs a kind:30023 event with correct tags, but may not calculate exact fee or fully explain parameterized replaceable semantics.",
+        "incorrect": "Uses raw WebSocket patterns, omits payment entirely, uses wrong event kind, or does not include the d tag."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation or cost awareness for article-sized content",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has content-publishing-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response constructs a kind:30023 event with d tag, title, summary, and image tags"
+      ]
+    },
+    {
+      "id": "article-update",
+      "prompt": "I published an article on TOON with d tag 'my-guide' that is about 6000 bytes. I need to fix several typos and add a new section. How do I update it and what will it cost?",
+      "rubric": {
+        "correct": "Explains that kind:30023 is parameterized replaceable -- publishing a new event with the same d tag replaces the previous version. Steps: fetch current article (TOON-format response), parse existing content and tags, apply edits, construct new kind:30023 with same d tag, sign, publish via publishEvent(). Calculates cost for the full updated article size (not just the diff). Advises batching the typo fixes and new section into one update to avoid multiple revision costs.",
+        "acceptable": "Correctly describes the fetch-modify-republish flow and uses publishEvent(), but may not emphasize full-article cost or batching advice.",
+        "incorrect": "Suggests partial/diff updates are possible, uses raw WebSocket patterns, or does not mention that updates cost the full article price."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness that updates cost full article size",
+        "toon-format-check: Response mentions TOON-format strings when reading current article",
+        "social-context-check: Skill has content-publishing-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response explains parameterized replaceable semantics (same d tag replaces previous version)"
+      ]
+    },
+    {
+      "id": "draft-to-publish",
+      "prompt": "I want to save an article as a draft on my TOON relay first, then publish it publicly when I'm ready. How does the draft workflow work and what are the cost implications?",
+      "rubric": {
+        "correct": "Explains draft semantics: publish kind:30023 without published_at tag (draft state). When ready, publish updated version with same d tag and published_at set to current timestamp. Notes that both the draft publish and the final publish cost full article price (two ILP payments). Suggests composing locally first if extensive drafting is needed to minimize cost. Uses publishEvent() for both operations.",
+        "acceptable": "Correctly describes the published_at tag controlling draft/published state and uses publishEvent(), but may not fully explain the double-cost implication.",
+        "incorrect": "Suggests drafts are free, does not use publishEvent(), or confuses created_at with published_at semantics."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() for both draft and publish steps",
+        "toon-fee-check: Response notes that drafts cost money on TOON (not free)",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has content-publishing-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response explains published_at tag controls draft vs published state"
+      ]
+    },
+    {
+      "id": "subject-tags-and-discovery",
+      "prompt": "I'm publishing an article on TOON and want to maximize discoverability. What metadata tags should I use and what is the difference between subject, title, summary, and t tags?",
+      "rubric": {
+        "correct": "Distinguishes all four metadata types: title (article heading), summary (multi-sentence preview), subject (NIP-14 brief topic categorization), and t tags (hashtag-style topic labels). Gives concrete examples showing how each serves a different purpose. Explains that including all relevant metadata in the initial publish avoids paying for a separate update. Notes that good metadata improves return on the publishing investment.",
+        "acceptable": "Correctly distinguishes the tag types and gives examples, but may not emphasize the economic angle of including metadata upfront.",
+        "incorrect": "Confuses subject with title, conflates t tags with subject tags, or does not distinguish the four metadata types."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for article publishing",
+        "toon-fee-check: Response includes awareness that adding metadata later costs a full republish",
+        "social-context-check: Skill has content-publishing-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response distinguishes between title, summary, subject (NIP-14), and t tags"
+      ]
+    },
+    {
+      "id": "article-read-toon-format",
+      "prompt": "I want to fetch and read a specific article from a TOON relay. I know the author's pubkey and the article's d tag. How do I retrieve it?",
+      "rubric": {
+        "correct": "Subscribes using NIP-01 filter with kinds:[30023], authors:[<pubkey>], and #d:[<d-tag-value>]. Explains that TOON relays return TOON-format strings in EVENT messages, not JSON objects. Instructs to use the TOON decoder to parse the response. Then extract content (markdown) and tags (title, summary, etc.) from the parsed event. Reading is free (no ILP payment needed).",
+        "acceptable": "Correctly describes the subscription filter with #d tag and mentions TOON format, but may not reference the specific decoder or fully explain the parsing steps.",
+        "incorrect": "Assumes standard JSON responses from the relay, suggests JSON.parse directly on the EVENT message, or suggests payment is needed to read."
+      },
+      "assertions": [
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has content-publishing-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses NIP-01 filter with kinds:[30023] and #d tag filter",
+        "Response mentions reading is free on TOON"
+      ]
+    }
+  ]
+}
