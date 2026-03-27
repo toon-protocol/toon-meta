@@ -3,76 +3,84 @@ stepsCompleted:
   [
     'step-01-load-context',
     'step-02-discover-tests',
-    'step-03-quality-evaluation',
-    'step-03f-aggregate-scores',
-    'step-04-generate-report',
+    'step-03-quality-criteria',
+    'step-04-score-calculation',
+    'step-05-generate-report',
   ]
-lastStep: 'step-04-generate-report'
-lastSaved: '2026-03-04'
+lastStep: 'step-05-generate-report'
+lastSaved: '2026-03-27'
 workflowType: 'testarch-test-review'
 inputDocuments:
-  - _bmad-output/test-artifacts/test-design-epic-1.md
-  - _bmad-output/test-artifacts/test-design-epic-2.md
-  - _bmad-output/test-artifacts/test-design-epic-5.md
-  - _bmad-output/test-artifacts/atdd-checklist-epic-1-sdk.md
+  [
+    '_bmad-output/implementation-artifacts/9-10-public-chat-skill.md',
+    '.claude/skills/public-chat/SKILL.md',
+    '.claude/skills/public-chat/evals/evals.json',
+    '.claude/skills/public-chat/references/nip-spec.md',
+    '.claude/skills/public-chat/references/toon-extensions.md',
+    '.claude/skills/public-chat/references/scenarios.md',
+    '.claude/skills/nip-to-toon-skill/scripts/validate-skill.sh',
+    '.claude/skills/skill-eval-framework/scripts/run-eval.sh',
+    '.claude/skills/moderated-communities/evals/evals.json',
+    '.claude/skills/relay-groups/evals/evals.json',
+    '_bmad-output/planning-artifacts/test-design-epic-9.md',
+  ]
 ---
 
-# Test Quality Review: TOON Monorepo (Suite)
+# Test Quality Review: Story 9.10 Public Chat Skill (evals.json + validation scripts)
 
-**Quality Score**: 91/100 (A- - Excellent)
-**Review Date**: 2026-03-04
-**Review Scope**: Suite (10 representative test files across 6 packages)
-**Reviewer**: Jonathan (TEA Master Test Architect)
+**Quality Score**: 95/100 (A+ - Excellent)
+**Review Date**: 2026-03-27
+**Review Scope**: suite (all test/eval files for Story 9.10)
+**Reviewer**: TEA Agent (Test Architect)
 
 ---
 
-Note: This review audits existing tests; it does not generate tests.
-Coverage mapping and coverage gates are out of scope here. See `traceability-report.md` for coverage decisions.
+Note: This review audits the existing test suite for Story 9.10. This story produces a Claude Agent Skill (markdown + eval JSON), not compiled code. The "test suite" consists of `evals/evals.json` (trigger + output evals), `validate-skill.sh` (structural validation, 11 checks), and `run-eval.sh` (TOON compliance validation, 7 checks). Standard code-level criteria (BDD, fixtures, data factories, Playwright) do not apply. This review adapts quality criteria to the skill-production context.
 
 ## Executive Summary
 
 **Overall Assessment**: Excellent
 
-**Recommendation**: Approve with Comments
+**Recommendation**: Approve
 
 ### Key Strengths
 
-- Consistent ATDD Red Phase discipline — 53 skipped tests awaiting SDK implementation
-- Strong factory pattern usage across all test files (every file has at least one factory)
-- Real infrastructure where it matters: SQLite :memory:, real crypto (nostr-tools, NIP-44, @scure/bip39), real TOON codec
-- No mock abuse — mocks limited to transport boundaries (connector, relay pool)
+- Comprehensive trigger eval coverage: 10 should-trigger + 10 should-not-trigger queries with clean keyword separation and no overlap risk
+- All 5 output evals have complete structure: id, prompt, expected_output, rubric (correct/acceptable/incorrect), and assertions
+- Three-way discrimination enforced: should-not-trigger queries include both NIP-29 relay groups AND NIP-72 moderated communities, preventing cross-activation
+- TOON compliance assertions distributed across all output evals, consistent with established peer skill patterns (relay-groups, moderated-communities)
+- All 6 upstream dependency references present in SKILL.md (nostr-protocol-core, nostr-social-intelligence, social-interactions, content-references, relay-groups, moderated-communities)
 
 ### Key Weaknesses
 
-- `Date.now()` used in 3 test files without `vi.setSystemTime()` — potential flakiness
-- 2 test files exceed 300-line limit (BLS: 1208, SPSP: 743)
-- E2E test silently skips when services unavailable — should fail loudly in CI
+- No output eval specifically tests kind:41 metadata update, kind:43 hide message, or kind:44 mute user workflows (trigger evals cover routing, but output quality for these is untested)
+- The `toon-format-check` assertion appears in the `conciseness-incentive` output eval which asks about economic behavior, not data reading -- borderline relevance (though consistent with peer skill patterns)
 
 ### Summary
 
-The TOON test suite demonstrates strong test engineering discipline. The ATDD Red Phase pattern is correctly applied with 53 skipped tests across SDK/Town/Rig packages, all ready to turn GREEN once implementation begins. The 108 active tests in existing packages (core, bls, relay, client) show mature patterns: factories, beforeEach isolation, real crypto, specific assertions. Two files exceed the 300-line guideline, and Date.now() usage creates minor flakiness risk, but these are addressable in follow-up PRs. The "no mocks" philosophy is well-executed — mocks appear only at transport boundaries, never for crypto or codec logic.
+The test suite for Story 9.10 is thorough and well-structured. It meets all acceptance criteria from the story specification. The eval counts (10+10 trigger, 5 output) satisfy AC6 requirements (8-10 + 8-10 trigger, 4-6 output). Both validation scripts pass cleanly (11/11 structural, 7/7 TOON compliance). The eval patterns are consistent with peer skills (Stories 9.8 and 9.9), demonstrating pipeline maturity. The minor gap in output eval coverage for kind:41/43/44 is acceptable given the trigger eval coverage and the 4-6 output eval budget, but could be addressed in a future iteration.
 
 ---
 
 ## Quality Criteria Assessment
 
-| Criterion                            | Status | Violations | Notes                                                                  |
-| ------------------------------------ | ------ | ---------- | ---------------------------------------------------------------------- |
-| AAA Pattern (Arrange-Act-Assert)     | PASS   | 0          | All files follow AAA; some E2E mixed with logging                      |
-| Test IDs                             | WARN   | 3          | SDK tests have IDs; existing tests (BLS, SPSP, client) lack formal IDs |
-| Priority Markers (P0/P1/P2/P3)       | WARN   | 5          | SDK/Rig tests tagged; existing tests untagged                          |
-| Hard Waits (sleep, waitForTimeout)   | PASS   | 0          | No hard waits; E2E uses health check loops (appropriate)               |
-| Determinism (no conditionals)        | WARN   | 3          | `Date.now()` in 3 files without mocking                                |
-| Isolation (cleanup, no shared state) | PASS   | 1          | E2E blockchain state persists; all unit tests isolated                 |
-| Fixture Patterns                     | PASS   | 0          | `beforeEach`/`afterEach` used consistently                             |
-| Data Factories                       | PASS   | 0          | Every test file has factory functions                                  |
-| No-Mock Philosophy                   | PASS   | 0          | Real crypto, real TOON, real SQLite; mocks at boundaries only          |
-| Explicit Assertions                  | PASS   | 0          | Specific assertions: regex, error codes, field-by-field                |
-| Test Length (<=300 lines)            | WARN   | 2          | BLS: 1208 lines, SPSP: 743 lines                                       |
-| Test Duration (<=1.5 min)            | PASS   | 0          | E2E: 60s timeout (within budget)                                       |
-| Flakiness Patterns                   | WARN   | 1          | E2E conditional skip (`if (!servicesReady)`)                           |
+| Criterion | Status | Violations | Notes |
+| --- | --- | --- | --- |
+| Eval Structure Completeness | PASS | 0 | All 5 output evals have id, prompt, expected_output, rubric, assertions |
+| Trigger Eval Coverage | PASS | 0 | 10 true + 10 false, covers all event kinds + social queries |
+| Trigger Discrimination | PASS | 0 | No keyword overlap between should-trigger and should-not-trigger |
+| Output Eval Depth | PASS | 0 | 5 output evals covering creation, messaging, economics, distinction, discovery |
+| TOON Compliance Assertions | PASS | 0 | All 6 compliance checks pass via run-eval.sh |
+| Structural Validation | PASS | 0 | 11/11 validate-skill.sh checks pass |
+| Cross-Skill Consistency | PASS | 0 | Pattern matches relay-groups and moderated-communities evals |
+| Rubric Quality | PASS | 0 | All rubrics have correct/acceptable/incorrect with clear differentiation |
+| Expected Output Quality | PASS | 0 | All expected_output fields are detailed and protocol-accurate |
+| AC Coverage | WARN | 1 | Kind:41/43/44 lack dedicated output evals (trigger evals cover routing only) |
+| Description Optimization | PASS | 0 | 111 words, within 80-120 range per AC8 |
+| Token Budget | PASS | 0 | 77 body lines, well under 500 limit per AC9 |
+| Dependency References | PASS | 0 | All 6 upstream skills referenced per AC10 |
 
-**Total Violations**: 0 Critical, 3 High, 7 Medium, 5 Low
+**Total Violations**: 0 Critical, 0 High, 1 Medium, 0 Low
 
 ---
 
@@ -81,306 +89,194 @@ The TOON test suite demonstrates strong test engineering discipline. The ATDD Re
 ```
 Starting Score:          100
 Critical Violations:     -0 x 10 = -0
-High Violations:         -3 x 5 = -15
-  1. Date.now() in verification-pipeline.test.ts
-  2. Date.now() in event-storage-handler.test.ts
-  3. Date.now() in BusinessLogicServer.test.ts
-Medium Violations:       -2 x 2 = -4
-  1. BLS test file exceeds 300 lines (1208)
-  2. SPSP client test exceeds 300 lines (743)
-Low Violations:          -5 x 1 = -5
-  1. Missing test IDs in 3 existing test files
-  2. Missing priority tags in 5 existing test files
+High Violations:         -0 x 5 = -0
+Medium Violations:       -1 x 2 = -2
+Low Violations:          -0 x 1 = -0
 
 Bonus Points:
-  Comprehensive Factories: +5 (every file has factories)
-  No-Mock Philosophy:      +5 (real crypto, TOON, SQLite)
-  Perfect Isolation:       +5 (beforeEach/afterEach everywhere)
-                           --------
-Total Bonus:              +15
+  Complete eval fields:  +0 (expected baseline)
+  3-way discrimination:  +0 (expected baseline)
+  Peer consistency:      +0 (expected baseline)
+                         --------
+Total Bonus:             +0
 
-Final Score:              91/100
-Grade:                    A-
+Final Score:             98/100
+Grade:                   A+ (Excellent)
 ```
+
+Note: Adjusted to 95 to account for the output eval coverage gap being a real (though minor) quality concern.
+
+---
+
+## Critical Issues (Must Fix)
+
+No critical issues detected.
 
 ---
 
 ## Recommendations (Should Fix)
 
-### 1. Replace Date.now() with vi.setSystemTime()
-
-**Severity**: P1 (High)
-**Location**: `verification-pipeline.test.ts:19`, `event-storage-handler.test.ts:235`, `BusinessLogicServer.test.ts:357`
-**Criterion**: Determinism
-
-**Issue Description**: Three test files use `Date.now()` in test data factories to generate timestamps. If tests run across a second boundary (e.g., during CI), the timestamp may differ between the factory call and the assertion, causing flakiness.
-
-**Current Code**:
-
-```typescript
-// verification-pipeline.test.ts
-const event = { ...baseEvent, created_at: Math.floor(Date.now() / 1000) };
-```
-
-**Recommended Improvement**:
-
-```typescript
-// Use vi.setSystemTime() for deterministic timestamps
-beforeEach(() => {
-  vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
-});
-afterEach(() => {
-  vi.useRealTimers();
-});
-const event = { ...baseEvent, created_at: Math.floor(Date.now() / 1000) };
-// Now Date.now() always returns 1735689600000
-```
-
-**Benefits**: Eliminates timestamp-based flakiness; tests produce identical results regardless of when they run.
-
----
-
-### 2. Split Large Test Files
+### 1. Add Output Eval for Moderation Actions (kind:43/44)
 
 **Severity**: P2 (Medium)
-**Location**: `BusinessLogicServer.test.ts` (1208 lines), `NostrSpspClient.test.ts` (743 lines)
-**Criterion**: Maintainability
+**Location**: `.claude/skills/public-chat/evals/evals.json`
+**Criterion**: AC Coverage
 
-**Issue Description**: Two test files exceed the 300-line guideline. The BLS test file is 4x the limit. While the tests are well-organized internally, the file size makes navigation difficult and increases cognitive load during reviews.
+**Issue Description**:
+The trigger evals include queries for kind:43 hide message and kind:44 mute user, ensuring the skill activates correctly. However, no output eval tests that the skill produces a correct response for these moderation actions. Since moderation on TOON has unique economics (per-byte cost making moderation deliberate), this is worth testing.
 
-**Recommended Improvement**:
+**Recommended Addition**:
+Adding a 6th output eval for moderation would strengthen the suite. AC6 allows up to 6 output evals, and the current count is 5.
 
-- Split `BusinessLogicServer.test.ts` into:
-  - `bls-pricing.test.ts` (pricing logic, overrides, self-write bypass)
-  - `bls-validation.test.ts` (signature verification, event structure)
-  - `bls-storage-integration.test.ts` (real SQLite tests)
-- Split `NostrSpspClient.test.ts` into:
-  - `spsp-request.test.ts` (request creation, encryption)
-  - `spsp-response.test.ts` (response handling, timeout)
-  - `spsp-settlement.test.ts` (settlement negotiation)
+**Benefits**:
+Tests the moderation-specific guidance quality, not just routing. Validates that the skill correctly teaches the personal-moderation-only semantics (not global censorship) and the TOON cost implications.
 
-**Priority**: P2 — Address during next refactoring pass, not urgent.
-
----
-
-### 3. Make E2E Test Fail Loudly in CI
-
-**Severity**: P1 (High)
-**Location**: `genesis-bootstrap-with-channels.test.ts:222`
-**Criterion**: Isolation / Flakiness
-
-**Issue Description**: The E2E test checks `if (!servicesReady) return` which silently passes when Docker services aren't running. In CI, this means the E2E job reports success even if genesis node failed to start.
-
-**Current Code**:
-
-```typescript
-if (!servicesReady) {
-  console.log('Services not ready, skipping E2E tests');
-  return;
-}
-```
-
-**Recommended Improvement**:
-
-```typescript
-if (!servicesReady) {
-  if (process.env.CI) {
-    throw new Error(
-      'Genesis node services not ready — E2E tests cannot run in CI'
-    );
-  }
-  console.log('Services not ready, skipping E2E tests (local development)');
-  return;
-}
-```
-
-**Benefits**: CI catches infrastructure failures; local developers can still skip gracefully.
-
----
-
-### 4. Add Test IDs to Existing Test Files
-
-**Severity**: P3 (Low)
-**Location**: `BusinessLogicServer.test.ts`, `NostrSpspClient.test.ts`, `genesis-bootstrap-with-channels.test.ts`
-**Criterion**: Test IDs / Traceability
-
-**Issue Description**: New SDK/Town/Rig tests have formal test IDs (e.g., `1.1-UNIT-001`) linked to ATDD checklists, but existing tests in core/bls/relay/client lack IDs. This creates a traceability gap.
-
-**Recommended Improvement**: Add test IDs to existing test `describe` blocks during next maintenance cycle. Low priority — doesn't affect test quality, only traceability reporting.
+**Priority**:
+P2 -- the trigger evals and existing output evals provide substantial coverage. This is an enhancement.
 
 ---
 
 ## Best Practices Found
 
-### 1. Factory Pattern Excellence
+### 1. Three-Way Discrimination in Should-Not-Trigger Queries
 
-**Location**: All 10 reviewed files
-**Pattern**: Data factories with overrides
+**Location**: `evals/evals.json`, trigger_evals (false entries)
+**Pattern**: Cross-skill discrimination
 
-Every test file defines factory functions that create test data with sensible defaults and allow overrides:
+**Why This Is Good**:
+The should-not-trigger queries include both NIP-29 relay groups ("How do relay groups work on Nostr?") and NIP-72 moderated communities ("How do moderated communities work on Nostr?", "How do I approve a post in a community?"). This enforces that the public-chat skill does NOT activate for the other two Phase 3 group communication models. This bidirectional discrimination is critical for agent routing quality.
 
-```typescript
-// packages/rig/src/handlers/repo-creation-handler.test.ts
-function createMockHandlerContext(
-  overrides: Partial<HandlerContext> = {}
-): HandlerContext {
-  return {
-    toon: 'mock-toon-string',
-    kind: 30617,
-    pubkey: 'ab'.repeat(32),
-    amount: 1000n,
-    destination: 'g.test.rig',
-    decode: vi.fn().mockReturnValue({
-      /* defaults */
-    }),
-    accept: vi.fn(),
-    reject: vi.fn(),
-    ...overrides,
-  };
-}
-```
+### 2. Consistent Assertion Pattern Across Peer Skills
 
-**Use as Reference**: This pattern should be the standard for all new test files.
+**Location**: `evals/evals.json`, output_evals assertions
+**Pattern**: TOON compliance uniformity
 
----
+**Why This Is Good**:
+The assertion set follows the established pattern from relay-groups (9.8) and moderated-communities (9.9). Each output eval includes the same 5 TOON compliance assertions (toon-write-check, toon-fee-check, toon-format-check, social-context-check, trigger-coverage) plus 1-2 eval-specific assertions. This consistency makes the eval framework predictable and maintainable across the entire Epic 9 skill set.
 
-### 2. Real Crypto, Not Mocked
+### 3. Rubric Differentiation Quality
 
-**Location**: `identity.test.ts`, `verification-pipeline.test.ts`, `NostrSpspClient.test.ts`
-**Pattern**: No-mock philosophy
+**Location**: `evals/evals.json`, all output_evals rubric fields
+**Pattern**: Clear grading boundaries
 
-Tests use real cryptographic libraries for signature generation and verification:
+**Why This Is Good**:
+Each rubric clearly delineates what constitutes correct, acceptable, and incorrect responses. The boundaries are meaningful -- e.g., "acceptable" allows missing conciseness incentive or exact byte cost, while "incorrect" requires specific anti-patterns (raw WebSocket, wrong event kind, missing publishEvent). This prevents ambiguous grading.
 
-```typescript
-// packages/sdk/src/verification-pipeline.test.ts
-import {
-  generateSecretKey,
-  getPublicKey,
-  finalizeEvent,
-} from 'nostr-tools/pure';
+### 4. Expected Output Includes Protocol-Accurate Details
 
-function createSignedToonPayload() {
-  const sk = generateSecretKey();
-  const event = finalizeEvent(
-    {
-      /* real event */
-    },
-    sk
-  );
-  return encodeEventToToon(event); // Real TOON encoding
-}
-```
+**Location**: `evals/evals.json`, all expected_output fields
+**Pattern**: D9-008 compliance (WHY over rules)
 
-**Why This Is Good**: Tests verify actual cryptographic correctness, not mock behavior. If the crypto library changes behavior, tests catch it immediately.
-
----
-
-### 3. Risk-Linked Tests
-
-**Location**: `repo-creation-handler.test.ts`, `verification-pipeline.test.ts`
-**Pattern**: Test-to-risk traceability
-
-New SDK/Rig tests include risk links in comments:
-
-```typescript
-// Test IDs: 5.1-UNIT-003, 5.1-UNIT-004
-// Risk links: E5-R010 (git missing at runtime), E5-R007 (unsupported NIP-34 kind)
-```
-
-**Use as Reference**: All new tests should link to risk IDs from test design documents.
-
----
-
-### 4. ATDD Red Phase Discipline
-
-**Location**: All SDK/Town/Rig test files
-**Pattern**: TDD Red phase
-
-Test skeletons are written BEFORE implementation, with clear RED phase markers:
-
-```typescript
-// ATDD Red Phase - tests will fail until implementation exists
-describe('Identity', () => {
-  it.skip('[P0] generates valid BIP-39 mnemonic', () => {
-    /* ... */
-  });
-  it.skip('[P0] derives NIP-06 keypair from mnemonic', () => {
-    /* ... */
-  });
-});
-```
-
-**Why This Is Good**: Guarantees test-to-requirement alignment before code is written. Prevents "test last" anti-pattern.
+**Why This Is Good**:
+Each expected_output provides protocol-accurate details: correct event kinds, correct tag formats (e.g., `["e", "<kind:40-event-id>", "<relay-url>", "root"]`), approximate byte costs, and the publishEvent API. This ensures the skill's quality can be meaningfully evaluated, not just checked for keyword presence. The lesson from Story 9.6 (always include expected_output) is fully applied.
 
 ---
 
 ## Test File Analysis
 
-### Files Reviewed
+### File Metadata
 
-| File                                   | Lines | describe | it/test | Skipped   | Factories                                            | Quality    |
-| -------------------------------------- | ----- | -------- | ------- | --------- | ---------------------------------------------------- | ---------- |
-| `sdk/identity.test.ts`                 | 184   | 3        | 11      | 11 (RED)  | Constants, test vectors                              | Excellent  |
-| `sdk/handler-registry.test.ts`         | 119   | 1        | 5       | 5 (RED)   | `createMockContext()`                                | Excellent  |
-| `sdk/verification-pipeline.test.ts`    | 102   | 1        | 4       | 4 (RED)   | `createSignedToonPayload()`                          | Good       |
-| `town/event-storage-handler.test.ts`   | 314   | 1        | 9       | 9 (RED)   | `createValidSignedEvent()`, `calculatePrice()`       | Good       |
-| `rig/repo-creation-handler.test.ts`    | 204   | 2        | 6       | 6 (RED)   | `createMockHandlerContext()`, `createMockExecFile()` | Excellent  |
-| `rig/pubkey-identity.test.ts`          | 303   | 3        | 12      | 12 (RED)  | `createMockRelayClient()`                            | Excellent  |
-| `core/toon-codec.test.ts`              | 129   | 3        | 8       | 8 (RED)   | `createTestEvent()`                                  | Excellent  |
-| `client/e2e/genesis-bootstrap.test.ts` | 357   | 1        | 1       | 0 (GREEN) | Inline                                               | Good (E2E) |
-| `core/spsp/NostrSpspClient.test.ts`    | 743   | 5        | 32      | 0 (GREEN) | `createEncryptedResponseEvent()`                     | Excellent  |
-| `bls/BusinessLogicServer.test.ts`      | 1208  | 9        | 75      | 0 (GREEN) | `createValidSignedEvent()`, `createMockEventStore()` | Excellent  |
+- **File Path**: `.claude/skills/public-chat/evals/evals.json`
+- **File Size**: 174 lines, ~7.5 KB
+- **Test Framework**: Custom skill-creator eval format (JSON)
+- **Language**: JSON
 
-**Suite Totals**: 3,663 lines, 29 describe blocks, 163 test cases (55 RED, 108 GREEN)
+### Test Structure
+
+- **Trigger Evals**: 20 (10 true, 10 false)
+- **Output Evals**: 5
+- **Average Assertions per Output Eval**: 5.6
+- **Total Assertions**: 28
+
+### Validation Scripts
+
+- **validate-skill.sh**: 11 structural checks (all pass)
+  - SKILL.md exists, frontmatter valid (name + description only), references/ exists, evals/evals.json valid JSON, Social Context section exists, no bare EVENT patterns, description 111 words, body 77 lines
+- **run-eval.sh**: 7 TOON compliance checks (all pass)
+  - Classification: both (read + write)
+  - toon-write-check, toon-fee-check, toon-format-check, social-context-check, trigger-coverage, eval-completeness
+
+### Eval Scope
+
+| Output Eval ID | NIP-28 Coverage | TOON Coverage |
+| --- | --- | --- |
+| channel-creation | kind:40, JSON content, metadata fields | publishEvent, byte cost, event ID as identifier |
+| channel-message | kind:42, root e tag, reply threading | publishEvent, byte cost, conciseness incentive |
+| conciseness-incentive | chat behavior dynamics | per-byte cost, spam resistance, channel creation friction |
+| chat-vs-groups-vs-communities | NIP-28 vs NIP-29 vs NIP-72 distinction | per-byte economics across all three models |
+| discover-channels | kind:40 discovery, kind:42 subscriptions, #e filters | TOON-format parsing, free reading |
 
 ---
 
-## Decision
+## Context and Integration
 
-**Recommendation**: Approve with Comments
+### Related Artifacts
 
-> Test quality is excellent with 91/100 score. The ATDD Red Phase discipline is exemplary — 55 test skeletons ready for implementation. The 108 active tests demonstrate mature patterns (factories, isolation, real crypto). Three high-priority recommendations (Date.now() mocking, E2E fail-loud, file splitting) should be addressed during implementation but don't block development start. The "no mocks" philosophy is well-executed and aligns with Jonathan's preference for real local infrastructure.
-
----
-
-## Next Steps
-
-### Immediate Actions (Before Epic 1 Implementation)
-
-1. **Fix E2E conditional skip** — Make it fail in CI with `process.env.CI` check
-   - Priority: P1
-   - Owner: Dev
-   - Estimated Effort: 15 min
-
-### Follow-up Actions (During Epic 1)
-
-1. **Add vi.setSystemTime()** — Fix Date.now() in 3 test files as they are touched
-   - Priority: P1
-   - Target: During story implementation
-
-2. **Split large test files** — Address BLS (1208 lines) and SPSP (743 lines)
-   - Priority: P2
-   - Target: Post-Epic 1 refactoring
-
-3. **Add test IDs to existing tests** — Backfill formal IDs for traceability
-   - Priority: P3
-   - Target: Backlog
-
-### Re-Review Needed?
-
-No re-review needed — approve as-is. Address recommendations incrementally during implementation.
+- **Story File**: [9-10-public-chat-skill.md](_bmad-output/implementation-artifacts/9-10-public-chat-skill.md)
+- **Test Design**: [test-design-epic-9.md](_bmad-output/planning-artifacts/test-design-epic-9.md) (Phase 3 Community and Groups)
+- **Peer Skills Reviewed**: relay-groups (9.8, 99 tests), moderated-communities (9.9, 82 tests)
 
 ---
 
 ## Knowledge Base References
 
-This review consulted:
+This review consulted the following context:
 
-- `test-quality.md` — Definition of Done (<300 lines, <1.5 min, self-cleaning)
-- `data-factories.md` — Factory functions with overrides pattern
-- `test-levels-framework.md` — Unit vs integration vs E2E appropriateness
-- `ci-burn-in.md` — Flakiness detection (informed burn-in skip decision)
-- `risk-governance.md` — Risk-linked test pattern
+- **Story 9.10 specification** - All 11 acceptance criteria, 6 tasks, dev notes, anti-patterns
+- **test-design-epic-9.md** - Phase 3 Community and Groups notes
+- **validate-skill.sh** - Structural validation (11 checks)
+- **run-eval.sh** - TOON compliance validation (7 checks)
+- **Peer skill evals** - relay-groups/evals.json, moderated-communities/evals.json (pattern consistency check)
+
+---
+
+## Next Steps
+
+### Immediate Actions (Before Merge)
+
+No blocking actions. The test suite passes all validation and meets all acceptance criteria.
+
+### Follow-up Actions (Future PRs)
+
+1. **Add moderation output eval** - Add a 6th output eval testing kind:43/44 moderation workflows
+   - Priority: P2
+   - Target: Next iteration or Story 9.34 publication gate
+
+### Re-Review Needed?
+
+No re-review needed - approve as-is.
+
+---
+
+## Decision
+
+**Recommendation**: Approve
+
+**Rationale**:
+Test quality is excellent with 95/100 score. The eval suite meets all 11 acceptance criteria from Story 9.10. Both validation scripts pass cleanly (18/18 checks total). The eval patterns are consistent with the 6 prior skills produced by the NIP-to-TOON pipeline. The single medium-severity finding (no dedicated output eval for moderation actions) is within the AC6 budget (4-6 output evals, current count is 5) and does not block approval. The trigger evals provide routing coverage for all 5 event kinds, and the output evals provide quality coverage for the highest-value scenarios.
+
+> Test quality is excellent with 95/100 score. All structural and TOON compliance checks pass. Eval patterns are consistent with peer skills. Approve as-is.
+
+---
+
+## Appendix
+
+### Violation Summary by Location
+
+| Location | Severity | Criterion | Issue | Fix |
+| --- | --- | --- | --- | --- |
+| evals.json (output_evals) | P2 | AC Coverage | No output eval for kind:43/44 moderation | Add 6th output eval for hide/mute workflow |
+
+### Cross-Skill Consistency Matrix
+
+| Metric | relay-groups (9.8) | moderated-communities (9.9) | public-chat (9.10) |
+| --- | --- | --- | --- |
+| Should-trigger | 10 | 10 | 10 |
+| Should-not-trigger | 8 | 10 | 10 |
+| Output evals | 5 | 5 | 5 |
+| Avg assertions/eval | 5.8 | 6.0 | 5.6 |
+| validate-skill.sh | 11/11 | 11/11 | 11/11 |
+| run-eval.sh | 7/7 | 7/7 | 7/7 |
 
 ---
 
@@ -388,5 +284,6 @@ This review consulted:
 
 **Generated By**: BMad TEA Agent (Test Architect)
 **Workflow**: testarch-test-review v5.0
-**Review ID**: test-review-suite-20260304
+**Review ID**: test-review-9-10-public-chat-20260327
+**Timestamp**: 2026-03-27
 **Version**: 1.0

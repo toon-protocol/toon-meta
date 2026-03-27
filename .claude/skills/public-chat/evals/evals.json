@@ -1,0 +1,194 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do public chat channels work on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a chat channel on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-28 public chat?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I send a message to a channel?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is a kind:40 channel creation event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I hide a message in a chat channel?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is kind:42 channel message?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I mute a user in a channel?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I update channel metadata with kind:41?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does kind:43 hide message and kind:44 mute user work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do relay groups work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do moderated communities work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does encrypted messaging work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do reactions work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I search for content on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file using Nostr DVM?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I approve a post in a community?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "channel-creation",
+      "prompt": "I want to create a new public chat channel on TOON called 'toon-dev' for discussing TOON development. How do I construct and publish the channel creation event?",
+      "expected_output": "Construct a kind:40 event with JSON content: {\"name\": \"toon-dev\", \"about\": \"Discussion channel for TOON protocol development\", \"picture\": \"https://...\"}. Sign the event with your Nostr private key. Calculate the fee based on serialized event size (~300-600 bytes at default basePricePerByte, approximately $0.003-$0.006). Publish via publishEvent() from @toon-protocol/client. Record the event ID -- this becomes the channel's permanent identifier that others will use to send messages. Note that TOON relays return TOON-format strings in EVENT messages, not standard JSON objects, so when reading back channel data use the TOON decoder.",
+      "rubric": {
+        "correct": "Constructs kind:40 with correct JSON content containing name, about, and picture fields. Signs the event. Calculates approximate byte cost. Publishes via publishEvent(). Notes that the event ID becomes the channel identifier. Mentions TOON-format strings for reading relay responses.",
+        "acceptable": "Uses publishEvent() with kind:40 and includes JSON content with name field, but may not mention all metadata fields or exact byte cost.",
+        "incorrect": "Uses raw WebSocket patterns, omits JSON content format, uses wrong event kind, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for channel creation byte cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has chat-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes kind:40 with JSON content containing name, about, picture fields"
+      ]
+    },
+    {
+      "id": "channel-message",
+      "prompt": "I want to send a message to a chat channel on TOON. The channel was created with event ID abc123. How do I construct and publish the message?",
+      "expected_output": "Construct a kind:42 event with your message as plain text content. Add the root e tag: ['e', 'abc123', '<relay-url>', 'root'] to reference the channel. Sign the event. Calculate the fee based on serialized size (~200-350 bytes for a short message at default basePricePerByte, approximately $0.002-$0.004). Publish via publishEvent() from @toon-protocol/client. On TOON, every message costs per-byte, so keep messages concise to minimize cost. Note that TOON relays return TOON-format strings in EVENT messages, not standard JSON objects, so when reading channel messages use the TOON decoder.",
+      "rubric": {
+        "correct": "Constructs kind:42 with correct e tag including root marker referencing the channel. Signs the event. Calculates approximate byte cost. Publishes via publishEvent(). Mentions conciseness incentive from per-byte pricing. Mentions TOON-format strings for reading relay responses.",
+        "acceptable": "Uses publishEvent() with kind:42 and includes e tag with root marker, but may not mention conciseness incentive or exact byte cost.",
+        "incorrect": "Uses raw WebSocket patterns, omits root marker from e tag, uses wrong event kind, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for message byte cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has chat-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes e tag with root marker referencing the channel"
+      ]
+    },
+    {
+      "id": "conciseness-incentive",
+      "prompt": "How does TOON's payment model affect public chat behavior compared to free Nostr relays? What is different about chatting on TOON?",
+      "expected_output": "On TOON, every chat message (kind:42) costs per-byte via ILP payment. This creates a conciseness incentive absent from free relays: longer messages cost more, so participants naturally say more with fewer words. Spam is economically unfeasible -- a bot sending 1000 messages at ~$0.003 each costs ~$3.00. Channel creation (kind:40) costs per-byte, preventing channel spam. Moderation actions (kind:43 hide, kind:44 mute) also cost per-byte, making them deliberate rather than reflexive. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects, so reading chat events requires TOON decoding. The overall effect is higher-quality, more focused chat compared to free platforms.",
+      "rubric": {
+        "correct": "Explains per-byte cost for messages creates conciseness incentive. Mentions spam resistance from economic friction. Notes channel creation and moderation action costs. Contrasts with free Nostr relays where these dynamics are absent. Mentions TOON-format strings for reading chat events.",
+        "acceptable": "Correctly identifies per-byte cost and conciseness incentive, but may not cover all event kinds or spam resistance details.",
+        "incorrect": "Claims chat is free on TOON, does not mention conciseness incentive, or conflates with NIP-29 or NIP-72 models."
+      },
+      "assertions": [
+        "toon-fee-check: Response includes fee awareness for per-byte chat message cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has chat-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response explains conciseness incentive from per-byte pricing",
+        "Response contrasts TOON chat dynamics with free relay behavior"
+      ]
+    },
+    {
+      "id": "chat-vs-groups-vs-communities",
+      "prompt": "What is the difference between NIP-28 public chat channels, NIP-29 relay groups, and NIP-72 moderated communities? When should I use each?",
+      "expected_output": "NIP-28 public chat channels are open, real-time conversational spaces. Anyone can create channels (kind:40), send messages (kind:42), and use personal moderation tools (kind:43/44). NIP-29 relay groups are relay-enforced membership spaces where the relay validates who can participate. NIP-72 moderated communities use approval-based curation where moderators approve posts (kind:4550) before they appear in the community feed. Use NIP-28 for open real-time chat, NIP-29 for private membership groups, and NIP-72 for curated public feeds. On TOON, all three cost per-byte, but chat has the strongest conciseness incentive due to high message frequency. All three return TOON-format strings in EVENT messages rather than standard JSON objects.",
+      "rubric": {
+        "correct": "Clearly distinguishes all three models: open chat (NIP-28), relay-enforced (NIP-29), approval-based (NIP-72). Explains when to use each. Notes TOON-specific economics. Mentions TOON-format strings for reading events.",
+        "acceptable": "Correctly distinguishes the three models but may not detail all event kinds or TOON-specific economics.",
+        "incorrect": "Conflates the models, claims they are equivalent, or describes NIP-28 as having membership enforcement or approval requirements."
+      },
+      "assertions": [
+        "toon-fee-check: Response includes fee awareness for per-byte cost across all three models",
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has chat-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response distinguishes open chat (NIP-28) from relay-enforced (NIP-29) and approval-based (NIP-72)",
+        "Response explains when to use each model"
+      ]
+    },
+    {
+      "id": "discover-channels",
+      "prompt": "I want to discover and join public chat channels on a TOON relay. How do I find channels and subscribe to messages?",
+      "expected_output": "To discover channels, subscribe with filter kinds: [40] to receive channel creation events. Parse the JSON content of each kind:40 event to read channel metadata (name, about, picture). To join a specific channel's conversation, subscribe with kinds: [42] and #e filter matching the kind:40 event ID. For metadata updates, subscribe with kinds: [41] and #e filter -- validate that kind:41 authors match the kind:40 creator. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects -- use the TOON decoder to parse responses. All reading is free on TOON.",
+      "rubric": {
+        "correct": "Specifies correct filter kinds for channel discovery (40) and messages (42). Uses #e filter for channel-specific subscriptions. Explains JSON content parsing for metadata. Mentions TOON-format parsing. Notes reading is free.",
+        "acceptable": "Correctly identifies subscription filters and TOON-format parsing, but may not explain JSON content parsing or metadata validation.",
+        "incorrect": "Uses wrong filter kinds, assumes standard JSON responses, or claims reading costs money."
+      },
+      "assertions": [
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has chat-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses correct filter kinds for channel discovery and messages",
+        "Response mentions reading is free on TOON"
+      ]
+    },
+    {
+      "id": "moderation-actions",
+      "prompt": "A user in a TOON chat channel is posting disruptive spam. I want to hide their worst message and mute them entirely. How do I do both on TOON?",
+      "expected_output": "To hide a specific message, construct a kind:43 event with an e tag referencing the disruptive message: ['e', '<kind:42-event-id>']. Optionally set content to JSON: {\"reason\": \"spam\"}. Sign the event. Calculate the fee (~200-300 bytes without reason, ~250-400 bytes with reason, approximately $0.002-$0.004). Publish via publishEvent() from @toon-protocol/client. To mute the user entirely, construct a kind:44 event with a p tag referencing their pubkey: ['p', '<user-pubkey>']. Optionally set content to JSON: {\"reason\": \"persistent spam\"}. Sign and publish via publishEvent(). Both actions are personal moderation tools -- they affect only your view, not other channel participants. On TOON, each moderation action costs per-byte, making them deliberate rather than reflexive. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects, so when verifying moderation state use the TOON decoder.",
+      "rubric": {
+        "correct": "Constructs kind:43 with correct e tag for hiding and kind:44 with correct p tag for muting. Explains both are personal moderation (user-specific, not global). Signs events. Calculates approximate byte costs for both. Publishes via publishEvent(). Mentions TOON cost makes moderation deliberate. Mentions TOON-format strings for reading relay responses.",
+        "acceptable": "Uses publishEvent() with correct event kinds and tags, but may not mention personal-only semantics or approximate byte costs for both actions.",
+        "incorrect": "Uses raw WebSocket patterns, omits required tags, claims hide/mute are global actions, uses wrong event kinds, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for moderation action byte cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has chat-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response constructs kind:43 with e tag for hiding and kind:44 with p tag for muting",
+        "Response explains hide and mute are personal moderation tools affecting only the requesting user"
+      ]
+    }
+  ]
+}

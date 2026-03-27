@@ -4,15 +4,16 @@ lastStep: 'step-05-gate-decision'
 lastSaved: '2026-03-27'
 workflowType: 'testarch-trace'
 inputDocuments:
-  - '_bmad-output/implementation-artifacts/9-9-moderated-communities-skill.md'
-  - 'tests/skills/test-moderated-communities-skill.sh'
+  - '_bmad-output/implementation-artifacts/9-10-public-chat-skill.md'
+  - 'packages/core/src/skills/public-chat.test.ts'
+  - 'tests/skills/test-public-chat-skill.sh'
 ---
 
-# Traceability Matrix & Gate Decision - Story 9.9
+# Traceability Matrix & Gate Decision - Story 9.10
 
-**Story:** 9.9 Moderated Communities Skill (`moderated-communities`)
+**Story:** Public Chat Skill (public-chat) -- NIP-28 Public Chat on TOON Protocol
 **Date:** 2026-03-27
-**Evaluator:** TEA Agent (YOLO mode)
+**Evaluator:** TEA Agent (Claude Opus 4.6)
 
 ---
 
@@ -22,13 +23,13 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ### Coverage Summary
 
-| Priority  | Total Criteria | FULL Coverage | Coverage % | Status       |
-| --------- | -------------- | ------------- | ---------- | ------------ |
-| P0        | 7              | 7             | 100%       | PASS         |
-| P1        | 3              | 3             | 100%       | PASS         |
-| P2        | 1              | 0             | 0%         | WARN (skip)  |
-| P3        | 0              | 0             | N/A        | N/A          |
-| **Total** | **11**         | **10**        | **91%**    | **PASS**     |
+| Priority  | Total Criteria | FULL Coverage | Coverage % | Status  |
+| --------- | -------------- | ------------- | ---------- | ------- |
+| P0        | 7              | 7             | 100%       | PASS    |
+| P1        | 3              | 3             | 100%       | PASS    |
+| P2        | 1              | 0             | 0%         | WARN    |
+| P3        | 0              | 0             | 100%       | PASS    |
+| **Total** | **11**         | **10**        | **91%**    | **PASS**|
 
 **Legend:**
 
@@ -42,441 +43,187 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 #### AC1: Pipeline Production (P0)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `STRUCT-A` - tests/skills/test-moderated-communities-skill.sh:78
+  - `[STRUCT-A]` - packages/core/src/skills/public-chat.test.ts:82
     - **Given:** The nip-to-toon-skill pipeline (Story 9.2)
-    - **When:** Pipeline is run with NIP-72 as input
-    - **Then:** SKILL.md exists with valid YAML frontmatter (only name and description)
-  - `STRUCT-B` - tests/skills/test-moderated-communities-skill.sh:98
-    - **Given:** Pipeline output directory
-    - **When:** Checking references/ directory
-    - **Then:** All required reference files (nip-spec.md, toon-extensions.md, scenarios.md) present
-  - `STRUCT-B2` - tests/skills/test-moderated-communities-skill.sh:114
-    - **Given:** Pipeline output directory
-    - **When:** Checking evals/evals.json
-    - **Then:** evals.json exists and is valid JSON
-  - `AC1-NAME` - tests/skills/test-moderated-communities-skill.sh:156
+    - **When:** The pipeline is run with NIP-28 as input
+    - **Then:** SKILL.md exists, references/ directory exists, evals/ directory exists, evals.json exists, no extraneous files, expected reference files present
+  - `[STRUCT-A]` - tests/skills/test-public-chat-skill.sh:79
+    - **Given:** SKILL.md file at .claude/skills/public-chat/
+    - **When:** Structural check runs
+    - **Then:** Frontmatter has valid YAML with only name and description
+  - `[STRUCT-B]` - packages/core/src/skills/public-chat.test.ts:111
     - **Given:** SKILL.md frontmatter
-    - **When:** Checking name field
-    - **Then:** name is "moderated-communities"
-  - `CLEAN-A` - tests/skills/test-moderated-communities-skill.sh:1015
-    - **Given:** Skill root directory
-    - **When:** Checking for extraneous files
-    - **Then:** No extraneous .md files in skill root
-
+    - **When:** Validation runs
+    - **Then:** name is "public-chat", description present, ONLY 2 fields
+  - `[STRUCT-B]` - tests/skills/test-public-chat-skill.sh:100
+    - **Given:** references/ directory
+    - **When:** File check runs
+    - **Then:** nip-spec.md, toon-extensions.md, scenarios.md all present
+  - `[STRUCT-B2]` - tests/skills/test-public-chat-skill.sh:116
+    - **Given:** evals/evals.json
+    - **When:** JSON parse
+    - **Then:** Valid JSON
+  - `[AC1-NAME]` - tests/skills/test-public-chat-skill.sh:158
+    - **Given:** Frontmatter name field
+    - **When:** Name check
+    - **Then:** Name is "public-chat"
 - **Gaps:** None
-- **Recommendation:** Coverage is complete.
+- **Recommendation:** None needed
 
 ---
 
 #### AC2: NIP Coverage (P0)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `EVAL-A` - tests/skills/test-moderated-communities-skill.sh:176
-    - **Given:** SKILL.md body
-    - **When:** Checking NIP-72 coverage
-    - **Then:** Covers NIP-72, community, approval, a tag
-  - `EVAL-B` - tests/skills/test-moderated-communities-skill.sh:196
-    - **Given:** references/nip-spec.md
-    - **When:** Checking NIP-72 spec coverage
-    - **Then:** Covers NIP-72, moderated communities, event kinds (34550, 4550, 1111)
-  - `AC2-NIP72` - tests/skills/test-moderated-communities-skill.sh:214
-    - **Given:** SKILL.md
-    - **When:** Checking NIP-72 mention
-    - **Then:** NIP-72 mentioned
-  - `AC2-APPROVAL` - tests/skills/test-moderated-communities-skill.sh:222
-    - **Given:** SKILL.md
-    - **When:** Checking approval model
-    - **Then:** Approval-based moderation model covered
-  - `AC2-KINDS-COMMUNITY` - tests/skills/test-moderated-communities-skill.sh:230
-    - **Given:** SKILL.md
-    - **When:** Checking kind:34550
-    - **Then:** Community definition kind covered
-  - `AC2-KINDS-APPROVAL` - tests/skills/test-moderated-communities-skill.sh:242
-    - **Given:** SKILL.md
-    - **When:** Checking kind:4550
-    - **Then:** Approval event kind covered
-  - `AC2-KINDS-POST` - tests/skills/test-moderated-communities-skill.sh:254
-    - **Given:** SKILL.md
-    - **When:** Checking kind:1111
-    - **Then:** Community post kind covered
-  - `AC2-ATAG` - tests/skills/test-moderated-communities-skill.sh:266
-    - **Given:** SKILL.md
-    - **When:** Checking a tag coverage
-    - **Then:** a tag for community reference covered
-  - `AC2-UPPERCASE` - tests/skills/test-moderated-communities-skill.sh:274
-    - **Given:** SKILL.md
-    - **When:** Checking uppercase A/P/K tags
-    - **Then:** Uppercase tags adequately covered (3 found)
-  - `AC2-TOONEXT` - tests/skills/test-moderated-communities-skill.sh:300
-    - **Given:** references/toon-extensions.md
-    - **When:** Checking ILP/per-byte coverage
-    - **Then:** ILP/per-byte costs covered
-  - `AC2-SCENARIOS` - tests/skills/test-moderated-communities-skill.sh:312
-    - **Given:** references/scenarios.md
-    - **When:** Checking step-by-step workflows
-    - **Then:** Scenarios with step-by-step workflows present
-  - `AC2-CROSSPOST` - tests/skills/test-moderated-communities-skill.sh:324
-    - **Given:** All skill files
-    - **When:** Checking cross-posting coverage
-    - **Then:** Cross-posting (kind:6/kind:16) to communities covered
-  - `AC2-BACKWARD` - tests/skills/test-moderated-communities-skill.sh:332
-    - **Given:** All skill files
-    - **When:** Checking backward compatibility
-    - **Then:** Backward compatibility (kind:1) covered
-  - `AC2-DTAG` - tests/skills/test-moderated-communities-skill.sh:1104 (gap-fill)
-    - **Given:** nip-spec.md
-    - **When:** Checking d tag as community identifier
-    - **Then:** d tag as community identifier covered
-  - `AC2-MOD-PTAG` - tests/skills/test-moderated-communities-skill.sh:1116 (gap-fill)
-    - **Given:** nip-spec.md
-    - **When:** Checking moderator p tags
-    - **Then:** Moderator p tags with "moderator" marker covered
-  - `AC2-RELAY-URLS` - tests/skills/test-moderated-communities-skill.sh:1128 (gap-fill)
-    - **Given:** nip-spec.md
-    - **When:** Checking preferred relay URLs
-    - **Then:** Preferred relay URLs covered
-  - `AC2-JSON-ENCODED` - tests/skills/test-moderated-communities-skill.sh:1140 (gap-fill)
-    - **Given:** All skill files
-    - **When:** Checking JSON-encoded content in approval events
-    - **Then:** JSON-encoded content covered
-  - `AC2-MULTI-APPROVE` - tests/skills/test-moderated-communities-skill.sh:1148 (gap-fill)
-    - **Given:** All skill files
-    - **When:** Checking multiple moderator approvals
-    - **Then:** Multiple moderator approvals covered
-  - `AC2-NIP09` - tests/skills/test-moderated-communities-skill.sh:1156 (gap-fill)
-    - **Given:** All skill files
-    - **When:** Checking NIP-09 deletion
-    - **Then:** NIP-09 deletion by moderators covered
-  - `AC2-UPPERCASE-SPEC` - tests/skills/test-moderated-communities-skill.sh:1164 (gap-fill)
-    - **Given:** nip-spec.md
-    - **When:** Checking uppercase A/P/K in spec
-    - **Then:** Uppercase tags covered in nip-spec.md (4 indicators)
-
+  - `[EVAL-A, EVAL-B]` - packages/core/src/skills/public-chat.test.ts:131 (18 vitest tests)
+    - Covers: NIP-28 mentioned, kind:40 with JSON content (name/about/picture), kind:41 metadata updates, kind:42 with e tag root marker, kind:43 hide, kind:44 mute, reply marker, p tag, channel discovery, metadata authorization, nip-spec.md all five kinds, root/reply markers, p tag, JSON format, optional reasons, author validation, discovery filters, NIP-29/NIP-72 distinction
+  - `[AC2-*]` - tests/skills/test-public-chat-skill.sh:176-345 (17 shell tests)
+    - AC2-NIP28, AC2-CHANNEL-CREATE, AC2-KINDS-40 through AC2-KINDS-44, AC2-ETAG, AC2-JSON-CONTENT, AC2-TOONEXT, AC2-SCENARIOS, AC2-CHANNEL-DISCOVER, AC2-REPLY-THREADING, AC2-ROOT-MARKER, AC2-REPLY-MARKER, AC2-PTAG-REPLY, AC2-HIDE-REASON, AC2-MUTE-REASON, AC2-METADATA-AUTHOR-CHECK
 - **Gaps:** None
-- **Recommendation:** Coverage is comprehensive with 20 tests. Well-covered.
+- **Recommendation:** None needed
 
 ---
 
 #### AC3: TOON Write Model (P0)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `TOON-A` - tests/skills/test-moderated-communities-skill.sh:348
-    - **Given:** All skill files
-    - **When:** Checking publishEvent reference
-    - **Then:** publishEvent referenced across skill files
-  - `TOON-B` - tests/skills/test-moderated-communities-skill.sh:356
-    - **Given:** All skill files
-    - **When:** Checking fee/cost terms
-    - **Then:** Fee/cost terms referenced (basePricePerByte, per-byte)
-  - `AC3-CLIENT` - tests/skills/test-moderated-communities-skill.sh:363
-    - **Given:** SKILL.md
-    - **When:** Checking publishEvent() from @toon-protocol/client
-    - **Then:** References publishEvent() from @toon-protocol/client
-  - `AC3-FEEREF` - tests/skills/test-moderated-communities-skill.sh:371
-    - **Given:** SKILL.md
-    - **When:** Checking fee calculation reference
-    - **Then:** Fee/cost terms referenced
-  - `AC3-ATAG-REQ` - tests/skills/test-moderated-communities-skill.sh:379
-    - **Given:** SKILL.md
-    - **When:** Checking a tag requirement for community-scoped events
-    - **Then:** a tag requirement explained
-  - `AC3-APPROVAL-COST` - tests/skills/test-moderated-communities-skill.sh:387
-    - **Given:** All skill files
-    - **When:** Checking approval event per-byte cost
-    - **Then:** Approval event per-byte cost explained
-  - `AC3-DOUBLE-FRICTION` - tests/skills/test-moderated-communities-skill.sh:395
-    - **Given:** All skill files
-    - **When:** Checking double-friction model
-    - **Then:** Double-friction model (cost + approval) explained
-  - `AC3-COREREF` - tests/skills/test-moderated-communities-skill.sh:403
-    - **Given:** SKILL.md
-    - **When:** Checking nostr-protocol-core reference for fee formula
-    - **Then:** References nostr-protocol-core for fee details
-  - `AC3-DEF-COST` - tests/skills/test-moderated-communities-skill.sh:1182 (gap-fill)
-    - **Given:** All skill files
-    - **When:** Checking community definition (kind:34550) per-byte cost
-    - **Then:** Community definition per-byte cost explained
-  - `AC3-CROSSPOST-COST` - tests/skills/test-moderated-communities-skill.sh:1196 (gap-fill)
-    - **Given:** All skill files
-    - **When:** Checking cross-posting per-byte cost
-    - **Then:** Cross-posting per-byte cost explained
-
+  - `[TOON-A, TOON-B]` - packages/core/src/skills/public-chat.test.ts:294 (13 vitest tests)
+    - Covers: publishEvent() referenced, @toon-protocol/client referenced, per-byte cost for messages, channel creation costs, moderation costs, conciseness incentive, nostr-protocol-core for fee formula, toon-extensions.md publishEvent flow, channel creation flow, moderation flow, conciseness incentive, spam resistance, byte cost tables for all kinds, scenarios.md publishEvent + 7 scenarios
+  - `[TOON-A, TOON-B, AC3-*]` - tests/skills/test-public-chat-skill.sh:354-434 (9 shell tests)
+    - TOON-A, TOON-B, AC3-CLIENT, AC3-FEEREF, AC3-MSG-COST, AC3-CHANNEL-COST, AC3-MODERATION-COST, AC3-CONCISENESS, AC3-COREREF, AC3-SPAM-RESISTANCE
 - **Gaps:** None
-- **Recommendation:** Coverage is complete with 10 tests.
+- **Recommendation:** None needed
 
 ---
 
 #### AC4: TOON Read Model (P0)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `TOON-C` - tests/skills/test-moderated-communities-skill.sh:423
-    - **Given:** All skill files
-    - **When:** Checking TOON-format reference
-    - **Then:** TOON-format referenced across skill files
-  - `AC4-FORMAT` - tests/skills/test-moderated-communities-skill.sh:430
-    - **Given:** SKILL.md
-    - **When:** Checking TOON-format for community subscriptions
-    - **Then:** TOON-format referenced
-  - `AC4-ATAG-FILTER` - tests/skills/test-moderated-communities-skill.sh:438
-    - **Given:** SKILL.md
-    - **When:** Checking a tag filtering for subscriptions
-    - **Then:** a tag filtering for community subscriptions explained
-  - `AC4-REPLACEABLE` - tests/skills/test-moderated-communities-skill.sh:446
-    - **Given:** All skill files
-    - **When:** Checking replaceable event model
-    - **Then:** Replaceable event model for community definitions explained
-  - `AC4-READREF` - tests/skills/test-moderated-communities-skill.sh:454
-    - **Given:** SKILL.md
-    - **When:** Checking nostr-protocol-core reference for TOON format
-    - **Then:** References nostr-protocol-core for TOON format details
-  - `AC4-JSON-READ` - tests/skills/test-moderated-communities-skill.sh:1204 (gap-fill)
-    - **Given:** SKILL.md Read Model section
-    - **When:** Checking JSON-encoded content in approvals
-    - **Then:** Read model covers JSON-encoded content in approval events
-  - `AC4-DISCOVER` - tests/skills/test-moderated-communities-skill.sh:1217 (gap-fill)
-    - **Given:** SKILL.md Read Model section
-    - **When:** Checking community discovery
-    - **Then:** Community discovery via kind:34550 subscription covered
-
+  - `[TOON-C]` - packages/core/src/skills/public-chat.test.ts:419 (9 vitest tests)
+    - Covers: TOON-format strings (not JSON), nostr-protocol-core for TOON format parsing, subscribing to kind:40, subscribing via #e tag filter, validating kind:41 against creator, reading is free, toon-extensions.md TOON-format + decode, reading free, scenarios.md discovery + metadata override
+  - `[TOON-C, AC4-*]` - tests/skills/test-public-chat-skill.sh:443-490 (6 shell tests)
+    - TOON-C, AC4-FORMAT, AC4-CHANNEL-SUBSCRIBE, AC4-MSG-SUBSCRIBE, AC4-METADATA-VALIDATE, AC4-READREF, AC4-METADATA-OVERRIDE
 - **Gaps:** None
-- **Recommendation:** Coverage is complete with 7 tests.
+- **Recommendation:** None needed
 
 ---
 
-#### AC5: Social Context (P1)
+#### AC5: Social Context (P0)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `STRUCT-D` - tests/skills/test-moderated-communities-skill.sh:140
-    - **Given:** SKILL.md
-    - **When:** Checking Social Context section
-    - **Then:** Social Context section exists with >= 30 words (279 words found)
-  - `TOON-D` - tests/skills/test-moderated-communities-skill.sh:469
-    - **Given:** SKILL.md Social Context section
-    - **When:** Checking word count
-    - **Then:** Social Context has >= 100 words (279 words)
-  - `AC5-CURATION` - tests/skills/test-moderated-communities-skill.sh:482
-    - **Given:** Social Context section
-    - **When:** Checking moderated curation coverage
-    - **Then:** Covers moderated curation / respect moderators
-  - `AC5-ECON` - tests/skills/test-moderated-communities-skill.sh:495
-    - **Given:** Social Context section
-    - **When:** Checking economic dynamics
-    - **Then:** Covers double-friction economic dynamics
-  - `AC5-MODERATOR-INVEST` - tests/skills/test-moderated-communities-skill.sh:508
-    - **Given:** Social Context section
-    - **When:** Checking moderator investment (pay to approve)
-    - **Then:** Moderator investment covered
-  - `AC5-CROSSPOST-THOUGHT` - tests/skills/test-moderated-communities-skill.sh:521
-    - **Given:** Social Context section
-    - **When:** Checking cross-posting thoughtfulness
-    - **Then:** Cross-posting thoughtfulness covered
-  - `AC5-COMMUNITY-NORMS` - tests/skills/test-moderated-communities-skill.sh:534
-    - **Given:** Social Context section
-    - **When:** Checking community norms guidance
-    - **Then:** Reading community norms before participating covered
-  - `AC5-DISTINGUISH-NIP29` - tests/skills/test-moderated-communities-skill.sh:547
-    - **Given:** Social Context section
-    - **When:** Checking NIP-72 vs NIP-29 distinction
-    - **Then:** Distinguishes NIP-72 from NIP-29
-  - `AC5-SUBST` - tests/skills/test-moderated-communities-skill.sh:560
-    - **Given:** Social Context section
-    - **When:** Running NIP-name substitution test
-    - **Then:** 8 community-specific terms found (passes substitution test, >= 5 required)
-
+  - `[STRUCT-D, TOON-D]` - packages/core/src/skills/public-chat.test.ts:495 (10 vitest tests)
+    - Covers: ## Social Context section exists, >= 100 words, conciseness incentive, real-time norms, channel purpose, hide/mute personal moderation, NIP-29 distinction, NIP-72 distinction, substitution test (>= 5 chat-specific terms), anti-patterns
+  - `[STRUCT-D, TOON-D, AC5-*]` - tests/skills/test-public-chat-skill.sh:498-606 (9 shell tests)
+    - STRUCT-D, TOON-D, AC5-CONCISENESS, AC5-REALTIME, AC5-CHANNEL-PURPOSE, AC5-MODERATION-TOOLS, AC5-DISTINGUISH-GROUPS, AC5-DISTINGUISH-COMMUNITIES, AC5-SUBST
 - **Gaps:** None
-- **Recommendation:** Coverage is thorough with 9 tests.
+- **Recommendation:** None needed
 
 ---
 
 #### AC6: Eval Suite (P0)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `EVAL-A2` - tests/skills/test-moderated-communities-skill.sh:589
-    - **Given:** evals/evals.json
-    - **When:** Counting should-trigger queries
-    - **Then:** >= 8 should-trigger queries (10 found)
-  - `EVAL-B2` - tests/skills/test-moderated-communities-skill.sh:604
-    - **Given:** evals/evals.json
-    - **When:** Counting should-not-trigger queries
-    - **Then:** >= 8 should-not-trigger queries (10 found)
-  - `EVAL-C` - tests/skills/test-moderated-communities-skill.sh:621
-    - **Given:** evals/evals.json
-    - **When:** Counting output evals
-    - **Then:** >= 4 output evals (5 found)
-  - `AC6-RUBRIC` - tests/skills/test-moderated-communities-skill.sh:637
-    - **Given:** evals/evals.json output evals
-    - **When:** Checking rubric structure
-    - **Then:** All 5 output evals have correct/acceptable/incorrect rubric
-  - `AC6-TOON-ASSERT` - tests/skills/test-moderated-communities-skill.sh:657
-    - **Given:** evals/evals.json output evals
-    - **When:** Checking TOON compliance assertions
-    - **Then:** 5/5 output evals have TOON compliance assertions
-  - `AC6-TRIGGER-QUERIES` - tests/skills/test-moderated-communities-skill.sh:677
-    - **Given:** Should-trigger queries
-    - **When:** Checking community-relevant term coverage
-    - **Then:** 9/9 community-relevant terms covered
-  - `AC6-NOTTRIGGER-QUERIES` - tests/skills/test-moderated-communities-skill.sh:699
-    - **Given:** Should-not-trigger queries
-    - **When:** Checking unrelated skill exclusion
-    - **Then:** 8/8 unrelated topics excluded
-  - `AC6-EXPECTED-OPT` - tests/skills/test-moderated-communities-skill.sh:721
-    - **Given:** evals/evals.json output evals
-    - **When:** Checking expected_output field
-    - **Then:** All 5 output evals have expected_output field
-  - `AC6-OUTPUT-ID` - tests/skills/test-moderated-communities-skill.sh:741
-    - **Given:** evals/evals.json output evals
-    - **When:** Checking id and prompt fields
-    - **Then:** All 5 output evals have id and prompt fields
-  - `AC6-OUTPUT-ASSERT` - tests/skills/test-moderated-communities-skill.sh:761
-    - **Given:** evals/evals.json output evals
-    - **When:** Checking assertions array
-    - **Then:** All 5 output evals have assertions array
-  - `AC6-OUTPUT-RANGE` - tests/skills/test-moderated-communities-skill.sh:1230 (gap-fill)
-    - **Given:** evals/evals.json
-    - **When:** Checking output eval count range
-    - **Then:** 5 output evals (within 4-6 range)
-
+  - `[EVAL-A]` - packages/core/src/skills/public-chat.test.ts:590 (9 vitest trigger tests)
+    - Covers: valid JSON with required keys, 8-10 should-trigger, 8-10 should-not-trigger, protocol triggers, social-situation triggers, >= 5 of 9 required terms, related-but-different exclusion, NIP-29 exclusion, NIP-72 exclusion, each has query + should_trigger
+  - `[EVAL-B]` - packages/core/src/skills/public-chat.test.ts:698 (11 vitest output eval tests)
+    - Covers: 4-6 output evals, required fields (id, prompt, expected_output, rubric, assertions), rubric with correct/acceptable/incorrect, e tag root marker assertion, conciseness assertion, fee awareness assertion, three-way distinction assertion, toon-write-check, toon-format-check, write eval >= 5 assertions, read eval >= 3 assertions
+  - `[AC6-*, EVAL-*]` - tests/skills/test-public-chat-skill.sh:617-823 (12 shell tests)
+    - EVAL-A2, EVAL-B2, EVAL-C, AC6-RUBRIC, AC6-TOON-ASSERT, AC6-TRIGGER-QUERIES, AC6-NOTTRIGGER-QUERIES, AC6-EXPECTED-OPT, AC6-OUTPUT-ID, AC6-OUTPUT-ASSERT, AC6-OUTPUT-RANGE
 - **Gaps:** None
-- **Recommendation:** Coverage is comprehensive with 11 tests.
+- **Recommendation:** None needed
 
 ---
 
 #### AC7: TOON Compliance Passing (P0)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `TOON-ALL-1` - tests/skills/test-moderated-communities-skill.sh:788
-    - **Given:** validate-skill.sh script
-    - **When:** Running structural validation
-    - **Then:** validate-skill.sh passes (11/11 structural checks)
-  - `TOON-ALL-2` - tests/skills/test-moderated-communities-skill.sh:800
-    - **Given:** run-eval.sh script
-    - **When:** Running TOON compliance evaluation
-    - **Then:** run-eval.sh passes (all TOON compliance assertions)
-  - `AC7-NAMED-ASSERTIONS` - tests/skills/test-moderated-communities-skill.sh:1035
-    - **Given:** run-eval.sh output
-    - **When:** Checking named TOON assertions
-    - **Then:** 6/6 named TOON compliance assertions checked (toon-write-check, toon-fee-check, toon-format-check, social-context-check, trigger-coverage, eval-completeness)
-  - `AC7-EVAL-ASSERTIONS` - tests/skills/test-moderated-communities-skill.sh:1056
-    - **Given:** evals.json output evals
-    - **When:** Checking assertion matching by read/write nature
-    - **Then:** 3 write evals (5 assertions) + 2 read evals (3 assertions) properly matched
-
+  - `[TOON-A]` - packages/core/src/skills/public-chat.test.ts:812 (toon-write-check)
+    - Covers: publishEvent present, no bare EVENT array patterns
+  - `[TOON-B]` - packages/core/src/skills/public-chat.test.ts:822 (toon-fee-check, 3 tests)
+    - Covers: per-byte/basePricePerByte + cost/fee terms, channel creation fee, moderation fee
+  - `[TOON-C]` - packages/core/src/skills/public-chat.test.ts:844 (toon-format-check)
+    - Covers: TOON-format + not JSON
+  - `[TOON-D]` - packages/core/src/skills/public-chat.test.ts:852 (social-context-check)
+    - Covers: ## Social Context with chat/channel + concis/per-byte/cost
+  - `[TOON-A/B]` - packages/core/src/skills/public-chat.test.ts:865 (trigger-coverage)
+    - Covers: description includes NIP-28, kind:40/42/43/44, social-situation triggers
+  - `AC7: eval-completeness` - packages/core/src/skills/public-chat.test.ts:881
+    - Covers: >= 6 trigger evals + >= 4 output evals
+  - `[TOON-ALL-1]` - tests/skills/test-public-chat-skill.sh:833
+    - Covers: validate-skill.sh passes (11/11 structural checks)
+  - `[TOON-ALL-2]` - tests/skills/test-public-chat-skill.sh:844
+    - Covers: run-eval.sh passes (all TOON compliance assertions)
+  - `[AC7-NAMED-ASSERTIONS]` - tests/skills/test-public-chat-skill.sh:1089
+    - Covers: all 6 named TOON assertions checked by run-eval.sh
+  - `[AC7-EVAL-ASSERTIONS]` - tests/skills/test-public-chat-skill.sh:1110
+    - Covers: write evals have all 5 TOON assertions, read evals have 3
 - **Gaps:** None
-- **Recommendation:** Coverage is complete with 4 tests.
+- **Recommendation:** None needed
 
 ---
 
 #### AC8: Description Optimization (P1)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `AC8-STRICT-RANGE` - tests/skills/test-moderated-communities-skill.sh:825
-    - **Given:** SKILL.md description field
-    - **When:** Counting words
-    - **Then:** Description is 100 words (within 80-120 range)
-  - `AC8-TRIGPHRASES` - tests/skills/test-moderated-communities-skill.sh:838
-    - **Given:** SKILL.md description
-    - **When:** Checking trigger phrases
-    - **Then:** 16/16 trigger phrases present
-  - `AC8-SOCIAL-PHRASES` - tests/skills/test-moderated-communities-skill.sh:856
-    - **Given:** SKILL.md description
-    - **When:** Checking social-situation triggers
-    - **Then:** Social-situation triggers present (how do I, how to, etc.)
-  - `AC8-COMMUNITY-PHRASES` - tests/skills/test-moderated-communities-skill.sh:868
-    - **Given:** SKILL.md description
-    - **When:** Checking community-specific phrases
-    - **Then:** 3/5 community-specific trigger phrases present (>= 2)
-  - `TRIG-A` - tests/skills/test-moderated-communities-skill.sh:886
-    - **Given:** SKILL.md description
-    - **When:** Checking protocol-technical triggers
-    - **Then:** Protocol-technical triggers present (NIP-*, kind:*, etc.)
-  - `TRIG-B` - tests/skills/test-moderated-communities-skill.sh:898
-    - **Given:** SKILL.md description
-    - **When:** Checking social/user-facing triggers
-    - **Then:** Social/user-facing triggers present
-
+  - `[STRUCT-B]` - packages/core/src/skills/public-chat.test.ts:891 (13 vitest tests)
+    - Covers: 80-120 words, NIP-28 trigger, public chat trigger, kind:40 trigger, kind:42 trigger, kind:43 trigger, kind:44 trigger, kind:41 trigger, moderation trigger, real-time chat trigger, send message trigger, discover channels trigger, social-situation triggers, >= 2 chat-specific phrases
+  - `[AC8-*, TRIG-*]` - tests/skills/test-public-chat-skill.sh:861-952 (6 shell tests)
+    - AC8-STRICT-RANGE, AC8-TRIGPHRASES, AC8-SOCIAL-PHRASES, AC8-CHAT-PHRASES, TRIG-A, TRIG-B
 - **Gaps:** None
-- **Recommendation:** Coverage is complete with 6 tests.
+- **Recommendation:** None needed
 
 ---
 
 #### AC9: Token Budget (P1)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `STRUCT-C` - tests/skills/test-moderated-communities-skill.sh:126
-    - **Given:** SKILL.md
-    - **When:** Counting body lines
-    - **Then:** Body is 80 lines (under 500)
-  - `AC9-TOKENS` - tests/skills/test-moderated-communities-skill.sh:917
-    - **Given:** SKILL.md body
-    - **When:** Estimating token count
-    - **Then:** Body is 964 words (~1349 tokens, under ~5k limit)
-
+  - `[STRUCT-C]` - packages/core/src/skills/public-chat.test.ts:1007 (3 vitest tests)
+    - Covers: body < 500 lines, body <= 150 lines (5k token proxy), body <= 3500 words
+  - `[STRUCT-C]` - tests/skills/test-public-chat-skill.sh:128
+    - Covers: body under 500 lines
+  - `[AC9-TOKENS]` - tests/skills/test-public-chat-skill.sh:962
+    - Covers: body approximately 5k tokens or fewer (~3500 words)
 - **Gaps:** None
-- **Recommendation:** Coverage is complete with 2 tests.
+- **Recommendation:** None needed
 
 ---
 
-#### AC10: Dependency References (P0)
+#### AC10: Dependency References (P1)
 
-- **Coverage:** FULL
+- **Coverage:** FULL PASS
 - **Tests:**
-  - `DEP-A` - tests/skills/test-moderated-communities-skill.sh:938
-    - **Given:** SKILL.md
-    - **When:** Checking nostr-protocol-core reference
-    - **Then:** References nostr-protocol-core
-  - `DEP-B` - tests/skills/test-moderated-communities-skill.sh:946
-    - **Given:** SKILL.md
-    - **When:** Checking nostr-social-intelligence reference
-    - **Then:** References nostr-social-intelligence
-  - `DEP-C` - tests/skills/test-moderated-communities-skill.sh:954
-    - **Given:** SKILL.md
-    - **When:** Checking social-interactions reference
-    - **Then:** References social-interactions
-  - `DEP-D` - tests/skills/test-moderated-communities-skill.sh:962
-    - **Given:** SKILL.md
-    - **When:** Checking content-references reference
-    - **Then:** References content-references
-  - `DEP-E` - tests/skills/test-moderated-communities-skill.sh:970
-    - **Given:** SKILL.md
-    - **When:** Checking relay-groups reference
-    - **Then:** References relay-groups
-  - `AC10-NODUP` - tests/skills/test-moderated-communities-skill.sh:978
-    - **Given:** references/ directory
-    - **When:** Checking for duplicated toon-protocol-context.md
-    - **Then:** No duplicate toon-protocol-context.md in references/
-  - `AC10-DEP-ALL` - tests/skills/test-moderated-communities-skill.sh:986
-    - **Given:** SKILL.md
-    - **When:** Checking all five upstream skill references
-    - **Then:** All five upstream skills referenced (core, social, interactions, content-ref, relay-groups)
-
+  - `[DEP-A]` - packages/core/src/skills/public-chat.test.ts:1032 (8 vitest tests)
+    - Covers: nostr-protocol-core, nostr-social-intelligence, social-interactions, content-references, relay-groups, moderated-communities, no toon-protocol-context.md duplicate, all six upstream present
+  - `[DEP-A through DEP-F, AC10-*]` - tests/skills/test-public-chat-skill.sh:982-1060 (8 shell tests)
+    - DEP-A, DEP-B, DEP-C, DEP-D, DEP-E, DEP-F, AC10-NODUP, AC10-DEP-ALL
 - **Gaps:** None
-- **Recommendation:** Coverage is complete with 7 tests.
+- **Recommendation:** None needed
 
 ---
 
 #### AC11: With/Without Baseline (P2)
 
-- **Coverage:** NONE (SKIPPED)
+- **Coverage:** PARTIAL WARN
 - **Tests:**
-  - `BASE-A` - tests/skills/test-moderated-communities-skill.sh:1253
-    - **Status:** SKIPPED
-    - **Reason:** With/without baseline requires manual pipeline execution (Step 8 of nip-to-toon-skill). Cannot be automated in a shell test.
+  - `[BASE-A]` - packages/core/src/skills/public-chat.test.ts:1093 (2 vitest proxy tests)
+    - Covers: SKILL.md provides actionable guidance (publishEvent, per-byte, TOON-format, conciseness, channel purpose), scenarios.md provides step-by-step flows (steps, publishEvent, fee/cost)
+  - `[BASE-A]` - tests/skills/test-public-chat-skill.sh:1250 (SKIPPED)
+    - **SKIPPED:** With/without baseline requires manual pipeline execution (Step 8 of nip-to-toon-skill)
 
 - **Gaps:**
-  - Missing: Automated with/without baseline comparison
-  - Reason: Pipeline Step 8 spawns parallel subagent runs (one with skill, one without). This is inherently manual and requires Claude agent execution. Not automatable in bash.
+  - Missing: Full with/without baseline comparison (requires spawning two parallel agent runs with and without skill loaded, per pipeline Step 8)
 
-- **Recommendation:** This is an inherent limitation of the test methodology. The pipeline Step 8 was executed during skill creation and verified manually. No automated test is possible for this AC. Accept as P2 known gap.
+- **Recommendation:** AC11 is P2 and has proxy coverage via vitest that validates the skill provides actionable TOON-specific guidance beyond baseline NIP knowledge. True with/without testing requires manual pipeline execution and is intentionally skipped in automated test suites. This is acceptable for a P2 criterion.
 
 ---
 
@@ -484,25 +231,25 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 #### Critical Gaps (BLOCKER)
 
-0 gaps found. **No critical blockers.**
+0 gaps found. No blockers.
 
 ---
 
 #### High Priority Gaps (PR BLOCKER)
 
-0 gaps found. **No high priority gaps.**
+0 gaps found. No PR blockers.
 
 ---
 
 #### Medium Priority Gaps (Nightly)
 
-1 gap found. **Address in nightly test improvements.**
+1 gap found.
 
 1. **AC11: With/Without Baseline** (P2)
-   - Current Coverage: NONE (SKIPPED)
-   - Missing Tests: Automated baseline comparison test
-   - Recommend: Accept as inherent limitation -- pipeline Step 8 is manual
-   - Impact: Low. The with/without test was executed during skill creation as part of the pipeline. It verifies skill value-add but cannot be replicated in CI.
+   - Current Coverage: PARTIAL (proxy tests pass, manual pipeline step skipped)
+   - Missing Tests: Full with/without agent comparison
+   - Recommend: Execute pipeline Step 8 manually if validation is needed before publication gate (Story 9.34)
+   - Impact: Low -- proxy tests confirm skill adds TOON-specific value; full comparison is informational
 
 ---
 
@@ -516,18 +263,15 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 #### Endpoint Coverage Gaps
 
-- Endpoints without direct API tests: 0
-- This is a skill (markdown + JSON), not an API service. No endpoints to test.
+- Not applicable. This story produces a Claude Agent Skill (markdown + JSON), not executable code with API endpoints.
 
 #### Auth/Authz Negative-Path Gaps
 
-- Criteria missing denied/invalid-path tests: 0
-- Not applicable -- this is a content skill, not an auth-gated feature.
+- Not applicable. No authentication or authorization paths in skill content files.
 
 #### Happy-Path-Only Criteria
 
-- Criteria with happy-path-only coverage: 0
-- All testable criteria have comprehensive positive assertions. Error scenarios are not applicable to skill content validation (the skill either contains required content or it does not).
+- Not applicable. All ACs are structural/content validation -- there are no "error paths" for a skill deliverable. Tests validate both presence (happy path) and absence (no extraneous files, no banned patterns, no duplicate content).
 
 ---
 
@@ -537,21 +281,23 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 **BLOCKER Issues**
 
-- None
+None.
 
 **WARNING Issues**
 
-- None
+None.
 
 **INFO Issues**
 
-- `BASE-A` - Skipped (requires manual pipeline execution) - Document as known limitation in test design
+- `[BASE-A]` (shell) - Skipped test (requires manual pipeline execution) - Acceptable for P2 criterion; proxy coverage exists via vitest
 
 ---
 
 #### Tests Passing Quality Gates
 
-**81/82 tests (99%) meet all quality criteria**
+**212/213 automated tests (99.5%) meet all quality criteria** PASS
+
+(129 vitest + 83 shell automated + 1 shell skipped = 213 total, 212 automated pass, 1 intentionally skipped)
 
 ---
 
@@ -559,27 +305,26 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 #### Acceptable Overlap (Defense in Depth)
 
-- AC2 (NIP Coverage): Tested across SKILL.md, nip-spec.md, toon-extensions.md, scenarios.md -- each file checked independently for its specific contribution. Acceptable depth-in-defense.
-- AC3 (TOON Write Model): TOON-A/TOON-B check broad presence; AC3-CLIENT/AC3-FEEREF check specific references. Acceptable overlap (broad vs specific).
-- AC7 (TOON Compliance): TOON-ALL-1 runs validate-skill.sh holistically; AC7-NAMED-ASSERTIONS checks individual assertion names. Acceptable overlap (integration vs unit).
+- AC1 (Pipeline Production): Tested at both vitest (structural validation) and shell (ATDD acceptance) levels -- appropriate defense in depth
+- AC2 (NIP Coverage): 18 vitest tests + 17 shell tests -- vitest validates programmatically, shell validates via grep patterns. Different methodologies reduce false-positive risk
+- AC3-AC7: Dual-layer testing (vitest + shell) provides defense in depth across all TOON compliance areas
+- AC8-AC10: Dual coverage is acceptable -- vitest tests are more precise (regex matching), shell tests are broader (grep patterns)
 
 #### Unacceptable Duplication
 
-- None identified. All overlapping tests validate at different granularity levels.
+None identified. The two test suites use different validation approaches (vitest with TypeScript parsing vs shell with grep/awk), providing complementary coverage.
 
 ---
 
 ### Coverage by Test Level
 
-| Test Level | Tests  | Criteria Covered | Coverage % |
-| ---------- | ------ | ---------------- | ---------- |
-| Shell/ATDD | 82     | 11/11            | 100%       |
-| Unit       | 0      | N/A              | N/A        |
-| API        | 0      | N/A              | N/A        |
-| E2E        | 0      | N/A              | N/A        |
-| **Total**  | **82** | **11/11**        | **100%**   |
+| Test Level    | Tests | Criteria Covered | Coverage % |
+| ------------- | ----- | ---------------- | ---------- |
+| Structural    | 129   | 11/11            | 100%       |
+| ATDD (shell)  | 84    | 11/11            | 100%       |
+| **Total**     | **213** | **11/11**      | **100%**   |
 
-Note: This story produces a Claude Agent Skill (markdown + JSON), not TypeScript code. Shell-based ATDD tests are the appropriate test level. Unit/API/E2E tests are not applicable.
+Note: Traditional E2E/API/Component/Unit classification does not apply to this story. The deliverable is markdown + JSON files. "Structural" = vitest programmatic validation. "ATDD" = shell-based acceptance tests.
 
 ---
 
@@ -587,15 +332,15 @@ Note: This story produces a Claude Agent Skill (markdown + JSON), not TypeScript
 
 #### Immediate Actions (Before PR Merge)
 
-None required. All P0 and P1 criteria have FULL coverage.
+None required. All P0 and P1 criteria have FULL coverage. All 212 automated tests pass.
 
 #### Short-term Actions (This Milestone)
 
-1. **Document AC11 limitation** - Add note to test design that with/without baseline (AC11) is verified during pipeline execution, not in CI.
+1. **Execute pipeline Step 8 manually** - If AC11 full with/without validation is desired before the publication gate (Story 9.34), run the nip-to-toon-skill pipeline Step 8 manually.
 
 #### Long-term Actions (Backlog)
 
-1. **Consider pipeline replay automation** - If the nip-to-toon-skill pipeline gains a replay mode, AC11 could potentially be automated.
+1. **Automate with/without baseline** - Consider automating pipeline Step 8 as part of CI if it becomes a recurring need across future skill stories.
 
 ---
 
@@ -610,22 +355,22 @@ None required. All P0 and P1 criteria have FULL coverage.
 
 #### Test Execution Results
 
-- **Total Tests**: 82
-- **Passed**: 81 (98.8%)
+- **Total Tests**: 213
+- **Passed**: 212 (99.5%)
 - **Failed**: 0 (0%)
-- **Skipped**: 1 (1.2%)
-- **Duration**: ~5s (local run)
+- **Skipped**: 1 (0.5%)
+- **Duration**: ~1s (vitest 414ms + shell ~0.5s)
 
 **Priority Breakdown:**
 
-- **P0 Tests**: 55/55 passed (100%)
-- **P1 Tests**: 26/26 passed (100%)
-- **P2 Tests**: 0/1 passed (0% -- 1 skipped)
-- **P3 Tests**: N/A
+- **P0 Tests**: 163/163 passed (100%) PASS
+- **P1 Tests**: 47/47 passed (100%) PASS
+- **P2 Tests**: 2/3 passed (67%) -- 1 skipped (BASE-A manual) WARN
+- **P3 Tests**: 0/0 (N/A) PASS
 
-**Overall Pass Rate**: 98.8% (81/82)
+**Overall Pass Rate**: 99.5% PASS
 
-**Test Results Source**: Local run, 2026-03-27
+**Test Results Source**: Local run (vitest + bash), 2026-03-27
 
 ---
 
@@ -633,32 +378,47 @@ None required. All P0 and P1 criteria have FULL coverage.
 
 **Requirements Coverage:**
 
-- **P0 Acceptance Criteria**: 7/7 covered (100%)
-- **P1 Acceptance Criteria**: 3/3 covered (100%)
-- **P2 Acceptance Criteria**: 0/1 covered (0% -- skipped/manual only)
-- **Overall Coverage**: 91% (10/11 FULL)
+- **P0 Acceptance Criteria**: 7/7 covered (100%) PASS
+- **P1 Acceptance Criteria**: 3/3 covered (100%) PASS
+- **P2 Acceptance Criteria**: 0/1 covered (0%) WARN
+- **Overall Coverage**: 91%
 
 **Code Coverage** (not applicable):
 
-- This is a skill (markdown/JSON), not TypeScript. Code coverage metrics are not applicable.
+- This story produces markdown/JSON files, not executable code. No line/branch/function coverage applicable.
+
+**Coverage Source**: Traceability analysis of test files against story ACs
 
 ---
 
 #### Non-Functional Requirements (NFRs)
 
-**Security**: NOT_ASSESSED -- Skill content does not handle authentication or sensitive data.
+**Security**: PASS
 
-**Performance**: NOT_ASSESSED -- No runtime performance concerns for a static skill definition.
+- Security Issues: 0
+- Semgrep scan (216 rules): 0 findings. OWASP review: no injection risks, no secrets, no auth flaws. Skill is markdown/JSON content, not executable code.
 
-**Reliability**: PASS -- All automated tests pass deterministically.
+**Performance**: NOT_ASSESSED
 
-**Maintainability**: PASS -- Skill follows established pattern from Stories 9.4-9.8. Consistent directory structure, reference file naming, and eval format.
+- Not applicable for markdown/JSON skill deliverables
+
+**Reliability**: NOT_ASSESSED
+
+- Not applicable for markdown/JSON skill deliverables
+
+**Maintainability**: PASS
+
+- Skill follows D9-010 (single source of truth for protocol context), no content duplication, clear dependency references to 6 upstream skills
+
+**NFR Source**: _bmad-output/test-artifacts/nfr-assessment-9-10.md
 
 ---
 
 #### Flakiness Validation
 
-**Burn-in Results**: Not applicable. Shell tests are deterministic (grep-based content checks). No timing-sensitive or network-dependent operations.
+**Burn-in Results**: Not applicable
+
+- Structural validation tests are deterministic (file content checks). No flakiness risk.
 
 ---
 
@@ -680,12 +440,12 @@ None required. All P0 and P1 criteria have FULL coverage.
 
 #### P1 Criteria (Required for PASS, May Accept for CONCERNS)
 
-| Criterion              | Threshold | Actual | Status |
-| ---------------------- | --------- | ------ | ------ |
-| P1 Coverage            | >=90%     | 100%   | PASS   |
-| P1 Test Pass Rate      | >=90%     | 100%   | PASS   |
-| Overall Test Pass Rate | >=80%     | 98.8%  | PASS   |
-| Overall Coverage       | >=80%     | 91%    | PASS   |
+| Criterion              | Threshold | Actual | Status  |
+| ---------------------- | --------- | ------ | ------- |
+| P1 Coverage            | >= 90%    | 100%   | PASS    |
+| P1 Test Pass Rate      | >= 90%    | 100%   | PASS    |
+| Overall Test Pass Rate | >= 80%    | 99.5%  | PASS    |
+| Overall Coverage       | >= 80%    | 91%    | PASS    |
 
 **P1 Evaluation**: ALL PASS
 
@@ -693,10 +453,10 @@ None required. All P0 and P1 criteria have FULL coverage.
 
 #### P2/P3 Criteria (Informational, Don't Block)
 
-| Criterion         | Actual | Notes                                    |
-| ----------------- | ------ | ---------------------------------------- |
-| P2 Test Pass Rate | 0%     | 1 skipped (AC11 with/without baseline)   |
-| P3 Test Pass Rate | N/A    | No P3 criteria                           |
+| Criterion         | Actual | Notes                                                      |
+| ----------------- | ------ | ---------------------------------------------------------- |
+| P2 Test Pass Rate | 67%    | 1 of 3 skipped (BASE-A manual pipeline). Tracked, non-blocking. |
+| P3 Test Pass Rate | N/A    | No P3 criteria in this story                               |
 
 ---
 
@@ -706,11 +466,12 @@ None required. All P0 and P1 criteria have FULL coverage.
 
 ### Rationale
 
-P0 coverage is 100% with all 7 P0 criteria (AC1, AC2, AC3, AC4, AC6, AC7, AC10) having FULL test coverage and all 55 P0 tests passing. P1 coverage is 100% with all 3 P1 criteria (AC5, AC8, AC9) having FULL test coverage and all 26 P1 tests passing. Overall coverage is 91% (10/11 FULL), exceeding the 80% minimum threshold.
+P0 coverage is 100%, P1 coverage is 100% (target: 90%), and overall coverage is 91% (minimum: 80%). All 212 automated tests pass with 0 failures. The single skipped test (BASE-A shell) is a P2 criterion requiring manual pipeline execution and has proxy coverage via vitest. No security issues detected (Semgrep 216 rules: 0 findings). Three adversarial code reviews completed with all findings resolved.
 
-The single uncovered criterion (AC11: With/Without Baseline) is P2 priority and inherently requires manual pipeline execution. It was verified during skill creation and cannot be automated. This does not impact the gate decision.
+The story deliverable (Claude Agent Skill for NIP-28 Public Chat) is structurally sound, TOON-compliant (7/7 assertions), and has comprehensive test coverage across two independent test suites (129 vitest + 84 shell).
 
-All 81 automated tests pass. No flaky tests. No security concerns. The skill follows the established pattern from Stories 9.4-9.8.
+**Uncovered ACs:**
+- **AC11 (With/Without Baseline)** - P2, PARTIAL coverage. Vitest proxy tests pass (validating skill provides actionable TOON-specific content), but the shell-based BASE-A test is skipped because true with/without comparison requires manual nip-to-toon-skill pipeline Step 8 execution. This does not block the gate.
 
 ---
 
@@ -718,19 +479,18 @@ All 81 automated tests pass. No flaky tests. No security concerns. The skill fol
 
 #### For PASS Decision
 
-1. **Proceed to merge**
-   - All P0 and P1 criteria met
-   - 81/82 tests passing (1 skipped by design)
-   - Skill ready for production use
+1. **Proceed to next story**
+   - Story 9.10 is complete and validated
+   - All P0/P1 acceptance criteria have FULL automated coverage
+   - Skill is ready for the publication gate (Story 9.34)
 
-2. **Post-Merge Monitoring**
-   - Verify skill triggers correctly in Claude Code sessions
-   - Spot-check moderated community queries activate the skill
+2. **Post-Completion Monitoring**
+   - Validate skill triggers correctly when loaded by Claude Agent
+   - Monitor trigger discrimination (NIP-28 vs NIP-29 vs NIP-72) in real usage
 
 3. **Success Criteria**
-   - Skill activates for NIP-72 / moderated community queries
-   - Skill does NOT activate for NIP-29 / relay group queries
-   - Community-specific social context is actionable
+   - All 129 vitest + 83 shell automated tests continue to pass in CI
+   - Skill activates for NIP-28/public chat queries and does not activate for relay group or moderated community queries
 
 ---
 
@@ -738,18 +498,17 @@ All 81 automated tests pass. No flaky tests. No security concerns. The skill fol
 
 **Immediate Actions** (next 24-48 hours):
 
-1. Merge Story 9.9 to main
-2. Proceed to Story 9.10 (Public Chat) or next Phase 3 skill
+1. Proceed to next Epic 9 story or publication gate (Story 9.34)
+2. No blockers or concerns requiring immediate attention
 
 **Follow-up Actions** (next milestone/release):
 
-1. Run batch validation across all skills (Story 9.34 publication gate)
-2. Document AC11 limitation in test design
+1. Consider automating with/without baseline testing (AC11) as part of CI for future skill stories
+2. Run publication gate validation across all Phase 3 skills (9.8, 9.9, 9.10) together
 
 **Stakeholder Communication**:
 
-- Notify PM: Story 9.9 PASS -- all 81 automated tests green, skill ready for merge
-- Notify DEV lead: Moderated Communities skill complete, 82 tests (81 pass, 1 skip by design)
+- Story 9.10 PASS: Public Chat skill validated with 100% P0/P1 coverage, 213 tests (212 pass, 1 intentionally skipped)
 
 ---
 
@@ -759,26 +518,26 @@ All 81 automated tests pass. No flaky tests. No security concerns. The skill fol
 traceability_and_gate:
   # Phase 1: Traceability
   traceability:
-    story_id: "9.9"
+    story_id: "9.10"
     date: "2026-03-27"
     coverage:
       overall: 91%
       p0: 100%
       p1: 100%
       p2: 0%
-      p3: N/A
+      p3: 100%
     gaps:
       critical: 0
       high: 0
       medium: 1
       low: 0
     quality:
-      passing_tests: 81
-      total_tests: 82
+      passing_tests: 212
+      total_tests: 213
       blocker_issues: 0
       warning_issues: 0
     recommendations:
-      - "AC11 (with/without baseline) is P2, inherently manual -- accept as known limitation"
+      - "Execute pipeline Step 8 manually for AC11 full with/without validation if needed before publication gate"
 
   # Phase 2: Gate Decision
   gate_decision:
@@ -790,7 +549,7 @@ traceability_and_gate:
       p0_pass_rate: 100%
       p1_coverage: 100%
       p1_pass_rate: 100%
-      overall_pass_rate: 98.8%
+      overall_pass_rate: 99.5%
       overall_coverage: 91%
       security_issues: 0
       critical_nfrs_fail: 0
@@ -803,29 +562,23 @@ traceability_and_gate:
       min_overall_pass_rate: 80
       min_coverage: 80
     evidence:
-      test_results: "local run 2026-03-27"
+      test_results: "local_run_2026-03-27"
       traceability: "_bmad-output/test-artifacts/traceability-report.md"
-    next_steps: "Merge Story 9.9. Proceed to Story 9.10 or next Phase 3 skill."
+      nfr_assessment: "_bmad-output/test-artifacts/nfr-assessment-9-10.md"
+      code_coverage: "N/A (markdown/JSON deliverable)"
+    next_steps: "Proceed to next story or publication gate (Story 9.34)"
 ```
-
----
-
-## Uncovered ACs
-
-| AC   | Description               | Priority | Coverage | Reason                                                                                          |
-| ---- | ------------------------- | -------- | -------- | ----------------------------------------------------------------------------------------------- |
-| AC11 | With/Without Baseline     | P2       | NONE     | Requires manual pipeline Step 8 execution (parallel subagent runs). Cannot be automated in CI.  |
-
-All other ACs (AC1-AC10) have FULL automated test coverage.
 
 ---
 
 ## Related Artifacts
 
-- **Story File:** `_bmad-output/implementation-artifacts/9-9-moderated-communities-skill.md`
-- **Test Files:** `tests/skills/test-moderated-communities-skill.sh`
-- **Skill Directory:** `.claude/skills/moderated-communities/`
-- **ATDD Checklist:** `_bmad-output/test-artifacts/atdd-checklist-9-9.md`
+- **Story File:** _bmad-output/implementation-artifacts/9-10-public-chat-skill.md
+- **Test Design:** _bmad-output/planning-artifacts/test-design-epic-9.md
+- **Test Results:** Local run 2026-03-27 (vitest 129/129 pass, shell 83/84 pass + 1 skip)
+- **NFR Assessment:** _bmad-output/test-artifacts/nfr-assessment-9-10.md
+- **Test Files:** packages/core/src/skills/public-chat.test.ts, tests/skills/test-public-chat-skill.sh
+- **ATDD Checklist:** _bmad-output/test-artifacts/atdd-checklist-9-10.md
 
 ---
 
@@ -849,11 +602,11 @@ All other ACs (AC1-AC10) have FULL automated test coverage.
 
 **Next Steps:**
 
-- PASS: Proceed to merge
+- PASS: Proceed to next story or publication gate (Story 9.34)
 
 **Generated:** 2026-03-27
 **Workflow:** testarch-trace v5.0 (Step-File Architecture)
 
 ---
 
-<!-- Powered by BMAD-CORE™ -->
+<!-- Powered by BMAD-CORE -->
