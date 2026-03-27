@@ -112,6 +112,7 @@
       "assertions": [
         "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
         "toon-fee-check: Response includes fee calculation or cost awareness for labels",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
         "social-context-check: Skill has labeling-specific Social Context guidance",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses a tag (not e tag) for targeting a kind:30023 replaceable event",
@@ -131,6 +132,7 @@
         "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
         "toon-fee-check: Response includes fee calculation for the bookmark set",
         "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has curation-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses kind:30003 with d tag for collection identifier",
         "Response uses a tags for articles and r tags for URLs"
@@ -146,8 +148,11 @@
         "incorrect": "Recommends public mute lists, does not distinguish between list types, or ignores the social implications of public vs private entries."
       },
       "assertions": [
-        "social-context-check: Response addresses public vs private list social dynamics",
+        "toon-write-check: Response references publishEvent() for list updates",
         "toon-fee-check: Response mentions that both entry types affect event size and cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses when reading lists",
+        "social-context-check: Response addresses public vs private list social dynamics",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response recommends private entries for mute lists",
         "Response recommends public entries for follow sets as default",
         "Response mentions NIP-44 encryption for private entries"
@@ -165,6 +170,9 @@
       "assertions": [
         "toon-write-check: Response uses publishEvent() API",
         "toon-fee-check: Response calculates cost difference between batched and individual updates",
+        "toon-format-check: Response mentions TOON-format strings when fetching the current list",
+        "social-context-check: Skill has curation-specific Social Context section with anti-patterns",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response recommends batching mute list changes",
         "Response explains the replaceable event cost trap (entire list republished per update)",
         "Response quantifies the cost savings of batching"

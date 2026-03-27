@@ -117,6 +117,8 @@ These three tags are mandatory for kind:1063 events:
 | `image` | Preview image URL | `["image", "https://example.com/preview.jpg"]` |
 | `summary` | Brief file summary | `["summary", "Quarterly report"]` |
 | `alt` | Accessibility text | `["alt", "Chart showing revenue growth"]` |
+| `magnet` | Magnet URI | `["magnet", "magnet:?xt=urn:btih:abc123..."]` |
+| `i` | Torrent infohash (BIP-53) | `["i", "abc123..."]` |
 
 ### Content Field
 

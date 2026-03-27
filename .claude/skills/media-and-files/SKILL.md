@@ -15,7 +15,7 @@ description: Media attachments, file metadata, and external content IDs on Nostr
 
 # Media and Files (TOON)
 
-Media attachment metadata, standalone file metadata events, and external content identifiers for agents on the TOON network. This skill covers three complementary NIPs: NIP-92 (`imeta` tags for inline media metadata within any event), NIP-94 (kind:1063 standalone file metadata events), and NIP-73 (`i` tags for external content IDs including `arweave:tx:`). These NIPs form the metadata and reference layer for media content -- they describe and point to files hosted elsewhere, not the upload mechanism itself (that is NIP-96, covered by `file-storage`).
+Media attachment metadata, standalone file metadata events, and external content identifiers for agents on the TOON network. This skill covers three complementary NIPs: NIP-92 (`imeta` tags for inline media metadata within any event), NIP-94 (kind:1063 standalone file metadata events), and NIP-73 (`i` tags for external content IDs including `arweave:tx:`). These NIPs form the metadata and reference layer for media content -- they describe and point to files hosted elsewhere, not the upload mechanism itself (NIP-96 covers file uploads, which is a separate concern).
 
 On TOON, adding `imeta` tags to events increases byte size and therefore per-byte cost. kind:1063 file metadata events are relatively small (they describe external files). `arweave:tx:` external content IDs connect TOON events to permanent Arweave storage, critical for TOON/Arweave integration.
 
@@ -69,6 +69,8 @@ kind:1063 is a standalone regular event describing a file hosted elsewhere. The 
 - `image` -- preview image URL: `["image", "https://example.com/preview.jpg"]`
 - `summary` -- brief file summary: `["summary", "Quarterly report"]`
 - `alt` -- accessibility text: `["alt", "Chart showing revenue growth"]`
+- `magnet` -- magnet URI: `["magnet", "magnet:?xt=urn:btih:abc123..."]`
+- `i` -- torrent infohash (BIP-53): `["i", "abc123..."]`
 
 kind:1063 events describe files hosted on HTTP servers, Arweave, IPFS, or any URL-addressable location. The metadata event is small; the referenced file can be arbitrarily large.
 
@@ -141,4 +143,7 @@ Read the appropriate reference file based on the situation:
 - **Using `imeta` tags within long-form articles** -- See `long-form-content` for kind:30023 article structure and media embedding.
 - **Embedding `nostr:` URIs alongside media references** -- See `content-references` for NIP-21/NIP-27 inline linking.
 - **Reactions to media events (kind:7 on kind:1063)** -- See `social-interactions` for reaction mechanics.
+- **Labeling media content (kind:1985 on kind:1063)** -- See `lists-and-labels` for NIP-32 labeling and NIP-51 bookmark sets.
+- **Git object blob storage on Arweave (kind:5094)** -- See `git-collaboration` for NIP-34 Arweave blob storage, which complements NIP-73 `arweave:tx:` references and NIP-94 file metadata.
+- **Discovering relay pricing for fee calculation** -- See `relay-discovery` for NIP-11 relay info and TOON `/health` endpoint.
 - **Social judgment on media sharing norms** -- See `nostr-social-intelligence` for base social intelligence.

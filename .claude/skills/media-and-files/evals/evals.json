@@ -149,6 +149,7 @@
         "incorrect": "Claims media is free on TOON, provides no cost comparison, or does not explain imeta tag byte overhead."
       },
       "assertions": [
+        "toon-write-check: Response mentions publishEvent() for publishing media-rich events",
         "toon-fee-check: Response includes specific fee comparisons between text-only and media-rich events",
         "toon-format-check: Response mentions TOON-format strings in relay responses",
         "social-context-check: Skill has media-specific Social Context section",
@@ -167,6 +168,8 @@
         "incorrect": "Uses wrong filter kinds, assumes standard JSON responses, or claims reading costs money."
       },
       "assertions": [
+        "toon-write-check: Response correctly notes reading does not require publishEvent() -- only writing does",
+        "toon-fee-check: Response notes reading is free and contrasts with write costs for publishing kind:1063",
         "toon-format-check: Response explains TOON-format strings in relay responses",
         "social-context-check: Skill has media-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",

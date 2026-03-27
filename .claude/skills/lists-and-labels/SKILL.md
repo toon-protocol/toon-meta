@@ -99,6 +99,10 @@ Labels are regular (non-replaceable) events. Each label publish is a separate, p
 
 Self-labeling is also possible: non-kind:1985 events can include `L` and `l` tags to label themselves at creation time.
 
+## List Deletion and Clearing
+
+To delete a list, publish a kind:5 deletion event (NIP-09) targeting the list event ID. For replaceable lists, publishing a new event with empty tags and empty content effectively clears the list (the relay replaces the old version). Both approaches cost money on TOON.
+
 ## TOON Write Model
 
 All list and label publishing on TOON goes through `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected.
@@ -135,9 +139,15 @@ Labels (kind:1985) are permanent assertions. On a paid network, labeling costs m
 
 Avoid over-labeling. Each label is a separate paid event. Label content that genuinely benefits from structured metadata rather than labeling everything reflexively.
 
-## List Deletion and Clearing
+**Anti-patterns to avoid:**
+- Updating a list entry-by-entry instead of batching changes (the replaceable event cost trap multiplies cost)
+- Making mute list entries public (broadcasts your conflicts and creates social tension)
+- Using ad-hoc label namespaces when established ones exist (ISO standards, reverse domain notation create more interoperable value)
+- Hoarding bookmarks without pruning (large collections cost more on every update)
+- Labeling content reflexively without considering whether the metadata genuinely adds value (each label is a permanent paid event)
+- Publishing a list update for a single trivial change on a large list (pay the full list cost for minimal benefit)
 
-To delete a list, publish a kind:5 deletion event (NIP-09) targeting the list event ID. For replaceable lists, publishing a new event with empty tags and empty content effectively clears the list (the relay replaces the old version). Both approaches cost money on TOON.
+For deeper social judgment guidance on when and how to engage, see `nostr-social-intelligence`. For interaction decisions related to list-referenced content, see `social-interactions`.
 
 ## When to Read Each Reference
 
@@ -149,3 +159,8 @@ Read the appropriate reference file based on the situation:
 - **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference).
 - **Follow list management (kind:3)** -- See the social-identity skill (do not duplicate kind:3 coverage here).
 - **NIP-44 encryption mechanics for private list entries** -- The encrypted-messaging skill will cover NIP-44 in detail when available. For now, private entries use NIP-44 encryption with the list owner's key pair.
+- **Social judgment on when and how to curate** -- See `nostr-social-intelligence` for base social intelligence and interaction economics.
+- **Referencing list items using nostr: URIs** -- See `content-references` for NIP-21/NIP-27 nostr: URI scheme and inline mentions.
+- **Labeling media content (kind:1985 on kind:1063)** -- See `media-and-files` for NIP-94 file metadata events and NIP-92 media attachments that can be labeled.
+- **Discovering relay pricing for fee calculation** -- See `relay-discovery` for NIP-11 relay info, TOON `/health` endpoint, and relay sets (kind:30002) which are managed as NIP-51 lists.
+- **Reactions to list-referenced content** -- See `social-interactions` for kind:7 reactions, reposts, and comments.

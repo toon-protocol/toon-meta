@@ -113,6 +113,8 @@
         "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
         "toon-fee-check: Response includes fee awareness for patch byte cost and per-byte incentive",
         "toon-format-check: Response mentions TOON-format strings in relay responses or per-byte cost dynamics",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response includes kind:1617 with git format-patch content and a tag referencing repository"
       ]
     },
@@ -128,6 +130,9 @@
       "assertions": [
         "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
         "toon-fee-check: Response includes fee awareness for PR byte cost",
+        "toon-format-check: Response mentions TOON-format strings or that PRs are cheaper than patches",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response includes kind:1618 with a, r, c, and clone tags"
       ]
     },
@@ -143,6 +148,9 @@
       "assertions": [
         "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
         "toon-fee-check: Response includes fee awareness for issue byte cost",
+        "toon-format-check: Response mentions TOON-format strings or cost-quality tradeoff for detailed issues",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response includes kind:1621 with a tag referencing repository and markdown content"
       ]
     },
@@ -158,6 +166,9 @@
       "assertions": [
         "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
         "toon-fee-check: Response includes fee awareness for status event byte cost",
+        "toon-format-check: Response mentions TOON-format strings or status events are cheap on TOON",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response includes kind:1631 with e tag using root marker",
         "Response mentions maintainer authority for merge status"
       ]
@@ -174,6 +185,9 @@
       "assertions": [
         "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
         "toon-fee-check: Response includes fee awareness for comment byte cost",
+        "toon-format-check: Response mentions TOON-format strings or consolidated feedback incentive",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response includes kind:1622 with e tag using reply marker"
       ]
     },
@@ -189,6 +203,9 @@
       "assertions": [
         "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
         "toon-fee-check: Response includes fee awareness and distinguishes TOON relay fee from Arweave storage",
+        "toon-format-check: Response mentions TOON-format strings or distinguishes relay fee from Arweave fee",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response includes kind:5094 with i tag containing base64 blob data"
       ]
     },
@@ -205,6 +222,8 @@
         "toon-write-check: Response uses publishEvent() API throughout the workflow",
         "toon-fee-check: Response includes fee awareness across multiple event types",
         "toon-format-check: Response mentions TOON reading is free",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response covers kind:30617 announcement, kind:1617 patch, kind:1622 comment, and kind:1631 merge status"
       ]
     }

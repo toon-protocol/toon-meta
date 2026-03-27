@@ -117,6 +117,11 @@ Publishing your relay list (kind:10002) is a public statement about which relays
 - Querying NIP-11 without the `Accept: application/nostr+json` header -- may return HTML instead of JSON
 - Assuming all relays support the same NIPs -- always check `supported_nips` first
 - Ignoring `payment_required: true` on TOON relays -- all writes require ILP payment
+- Publishing kind:10002 updates for every individual relay change -- batch changes into a single replaceable event to save per-byte costs
+- Confusing NIP-11 `chainId`/`tokenAddress` fields with TOON `/health` fields -- NIP-11 has no chain config; use `/health` for `chain`, `pricing`, `ilpAddress`
+- Using `nostr-tools` SimplePool in Node.js containers -- it lacks global WebSocket and cannot parse TOON-format strings
+- Trusting NIP-66 monitor data without verifying monitor reputation -- kind:30166 events come from third-party monitors, not relays themselves
+- Listing relays you do not actively use in kind:10002 -- every extra relay adds ~50-70 bytes of cost and misleads clients about your preferences
 
 ## When to Read Each Reference
 
@@ -129,3 +134,6 @@ Read the appropriate reference file based on the situation:
 - **Service discovery for DVM providers** -- See `dvm-protocol` (Story 9.31) for kind:10035 service discovery events.
 - **TEE attestation for relay trust** -- See kind:10033 attestation events in project-context.md section "TEE Integration".
 - **Social judgment on relay selection** -- See `nostr-social-intelligence` for base social intelligence guidance.
+- **Identity and relay list overlap** -- See `social-identity` for kind:0 profiles and kind:3 follow lists, which complement kind:10002 relay lists as identity declarations.
+- **Relay sets for curation** -- See `lists-and-labels` for NIP-51 relay sets (kind:30002) which organize relays by purpose beyond the basic kind:10002 relay list.
+- **Content references in relay contexts** -- See `content-references` for nostr: URI scheme used in relay-related event references.

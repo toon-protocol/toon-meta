@@ -77,11 +77,29 @@ For deeper social judgment guidance, see `nostr-social-intelligence`. For embedd
 
 Read the appropriate reference file based on the situation:
 
-- **Understanding NIP-34 event kinds, tag formats, and the git collaboration model** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-34 specification covering all 12 event kinds.
-- **Understanding TOON-specific git economics, fee tables, and publishing flow** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated git collaboration extensions.
+### Per-Kind References (Level 3 — detailed tag formats, validation, examples)
+
+- **Repository announcements** -- Read [kind-30617-repo-announcement.md](references/kind-30617-repo-announcement.md) for kind:30617 tags, validation, and `publishEvent()` examples.
+- **Repository state** -- Read [kind-30618-repo-state.md](references/kind-30618-repo-state.md) for kind:30618 branch/tag state publishing.
+- **Patches** -- Read [kind-1617-patches.md](references/kind-1617-patches.md) for kind:1617 `git format-patch` submission and patch series threading.
+- **Pull requests** -- Read [kind-1618-pull-requests.md](references/kind-1618-pull-requests.md) for kind:1618 PR creation with clone URLs.
+- **PR updates** -- Read [kind-1619-pr-updates.md](references/kind-1619-pr-updates.md) for kind:1619 branch tip updates (uppercase E/P tags).
+- **Issues** -- Read [kind-1621-issues.md](references/kind-1621-issues.md) for kind:1621 bug reports and feature requests.
+- **Comments** -- Read [kind-1622-comments.md](references/kind-1622-comments.md) for kind:1622 code review comments and threading.
+- **Status events** -- Read [kind-1630-1633-status.md](references/kind-1630-1633-status.md) for kind:1630-1633 lifecycle status (open/merged/closed/draft).
+- **Arweave blob storage** -- Read [kind-5094-arweave-blob.md](references/kind-5094-arweave-blob.md) for kind:5094 DVM git object uploads.
+
+### Overview References (Level 2 — consolidated specification and workflows)
+
+- **Full NIP-34 overview and cross-kind relationships** -- Read [nip-spec.md](references/nip-spec.md) for the consolidated specification covering all 12 event kinds.
+- **TOON-specific git economics, fee tables, and publishing flow** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated git collaboration extensions.
 - **Step-by-step git collaboration workflows** -- Read [scenarios.md](references/scenarios.md) for announcing repos, submitting patches, creating PRs, opening issues, commenting, and uploading to Arweave.
+
+### Cross-Skill References
+
 - **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Reactions to patches, PRs, or issues** -- See `social-interactions` for kind:7 reaction mechanics.
 - **Embedding references in issue descriptions or comments** -- See `content-references` for `nostr:` URI embedding within markdown content.
 - **Social judgment on code review norms** -- See `nostr-social-intelligence` for base social intelligence and collaboration engagement guidance.
 - **Arweave storage architecture and DVM mechanics** -- See `media-and-files` for NIP-94 file metadata context alongside kind:5094 blob storage.
+- **Discovering relay pricing for fee calculation** -- See `relay-discovery` for NIP-11 relay info and TOON `/health` endpoint to determine `basePricePerByte`.
