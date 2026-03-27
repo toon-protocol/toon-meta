@@ -1,0 +1,190 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I check what NIPs a relay supports?",
+      "should_trigger": true
+    },
+    {
+      "query": "What does a TOON relay's /health endpoint return?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I publish my relay list on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I find someone's relays using kind:10002?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-11 relay information document?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does relay liveness monitoring work with NIP-66?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is a kind:30166 relay discovery event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I query relay capabilities before connecting?",
+      "should_trigger": true
+    },
+    {
+      "query": "What are the r tag read and write markers in kind:10002?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I discover pay-to-relay relays on the network?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a chat channel on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do reactions work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do moderated communities work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file using Nostr DVM?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do relay groups work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I label content on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I reference another note with a nostr: URI?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "nip-11-query",
+      "prompt": "I want to check a TOON relay's capabilities before connecting. The relay is at wss://relay.toon.example.com. How do I query its NIP-11 information?",
+      "expected_output": "Send an HTTP GET request to https://relay.toon.example.com with the header Accept: application/nostr+json. This header is critical -- without it, the relay may return HTML instead of JSON. Parse the JSON response to extract supported_nips (which NIPs the relay supports), limitation (max_message_length, max_content_length, etc.), and payment_required (always true on TOON). For TOON-specific information like basePricePerByte, ilpAddress, chainId, and tokenAddress, also query the /health endpoint at http://<relay-host>:<bls-port>/health. No payment is required for either query.",
+      "rubric": {
+        "correct": "Replaces wss:// with https:// for the request URL. Includes Accept: application/nostr+json header. Explains key response fields (supported_nips, limitation, payment_required). Mentions /health endpoint for TOON-specific fields. Notes no payment required for queries.",
+        "acceptable": "Correctly describes the HTTP GET with Accept header and URL scheme replacement, but may not mention /health endpoint or all response fields.",
+        "incorrect": "Uses WebSocket to query NIP-11, omits the Accept header, does not replace the URL scheme, or claims payment is required to query relay info."
+      },
+      "assertions": [
+        "Response specifies replacing wss:// with https:// for NIP-11 queries",
+        "Response includes Accept: application/nostr+json header requirement",
+        "Response mentions payment_required is always true on TOON relays",
+        "toon-fee-check: Response notes querying relay info is free (no payment required)",
+        "trigger-coverage: Description includes both protocol and discovery triggers"
+      ]
+    },
+    {
+      "id": "publish-relay-list",
+      "prompt": "I want to publish my relay list on TOON. I use wss://relay1.toon.example.com for both reading and writing, wss://relay2.toon.example.com only for reading, and wss://relay3.toon.example.com only for writing. How do I construct and publish the kind:10002 event?",
+      "expected_output": "Construct a kind:10002 event with three r tags: ['r', 'wss://relay1.toon.example.com'] (no marker means both read and write), ['r', 'wss://relay2.toon.example.com', 'read'], and ['r', 'wss://relay3.toon.example.com', 'write']. Set content to empty string. Sign the event with your Nostr private key. Calculate the fee based on serialized size (~250-350 bytes for 3 relays at default basePricePerByte, approximately $0.003-$0.004). Publish via publishEvent() from @toon-protocol/client. kind:10002 is a replaceable event -- publishing a new one replaces the previous relay list entirely. Batch relay changes into a single update to minimize cost. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects.",
+      "rubric": {
+        "correct": "Constructs kind:10002 with correct r tags and read/write markers. Sets content to empty string. Signs the event. Calculates approximate byte cost. Publishes via publishEvent(). Explains replaceable event semantics. Mentions batching updates. Mentions TOON-format strings.",
+        "acceptable": "Uses publishEvent() with kind:10002 and correct r tag format, but may not mention replaceable semantics, batching, or exact byte cost.",
+        "incorrect": "Uses raw WebSocket patterns, omits read/write markers, puts content in the content field instead of tags, uses wrong event kind, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for relay list byte cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "Response includes correct r tag format with read/write markers",
+        "Response explains kind:10002 is a replaceable event",
+        "Response mentions batching relay changes to minimize cost"
+      ]
+    },
+    {
+      "id": "discover-user-relays",
+      "prompt": "I want to find which relays a specific user (pubkey abc123def456) reads from and writes to. How do I discover their relay list on TOON?",
+      "expected_output": "Subscribe with filter { kinds: [10002], authors: ['abc123def456'] } to receive the user's latest relay list. Since kind:10002 is a replaceable event, you will receive at most one event. Decode the TOON-format response using the TOON decoder. Extract the r tags from the event. Tags with no marker indicate the relay is used for both reading and writing. Tags with 'read' marker mean the user reads from that relay -- publish there if you want them to see your content. Tags with 'write' marker mean the user writes there -- subscribe there to read their events. Reading kind:10002 events is free on TOON. Note that nostr-tools SimplePool does NOT work in Node.js containers -- use direct WebSocket connections or the TOON client.",
+      "rubric": {
+        "correct": "Uses correct filter with kinds and authors. Explains replaceable event semantics (at most one result). Decodes TOON-format. Correctly maps read/write markers to usage. Notes reading is free. Warns about SimplePool limitation.",
+        "acceptable": "Uses correct filter and explains r tag semantics, but may not mention TOON-format decoding or SimplePool limitation.",
+        "incorrect": "Uses wrong filter, claims multiple kind:10002 events will be returned, reverses read/write marker semantics, or claims reading costs money."
+      },
+      "assertions": [
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "Response uses correct filter with kinds: [10002] and authors array",
+        "Response correctly explains r tag read/write marker semantics",
+        "Response notes reading is free on TOON",
+        "trigger-coverage: Description includes both protocol and discovery triggers"
+      ]
+    },
+    {
+      "id": "health-endpoint",
+      "prompt": "What information does a TOON relay's /health endpoint provide that standard NIP-11 does not? Why should I query /health instead of or in addition to NIP-11?",
+      "expected_output": "The /health endpoint provides TOON-specific fields absent from standard NIP-11: basePricePerByte (ILP pricing for write operations), ilpAddress (relay's ILP address for payment routing), chainId (settlement chain ID, e.g., 421614 for Arbitrum Sepolia), tokenAddress (settlement token contract like USDC), peerCount (connected ILP peers), channelCount (open payment channels), x402Enabled (whether the /publish HTTP payment endpoint is active), and teeAttestation (TEE status and PCR values for Oyster CVM). Standard NIP-11 provides name, description, supported_nips, limitation constraints, and generic payment_required/fees fields, but lacks ILP routing, chain config, and TEE details. Query /health for pricing and payment setup, and NIP-11 for relay identity and capability constraints. Both endpoints are free to query.",
+      "rubric": {
+        "correct": "Lists TOON-specific /health fields (basePricePerByte, ilpAddress, chainId, tokenAddress, peerCount, channelCount, x402Enabled, teeAttestation). Contrasts with NIP-11 fields. Explains when to use each. Notes both are free.",
+        "acceptable": "Correctly identifies key /health fields and contrasts with NIP-11, but may not list all fields or explain when to use each.",
+        "incorrect": "Claims /health and NIP-11 return the same data, omits ILP-specific fields, or claims querying costs money."
+      },
+      "assertions": [
+        "Response lists basePricePerByte, ilpAddress, chainId, and tokenAddress as TOON-specific /health fields",
+        "Response mentions teeAttestation for TEE status",
+        "Response contrasts /health with standard NIP-11 fields",
+        "toon-fee-check: Response notes both endpoints are free to query",
+        "social-context-check: Skill has relay-discovery-specific Social Context section"
+      ]
+    },
+    {
+      "id": "nip-66-monitoring",
+      "prompt": "How do I use NIP-66 to find online relays and check their response times? I want to build a relay selector that prioritizes low-latency relays.",
+      "expected_output": "Subscribe to kind:30166 relay discovery events with filter { kinds: [30166], #s: ['online'] } to find online relays. Each kind:30166 event is a parameterized replaceable event with a d tag set to the relay URL. Extract rtt tags for latency data: ['rtt', 'open', '<ms>'] for connection time, ['rtt', 'read', '<ms>'] for read latency, and ['rtt', 'write', '<ms>'] for write latency. Sort relays by the relevant rtt value for your use case. For TOON-specific relays, filter with #T: ['pay-to-relay']. NIP-66 data is published by third-party relay monitor services -- check kind:10166 events to find active monitors and their check frequency. For TOON-specific pricing and ILP info, query each relay's /health endpoint directly since NIP-66 does not include ILP fields. All NIP-66 reading is free on TOON. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects.",
+      "rubric": {
+        "correct": "Uses correct filter with #s for online status. Explains rtt tag structure for latency. Mentions #T filter for pay-to-relay. References kind:10166 for monitor registration. Notes /health for TOON-specific data. Notes reading is free. Mentions TOON-format.",
+        "acceptable": "Correctly describes kind:30166 subscription and rtt tags, but may not mention pay-to-relay filter or /health complement.",
+        "incorrect": "Uses wrong event kinds, claims NIP-66 includes ILP pricing, or describes NIP-66 as a relay-published event rather than monitor-published."
+      },
+      "assertions": [
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "Response uses correct kind:30166 with #s filter for online status",
+        "Response explains rtt tag structure for latency measurement",
+        "Response mentions querying /health for TOON-specific ILP data not in NIP-66",
+        "Response notes NIP-66 data comes from third-party monitor services"
+      ]
+    },
+    {
+      "id": "relay-selection-economics",
+      "prompt": "How does TOON's payment model affect relay selection compared to free Nostr relays? What should I consider when choosing which TOON relays to list in my kind:10002?",
+      "expected_output": "On TOON, all relays require ILP payment for writes (payment_required: true always). This fundamentally changes relay selection compared to free Nostr: basePricePerByte varies between relays so cost per event differs, peerCount and channelCount indicate network connectivity and payment channel availability, chainId and tokenAddress must be compatible with your settlement chain, teeAttestation provides trust guarantees absent from free relays, and x402Enabled offers an alternative payment path. When choosing relays for your kind:10002 list, consider pricing (lower basePricePerByte means cheaper writes), connectivity (more peers means better payment routing), chain compatibility (must match your settlement chain), TEE attestation (prefer attested relays for sensitive operations), and latency (check rtt values from NIP-66 monitoring). Publishing your relay list costs per-byte so keep it accurate and minimal. Each additional relay adds ~50-70 bytes. Batch updates rather than publishing incrementally. Your relay list is a public signal about which relays you trust.",
+      "rubric": {
+        "correct": "Explains payment_required: true on all TOON relays. Covers pricing, connectivity, chain compatibility, TEE, and latency considerations. Notes per-byte cost for relay list updates. Mentions batching and minimizing list size. Discusses relay list as public signal.",
+        "acceptable": "Correctly identifies key selection criteria and per-byte cost, but may not cover all factors or social signal aspect.",
+        "incorrect": "Claims some TOON relays are free, ignores chain compatibility, or does not mention per-byte cost for relay list updates."
+      },
+      "assertions": [
+        "toon-fee-check: Response includes fee awareness for relay list update byte cost",
+        "Response explains payment_required is always true on TOON relays",
+        "Response mentions basePricePerByte comparison between relays",
+        "Response mentions chainId compatibility as a selection criterion",
+        "social-context-check: Skill has relay-discovery-specific Social Context section",
+        "Response discusses relay list as a public signal of trust"
+      ]
+    }
+  ]
+}

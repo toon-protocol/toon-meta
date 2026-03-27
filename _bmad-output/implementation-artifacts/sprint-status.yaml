@@ -162,10 +162,10 @@ development_status:
   9-8-relay-groups-skill: done
   9-9-moderated-communities-skill: done
   9-10-public-chat-skill: done
-  9-11-lists-and-labels-skill: backlog
+  9-11-lists-and-labels-skill: in-progress
   9-12-search-skill: backlog
   9-13-app-handlers-skill: backlog
-  9-14-media-and-files-skill: backlog
+  9-14-media-and-files-skill: in-progress
   9-15-visual-media-skill: backlog
   9-16-file-storage-skill: backlog
   9-17-encrypted-messaging-skill: backlog
@@ -177,14 +177,14 @@ development_status:
   9-23-highlights-skill: backlog
   9-24-polls-skill: backlog
   9-25-drafts-and-expiration-skill: backlog
-  9-26-nip34-kind-resources-skill: backlog
+  9-26-nip34-kind-resources-skill: in-progress
   9-27-git-object-format-skill: backlog
   9-28-git-arweave-integration-skill: backlog
   9-29-git-workflow-examples-skill: backlog
   9-30-git-identity-evals-skill: backlog
   9-31-dvm-protocol-skill: backlog
   9-32-marketplace-skill: backlog
-  9-33-relay-discovery-skill: backlog
+  9-33-relay-discovery-skill: in-progress
   9-34-publish-all-skills: backlog
   epic-9-retrospective: optional
 
@@ -217,14 +217,6 @@ development_status:
   # Dependencies: Epic 8 (receipt pattern), Epic 5 (DVM kinds), Epic 3 (multi-chain config)
   # Stories: TBD (to be decomposed when epic starts)
   epic-11: backlog
-  11-1-chain-bridge-event-kind-definitions: backlog
-  11-2-tier-1-trustless-broadcast-protocol: backlog
-  11-3-self-describing-per-chain-receipts: backlog
-  11-4-consumer-sdk-tx-submission: backlog
-  11-5-chain-bridge-skill-descriptor: backlog
-  11-6-provider-test-harness-extension: backlog
-  11-7-provider-handoff-documents: backlog
-  11-8-publish-chain-bridge-primitive: backlog
   epic-11-retrospective: optional
 
   # Epic 12: Loony — Autonomous Agent Example Application
@@ -232,14 +224,6 @@ development_status:
   # Example application proving all four primitives + composition; self-bootstrapping agent lifecycle
   # Dependencies: Epics 10 + 11 (primitives)
   epic-12: backlog
-  12-1-loony-package-scaffold-and-identity-bootstrap: backlog
-  12-2-service-discovery-and-perception-layer: backlog
-  12-3-decoupled-llm-inference-via-compute-marketplace: backlog
-  12-4-multi-primitive-action-layer: backlog
-  12-5-ooda-decision-loop: backlog
-  12-6-dvm-provider-registration-and-earning: backlog
-  12-7-runtime-capability-extension: backlog
-  12-8-self-sustaining-economics-and-e2e-validation: backlog
   epic-12-retrospective: optional
 
   # ═══════════════════════════════════════════════════════════════

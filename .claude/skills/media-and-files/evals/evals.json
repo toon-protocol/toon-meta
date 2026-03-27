@@ -1,0 +1,178 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I attach media to a note on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is an imeta tag?",
+      "should_trigger": true
+    },
+    {
+      "query": "NIP-92 media attachments",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a file metadata event?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is kind:1063 file metadata?",
+      "should_trigger": true
+    },
+    {
+      "query": "NIP-94 file metadata",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I reference Arweave content in Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is an arweave:tx: external content ID?",
+      "should_trigger": true
+    },
+    {
+      "query": "NIP-73 external content IDs",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I add alt text to media on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do relay groups work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file via NIP-96?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a picture-first post with NIP-68?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does encrypted messaging work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I search for content on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I send a message to a chat channel?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "imeta-tag-construction",
+      "prompt": "I want to attach an image to a kind:1 note on TOON. The image is hosted at https://example.com/photo.jpg (JPEG, 245760 bytes, 1920x1080). How do I construct the imeta tag and publish the event?",
+      "expected_output": "Construct a kind:1 event with the image URL in the content. Add an imeta tag: [\"imeta\", \"url https://example.com/photo.jpg\", \"m image/jpeg\", \"alt <description of the image>\", \"x <sha256-hex-hash>\", \"size 245760\", \"dim 1920x1080\"]. Sign the event. Calculate the fee -- a kind:1 note with one imeta tag is approximately 400-700 bytes (~$0.004-$0.007 at default basePricePerByte). Publish via publishEvent() from @toon-protocol/client. Include alt text for accessibility. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects.",
+      "rubric": {
+        "correct": "Constructs imeta tag with correct space-separated key-value format including url, m, alt, x, size, dim fields. Publishes via publishEvent(). Includes approximate byte cost for the event with imeta tag overhead. Mentions alt text for accessibility. Mentions TOON-format strings.",
+        "acceptable": "Uses publishEvent() with imeta tag including url and m fields, but may not include all fields or exact byte cost estimates.",
+        "incorrect": "Uses raw WebSocket, omits imeta tag entirely, uses wrong tag format (e.g., separate tags instead of imeta), or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for imeta tag byte overhead",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "eval-completeness: At least 6 trigger evals and 4 output evals",
+        "Response includes imeta tag with space-separated key-value pairs including url and m fields",
+        "Response mentions alt text for accessibility"
+      ]
+    },
+    {
+      "id": "kind-1063-file-metadata",
+      "prompt": "I want to create a kind:1063 file metadata event on TOON to describe a PDF file hosted at https://files.example.com/report.pdf. What tags are required and how do I publish it?",
+      "expected_output": "Construct a kind:1063 event. Set the content field to a human-readable file description (e.g., 'Quarterly revenue report for Q4 2025'). Add the three required tags: [\"url\", \"https://files.example.com/report.pdf\"], [\"m\", \"application/pdf\"], [\"x\", \"<sha256-hex-hash>\"]. Optionally add size, summary, alt tags. Sign the event. Calculate the fee -- a kind:1063 event is approximately 300-800 bytes (~$0.003-$0.008 at default basePricePerByte). Publish via publishEvent() from @toon-protocol/client. TOON relays return TOON-format strings in EVENT messages.",
+      "rubric": {
+        "correct": "Includes all three required tags (url, m, x) as separate tag arrays. Content field is free-text description, not JSON. Publishes via publishEvent(). Includes approximate byte cost. Mentions TOON-format strings.",
+        "acceptable": "Includes required tags and publishEvent() but may not detail content field format or byte cost.",
+        "incorrect": "Omits required tags, puts metadata in content as JSON, uses raw WebSocket, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for kind:1063 byte cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes all three required tags: url, m, x"
+      ]
+    },
+    {
+      "id": "arweave-content-reference",
+      "prompt": "I uploaded a file to Arweave and got transaction ID bNBsl1C_QXyT9V0riR. How do I reference this Arweave content in a Nostr event on TOON? What is the relationship between the Arweave DVM and NIP-73?",
+      "expected_output": "Add an i tag to your event: [\"i\", \"arweave:tx:bNBsl1C_QXyT9V0riR\"]. This creates a permanent, immutable reference to the Arweave content. You can combine this with a kind:1063 file metadata event that has url pointing to https://arweave.net/bNBsl1C_QXyT9V0riR plus the i tag for content-ID-based discovery. The Arweave DVM (kind:5094 from Epic 8) handles the upload logistics; NIP-73 i tags handle the reference and discovery. They are complementary -- the DVM uploads, NIP-73 references. The i tag adds approximately 70-90 bytes ($0.0007-$0.0009). Anyone can search #i: [\"arweave:tx:bNBsl1C_QXyT9V0riR\"] to discover all events referencing that content. Publish via publishEvent(). TOON relays return TOON-format strings.",
+      "rubric": {
+        "correct": "Uses correct arweave:tx: format in i tag. Explains the upload-reference pattern (DVM uploads, NIP-73 references). Mentions combining with kind:1063 for full metadata. Includes byte cost estimate for i tag. Mentions publishEvent() and TOON-format strings.",
+        "acceptable": "Correctly formats arweave:tx: i tag and uses publishEvent(), but may not fully explain the DVM/NIP-73 relationship.",
+        "incorrect": "Uses wrong i tag format, confuses DVM upload with NIP-73 referencing, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for i tag byte overhead",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses correct arweave:tx: format in i tag",
+        "Response explains relationship between Arweave DVM (kind:5094) and NIP-73 i tags"
+      ]
+    },
+    {
+      "id": "media-economics-on-toon",
+      "prompt": "How does TOON's per-byte pricing affect media-rich events? What is the cost difference between a text-only note and a note with three image attachments?",
+      "expected_output": "On TOON, every event costs basePricePerByte * serializedEventBytes. Media-rich events cost more because imeta tags add byte overhead. A text-only kind:1 note is approximately 200-350 bytes (~$0.002-$0.004). Adding one imeta tag adds ~100-300 bytes of overhead. A kind:1 note with three imeta tags is approximately 700-1200 bytes (~$0.007-$0.012) -- roughly 2-3x the cost of a text-only note. This creates a natural quality-over-quantity incentive: share media thoughtfully rather than flooding with attachments. kind:1063 file metadata events are small (300-800 bytes, $0.003-$0.008) because they describe external files rather than embedding data. i tags for external content IDs add minimal overhead (~50-100 bytes). Never embed large binary data in event content -- use URLs. TOON relays return TOON-format strings in EVENT messages.",
+      "rubric": {
+        "correct": "Compares text-only note cost vs media-rich note cost with specific byte estimates. Explains imeta tag overhead accumulates linearly. Mentions quality-over-quantity incentive. Notes kind:1063 is small because it references external files. Warns against embedding binary data. Mentions TOON-format strings.",
+        "acceptable": "Correctly identifies per-byte cost increase from imeta tags with some cost estimates, but may not detail all scenarios.",
+        "incorrect": "Claims media is free on TOON, provides no cost comparison, or does not explain imeta tag byte overhead."
+      },
+      "assertions": [
+        "toon-fee-check: Response includes specific fee comparisons between text-only and media-rich events",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response compares text-only note cost with media-rich note cost",
+        "Response explains imeta tag byte overhead increases event cost"
+      ]
+    },
+    {
+      "id": "querying-file-metadata",
+      "prompt": "How do I discover and query kind:1063 file metadata events on a TOON relay? I want to find all PDF files published by a specific author.",
+      "expected_output": "Subscribe with a filter combining kinds, authors, and MIME type: kinds: [1063], authors: [\"<pubkey>\"], #m: [\"application/pdf\"]. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects -- use the TOON decoder to parse responses. Extract the content field for the file description, and parse tags for url, m, x, size, alt, and any i tags for external references. You can also filter by hash (#x) or by external content ID (#i) to find specific files. Reading is free on TOON -- no ILP payment required for subscriptions. Verify file integrity by comparing the downloaded file's SHA-256 hash against the x tag value.",
+      "rubric": {
+        "correct": "Uses correct filter with kinds: [1063], authors, and #m tag filter. Mentions TOON-format parsing requirement. Notes reading is free. Mentions content verification via x tag hash comparison.",
+        "acceptable": "Uses correct kinds filter and mentions TOON-format parsing, but may not include all filter options or hash verification.",
+        "incorrect": "Uses wrong filter kinds, assumes standard JSON responses, or claims reading costs money."
+      },
+      "assertions": [
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses correct filter with kinds: [1063] and tag filters",
+        "Response mentions reading is free on TOON"
+      ]
+    }
+  ]
+}
