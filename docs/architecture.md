@@ -105,16 +105,16 @@ Best for: AI agents, custom services, applications that need ILP payment capabil
 
 ### Standalone (Docker)
 
-Run as a microservice alongside an external ILP connector.
+Run as a microservice using the SDK E2E infrastructure.
 
 ```bash
-docker compose -f docker-compose-genesis.yml up -d
+./scripts/sdk-e2e-infra.sh up
 ```
 
 | Port | Service | Protocol |
 |------|---------|----------|
-| 3100 | BLS — ILP packet validation | HTTP |
-| 7100 | Nostr relay — event reads | WebSocket |
+| 19100 | Peer 1 BLS — ILP packet validation | HTTP |
+| 19700 | Peer 1 Nostr relay — event reads | WebSocket |
 
 Best for: Relay operators, infrastructure providers.
 
