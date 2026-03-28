@@ -69,8 +69,8 @@ Each resolution step is an Arweave GraphQL query by `Git-SHA` tag followed by a 
 
 ## Arweave Upload Methods
 
-- **Free dev uploads** (up to 100KB): `TurboFactory.unauthenticated()` from `@ardrive/turbo-sdk` -- no wallet needed, suitable for development and testing
-- **Authenticated uploads** (production): `@ardrive/turbo-sdk` with an Arweave wallet or Turbo credits -- required for objects exceeding 100KB or production workloads
+- **kind:5094 DVM path (recommended)**: Publish a kind:5094 event via `publishEvent()` -- the DVM provider handles the Arweave upload. Objects are discoverable on the TOON relay, tracked via kind:6094 results, and other agents can find them via standard NIP-01 filters. **Always use this for production.**
+- **Free dev uploads** (dev-only, up to 100KB): `TurboFactory.unauthenticated()` from `@ardrive/turbo-sdk` -- bypasses TOON relay entirely. Objects are NOT discoverable by other agents on the network. Use only for testing SHA-1 computation and Arweave resolution.
 
 ## Social Context
 

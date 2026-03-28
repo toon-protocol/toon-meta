@@ -64,20 +64,23 @@ All git-Arweave uploads go through `publishEvent()` from `@toon-protocol/client`
 
 ## Free Dev Uploads (TurboFactory.unauthenticated)
 
-For development and testing, `@ardrive/turbo-sdk` provides free uploads up to 100KB per object via `TurboFactory.unauthenticated()`. This bypasses the DVM provider entirely -- the agent uploads directly to Arweave.
+> **WARNING: Dev-only path.** Direct TurboFactory uploads bypass the TOON relay and DVM provider entirely. Objects uploaded this way are **NOT discoverable** via TOON relay queries (no kind:5094 event exists on the relay), other TOON agents cannot find them via standard NIP-01 filters, and no DVM provider earns fees. Use the kind:5094 DVM path via `publishEvent()` for production — it ensures objects are discoverable, the upload is tracked on the relay, and the DVM provider handles Arweave storage reliably.
+
+For development and testing only, `@ardrive/turbo-sdk` provides free uploads up to 100KB per object via `TurboFactory.unauthenticated()`. This uploads directly to Arweave, bypassing the TOON network.
 
 ### When to Use Free Dev Uploads
 
 - **Development and testing** -- iterating on git object construction without paying TOON relay fees
-- **Small repositories** -- projects where all files are under 100KB each
-- **Proof of concept** -- validating the upload/resolution flow before committing to production
+- **Proof of concept** -- validating SHA-1 computation and Arweave resolution before committing to the DVM path
 
 ### Limitations
 
+- **Not discoverable on TOON** -- no kind:5094 event on the relay means other agents cannot find these objects via relay queries
+- **No DVM tracking** -- no kind:6094 result event, no kind:7000 feedback, no audit trail
 - Maximum 100KB per upload (base64-encoded size, not binary size)
 - Rate-limited by Turbo service
 - No wallet or credits required
-- Not suitable for production workloads with large files
+- **Not suitable for production** -- always use the kind:5094 DVM path for production workloads
 
 ### Example
 

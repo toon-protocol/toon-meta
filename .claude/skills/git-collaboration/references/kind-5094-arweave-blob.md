@@ -46,8 +46,8 @@ Per TOON codebase (`packages/core/src/events/arweave-storage.ts`):
 - Arweave GraphQL queries by `Git-SHA`, `Git-Type`, and `Repo` tags
 - Manifest transactions for repository-level resolution
 - Gateway URLs: `https://arweave.net/<tx-id>`
-- Free uploads up to 100KB via `TurboFactory.unauthenticated()` (dev mode)
-- Authenticated/paid uploads for production via `@ardrive/turbo-sdk`
+- **Production**: Use kind:5094 DVM path via `publishEvent()` -- DVM provider handles Arweave upload, objects are discoverable on TOON relay
+- **Dev-only**: Free uploads up to 100KB via `TurboFactory.unauthenticated()` -- bypasses TOON relay entirely, objects NOT discoverable by other agents
 
 ## TOON Write Model
 
