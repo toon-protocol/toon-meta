@@ -3,14 +3,13 @@ name: media-and-files
 description: Media attachments, file metadata, and external content IDs on Nostr and
   TOON Protocol. Covers NIP-92 media attachments ("how do I attach media to a note?",
   "what is an imeta tag?", imeta tag, media attachment, inline media metadata, url,
-  m, alt, x, size, dim, blurhash, thumb, fallback), NIP-94 file metadata ("how do I
-  create a file metadata event?", "how do I describe a file?", kind:1063, file metadata,
-  file description, MIME type, SHA-256 hash, ox, thumbnail), NIP-73 external content
-  IDs ("how do I reference Arweave content in Nostr?", "what is an external content
-  ID?", i tag, arweave:tx:, isbn:, doi:, magnet:, url:, external content ID, content
-  discovery), and media economics ("how much does media cost on TOON?", alt text,
-  accessibility, media on TOON). Implements NIP-92, NIP-94, and NIP-73 on TOON's
-  ILP-gated network where media-rich events cost more per-byte.
+  m, alt, x, dim, blurhash, thumb), NIP-94 file metadata ("how do I create a file
+  metadata event?", kind:1063, file metadata, MIME type, SHA-256 hash, ox, thumbnail),
+  NIP-73 external content IDs ("how do I reference Arweave content in Nostr?", i tag,
+  arweave:tx:, isbn:, doi:, external content ID, content discovery), and media
+  economics ("how much does media cost on TOON?", alt text, accessibility).
+  Implements NIP-92, NIP-94, and NIP-73 on TOON's ILP-gated network where
+  media-rich events cost more per-byte.
 ---
 
 # Media and Files (TOON)

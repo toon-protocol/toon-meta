@@ -56,6 +56,7 @@ No special headers required (unlike NIP-11 which requires `Accept: application/n
 | `phase` | string | Current bootstrap phase (e.g., `"running"`, `"discovering"`) |
 | `pubkey` | string | Node's Nostr pubkey (64-char hex) |
 | `ilpAddress` | string | The relay's ILP address for payment routing (e.g., `g.toon.relay1`) |
+| `btpUrl` | string | BTP WebSocket URL for ILP peer connections (e.g., `ws://relay-host:8081`) |
 | `peerCount` | number | Number of registered ILP peers |
 | `discoveredPeerCount` | number | Number of discovered (not yet registered) peers |
 | `channelCount` | number | Number of open payment channels |
@@ -64,7 +65,7 @@ No special headers required (unlike NIP-11 which requires `Accept: application/n
 | `x402` | object or absent | When x402 is enabled: `{ enabled: true, endpoint: "/publish" }`. Entirely absent when disabled. |
 | `tee` | object or absent | TEE attestation info (only present when running in Oyster CVM enclave). Entirely absent when not in TEE. |
 | `capabilities` | array | Array of capability strings (e.g., `["relay"]` or `["relay", "x402"]`) |
-| `chain` | string | Settlement chain preset name (e.g., `"anvil"`, `"arbitrum-sepolia"`, `"arbitrum-one"`) |
+| `chain` | string | Settlement chain preset name (e.g., `"anvil"`, `"arbitrum-sepolia"`, `"arbitrum-one"`). Maps to chainId, tokenNetworkAddress, and usdcAddress via chain-config.ts |
 | `version` | string | Software version string |
 | `sdk` | boolean | Always `true` for SDK-based nodes |
 | `timestamp` | number | Response timestamp in milliseconds |
@@ -91,7 +92,7 @@ When running inside an Oyster CVM enclave, the `tee` field is present in the res
 | `pcr0` | string | Platform Configuration Register 0 (SHA-384 hex, 96 chars) |
 | `state` | string | Attestation validity: `"valid"`, `"stale"`, or `"unattested"` |
 
-PCR values provide cryptographic proof that the relay is running attested code inside a trusted execution environment. Agents can verify `pcr0` against known-good measurements. Check the `state` field -- `"valid"` means the attestation is current, `"stale"` means it has expired.
+PCR values (pcrs) provide cryptographic proof that the relay is running attested code inside a trusted execution environment. The nitroAttested flag indicates AWS Nitro Enclaves attestation. The enclaveId uniquely identifies the enclave instance. Agents can verify `pcr0` against known-good measurements. Check the `state` field -- `"valid"` means the attestation is current, `"stale"` means it has expired.
 
 ### payment_required: Always True on TOON
 
@@ -176,6 +177,24 @@ TOON relays return TOON-format strings in EVENT messages, not standard JSON obje
 Reading relay discovery events is free on TOON -- no ILP payment required for subscriptions.
 
 **Important:** `nostr-tools` SimplePool does NOT work in Node.js containers (no global WebSocket + TOON format incompatible). Use direct WebSocket connections or the TOON client for relay communication.
+
+## Seed Relay Discovery (kind:10036)
+
+kind:10036 is a TOON-specific seed relay list event used for bootstrap discovery. When a new agent starts, it needs to discover initial relays to connect to. kind:10036 events contain seed relay URLs that agents use during the bootstrap phase to find the network.
+
+### Minimal Write Model
+
+This skill is read-focused. Only kind:10002 relay list events are agent-writable. NIP-11 is a free HTTP GET endpoint (no write). NIP-66 monitoring events (kind:10166, kind:30166, kind:10066) are published by relay monitor operators, not end-user agents. The minimal write model means agents spend very little on relay discovery -- reading is free, and the only write cost is the occasional kind:10002 relay list update.
+
+## Relay Evaluation Criteria
+
+When comparing relays, evaluate based on these criteria:
+
+- **Pricing** -- Compare `pricing.basePricePerByte` across relays. Lower pricing means cheaper write operations.
+- **TEE attestation** -- Prefer relays with valid TEE attestation (`tee.state: "valid"`) for sensitive operations.
+- **ILP route quality** -- Check `peerCount` and `channelCount` for network connectivity. More peers indicate better routing options.
+- **Chain compatibility** -- Verify the relay's `chain` preset matches your settlement chain (e.g., both use `"arbitrum-sepolia"`).
+- **Liveness** -- Use NIP-66 kind:30166 `rtt` tags to compare relay latency.
 
 ## Integration with Protocol Core
 

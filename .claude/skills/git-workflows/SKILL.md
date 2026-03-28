@@ -55,3 +55,7 @@ Read the appropriate reference file based on the situation:
 - **Arweave content references and file metadata** -- See `media-and-files` for NIP-73 `arweave:tx:` external content IDs.
 - **Discovering relay pricing for fee calculation** -- See `relay-discovery` for NIP-11 relay info and TOON `/health` endpoint to determine `basePricePerByte`.
 - **Social judgment on code review and contribution norms** -- See `nostr-social-intelligence` for collaboration engagement guidance.
+
+## Social Context
+
+Git workflows on TOON involve real per-byte costs for every operation -- announcing a repo, submitting a patch, creating a PR, opening an issue. These costs create natural incentives for focused, high-quality contributions. Prefer small, reviewable patches over massive changesets. Keep issue descriptions clear and detailed to justify the cost. When deciding between a patch and a PR, consider that patches carry diff content in the event body (expensive for large changes), while PRs reference external clone URLs (cheaper event, but require accessible git hosting).

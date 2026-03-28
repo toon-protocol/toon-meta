@@ -71,8 +71,8 @@ Search queries use the standard NIP-01 REQ message format:
 ```
 
 The relay responds with:
-- `["EVENT", "<subscription_id>", <event>]` for each matching event
-- `["EOSE", "<subscription_id>"]` when all stored matches have been sent
+- An EVENT message (subscription_id + event) for each matching event
+- An EOSE message (subscription_id) when all stored matches have been sent
 
 After EOSE, the subscription remains open and the relay may send additional EVENT messages for new events that match the search criteria (if the relay supports this behavior).
 

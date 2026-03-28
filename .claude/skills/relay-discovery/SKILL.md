@@ -2,14 +2,14 @@
 name: relay-discovery
 description: Relay discovery and network navigation on Nostr and TOON Protocol using
   NIP-11, NIP-65, and NIP-66. Covers relay information ("what relays are available?",
-  "how do I check relay capabilities?", NIP-11, relay information document, supported_nips,
-  payment_required), relay list metadata ("how do I publish my relay list?", "how do
-  I find someone's relays?", kind:10002, relay list, r tag, read relay, write relay),
-  relay monitoring ("how do I monitor relay health?", "how does relay liveness work?",
-  kind:30166, kind:10166, kind:10066, NIP-66 relay discovery), and TOON-enriched
-  relay info ("what does a TOON relay's /health endpoint return?", pricing, ILP
-  capabilities, chain config, x402, TEE attestation). Implements NIP-11, NIP-65,
-  and NIP-66 on TOON's ILP-gated relay network.
+  "how do I check relay capabilities?", NIP-11, relay information document,
+  supported_nips, payment_required), relay list metadata ("how do I publish my relay
+  list?", kind:10002, relay list, r tag, read relay, write relay), relay monitoring
+  ("how do I monitor relay health?", kind:30166, kind:10166, kind:10066, NIP-66
+  relay discovery), TOON-enriched relay info (/health endpoint, pricing, ILP, TEE
+  attestation), and relay evaluation ("how do I find a good relay?", "which relay
+  should I use?", compare relays). Implements NIP-11, NIP-65, and NIP-66 on TOON's
+  ILP-gated relay network.
 ---
 
 # Relay Discovery (TOON)
@@ -107,9 +107,19 @@ Query NIP-11 relay information via HTTP GET. Subscribe to kind:10002 events to d
 
 For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
+## Seed Relay Discovery (kind:10036)
+
+kind:10036 is a TOON-specific seed relay list event used for bootstrap discovery. New agents use kind:10036 to find initial relays during the bootstrap phase.
+
 ## Social Context
 
 Relay choice matters on TOON. ILP-gated relays signal commitment to quality -- every writer has paid to publish, creating a natural quality floor absent from free relays. When recommending relays, consider the economic model as a feature, not a limitation.
+
+Choosing the right relays directly impacts content visibility and audience reach. Publishing to well-connected relays increases the likelihood that other agents and clients will see your events. Conversely, publishing only to obscure or poorly-connected relays limits your reach.
+
+Relay diversity provides resilience against downtime and censorship. Using multiple relays across different operators and geographic regions ensures events remain accessible even if one relay goes offline. Avoid depending on a single relay for all read and write operations.
+
+Relay selection also impacts payment costs -- different relays may charge different `basePricePerByte` rates. Compare pricing across relays before committing to a relay list.
 
 Publishing your relay list (kind:10002) is a public statement about which relays you trust and use. Keep it accurate and up to date. On TOON, relay list updates cost per-byte -- batch relay changes rather than updating one relay at a time.
 
@@ -134,6 +144,6 @@ Read the appropriate reference file based on the situation:
 - **Service discovery for DVM providers** -- See `dvm-protocol` (Story 9.31) for kind:10035 service discovery events.
 - **TEE attestation for relay trust** -- See kind:10033 attestation events in project-context.md section "TEE Integration".
 - **Social judgment on relay selection** -- See `nostr-social-intelligence` for base social intelligence guidance.
-- **Identity and relay list overlap** -- See `social-identity` for kind:0 profiles and kind:3 follow lists, which complement kind:10002 relay lists as identity declarations.
+- **Identity and relay list overlap** -- See `social-identity` for kind:0 profiles, which complement kind:10002 relay lists as identity declarations.
 - **Relay sets for curation** -- See `lists-and-labels` for NIP-51 relay sets (kind:30002) which organize relays by purpose beyond the basic kind:10002 relay list.
 - **Content references in relay contexts** -- See `content-references` for nostr: URI scheme used in relay-related event references.

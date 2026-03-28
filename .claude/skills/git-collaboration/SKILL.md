@@ -1,15 +1,6 @@
 ---
 name: git-collaboration
-description: Decentralized git collaboration on Nostr and TOON Protocol using NIP-34.
-  Covers repository announcements ("how do I announce a repo on Nostr?", kind:30617),
-  patches ("how do I submit a patch?", kind:1617, git format-patch), pull requests
-  ("how do I open a PR on TOON?", kind:1618), issues ("how do I open an issue?",
-  kind:1621), comments ("how do I comment on a PR?", kind:1622), status events
-  ("how do I merge a PR?", "how do I close an issue?", kind:1630-1633), and Arweave
-  blob storage ("how do I upload git objects to Arweave?", kind:5094). Helps with
-  git workflow decisions ("should I submit a patch or a PR?", "how do I keep patch
-  costs low?"). Implements NIP-34 on TOON's ILP-gated network where patches cost
-  per-byte so diffs should be minimal.
+description: 'Decentralized git collaboration on Nostr and TOON Protocol using NIP-34. Covers repository announcements ("how do I announce a repo on Nostr?", kind:30617), patches ("how do I submit a patch?", kind:1617, git format-patch), pull requests ("how do I open a PR on TOON?", kind:1618), issues ("how do I open an issue?", kind:1621), comments ("how do I comment on a PR?", kind:1622), status events ("how do I merge a PR?", kind:1630-1633), and Arweave blob storage (kind:5094). Helps with git workflow decisions ("should I submit a patch or a PR?", "what is the cost of submitting a patch?"). Implements NIP-34 on TOON''s ILP-gated network where patches cost per-byte.'
 ---
 
 # Git Collaboration (TOON)
@@ -77,19 +68,22 @@ For deeper social judgment guidance, see `nostr-social-intelligence`. For embedd
 
 Read the appropriate reference file based on the situation:
 
-### Per-Kind References (Level 3 — detailed tag formats, validation, examples)
+### Per-Kind References (Level 3 -- detailed tag formats, validation, examples)
 
-- **Repository announcements** -- Read [kind-30617-repo-announcement.md](references/kind-30617-repo-announcement.md) for kind:30617 tags, validation, and `publishEvent()` examples.
-- **Repository state** -- Read [kind-30618-repo-state.md](references/kind-30618-repo-state.md) for kind:30618 branch/tag state publishing.
-- **Patches** -- Read [kind-1617-patches.md](references/kind-1617-patches.md) for kind:1617 `git format-patch` submission and patch series threading.
-- **Pull requests** -- Read [kind-1618-pull-requests.md](references/kind-1618-pull-requests.md) for kind:1618 PR creation with clone URLs.
-- **PR updates** -- Read [kind-1619-pr-updates.md](references/kind-1619-pr-updates.md) for kind:1619 branch tip updates (uppercase E/P tags).
-- **Issues** -- Read [kind-1621-issues.md](references/kind-1621-issues.md) for kind:1621 bug reports and feature requests.
-- **Comments** -- Read [kind-1622-comments.md](references/kind-1622-comments.md) for kind:1622 code review comments and threading.
-- **Status events** -- Read [kind-1630-1633-status.md](references/kind-1630-1633-status.md) for kind:1630-1633 lifecycle status (open/merged/closed/draft).
-- **Arweave blob storage** -- Read [kind-5094-arweave-blob.md](references/kind-5094-arweave-blob.md) for kind:5094 DVM git object uploads.
+- **Repository announcements** -- Read [kind-30617-repository-announcement.md](references/kind-30617-repository-announcement.md) for kind:30617 tags, validation, and `publishEvent()` examples.
+- **Repository state** -- Read [kind-30618-repository-state.md](references/kind-30618-repository-state.md) for kind:30618 branch/tag state publishing.
+- **Patches** -- Read [kind-1617-patch.md](references/kind-1617-patch.md) for kind:1617 `git format-patch` submission and patch series threading.
+- **Pull requests** -- Read [kind-1618-pull-request.md](references/kind-1618-pull-request.md) for kind:1618 PR creation with clone URLs.
+- **PR status updates** -- Read [kind-1619-pr-status-update.md](references/kind-1619-pr-status-update.md) for kind:1619 branch tip updates (uppercase E/P tags).
+- **Issues** -- Read [kind-1621-issue.md](references/kind-1621-issue.md) for kind:1621 bug reports and feature requests.
+- **Comments** -- Read [kind-1622-reply.md](references/kind-1622-reply.md) for kind:1622 code review comments and threading.
+- **Status: Open** -- Read [kind-1630-status-open.md](references/kind-1630-status-open.md) for kind:1630 open/reopen status events.
+- **Status: Applied/Merged** -- Read [kind-1631-status-applied.md](references/kind-1631-status-applied.md) for kind:1631 merge and apply status events.
+- **Status: Closed** -- Read [kind-1632-status-closed.md](references/kind-1632-status-closed.md) for kind:1632 close status events.
+- **Status: Draft** -- Read [kind-1633-status-draft.md](references/kind-1633-status-draft.md) for kind:1633 draft status events.
+- **Arweave blob storage** -- Read [kind-5094-blob-storage.md](references/kind-5094-blob-storage.md) for kind:5094 DVM git object uploads.
 
-### Overview References (Level 2 — consolidated specification and workflows)
+### Overview References (Level 2 -- consolidated specification and workflows)
 
 - **Full NIP-34 overview and cross-kind relationships** -- Read [nip-spec.md](references/nip-spec.md) for the consolidated specification covering all 12 event kinds.
 - **TOON-specific git economics, fee tables, and publishing flow** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated git collaboration extensions.

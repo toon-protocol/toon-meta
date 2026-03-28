@@ -158,3 +158,7 @@ Read the appropriate reference file based on the situation:
 - **Arweave content references and file metadata** -- See `media-and-files` for NIP-73 `arweave:tx:` external content IDs and NIP-94 file metadata.
 - **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Nostr identity and profile metadata** -- See `social-identity` for kind:0 profile metadata used in Nostr pubkey to git author mapping.
+
+## Social Context
+
+Git objects represent the underlying data structures of version-controlled code. On TOON, uploading git objects to Arweave via kind:5094 costs per-byte, so constructing objects correctly matters -- malformed objects waste storage fees and break content-addressed resolution. Blob, tree, and commit objects each follow strict binary formats that must be respected for SHA-1 hashes to match. When collaborating on a paid network, correct object construction ensures that references between objects (trees pointing to blobs, commits pointing to trees) resolve properly for all participants.

@@ -186,7 +186,7 @@ development_status:
   9-32-marketplace-skill: done
   9-33-relay-discovery-skill: done
   9-34-publish-all-skills: done
-  epic-9-retrospective: optional
+  epic-9-retrospective: done
 
   # Epic 10: Compute Primitive — Provider Protocol & DX (kind:5250)
   # Decision source: Party Mode 2026-03-22 — Network Primitives Strategy (D8-PM-003/004/005)

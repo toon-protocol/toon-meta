@@ -65,6 +65,8 @@ The relay returns a JSON object with the following fields (all optional):
 - **`payment_required`** -- Boolean. On TOON relays, this is always `true`. Clients must pay via ILP to publish events.
 - **`limitation`** -- Object describing relay constraints. `max_message_length` and `max_content_length` are important for sizing events.
 - **`fees`** -- Standard NIP-11 fee structure. TOON relays extend this with per-byte ILP pricing via the `/health` endpoint.
+- **`retention`** -- Array of retention policy objects describing how long the relay stores events. Each object may specify `time` (seconds) and/or `count` limits, optionally filtered by `kinds`. Relays with limited retention may discard old events.
+- **`relay_countries`** -- Array of ISO 3166-1 alpha-2 country codes (e.g., `["US", "DE"]`) indicating where the relay operates. Useful for geographic relay selection and latency optimization.
 
 ### Limitation Object Fields
 
@@ -213,6 +215,7 @@ Published by monitor services to register themselves. Declares monitoring parame
 | `timeout` | `["timeout", "read", "15000"]` | Read operation timeout in milliseconds |
 | `timeout` | `["timeout", "write", "15000"]` | Write operation timeout in milliseconds |
 | `frequency` | `["frequency", "3600"]` | Check interval in seconds |
+| `t` | `["t", "clearnet"]` | Network types the monitor covers (e.g., clearnet, tor) |
 
 ### kind:10066 -- Relay List for Monitoring
 
