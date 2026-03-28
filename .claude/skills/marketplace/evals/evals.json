@@ -1,0 +1,171 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I create a marketplace listing on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-15 and how does the Nostr marketplace work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I sell something on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a classified listing on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is a kind:30017 stall event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I list a product with kind:30018 on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does NIP-99 work for classified ads?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I set up a shop on Nostr with shipping zones?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I post a kind:30402 classified listing?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I buy something on the Nostr marketplace?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I encrypt a direct message on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file using NIP-96?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a DVM job request?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a badge on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I highlight a passage on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I set my status on Nostr?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "create-stall-and-product",
+      "prompt": "I want to set up a shop on TOON to sell digital art. Walk me through creating a stall and listing my first product. The relay's basePricePerByte is 10 micro-USDC.",
+      "expected_output": "First, create a stall (kind:30017) with a d tag identifier, name, description, currency (e.g., USD), and a shipping array with at least one zone for digital delivery (cost: 0, regions: Worldwide). The content field is a JSON string containing these fields. The id field must match the d tag value. Sign and publish via publishEvent(). A stall event is ~400-800 bytes, costing ~$0.004-$0.008. Next, create a product (kind:30018) with a d tag, content JSON containing id, stall_id (matching your stall's d tag), name, description, images (URLs from NIP-96 uploads), currency, price, quantity, and optional specs. Add t tags for categories. Sign and publish via publishEvent(). A product event is ~500-1200 bytes, costing ~$0.005-$0.012. Total setup cost for stall + first product: ~$0.009-$0.020.",
+      "rubric": {
+        "correct": "Creates stall (kind:30017) first, then product (kind:30018) referencing it via stall_id. Uses publishEvent() for both. Content is JSON string with required fields. Includes d tag, t tags for categories. Calculates per-byte costs. Mentions NIP-96 for product images.",
+        "acceptable": "Correctly creates both events with publishEvent() and shows the stall-product relationship, but may not calculate exact fees or mention image hosting.",
+        "incorrect": "Omits the stall prerequisite, uses raw WebSocket writes, puts product data in a classified (kind:30402), or does not use publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for both kind:30017 and kind:30018, not raw WebSocket",
+        "toon-fee-check: Response calculates per-byte costs for stall and product events",
+        "toon-format-check: Response mentions TOON-format strings in relay responses when reading events back",
+        "social-context-check: Response notes the stall-product parent-child relationship via stall_id",
+        "trigger-coverage: Description includes both protocol triggers (NIP-15, kind:30017, kind:30018) and social-situation triggers (sell something, set up a shop)"
+      ]
+    },
+    {
+      "id": "classified-listing",
+      "prompt": "I want to post a job listing on TOON for a remote Nostr developer position paying $120K/year. How do I create a kind:30402 classified?",
+      "expected_output": "Create a kind:30402 event with markdown content describing the job (requirements, benefits, how to apply). Tags must include: d tag (unique listing ID), title tag (job title), summary tag (short description for previews), published_at tag (current unix timestamp), location tag (Remote), price tag with three elements (120000, USD, year), and t tags for categories (job, developer, remote). The content field is markdown, not JSON. Sign and publish via publishEvent(). A classified event is ~400-2000 bytes depending on markdown length (~$0.004-$0.020). Keep the markdown concise to minimize per-byte cost. Put machine-readable data (price, location) in tags, not only in the markdown body.",
+      "rubric": {
+        "correct": "Uses kind:30402 with markdown content (not JSON). Includes required tags: d, title, price (with amount/currency/frequency), location, t tags. Uses publishEvent(). Calculates per-byte cost. Advises putting structured data in tags.",
+        "acceptable": "Correctly uses kind:30402 with markdown and publishEvent(), but may not include all optional tags or calculate exact fees.",
+        "incorrect": "Uses kind:30018 for a job posting, puts JSON in content instead of markdown, uses raw WebSocket, or omits the d tag."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:30402, not raw WebSocket",
+        "toon-fee-check: Response calculates per-byte cost and advises concise markdown",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response distinguishes classified (kind:30402 markdown) from product (kind:30018 JSON) format",
+        "trigger-coverage: Description includes both protocol triggers (NIP-99, kind:30402) and social-situation triggers (post a classified, job listing)"
+      ]
+    },
+    {
+      "id": "discover-and-browse",
+      "prompt": "How do I browse products on the TOON marketplace? I want to find vinyl records. Is browsing free?",
+      "expected_output": "Browsing marketplace listings is free on TOON -- reading events requires no ILP payment. Query for products using kinds: [30018] with a #t filter for the vinyl category: #t: [vinyl]. The relay returns TOON-format strings in EVENT messages -- use the TOON decoder to parse them. Parse the content field as JSON to extract product details: name, price, quantity, images, specs, and stall_id. To find the merchant's stall, query kinds: [30017] with the merchant's pubkey or #d: [stall_id]. If the relay supports NIP-50 search, you can also use search: vinyl amplifier to do full-text search across product names and descriptions. Check product quantity before ordering -- products with quantity 0 are out of stock.",
+      "rubric": {
+        "correct": "States browsing is free on TOON. Uses kind filter (kinds: [30018]) and #t tag filter for category search. Mentions TOON-format decoding. Explains how to parse content JSON for product details. Mentions cross-referencing stall via stall_id.",
+        "acceptable": "Correctly identifies browsing as free and shows kind/tag filters, but may not describe TOON-format parsing or stall cross-referencing.",
+        "incorrect": "Claims browsing costs ILP payment, suggests publishing an event to browse, or omits kind filters."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies browsing as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response states browsing/reading is free on TOON",
+        "toon-format-check: Response mentions TOON-format strings and the need for TOON decoder",
+        "social-context-check: Response advises checking quantity before ordering and explains stall-product relationship",
+        "trigger-coverage: Description includes both protocol triggers (kind:30018, #t filter) and social-situation triggers (browse marketplace, find products)"
+      ]
+    },
+    {
+      "id": "order-negotiation",
+      "prompt": "I found a product I want to buy on the TOON marketplace. How do I place an order? What does each step cost?",
+      "expected_output": "Order negotiation uses NIP-17 encrypted direct messages. Send a type-0 order request DM to the merchant containing a JSON object with: id (unique order ID), type 0, items array (product_id and quantity), shipping_id (from the stall's shipping zones), and contact info. The merchant responds with a type-1 payment request containing payment options (Lightning invoice, Bitcoin address, etc.). You complete payment via the specified method (outside Nostr). The merchant sends a type-2 fulfillment confirmation. Each DM costs per-byte on TOON (~$0.004-$0.008 per message). A typical 3-5 message order flow costs ~$0.018-$0.038 total in relay fees. Product payment is separate from relay fees -- you pay the merchant via the negotiated method. Order messages are encrypted end-to-end via NIP-17; the relay cannot read them.",
+      "rubric": {
+        "correct": "Describes the type-0/type-1/type-2 DM flow. Uses NIP-17 encrypted DMs. Separates relay fees (per-byte DM cost) from product payment (external). Calculates per-message and total negotiation cost. Notes encryption.",
+        "acceptable": "Correctly describes DM-based ordering with NIP-17 and cost separation, but may not detail all three message types or calculate exact costs.",
+        "incorrect": "Claims orders go through a smart contract, suggests the relay processes payments, conflates relay fees with product price, or omits encryption."
+      },
+      "assertions": [
+        "toon-write-check: Response uses NIP-17 DMs (publishEvent for gift-wrapped kind:1059) for order messages",
+        "toon-fee-check: Response separates relay fees (per-byte DM cost) from product payment (external) and calculates negotiation cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response notes order messages are encrypted and product payment is outside the Nostr protocol",
+        "trigger-coverage: Description includes both protocol triggers (NIP-15 order types) and social-situation triggers (buy something, place an order)"
+      ]
+    },
+    {
+      "id": "dvm-service-marketplace",
+      "prompt": "I'm a DVM provider on TOON offering text generation services. Should I use NIP-15 stalls and products to advertise my services, or just rely on kind:10035 SkillDescriptor events?",
+      "expected_output": "Use both. NIP-15 stalls and products provide a unified marketplace discovery experience -- buyers can find your DVM services through standard marketplace queries (kinds: [30018], #t: [compute]) without knowing about NIP-90. Create a stall (kind:30017) describing your provider identity, then create products (kind:30018) for each service. Include DVM-specific details in the specs array: dvm_kind (e.g., 5100), model, max_tokens, tee_attested. Set price to your base job cost and quantity to your concurrent capacity. The kind:10035 SkillDescriptor is the protocol-level service advertisement for DVM clients -- keep it. The NIP-15 storefront is an additional discovery layer for marketplace browsers. For actual job execution, buyers submit kind:5xxx DVM requests directly (not NIP-15 order DMs), with payment embedded via TOON's prepaid model. The NIP-15 order DM flow is optional -- useful for custom quotes or SLA negotiation. Total setup cost: ~$0.006 (stall) + ~$0.008-$0.012 per service listing.",
+      "rubric": {
+        "correct": "Recommends using both NIP-15 and kind:10035. Maps stall to provider identity, products to service offerings. Includes DVM-specific specs. Notes actual jobs use kind:5xxx (not order DMs). Calculates setup costs.",
+        "acceptable": "Recommends the dual approach and maps stall/product to DVM concepts, but may not detail the specs format or distinguish job requests from order DMs.",
+        "incorrect": "Says to use only NIP-15 and abandon SkillDescriptor, or claims order DMs are required for DVM jobs, or ignores the mapping entirely."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() for kind:30017 and kind:30018 marketplace events",
+        "toon-fee-check: Response calculates setup costs for stall and service listings",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response distinguishes DVM job execution (kind:5xxx) from NIP-15 order negotiation (DMs) and explains when each is appropriate",
+        "trigger-coverage: Description includes both DVM marketplace mapping and standard marketplace triggers"
+      ]
+    }
+  ]
+}

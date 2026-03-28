@@ -1,0 +1,171 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I submit a DVM job request on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I request text generation using kind:5000?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I receive a DVM result on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does DVM feedback and status updates work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I find DVM providers on TOON using kind:10035?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does the prepaid DVM model work on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I store application-specific data using kind:30078?",
+      "should_trigger": true
+    },
+    {
+      "query": "How much does a DVM job cost on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I request blob storage via kind:5094?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I chain DVM jobs together with pipelining?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a poll on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I send a private DM on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I set up a marketplace stall on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I highlight a passage on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a badge on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file using NIP-96?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "submit-job-request",
+      "prompt": "I want to submit a text generation job (kind:5000) on TOON with the prompt 'Explain ILP in 3 sentences'. The relay's basePricePerByte is 10 micro-USDC. Walk me through the full flow including cost.",
+      "expected_output": "Construct a kind:5000 event with an i tag ['i', 'Explain ILP in 3 sentences', 'text'], output tag ['output', 'text/plain'], optional param tags for model and max_tokens, and optionally a p tag to target a specific provider. Add relays tag to specify where you want results delivered. Sign the event. On TOON, the job request IS the payment -- the ILP payment covers both relay write fee and compute fee. Relay write fee: ~300 bytes * 10n = ~$0.003. Total cost also includes the provider's compute fee from their kind:10035 kindPricing. Publish via publishEvent() from @toon-protocol/client. Then subscribe to kind:7000 feedback and kind:6000 results with #e filter on the request event ID.",
+      "rubric": {
+        "correct": "Constructs kind:5000 with correct i tag and input type. Explains prepaid model (job request IS payment). Calculates relay write fee. Mentions kindPricing from kind:10035. Uses publishEvent(). Describes monitoring for kind:7000 feedback and kind:6000 results.",
+        "acceptable": "Correctly constructs the kind:5000 event and uses publishEvent(), but may not fully explain the prepaid model or kindPricing.",
+        "incorrect": "Uses wrong event kind, suggests Lightning invoice payment instead of prepaid ILP, or uses raw WebSocket writes."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:5000, not raw WebSocket",
+        "toon-fee-check: Response calculates relay write fee and mentions compute fee from kindPricing",
+        "toon-format-check: Response mentions TOON-format strings when discussing result retrieval",
+        "social-context-check: Response explains prepaid model -- job request IS the payment on TOON",
+        "trigger-coverage: Description includes both protocol triggers (kind:5000, i tag) and social-situation triggers (submit a job, request compute)"
+      ]
+    },
+    {
+      "id": "receive-job-result",
+      "prompt": "I submitted a kind:5000 job request with event ID abc123. How do I monitor for the result and feedback on TOON? Is monitoring free?",
+      "expected_output": "Monitoring is free on TOON -- reads cost nothing. Subscribe to kind:7000 feedback: { kinds: [7000], '#e': ['abc123'] } to track status updates (processing, error, success, payment-required). Subscribe to kind:6000 results: { kinds: [6000], '#e': ['abc123'] } to receive the completed output. TOON relays return TOON-format strings -- use the TOON decoder to parse. When the kind:6000 result arrives, verify the e tag references your request, the p tag matches your pubkey, and the request tag contains your original request JSON. Handle feedback: processing means work in progress, payment-required means insufficient bid (check amount tag), error means failure (read content for details).",
+      "rubric": {
+        "correct": "States monitoring is free. Uses correct subscription filters for kind:7000 and kind:6000 with #e tag. Explains status values. Mentions TOON-format decoding. Describes result verification (e tag, p tag, request tag).",
+        "acceptable": "Correctly describes subscription filters and free reads, but may not detail all status values or result verification.",
+        "incorrect": "Claims monitoring costs money, uses wrong subscription filters, or omits TOON-format decoding."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies monitoring as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response notes that reading/monitoring is free on TOON",
+        "toon-format-check: Response mentions TOON-format strings when discussing event retrieval from relays",
+        "social-context-check: Response explains how to handle different feedback status values",
+        "trigger-coverage: Description includes both protocol triggers (kind:6000, kind:7000, #e filter) and social-situation triggers (receive result, check status)"
+      ]
+    },
+    {
+      "id": "handle-feedback-as-provider",
+      "prompt": "I am a DVM provider on TOON. I received a kind:5000 job request but the bid is too low. How do I negotiate payment, and what does publishing feedback cost me?",
+      "expected_output": "Publish a kind:7000 feedback event with status 'payment-required' and an amount tag specifying the required price in millisats. Include e tag referencing the job request and p tag for the requester's pubkey. Content field should explain why the bid is insufficient (e.g., 'Bid insufficient for GPT-4 model'). Publishing this feedback costs ~$0.002-$0.003 (the event is ~200-250 bytes at 10n basePricePerByte). Each feedback event costs the provider money, creating natural incentive against feedback spam. If the client accepts, they submit a new kind:5xxx request with the required bid. The prepaid model means the new request's ILP payment covers the higher compute fee.",
+      "rubric": {
+        "correct": "Constructs kind:7000 with status payment-required and amount tag. Publishes via publishEvent(). Calculates feedback cost (~$0.002-$0.003). Notes that feedback costs money for the provider. Explains the renegotiation flow.",
+        "acceptable": "Correctly describes the payment-required feedback flow, but may not calculate exact feedback cost or discuss economic implications.",
+        "incorrect": "Claims feedback is free, omits the amount tag, or suggests the provider can modify the original request's payment."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:7000 feedback",
+        "toon-fee-check: Response calculates feedback event cost (~$0.002-$0.003) borne by the provider",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response notes that feedback costs create incentive against spam and unnecessary status updates",
+        "trigger-coverage: Description includes both protocol triggers (kind:7000, status tag, amount tag) and social-situation triggers (negotiate payment, check job status)"
+      ]
+    },
+    {
+      "id": "discover-providers",
+      "prompt": "I want to find DVM providers that support text generation (kind:5000) on TOON. How do I discover them and compare their pricing?",
+      "expected_output": "Query for kind:10035 SkillDescriptor events: { kinds: [10035] }. This is a free read on TOON. Parse each TOON-format response to extract provider capabilities. Each SkillDescriptor contains supported job kinds and their kindPricing -- the compute fee per job kind. Filter by providers that support kind:5000. Compare pricing across providers. Optionally cross-reference with kind:31990 app handler events to find client applications for DVM interaction. Check kind:30078 application-specific data for provider reputation. Select a provider and use their pubkey in a p tag to target them, or broadcast to all providers by omitting the p tag.",
+      "rubric": {
+        "correct": "Queries kind:10035 for SkillDescriptor events. States discovery is free. Explains kindPricing structure. Mentions filtering by supported job kind. Notes broadcast vs targeted request tradeoff.",
+        "acceptable": "Correctly describes the kind:10035 query and free reads, but may not detail kindPricing or the broadcast vs targeted distinction.",
+        "incorrect": "Suggests querying wrong event kind for provider discovery, claims discovery costs money, or omits kindPricing entirely."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies provider discovery as a read-only operation",
+        "toon-fee-check: Response notes that discovery is free and explains kindPricing as the compute fee component",
+        "toon-format-check: Response mentions TOON-format strings when discussing SkillDescriptor retrieval",
+        "social-context-check: Response explains the broadcast vs targeted request tradeoff for providers and clients",
+        "trigger-coverage: Description includes both protocol triggers (kind:10035, SkillDescriptor) and social-situation triggers (find providers, discover services)"
+      ]
+    },
+    {
+      "id": "prepaid-model-economics",
+      "prompt": "How does the TOON prepaid DVM model differ from standard NIP-90? What happens if a provider does not deliver after receiving payment?",
+      "expected_output": "Standard NIP-90 uses request-negotiate-pay: client bids, provider quotes via kind:7000 payment-required with Lightning invoice, client pays, provider works. TOON's prepaid model: the job request IS the payment. The ILP payment attached to the kind:5xxx event covers both relay write fee and compute fee atomically. No separate settlement step. This eliminates one round-trip for providers with published kindPricing. If a provider fails to deliver: there is no automatic refund. The payment was made atomically with the event publication. The provider's reputation suffers -- they lose repeat business. Providers who publish results (kind:6xxx) for jobs they processed build reputation; those who take payment and go silent destroy it. The economic alignment is: providers spend money to publish results (relay write fee), so delivering results costs them money too, creating mutual skin in the game.",
+      "rubric": {
+        "correct": "Contrasts prepaid (TOON) vs negotiate-then-pay (standard NIP-90). Explains atomic payment via ILP. Honestly states no automatic refund. Discusses reputation as the enforcement mechanism. Notes providers also pay to publish results.",
+        "acceptable": "Correctly explains the prepaid model and lack of refunds, but may not detail the reputation dynamics or provider costs.",
+        "incorrect": "Claims TOON has automatic refunds, confuses prepaid with standard NIP-90 flow, or omits the ILP atomic payment model."
+      },
+      "assertions": [
+        "toon-write-check: Response identifies publishEvent() with ILP payment as the atomic prepaid mechanism",
+        "toon-fee-check: Response explains total cost = relay write fee + compute fee from kindPricing",
+        "toon-format-check: Response mentions TOON-format strings when discussing event retrieval",
+        "social-context-check: Response honestly discusses the no-refund reality and reputation-based enforcement",
+        "trigger-coverage: Description includes both protocol triggers (prepaid model, kindPricing, kind:5xxx) and economic triggers (DVM costs, prepaid vs negotiate)"
+      ]
+    }
+  ]
+}
