@@ -1,0 +1,171 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I upload a file on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-96 and how does HTTP file storage work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I find a file storage server on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I download a file from a NIP-96 server?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I delete a hosted file using NIP-96?",
+      "should_trigger": true
+    },
+    {
+      "query": "How much does hosting media cost on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I publish a kind:1063 file metadata event on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the /.well-known/nostr/nip96.json endpoint?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does NIP-98 HTTP auth work for file uploads?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I host media on Nostr with a file storage server?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I encrypt a direct message on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I send a message to a public chat channel?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I set my status on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I add a content warning to a post?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I delete an event on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a patch using NIP-34?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "upload-and-publish-metadata",
+      "prompt": "I want to upload an image to a NIP-96 file storage server and then publish the file metadata on my TOON relay. The relay's basePricePerByte is 10 micro-USDC. Walk me through the full flow.",
+      "expected_output": "First, discover the server by fetching /.well-known/nostr/nip96.json to get the api_url, download_url, and supported content_types. Verify your image MIME type is supported. Upload via multipart/form-data POST to api_url with a NIP-98 HTTP Auth event (kind:27235) as Authorization: Nostr <base64>. Include the file field, optional caption, alt text, and no_transform if needed. The server responds with nip94_event tags for constructing a kind:1063 event. Build the kind:1063 file metadata event using those tags, sign it, and publish via publishEvent() from @toon-protocol/client. The upload itself is free (external HTTP). The kind:1063 metadata event costs ~300-800 bytes * 10n basePricePerByte = ~$0.003-$0.008.",
+      "rubric": {
+        "correct": "Separates the HTTP upload (free, external) from the kind:1063 metadata publish (paid via publishEvent()). Describes server discovery via /.well-known/nostr/nip96.json. Includes NIP-98 authentication for the upload. Calculates fee for the metadata event (~$0.003-$0.008). Does NOT use raw WebSocket writes for publishing.",
+        "acceptable": "Correctly separates upload from metadata publish and uses publishEvent(), but may not calculate exact fees or fully describe server discovery.",
+        "incorrect": "Conflates the file upload with TOON relay publishing, suggests the upload itself costs ILP payment, uses raw WebSocket writes, or omits NIP-98 authentication."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:1063, not raw WebSocket",
+        "toon-fee-check: Response notes the upload is free but kind:1063 metadata costs per-byte",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response distinguishes external HTTP upload from TOON relay publishing",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "server-discovery",
+      "prompt": "How do I discover a NIP-96 file storage server's capabilities before uploading? What should I check?",
+      "expected_output": "Fetch https://<server-domain>/.well-known/nostr/nip96.json. The response contains: api_url (upload endpoint), download_url (download base URL), supported_nips (e.g., [94, 96, 98]), content_types (accepted MIME types like image/jpeg, video/mp4), plans (pricing tiers with storage and size limits), and tos_url (terms of service). Before uploading, verify your file's MIME type is in content_types and your file size is within the plan's limits. This is a standard HTTP GET -- no TOON payment required.",
+      "rubric": {
+        "correct": "Describes the /.well-known/nostr/nip96.json endpoint and its fields. Lists key fields: api_url, download_url, content_types, plans. Advises checking MIME type and size limits before uploading. Notes this is a free HTTP request.",
+        "acceptable": "Correctly describes the discovery endpoint and key fields, but may not list all fields or emphasize pre-upload validation.",
+        "incorrect": "Suggests discovery requires TOON payment, describes a non-standard discovery mechanism, or omits the well-known endpoint."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies server discovery as a read-only HTTP operation -- no publishEvent() needed",
+        "toon-fee-check: Response notes server discovery is free (standard HTTP GET)",
+        "toon-format-check: Response mentions TOON-format strings when discussing kind:1063 metadata retrieval from relays",
+        "social-context-check: Response advises checking server capabilities before uploading",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "file-download",
+      "prompt": "I have a SHA-256 hash of a file that was uploaded to a NIP-96 server. How do I download it? Is there a cost on TOON?",
+      "expected_output": "Download using the URL pattern: <download_url>/<sha256-hash>.<ext>. The download_url comes from the server's /.well-known/nostr/nip96.json. The SHA-256 hash is the original file hash (before any server transforms). No authentication is required for downloads. The download is a direct HTTP GET from the file storage server -- it does not go through the TOON relay and has no ILP cost. To find the download_url for a file, query kind:1063 events on the relay using #x (hash) tag filters. Reading kind:1063 events from TOON is free.",
+      "rubric": {
+        "correct": "Describes the download URL pattern. Notes no authentication needed. States download is free (external HTTP, not TOON relay). Mentions querying kind:1063 events to find the URL. Notes reading is free on TOON.",
+        "acceptable": "Correctly describes the download pattern and notes it is free, but may not mention kind:1063 querying.",
+        "incorrect": "Claims downloading costs ILP payment, requires authentication, or routes through the TOON relay."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies downloading as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response notes downloading is free (external HTTP) and reading kind:1063 is free on TOON",
+        "toon-format-check: Response mentions TOON-format strings when discussing kind:1063 event retrieval",
+        "social-context-check: Skill has file-storage-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "file-deletion",
+      "prompt": "I uploaded a file to a NIP-96 server and want to delete it. How do I authenticate the deletion request?",
+      "expected_output": "Send an HTTP DELETE request to <api_url>/<sha256-hash>.<ext>. Authenticate with a NIP-98 HTTP Auth event (kind:27235) where the method tag is set to DELETE and the u tag matches the deletion URL. Base64-encode the signed event and include it as Authorization: Nostr <base64>. Not all servers support deletion -- check the server capabilities first. The deletion request is external HTTP -- no TOON relay payment. However, the kind:1063 metadata event on the relay is not automatically removed. To remove the metadata, publish a kind:5 deletion request targeting the kind:1063 event via publishEvent().",
+      "rubric": {
+        "correct": "Describes HTTP DELETE with NIP-98 auth including method:DELETE and u tag. Notes not all servers support deletion. Distinguishes server-side file deletion from relay-side kind:1063 metadata removal. Mentions kind:5 deletion for the metadata event via publishEvent().",
+        "acceptable": "Correctly describes the DELETE request and NIP-98 auth, but may not mention the separate kind:5 deletion for relay metadata.",
+        "incorrect": "Omits NIP-98 authentication, conflates server deletion with relay event deletion, or claims deletion goes through the TOON relay."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() for kind:5 deletion of metadata, not raw WebSocket",
+        "toon-fee-check: Response notes HTTP deletion is free but kind:5 deletion request costs per-byte",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response notes the distinction between server-side and relay-side deletion",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "permanent-vs-ephemeral-storage",
+      "prompt": "I'm deciding between NIP-96 file storage and Arweave for hosting important content on TOON. What should I consider?",
+      "expected_output": "NIP-96 servers are centralized HTTP services -- convenient and fast, but they can go offline, delete files, or change terms. Good for social media, ephemeral content, and files where availability is nice but not critical. Arweave provides permanent, decentralized storage via the Arweave DVM (kind:5094) -- once uploaded, content cannot be deleted or censored. Better for archival content, legal records, and anything requiring permanence. On TOON, NIP-96 metadata events (kind:1063) cost ~$0.003-$0.008. Arweave DVM uploads (kind:5094) cost more but provide permanence guarantees. You can use both: NIP-96 for immediate availability and Arweave for permanent backup.",
+      "rubric": {
+        "correct": "Compares NIP-96 (centralized, ephemeral, convenient) with Arweave (decentralized, permanent, more expensive). Discusses use cases for each. Mentions combining both approaches. Notes TOON costs for metadata events.",
+        "acceptable": "Correctly identifies the tradeoffs between NIP-96 and Arweave but may not suggest combining them or provide cost estimates.",
+        "incorrect": "Claims NIP-96 is permanent, claims Arweave is centralized, or ignores the cost difference."
+      },
+      "assertions": [
+        "toon-write-check: Response mentions publishEvent() for kind:1063 or kind:5094 events on TOON",
+        "toon-fee-check: Response includes cost awareness for metadata events on TOON",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response discusses responsible storage choices and server reliability concerns",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    }
+  ]
+}
