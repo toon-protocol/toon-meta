@@ -1,0 +1,199 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I post a picture on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I share a video on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is a kind:20 picture event?",
+      "should_trigger": true
+    },
+    {
+      "query": "NIP-68 picture-first feeds",
+      "should_trigger": true
+    },
+    {
+      "query": "NIP-71 video events",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I post a vertical video on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the difference between kind:34235 and kind:34236?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I share a photo album on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How much does posting a picture cost on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I update video metadata on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do relay groups work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file via NIP-96?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I attach media to a kind:1 note?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does encrypted messaging work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a file metadata event with kind:1063?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I send a message to a chat channel?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "picture-event-publishing",
+      "prompt": "I want to post a picture on TOON. I have a JPEG image hosted at https://example.com/photo.jpg (1920x1080, 2MB). How do I create a kind:20 picture event and publish it?",
+      "expected_output": "Construct a kind:20 event with the content field set to a caption (e.g., 'Sunset at Big Sur'). Add an imeta tag: [\"imeta\", \"url https://example.com/photo.jpg\", \"m image/jpeg\", \"alt <description>\", \"x <sha256-hash>\", \"size 2097152\", \"dim 1920x1080\"]. Add t tags for topics. Sign the event. Calculate the fee -- a kind:20 event with one image is approximately 300-600 bytes (~$0.003-$0.006 at default basePricePerByte). Publish via publishEvent() from @toon-protocol/client. Include alt text for accessibility. TOON relays return TOON-format strings.",
+      "rubric": {
+        "correct": "Constructs kind:20 event with imeta tag in correct space-separated format. Content is caption/alt text, not JSON. Publishes via publishEvent(). Includes byte cost estimate. Mentions alt text. Mentions TOON-format strings.",
+        "acceptable": "Uses kind:20 with imeta tag and publishEvent(), but may not include all fields or exact cost estimates.",
+        "incorrect": "Uses kind:1 instead of kind:20, omits imeta tag, uses raw WebSocket, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for kind:20 picture event byte cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has visual-media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response constructs a kind:20 event with imeta tag using space-separated key-value format",
+        "Response mentions alt text for accessibility"
+      ]
+    },
+    {
+      "id": "multi-image-picture-event",
+      "prompt": "I want to post three photos from a hiking trip as a single post on TOON. How do I create a multi-image picture event?",
+      "expected_output": "Create a single kind:20 event with three imeta tags, one per image. Content is a caption covering the collection. Each imeta tag includes url, m, alt, x, and dim fields. This is more cost-effective than three separate kind:20 events because each event has base overhead. A 3-image kind:20 event is approximately 600-1100 bytes (~$0.006-$0.011). Publish via publishEvent(). Include alt text for each image for accessibility.",
+      "rubric": {
+        "correct": "Uses a single kind:20 event with multiple imeta tags. Explains cost advantage over separate events. Includes byte cost estimate for multi-image event. Uses publishEvent(). Mentions alt text per image.",
+        "acceptable": "Correctly uses multiple imeta tags in one event and publishEvent(), but may not detail cost comparison.",
+        "incorrect": "Creates separate kind:20 events for each image, uses kind:1, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee estimate for multi-image event and explains cost efficiency vs separate events",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has visual-media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses a single kind:20 event with multiple imeta tags rather than separate events"
+      ]
+    },
+    {
+      "id": "video-event-publishing",
+      "prompt": "I want to publish a landscape tutorial video on TOON. The video is hosted at https://example.com/tutorial.mp4 (1920x1080, 30 minutes, 150MB). What kind should I use and what tags are needed?",
+      "expected_output": "Use kind:34235 for horizontal/landscape video. Construct the event with tags: d (unique identifier), url (video URL), m (video/mp4), x (SHA-256 hash), size (in bytes), dim (1920x1080), duration (1800 for 30 minutes), image or thumb (thumbnail URL), title, summary, alt, and t (topics). Content field is a description of the video. The d tag is required -- it makes the event parameterized replaceable so you can update metadata later. A full-metadata video event is approximately 400-800 bytes (~$0.004-$0.008). Publish via publishEvent(). Include title and summary for discoverability.",
+      "rubric": {
+        "correct": "Uses kind:34235 for horizontal video. Includes d tag and explains parameterized replaceable semantics. Lists key tags including url, m, duration, title, image. Includes byte cost estimate. Uses publishEvent(). Mentions TOON-format strings.",
+        "acceptable": "Correctly uses kind:34235 with d tag and publishEvent(), but may not detail all tags or replaceable semantics.",
+        "incorrect": "Uses kind:34236 for horizontal video, omits d tag, uses kind:20 for video, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee estimate for video event metadata",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has visual-media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses kind:34235 for horizontal video and includes d tag for parameterized replaceable semantics",
+        "Response includes title and summary tags for discoverability"
+      ]
+    },
+    {
+      "id": "horizontal-vs-vertical-video",
+      "prompt": "What is the difference between kind:34235 and kind:34236? When should I use each one?",
+      "expected_output": "kind:34235 is for horizontal (landscape) video where width exceeds height (e.g., 1920x1080). kind:34236 is for vertical (portrait) video where height exceeds width (e.g., 1080x1920). Both use the same tag structure (d, url, m, x, dim, duration, title, etc.) and are parameterized replaceable events. The distinction is semantic -- it tells clients how to render the video. Use kind:34235 for tutorials, documentaries, presentations. Use kind:34236 for short-form clips, mobile recordings, TikTok-style content. Using the wrong kind creates a poor viewing experience. On TOON, both cost approximately 400-800 bytes for the metadata event.",
+      "rubric": {
+        "correct": "Correctly distinguishes horizontal (34235) from vertical (34236) by orientation/dimensions. Notes same tag structure. Explains semantic purpose for client rendering. Gives appropriate use cases. Mentions both are parameterized replaceable.",
+        "acceptable": "Correctly identifies the orientation distinction and gives some use cases.",
+        "incorrect": "Confuses which kind is horizontal vs vertical, or claims they have different tag structures."
+      },
+      "assertions": [
+        "toon-write-check: Response mentions publishEvent() for publishing either kind",
+        "toon-fee-check: Response notes both kinds have similar metadata byte costs",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has visual-media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response correctly identifies kind:34235 as horizontal and kind:34236 as vertical",
+        "Response explains the semantic purpose for client rendering"
+      ]
+    },
+    {
+      "id": "picture-vs-note-with-media",
+      "prompt": "Should I use kind:20 or kind:1 with an imeta tag to share a photo on TOON? What is the difference?",
+      "expected_output": "Use kind:20 when the image IS the content (visual-first, like Instagram). Use kind:1 with imeta when the text IS the content and the image augments it. kind:20 signals to clients that images should be rendered prominently with caption secondary. kind:1 with imeta renders text prominently with media as attachment. The tag format is similar -- both use imeta tags from NIP-92. The cost is also similar at the byte level. The distinction is semantic and affects presentation. On TOON, both cost per-byte via publishEvent(). Do not use kind:20 for text-heavy posts that happen to include an image.",
+      "rubric": {
+        "correct": "Clearly distinguishes visual-first (kind:20) from text-first (kind:1 with imeta). Explains client rendering difference. Notes similar tag format and cost. Warns against misuse of kind:20 for text posts. Mentions publishEvent().",
+        "acceptable": "Correctly identifies the visual-first vs text-first distinction and mentions publishEvent().",
+        "incorrect": "Claims kind:20 and kind:1 with imeta are interchangeable, or does not explain the presentation difference."
+      },
+      "assertions": [
+        "toon-write-check: Response mentions publishEvent() for both approaches",
+        "toon-fee-check: Response notes per-byte cost applies to both kind:20 and kind:1 with imeta",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has visual-media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response distinguishes visual-first (kind:20) from text-first (kind:1 with imeta)",
+        "Response warns against using kind:20 for text-heavy posts"
+      ]
+    },
+    {
+      "id": "discovering-visual-content",
+      "prompt": "How do I discover and browse pictures and videos published on a TOON relay? Is it free to browse visual content?",
+      "expected_output": "Subscribe with filters: kinds: [20] for pictures, kinds: [34235, 34236] for all videos, or kinds: [34235] for horizontal and kinds: [34236] for vertical only. Filter by author (authors), topic (#t), or specific video identifier (#d). Reading is free on TOON -- no ILP payment required. TOON relays return TOON-format strings in EVENT messages, not standard JSON. Use the TOON decoder to parse events. For kind:20, parse imeta tags for image URLs and metadata. For video events, parse tags for url, title, summary, duration, image/thumb. Use the dim tag to verify orientation matches kind.",
+      "rubric": {
+        "correct": "Uses correct filter kinds for pictures (20) and videos (34235, 34236). Notes reading is free. Mentions TOON-format parsing. Describes extracting metadata from tags. Mentions tag filters (#t, #d, authors).",
+        "acceptable": "Uses correct kinds filter and notes reading is free, but may not detail all filter options.",
+        "incorrect": "Uses wrong kinds, claims reading costs money, or assumes standard JSON responses."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly notes reading does not require publishEvent() -- only writing does",
+        "toon-fee-check: Response clearly states reading is free on TOON",
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has visual-media-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses correct filter kinds: 20 for pictures, 34235/34236 for videos",
+        "Response confirms reading visual content is free on TOON"
+      ]
+    }
+  ]
+}

@@ -162,10 +162,10 @@ development_status:
   9-8-relay-groups-skill: done
   9-9-moderated-communities-skill: done
   9-10-public-chat-skill: done
-  9-11-lists-and-labels-skill: in-progress
+  9-11-lists-and-labels-skill: done
   9-12-search-skill: backlog
   9-13-app-handlers-skill: backlog
-  9-14-media-and-files-skill: in-progress
+  9-14-media-and-files-skill: done
   9-15-visual-media-skill: backlog
   9-16-file-storage-skill: backlog
   9-17-encrypted-messaging-skill: backlog
@@ -177,14 +177,14 @@ development_status:
   9-23-highlights-skill: backlog
   9-24-polls-skill: backlog
   9-25-drafts-and-expiration-skill: backlog
-  9-26-nip34-kind-resources-skill: in-progress
+  9-26-nip34-kind-resources-skill: done
   9-27-git-object-format-skill: backlog
   9-28-git-arweave-integration-skill: backlog
   9-29-git-workflow-examples-skill: backlog
   9-30-git-identity-evals-skill: backlog
   9-31-dvm-protocol-skill: backlog
   9-32-marketplace-skill: backlog
-  9-33-relay-discovery-skill: in-progress
+  9-33-relay-discovery-skill: done
   9-34-publish-all-skills: backlog
   epic-9-retrospective: optional
 
