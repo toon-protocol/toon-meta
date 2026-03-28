@@ -1,0 +1,171 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I upload git objects to Arweave?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does git Arweave integration work on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I resolve a git SHA on Arweave?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I navigate a git DAG stored on Arweave?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I query Arweave GraphQL for git objects?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is a manifest transaction for a git repository on Arweave?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I use TurboFactory.unauthenticated() for free git uploads?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I get the Arweave gateway URL for a git object?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I deduplicate git objects before uploading to Arweave?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I bulk upload a repository to Arweave via TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a git blob object?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a patch using NIP-34?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file using NIP-96?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I encrypt a direct message on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a DVM job request?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a poll on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "upload-blob-to-arweave",
+      "prompt": "I have a source file (5KB) that I want to store permanently on Arweave via TOON. Walk me through the complete upload flow, including deduplication checking and cost estimation.",
+      "expected_output": "First construct the git blob by prepending 'blob <size>\\0' to the file content and compute its SHA-1 hash. Before uploading, query Arweave GraphQL with the Git-SHA tag to check for duplicates -- if it already exists, skip the upload and save money. If not, base64-encode the binary object (~33% size increase, so ~6.85KB base64). Construct a kind:5094 event with tags: i (base64 payload), bid, output, Git-SHA, Git-Type (blob), and Repo. Sign and publish via publishEvent(). The TOON relay fee is basePricePerByte * eventBytes -- approximately ~7KB event * 10n/byte = ~$0.07. The DVM provider handles the Arweave upload and returns the transaction ID in a kind:6094 result. Access the object at https://arweave.net/<tx-id>.",
+      "rubric": {
+        "correct": "Includes SHA-1 computation, deduplication check via Arweave GraphQL, base64 encoding with ~33% overhead, kind:5094 event construction with Git-SHA/Git-Type/Repo tags, publishEvent() for TOON payment, and kind:6094 result for the Arweave tx-id.",
+        "acceptable": "Covers the upload flow correctly but may not detail deduplication checking or exact cost estimation.",
+        "incorrect": "Omits the TOON relay payment (suggests raw WebSocket), skips SHA-1 computation, or does not mention kind:5094."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:5094, not raw WebSocket",
+        "toon-fee-check: Response mentions dual cost model -- TOON relay fee plus Arweave storage cost",
+        "toon-format-check: Response mentions base64 encoding overhead (~33%) affecting event size and cost",
+        "social-context-check: Response recommends deduplication check before uploading to save money",
+        "trigger-coverage: Description includes both protocol triggers (kind:5094, Git-SHA tags) and practical triggers (upload to Arweave, permanent storage)"
+      ]
+    },
+    {
+      "id": "resolve-sha-to-txid",
+      "prompt": "I have a git commit SHA-1 hash 'abc123def456...' and I need to find the corresponding Arweave transaction to download the commit object. How do I resolve a SHA to an Arweave transaction ID?",
+      "expected_output": "Query the Arweave GraphQL endpoint (https://arweave.net/graphql) with a transactions query filtered by the Git-SHA tag: tags: [{ name: 'Git-SHA', values: ['abc123def456...'] }]. Optionally add a Repo filter if the same SHA might exist across repositories. The response edges[0].node.id is the Arweave transaction ID. Fetch the raw git object from https://arweave.net/<tx-id>. Verify integrity by computing SHA-1 of the downloaded object and comparing to the expected hash. Parse the commit object: extract the header (commit <size>\\0), then parse tree, parent, author, committer lines and the commit message. Reading from Arweave is free -- no TOON fees for resolution.",
+      "rubric": {
+        "correct": "Shows correct Arweave GraphQL query with Git-SHA tag filter. Provides the gateway URL pattern (https://arweave.net/<tx-id>). Mentions SHA-1 verification of downloaded object. Notes that reading is free.",
+        "acceptable": "Shows the GraphQL query and gateway URL correctly but may not mention SHA-1 verification or free reads.",
+        "incorrect": "Does not use Arweave GraphQL, suggests wrong endpoint, or implies TOON fees for reading."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly states reading from Arweave is free -- no publishEvent() needed",
+        "toon-fee-check: Response notes no TOON fees for resolution/reading operations",
+        "toon-format-check: Response shows correct Arweave GraphQL query syntax with Git-SHA tag filter",
+        "social-context-check: Response recommends SHA-1 verification after download to ensure data integrity",
+        "trigger-coverage: Description includes both protocol triggers (Arweave GraphQL, Git-SHA tag) and practical triggers (resolve SHA, download object)"
+      ]
+    },
+    {
+      "id": "navigate-repo-dag",
+      "prompt": "I want to read the contents of README.md from the main branch of a repository stored on Arweave. Starting from kind:30618 repo state, walk me through navigating the DAG to reach the file content.",
+      "expected_output": "Start by subscribing to kind:30618 for the repository. Extract the main branch commit SHA from the refs/heads/main tag. Resolve the commit SHA via Arweave GraphQL (Git-SHA tag query) to get the Arweave tx-id, then fetch from https://arweave.net/<tx-id>. Parse the commit to extract the tree SHA from the 'tree <sha>' line. Resolve the tree SHA the same way. Parse the tree entries: each entry has mode, name, and a 20-byte raw SHA-1 (convert to hex). Find the README.md entry by name. Resolve its blob SHA via Arweave GraphQL. Fetch and parse the blob: skip the 'blob <size>\\0' header to get the raw file content. Each resolution step requires an Arweave GraphQL query + gateway fetch (two HTTP requests). If a manifest transaction exists, use path-based resolution instead: https://arweave.net/<manifest-tx-id>/objects/<sha-prefix>/<sha-remainder>. All reading is free -- no TOON fees.",
+      "rubric": {
+        "correct": "Shows the full DAG traversal: kind:30618 -> commit SHA -> tree SHA -> blob SHA -> file content. Mentions raw 20-byte SHA-1 in tree entries (hex conversion needed). Notes manifest shortcut. States reading is free.",
+        "acceptable": "Shows correct DAG traversal order but may not detail tree entry parsing (raw binary SHA-1) or mention manifests.",
+        "incorrect": "Skips tree parsing, does not start from kind:30618, or implies costs for reading."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies kind:30618 as the starting point (read model, no write needed)",
+        "toon-fee-check: Response states DAG navigation and reading from Arweave are free -- no TOON fees",
+        "toon-format-check: Response correctly describes tree entry SHA-1 as raw 20-byte binary requiring hex conversion",
+        "social-context-check: Response mentions manifest transactions as a performance optimization for DAG navigation",
+        "trigger-coverage: Description includes both protocol triggers (kind:30618, Arweave GraphQL) and practical triggers (read a file, navigate DAG)"
+      ]
+    },
+    {
+      "id": "bulk-upload-with-dedup",
+      "prompt": "I need to upload a small repository (20 source files, ~50KB total) to Arweave via TOON. What is the upload order, how do I deduplicate, and what will it cost?",
+      "expected_output": "Upload order is bottom-up: blobs first (no dependencies), trees second (reference blob SHAs), commits last (reference tree SHA). Before uploading, enumerate all files and compute their blob SHA-1 hashes. Batch-query Arweave GraphQL with all SHA-1 values to find existing objects -- skip duplicates. Upload missing blobs via kind:5094 events with Git-SHA, Git-Type: blob, and Repo tags. Construct directory trees bottom-up (leaf directories first) and upload each tree. Finally construct and upload the commit. After the commit is on Arweave, publish a kind:30618 repo state event with the commit SHA as the branch head. Cost estimate: ~20 blobs + ~5 trees + 1 commit = ~26 kind:5094 events. Total base64 size ~68.5KB. Relay fees at 10n/byte: ~$0.20. Plus Arweave storage fees. Total: ~$0.21. Use publishEvent() for every event -- raw WebSocket writes are rejected.",
+      "rubric": {
+        "correct": "Specifies correct upload order (blobs, trees, commits). Shows batch deduplication via Arweave GraphQL. Provides reasonable cost estimate. Uses publishEvent() for all uploads. Mentions kind:30618 state update after commit upload.",
+        "acceptable": "Gets the upload order and deduplication correct but may not provide detailed cost estimates or mention kind:30618.",
+        "incorrect": "Uploads in wrong order (commits before blobs), skips deduplication, or uses raw WebSocket writes."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for all kind:5094 uploads, not raw WebSocket",
+        "toon-fee-check: Response estimates total cost including both relay fees and Arweave storage, mentions base64 overhead",
+        "toon-format-check: Response specifies correct upload ordering: blobs first, trees second, commits last",
+        "social-context-check: Response recommends batch deduplication checking before upload to minimize cost",
+        "trigger-coverage: Description includes both protocol triggers (kind:5094, upload order) and economic triggers (cost estimation, deduplication savings)"
+      ]
+    },
+    {
+      "id": "free-dev-uploads",
+      "prompt": "I am developing a git-Arweave integration and want to test uploads without paying TOON relay fees. What options do I have for free uploads, and what are the limitations?",
+      "expected_output": "Use TurboFactory.unauthenticated() from @ardrive/turbo-sdk for free uploads up to 100KB per object. This bypasses the TOON relay entirely -- you upload directly to Arweave without publishing a kind:5094 event, so there is no TOON relay fee. Import TurboFactory, create an unauthenticated instance, and call uploadFile() with the git object buffer and Arweave tags (Git-SHA, Git-Type, Repo, Content-Type, App-Name). The upload returns an Arweave transaction ID. Limitations: maximum 100KB per upload (binary size), rate-limited by Turbo service, no wallet needed, objects are NOT discoverable via TOON relay subscriptions (only via Arweave GraphQL). For production, switch to authenticated uploads with an Arweave JWK wallet or Turbo credits, or use the standard TOON DVM path (kind:5094) where the DVM provider handles the Arweave upload.",
+      "rubric": {
+        "correct": "Identifies TurboFactory.unauthenticated() as the free path. States 100KB limit. Explains that free uploads bypass TOON relay (no kind:5094 event). Notes objects are not discoverable via TOON relay. Mentions authenticated uploads and DVM path as production alternatives.",
+        "acceptable": "Identifies the free upload path and 100KB limit but may not fully explain the discoverability trade-off.",
+        "incorrect": "Suggests free uploads go through the TOON relay, does not mention TurboFactory, or states no free options exist."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly distinguishes free dev uploads (bypass relay) from production DVM path (via publishEvent)",
+        "toon-fee-check: Response states free dev uploads incur zero TOON relay fees but notes the trade-off (no relay discoverability)",
+        "toon-format-check: Response shows correct TurboFactory.unauthenticated() usage with Arweave tags",
+        "social-context-check: Response explains the discoverability trade-off: free uploads are on Arweave but not on the TOON relay",
+        "trigger-coverage: Description includes both protocol triggers (TurboFactory, turbo-sdk) and practical triggers (free uploads, dev testing, 100KB limit)"
+      ]
+    }
+  ]
+}

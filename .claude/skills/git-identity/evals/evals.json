@@ -1,0 +1,171 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How does git identity work on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "Who can merge a pull request on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does maintainer authorization work in NIP-34?",
+      "should_trigger": true
+    },
+    {
+      "query": "What are the git permissions on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I map a Nostr pubkey to a git author?",
+      "should_trigger": true
+    },
+    {
+      "query": "Can anyone submit a patch on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I add a maintainer to my repository on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the maintainers tag in kind:30617?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do personal forks work on Nostr git?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I check if someone has merge permission on a Nostr repo?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I submit a patch using NIP-34?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload git objects to Arweave?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I encrypt a direct message on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I delete an event on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a git blob object?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a DVM job request?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "verify-maintainer-merge-permission",
+      "prompt": "I received a kind:1631 merge event for a patch on my repository. The event was published by pubkey abc123. How do I verify that this pubkey actually has merge authority, and what should I do if they are not a maintainer?",
+      "expected_output": "To verify merge authority, fetch the kind:30617 repository announcement event by subscribing with the repository creator's pubkey and the d tag. Extract the maintainers tag values and the event's pubkey field (creator). The pubkey abc123 is authorized to merge if it matches the creator pubkey OR appears in the maintainers tag. If abc123 is not authorized, ignore the kind:1631 event -- it is a protocol violation. The relay accepted it because it only enforces ILP payment, not NIP-34 authorization. Clients must do their own authorization check. The unauthorized merge event wasted the publisher's ILP payment but should not affect your repository's status.",
+      "rubric": {
+        "correct": "Explains the two-part maintainer check (creator pubkey OR maintainers tag). States that the relay does not enforce authorization. Advises ignoring unauthorized merge events. Mentions ILP payment is wasted by unauthorized publishers.",
+        "acceptable": "Correctly identifies the maintainer check mechanism but may not fully explain the relay's non-enforcement of authorization.",
+        "incorrect": "Claims the relay enforces maintainer authorization, or suggests the merge event should be trusted without verification."
+      },
+      "assertions": [
+        "toon-write-check: Response identifies that unauthorized merge events waste ILP payment via publishEvent()",
+        "toon-fee-check: Response notes that verifying maintainer status is free (read operation) while publishing status events costs per-byte",
+        "toon-format-check: Response mentions TOON-format strings when discussing reading kind:30617 from the relay",
+        "social-context-check: Response explains that authorization is client-side, not relay-enforced, and that non-maintainers publishing merges is poor etiquette",
+        "trigger-coverage: Description includes both protocol triggers (maintainers tag, kind:1631) and practical triggers (who can merge, check permission)"
+      ]
+    },
+    {
+      "id": "add-maintainer-to-repository",
+      "prompt": "I want to add a new contributor as a maintainer to my TOON repository. Their hex pubkey is def789. Walk me through the process and explain what it costs.",
+      "expected_output": "First, fetch your current kind:30617 repository announcement (free read). Copy all existing tags. Add the new pubkey to the maintainers tag: ['maintainers', '<existing-pks>', 'def789']. Construct a new kind:30617 event with the same d tag and all existing tags plus the updated maintainers tag. Publish via publishEvent() from @toon-protocol/client. The new event replaces the old one because kind:30617 is parameterized replaceable (same d tag + same author = replacement). Cost is basePricePerByte * serializedEventBytes, typically 500-2000 bytes for a repository announcement, costing approximately $0.005-$0.02. Only the repository creator can update the maintainer list. Before adding, verify the new maintainer's identity through their kind:0 profile, contribution history, or out-of-band confirmation.",
+      "rubric": {
+        "correct": "Covers the full republish flow. Uses publishEvent() not raw WebSocket. Explains parameterized replaceable semantics. Provides cost estimate. Notes only the creator can update the list. Advises identity verification before adding.",
+        "acceptable": "Correctly describes the republish flow and cost but may not emphasize identity verification or the creator-only restriction.",
+        "incorrect": "Suggests an incremental update mechanism, uses raw WebSocket, or omits the cost of republishing."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:30617, not raw WebSocket",
+        "toon-fee-check: Response provides cost estimate for republishing the kind:30617 event (~$0.005-$0.02)",
+        "toon-format-check: Response explains parameterized replaceable event semantics (same d tag = replacement)",
+        "social-context-check: Response advises verifying the new maintainer's identity before adding them",
+        "trigger-coverage: Description includes both protocol triggers (maintainers tag, kind:30617) and practical triggers (add maintainer, update maintainer list)"
+      ]
+    },
+    {
+      "id": "permission-matrix-for-non-maintainer",
+      "prompt": "I am a contributor (not a maintainer) to a TOON repository. What operations can I perform, and what am I NOT allowed to do? Include the cost implications.",
+      "expected_output": "As a non-maintainer, you CAN: submit patches (kind:1617, costs per-byte based on diff size), open pull requests (kind:1618, ~$0.005-$0.02), open issues (kind:1621, ~$0.003-$0.02), comment on anything (kind:1622, ~$0.002-$0.01), close your own patches/PRs/issues (kind:1632, ~$0.002-$0.003), set your own items to draft (kind:1633, ~$0.002-$0.003), and re-open your own items (kind:1630). You CANNOT: merge patches or PRs (kind:1631 -- only maintainers), close other people's issues or PRs (kind:1632 requires author or maintainer), update the repository announcement or state (kind:30617/30618 -- creator only), or update someone else's PR (kind:1619 -- PR author only). If you publish an unauthorized status event, the relay accepts it (you pay the ILP fee) but clients should ignore it. All identity verification (checking who is a maintainer) is free -- reading costs nothing on TOON.",
+      "rubric": {
+        "correct": "Lists all permissionless operations with cost estimates. Clearly identifies merge as maintainer-only. Distinguishes author-controlled operations from maintainer-controlled. Notes that unauthorized events are accepted but ignored. Mentions reads are free.",
+        "acceptable": "Correctly identifies the major permission boundaries but may miss some operations or cost estimates.",
+        "incorrect": "Claims non-maintainers can merge, or claims the relay rejects unauthorized status events."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() for all write operations",
+        "toon-fee-check: Response provides per-byte cost estimates for different event types",
+        "toon-format-check: Response distinguishes between different event kinds and their authorization requirements",
+        "social-context-check: Response notes that unauthorized status events waste money and are ignored by clients",
+        "trigger-coverage: Description includes both protocol triggers (kind:1631 maintainer-only) and practical triggers (what can a contributor do, permission model)"
+      ]
+    },
+    {
+      "id": "pubkey-to-git-author-mapping",
+      "prompt": "I need to construct a git commit object for a TOON user whose Nostr pubkey is abc123def456. They have a kind:0 profile with display_name 'Alice'. How do I format the author and committer lines, and what is the convention for the email field?",
+      "expected_output": "Use the kind:0 display_name as the author name and the <pubkey>@nostr convention for the email field. The author line is: 'author Alice <abc123def456@nostr> <timestamp> +0000'. The committer line follows the same format: 'committer Alice <abc123def456@nostr> <timestamp> +0000'. The timestamp is Unix epoch seconds. The timezone convention for Nostr-native commits is +0000 (UTC). The @nostr email convention ensures git tools (log, blame, shortlog) can display the identity while preserving the cryptographic binding to the Nostr pubkey. The email field is the authoritative identifier -- the name is cosmetic. Resolution priority: display_name first, then name, then raw hex pubkey. Resolving the display name costs nothing (free read from the relay). For merge commits, the author is the patch contributor and the committer is the maintainer who performed the merge.",
+      "rubric": {
+        "correct": "Uses <pubkey>@nostr email convention. Prefers display_name over name over hex pubkey. Uses +0000 UTC timezone. Explains email field is authoritative, name is cosmetic. Distinguishes author vs committer for merge commits.",
+        "acceptable": "Correctly formats the author line with @nostr email but may not fully explain the resolution priority or merge commit distinction.",
+        "incorrect": "Omits the @nostr email convention, uses npub instead of hex pubkey, or uses a non-UTC timezone."
+      },
+      "assertions": [
+        "toon-write-check: Response identifies that the commit object will be uploaded via kind:5094 publishEvent()",
+        "toon-fee-check: Response notes that resolving the display name is free (read) while the commit upload costs per-byte",
+        "toon-format-check: Response uses the correct <pubkey>@nostr email convention with hex pubkey, not npub",
+        "social-context-check: Response explains the resolution priority (display_name > name > hex pubkey) and the author vs committer distinction for merge commits",
+        "trigger-coverage: Description includes both protocol triggers (<pubkey>@nostr convention) and practical triggers (map pubkey to git author)"
+      ]
+    },
+    {
+      "id": "status-event-conflict-resolution",
+      "prompt": "A repository has three status events for the same patch: a kind:1631 (merged) from pubkey A (who is NOT a maintainer), a kind:1632 (closed) from pubkey B (the patch author), and a kind:1630 (open) from pubkey C (a maintainer). The events have timestamps T1 < T2 < T3 respectively. What is the canonical status of the patch?",
+      "expected_output": "Apply the authorization filter first, then timestamp ordering. Event 1 (kind:1631 from pubkey A): INVALID -- only maintainers can publish merge events, and pubkey A is not a maintainer. Discard this event. Event 2 (kind:1632 from pubkey B, the patch author): VALID -- authors can close their own items. Event 3 (kind:1630 from pubkey C, a maintainer): VALID -- maintainers can re-open items. After filtering, the two valid events are kind:1632 at T2 and kind:1630 at T3. Since T3 > T2, the most recent authorized event wins. The canonical status is OPEN (kind:1630). The unauthorized merge event (kind:1631) is ignored entirely -- it wasted the publisher's ILP payment. The key insight is that authorization filtering happens before timestamp ordering: an unauthorized event is never canonical regardless of its timestamp.",
+      "rubric": {
+        "correct": "Correctly identifies the non-maintainer merge as invalid. Validates the author's close and maintainer's re-open. Applies authorization filter BEFORE timestamp ordering. Determines the canonical status is open (kind:1630). Notes the unauthorized event wasted ILP payment.",
+        "acceptable": "Reaches the correct canonical status but may not fully articulate the authorization-before-timestamp ordering principle.",
+        "incorrect": "Treats the unauthorized merge event as valid, or applies timestamp ordering without authorization filtering."
+      },
+      "assertions": [
+        "toon-write-check: Response identifies that each status event was published via publishEvent() with ILP payment",
+        "toon-fee-check: Response notes that the unauthorized merge event wasted ILP payment (~$0.003-$0.004)",
+        "toon-format-check: Response correctly distinguishes kind:1630 (open), kind:1631 (merged), and kind:1632 (closed) and their authorization requirements",
+        "social-context-check: Response explains the authorization-before-timestamp principle and notes that non-maintainer merges are protocol violations",
+        "trigger-coverage: Description includes both protocol triggers (kind:1630-1633, authorization rules) and practical triggers (status conflict resolution, canonical status)"
+      ]
+    }
+  ]
+}
