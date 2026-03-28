@@ -150,7 +150,7 @@ development_status:
   # Phase 9: DVM (9.31-9.32)
   # Phase 10: Relay Discovery (9.33)
   # Phase 11: Publication (9.34)
-  epic-9: in-progress
+  epic-9: done
   9-0-social-intelligence-base-skill: done
   9-1-toon-protocol-core-skill: done
   9-2-nip-to-toon-skill-pipeline: done
@@ -163,29 +163,29 @@ development_status:
   9-9-moderated-communities-skill: done
   9-10-public-chat-skill: done
   9-11-lists-and-labels-skill: done
-  9-12-search-skill: backlog
-  9-13-app-handlers-skill: backlog
+  9-12-search-skill: done
+  9-13-app-handlers-skill: done
   9-14-media-and-files-skill: done
-  9-15-visual-media-skill: backlog
-  9-16-file-storage-skill: backlog
-  9-17-encrypted-messaging-skill: backlog
-  9-18-private-dms-skill: backlog
-  9-19-content-control-skill: backlog
-  9-20-sensitive-content-skill: backlog
-  9-21-user-statuses-skill: backlog
-  9-22-badges-skill: backlog
-  9-23-highlights-skill: backlog
-  9-24-polls-skill: backlog
-  9-25-drafts-and-expiration-skill: backlog
+  9-15-visual-media-skill: done
+  9-16-file-storage-skill: done
+  9-17-encrypted-messaging-skill: done
+  9-18-private-dms-skill: done
+  9-19-content-control-skill: done
+  9-20-sensitive-content-skill: done
+  9-21-user-statuses-skill: done
+  9-22-badges-skill: done
+  9-23-highlights-skill: done
+  9-24-polls-skill: done
+  9-25-drafts-and-expiration-skill: done
   9-26-nip34-kind-resources-skill: done
-  9-27-git-object-format-skill: backlog
-  9-28-git-arweave-integration-skill: backlog
-  9-29-git-workflow-examples-skill: backlog
-  9-30-git-identity-evals-skill: backlog
-  9-31-dvm-protocol-skill: backlog
-  9-32-marketplace-skill: backlog
+  9-27-git-object-format-skill: done
+  9-28-git-arweave-integration-skill: done
+  9-29-git-workflow-examples-skill: done
+  9-30-git-identity-evals-skill: done
+  9-31-dvm-protocol-skill: done
+  9-32-marketplace-skill: done
   9-33-relay-discovery-skill: done
-  9-34-publish-all-skills: backlog
+  9-34-publish-all-skills: done
   epic-9-retrospective: optional
 
   # Epic 10: Compute Primitive — Provider Protocol & DX (kind:5250)
