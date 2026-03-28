@@ -1,0 +1,196 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I send a DM on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I send a private message on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-17 and how does kind:14 work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I reply to a direct message in a conversation thread?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I send a group DM to multiple people privately?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I read my DM inbox on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How much does it cost to send a private message on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I set a subject on a DM conversation?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does NIP-17 replace NIP-04 for direct messages?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I DM someone on a paid Nostr relay?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I encrypt a message on Nostr using NIP-44?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I send a message to a public chat channel?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON with a thumbs-up?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I delete an event on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does gift wrap work with kind:1059?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file using NIP-96?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does ILP routing work for multi-hop payments?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "send-dm-flow",
+      "prompt": "I want to send a private direct message to another user on TOON. The relay's basePricePerByte is 10 micro-USDC. Walk me through the full flow and tell me the cost.",
+      "expected_output": "Construct a kind:14 inner event (rumor) with your real pubkey, real timestamp, message content, and p tag for recipient. Do not sign it. Create a kind:1060 seal by NIP-44 encrypting the rumor with your private key and recipient pubkey, sign with your real key, randomize created_at. Generate a fresh ephemeral keypair. Create a kind:1059 gift wrap by NIP-44 encrypting the seal with the ephemeral key and recipient pubkey, sign with ephemeral key, add p tag with recipient pubkey, randomize created_at. Publish via publishEvent(). Cost for a short message: ~400-600 bytes at 10n basePricePerByte = ~$0.004-$0.006.",
+      "rubric": {
+        "correct": "Describes the three-layer model: unsigned kind:14 rumor, kind:1060 seal (NIP-44 encrypted, signed by real author, randomized timestamp), kind:1059 gift wrap (NIP-44 encrypted with fresh ephemeral key, p tag for recipient, randomized timestamp). Publishes via publishEvent(). Calculates approximate fee. Mentions ephemeral key must be fresh per message.",
+        "acceptable": "Uses publishEvent() and describes the three-layer model correctly, but may not calculate exact fee or may not emphasize ephemeral key freshness.",
+        "incorrect": "Uses raw WebSocket patterns, omits payment, confuses the layer order, reuses ephemeral keys, publishes kind:14 directly, or publishes the seal directly."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation or cost awareness for gift-wrapped DMs",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
+        "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
+        "Response describes three layers: kind:14 rumor (unsigned), kind:1060 seal, kind:1059 gift wrap"
+      ]
+    },
+    {
+      "id": "reply-to-dm",
+      "prompt": "I received a DM from someone on TOON. How do I reply to it within the conversation thread?",
+      "expected_output": "After decrypting the received gift wrap to get the kind:14 rumor, compute its event ID. Construct a new kind:14 reply with your pubkey, current timestamp, reply text, a p tag for the original sender, and an e tag with reply marker referencing the original kind:14 event ID. Do not include a subject tag on replies. Wrap in seal then gift wrap and publish via publishEvent(). Each reply is a separate gift wrap with its own ILP fee.",
+      "rubric": {
+        "correct": "References the kind:14 event ID (not the kind:1059 gift wrap ID) in the e tag with reply marker. Constructs a new kind:14 rumor with p tag for the recipient and e tag for threading. Wraps and publishes via publishEvent(). Notes that each reply costs separately.",
+        "acceptable": "Correctly describes reply threading with e tag but may not emphasize the distinction between kind:14 ID and kind:1059 ID.",
+        "incorrect": "References the gift wrap ID instead of the kind:14 ID, omits the e tag reply marker, or publishes the kind:14 directly."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for the reply",
+        "toon-fee-check: Response notes that each reply is a separate paid event",
+        "toon-format-check: Response mentions TOON-format strings or TOON decoder",
+        "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
+        "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
+        "Response uses e tag with reply marker referencing the kind:14 event ID"
+      ]
+    },
+    {
+      "id": "group-dm-cost",
+      "prompt": "I want to send a private group DM to 8 recipients on TOON. How does it work and what will it cost?",
+      "expected_output": "Construct a single kind:14 rumor with p tags for all 8 recipients plus yourself (9 p tags total). Create a separate gift wrap for each participant (9 total, including self-delivery). Each gift wrap uses a unique ephemeral key. Total cost: 9 * ~$0.004-$0.006 = ~$0.036-$0.054 for a short message. For groups larger than ~10, consider NIP-29 relay groups or NIP-28 channels as more economical alternatives.",
+      "rubric": {
+        "correct": "Explains that all participants (including sender) need p tags. Creates separate gift wraps per recipient (including self). Each wrap uses a unique ephemeral key. Calculates linear cost scaling. Mentions self-delivery. Suggests alternatives for large groups.",
+        "acceptable": "Correctly describes per-recipient wrapping and linear cost but may not mention self-delivery or suggest alternatives.",
+        "incorrect": "Claims a single gift wrap serves multiple recipients, ignores linear cost scaling, or omits the sender's own p tag."
+      },
+      "assertions": [
+        "toon-write-check: Response mentions publishEvent() for each gift wrap",
+        "toon-fee-check: Response calculates total cost as N * single wrap cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
+        "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
+        "Response explains linear cost scaling and suggests relay groups or channels for large groups"
+      ]
+    },
+    {
+      "id": "read-dm-inbox",
+      "prompt": "How do I check my DM inbox on a TOON relay? Is there a cost to read messages?",
+      "expected_output": "Reading is free on TOON. Subscribe with filter { kinds: [1059], '#p': ['<your-pubkey>'] }. Use TOON decoder to parse events. Two-stage decryption: decrypt gift wrap content with your key + ephemeral pubkey to get the seal, then decrypt seal content with your key + real author pubkey to get the kind:14 rumor. Parse the kind:14 for message content, real author, real timestamp, and p tags (conversation participants). Sort by the kind:14 created_at (not the randomized gift wrap timestamp). Store decrypted messages locally, never re-publish.",
+      "rubric": {
+        "correct": "States reading is free. Describes two-stage decryption flow. Mentions TOON decoder. Notes that kind:14 timestamp is the real one for ordering (not gift wrap timestamp). Advises storing decrypted messages locally only.",
+        "acceptable": "Correctly describes free reading and two-stage decryption but may not mention timestamp ordering or TOON decoder.",
+        "incorrect": "Suggests payment is needed to read, describes only one decryption step, or uses gift wrap timestamps for ordering."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies inbox reading as a free operation -- no publishEvent() needed",
+        "toon-fee-check: Response explicitly states reading and decrypting DMs is free on TOON",
+        "toon-format-check: Response mentions TOON-format strings or TOON decoder for parsing relay responses",
+        "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
+        "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
+        "Response describes two-stage decryption (gift wrap layer then seal layer)",
+        "Response notes that the kind:14 created_at is the real timestamp for ordering"
+      ]
+    },
+    {
+      "id": "dm-vs-plaintext-cost",
+      "prompt": "Compare the cost of sending a 150-byte message on TOON as a plaintext kind:1 note versus a private DM. When is the privacy premium worth paying?",
+      "expected_output": "Plaintext kind:1 note: ~300-400 bytes total (content + event envelope) = ~$0.003-$0.004. Gift-wrapped DM: ~600-900 bytes (kind:14 rumor + seal with NIP-44 encryption + gift wrap with NIP-44 encryption + event envelopes + padding) = ~$0.006-$0.009. Privacy premium is approximately 2-3x. Worth it for genuinely private communication -- sensitive coordination, personal conversations, private business discussions. Not worth it for public content that does not need privacy. Encrypting public content wastes money and signals unnecessary secrecy.",
+      "rubric": {
+        "correct": "Provides cost comparison with approximate figures for both plaintext and gift-wrapped. Explains the sources of overhead. Discusses when the privacy premium is justified versus wasteful. Notes that encrypting public content is an anti-pattern.",
+        "acceptable": "Provides approximate cost comparison and mentions the privacy premium concept but may not detail overhead sources.",
+        "incorrect": "Claims DMs are free, ignores the cost difference, or recommends encrypting all content regardless."
+      },
+      "assertions": [
+        "toon-write-check: Response mentions publishEvent() for publishing either event type",
+        "toon-fee-check: Response includes fee comparison between plaintext and gift-wrapped DM",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
+        "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
+        "Response provides cost estimates for both plaintext and gift-wrapped versions",
+        "Response discusses when the privacy premium is or is not justified"
+      ]
+    },
+    {
+      "id": "cold-dm-etiquette",
+      "prompt": "Should I DM someone I have never interacted with on TOON to introduce myself and pitch a collaboration idea?",
+      "expected_output": "Cold-DMing on TOON carries both economic and social costs. Each DM costs ~$0.004-$0.009 with no guarantee of response. On a paid network, recipients have higher expectations for message quality. A cold DM is appropriate if you have a clear, specific reason (genuine collaboration proposal based on their work) and keep it concise and respectful. Include context about why you are reaching out and what value you offer. Do not cold-DM strangers without context, do not send follow-ups if ignored, and do not mass-DM multiple people with the same pitch. One well-crafted message is better than multiple short ones (each gift wrap has per-message overhead).",
+      "rubric": {
+        "correct": "Acknowledges both economic cost and social etiquette of cold DMs. Advises keeping it purposeful and concise. Notes per-message overhead favoring fewer, better messages. Warns against mass-DMing and unsolicited follow-ups. Considers the paid network context.",
+        "acceptable": "Provides social guidance on cold DMs and mentions cost but may not discuss per-message overhead or mass-DM anti-patterns.",
+        "incorrect": "Encourages mass cold-DMing, ignores the social cost, or claims cold DMs are always inappropriate."
+      },
+      "assertions": [
+        "toon-write-check: Response mentions publishEvent() or cost awareness for sending DMs",
+        "toon-fee-check: Response notes the per-message economic cost of cold DMs",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
+        "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
+        "Response addresses both economic and social dimensions of cold DMs on a paid network"
+      ]
+    }
+  ]
+}

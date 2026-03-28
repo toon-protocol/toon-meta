@@ -1,0 +1,182 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I create a badge on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-58 and how do badges work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I award a badge to someone on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I display badges on my profile?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is a kind:30009 badge definition event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I revoke a badge I awarded?",
+      "should_trigger": true
+    },
+    {
+      "query": "How much does creating a badge cost on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I construct a kind:8 badge award event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do profile badges work with the a and e tag pairs?",
+      "should_trigger": true
+    },
+    {
+      "query": "Can I award a badge to multiple people at once on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I encrypt a direct message on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I send a message to a public chat channel?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I set my status on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I add a content warning to a post?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I delete an event on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a patch using NIP-34?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "create-badge-definition",
+      "prompt": "I want to create a badge called 'Early Adopter' on my TOON relay for users who joined before the public launch. The relay's basePricePerByte is 10 micro-USDC. Walk me through the full flow.",
+      "rubric": {
+        "correct": "Constructs a kind:30009 event with d tag (badge ID), name tag, description tag, and optionally image/thumb tags. Publishes via publishEvent() from @toon-protocol/client. Calculates approximate fee based on basePricePerByte * serialized event bytes (~300-500 bytes = ~$0.003-$0.005). Mentions that kind:30009 is parameterized replaceable so the badge definition can be updated later. Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses publishEvent() and constructs a kind:30009 event with the right tags, but may not calculate exact fees or mention parameterized replaceable semantics.",
+        "incorrect": "Uses raw WebSocket EVENT patterns, omits payment entirely, or constructs the wrong event kind."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:30009, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation or cost awareness (~$0.003-$0.005)",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response discusses badge value deriving from issuer reputation",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "award-badge-batch",
+      "prompt": "I created an 'Early Adopter' badge (d tag: early-adopter) and want to award it to 5 users at once on TOON. The relay charges basePricePerByte of 10n. How do I do this efficiently and what will it cost?",
+      "rubric": {
+        "correct": "Constructs a single kind:8 event with one a tag referencing 30009:<creator-pubkey>:early-adopter and five p tags for the recipients. Publishes via publishEvent(). Calculates approximate cost for ~500 bytes = ~$0.005. Explains that batching is cheaper than 5 individual awards (~$0.010-$0.015). Notes that the signing pubkey must match the badge creator. Content field must be empty string.",
+        "acceptable": "Correctly constructs the kind:8 event with multiple p tags and uses publishEvent(), but may not calculate exact cost savings from batching.",
+        "incorrect": "Creates 5 separate kind:8 events without mentioning batching, uses raw WebSocket, or constructs the a tag incorrectly."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:8, not raw WebSocket",
+        "toon-fee-check: Response compares batch cost vs individual award cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response notes that only the badge creator can issue valid awards",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "display-profile-badges",
+      "prompt": "I've been awarded three badges by different creators on TOON. I want to display two of them on my profile. How do I construct and publish the profile badges event?",
+      "rubric": {
+        "correct": "Constructs a kind:30008 event with d tag 'profile_badges' and two pairs of a+e tags in consecutive order. Each a tag references the badge definition (30009:<creator-pubkey>:<d-tag>) and each e tag references the specific kind:8 award event ID. Publishes via publishEvent(). Notes that kind:30008 is parameterized replaceable so each update replaces the entire display. Mentions curating for quality over quantity. Content field must be empty string.",
+        "acceptable": "Correctly constructs the kind:30008 event with paired a+e tags and uses publishEvent(), but may not emphasize curation or replaceable semantics.",
+        "incorrect": "Does not pair a and e tags consecutively, uses raw WebSocket, or suggests badges are automatically displayed without a kind:30008 event."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:30008, not raw WebSocket",
+        "toon-fee-check: Response includes cost awareness for the profile badges event",
+        "toon-format-check: Response mentions TOON-format strings when reading badge awards",
+        "social-context-check: Response advises curating badge display thoughtfully",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "revoke-badge-award",
+      "prompt": "I awarded a badge to someone on TOON but they no longer meet the criteria. How do I revoke the badge? What are the limitations?",
+      "rubric": {
+        "correct": "Describes publishing a kind:5 deletion request targeting the kind:8 award event ID with an e tag and k tag set to '8'. Publishes via publishEvent(). Clearly states limitations: deletion is advisory (relays may not honor it), cached copies persist, the recipient's kind:30008 profile badges event is unaffected, and revocation is a request not a guarantee. Advises issuing badges thoughtfully since revocation is imperfect.",
+        "acceptable": "Correctly describes the kind:5 deletion request and uses publishEvent(), but may not fully enumerate all limitations of revocation.",
+        "incorrect": "Suggests there is a dedicated revocation event kind, claims revocation is guaranteed, or omits the kind:5 mechanism entirely."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() for kind:5 deletion request, not raw WebSocket",
+        "toon-fee-check: Response notes the cost of the kind:5 deletion event",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response discusses the imperfect nature of badge revocation and advises careful issuance",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "query-badges-for-user",
+      "prompt": "I want to look up all badges that have been awarded to a specific user on a TOON relay. I have their pubkey. How do I find their badges and verify they are legitimate?",
+      "rubric": {
+        "correct": "Subscribes using NIP-01 filter with kinds:[8] and #p:[<pubkey>] to find all badge awards. For each award, extracts the a tag to identify the badge definition. Fetches the kind:30009 definition with kinds:[30009], authors:[<creator-pubkey>], #d:[<badge-id>]. Verifies legitimacy: the kind:8 must be signed by the same pubkey that created the kind:30009, and the target pubkey must appear in a p tag. Also checks the user's kind:30008 profile badges for their curated display. Notes that reading is free on TOON. Mentions TOON-format responses require decoding.",
+        "acceptable": "Correctly describes the query filters and mentions verification, but may not fully detail the verification chain or mention TOON format.",
+        "incorrect": "Uses wrong filter parameters, suggests payment is needed to read, or skips the legitimacy verification step."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies badge querying as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response notes that reading badges is free on TOON",
+        "toon-format-check: Response mentions TOON-format strings when reading badge events from the relay",
+        "social-context-check: Response discusses badge legitimacy verification (creator pubkey must match)",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "badge-spam-economics",
+      "prompt": "I'm worried about badge spam on TOON. Can someone create thousands of fake badges and award them to inflate their reputation? How does the paid network help?",
+      "rubric": {
+        "correct": "Explains that badge spam is economically constrained on TOON: creating each badge definition costs ~$0.003-$0.005, and each award costs ~$0.002-$0.004. Mass badge creation and awarding faces real per-byte costs that scale linearly. 100 badges awarded to 100 users each would cost ~$20-$40. Notes that badge value comes from issuer reputation, not badge labels -- self-awarded badges from unknown accounts carry no weight regardless of quantity. Mentions that clients should verify the issuer's identity and reputation, not just badge count.",
+        "acceptable": "Correctly explains the economic constraints and mentions issuer reputation, but may not provide exact cost estimates or fully detail the verification approach.",
+        "incorrect": "Claims TOON prevents badge spam entirely, ignores the economic angle, or suggests badges are inherently trustworthy."
+      },
+      "assertions": [
+        "toon-write-check: Response mentions publishEvent() as the mechanism for badge creation/awarding",
+        "toon-fee-check: Response provides specific cost estimates for badge spam scenarios",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response discusses issuer reputation as the true source of badge value",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    }
+  ]
+}
