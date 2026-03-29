@@ -197,7 +197,7 @@ development_status:
   # 18 stories: 10.1 Infra + 10.2-10.8 Seed scripts + 10.9 Orchestrator + 10.10-10.18 Playwright specs
   epic-10: in-progress
   10-1-test-infra-and-shared-seed-library: done
-  10-2-seed-initial-repo-push: backlog
+  10-2-seed-script-initial-repo-push: done
   10-3-seed-nested-directory-structure: backlog
   10-4-seed-feature-branch: backlog
   10-5-seed-tag: backlog
