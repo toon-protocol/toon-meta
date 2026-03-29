@@ -1,0 +1,172 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I set my status on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-38 and how does it work on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I show what music I'm listening to on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I construct a kind:30315 user status event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I clear my status on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I set a temporary status that auto-expires?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the d tag for music status in NIP-38?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I add a URL reference to my Nostr status?",
+      "should_trigger": true
+    },
+    {
+      "query": "Is it worth updating my status on a paid relay?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do presence indicators work on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I send a direct message on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a chat channel on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group?",
+      "should_trigger": false
+    },
+    {
+      "query": "What is the fee calculation for ILP routing?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I label content with NIP-32?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I delete an event on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I announce a git repository on Nostr?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "set-general-status",
+      "prompt": "I want to set my general status on a TOON relay to 'Working on TOON SDK' with a link to the GitHub repo. The relay's basePricePerByte is 10 micro-USDC. How do I do this?",
+      "rubric": {
+        "correct": "Constructs a kind:30315 event with content 'Working on TOON SDK', a d tag of 'general', and an r tag with the GitHub URL. Publishes via publishEvent() from @toon-protocol/client. Calculates approximate fee based on basePricePerByte * serialized event bytes (~250-350 bytes = ~$0.0025-$0.0035). Mentions that kind:30315 is parameterized replaceable so this replaces any existing general status. Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses publishEvent() and constructs a kind:30315 event with correct d tag and r tag, but may not calculate exact fee or mention parameterized replaceable semantics.",
+        "incorrect": "Uses raw WebSocket EVENT patterns, omits payment entirely, uses wrong event kind, or constructs a kind:0 profile event instead of kind:30315."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation or cost awareness",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has NIP-specific Social Context section",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
+        "Response constructs a kind:30315 event with d tag 'general' and r tag with URL"
+      ]
+    },
+    {
+      "id": "set-music-status",
+      "prompt": "I want to share what I'm listening to on Nostr using my TOON relay. I'm playing 'Echoes' by Pink Floyd and want to link to the Spotify track. How do I publish a music status?",
+      "rubric": {
+        "correct": "Constructs a kind:30315 event with d tag 'music', content describing the track, and an r tag linking to Spotify. Publishes via publishEvent(). Mentions that music and general statuses are independent slots (parameterized replaceable by d tag). Suggests adding an expiration tag since music statuses are inherently transient. Calculates approximate fee (~$0.003-$0.004).",
+        "acceptable": "Uses publishEvent() with correct kind:30315 and d tag 'music', includes r tag, but may not mention expiration or independent d tag slots.",
+        "incorrect": "Uses wrong event kind, wrong d tag value, suggests raw WebSocket writes, or conflates music status with general status replacement."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for the status event",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has NIP-specific Social Context section",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
+        "Response uses d tag value 'music' and includes an r tag with Spotify URL"
+      ]
+    },
+    {
+      "id": "set-expiring-status",
+      "prompt": "I'm attending a 3-hour conference session and want to set a temporary status that auto-expires when the session ends. How do I do this on TOON without having to manually clear it later?",
+      "rubric": {
+        "correct": "Constructs a kind:30315 event with d tag 'general', content about the conference, an r tag to the event page (optional), and an expiration tag with a Unix timestamp 3 hours in the future. Explains that the expiration tag (NIP-40) causes relays to discard the event after the timestamp. Mentions this saves money versus the set-then-clear pattern (1 event instead of 2). Publishes via publishEvent().",
+        "acceptable": "Uses publishEvent() with correct kind:30315 and expiration tag, but may not compare costs with the manual clear pattern or explain NIP-40 semantics in detail.",
+        "incorrect": "Does not include the expiration tag, suggests a separate timer to clear the status, or uses raw WebSocket writes."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response mentions cost savings from expiration vs manual clear",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has NIP-specific Social Context section",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
+        "Response includes expiration tag with Unix timestamp calculation"
+      ]
+    },
+    {
+      "id": "clear-status",
+      "prompt": "I set a general status on TOON yesterday that says 'At the hackathon' but the hackathon is over. How do I clear this stale status?",
+      "rubric": {
+        "correct": "Constructs a kind:30315 event with d tag 'general' and empty content ('') to signal status cleared. Publishes via publishEvent(). Explains that empty content is the canonical 'cleared' signal and clients should stop displaying the status. Mentions the cost (~$0.0015-$0.002 for a minimal clearing event). Recommends using expiration tags for future time-bound statuses to avoid needing manual clears.",
+        "acceptable": "Uses publishEvent() with correct kind:30315, empty content, and d tag 'general', but may not mention the expiration tag recommendation or exact cost.",
+        "incorrect": "Suggests deleting the event with kind:5 (NIP-09), uses raw WebSocket writes, or does not use empty content for clearing."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes cost awareness for the clearing event",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has NIP-specific Social Context section",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
+        "Response uses empty content to clear the status, not event deletion"
+      ]
+    },
+    {
+      "id": "read-user-status",
+      "prompt": "I want to check what status another user has set on a TOON relay. I have their pubkey. How do I fetch their current statuses?",
+      "rubric": {
+        "correct": "Subscribes using NIP-01 filter with kinds:[30315] and authors:[<pubkey>]. Explains that TOON relays return TOON-format strings in EVENT messages, not JSON objects. Instructs to use the TOON decoder to parse responses. Mentions that reading is free (no ILP payment needed). Explains that multiple statuses may be returned (one per d tag value -- general, music, etc.) and each is independent.",
+        "acceptable": "Correctly describes the subscription filter and mentions TOON format, but may not explain independent d tag slots or fully detail the parsing steps.",
+        "incorrect": "Assumes standard JSON responses from the relay, suggests payment is needed to read, or uses the wrong event kind in the filter."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies reading statuses as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response correctly notes that reading statuses is free on TOON",
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has NIP-specific Social Context section",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
+        "Response uses NIP-01 filter with kinds:[30315] and authors filter",
+        "Response mentions reading is free on TOON"
+      ]
+    }
+  ]
+}

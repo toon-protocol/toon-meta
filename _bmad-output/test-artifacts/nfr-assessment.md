@@ -1,50 +1,49 @@
 ---
 stepsCompleted:
-  [
-    'step-01-load-context',
-    'step-02-define-thresholds',
-    'step-03-gather-evidence',
-    'step-04-evaluate-and-score',
-    'step-05-generate-report',
-  ]
+  - 'step-01-load-context'
+  - 'step-02-define-thresholds'
+  - 'step-03-gather-evidence'
+  - 'step-04a-subprocess-security'
+  - 'step-04b-subprocess-performance'
+  - 'step-04c-subprocess-reliability'
+  - 'step-04d-subprocess-scalability'
+  - 'step-04e-aggregate-nfr'
+  - 'step-05-generate-report'
 lastStep: 'step-05-generate-report'
-lastSaved: '2026-03-23'
+lastSaved: '2026-03-26'
 workflowType: 'testarch-nfr-assess'
 inputDocuments:
-  [
-    '_bmad-output/implementation-artifacts/8-2-forge-ui-file-tree-and-blob-view.md',
-    '_bmad-output/planning-artifacts/test-design-epic-8.md',
-    'packages/rig/src/web/templates.ts',
-    'packages/rig/src/web/arweave-client.ts',
-    'packages/rig/src/web/git-objects.ts',
-    'packages/rig/src/web/router.ts',
-    'packages/rig/src/web/main.ts',
-    'packages/rig/src/web/escape.ts',
-    '_bmad/tea/testarch/knowledge/adr-quality-readiness-checklist.md',
-    '_bmad/tea/testarch/knowledge/nfr-criteria.md',
-    '_bmad/tea/testarch/knowledge/test-quality.md',
-  ]
+  - '_bmad-output/implementation-artifacts/9-7-content-references-skill.md'
+  - '.claude/skills/content-references/SKILL.md'
+  - '.claude/skills/content-references/references/nip-spec.md'
+  - '.claude/skills/content-references/references/toon-extensions.md'
+  - '.claude/skills/content-references/references/scenarios.md'
+  - '.claude/skills/content-references/evals/evals.json'
+  - '_bmad-output/planning-artifacts/test-design-epic-9.md'
+  - '_bmad/tea/testarch/knowledge/adr-quality-readiness-checklist.md'
+  - '_bmad/tea/testarch/knowledge/nfr-criteria.md'
+  - '_bmad/tea/testarch/knowledge/test-quality.md'
 ---
 
-# NFR Assessment - Story 8.2: Forge-UI File Tree and Blob View
+# NFR Assessment - Story 9.7: Content References Skill
 
-**Date:** 2026-03-23
-**Story:** 8.2 (Forge-UI File Tree and Blob View)
-**Overall Status:** CONCERNS
+**Date:** 2026-03-26
+**Story:** 9.7 -- Content References Skill (`content-references`)
+**Overall Status:** PASS
 
 ---
 
-Note: This assessment summarizes existing evidence; it does not run tests or CI workflows.
+Note: This assessment summarizes existing evidence; it does not run tests or CI workflows. Story 9.7 produces a **Claude Agent Skill** (structured markdown + reference files + eval JSON), not TypeScript code. This is the **third and final Phase 2 (Content & Publishing) skill**, covering NIP-21 (`nostr:` URI scheme) and NIP-27 (text note references). NFR categories are evaluated in the context of skill quality, structural integrity, validation coverage, and maintainability -- not traditional service-level metrics.
 
 ## Executive Summary
 
-**Assessment:** 4 PASS, 4 CONCERNS, 0 FAIL
+**Assessment:** 6 PASS, 2 CONCERNS, 0 FAIL
 
 **Blockers:** 0
 
-**High Priority Issues:** 1 (GraphQL injection risk in Arweave client)
+**High Priority Issues:** 0
 
-**Recommendation:** Address the GraphQL query construction security concern before production deployment. All functional NFRs are well-covered with 140 passing unit tests and 15 integration tests. The security posture for XSS prevention is excellent (P0 requirement met). Performance and reliability NFRs lack formal thresholds but the architecture is sound.
+**Recommendation:** PASS -- The Content References Skill meets all structural, TOON compliance, and quality requirements. Two CONCERNS relate to infrastructure improvements (CI skill validation pipeline, automated trigger testing) that benefit all Epic 9 skills and do not block this story. This is the final Phase 2 skill; Phase 3 (Community & Groups, Story 9.8) has no dependency on 9.7.
 
 ---
 
@@ -52,41 +51,41 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 ### Response Time (p95)
 
-- **Status:** CONCERNS
-- **Threshold:** UNKNOWN (no formal SLO defined for Forge-UI page loads)
-- **Actual:** UNKNOWN (no load testing performed; static SPA with Arweave gateway dependency)
-- **Evidence:** Architecture review of `arweave-client.ts` shows 15-second timeout per gateway, 2 gateways = 30s worst case
-- **Findings:** Arweave gateway latency is the dominant factor. `AbortSignal.timeout(15000)` is set. No client-side performance benchmarks exist. For a static web app fetching from Arweave, performance is largely outside the app's control.
+- **Status:** N/A
+- **Threshold:** Not applicable (skill is a markdown artifact, not a runtime service)
+- **Actual:** N/A
+- **Evidence:** Story 9.7 produces markdown/JSON files, not a running service.
+- **Findings:** Performance response time metrics do not apply. The skill is consumed at LLM inference time; response time is bounded by the LLM provider, not the skill itself.
 
 ### Throughput
 
-- **Status:** CONCERNS
-- **Threshold:** UNKNOWN
-- **Actual:** N/A (client-side SPA; throughput is per-user, not server-side)
-- **Evidence:** Architecture review: static SPA, no backend server, throughput determined by browser and Arweave gateway limits
-- **Findings:** Not applicable in the traditional sense. Each user's browser fetches independently from Arweave gateways. No rate limiting concerns for read-only operations.
+- **Status:** N/A
+- **Threshold:** Not applicable
+- **Actual:** N/A
+- **Evidence:** No API endpoints or processing pipelines.
+- **Findings:** Throughput is not applicable.
 
 ### Resource Usage
 
 - **CPU Usage**
   - **Status:** PASS
-  - **Threshold:** No excessive CPU in browser
-  - **Actual:** Git object parsers use efficient `Uint8Array` indexing with O(n) complexity; no regex on binary data
-  - **Evidence:** `git-objects.ts` -- `parseGitTree()` iterates once through bytes; `parseGitCommit()` splits text linearly; `isBinaryBlob()` checks first 8192 bytes only
+  - **Threshold:** SKILL.md body under 500 lines / ~5k tokens (token budget, per AC9)
+  - **Actual:** 85 lines, well under 500-line limit and ~5k token budget
+  - **Evidence:** `validate-skill.sh` reports "Body is 85 lines (under 500)".
 
 - **Memory Usage**
   - **Status:** PASS
-  - **Threshold:** No unbounded memory growth
-  - **Actual:** SHA-to-txId cache (`Map<string, string>`) persists for session lifetime. Individual git objects are processed and released. No object caching implemented (deferred).
-  - **Evidence:** `arweave-client.ts` line 21: `shaToTxIdCache` is a simple Map; `clearShaCache()` available for cleanup
+  - **Threshold:** Progressive disclosure: Level 1 ~100 tokens, Level 2 <5k tokens, Level 3 unlimited
+  - **Actual:** Level 1 (frontmatter) = 108-word description. Level 2 (body) = 85 lines. Level 3 (references) = 3 files totaling ~430 lines.
+  - **Evidence:** `validate-skill.sh` reports description is 108 words (80-120 target), body is 85 lines.
 
 ### Scalability
 
-- **Status:** CONCERNS
-- **Threshold:** UNKNOWN
-- **Actual:** Client-side SPA scales per-user. Repository navigation with deep paths requires sequential Arweave fetches (commit -> tree -> subtree -> ...).
-- **Evidence:** `main.ts` lines 171-192: path walking is sequential (each segment requires `resolveGitSha` + `fetchArweaveObject`)
-- **Findings:** Deep directory trees (>5 levels) could result in noticeable latency due to sequential gateway roundtrips. The SHA-to-txId cache mitigates repeat lookups but initial navigation is O(depth) network calls.
+- **Status:** PASS
+- **Threshold:** Skill must work alongside 30+ skills without namespace conflicts
+- **Actual:** Skill uses standard `.claude/skills/content-references/` directory convention. No namespace conflicts. References upstream skills by name, not hardcoded absolute paths.
+- **Evidence:** Directory layout matches skill-creator anatomy. No extraneous files. References `nostr-protocol-core` and `nostr-social-intelligence` by skill name.
+- **Findings:** Skill is isolated and composable within the Epic 9 skill ecosystem.
 
 ---
 
@@ -95,47 +94,42 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 ### Authentication Strength
 
 - **Status:** PASS
-- **Threshold:** N/A (read-only public web UI; no authentication required)
-- **Actual:** Forge-UI is a read-only static SPA. No user accounts, no authentication. All data fetched from public Arweave gateways and Nostr relay.
-- **Evidence:** `main.ts` -- no auth tokens, no login flows, no session management
-- **Findings:** Authentication is not applicable for this read-only UI. Write operations require a Nostr client (separate from Forge-UI).
+- **Threshold:** Write-capable skills must use `publishEvent()` API, not raw WebSocket patterns (TOON write model compliance)
+- **Actual:** `publishEvent()` referenced across SKILL.md, toon-extensions.md, scenarios.md, and evals.json. Zero bare `["EVENT", ...]` patterns anywhere.
+- **Evidence:** `run-eval.sh` toon-write-check: PASS. `validate-skill.sh` check 6/8: PASS (no bare EVENT patterns).
+- **Findings:** Skill correctly teaches the ILP-gated write model for embedding `nostr:` URIs in events. Unlike other skills that publish new event kinds, this skill teaches embedding references within events of any kind -- the write model correctly reflects this (URIs in content field, not standalone event publication).
 
 ### Authorization Controls
 
 - **Status:** PASS
-- **Threshold:** N/A (read-only public interface)
-- **Actual:** No authorization needed. All content is publicly available via Arweave and Nostr relay.
-- **Evidence:** Architecture decision: "free to read" principle; all git objects on Arweave are public
-- **Findings:** No authorization concerns for a public read-only interface.
+- **Threshold:** Skill must reference fee calculation and cost awareness for write operations
+- **Actual:** Byte cost tables in both SKILL.md and toon-extensions.md: npub1 ~67 bytes, note1 ~67 bytes, nprofile1 ~80-120 bytes, nevent1 ~80-140 bytes, naddr1 ~80-150 bytes. Tag costs documented separately (~70-150 bytes each). Combined cost examples in toon-extensions.md show 1 mention adds ~137 bytes, 3 mentions double a typical note's cost. Fee formula references `nostr-protocol-core/references/toon-protocol-context.md`.
+- **Evidence:** `run-eval.sh` toon-fee-check: PASS. All 5 output evals include `toon-fee-check` assertions.
+- **Findings:** Fee awareness is thorough and specific to referencing. The key insight -- "each reference adds bytes to events of any kind" -- is well-documented. The cost tables break down URI bytes vs tag bytes, helping agents make informed decisions about npub1 vs nprofile1 tradeoffs.
 
 ### Data Protection
 
 - **Status:** PASS
-- **Threshold:** XSS prevention on all user-supplied content (P0 requirement per AC #16)
-- **Actual:** Comprehensive XSS prevention implemented via `escapeHtml()` from `escape.ts`
-- **Evidence:**
-  - `escape.ts`: Escapes `&`, `<`, `>`, `"`, `'` characters
-  - `templates.ts`: `escapeHtml()` applied to all user-supplied content: file names (line 165), directory names, blob content (line 235), path segments (line 112), breadcrumb links, repo names, descriptions, owner display names
-  - `templates.test.ts`: 10+ P0 XSS prevention tests covering script tags, img onerror, javascript: URIs, nested payloads across repo list, tree view, and blob view
-  - `router.ts`: `navigateTo()` blocks absolute URLs and protocol-relative URLs to prevent open redirects (line 111); `parseRelayUrl()` validates ws:// or wss:// protocol only (line 48)
-- **Findings:** XSS prevention is thorough and well-tested. All rendering paths escape user content. The `nosemgrep` comments on `innerHTML` usage in `main.ts` indicate awareness of the security surface -- the content assigned is always constructed from escaped templates.
+- **Threshold:** Skill must handle TOON-format responses correctly (read model compliance)
+- **Actual:** TOON read model documented in dedicated "TOON Read Model" section of SKILL.md. References TOON-format strings in EVENT messages. Directs to `toon-protocol-context.md` for parser details. Scenarios.md Step 5 ("Parsing References from a Received Event") explicitly walks through TOON-format decoding before URI extraction.
+- **Evidence:** `run-eval.sh` toon-format-check: PASS. Output eval "parsing-references" specifically tests TOON-format awareness.
+- **Findings:** Read model correctly documented for reference extraction from TOON-format responses.
 
 ### Vulnerability Management
 
-- **Status:** CONCERNS
-- **Threshold:** 0 critical, 0 high vulnerabilities in application code
-- **Actual:** 1 potential high-severity issue identified
-- **Evidence:** `arweave-client.ts` lines 84-91: GraphQL query construction uses string interpolation (`"${sha}"`, `"${repo}"`) rather than parameterized variables. While git SHAs are hex-only and repo identifiers come from Nostr `d` tags, a maliciously crafted repo name containing GraphQL syntax (e.g., `"}]) { edges { node { id } } } #`) could potentially manipulate the query structure.
-- **Findings:** The GraphQL injection vector is limited because: (1) SHA values are always 40-character hex strings from git object parsing, and (2) repo identifiers originate from Nostr events which are cryptographically signed. However, the input is not sanitized before interpolation into the GraphQL query string. This should be addressed by using GraphQL variables parameter.
-- **Recommendation:** Refactor `resolveGitSha()` to use GraphQL variables: `query($sha: [String!], $repo: [String!]) { transactions(tags: [{name: "Git-SHA", values: $sha}, {name: "Repo", values: $repo}]) { ... } }` with `variables: { sha: [sha], repo: [repo] }` in the request body.
+- **Status:** PASS
+- **Threshold:** No bare `["EVENT", ...]` patterns. No secrets or credentials in skill files.
+- **Actual:** 0 bare EVENT patterns. No secrets, API keys, tokens, or credentials in any of the 5 files.
+- **Evidence:** `validate-skill.sh` check 6/8: PASS. Manual inspection of all 5 files confirms no sensitive data.
+- **Findings:** No vulnerability surface. Skill is safe for public distribution.
 
 ### Compliance (if applicable)
 
 - **Status:** PASS
-- **Standards:** N/A (no regulated data; public git objects and Nostr events only)
-- **Actual:** No PII, no financial data, no regulated content
-- **Evidence:** Architecture: read-only viewer of public git repositories stored on Arweave
-- **Findings:** No compliance requirements applicable.
+- **Threshold:** All TOON compliance assertions must pass (per AC7)
+- **Actual:** 7/7 checks passed, 0 failed, 0 skipped. Classification: "both" (read + write).
+- **Evidence:** `run-eval.sh` output: "Checks: 7 passed, 0 failed, 0 skipped (of 7 run). Status: PASS"
+- **Findings:** Full TOON compliance. The "both" classification correctly reflects that `nostr:` URIs involve both constructing references (write, embedded in events via publishEvent) and parsing references from received events (read, TOON-format decoding).
 
 ---
 
@@ -143,65 +137,48 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 ### Availability (Uptime)
 
-- **Status:** CONCERNS
-- **Threshold:** UNKNOWN (no SLA defined for Forge-UI)
-- **Actual:** Depends on Arweave gateway availability and Nostr relay availability
-- **Evidence:** `arweave-client.ts`: dual-gateway fallback (arweave.net + gateway.irys.xyz); `main.ts`: graceful error handling for all route types with user-friendly messages
-- **Findings:** The gateway fallback pattern provides resilience against single gateway failures. Static SPA can be deployed to any CDN for high availability of the UI itself.
+- **Status:** N/A
+- **Threshold:** Not applicable (skill is a static artifact)
+- **Actual:** N/A
+- **Evidence:** Skills are loaded by Claude at inference time from the filesystem.
+- **Findings:** Availability is determined by the filesystem, not the skill itself.
 
 ### Error Rate
 
 - **Status:** PASS
-- **Threshold:** Graceful degradation on all error paths
-- **Actual:** Comprehensive error handling implemented
-- **Evidence:**
-  - `main.ts`: Every route handler wrapped in try/catch with user-friendly error messages (lines 440-446, 465-471, 490-496)
-  - `arweave-client.ts`: All fetch failures return null gracefully (lines 55-58, 125-127)
-  - `main.ts`: Each resolution step checks for null and renders appropriate error state (404, "Content unavailable", "Parse error", etc.)
-  - Integration test: `gateway-fallback.test.ts` (3 tests) validates fallback behavior
-- **Findings:** Error handling is thorough. 12+ distinct error states are handled with user-friendly messages. No raw errors or stack traces exposed to users.
+- **Threshold:** Structural validation: 11/11 checks must pass. Eval validation: >=80% pass rate.
+- **Actual:** Structural: 11/11 PASS. Eval: 7/7 PASS (100% pass rate).
+- **Evidence:** `validate-skill.sh`: "11/11 checks passed, 0 failed". `run-eval.sh`: "7 passed, 0 failed, 0 skipped".
+- **Findings:** Zero structural or compliance errors. All validation passes cleanly on first run.
 
 ### MTTR (Mean Time To Recovery)
 
-- **Status:** CONCERNS
-- **Threshold:** UNKNOWN
-- **Actual:** Static SPA -- recovery is browser refresh. No persistent state to corrupt.
-- **Evidence:** Client-side only; no server state; SHA cache is in-memory (cleared on reload)
-- **Findings:** Recovery is trivial for a static SPA. No persistent client-side state to manage.
+- **Status:** N/A
+- **Threshold:** Not applicable to static skill artifacts
+- **Actual:** N/A
+- **Findings:** If a skill defect is found, recovery = edit and re-validate. No runtime recovery needed.
 
 ### Fault Tolerance
 
 - **Status:** PASS
-- **Threshold:** Graceful degradation when Arweave or relay unavailable
-- **Actual:** Implemented
-- **Evidence:**
-  - Gateway fallback: primary arweave.net -> fallback gateway.irys.xyz (`arweave-client.ts` line 42-61)
-  - Timeout protection: `AbortSignal.timeout(15000)` on all fetch calls
-  - Null propagation: every resolver returns null on failure, callers render error state
-  - Relay connection failure: caught and displays "Connection Error" message
-- **Findings:** Fault tolerance is well-implemented for a client-side application.
+- **Threshold:** Skill must reference upstream skills without duplicating content (D9-010: single source of truth)
+- **Actual:** SKILL.md references `nostr-protocol-core` (3 occurrences: TOON Write Model section, TOON Read Model section, When to Read Each Reference section) for write/read model details, fee calculation, and NIP-19 encoding. References `nostr-social-intelligence` (2 occurrences: Social Context section, When to Read Each Reference section) for base social context. No content duplication from upstream skills. No `toon-protocol-context.md` copied into this skill's references directory.
+- **Evidence:** Grep confirms reference counts. Protocol changes to `toon-protocol-context.md` will automatically propagate per D9-010.
+- **Findings:** Progressive disclosure architecture provides natural degradation. If Level 3 references are unavailable, the SKILL.md body still contains complete URI construction/parsing instructions with fee awareness.
 
 ### CI Burn-In (Stability)
 
-- **Status:** PASS
-- **Threshold:** All tests pass consistently
-- **Actual:** 140 unit tests passed, 0 failed; 58 tests skipped (from other stories/features)
-- **Evidence:** `pnpm --filter @toon-protocol/rig test` output: "Test Files 12 passed | 6 skipped (18), Tests 140 passed | 58 skipped (198)"
-- **Findings:** All 140 tests pass. The 58 skipped tests are for unimplemented future stories (8.3-8.5), not flaky tests.
+- **Status:** CONCERNS
+- **Threshold:** Validation scripts should run in CI to prevent regression
+- **Actual:** Validation scripts (`validate-skill.sh`, `run-eval.sh`) exist and pass, but no CI pipeline integration for automated skill validation on push.
+- **Evidence:** No `.github/workflows` config for skill validation. Scripts run manually.
+- **Findings:** Same concern as Stories 9.4, 9.5, and 9.6 assessments. Skill validation is manual. A CI pipeline that runs both scripts on all skills after each push would catch regressions. This is an Epic 9 infrastructure concern, not specific to this story.
 
 ### Disaster Recovery (if applicable)
 
-- **RTO (Recovery Time Objective)**
-  - **Status:** PASS
-  - **Threshold:** N/A (static SPA, no server state)
-  - **Actual:** Browser refresh recovers fully
-  - **Evidence:** No server-side state; all data fetched from Arweave/relay on demand
-
-- **RPO (Recovery Point Objective)**
-  - **Status:** PASS
-  - **Threshold:** N/A
-  - **Actual:** No data loss possible (read-only viewer)
-  - **Evidence:** No write operations in Forge-UI
+- **Status:** N/A
+- **RTO:** N/A -- skill is version-controlled in git. Recovery = `git checkout`.
+- **RPO:** N/A -- git provides full history.
 
 ---
 
@@ -210,82 +187,131 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 ### Test Coverage
 
 - **Status:** PASS
-- **Threshold:** Comprehensive test coverage for all ACs
-- **Actual:** 140 unit tests + 15 integration tests covering all 17 acceptance criteria
-- **Evidence:**
-  - `git-objects.test.ts`: 17 tests (303 lines) -- tree parser, commit parser, binary detection
-  - `arweave-client.test.ts`: 9 tests (212 lines) -- fetch, fallback, GraphQL, caching
-  - `ref-resolver.test.ts`: 4 tests (83 lines) -- default ref resolution
-  - `nip34-parsers.test.ts`: 17 tests (353 lines) -- kind:30617 + kind:30618 parsing
-  - `templates.test.ts`: 32 tests (631 lines) -- tree/blob rendering, XSS prevention
-  - `router.test.ts`: 21 tests (165 lines) -- tree/blob route parsing
-  - Integration tests: `file-tree.test.ts` (3), `blob-view.test.ts` (3), `gateway-fallback.test.ts` (3)
-  - Test IDs 8.2-UNIT-001 through 8.2-UNIT-007 and 8.2-INT-001 through 8.2-INT-003 all covered
-- **Findings:** Test coverage is comprehensive. All acceptance criteria have corresponding tests. XSS prevention has dedicated P0 test suites.
+- **Threshold:** 8-10 should-trigger, 8-10 should-not-trigger, 4-6 output evals with assertions (per AC6)
+- **Actual:** 10 should-trigger queries, 8 should-not-trigger queries (18 total trigger evals), 5 output evals with 5-6 assertions each
+- **Evidence:** `run-eval.sh` eval-completeness: PASS ("18 trigger evals (true=10, false=8), 5 output evals (all with assertions)")
+- **Findings:** Eval coverage meets requirements. Trigger queries cover protocol-technical triggers (nostr: URI, NIP-21, NIP-27, bech32, npub1, note1, nprofile1, nevent1, naddr1, inline mentions) and social-situation triggers ("how do I link to another note?", "how do I mention someone inline?", "what is the best way to link to an article?", "how do I parse nostr: URIs?"). Should-not-trigger queries properly exclude adjacent domains (profile creation, article publishing, reactions, reposts, group chat, encrypted messaging, follow lists, file storage).
 
 ### Code Quality
 
 - **Status:** PASS
-- **Threshold:** Clean, well-structured code following project patterns
-- **Actual:** Code follows established patterns from Story 8.1
-- **Evidence:**
-  - Browser-compatible: No `Buffer` usage, all `Uint8Array` + `TextDecoder` (per AC requirements)
-  - Separation of concerns: parsers (`git-objects.ts`), network (`arweave-client.ts`), rendering (`templates.ts`), routing (`router.ts`)
-  - Single responsibility: each module handles one concern
-  - XSS prevention centralized in `escapeHtml()` from `escape.ts`
-  - TypeScript interfaces: `TreeEntry`, `GitCommit`, `RepoRefs`, `Route` all properly typed
-  - JSDoc comments on all exported functions
-  - 2,775 total lines across test files -- thorough but not excessive
-- **Findings:** Code quality is high. The modular architecture makes testing straightforward.
+- **Threshold:** Follows skill-creator conventions; consistent with Stories 9.4-9.6 pattern references
+- **Actual:**
+  - SKILL.md body: 85 lines (9.4: 79, 9.5: 73, 9.6: 83) -- consistent range
+  - Description: 108 words (9.4: 115, 9.5: 97, 9.6: 108, target 80-120) -- within range
+  - Reference files: 3 (nip-spec.md, toon-extensions.md, scenarios.md) -- same pattern as 9.4-9.6
+  - Eval structure: 18 trigger + 5 output evals -- identical distribution to 9.4 and 9.6
+  - Frontmatter: only `name` and `description` fields -- compliant
+  - No extraneous files (no README.md, CHANGELOG.md, etc.)
+- **Evidence:** `validate-skill.sh` checks 2/8 (frontmatter), 7/8 (108 words), 8/8 (85 lines). All PASS.
+- **Findings:** Strong consistency with established skill patterns across all four pipeline-produced skills.
 
 ### Technical Debt
 
-- **Status:** CONCERNS
-- **Threshold:** Minimal tech debt
-- **Actual:** 2 items identified
-- **Evidence:**
-  - GraphQL string interpolation in `arweave-client.ts` (should use parameterized queries)
-  - No object caching for fetched Arweave data (navigating back refetches; deferred per story dev notes)
-  - `renderTreeRoute` and `renderBlobRoute` in `main.ts` share significant code structure (relay query + ref resolution) that could be extracted
-- **Findings:** Technical debt is low overall. The GraphQL concern is the only actionable item.
+- **Status:** PASS
+- **Threshold:** No content duplication from upstream skills. References point to single sources of truth.
+- **Actual:** Zero content duplicated from `nostr-protocol-core` or `nostr-social-intelligence`. TOON protocol details reference `toon-protocol-context.md` via D9-010 pointer. Social context is reference-specific (passes substitution test -- themes about linking quality, self-referencing, and dead references would NOT make sense if NIP name were replaced with, e.g., "social identity" or "long-form content").
+- **Evidence:** No `toon-protocol-context.md` file in `.claude/skills/content-references/references/`. SKILL.md directs to `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+- **Findings:** Zero technical debt. Clean dependency chain.
 
 ### Documentation Completeness
 
 - **Status:** PASS
-- **Threshold:** Story complete with dev notes and change log
-- **Actual:** Story file includes comprehensive dev notes, architecture patterns, anti-patterns, references, and agent record
-- **Evidence:** Story 8.2 implementation artifact: dev notes cover architecture patterns, NIP-34 event structure, Arweave tags, resolution chain, caching strategy, ATDD stub reconciliation, existing code gotchas, testing standards
-- **Findings:** Documentation is thorough.
+- **Threshold:** All ACs covered: NIP-21 URI scheme, NIP-27 text note references, bech32 encoding, tag correspondence, TOON write/read model, Social Context, eval suite, description optimization, dependency references
+- **Actual:** All 11 acceptance criteria met:
+  - AC1 (Pipeline Production): Directory structure matches spec (SKILL.md, 3 references, evals.json)
+  - AC2 (NIP Coverage): NIP-21 URI format (5 entity types), NIP-27 inline references, tag correspondence
+  - AC3 (TOON Write Model): publishEvent(), byte cost per reference type, tag correspondence requirements
+  - AC4 (TOON Read Model): TOON-format strings, URI parsing from content, relay hints for cross-relay resolution
+  - AC5 (Social Context): 239 words with reference-specific guidance (linking quality, self-referencing, attribution, dead references, nprofile1 preference)
+  - AC6 (Eval Suite): 10 + 8 trigger evals, 5 output evals with assertions
+  - AC7 (TOON Compliance): 7/7 checks pass
+  - AC8 (Description): 108 words with protocol + social-situation triggers
+  - AC9 (Token Budget): 85 lines, well within budget
+  - AC10 (Dependencies): References nostr-protocol-core (3x) and nostr-social-intelligence (2x)
+  - AC11 (With/Without): Pipeline Step 8 executed per Dev Agent Record
+- **Evidence:** Story implementation artifacts, validation script output, manual AC verification
+- **Findings:** Full coverage. No gaps.
 
 ### Test Quality (from test-review, if available)
 
 - **Status:** PASS
-- **Threshold:** Tests follow quality criteria (deterministic, isolated, explicit, focused, fast)
-- **Actual:** Tests are well-structured
-- **Evidence:**
-  - Deterministic: all tests use controlled fixtures (Uint8Array literals, mock events)
-  - Isolated: `clearShaCache()` called between tests for cache isolation
-  - Explicit: assertions in test bodies, not hidden in helpers
-  - Focused: each test validates one concern
-  - Fast: no network calls in unit tests; `fetch` mocked globally in integration tests
-  - Factory pattern: `createMockTreeEntry()` and `createMockIssue()` factories used
-  - All test files under 631 lines (within 300-line guideline per test, files contain multiple tests)
-- **Findings:** Test quality meets the Definition of Done criteria.
+- **Threshold:** Output eval rubrics are specific, assertion-based, and include TOON compliance checks
+- **Actual:** All 5 output evals have rubric-based grading (correct/acceptable/incorrect). Each includes 5-6 assertions. Rubrics are scenario-specific:
+  - `uri-construction`: Tests npub1/nprofile1 URI construction with p tag, publishEvent(), byte cost calculation
+  - `inline-mention-with-tags`: Tests multiple references (2 user mentions + 1 article), correct tag types (p, a), both URIs and tags required
+  - `naddr1-article-reference`: Tests correct entity type for parameterized replaceable events, TLV encoding, version resolution advantage, a tag format
+  - `reference-fee-impact`: Tests per-reference byte calculation (URI + tag), total for 5 mentions, comparison to base note cost, npub1 vs nprofile1 tradeoff
+  - `parsing-references`: Tests TOON-format decoding first, nostr: URI extraction, entity type identification, NIP-19 decoding, reading is free
+- **Evidence:** Manual review of `evals/evals.json`. All output evals include TOON compliance assertions.
+- **Findings:** High-quality eval design. The output evals test real-world scenarios that an agent would encounter when linking and referencing content on TOON. The "parsing-references" eval is particularly important as it validates the read-side workflow (TOON-format decoding before URI extraction).
+
+---
+
+## Custom NFR Assessments
+
+### TOON Protocol Compliance
+
+- **Status:** PASS
+- **Threshold:** All TOON compliance assertions must pass (per AC7)
+- **Actual:** 7/7 checks passed. Classification: "both" (read + write).
+- **Evidence:** `run-eval.sh` full output.
+- **Findings:** Full TOON protocol compliance. The "both" classification correctly reflects that content references involve both writing (constructing URIs embedded in events via publishEvent) and reading (parsing URIs from TOON-format event responses). This skill is unique in the pipeline in that it teaches a cross-cutting referencing system rather than introducing new event kinds.
+
+### Content Accuracy (NIP Specification Compliance)
+
+- **Status:** PASS
+- **Threshold:** All NIP-21 and NIP-27 specifications must be technically accurate
+- **Actual:** Verified against NIP-21, NIP-27, and NIP-19 specs:
+  - `nostr:<bech32>` URI format correctly documented
+  - Five entity types correctly classified: npub1 (simple), note1 (simple), nprofile1 (TLV), nevent1 (TLV), naddr1 (TLV)
+  - TLV type definitions correct: Type 0 (special), Type 1 (relay, repeatable), Type 2 (author), Type 3 (kind, 32-bit big-endian)
+  - Tag correspondence rules correct: npub1/nprofile1 -> p tag, note1/nevent1 -> e tag, naddr1 -> a tag
+  - naddr1 semantics correct: resolves to latest version of parameterized replaceable events (kind:30023, etc.)
+  - NIP-27 inline mention rendering rules correct for all entity types
+- **Evidence:** Cross-reference with nip-spec.md content against NIP-21, NIP-27, and NIP-19 specification texts
+- **Findings:** No technical inaccuracies. The TLV encoding documentation is particularly thorough, covering all four type definitions with their applicability to each entity type.
+
+### Social Context Quality
+
+- **Status:** PASS
+- **Threshold:** Social Context section must be reference-specific (passes substitution test)
+- **Actual:** Social Context section (239 words) covers 7 themes:
+  1. References add value by connecting content into a web of knowledge (byte cost as quality signal)
+  2. Excessive self-referencing appears self-promotional on a paid network
+  3. Cross-referencing others is attribution and amplification (spending bytes = endorsement)
+  4. naddr1 references are valuable (versioned, replaceable content)
+  5. Dead references waste bytes and confuse readers (verify before embedding)
+  6. Prefer nprofile1/nevent1 over npub1/note1 (relay hints improve resolution)
+  7. Pointer to nostr-social-intelligence for deeper social judgment
+- **Evidence:** `run-eval.sh` social-context-check: PASS (239 words). Substitution test: replacing "content references" with "social identity" or "reactions" would break themes 1-6 -- they are specific to linking and referencing economics.
+- **Findings:** High-quality social context. Each theme connects TOON economics to referencing behavior. The "dead references waste money" guidance is unique to this skill and directly addresses a real problem agents face on paid networks.
+
+### Pattern Consistency with Stories 9.4-9.6
+
+- **Status:** PASS
+- **Threshold:** Fourth pipeline-produced skill should be structurally consistent with first three
+- **Actual:** Structural comparison:
+  - SKILL.md body: 85 lines (9.4: 79, 9.5: 73, 9.6: 83) -- consistent range (73-85)
+  - Description: 108 words (9.4: 115, 9.5: 97, 9.6: 108) -- consistent range (97-115)
+  - Reference files: 3 (all 4 skills: 3) -- identical pattern (nip-spec, toon-extensions, scenarios)
+  - Trigger evals: 18 (9.4: 18, 9.5: 18, 9.6: 18) -- identical count
+  - Output evals: 5 (9.4: 5, 9.5: 5, 9.6: 5) -- identical count
+  - Structural checks: 11/11 (all 4 skills: 11/11) -- identical
+  - TOON compliance: 7/7 (all 4 skills: 7/7) -- identical
+- **Evidence:** Direct comparison of validation outputs across all four pipeline-produced skills
+- **Findings:** Pipeline produces highly consistent output. The skill pipeline (Story 9.2) is stable and repeatable across 4 consecutive skill productions.
 
 ---
 
 ## Quick Wins
 
-2 quick wins identified for immediate implementation:
+1 quick win identified (carried forward from previous assessments):
 
-1. **GraphQL Variable Parameterization** (Security) - HIGH - 30 minutes
-   - Refactor `resolveGitSha()` in `arweave-client.ts` to use GraphQL variables instead of string interpolation
-   - Minimal code change: restructure the query string and add `variables` to the fetch body
-
-2. **Arweave Object Cache** (Performance) - MEDIUM - 1 hour
-   - Add a `Map<string, Uint8Array>` cache for fetched Arweave objects by txId
-   - Prevents re-fetching when navigating back to previously viewed directories
-   - No code changes to consumers needed; cache check in `fetchArweaveObject()`
+1. **CI Integration for Skill Validation** (Reliability) - Medium - Low effort
+   - Add `validate-skill.sh` and `run-eval.sh` to CI pipeline to catch skill regressions automatically
+   - No code changes needed -- scripts already exist and are idempotent
+   - Benefits all skills (9.0 through 9.7+), not just this story
 
 ---
 
@@ -293,106 +319,69 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 ### Immediate (Before Release) - CRITICAL/HIGH Priority
 
-1. **Fix GraphQL injection risk** - HIGH - 30 minutes - Dev
-   - Refactor `resolveGitSha()` to use GraphQL variables
-   - Change query to use `query($sha: [String!], $repo: [String!])` parameterized form
-   - Add variables object to fetch body: `{ query, variables: { sha: [sha], repo: [repo] } }`
-   - Validation: existing `arweave-client.test.ts` tests should continue passing
+None -- all applicable NFRs pass.
 
 ### Short-term (Next Milestone) - MEDIUM Priority
 
-1. **Add Arweave object caching** - MEDIUM - 1 hour - Dev
-   - Cache fetched `Uint8Array` by txId in a `Map<string, Uint8Array>`
-   - Improves back-navigation performance significantly
-   - Consider LRU eviction for memory management
-
-2. **Extract shared route resolution logic** - MEDIUM - 2 hours - Dev
-   - `renderTreeRoute()` and `renderBlobRoute()` share relay query + ref resolution code
-   - Extract into a shared `resolveRouteContext()` helper to reduce duplication
+1. **CI skill validation pipeline** - Medium - 2 hours - Epic 9 Lead
+   - Add GitHub Actions workflow that runs `validate-skill.sh` and `run-eval.sh` against all skills in `.claude/skills/*/`
+   - Carried forward from Stories 9.4, 9.5, 9.6 assessments (same recommendation)
+   - Validation: All skills pass on CI; regressions caught before merge
 
 ### Long-term (Backlog) - LOW Priority
 
-1. **Define performance SLOs** - LOW - 2 hours - Dev/Product
-   - Define target page load times for tree/blob views
-   - Consider Arweave gateway latency baselines
+1. **Automated trigger accuracy testing** - Low - 1-2 days - Dev
+   - Build tooling to automatically test whether Claude triggers the skill for should-trigger queries and does NOT trigger for should-not-trigger queries
+   - Currently relies on eval definitions but no automated execution against a live Claude instance
+   - This addresses E9-R002 (eval quality determines downstream quality)
+
+2. **Cross-skill consistency verification** - Low - 4 hours - Dev (at Story 9.34)
+   - Automated comparison of skill metrics (body lines, description words, eval counts) across all pipeline-produced skills
+   - Ensures pipeline stability as more skills are produced (now 4 data points: 9.4, 9.5, 9.6, 9.7)
 
 ---
 
 ## Monitoring Hooks
 
-3 monitoring hooks recommended to detect issues before failures:
+1 monitoring hook recommended:
 
-### Performance Monitoring
+### Maintainability Monitoring
 
-- [ ] Browser performance API integration -- measure Arweave fetch latency
-  - **Owner:** Dev
-  - **Deadline:** Next milestone
-
-### Security Monitoring
-
-- [ ] CSP (Content Security Policy) headers -- prevent inline script execution even if XSS bypass found
-  - **Owner:** Dev
-  - **Deadline:** Before production deployment
-
-### Reliability Monitoring
-
-- [ ] Arweave gateway health check -- detect gateway degradation proactively
-  - **Owner:** Dev
-  - **Deadline:** Next milestone
+- [ ] Skill validation in CI -- Run `validate-skill.sh` + `run-eval.sh` on push to `epic-9` branch
+  - **Owner:** Epic 9 Lead
+  - **Deadline:** Story 9.34 (publication gate)
 
 ### Alerting Thresholds
 
-- [ ] Arweave fetch timeout rate monitoring -- alert if >10% of fetches timeout
-  - **Owner:** Dev
-  - **Deadline:** Next milestone
+- [ ] Skill validation failure on any push -- Notify when any skill's structural or TOON compliance checks regress
+  - **Owner:** Epic 9 Lead
+  - **Deadline:** Story 9.34
 
 ---
 
 ## Fail-Fast Mechanisms
 
-3 fail-fast mechanisms recommended to prevent failures:
-
-### Circuit Breakers (Reliability)
-
-- [ ] Consider circuit breaker for Arweave gateway -- if N consecutive failures, show degraded state immediately rather than retrying
-  - **Owner:** Dev
-  - **Estimated Effort:** 2 hours
-
-### Rate Limiting (Performance)
-
-- [ ] N/A for read-only static SPA -- rate limiting is gateway-side
-  - **Owner:** N/A
-  - **Estimated Effort:** N/A
+2 fail-fast mechanisms already in place:
 
 ### Validation Gates (Security)
 
-- [ ] GraphQL variable parameterization (immediate action -- see Recommended Actions)
-  - **Owner:** Dev
-  - **Estimated Effort:** 30 minutes
+- [x] `validate-skill.sh` (11 structural checks) -- exits non-zero on any failure
+  - **Owner:** Story 9.2 (pipeline)
+  - **Status:** Implemented, passing (11/11)
 
 ### Smoke Tests (Maintainability)
 
-- [ ] Add a smoke test that verifies the full resolution chain (route -> relay -> Arweave -> render) with mocked dependencies
-  - **Owner:** Dev
-  - **Estimated Effort:** 1 hour
+- [x] `run-eval.sh` (7 TOON compliance assertions) -- exits non-zero on any failure
+  - **Owner:** Story 9.3 (eval framework)
+  - **Status:** Implemented, passing (7/7)
 
 ---
 
 ## Evidence Gaps
 
-2 evidence gaps identified - action required:
+0 evidence gaps -- all required evidence is available and validated.
 
-- [ ] **Performance SLOs** (Performance)
-  - **Owner:** Dev/Product
-  - **Deadline:** Next milestone
-  - **Suggested Evidence:** Define target page load times; run lighthouse audit on built SPA
-  - **Impact:** Cannot objectively assess performance without defined thresholds
-
-- [ ] **Production Arweave Gateway Latency Baseline** (Performance)
-  - **Owner:** Dev
-  - **Deadline:** Before production deployment
-  - **Suggested Evidence:** Measure p50/p95/p99 Arweave gateway response times from target deployment regions
-  - **Impact:** Cannot predict user experience without baseline latency data
+Note: CI burn-in is a CONCERNS but not an evidence gap. The validation scripts exist and pass deterministically. The gap is in automation, not evidence.
 
 ---
 
@@ -400,21 +389,22 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 **Based on ADR Quality Readiness Checklist (8 categories, 29 criteria)**
 
+Note: Story 9.7 produces a **skill artifact** (markdown + JSON), not a running service. Many traditional ADR criteria (statelessness, circuit breakers, failover, RTO/RPO, metrics endpoints, deployment strategies) do not apply. Criteria are assessed as N/A where not applicable.
+
 | Category                                         | Criteria Met | PASS | CONCERNS | FAIL | Overall Status |
 | ------------------------------------------------ | ------------ | ---- | -------- | ---- | -------------- |
-| 1. Testability & Automation                      | 3/4          | 3    | 1        | 0    | PASS           |
+| 1. Testability & Automation                      | 4/4          | 4    | 0        | 0    | PASS           |
 | 2. Test Data Strategy                            | 3/3          | 3    | 0        | 0    | PASS           |
-| 3. Scalability & Availability                    | 2/4          | 2    | 2        | 0    | CONCERNS       |
-| 4. Disaster Recovery                             | 3/3          | 3    | 0        | 0    | PASS           |
-| 5. Security                                      | 3/4          | 3    | 1        | 0    | CONCERNS       |
-| 6. Monitorability, Debuggability & Manageability | 2/4          | 2    | 2        | 0    | CONCERNS       |
-| 7. QoS & QoE                                     | 2/4          | 2    | 2        | 0    | CONCERNS       |
-| 8. Deployability                                 | 3/3          | 3    | 0        | 0    | PASS           |
-| **Total**                                        | **21/29**    | **21** | **8** | **0** | **CONCERNS**   |
+| 3. Scalability & Availability                    | 2/4 (2 N/A) | 2    | 0        | 0    | PASS           |
+| 4. Disaster Recovery                             | 0/3 (3 N/A) | 0    | 0        | 0    | N/A            |
+| 5. Security                                      | 4/4          | 4    | 0        | 0    | PASS           |
+| 6. Monitorability, Debuggability & Manageability | 1/4 (3 N/A) | 0    | 1        | 0    | CONCERNS       |
+| 7. QoS & QoE                                     | 2/4 (2 N/A) | 2    | 0        | 0    | PASS           |
+| 8. Deployability                                 | 2/3 (1 N/A) | 1    | 1        | 0    | CONCERNS       |
+| **Total**                                        | **18/29**    | **16** | **2**  | **0**| **PASS**       |
 
-**Criteria Met Scoring:**
-
-- 21/29 (72%) = Room for improvement
+**Applicable criteria: 18, of which 16 PASS and 2 CONCERNS (89% pass rate)**
+**Non-applicable criteria: 11 (infrastructure-level, not relevant to skill artifacts)**
 
 ---
 
@@ -422,45 +412,49 @@ Note: This assessment summarizes existing evidence; it does not run tests or CI 
 
 ```yaml
 nfr_assessment:
-  date: '2026-03-23'
-  story_id: '8.2'
-  feature_name: 'Forge-UI File Tree and Blob View'
-  adr_checklist_score: '21/29'
+  date: '2026-03-26'
+  story_id: '9.7'
+  feature_name: 'Content References Skill (content-references)'
+  adr_checklist_score: '16/18 applicable (11 N/A)'
   categories:
     testability_automation: 'PASS'
     test_data_strategy: 'PASS'
-    scalability_availability: 'CONCERNS'
-    disaster_recovery: 'PASS'
-    security: 'CONCERNS'
+    scalability_availability: 'PASS'
+    disaster_recovery: 'N/A'
+    security: 'PASS'
     monitorability: 'CONCERNS'
-    qos_qoe: 'CONCERNS'
-    deployability: 'PASS'
-  overall_status: 'CONCERNS'
+    qos_qoe: 'PASS'
+    deployability: 'CONCERNS'
+  overall_status: 'PASS'
   critical_issues: 0
-  high_priority_issues: 1
-  medium_priority_issues: 2
-  concerns: 8
+  high_priority_issues: 0
+  medium_priority_issues: 1
+  concerns: 2
   blockers: false
-  quick_wins: 2
-  evidence_gaps: 2
+  quick_wins: 1
+  evidence_gaps: 0
   recommendations:
-    - 'Fix GraphQL string interpolation in arweave-client.ts (use parameterized variables)'
-    - 'Add Arweave object caching for back-navigation performance'
-    - 'Define performance SLOs for Forge-UI page loads'
+    - 'Add CI pipeline for skill validation (validate-skill.sh + run-eval.sh)'
+    - 'Build automated trigger accuracy testing tooling'
+    - 'Cross-skill consistency verification at Story 9.34'
 ```
 
 ---
 
 ## Related Artifacts
 
-- **Story File:** `_bmad-output/implementation-artifacts/8-2-forge-ui-file-tree-and-blob-view.md`
-- **Tech Spec:** N/A (embedded in story dev notes)
-- **PRD:** `_bmad-output/planning-artifacts/epics.md` (Story 8.2 section)
-- **Test Design:** `_bmad-output/planning-artifacts/test-design-epic-8.md` (Story 8.2 section)
+- **Story File:** `_bmad-output/implementation-artifacts/9-7-content-references-skill.md`
+- **Skill Directory:** `.claude/skills/content-references/`
+- **Validation Scripts:**
+  - `.claude/skills/nip-to-toon-skill/scripts/validate-skill.sh`
+  - `.claude/skills/skill-eval-framework/scripts/run-eval.sh`
+- **Test Design:** `_bmad-output/planning-artifacts/test-design-epic-9.md`
 - **Evidence Sources:**
-  - Test Results: `packages/rig/src/web/*.test.ts` (140 passing tests)
-  - Integration Tests: `packages/rig/src/web/__integration__/*.test.ts` (15 passing tests)
-  - Source Code: `packages/rig/src/web/` (implementation files)
+  - Structural validation: `validate-skill.sh` output (11/11 PASS)
+  - TOON compliance: `run-eval.sh` output (7/7 PASS)
+  - Skill files: `.claude/skills/content-references/` (5 files)
+  - Eval definitions: `.claude/skills/content-references/evals/evals.json`
+  - Pattern reference: `.claude/skills/social-interactions/` (Story 9.6, Phase 2 sibling)
 
 ---
 
@@ -468,11 +462,11 @@ nfr_assessment:
 
 **Release Blocker:** None
 
-**High Priority:** Fix GraphQL string interpolation in `arweave-client.ts` to use parameterized variables (30-minute fix)
+**High Priority:** None
 
-**Medium Priority:** Add Arweave object caching; extract shared route resolution logic
+**Medium Priority:** CI integration for automated skill validation (carried forward from 9.4/9.5/9.6 assessments)
 
-**Next Steps:** Address the GraphQL parameterization issue, then proceed to Story 8.3 implementation
+**Next Steps:** Phase 2 (Content & Publishing) is complete with Stories 9.5, 9.6, and 9.7. Proceed to Phase 3 (Community & Groups, Story 9.8) or publication gate (Story 9.34) when ready. At Story 9.34, run cross-skill consistency verification across all pipeline-produced skills.
 
 ---
 
@@ -480,23 +474,23 @@ nfr_assessment:
 
 **NFR Assessment:**
 
-- Overall Status: CONCERNS
+- Overall Status: PASS
 - Critical Issues: 0
-- High Priority Issues: 1
-- Concerns: 8
-- Evidence Gaps: 2
+- High Priority Issues: 0
+- Concerns: 2 (CI burn-in pipeline, automated trigger testing -- both infrastructure-level, not story-specific)
+- Evidence Gaps: 0
 
-**Gate Status:** CONCERNS
+**Gate Status:** PASS
 
 **Next Actions:**
 
-- If PASS: Proceed to `*gate` workflow or release
-- If CONCERNS: Address HIGH/CRITICAL issues, re-run `*nfr-assess`
-- If FAIL: Resolve FAIL status NFRs, re-run `*nfr-assess`
+- PASS: Proceed to merge or `*gate` workflow
+- CI skill validation pipeline recommended for Story 9.34 (publication gate)
+- Phase 2 complete; Phase 3 (Story 9.8 Relay Groups) has no dependency on this story
 
-**Generated:** 2026-03-23
+**Generated:** 2026-03-26
 **Workflow:** testarch-nfr v5.0
 
 ---
 
-<!-- Powered by BMAD-CORE™ -->
+<!-- Powered by BMAD-CORE -->

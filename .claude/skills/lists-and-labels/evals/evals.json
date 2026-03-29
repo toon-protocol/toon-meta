@@ -1,0 +1,182 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I mute someone on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I organize my contacts into categories on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I bookmark a post on TOON and organize my bookmarks?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I label content on Nostr with kind:1985?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the cost of updating my mute list on a paid relay?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I pin a note to my profile on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "Should I make my mute list public or private on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do NIP-51 lists work and what kinds are there?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I add a label namespace to tag posts with categories?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a follow set to group my developer contacts?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I send a direct message on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a relay group using NIP-29?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post with an emoji on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a public chat channel using NIP-28?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I attach media to a note on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "What is the ILP packet format for Interledger?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a moderated community on Nostr?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "mute-list-creation",
+      "prompt": "I want to mute a user on a TOON relay. My current mute list has 30 entries. How do I add someone and what will it cost?",
+      "expected_output": "Fetch your current kind:10000 mute list. TOON relays return TOON-format strings, so use the TOON decoder to parse. Decrypt private entries from .content using NIP-44. Append a new p tag with the pubkey to mute (prefer private entry). Re-encrypt private entries. Republish the entire list via publishEvent() from @toon-protocol/client. With 31 entries, the list is approximately 2,200 bytes at 10n basePricePerByte = ~$0.022. The full list is republished on every change -- batch multiple mutes to save cost.",
+      "rubric": {
+        "correct": "Fetches current kind:10000 mute list first. Explains that the ENTIRE list must be republished (replaceable event). Recommends private entries for muting. Uses publishEvent() from @toon-protocol/client. Calculates approximate fee based on total list size (~2,200 bytes for 31 entries = ~$0.022). Warns about the replaceable event cost trap and suggests batching. Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses publishEvent() and correctly describes the mute list update flow, but may not calculate the exact fee or discuss batching strategies.",
+        "incorrect": "Suggests publishing only the new entry (does not understand replaceable event semantics), uses raw WebSocket patterns, omits payment entirely, or does not mention that the entire list is republished."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation based on total list size, not just the new entry",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has curation-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response explains that the entire list is republished (replaceable event cost trap)"
+      ]
+    },
+    {
+      "id": "label-application",
+      "prompt": "I want to label a kind:30023 article on TOON as educational content in the ugc namespace. Walk me through it.",
+      "expected_output": "Construct a kind:1985 event with L tag ['L', 'ugc'], l tag ['l', 'educational', 'ugc'], and an a tag pointing to the article ['a', '30023:<author-pubkey>:<d-tag>', '<relay-hint>']. Optionally add descriptive text in .content. Sign and publish via publishEvent(). Labels are ~200-300 bytes = ~$0.002-$0.003. Labels are regular events (non-replaceable) so each is independent and cheap.",
+      "rubric": {
+        "correct": "Constructs a kind:1985 event with L namespace tag ['L', 'ugc'], l value tag ['l', 'educational', 'ugc'], and a target tag using the a format for replaceable events. Uses publishEvent() from @toon-protocol/client. Calculates cost (~$0.002-$0.003). Explains labels are regular (non-replaceable) events. Does NOT use raw WebSocket writes.",
+        "acceptable": "Correctly constructs the kind:1985 event with proper tags and uses publishEvent(), but may not discuss the non-replaceable nature or exact cost.",
+        "incorrect": "Uses wrong tag format (missing namespace in l tag third element), targets with e tag instead of a tag for a replaceable event, uses raw WebSocket, or omits payment."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation or cost awareness for labels",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has labeling-specific Social Context guidance",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses a tag (not e tag) for targeting a kind:30023 replaceable event",
+        "Response includes L namespace tag and l value tag with namespace as third element"
+      ]
+    },
+    {
+      "id": "bookmark-set-management",
+      "prompt": "I want to create a bookmark collection called 'nostr-resources' with 3 articles and 2 URLs on TOON. How do I set it up?",
+      "expected_output": "Construct a kind:30003 event with d tag 'nostr-resources'. Add a tags for articles (30023:<pubkey>:<d-tag> format with relay hints). Add r tags for URLs. Optionally add title and description metadata tags. Sign and publish via publishEvent(). A collection with 5 items is approximately 600 bytes = ~$0.006. Each future update republishes the entire collection.",
+      "rubric": {
+        "correct": "Constructs a kind:30003 event with d tag set to 'nostr-resources'. Uses a tags for articles (kind:30023 replaceable events) and r tags for URLs. Mentions optional metadata tags (title, description). Publishes via publishEvent(). Calculates approximate fee (~$0.006 for 5 items). Warns that future updates republish the entire collection (cost scales with size). Does NOT use raw WebSocket.",
+        "acceptable": "Correctly uses kind:30003 with d tag and appropriate reference tags, publishes via publishEvent(), but may not discuss future update costs.",
+        "incorrect": "Uses wrong event kind, omits d tag, uses e tags instead of a tags for articles, uses raw WebSocket, or does not mention payment."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation for the bookmark set",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has curation-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses kind:30003 with d tag for collection identifier",
+        "Response uses a tags for articles and r tags for URLs"
+      ]
+    },
+    {
+      "id": "public-vs-private-entries",
+      "prompt": "I'm building a mute list and a follow set on TOON. For each, should I use public or private entries? What are the tradeoffs?",
+      "expected_output": "Mute list (kind:10000): Use private entries (encrypted in .content via NIP-44). Broadcasting who you mute creates social tension. Private muting is non-confrontational. Follow sets (kind:30000): Default to public entries (in .tags). Public follow sets aid social discovery and signal your interests. Use private entries only for confidential relationships. Encryption adds ~50-100 bytes overhead. On TOON, both public and private entries contribute to the total event size and therefore the ILP fee.",
+      "rubric": {
+        "correct": "Recommends private entries for mute lists (avoids broadcasting conflicts) and public entries for follow sets (aids discovery). Explains the social dynamics of each choice. Notes that encryption adds byte overhead. Acknowledges both types contribute to event size and ILP fee on TOON. Mentions NIP-44 for encryption.",
+        "acceptable": "Correctly distinguishes the recommended visibility for each list type but may not discuss the byte overhead or fee implications.",
+        "incorrect": "Recommends public mute lists, does not distinguish between list types, or ignores the social implications of public vs private entries."
+      },
+      "assertions": [
+        "toon-write-check: Response references publishEvent() for list updates",
+        "toon-fee-check: Response mentions that both entry types affect event size and cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses when reading lists",
+        "social-context-check: Response addresses public vs private list social dynamics",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response recommends private entries for mute lists",
+        "Response recommends public entries for follow sets as default",
+        "Response mentions NIP-44 encryption for private entries"
+      ]
+    },
+    {
+      "id": "batch-update-economics",
+      "prompt": "I need to mute 10 users on TOON. My mute list currently has 100 entries. Should I mute them one at a time or all at once? What's the cost difference?",
+      "expected_output": "Batch all 10 mutes into a single update. With 100 entries, the list is approximately 7,000 bytes = ~$0.07 per update. One at a time: 10 updates = ~$0.70. Batched: 1 update with 110 entries = ~$0.077. Batching saves approximately $0.62 (90% reduction). Fetch the current list once, add all 10 p tags, and publish once via publishEvent().",
+      "rubric": {
+        "correct": "Strongly recommends batching. Calculates per-update cost for 100 entries (~$0.07). Shows cost for 10 individual updates (~$0.70) vs 1 batched update (~$0.077). Quantifies savings (~$0.62 or ~90%). Describes the workflow: fetch once, add all entries, publish once via publishEvent().",
+        "acceptable": "Recommends batching and explains the cost trap, but may not calculate exact savings or per-update costs.",
+        "incorrect": "Suggests updating one at a time, does not understand the replaceable event cost model, or omits fee awareness entirely."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API",
+        "toon-fee-check: Response calculates cost difference between batched and individual updates",
+        "toon-format-check: Response mentions TOON-format strings when fetching the current list",
+        "social-context-check: Skill has curation-specific Social Context section with anti-patterns",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response recommends batching mute list changes",
+        "Response explains the replaceable event cost trap (entire list republished per update)",
+        "Response quantifies the cost savings of batching"
+      ]
+    }
+  ]
+}

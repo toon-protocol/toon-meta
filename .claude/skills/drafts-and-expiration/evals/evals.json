@@ -1,0 +1,166 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I save a draft on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-37 and how do draft events work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I construct a kind:31234 draft event on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I publish from a draft on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I set an expiration timestamp on a Nostr event?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-40 and how does the expiration tag work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I make temporary content that auto-expires on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "Should I encrypt my drafts on a paid relay?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I delete a draft after publishing the final event?",
+      "should_trigger": true
+    },
+    {
+      "query": "Is saving drafts worth the cost on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I send a direct message on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a chat channel on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I set my status on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I add a content warning to a post?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I delete an event on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a patch using NIP-34?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "save-draft-article",
+      "prompt": "I'm writing a long-form article on TOON about decentralized identity. I want to save my progress as a draft to the relay so I can resume editing later from another device. The relay's basePricePerByte is 10 micro-USDC. Walk me through how to save a draft.",
+      "rubric": {
+        "correct": "Constructs a kind:31234 event with a meaningful d tag (draft identifier), k tag set to '30023' (target kind for articles), content in markdown format, and article metadata tags (title, summary, t). Recommends encrypting the draft with NIP-44 self-encryption. Publishes via publishEvent() from @toon-protocol/client. Calculates approximate fee (~$0.005-$0.020 depending on content length). Mentions that kind:31234 is parameterized replaceable so subsequent saves with the same d tag replace the previous version. Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses publishEvent() and constructs a kind:31234 event with correct d and k tags, but may not recommend encryption or calculate exact fees.",
+        "incorrect": "Uses raw WebSocket writes, omits the k tag, uses wrong event kind, or suggests saving the article directly as kind:30023 draft without using kind:31234."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation or cost awareness for the draft event",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response recommends encrypting drafts or discusses draft privacy",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers"
+      ]
+    },
+    {
+      "id": "publish-from-draft",
+      "prompt": "I have a draft article saved as a kind:31234 event on my TOON relay with d tag 'identity-article' and k tag '30023'. The draft is encrypted with NIP-44. I'm ready to publish the final article. What are the complete steps, including cleanup?",
+      "rubric": {
+        "correct": "Describes the full workflow: (1) Fetch the draft using NIP-01 filter with kinds:[31234], authors:[own-pubkey], #d:['identity-article']. (2) Decrypt the content using NIP-44. (3) Construct the final kind:30023 event with the draft content, tags, and published_at timestamp. (4) Sign and publish the final article via publishEvent(). (5) Delete the draft by publishing a kind:5 deletion request targeting the draft's a coordinate ['a', '31234:<pubkey>:identity-article']. Notes that reading is free, the article publish costs per-byte, and the deletion costs ~$0.002. Mentions TOON-format strings in relay responses.",
+        "acceptable": "Correctly describes fetching, decrypting, publishing the final event, and deleting the draft, but may not provide exact cost breakdowns or mention TOON format.",
+        "incorrect": "Skips the draft deletion step, suggests raw WebSocket writes, does not decrypt the draft, or publishes the draft directly without creating a new final event."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() for both the final article and the kind:5 deletion",
+        "toon-fee-check: Response includes cost awareness for both publishing and draft deletion",
+        "toon-format-check: Response mentions TOON-format strings when reading the draft from relay",
+        "social-context-check: Response includes draft cleanup as part of responsible publishing",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers"
+      ]
+    },
+    {
+      "id": "add-expiration-to-note",
+      "prompt": "I want to publish a note on TOON announcing a flash sale that ends in 24 hours. How do I make the note auto-expire so I don't have to manually delete it later? The relay's basePricePerByte is 10 micro-USDC.",
+      "rubric": {
+        "correct": "Constructs a kind:1 event with an expiration tag containing a Unix timestamp 24 hours in the future. Shows the calculation: Math.floor(Date.now() / 1000) + 86400. Explains that relays SHOULD delete expired events and clients SHOULD hide them. Notes the expiration tag adds only ~25-30 bytes (~$0.0003) of overhead. Compares with the alternative: publishing + manual kind:5 deletion = ~$0.005 vs one event with expiration = ~$0.003. Publishes via publishEvent().",
+        "acceptable": "Correctly includes the expiration tag with proper timestamp format and uses publishEvent(), but may not compare costs or calculate exact overhead.",
+        "incorrect": "Omits the expiration tag, suggests a timer-based deletion workflow, uses raw WebSocket writes, or uses milliseconds instead of seconds for the timestamp."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response compares expiration cost savings vs manual deletion",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response discusses expiration as network-friendly behavior",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers"
+      ]
+    },
+    {
+      "id": "expiring-status",
+      "prompt": "I'm attending a 4-hour conference session and want to set a temporary status on TOON that auto-clears when the session ends. How do I combine NIP-38 statuses with NIP-40 expiration?",
+      "rubric": {
+        "correct": "Constructs a kind:30315 event with d tag 'general', content about the conference, and an expiration tag with a Unix timestamp 4 hours in the future. Explains that this combines NIP-38 (user statuses) with NIP-40 (expiration). Notes the cost savings: one event with expiration (~$0.004) vs set status + clear status later (~$0.006). Publishes via publishEvent(). Mentions that no cleanup is needed -- the relay discards the event after expiration.",
+        "acceptable": "Correctly combines kind:30315 with an expiration tag and uses publishEvent(), but may not calculate the cost savings vs manual clearing.",
+        "incorrect": "Does not include the expiration tag, suggests a separate timer to clear the status, or uses the wrong event kind."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response notes cost savings from using expiration vs manual clear",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response discusses preventing stale statuses",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers"
+      ]
+    },
+    {
+      "id": "read-own-drafts",
+      "prompt": "I want to list all my article drafts (kind:30023 targets) saved on a TOON relay. How do I fetch them, and does it cost anything?",
+      "rubric": {
+        "correct": "Subscribes using NIP-01 filter with kinds:[31234], authors:[own-pubkey], and optionally #k:['30023'] to filter for article drafts. Explains that reading is free on TOON -- no ILP payment needed. Notes that TOON relays return TOON-format strings in EVENT messages, not JSON objects, so the TOON decoder is needed. Mentions that drafts are typically NIP-44 encrypted and will need to be decrypted after fetching. Each draft's d tag identifies it uniquely.",
+        "acceptable": "Correctly describes the subscription filter, notes reading is free, and mentions TOON format, but may not discuss encryption or filtering by k tag.",
+        "incorrect": "Assumes standard JSON responses, suggests payment is needed to read, uses the wrong event kind in the filter, or queries kind:30023 instead of kind:31234."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies reading drafts as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response correctly notes that reading drafts is free on TOON",
+        "toon-format-check: Response explains TOON-format strings in relay responses and need for TOON decoder",
+        "social-context-check: Response mentions drafts are typically encrypted and need decryption",
+        "trigger-coverage: Description includes both protocol-technical and social-situation triggers"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I announce a repository on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a repo on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I submit a patch on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a pull request on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-34 git collaboration?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I open an issue on a Nostr repository?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I comment on a pull request on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I merge a PR using kind:1631?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I publish branch state with kind:30618?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I upload git objects to Arweave using kind:5094?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I send a message to a chat channel?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do moderated communities work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do reactions work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do relay groups work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I mute someone in a chat channel?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I label content on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I attach media to a note?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "repo-announcement",
+      "prompt": "I want to announce a new repository called 'toon-sdk' on TOON for decentralized collaboration. How do I construct and publish the repository announcement event?",
+      "expected_output": "Construct a kind:30617 event with empty string content. Add required d tag ['d', 'toon-sdk'] and optional tags: ['name', 'TOON SDK'], ['description', 'SDK for TOON Protocol'], ['clone', 'https://github.com/toon-protocol/toon-sdk.git'], ['maintainers', '<your-pubkey-hex>'], and topic tags ['t', 'sdk']. Sign the event. Calculate the fee (~400-500 bytes at default basePricePerByte, approximately $0.004-$0.005). Publish via publishEvent() from @toon-protocol/client. The repository address becomes 30617:<your-pubkey>:toon-sdk. This is a parameterized replaceable event, so you can update metadata later.",
+      "rubric": {
+        "correct": "Constructs kind:30617 with empty content, d tag, and relevant optional tags. Signs the event. Calculates approximate byte cost. Publishes via publishEvent(). Notes the repository address format and that it is parameterized replaceable.",
+        "acceptable": "Uses publishEvent() with kind:30617 and includes d tag, but may not mention all optional tags or parameterized replaceable semantics.",
+        "incorrect": "Uses raw WebSocket patterns, puts metadata in content instead of tags, uses wrong event kind, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for repo announcement byte cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses or parameterized replaceable semantics",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes kind:30617 with d tag as repository identifier"
+      ]
+    },
+    {
+      "id": "patch-submission",
+      "prompt": "I have a small bug fix patch for the 'toon-sdk' repository. How do I submit it as a patch event on TOON?",
+      "expected_output": "Generate the patch with git format-patch -1 HEAD. Construct a kind:1617 event with the patch output as content. Add required tags: ['a', '30617:<maintainer-pubkey>:toon-sdk'] to reference the repository and ['r', '<earliest-unique-commit>'] for the commit. Add optional tags: ['p', '<maintainer-pubkey>'] to notify the maintainer, ['t', 'root'] since this is a single patch, ['commit', '<hash>'], ['parent-commit', '<hash>']. Sign the event. Calculate the fee -- a small bug fix patch is approximately 500-2000 bytes (~$0.005-$0.02). Publish via publishEvent() from @toon-protocol/client. On TOON, patches cost per-byte because the content contains the full diff, so keep changes focused and minimal.",
+      "rubric": {
+        "correct": "Constructs kind:1617 with git format-patch output as content and correct a and r tags. Signs the event. Calculates approximate byte cost. Publishes via publishEvent(). Mentions per-byte cost incentive for minimal diffs.",
+        "acceptable": "Uses publishEvent() with kind:1617 and includes a tag referencing the repository, but may not mention the per-byte cost incentive for minimal diffs.",
+        "incorrect": "Uses raw WebSocket patterns, puts diff in tags instead of content, uses wrong event kind, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for patch byte cost and per-byte incentive",
+        "toon-format-check: Response mentions TOON-format strings in relay responses or per-byte cost dynamics",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes kind:1617 with git format-patch content and a tag referencing repository"
+      ]
+    },
+    {
+      "id": "pull-request",
+      "prompt": "I want to create a pull request for the 'toon-sdk' repository with a feature branch. How do I construct the PR event on TOON?",
+      "expected_output": "Push your feature branch to a publicly accessible repository. Construct a kind:1618 event with markdown description as content explaining the changes. Add required tags: ['a', '30617:<maintainer-pubkey>:toon-sdk'], ['r', '<earliest-unique-commit>'], ['c', '<branch-tip-commit>'], ['clone', '<your-fork-url>']. Add optional tags: ['subject', '<PR title>'], ['branch-name', '<branch>'], ['p', '<maintainer-pubkey>']. Sign the event. Calculate the fee (~400-1000 bytes, ~$0.004-$0.01). Publish via publishEvent(). PRs are cheaper than patches on TOON because the content is just a markdown description, not the full diff.",
+      "rubric": {
+        "correct": "Constructs kind:1618 with markdown content, a/r/c/clone tags. Signs the event. Calculates approximate byte cost. Publishes via publishEvent(). Notes PRs are cheaper than patches.",
+        "acceptable": "Uses publishEvent() with kind:1618 and includes required tags, but may not contrast PR cost with patch cost.",
+        "incorrect": "Uses raw WebSocket patterns, omits clone URL, uses wrong event kind, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for PR byte cost",
+        "toon-format-check: Response mentions TOON-format strings or that PRs are cheaper than patches",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes kind:1618 with a, r, c, and clone tags"
+      ]
+    },
+    {
+      "id": "issue-creation",
+      "prompt": "I found a bug in the 'toon-sdk' parser that crashes on empty input. How do I open an issue on TOON?",
+      "expected_output": "Construct a kind:1621 event with markdown content describing the bug: expected behavior, actual behavior, steps to reproduce, and environment details. Add required tags: ['a', '30617:<maintainer-pubkey>:toon-sdk'] and ['p', '<maintainer-pubkey>']. Add optional tags: ['subject', 'Parser crashes on empty input'] and ['t', 'bug']. Sign the event. Calculate the fee (~300-2000 bytes depending on detail, ~$0.003-$0.02). Publish via publishEvent() from @toon-protocol/client. On TOON, detailed issues cost more per-byte but are more valuable than vague one-liners.",
+      "rubric": {
+        "correct": "Constructs kind:1621 with markdown content, a and p tags. Uses subject and t tags for discoverability. Signs the event. Calculates approximate byte cost. Publishes via publishEvent(). Notes TOON cost-quality tradeoff.",
+        "acceptable": "Uses publishEvent() with kind:1621 and includes a tag, but may not mention subject/t tags or cost-quality tradeoff.",
+        "incorrect": "Uses raw WebSocket patterns, uses wrong event kind, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for issue byte cost",
+        "toon-format-check: Response mentions TOON-format strings or cost-quality tradeoff for detailed issues",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes kind:1621 with a tag referencing repository and markdown content"
+      ]
+    },
+    {
+      "id": "status-merge",
+      "prompt": "A contributor submitted a patch to my repository and I want to mark it as applied/merged. How do I publish a merge status event on TOON?",
+      "expected_output": "Construct a kind:1631 event (applied/merged status). Add required tag: ['e', '<patch-event-id>', '', 'root'] with root marker referencing the patch. Add optional tags: ['applied-as-commits', '<commit-hash-1>', '<commit-hash-2>'] to credit the contributor, ['p', '<patch-author-pubkey>'], ['a', '30617:<your-pubkey>:<repo-id>']. Content is optional markdown (e.g., 'Applied with minor modifications'). Sign the event. Calculate the fee (~300-400 bytes, ~$0.003-$0.004). Publish via publishEvent(). Only maintainers listed in the kind:30617 maintainers tag should publish merge status. After merging, update the repository state with a new kind:30618 event reflecting the new branch heads.",
+      "rubric": {
+        "correct": "Constructs kind:1631 with e tag using root marker. Includes applied-as-commits for attribution. Signs and publishes via publishEvent(). Notes maintainer-only authority for merge status. Mentions updating repo state afterward.",
+        "acceptable": "Uses publishEvent() with kind:1631 and e tag with root marker, but may not mention applied-as-commits or maintainer authority.",
+        "incorrect": "Uses raw WebSocket patterns, omits root marker from e tag, uses wrong status kind, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for status event byte cost",
+        "toon-format-check: Response mentions TOON-format strings or status events are cheap on TOON",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes kind:1631 with e tag using root marker",
+        "Response mentions maintainer authority for merge status"
+      ]
+    },
+    {
+      "id": "comment-on-issue",
+      "prompt": "Someone filed a bug report on the 'toon-sdk' repository. I want to comment on it with a suggested fix. How do I construct a comment event on TOON?",
+      "expected_output": "Construct a kind:1622 event with markdown content containing the suggested fix. Add required tags: ['e', '<issue-event-id>', '', 'reply'] with NIP-10 reply marker referencing the issue, and ['p', '<issue-author-pubkey>']. Add optional tag: ['a', '30617:<maintainer-pubkey>:toon-sdk'] for repository context. Sign the event. Calculate the fee (~200-1000 bytes depending on comment length, ~$0.002-$0.01). Publish via publishEvent() from @toon-protocol/client. On TOON, comments cost per-byte, so consolidate feedback into one detailed comment rather than many short ones.",
+      "rubric": {
+        "correct": "Constructs kind:1622 with markdown content, e tag with reply marker, and p tag. Signs and publishes via publishEvent(). Notes per-byte cost incentive for consolidated feedback.",
+        "acceptable": "Uses publishEvent() with kind:1622 and e tag, but may not mention the reply marker or consolidated feedback incentive.",
+        "incorrect": "Uses raw WebSocket patterns, uses wrong event kind (e.g., kind:1111), omits e tag, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for comment byte cost",
+        "toon-format-check: Response mentions TOON-format strings or consolidated feedback incentive",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes kind:1622 with e tag using reply marker"
+      ]
+    },
+    {
+      "id": "blob-storage",
+      "prompt": "I want to upload a git blob object to Arweave for permanent storage using TOON. How do I construct the kind:5094 DVM request?",
+      "expected_output": "Construct a kind:5094 DVM job request event. Set content to empty string. Add required tags: ['i', '<base64-encoded-blob-data>', 'blob'] for the blob data, ['bid', '<amount>', 'usdc'] for the bid amount, and ['output', 'application/octet-stream'] for the expected output type. For git-specific resolution, add tags: ['Git-SHA', '<sha-hash>'], ['Git-Type', 'blob'], ['Repo', 'toon-sdk']. For chunked uploads, add ['param', 'uploadId', '<uuid>'], ['param', 'chunkIndex', '<index>'], ['param', 'totalChunks', '<count>']. Sign the event. Calculate the TOON relay fee (~500-1500 bytes for small blobs, ~$0.005-$0.015). Publish via publishEvent(). The TOON relay fee covers the Nostr event; Arweave storage is handled by the DVM provider. Free uploads up to 100KB in dev mode via TurboFactory.unauthenticated().",
+      "rubric": {
+        "correct": "Constructs kind:5094 with empty content, i tag with base64 blob data, bid tag, output tag. Includes git-specific tags. Signs and publishes via publishEvent(). Distinguishes TOON relay fee from Arweave storage fee.",
+        "acceptable": "Uses publishEvent() with kind:5094 and i tag, but may not include all git-specific tags or distinguish relay vs Arweave fees.",
+        "incorrect": "Puts blob data in content field instead of i tag, uses wrong event kind, uses raw WebSocket, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness and distinguishes TOON relay fee from Arweave storage",
+        "toon-format-check: Response mentions TOON-format strings or distinguishes relay fee from Arweave fee",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes kind:5094 with i tag containing base64 blob data"
+      ]
+    },
+    {
+      "id": "multi-step-workflow",
+      "prompt": "Walk me through the complete workflow of creating a new repository on TOON, having someone submit a patch, reviewing it with a comment, and then merging it.",
+      "expected_output": "Step 1: Announce the repository with a kind:30617 event (d tag, name, clone URLs, maintainers). Publish via publishEvent(). Step 2: Publish initial repository state with kind:30618 (d tag matching repo, refs/heads/main, HEAD). Step 3: Contributor submits a patch with kind:1617 (a tag referencing repo, r tag, content is git format-patch output, t:root tag). Step 4: Maintainer reviews and comments with kind:1622 (e tag replying to patch, p tag for patch author, constructive feedback in markdown content). Step 5: Maintainer marks as merged with kind:1631 (e tag with root marker referencing patch, applied-as-commits tags). Step 6: Maintainer updates repository state with new kind:30618 reflecting updated branch heads. All events published via publishEvent() from @toon-protocol/client. Reading all events is free; writing costs per-byte via ILP.",
+      "rubric": {
+        "correct": "Covers all six steps in order with correct event kinds and tags. Uses publishEvent() throughout. Includes repo state updates. Notes reading is free and writing costs per-byte.",
+        "acceptable": "Covers the core steps (announce, patch, comment, merge) with correct kinds but may miss repo state updates or some tag details.",
+        "incorrect": "Omits critical steps, uses wrong event kinds, uses raw WebSocket, or does not use publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API throughout the workflow",
+        "toon-fee-check: Response includes fee awareness across multiple event types",
+        "toon-format-check: Response mentions TOON reading is free",
+        "social-context-check: Skill has git-collaboration-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response covers kind:30617 announcement, kind:1617 patch, kind:1622 comment, and kind:1631 merge status"
+      ]
+    }
+  ]
+}

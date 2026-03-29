@@ -1,0 +1,162 @@
+{
+  "trigger_evals": [
+    {
+      "query": "Create a TOON skill for NIP-25 Reactions",
+      "should_trigger": true
+    },
+    {
+      "query": "Convert NIP-23 long-form content to a TOON skill",
+      "should_trigger": true
+    },
+    {
+      "query": "Build a skill from this NIP spec for use on TOON",
+      "should_trigger": true
+    },
+    {
+      "query": "Run the NIP-to-TOON pipeline for NIP-28 public chat",
+      "should_trigger": true
+    },
+    {
+      "query": "I need a skill for reactions on TOON — can you create one from the NIP?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I make a TOON-compatible skill from a NIP specification?",
+      "should_trigger": true
+    },
+    {
+      "query": "What's the process for converting a NIP into a TOON agent skill?",
+      "should_trigger": true
+    },
+    {
+      "query": "Execute the skill pipeline to produce a TOON skill for NIP-51 lists",
+      "should_trigger": true
+    },
+    {
+      "query": "I want to generate a TOON-aware skill for NIP-50 search capabilities",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I publish an event on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "Should I react to this post or comment on it?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I calculate fees for publishing on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "What are NIP-29 group rules and how do groups work?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I subscribe to kind:1 events on a TOON relay?",
+      "should_trigger": false
+    },
+    {
+      "query": "What's the appropriate way to engage with a controversial post?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I construct a threaded reply with NIP-10 e-tags?",
+      "should_trigger": false
+    },
+    {
+      "query": "Is it appropriate to repost this content on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I encode a public key as npub using NIP-19?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "pipeline-nip25-write",
+      "prompt": "I want to create a TOON-aware skill for NIP-25 (Reactions). The NIP defines kind:7 events. Walk me through the pipeline steps.",
+      "expected_output": "Agent should: (1) classify NIP-25 as write-capable (creates kind:7 events), (2) inject TOON write model with publishEvent() and fee calculation for kind:7, (3) generate Social Context about reaction etiquette and cost, (4) produce SKILL.md with frontmatter + body, (5) generate evals with TOON compliance assertions including toon-write-check and toon-fee-check.",
+      "rubric": {
+        "correct": "Agent follows the 13-step pipeline: (1) classifies NIP-25 as write-capable (creates kind:7 events), (2) injects TOON write model with publishEvent() and fee calculation for kind:7 payload (~50-100 bytes, fractions of a cent), (3) generates NIP-specific Social Context about reaction etiquette, cost of reactions, and when reactions add value vs noise, (4) produces SKILL.md with frontmatter (name + description only) and body under 500 lines, (5) generates evals with TOON compliance assertions including toon-write-check and toon-fee-check. References toon-protocol-context.md for injection.",
+        "acceptable": "Agent identifies NIP-25 as write-capable and covers most pipeline steps, but may skip some steps (e.g., description optimization) or provide less specific social context. Still uses publishEvent() and mentions fee calculation.",
+        "incorrect": "Agent does not follow the pipeline. Uses raw WebSocket EVENT patterns. Does not classify the NIP. Produces generic social context. Omits TOON compliance assertions."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation or cost awareness for reactions",
+        "social-context-check: Response generates NIP-specific Social Context for reactions (not generic)",
+        "trigger-coverage: Response includes both protocol-technical and social-situation triggers in description",
+        "Response classifies NIP-25 as write-capable"
+      ]
+    },
+    {
+      "id": "pipeline-nip50-readonly",
+      "prompt": "Create a TOON skill for NIP-50 (Search). NIP-50 extends REQ messages with search filters but does not define any publishable event kinds. How does the pipeline handle this?",
+      "expected_output": "Agent should: (1) classify NIP-50 as read-only (no publishable event kinds), (2) inject TOON read model (TOON-format responses, decoder), (3) NOT inject write model or fee calculation, (4) inject toon-format-check but NOT toon-write-check or toon-fee-check, (5) generate search-specific Social Context.",
+      "rubric": {
+        "correct": "Agent classifies NIP-50 as read-only (extends REQ filters, no new publishable kinds). Injects TOON read model (TOON-format string responses, @toon-format/toon decoder). Does NOT inject write model or fee calculation sections. Generates Social Context about search behavior norms. Injects toon-format-check but NOT toon-write-check or toon-fee-check. Still injects social-context-check and trigger-coverage.",
+        "acceptable": "Correctly classifies NIP-50 as read-only and handles most TOON context appropriately. May include unnecessary write model mentions or miss some assertion details.",
+        "incorrect": "Classifies NIP-50 as write-capable. Injects publishEvent() instructions. Includes toon-write-check assertion. Does not mention TOON-format responses."
+      },
+      "assertions": [
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response generates NIP-specific Social Context for search",
+        "trigger-coverage: Response includes social-situation triggers for search",
+        "Response classifies NIP-50 as read-only",
+        "Response does NOT inject toon-write-check or toon-fee-check for read-only NIP"
+      ]
+    },
+    {
+      "id": "pipeline-nip23-both",
+      "prompt": "I need a TOON skill for NIP-23 (Long-form Content). NIP-23 defines kind:30023 for publishing articles and also supports querying/reading them. How does the pipeline handle a NIP classified as 'both'?",
+      "expected_output": "Agent should: (1) classify NIP-23 as 'both' (publishes kind:30023 AND reads/queries articles), (2) inject BOTH write model (publishEvent, fee calculation for large payloads) AND read model (TOON-format parsing), (3) generate long-form-specific Social Context about cost signaling quality investment, (4) inject all 5 TOON assertions.",
+      "rubric": {
+        "correct": "Agent classifies NIP-23 as 'both' (defines kind:30023 for publishing AND supports reading/querying). Injects BOTH write model (publishEvent() for kind:30023, fee calculation for large payloads — articles are expensive, signaling content investment) AND read model (TOON-format parsing). Generates Social Context specific to long-form publishing norms: higher cost signals quality commitment, when to publish long-form vs short notes. All 5 TOON assertions injected.",
+        "acceptable": "Correctly identifies NIP-23 as 'both' classification and injects both write and read models. May not fully articulate the cost implications of large long-form payloads or the social significance of paying more for articles.",
+        "incorrect": "Classifies NIP-23 as only write-capable or only read-capable. Misses one model entirely. Does not inject all 5 assertions."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:30023",
+        "toon-fee-check: Response includes fee awareness for large article payloads",
+        "toon-format-check: Response mentions TOON-format strings for reading articles",
+        "social-context-check: Response generates long-form-specific Social Context",
+        "trigger-coverage: Response includes both protocol and social triggers for long-form content"
+      ]
+    },
+    {
+      "id": "pipeline-social-context-quality",
+      "prompt": "Generate the Social Context section for a NIP-25 Reactions skill on TOON. Make sure it is specific to reactions, not generic.",
+      "expected_output": "Agent should generate Social Context specific to reactions: when reactions add value vs noise, cost framing for small events (fractions of a cent), context norms for public feed appreciation, reaction-specific anti-patterns (reacting to everything, passive-aggressive reactions). Must fail the substitution test (replacing 'reactions' with another NIP should break coherence). References nostr-social-intelligence.",
+      "rubric": {
+        "correct": "Generates Social Context specific to reactions: when reactions add value (quick acknowledgment for good content) vs noise (reacting to everything). Discusses cost framing (reactions are small events, fractions of a cent — low barrier but high volume adds up). Covers context norms (reactions suit public feed appreciation, less appropriate as sole response to vulnerable content). Lists reaction-specific anti-patterns (reacting to everything, passive-aggressive reactions, reacting without reading). References nostr-social-intelligence.",
+        "acceptable": "Generates mostly specific Social Context for reactions but may include some generic guidance. Mentions cost and anti-patterns but with less NIP-specific detail.",
+        "incorrect": "Generates generic Social Context ('be respectful', 'consider your audience') that could apply to any NIP. Fails the substitution test — replacing 'reactions' with 'reposts' would still make sense."
+      },
+      "assertions": [
+        "social-context-check: Social Context section is specific to reactions (fails substitution test)",
+        "Response mentions reaction-specific cost framing (small events, fractions of a cent)",
+        "Response lists reaction-specific anti-patterns",
+        "Response references nostr-social-intelligence for deeper guidance",
+        "Response would NOT make sense if 'reactions' were replaced with a different NIP interaction"
+      ]
+    },
+    {
+      "id": "pipeline-excluded-nip-handling",
+      "prompt": "Someone asks me to run the NIP-to-TOON pipeline for NIP-57 (Zaps). How should the pipeline handle this?",
+      "expected_output": "Agent should identify NIP-57 as an excluded NIP (ILP replaces Lightning zaps on TOON), flag it in Step 1 (NIP Analysis), explain the exclusion rationale, and suggest an alternative skill about TOON's native ILP payment/tipping mechanisms instead.",
+      "rubric": {
+        "correct": "Agent identifies NIP-57 as an excluded NIP — ILP replaces Lightning zaps on TOON. The pipeline should flag this in Step 1 (NIP Analysis) and explain that NIP-57 cannot be converted to a TOON skill because its functionality is replaced by the ILP payment layer. Suggests alternative: a skill about TOON's native payment/tipping mechanisms instead of a NIP-57 skill.",
+        "acceptable": "Correctly identifies NIP-57 as excluded and explains the ILP replacement, but may not suggest a concrete alternative or may attempt a partial conversion.",
+        "incorrect": "Proceeds to convert NIP-57 into a TOON skill without flagging the exclusion. Produces a skill that teaches Lightning zap patterns on TOON."
+      },
+      "assertions": [
+        "Response identifies NIP-57 as excluded from TOON",
+        "Response explains ILP replaces Lightning zaps",
+        "Response does NOT produce a NIP-57 TOON skill",
+        "Response flags the exclusion in pipeline Step 1 (NIP Analysis)"
+      ]
+    }
+  ]
+}

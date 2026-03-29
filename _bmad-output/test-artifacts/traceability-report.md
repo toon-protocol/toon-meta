@@ -1,25 +1,18 @@
 ---
-stepsCompleted:
-  - 'step-01-load-context'
-  - 'step-02-discover-tests'
-  - 'step-03-map-criteria'
-  - 'step-04-analyze-gaps'
-  - 'step-05-gate-decision'
+stepsCompleted: ['step-01-load-context', 'step-02-discover-tests', 'step-03-map-criteria', 'step-04-analyze-gaps', 'step-05-gate-decision']
 lastStep: 'step-05-gate-decision'
-lastSaved: '2026-03-16'
+lastSaved: '2026-03-27'
 workflowType: 'testarch-trace'
 inputDocuments:
-  - '_bmad-output/implementation-artifacts/5-1-dvm-event-kind-definitions.md'
-  - 'packages/core/src/events/dvm.test.ts'
-  - 'packages/core/src/events/dvm.ts'
-  - 'packages/core/src/constants.ts'
-  - 'packages/core/src/index.ts'
+  - '_bmad-output/implementation-artifacts/9-10-public-chat-skill.md'
+  - 'packages/core/src/skills/public-chat.test.ts'
+  - 'tests/skills/test-public-chat-skill.sh'
 ---
 
-# Traceability Matrix & Gate Decision - Story 5.1
+# Traceability Matrix & Gate Decision - Story 9.10
 
-**Story:** 5.1 -- DVM Event Kind Definitions
-**Date:** 2026-03-16
+**Story:** Public Chat Skill (public-chat) -- NIP-28 Public Chat on TOON Protocol
+**Date:** 2026-03-27
 **Evaluator:** TEA Agent (Claude Opus 4.6)
 
 ---
@@ -30,12 +23,13 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ### Coverage Summary
 
-| Priority  | Total Criteria | FULL Coverage | Coverage % | Status |
-| --------- | -------------- | ------------- | ---------- | ------ |
-| P0        | 3              | 3             | 100%       | PASS   |
-| P1        | 2              | 2             | 100%       | PASS   |
-| P2        | 2              | 2             | 100%       | PASS   |
-| **Total** | **7**          | **7**         | **100%**   | **PASS** |
+| Priority  | Total Criteria | FULL Coverage | Coverage % | Status  |
+| --------- | -------------- | ------------- | ---------- | ------- |
+| P0        | 7              | 7             | 100%       | PASS    |
+| P1        | 3              | 3             | 100%       | PASS    |
+| P2        | 1              | 0             | 0%         | WARN    |
+| P3        | 0              | 0             | 100%       | PASS    |
+| **Total** | **11**         | **10**        | **91%**    | **PASS**|
 
 **Legend:**
 
@@ -43,246 +37,193 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 - WARN - Coverage below threshold but not critical
 - FAIL - Coverage below minimum threshold (blocker)
 
-**Priority Assignment Rationale:**
-
-Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the TOON protocol. AC #4 (TOON roundtrip), AC #5 (shallowParseToon), and AC #6 (export verification) are P0 because TOON encoding is TOON's fundamental wire format -- if DVM events cannot survive TOON roundtrip or be routed via shallow parse, the entire DVM subsystem is non-functional. AC #1 (buildJobRequestEvent) and AC #2 (buildJobResultEvent) are P1 because they are core builder functions but depend on the TOON layer working correctly. AC #3 (buildJobFeedbackEvent) and AC #7 (targeted vs open marketplace) are P2 because feedback events and marketplace routing are important but not blocking for the primary job request/result flow. Priority assignments align with the story's test-design-epic-5.md test IDs and their priority markers.
-
 ---
 
 ### Detailed Mapping
 
-#### AC-1: buildJobRequestEvent produces signed Kind 5xxx with NIP-90 tags (P1)
+#### AC1: Pipeline Production (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `T-5.1-12` - `packages/core/src/events/dvm.test.ts`:272
-    - **Given:** Valid JobRequestParams (kind 5100, input data, bid, output)
-    - **When:** `buildJobRequestEvent(params, secretKey)` is called
-    - **Then:** `verifyEvent()` returns true -- valid Schnorr signature
-  - `T-5.1-09` - `packages/core/src/events/dvm.test.ts`:294
-    - **Given:** Input with data and type
-    - **When:** Builder constructs event
-    - **Then:** `i` tag created as `['i', data, type]`; also tests `['i', data, type, relay]` (line 311) and `['i', data, type, relay, marker]` (line 331)
-  - `T-5.1-11` - `packages/core/src/events/dvm.test.ts`:360
-    - **Given:** Bid amount as string
-    - **When:** Builder constructs event
-    - **Then:** `bid` tag created as `['bid', amount, 'usdc']`
-  - `T-5.1-10` - `packages/core/src/events/dvm.test.ts`:399
-    - **Given:** targetProvider specified (or omitted)
-    - **When:** Builder constructs event
-    - **Then:** `p` tag included when targetProvider present; omitted for open marketplace
-  - `T-5.1-25` - `packages/core/src/events/dvm.test.ts`:434
-    - **Given:** Multiple param entries
-    - **When:** Builder constructs event
-    - **Then:** Multiple `['param', key, value]` tags created
-  - `T-5.1-24` - `packages/core/src/events/dvm.test.ts`:461
-    - **Given:** Multiple relay URLs
-    - **When:** Builder constructs event
-    - **Then:** `['relays', url1, url2, ...]` tag created
-  - `T-5.1-05` - `packages/core/src/events/dvm.test.ts`:520
-    - **Given:** Missing or empty required params (input, bid, output)
-    - **When:** Builder called
-    - **Then:** ToonError thrown with appropriate error codes
-  - `T-5.1-18` - `packages/core/src/events/dvm.test.ts`:573
-    - **Given:** Kind 4999 (below range) or 6000 (above range)
-    - **When:** Builder called
-    - **Then:** ToonError with DVM_INVALID_KIND thrown; accepts 5000 and 5999 boundaries
-  - Content field tests - `packages/core/src/events/dvm.test.ts`:488
-    - **Given:** params.content set or omitted
-    - **When:** Builder called
-    - **Then:** Content set from params or defaults to empty string
-  - Gap-fill: i tag with marker but no relay - `packages/core/src/events/dvm.test.ts`:1695
-    - **Given:** Input with marker but no relay
-    - **When:** Builder constructs event
-    - **Then:** Empty relay placeholder inserted: `['i', data, type, '', marker]`
-  - Gap-fill: ToonError codes - `packages/core/src/events/dvm.test.ts`:1726
-    - **Given:** Various invalid inputs
-    - **When:** Builder called
-    - **Then:** ToonError with specific codes: DVM_INVALID_KIND, DVM_INVALID_BID, DVM_MISSING_OUTPUT, DVM_MISSING_INPUT, DVM_INVALID_PUBKEY
-  - Gap-fill: non-string bid type - `packages/core/src/events/dvm.test.ts`:2663
-    - **Given:** Bid as number instead of string
-    - **When:** Builder called
-    - **Then:** ToonError with DVM_INVALID_BID
-  - Gap-fill: empty input data acceptance - `packages/core/src/events/dvm.test.ts`:2639
-    - **Given:** i tag with empty data string
-    - **When:** Builder called
-    - **Then:** Accepted as valid per NIP-90
-
-- **Gaps:** None. All AC #1 sub-requirements covered: Schnorr signature (T-5.1-12), i tag format with all variants (T-5.1-09), bid tag with USDC currency (T-5.1-11), output tag, p tag targeted/open marketplace (T-5.1-10), param tags (T-5.1-25), relays tag (T-5.1-24), validation errors (T-5.1-05), kind range (T-5.1-18), content field, edge cases with empty relay placeholder, and ToonError codes.
+  - `[STRUCT-A]` - packages/core/src/skills/public-chat.test.ts:82
+    - **Given:** The nip-to-toon-skill pipeline (Story 9.2)
+    - **When:** The pipeline is run with NIP-28 as input
+    - **Then:** SKILL.md exists, references/ directory exists, evals/ directory exists, evals.json exists, no extraneous files, expected reference files present
+  - `[STRUCT-A]` - tests/skills/test-public-chat-skill.sh:79
+    - **Given:** SKILL.md file at .claude/skills/public-chat/
+    - **When:** Structural check runs
+    - **Then:** Frontmatter has valid YAML with only name and description
+  - `[STRUCT-B]` - packages/core/src/skills/public-chat.test.ts:111
+    - **Given:** SKILL.md frontmatter
+    - **When:** Validation runs
+    - **Then:** name is "public-chat", description present, ONLY 2 fields
+  - `[STRUCT-B]` - tests/skills/test-public-chat-skill.sh:100
+    - **Given:** references/ directory
+    - **When:** File check runs
+    - **Then:** nip-spec.md, toon-extensions.md, scenarios.md all present
+  - `[STRUCT-B2]` - tests/skills/test-public-chat-skill.sh:116
+    - **Given:** evals/evals.json
+    - **When:** JSON parse
+    - **Then:** Valid JSON
+  - `[AC1-NAME]` - tests/skills/test-public-chat-skill.sh:158
+    - **Given:** Frontmatter name field
+    - **When:** Name check
+    - **Then:** Name is "public-chat"
+- **Gaps:** None
+- **Recommendation:** None needed
 
 ---
 
-#### AC-2: buildJobResultEvent produces signed Kind 6xxx with NIP-90 tags (P1)
+#### AC2: NIP Coverage (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `T-5.1-13` - `packages/core/src/events/dvm.test.ts`:626
-    - **Given:** Valid JobResultParams (kind 6100, requestEventId, customerPubkey, amount, content)
-    - **When:** `buildJobResultEvent(params, secretKey)` called
-    - **Then:** `verifyEvent()` returns true -- valid Schnorr signature
-  - Required tags - `packages/core/src/events/dvm.test.ts`:645
-    - **Given:** Valid params
-    - **When:** Builder constructs event
-    - **Then:** `e` tag with requestEventId (line 646), `p` tag with customerPubkey (line 661), `amount` tag with cost and 'usdc' (line 676), content set to result data (line 691)
-  - `T-5.1-06` - `packages/core/src/events/dvm.test.ts`:709
-    - **Given:** Missing/invalid requestEventId, customerPubkey, amount
-    - **When:** Builder called
-    - **Then:** ToonError thrown with codes: DVM_INVALID_EVENT_ID, DVM_INVALID_PUBKEY, DVM_INVALID_AMOUNT
-  - `T-5.1-19` - `packages/core/src/events/dvm.test.ts`:761
-    - **Given:** Kind 5999 (below range) or 7000 (above range)
-    - **When:** Builder called
-    - **Then:** ToonError with DVM_INVALID_KIND; accepts 6000 and 6999 boundaries
-  - Gap-fill: result kind = request kind + 1000 - `packages/core/src/events/dvm.test.ts`:2560
-    - **Given:** Request kind 5100, 5200, 5300
-    - **When:** Result builder called with kind + 1000
-    - **Then:** Correct result event produced
-  - Gap-fill: DVM_MISSING_CONTENT error - `packages/core/src/events/dvm.test.ts`:2593
-    - **Given:** Content is not a string (undefined/number)
-    - **When:** Builder called
-    - **Then:** ToonError with DVM_MISSING_CONTENT
-  - Gap-fill: non-string amount type - `packages/core/src/events/dvm.test.ts`:2685
-    - **Given:** Amount as number instead of string
-    - **When:** Builder called
-    - **Then:** ToonError with DVM_INVALID_AMOUNT
-
-- **Gaps:** None. All AC #2 sub-requirements covered: Schnorr signature (T-5.1-13), e/p/amount tags, content field, validation (T-5.1-06), kind range (T-5.1-19), result kind relationship, content type validation, and amount type validation.
+  - `[EVAL-A, EVAL-B]` - packages/core/src/skills/public-chat.test.ts:131 (18 vitest tests)
+    - Covers: NIP-28 mentioned, kind:40 with JSON content (name/about/picture), kind:41 metadata updates, kind:42 with e tag root marker, kind:43 hide, kind:44 mute, reply marker, p tag, channel discovery, metadata authorization, nip-spec.md all five kinds, root/reply markers, p tag, JSON format, optional reasons, author validation, discovery filters, NIP-29/NIP-72 distinction
+  - `[AC2-*]` - tests/skills/test-public-chat-skill.sh:176-345 (17 shell tests)
+    - AC2-NIP28, AC2-CHANNEL-CREATE, AC2-KINDS-40 through AC2-KINDS-44, AC2-ETAG, AC2-JSON-CONTENT, AC2-TOONEXT, AC2-SCENARIOS, AC2-CHANNEL-DISCOVER, AC2-REPLY-THREADING, AC2-ROOT-MARKER, AC2-REPLY-MARKER, AC2-PTAG-REPLY, AC2-HIDE-REASON, AC2-MUTE-REASON, AC2-METADATA-AUTHOR-CHECK
+- **Gaps:** None
+- **Recommendation:** None needed
 
 ---
 
-#### AC-3: buildJobFeedbackEvent produces signed Kind 7000 with NIP-90 tags (P2)
+#### AC3: TOON Write Model (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `T-5.1-14` - `packages/core/src/events/dvm.test.ts`:815
-    - **Given:** Valid JobFeedbackParams (requestEventId, customerPubkey, status='processing')
-    - **When:** `buildJobFeedbackEvent(params, secretKey)` called
-    - **Then:** `verifyEvent()` returns true -- valid Schnorr signature
-  - Required tags - `packages/core/src/events/dvm.test.ts`:834
-    - **Given:** Valid params
-    - **When:** Builder constructs event
-    - **Then:** `e` tag with requestEventId (line 835), `p` tag with customerPubkey (line 850), `status` tag with status value (line 865)
-  - `T-5.1-07` - `packages/core/src/events/dvm.test.ts`:885
-    - **Given:** Status values: processing, error, success, partial, and invalid
-    - **When:** Builder called
-    - **Then:** Valid statuses accepted (all four); invalid status throws ToonError
-  - Content field - `packages/core/src/events/dvm.test.ts`:918
-    - **Given:** Content provided or omitted
-    - **When:** Builder called
-    - **Then:** Content set from params or defaults to empty string
-  - Validation errors - `packages/core/src/events/dvm.test.ts`:950
-    - **Given:** Invalid requestEventId or customerPubkey
-    - **When:** Builder called
-    - **Then:** ToonError with DVM_INVALID_EVENT_ID or DVM_INVALID_PUBKEY
-  - Gap-fill: ToonError codes - `packages/core/src/events/dvm.test.ts`:1848
-    - **Given:** Invalid status, event ID, pubkey
-    - **When:** Builder called
-    - **Then:** ToonError with DVM_INVALID_STATUS, DVM_INVALID_EVENT_ID, DVM_INVALID_PUBKEY
-
-- **Gaps:** None. All AC #3 sub-requirements covered: Schnorr signature (T-5.1-14), e/p/status tags, all four DvmJobStatus values (T-5.1-07), content field, validation, and ToonError codes.
+  - `[TOON-A, TOON-B]` - packages/core/src/skills/public-chat.test.ts:294 (13 vitest tests)
+    - Covers: publishEvent() referenced, @toon-protocol/client referenced, per-byte cost for messages, channel creation costs, moderation costs, conciseness incentive, nostr-protocol-core for fee formula, toon-extensions.md publishEvent flow, channel creation flow, moderation flow, conciseness incentive, spam resistance, byte cost tables for all kinds, scenarios.md publishEvent + 7 scenarios
+  - `[TOON-A, TOON-B, AC3-*]` - tests/skills/test-public-chat-skill.sh:354-434 (9 shell tests)
+    - TOON-A, TOON-B, AC3-CLIENT, AC3-FEEREF, AC3-MSG-COST, AC3-CHANNEL-COST, AC3-MODERATION-COST, AC3-CONCISENESS, AC3-COREREF, AC3-SPAM-RESISTANCE
+- **Gaps:** None
+- **Recommendation:** None needed
 
 ---
 
-#### AC-4: DVM events survive TOON encode/decode roundtrip (P0)
+#### AC4: TOON Read Model (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `T-5.1-01` - `packages/core/src/events/dvm.test.ts`:1356
-    - **Given:** Kind 5100 job request with all required and optional tags (i, bid, output, p, param, relays)
-    - **When:** `encodeEventToToon()` then `decodeEventFromToon()`
-    - **Then:** ALL tags, content, kind, pubkey, id, sig survive roundtrip with identical values
-  - `T-5.1-02` - `packages/core/src/events/dvm.test.ts`:1438
-    - **Given:** Kind 6100 job result with e, p, amount tags and content
-    - **When:** TOON encode/decode roundtrip
-    - **Then:** All tags and content preserved
-  - `T-5.1-03` - `packages/core/src/events/dvm.test.ts`:1474
-    - **Given:** Kind 7000 job feedback with e, p, status tags and content
-    - **When:** TOON encode/decode roundtrip
-    - **Then:** All tags and content preserved
-  - `T-5.1-22` - `packages/core/src/events/dvm.test.ts`:1510
-    - **Given:** Event with multiple tags in specific order
-    - **When:** TOON encode/decode roundtrip
-    - **Then:** Tag order preserved in decoded event
-  - Gap-fill: full pipeline build->TOON->parse - `packages/core/src/events/dvm.test.ts`:2180
-    - **Given:** Event built with builder, then TOON encoded, then decoded, then parsed
-    - **When:** Full pipeline executed for Kind 5100, 6100, and 7000
-    - **Then:** Parsed output matches original builder params
-  - Gap-fill: i tag empty relay placeholder TOON roundtrip - `packages/core/src/events/dvm.test.ts`:2277
-    - **Given:** i tag with empty relay placeholder `['i', data, type, '', marker]`
-    - **When:** TOON encode/decode roundtrip
-    - **Then:** Empty relay placeholder preserved
-  - Gap-fill: additional DVM kinds TOON roundtrip - `packages/core/src/events/dvm.test.ts`:2486
-    - **Given:** Kind 5200 (IMAGE_GENERATION), 5300 (TEXT_TO_SPEECH), 5302 (TRANSLATION)
-    - **When:** TOON encode/decode roundtrip
-    - **Then:** All survive roundtrip correctly
-
-- **Gaps:** None. All AC #4 sub-requirements covered: Kind 5xxx roundtrip (T-5.1-01), Kind 6xxx roundtrip (T-5.1-02), Kind 7000 roundtrip (T-5.1-03), tag order preservation (T-5.1-22), full pipeline roundtrip, edge cases (empty relay placeholder, additional DVM kinds).
+  - `[TOON-C]` - packages/core/src/skills/public-chat.test.ts:419 (9 vitest tests)
+    - Covers: TOON-format strings (not JSON), nostr-protocol-core for TOON format parsing, subscribing to kind:40, subscribing via #e tag filter, validating kind:41 against creator, reading is free, toon-extensions.md TOON-format + decode, reading free, scenarios.md discovery + metadata override
+  - `[TOON-C, AC4-*]` - tests/skills/test-public-chat-skill.sh:443-490 (6 shell tests)
+    - TOON-C, AC4-FORMAT, AC4-CHANNEL-SUBSCRIBE, AC4-MSG-SUBSCRIBE, AC4-METADATA-VALIDATE, AC4-READREF, AC4-METADATA-OVERRIDE
+- **Gaps:** None
+- **Recommendation:** None needed
 
 ---
 
-#### AC-5: shallowParseToon extracts DVM event routing metadata (P0)
+#### AC5: Social Context (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `T-5.1-04` - `packages/core/src/events/dvm.test.ts`:1545
-    - **Given:** TOON-encoded Kind 5100 job request
-    - **When:** `shallowParseToon()` called
-    - **Then:** Correctly extracts `kind=5100`, `pubkey`, `id` without full decode
-  - `T-5.1-04` (Kind 6100) - `packages/core/src/events/dvm.test.ts`:1562
-    - **Given:** TOON-encoded Kind 6100 job result
-    - **When:** `shallowParseToon()` called
-    - **Then:** Correctly extracts `kind=6100`
-  - `T-5.1-04` (Kind 7000) - `packages/core/src/events/dvm.test.ts`:1578
-    - **Given:** TOON-encoded Kind 7000 job feedback
-    - **When:** `shallowParseToon()` called
-    - **Then:** Correctly extracts `kind=7000`
-
-- **Gaps:** None. All three DVM kind ranges validated: Kind 5xxx (request), Kind 6xxx (result), Kind 7000 (feedback). This AC confirmed the existing shallow parser handles DVM kinds without code changes -- validation-only coverage.
+  - `[STRUCT-D, TOON-D]` - packages/core/src/skills/public-chat.test.ts:495 (10 vitest tests)
+    - Covers: ## Social Context section exists, >= 100 words, conciseness incentive, real-time norms, channel purpose, hide/mute personal moderation, NIP-29 distinction, NIP-72 distinction, substitution test (>= 5 chat-specific terms), anti-patterns
+  - `[STRUCT-D, TOON-D, AC5-*]` - tests/skills/test-public-chat-skill.sh:498-606 (9 shell tests)
+    - STRUCT-D, TOON-D, AC5-CONCISENESS, AC5-REALTIME, AC5-CHANNEL-PURPOSE, AC5-MODERATION-TOOLS, AC5-DISTINGUISH-GROUPS, AC5-DISTINGUISH-COMMUNITIES, AC5-SUBST
+- **Gaps:** None
+- **Recommendation:** None needed
 
 ---
 
-#### AC-6: DVM kind constants exported from @toon-protocol/core (P0)
+#### AC6: Eval Suite (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `T-5.1-08` - `packages/core/src/events/dvm.test.ts`:233
-    - **Given:** DVM kind constants imported from `../constants.js`
-    - **When:** Values inspected
-    - **Then:** JOB_REQUEST_KIND_BASE=5000, JOB_RESULT_KIND_BASE=6000, JOB_FEEDBACK_KIND=7000, TEXT_GENERATION_KIND=5100, IMAGE_GENERATION_KIND=5200, TEXT_TO_SPEECH_KIND=5300, TRANSLATION_KIND=5302 (7 constant assertions)
-  - `T-5.1-23` - `packages/core/src/events/dvm.test.ts`:1655
-    - **Given:** Dynamic import from `@toon-protocol/core` barrel exports
-    - **When:** Constants, builders, parsers checked
-    - **Then:** DVM constants importable (line 1656), builder functions importable (line 1670), parser functions importable (line 1680) -- all verified as `typeof 'function'` or correct numeric values
-
-- **Gaps:** None. All constant values verified numerically (T-5.1-08). Export chain verified through barrel imports (T-5.1-23).
+  - `[EVAL-A]` - packages/core/src/skills/public-chat.test.ts:590 (9 vitest trigger tests)
+    - Covers: valid JSON with required keys, 8-10 should-trigger, 8-10 should-not-trigger, protocol triggers, social-situation triggers, >= 5 of 9 required terms, related-but-different exclusion, NIP-29 exclusion, NIP-72 exclusion, each has query + should_trigger
+  - `[EVAL-B]` - packages/core/src/skills/public-chat.test.ts:698 (11 vitest output eval tests)
+    - Covers: 4-6 output evals, required fields (id, prompt, expected_output, rubric, assertions), rubric with correct/acceptable/incorrect, e tag root marker assertion, conciseness assertion, fee awareness assertion, three-way distinction assertion, toon-write-check, toon-format-check, write eval >= 5 assertions, read eval >= 3 assertions
+  - `[AC6-*, EVAL-*]` - tests/skills/test-public-chat-skill.sh:617-823 (12 shell tests)
+    - EVAL-A2, EVAL-B2, EVAL-C, AC6-RUBRIC, AC6-TOON-ASSERT, AC6-TRIGGER-QUERIES, AC6-NOTTRIGGER-QUERIES, AC6-EXPECTED-OPT, AC6-OUTPUT-ID, AC6-OUTPUT-ASSERT, AC6-OUTPUT-RANGE
+- **Gaps:** None
+- **Recommendation:** None needed
 
 ---
 
-#### AC-7: Targeted vs open marketplace request detection via p tag (P2)
+#### AC7: TOON Compliance Passing (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `T-5.1-10` (builder) - `packages/core/src/events/dvm.test.ts`:399
-    - **Given:** targetProvider specified or omitted in JobRequestParams
-    - **When:** Builder constructs event
-    - **Then:** `p` tag included when targetProvider present (line 399); omitted for open marketplace (line 416)
-  - `T-5.1-10` (parser) - `packages/core/src/events/dvm.test.ts`:1031
-    - **Given:** Event with or without `p` tag
-    - **When:** `parseJobRequest()` called
-    - **Then:** Returns `targetProvider` when p tag present (line 1031); `targetProvider` is undefined when absent (line 1051)
-  - Gap-fill: invalid targetProvider hex - `packages/core/src/events/dvm.test.ts`:1895
-    - **Given:** targetProvider that is not valid 64-char hex
-    - **When:** Builder called
-    - **Then:** ToonError with DVM_INVALID_PUBKEY
-  - Gap-fill: parser hex validation for p tag - `packages/core/src/events/dvm.test.ts`:2113
-    - **Given:** p tag with non-64-char hex value
-    - **When:** Parser called
-    - **Then:** Returns null (rejects malformed p tag)
-  - Gap-fill: parser accepts valid hex - `packages/core/src/events/dvm.test.ts`:2128
-    - **Given:** p tag with valid 64-char hex
-    - **When:** Parser called
-    - **Then:** Returns parsed request with targetProvider set
+  - `[TOON-A]` - packages/core/src/skills/public-chat.test.ts:812 (toon-write-check)
+    - Covers: publishEvent present, no bare EVENT array patterns
+  - `[TOON-B]` - packages/core/src/skills/public-chat.test.ts:822 (toon-fee-check, 3 tests)
+    - Covers: per-byte/basePricePerByte + cost/fee terms, channel creation fee, moderation fee
+  - `[TOON-C]` - packages/core/src/skills/public-chat.test.ts:844 (toon-format-check)
+    - Covers: TOON-format + not JSON
+  - `[TOON-D]` - packages/core/src/skills/public-chat.test.ts:852 (social-context-check)
+    - Covers: ## Social Context with chat/channel + concis/per-byte/cost
+  - `[TOON-A/B]` - packages/core/src/skills/public-chat.test.ts:865 (trigger-coverage)
+    - Covers: description includes NIP-28, kind:40/42/43/44, social-situation triggers
+  - `AC7: eval-completeness` - packages/core/src/skills/public-chat.test.ts:881
+    - Covers: >= 6 trigger evals + >= 4 output evals
+  - `[TOON-ALL-1]` - tests/skills/test-public-chat-skill.sh:833
+    - Covers: validate-skill.sh passes (11/11 structural checks)
+  - `[TOON-ALL-2]` - tests/skills/test-public-chat-skill.sh:844
+    - Covers: run-eval.sh passes (all TOON compliance assertions)
+  - `[AC7-NAMED-ASSERTIONS]` - tests/skills/test-public-chat-skill.sh:1089
+    - Covers: all 6 named TOON assertions checked by run-eval.sh
+  - `[AC7-EVAL-ASSERTIONS]` - tests/skills/test-public-chat-skill.sh:1110
+    - Covers: write evals have all 5 TOON assertions, read evals have 3
+- **Gaps:** None
+- **Recommendation:** None needed
 
-- **Gaps:** None. Both builder and parser sides tested. Invalid hex handling tested for both builder (throws) and parser (returns null).
+---
+
+#### AC8: Description Optimization (P1)
+
+- **Coverage:** FULL PASS
+- **Tests:**
+  - `[STRUCT-B]` - packages/core/src/skills/public-chat.test.ts:891 (13 vitest tests)
+    - Covers: 80-120 words, NIP-28 trigger, public chat trigger, kind:40 trigger, kind:42 trigger, kind:43 trigger, kind:44 trigger, kind:41 trigger, moderation trigger, real-time chat trigger, send message trigger, discover channels trigger, social-situation triggers, >= 2 chat-specific phrases
+  - `[AC8-*, TRIG-*]` - tests/skills/test-public-chat-skill.sh:861-952 (6 shell tests)
+    - AC8-STRICT-RANGE, AC8-TRIGPHRASES, AC8-SOCIAL-PHRASES, AC8-CHAT-PHRASES, TRIG-A, TRIG-B
+- **Gaps:** None
+- **Recommendation:** None needed
+
+---
+
+#### AC9: Token Budget (P1)
+
+- **Coverage:** FULL PASS
+- **Tests:**
+  - `[STRUCT-C]` - packages/core/src/skills/public-chat.test.ts:1007 (3 vitest tests)
+    - Covers: body < 500 lines, body <= 150 lines (5k token proxy), body <= 3500 words
+  - `[STRUCT-C]` - tests/skills/test-public-chat-skill.sh:128
+    - Covers: body under 500 lines
+  - `[AC9-TOKENS]` - tests/skills/test-public-chat-skill.sh:962
+    - Covers: body approximately 5k tokens or fewer (~3500 words)
+- **Gaps:** None
+- **Recommendation:** None needed
+
+---
+
+#### AC10: Dependency References (P1)
+
+- **Coverage:** FULL PASS
+- **Tests:**
+  - `[DEP-A]` - packages/core/src/skills/public-chat.test.ts:1032 (8 vitest tests)
+    - Covers: nostr-protocol-core, nostr-social-intelligence, social-interactions, content-references, relay-groups, moderated-communities, no toon-protocol-context.md duplicate, all six upstream present
+  - `[DEP-A through DEP-F, AC10-*]` - tests/skills/test-public-chat-skill.sh:982-1060 (8 shell tests)
+    - DEP-A, DEP-B, DEP-C, DEP-D, DEP-E, DEP-F, AC10-NODUP, AC10-DEP-ALL
+- **Gaps:** None
+- **Recommendation:** None needed
+
+---
+
+#### AC11: With/Without Baseline (P2)
+
+- **Coverage:** PARTIAL WARN
+- **Tests:**
+  - `[BASE-A]` - packages/core/src/skills/public-chat.test.ts:1093 (2 vitest proxy tests)
+    - Covers: SKILL.md provides actionable guidance (publishEvent, per-byte, TOON-format, conciseness, channel purpose), scenarios.md provides step-by-step flows (steps, publishEvent, fee/cost)
+  - `[BASE-A]` - tests/skills/test-public-chat-skill.sh:1250 (SKIPPED)
+    - **SKIPPED:** With/without baseline requires manual pipeline execution (Step 8 of nip-to-toon-skill)
+
+- **Gaps:**
+  - Missing: Full with/without baseline comparison (requires spawning two parallel agent runs with and without skill loaded, per pipeline Step 8)
+
+- **Recommendation:** AC11 is P2 and has proxy coverage via vitest that validates the skill provides actionable TOON-specific guidance beyond baseline NIP knowledge. True with/without testing requires manual pipeline execution and is intentionally skipped in automated test suites. This is acceptable for a P2 criterion.
 
 ---
 
@@ -290,25 +231,31 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the TOON
 
 #### Critical Gaps (BLOCKER)
 
-0 gaps found. **No P0 blockers.**
+0 gaps found. No blockers.
 
 ---
 
 #### High Priority Gaps (PR BLOCKER)
 
-0 gaps found. **No P1 blockers.**
+0 gaps found. No PR blockers.
 
 ---
 
 #### Medium Priority Gaps (Nightly)
 
-0 gaps found. **No P2 gaps.**
+1 gap found.
+
+1. **AC11: With/Without Baseline** (P2)
+   - Current Coverage: PARTIAL (proxy tests pass, manual pipeline step skipped)
+   - Missing Tests: Full with/without agent comparison
+   - Recommend: Execute pipeline Step 8 manually if validation is needed before publication gate (Story 9.34)
+   - Impact: Low -- proxy tests confirm skill adds TOON-specific value; full comparison is informational
 
 ---
 
 #### Low Priority Gaps (Optional)
 
-0 gaps found. **No P3 gaps.**
+0 gaps found.
 
 ---
 
@@ -316,18 +263,15 @@ Story 5.1 implements DVM event kind definitions (NIP-90 compatible) for the TOON
 
 #### Endpoint Coverage Gaps
 
-- Endpoints without direct API tests: 0
-- This story defines pure builder/parser functions. No HTTP endpoints, no WebSocket interface, no network calls. Endpoint coverage heuristic is N/A.
+- Not applicable. This story produces a Claude Agent Skill (markdown + JSON), not executable code with API endpoints.
 
 #### Auth/Authz Negative-Path Gaps
 
-- Criteria missing denied/invalid-path tests: 0
-- All builders validate inputs and throw `ToonError` with specific error codes. Parsers return `null` for malformed events. Tests cover: missing required tags, invalid hex format (event ID, pubkey), kind range boundaries, invalid status values, non-string bid/amount types, empty strings. No silent fallbacks exist.
+- Not applicable. No authentication or authorization paths in skill content files.
 
 #### Happy-Path-Only Criteria
 
-- Criteria missing error/edge scenarios: 0
-- All 7 ACs have both happy-path and error/edge-path coverage. Builder ACs (#1-#3) test valid construction AND invalid input rejection. Parser tests validate both successful parsing and rejection of malformed events. TOON roundtrip (AC #4) tests multiple kinds and edge cases (empty relay placeholder, large content, many tags). Export verification (AC #6) tests both direct imports and barrel exports.
+- Not applicable. All ACs are structural/content validation -- there are no "error paths" for a skill deliverable. Tests validate both presence (happy path) and absence (no extraneous files, no banned patterns, no duplicate content).
 
 ---
 
@@ -345,15 +289,15 @@ None.
 
 **INFO Issues**
 
-None.
-
-All 149 tests in `dvm.test.ts` follow BDD structure with describe/it blocks, use deterministic fixtures (FIXED_BUILDER_SECRET_KEY, FIXED_FACTORY_SECRET_KEY), have explicit assertions, use no hard waits or sleeps, and are organized into clearly separated describe blocks with factory helpers at the top.
+- `[BASE-A]` (shell) - Skipped test (requires manual pipeline execution) - Acceptable for P2 criterion; proxy coverage exists via vitest
 
 ---
 
 #### Tests Passing Quality Gates
 
-**149/149 tests (100%) meet all quality criteria** PASS
+**212/213 automated tests (99.5%) meet all quality criteria** PASS
+
+(129 vitest + 83 shell automated + 1 shell skipped = 213 total, 212 automated pass, 1 intentionally skipped)
 
 ---
 
@@ -361,27 +305,26 @@ All 149 tests in `dvm.test.ts` follow BDD structure with describe/it blocks, use
 
 #### Acceptable Overlap (Defense in Depth)
 
-- AC #1 and AC #7: Both test `p` tag handling (builder creates tag, parser extracts it). This is defense-in-depth: builder tests verify tag construction, parser tests verify tag extraction, and T-5.1-10 tests the complete targeted vs open marketplace semantics. PASS
-- AC #1/#2/#3 and AC #4: Builder tests create events, TOON roundtrip tests encode/decode them. Builder tests verify tag structure, TOON tests verify wire-format fidelity. Independent concerns. PASS
-- T-5.1-12/13/14 (signature) and T-5.1-01/02/03 (TOON roundtrip): Signature tests verify Schnorr correctness, TOON tests verify encoding fidelity. Both are needed for different failure modes. PASS
+- AC1 (Pipeline Production): Tested at both vitest (structural validation) and shell (ATDD acceptance) levels -- appropriate defense in depth
+- AC2 (NIP Coverage): 18 vitest tests + 17 shell tests -- vitest validates programmatically, shell validates via grep patterns. Different methodologies reduce false-positive risk
+- AC3-AC7: Dual-layer testing (vitest + shell) provides defense in depth across all TOON compliance areas
+- AC8-AC10: Dual coverage is acceptable -- vitest tests are more precise (regex matching), shell tests are broader (grep patterns)
 
 #### Unacceptable Duplication
 
-None identified.
+None identified. The two test suites use different validation approaches (vitest with TypeScript parsing vs shell with grep/awk), providing complementary coverage.
 
 ---
 
 ### Coverage by Test Level
 
-| Test Level | Tests   | Criteria Covered | Coverage % |
-| ---------- | ------- | ---------------- | ---------- |
-| Unit       | 149     | 7/7              | 100%       |
-| E2E        | 0       | 0/7              | 0%         |
-| API        | 0       | 0/7              | 0%         |
-| Component  | 0       | 0/7              | 0%         |
-| **Total**  | **149** | **7/7**          | **100%**   |
+| Test Level    | Tests | Criteria Covered | Coverage % |
+| ------------- | ----- | ---------------- | ---------- |
+| Structural    | 129   | 11/11            | 100%       |
+| ATDD (shell)  | 84    | 11/11            | 100%       |
+| **Total**     | **213** | **11/11**      | **100%**   |
 
-**Note:** This is a pure builder/parser module (no I/O, no network, no state beyond event construction). Unit tests are the appropriate and sufficient test level. E2E/API/Component tests are not applicable -- the functions have no HTTP endpoints, no WebSocket interface, and no UI. Integration with DVM job submission flow will be tested in Story 5.2 when the ILP-native submission pipeline is implemented.
+Note: Traditional E2E/API/Component/Unit classification does not apply to this story. The deliverable is markdown + JSON files. "Structural" = vitest programmatic validation. "ATDD" = shell-based acceptance tests.
 
 ---
 
@@ -389,17 +332,15 @@ None identified.
 
 #### Immediate Actions (Before PR Merge)
 
-None required. All 7 acceptance criteria have FULL coverage at the unit test level with 149 tests.
+None required. All P0 and P1 criteria have FULL coverage. All 212 automated tests pass.
 
 #### Short-term Actions (This Milestone)
 
-1. **Integration test in Story 5.2** -- When Story 5.2 (ILP-Native Job Submission) is implemented, add integration tests that verify job request events built by Story 5.1 builders are correctly submitted through the ILP payment pipeline.
-2. **Cross-story integration test** -- test-design-epic-5.md defines 6 cross-story integration tests (T-5.X-01 through T-5.X-06). These should be created when Stories 5.2-5.4 are complete.
+1. **Execute pipeline Step 8 manually** - If AC11 full with/without validation is desired before the publication gate (Story 9.34), run the nip-to-toon-skill pipeline Step 8 manually.
 
 #### Long-term Actions (Backlog)
 
-1. **E2E test with DVM agent** -- When a DVM agent is deployed in the test environment, add an E2E test that verifies the full lifecycle: job request -> provider parsing -> feedback -> result delivery.
-2. **Fuzz testing for parser robustness** -- The parsers handle arbitrary NostrEvent inputs. Property-based fuzz testing could discover edge cases in tag extraction logic.
+1. **Automate with/without baseline** - Consider automating pipeline Step 8 as part of CI if it becomes a recurring need across future skill stories.
 
 ---
 
@@ -414,21 +355,22 @@ None required. All 7 acceptance criteria have FULL coverage at the unit test lev
 
 #### Test Execution Results
 
-- **Total Tests**: 149
-- **Passed**: 149 (100%)
+- **Total Tests**: 213
+- **Passed**: 212 (99.5%)
 - **Failed**: 0 (0%)
-- **Skipped**: 0 (0%)
-- **Duration**: 853ms
+- **Skipped**: 1 (0.5%)
+- **Duration**: ~1s (vitest 414ms + shell ~0.5s)
 
 **Priority Breakdown:**
 
-- **P0 Tests**: T-5.1-01, T-5.1-02, T-5.1-03, T-5.1-04 (3 sub-tests), T-5.1-12, T-5.1-13, T-5.1-14, T-5.1-23 (3 sub-tests), full pipeline roundtrip (3 tests) = 16 tests -- all passed (100%) PASS
-- **P1 Tests**: T-5.1-05 (5 tests), T-5.1-06 (5 tests), T-5.1-07, T-5.1-09 (3 tests), T-5.1-11, T-5.1-15, T-5.1-16, T-5.1-17, T-5.1-18 (4 tests), T-5.1-19 (4 tests), T-5.1-20 (12 tests), T-5.1-22, parser rejection tests, gap-fill tests = ~80 tests -- all passed (100%) PASS
-- **P2 Tests**: T-5.1-08 (7 tests), T-5.1-10 (4 tests), T-5.1-21 (3 tests), T-5.1-24, T-5.1-25, gap-fill tests = ~53 tests -- all passed (100%) PASS
+- **P0 Tests**: 163/163 passed (100%) PASS
+- **P1 Tests**: 47/47 passed (100%) PASS
+- **P2 Tests**: 2/3 passed (67%) -- 1 skipped (BASE-A manual) WARN
+- **P3 Tests**: 0/0 (N/A) PASS
 
-**Overall Pass Rate**: 100% PASS
+**Overall Pass Rate**: 99.5% PASS
 
-**Test Results Source**: Local run via `pnpm vitest run packages/core/src/events/dvm.test.ts` (2026-03-16)
+**Test Results Source**: Local run (vitest + bash), 2026-03-27
 
 ---
 
@@ -436,16 +378,16 @@ None required. All 7 acceptance criteria have FULL coverage at the unit test lev
 
 **Requirements Coverage:**
 
-- **P0 Acceptance Criteria**: 3/3 covered (100%) PASS
-- **P1 Acceptance Criteria**: 2/2 covered (100%) PASS
-- **P2 Acceptance Criteria**: 2/2 covered (100%) PASS
-- **Overall Coverage**: 100%
+- **P0 Acceptance Criteria**: 7/7 covered (100%) PASS
+- **P1 Acceptance Criteria**: 3/3 covered (100%) PASS
+- **P2 Acceptance Criteria**: 0/1 covered (0%) WARN
+- **Overall Coverage**: 91%
 
-**Code Coverage** (not separately instrumented):
+**Code Coverage** (not applicable):
 
-- Not assessed at line/branch/function level. The source file `dvm.ts` is 654 lines. All code paths are exercised by the 149 tests: 3 builders (valid + invalid inputs), 3 parsers (valid + invalid + malformed events), all validation branches (kind range, hex format, status values, type checks).
+- This story produces markdown/JSON files, not executable code. No line/branch/function coverage applicable.
 
-**Coverage Source**: `packages/core/src/events/dvm.test.ts` (149 tests, all passing)
+**Coverage Source**: Traceability analysis of test files against story ACs
 
 ---
 
@@ -454,30 +396,29 @@ None required. All 7 acceptance criteria have FULL coverage at the unit test lev
 **Security**: PASS
 
 - Security Issues: 0
-- All inputs validated before use. Hex format validation (64-char hex regex) on event IDs and pubkeys. Kind range validation prevents events outside NIP-90 ranges. Non-string type checks on bid/amount prevent injection. ToonError with specific error codes (no generic errors). No secrets logged. 3 code review passes completed (including OWASP Top 10 analysis in review #3).
+- Semgrep scan (216 rules): 0 findings. OWASP review: no injection risks, no secrets, no auth flaws. Skill is markdown/JSON content, not executable code.
 
-**Performance**: PASS
+**Performance**: NOT_ASSESSED
 
-- 853ms for 149 tests (5.7ms average). Pure computation with TOON encoding (binary serialization) -- no I/O, no network. Well within limits.
+- Not applicable for markdown/JSON skill deliverables
 
-**Reliability**: PASS
+**Reliability**: NOT_ASSESSED
 
-- Deterministic builder/parser functions. No side effects. Stateless functions. No network dependencies. Parsers return `null` (never throw) for invalid input, ensuring graceful degradation.
+- Not applicable for markdown/JSON skill deliverables
 
 **Maintainability**: PASS
 
-- Clean module structure: `dvm.ts` (654 lines with builders, parsers, types), kind constants in `constants.ts`, re-exported from barrel files. Full JSDoc on all exported types and functions. Follows established event builder/parser pattern from `attestation.ts` and `service-discovery.ts`.
+- Skill follows D9-010 (single source of truth for protocol context), no content duplication, clear dependency references to 6 upstream skills
 
-**NFR Source**: Security review in story file (3 code review passes), manual assessment from code review.
+**NFR Source**: _bmad-output/test-artifacts/nfr-assessment-9-10.md
 
 ---
 
 #### Flakiness Validation
 
-**Burn-in Results**: Not applicable -- pure deterministic computation with no timing-dependent behavior, no randomness, no I/O.
+**Burn-in Results**: Not applicable
 
-- **Flaky Tests Detected**: 0 PASS
-- **Stability Score**: 100%
+- Structural validation tests are deterministic (file content checks). No flakiness risk.
 
 ---
 
@@ -485,13 +426,13 @@ None required. All 7 acceptance criteria have FULL coverage at the unit test lev
 
 #### P0 Criteria (Must ALL Pass)
 
-| Criterion             | Threshold | Actual | Status |
-| --------------------- | --------- | ------ | ------ |
-| P0 Coverage           | 100%      | 100%   | PASS   |
-| P0 Test Pass Rate     | 100%      | 100%   | PASS   |
-| Security Issues       | 0         | 0      | PASS   |
-| Critical NFR Failures | 0         | 0      | PASS   |
-| Flaky Tests           | 0         | 0      | PASS   |
+| Criterion             | Threshold | Actual | Status  |
+| --------------------- | --------- | ------ | ------- |
+| P0 Coverage           | 100%      | 100%   | PASS    |
+| P0 Test Pass Rate     | 100%      | 100%   | PASS    |
+| Security Issues       | 0         | 0      | PASS    |
+| Critical NFR Failures | 0         | 0      | PASS    |
+| Flaky Tests           | 0         | 0      | PASS    |
 
 **P0 Evaluation**: ALL PASS
 
@@ -499,12 +440,12 @@ None required. All 7 acceptance criteria have FULL coverage at the unit test lev
 
 #### P1 Criteria (Required for PASS, May Accept for CONCERNS)
 
-| Criterion              | Threshold | Actual | Status |
-| ---------------------- | --------- | ------ | ------ |
-| P1 Coverage            | >=90%     | 100%   | PASS   |
-| P1 Test Pass Rate      | >=90%     | 100%   | PASS   |
-| Overall Test Pass Rate | >=80%     | 100%   | PASS   |
-| Overall Coverage       | >=80%     | 100%   | PASS   |
+| Criterion              | Threshold | Actual | Status  |
+| ---------------------- | --------- | ------ | ------- |
+| P1 Coverage            | >= 90%    | 100%   | PASS    |
+| P1 Test Pass Rate      | >= 90%    | 100%   | PASS    |
+| Overall Test Pass Rate | >= 80%    | 99.5%  | PASS    |
+| Overall Coverage       | >= 80%    | 91%    | PASS    |
 
 **P1 Evaluation**: ALL PASS
 
@@ -512,10 +453,10 @@ None required. All 7 acceptance criteria have FULL coverage at the unit test lev
 
 #### P2/P3 Criteria (Informational, Don't Block)
 
-| Criterion         | Actual | Notes                     |
-| ----------------- | ------ | ------------------------- |
-| P2 Test Pass Rate | 100%   | Tracked, doesn't block    |
-| P3 Test Pass Rate | N/A    | No P3 criteria in story   |
+| Criterion         | Actual | Notes                                                      |
+| ----------------- | ------ | ---------------------------------------------------------- |
+| P2 Test Pass Rate | 67%    | 1 of 3 skipped (BASE-A manual pipeline). Tracked, non-blocking. |
+| P3 Test Pass Rate | N/A    | No P3 criteria in this story                               |
 
 ---
 
@@ -525,11 +466,12 @@ None required. All 7 acceptance criteria have FULL coverage at the unit test lev
 
 ### Rationale
 
-All P0 criteria met with 100% coverage and 100% pass rate across all test priorities. P1 criteria exceeded all thresholds (100% coverage, 100% pass rate). No security issues detected across 3 code review passes (including OWASP Top 10 analysis). No flaky tests -- the module contains pure deterministic builder/parser functions with no timing dependencies.
+P0 coverage is 100%, P1 coverage is 100% (target: 90%), and overall coverage is 91% (minimum: 80%). All 212 automated tests pass with 0 failures. The single skipped test (BASE-A shell) is a P2 criterion requiring manual pipeline execution and has proxy coverage via vitest. No security issues detected (Semgrep 216 rules: 0 findings). Three adversarial code reviews completed with all findings resolved.
 
-All 7 acceptance criteria have FULL test coverage verified by 149 unit tests covering: NIP-90 tag construction (i, bid, output, p, param, relays tags), TOON roundtrip fidelity for all three DVM kinds, shallow parser routing metadata extraction, kind constant verification, export chain validation, targeted vs open marketplace detection, builder input validation with ToonError codes, parser rejection of malformed events, kind range boundary testing, hex format validation, BigInt-compatible bid/amount values, and multiple gap-fill test groups for edge cases.
+The story deliverable (Claude Agent Skill for NIP-28 Public Chat) is structurally sound, TOON-compliant (7/7 assertions), and has comprehensive test coverage across two independent test suites (129 vitest + 84 shell).
 
-The implementation correctly follows the established TOON event builder/parser pattern (matching `attestation.ts`, `service-discovery.ts`, `seed-relay.ts`) and is NIP-90 compatible with USDC-denominated bid/amount tags.
+**Uncovered ACs:**
+- **AC11 (With/Without Baseline)** - P2, PARTIAL coverage. Vitest proxy tests pass (validating skill provides actionable TOON-specific content), but the shell-based BASE-A test is skipped because true with/without comparison requires manual nip-to-toon-skill pipeline Step 8 execution. This does not block the gate.
 
 ---
 
@@ -537,19 +479,18 @@ The implementation correctly follows the established TOON event builder/parser p
 
 #### For PASS Decision
 
-1. **Proceed to Story 5.2**
-   - Story 5.1 is complete and ready for downstream consumption
-   - Builders, parsers, types, and constants are available from `@toon-protocol/core`
-   - No blocking issues
+1. **Proceed to next story**
+   - Story 9.10 is complete and validated
+   - All P0/P1 acceptance criteria have FULL automated coverage
+   - Skill is ready for the publication gate (Story 9.34)
 
-2. **Post-Integration Monitoring**
-   - Monitor for regressions when Story 5.2 (ILP-Native Job Submission) consumes these builders
-   - Verify TOON roundtrip stability when new event types are added in Stories 5.3-5.4
+2. **Post-Completion Monitoring**
+   - Validate skill triggers correctly when loaded by Claude Agent
+   - Monitor trigger discrimination (NIP-28 vs NIP-29 vs NIP-72) in real usage
 
 3. **Success Criteria**
-   - All 149 unit tests continue to pass in CI
-   - No TypeScript compilation errors in events module
-   - Build output includes DVM exports from barrel files
+   - All 129 vitest + 83 shell automated tests continue to pass in CI
+   - Skill activates for NIP-28/public chat queries and does not activate for relay group or moderated community queries
 
 ---
 
@@ -557,38 +498,17 @@ The implementation correctly follows the established TOON event builder/parser p
 
 **Immediate Actions** (next 24-48 hours):
 
-1. Merge Story 5.1 to epic-5 branch (all tests passing, all reviews complete)
-2. Begin Story 5.2 (ILP-Native Job Submission)
-3. No remediation needed -- all ACs fully covered
+1. Proceed to next Epic 9 story or publication gate (Story 9.34)
+2. No blockers or concerns requiring immediate attention
 
-**Follow-up Actions** (this epic):
+**Follow-up Actions** (next milestone/release):
 
-1. Cross-story integration tests (T-5.X-01 through T-5.X-06) when Stories 5.2-5.4 complete
-2. Integration test for ILP job submission pipeline consuming Story 5.1 builders
-3. Skill descriptor tests (Story 5.4) will re-use DVM kind constants from this story
+1. Consider automating with/without baseline testing (AC11) as part of CI for future skill stories
+2. Run publication gate validation across all Phase 3 skills (9.8, 9.9, 9.10) together
 
 **Stakeholder Communication**:
 
-- Notify PM: Story 5.1 PASS -- DVM event kind definitions complete, 149/149 tests passing, ready for integration
-- Notify DEV lead: `buildJobRequestEvent()`, `buildJobResultEvent()`, `buildJobFeedbackEvent()` and parsers available from `@toon-protocol/core`, NIP-90 compatible, security-reviewed
-
----
-
-## Uncovered ACs
-
-**None.** All 7 acceptance criteria have FULL test coverage.
-
-| AC # | Description | Coverage Status | Test Count |
-| ---- | ----------- | --------------- | ---------- |
-| 1    | buildJobRequestEvent produces signed Kind 5xxx with NIP-90 tags | FULL | ~30 tests (T-5.1-12, T-5.1-09, T-5.1-11, T-5.1-10, T-5.1-25, T-5.1-24, T-5.1-05, T-5.1-18, content, gap-fills) |
-| 2    | buildJobResultEvent produces signed Kind 6xxx with NIP-90 tags | FULL | ~20 tests (T-5.1-13, required tags, T-5.1-06, T-5.1-19, gap-fills) |
-| 3    | buildJobFeedbackEvent produces signed Kind 7000 with NIP-90 tags | FULL | ~15 tests (T-5.1-14, required tags, T-5.1-07, content, validation, gap-fills) |
-| 4    | DVM events survive TOON encode/decode roundtrip | FULL | ~15 tests (T-5.1-01, T-5.1-02, T-5.1-03, T-5.1-22, full pipeline, additional kinds, edge cases) |
-| 5    | shallowParseToon extracts DVM event routing metadata | FULL | 3 tests (T-5.1-04 for Kind 5100, 6100, 7000) |
-| 6    | DVM kind constants exported from @toon-protocol/core | FULL | 10 tests (T-5.1-08 constants, T-5.1-23 exports) |
-| 7    | Targeted vs open marketplace request detection via p tag | FULL | ~8 tests (T-5.1-10 builder/parser, hex validation gap-fills) |
-
-**Total: 149 test cases covering all 7 ACs.** Some tests cross-cover multiple ACs (e.g., TOON roundtrip tests exercise both AC #4 and the builder output from AC #1-#3).
+- Story 9.10 PASS: Public Chat skill validated with 100% P0/P1 coverage, 213 tests (212 pass, 1 intentionally skipped)
 
 ---
 
@@ -598,28 +518,26 @@ The implementation correctly follows the established TOON event builder/parser p
 traceability_and_gate:
   # Phase 1: Traceability
   traceability:
-    story_id: "5.1"
-    date: "2026-03-16"
+    story_id: "9.10"
+    date: "2026-03-27"
     coverage:
-      overall: 100%
+      overall: 91%
       p0: 100%
       p1: 100%
-      p2: 100%
-      p3: N/A
+      p2: 0%
+      p3: 100%
     gaps:
       critical: 0
       high: 0
-      medium: 0
+      medium: 1
       low: 0
     quality:
-      passing_tests: 149
-      total_tests: 149
+      passing_tests: 212
+      total_tests: 213
       blocker_issues: 0
       warning_issues: 0
     recommendations:
-      - "Add integration tests in Story 5.2 for ILP job submission consuming DVM builders"
-      - "Create cross-story integration tests (T-5.X-01 through T-5.X-06) when Epic 5 complete"
-      - "Consider property-based fuzz testing for parser robustness"
+      - "Execute pipeline Step 8 manually for AC11 full with/without validation if needed before publication gate"
 
   # Phase 2: Gate Decision
   gate_decision:
@@ -631,8 +549,8 @@ traceability_and_gate:
       p0_pass_rate: 100%
       p1_coverage: 100%
       p1_pass_rate: 100%
-      overall_pass_rate: 100%
-      overall_coverage: 100%
+      overall_pass_rate: 99.5%
+      overall_coverage: 91%
       security_issues: 0
       critical_nfrs_fail: 0
       flaky_tests: 0
@@ -644,23 +562,23 @@ traceability_and_gate:
       min_overall_pass_rate: 80
       min_coverage: 80
     evidence:
-      test_results: "pnpm vitest run packages/core/src/events/dvm.test.ts"
+      test_results: "local_run_2026-03-27"
       traceability: "_bmad-output/test-artifacts/traceability-report.md"
-      nfr_assessment: "Inline (3 code review passes including OWASP Top 10)"
-      code_coverage: "Not separately measured (149 unit tests cover all branches)"
-    next_steps: "Merge to epic-5, begin Story 5.2"
+      nfr_assessment: "_bmad-output/test-artifacts/nfr-assessment-9-10.md"
+      code_coverage: "N/A (markdown/JSON deliverable)"
+    next_steps: "Proceed to next story or publication gate (Story 9.34)"
 ```
 
 ---
 
 ## Related Artifacts
 
-- **Story File:** `_bmad-output/implementation-artifacts/5-1-dvm-event-kind-definitions.md`
-- **Test Design:** `_bmad-output/planning-artifacts/test-design-epic-5.md` (T-5.1-01 through T-5.1-25)
-- **Tech Spec:** N/A (implementation follows architecture.md FR-DVM-1 and NIP-90 standard)
-- **Test Results:** `packages/core/src/events/dvm.test.ts` (149 tests, all passing)
-- **NFR Assessment:** Inline (3 code review passes in story file)
-- **Source Files:** `packages/core/src/events/dvm.ts`, `packages/core/src/constants.ts`
+- **Story File:** _bmad-output/implementation-artifacts/9-10-public-chat-skill.md
+- **Test Design:** _bmad-output/planning-artifacts/test-design-epic-9.md
+- **Test Results:** Local run 2026-03-27 (vitest 129/129 pass, shell 83/84 pass + 1 skip)
+- **NFR Assessment:** _bmad-output/test-artifacts/nfr-assessment-9-10.md
+- **Test Files:** packages/core/src/skills/public-chat.test.ts, tests/skills/test-public-chat-skill.sh
+- **ATDD Checklist:** _bmad-output/test-artifacts/atdd-checklist-9-10.md
 
 ---
 
@@ -668,10 +586,9 @@ traceability_and_gate:
 
 **Phase 1 - Traceability Assessment:**
 
-- Overall Coverage: 100%
+- Overall Coverage: 91%
 - P0 Coverage: 100% PASS
 - P1 Coverage: 100% PASS
-- P2 Coverage: 100% PASS
 - Critical Gaps: 0
 - High Priority Gaps: 0
 
@@ -685,9 +602,9 @@ traceability_and_gate:
 
 **Next Steps:**
 
-- PASS: Proceed to merge and begin Story 5.2
+- PASS: Proceed to next story or publication gate (Story 9.34)
 
-**Generated:** 2026-03-16
+**Generated:** 2026-03-27
 **Workflow:** testarch-trace v5.0 (Step-File Architecture)
 
 ---

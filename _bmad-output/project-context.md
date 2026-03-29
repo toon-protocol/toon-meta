@@ -1,7 +1,7 @@
 ---
 project_name: 'toon'
 user_name: 'Jonathan'
-date: '2026-03-24'
+date: '2026-03-28'
 sections_completed:
   [
     'technology_stack',
@@ -13,7 +13,7 @@ sections_completed:
     'critical_rules',
   ]
 status: 'complete'
-rule_count: 512
+rule_count: 540
 optimized_for_llm: true
 ---
 
@@ -70,20 +70,62 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - @noble/curves and @scure libraries share the same secp256k1 implementation as nostr-tools' @noble/curves dependency
 - viem 2.x required for EIP-3009 settlement and EIP-712 typed data verification
 
-## Project Structure (Post-Epic 8)
+## Project Structure (Post-Epic 9)
 
 ```
 toon/
+├── .claude/
+│   └── skills/                    # Claude Agent Skills (Epic 9: 55 skill directories)
+│       ├── nostr-social-intelligence/  # Base social intelligence skill (Story 9.0)
+│       ├── nostr-protocol-core/        # TOON protocol core mechanics skill (Story 9.1)
+│       ├── nip-to-toon-skill/          # NIP-to-TOON conversion pipeline (Story 9.2)
+│       ├── skill-eval-framework/       # Skill evaluation framework (Story 9.3)
+│       ├── social-identity/            # NIP-02/05/24/39 identity skill (Story 9.4)
+│       ├── long-form-content/          # NIP-23 articles skill (Story 9.5)
+│       ├── social-interactions/        # NIP-22/18/25 reactions/reposts skill (Story 9.6)
+│       ├── content-references/         # NIP-21/27 nostr: URI skill (Story 9.7)
+│       ├── relay-groups/               # NIP-29 relay groups skill (Story 9.8)
+│       ├── moderated-communities/      # NIP-72 communities skill (Story 9.9)
+│       ├── public-chat/                # NIP-28 channels skill (Story 9.10)
+│       ├── lists-and-labels/           # NIP-51 lists skill (Story 9.11)
+│       ├── search/                     # NIP-50 search skill (Story 9.12)
+│       ├── app-handlers/               # NIP-89 app handlers skill (Story 9.13)
+│       ├── media-and-files/            # NIP-92/94 media skill (Story 9.14)
+│       ├── visual-media/               # NIP-68/71 pictures/video skill (Story 9.15)
+│       ├── file-storage/               # NIP-96 HTTP file storage skill (Story 9.16)
+│       ├── encrypted-messaging/        # NIP-44 encryption skill (Story 9.17)
+│       ├── private-dms/                # NIP-17 private DMs skill (Story 9.18)
+│       ├── content-control/            # NIP-09 deletion skill (Story 9.19)
+│       ├── sensitive-content/          # NIP-36 content warnings skill (Story 9.20)
+│       ├── user-statuses/              # NIP-38 statuses skill (Story 9.21)
+│       ├── badges/                     # NIP-58 badges skill (Story 9.22)
+│       ├── highlights/                 # NIP-84 highlights skill (Story 9.23)
+│       ├── polls/                      # NIP-88 polls skill (Story 9.24)
+│       ├── drafts-and-expiration/      # NIP-37 drafts skill (Story 9.25)
+│       ├── git-collaboration/          # NIP-34 git collaboration skill (Story 9.26)
+│       ├── git-objects/                # Git object binary formats skill (Story 9.27)
+│       ├── git-arweave/                # Git-Arweave integration skill (Story 9.28)
+│       ├── git-workflows/              # Git workflow examples skill (Story 9.29)
+│       ├── git-identity/               # Git identity/auth skill (Story 9.30)
+│       ├── dvm-protocol/               # NIP-90 DVM protocol skill (Story 9.31)
+│       ├── marketplace/                # NIP-15/99 marketplace skill (Story 9.32)
+│       ├── relay-discovery/            # NIP-11/65/66 relay discovery skill (Story 9.33)
+│       ├── skill-creator/              # Skill creation guide (pre-existing)
+│       ├── playwright-cli/             # Browser automation (pre-existing)
+│       ├── excalidraw-diagram/         # Diagram generation (pre-existing)
+│       └── rfc-*/                      # 18 ILP RFC reference skills (pre-existing)
 ├── packages/
 │   ├── town/        # @toon-protocol/town -- SDK-based relay with x402, service discovery, health, TEE health, DVM skill config (Epics 2+3+4+5)
 │   ├── sdk/         # @toon-protocol/sdk -- SDK for building ILP-gated Nostr services + DVM lifecycle + workflow/swarm coordination + prefix claims + Arweave DVM (Epics 1+5+6+7+8)
 │   ├── core/        # @toon-protocol/core -- Protocol logic, TOON codec, chain config, x402, TEE attestation, KMS identity, Nix builds, DVM event kinds, workflow/swarm/reputation events, ILP address hierarchy, fee calculation, NIP-34 types/handler, Arweave blob storage events (Epics 1+3+4+5+6+7+8)
+│   │   └── src/skills/              # Structural validation tests for skills (Epic 9)
 │   ├── bls/         # @toon-protocol/bls -- Business Logic Server (payment validation, event storage)
 │   ├── relay/       # @toon-protocol/relay -- Nostr relay + TOON encoding
 │   ├── client/      # @toon-protocol/client -- Client SDK with payment channel support
+│   │   └── tests/e2e/              # E2E tests including Arweave DVM + socialverse harnesses (Epic 9)
 │   ├── faucet/      # @toon-protocol/faucet -- Token distribution for dev testing (plain JS, dev-only)
 │   ├── examples/    # @toon-protocol/examples -- Demo applications
-│   ├── rig/         # @toon-protocol/rig -- Forge-UI: decentralized git forge web interface (Epic 8, Vite SPA on Arweave)
+│   ├── rig/         # @toon-protocol/rig -- Forge-UI: decentralized git forge web interface (Epic 8, Vite SPA on Arweave, rig pointer system added Epic 9)
 │   ├── overmind/    # Overmind Protocol spike code (Epics 13-17, spike only)
 │   └── loony/       # @toon-protocol/loony -- (planned, Epic 12: autonomous agent example application)
 ├── docker/          # Container entrypoint (pnpm workspace member)
@@ -98,7 +140,15 @@ toon/
 │   └── supervisord.conf           # Multi-process orchestration (toon + attestation)
 ├── scripts/
 │   ├── deploy-forge-ui.mjs        # Arweave deployment script for Forge-UI (Story 8.7)
-│   └── deploy-helpers.mjs         # Shared helpers for Arweave deployment (manifest, MIME, CLI)
+│   ├── deploy-helpers.mjs         # Shared helpers for Arweave deployment (manifest, MIME, CLI)
+│   ├── deploy-rig-pointer.mjs     # Rig pointer HTML deployment to Arweave (Epic 9)
+│   ├── create-rig-repo.mjs        # Create repo announcement events for Rig (Epic 9)
+│   └── socialverse-e2e.ts         # Socialverse multi-agent E2E test orchestrator (Epic 9)
+├── tests/
+│   └── skills/                    # Shell scripts for per-skill structural validation (Epic 9)
+├── docs/
+│   └── rig-guide.md               # Rig usage guide (Epic 9)
+├── patches/                        # pnpm patched dependencies (Epic 9)
 ├── flake.nix                      # Nix flake for reproducible Docker builds (Story 4.5)
 ├── deploy-genesis-node.sh
 └── deploy-peers.sh
@@ -128,6 +178,7 @@ toon/
 - Town handlers import from `@toon-protocol/sdk` (Handler, HandlerContext, HandlerResponse types) and `@toon-protocol/core` (event builders, bootstrap, chain config)
 - Town x402 handler imports viem directly for EIP-3009 settlement and EIP-712 verification
 - Docker entrypoints import from `@toon-protocol/core` (attestation events, KMS identity), `@toon-protocol/sdk`, `@toon-protocol/town`, and `@toon-protocol/relay`
+- Claude Agent Skills (`.claude/skills/`) are standalone markdown + JSON artifacts -- no TypeScript imports, no build step. Skills reference `toon-protocol-context.md` for shared protocol context.
 
 ## Epic Roadmap
 
@@ -140,7 +191,7 @@ Epic 5: DVM Compute Marketplace                  COMPLETE (4/4 stories, 27/27 AC
 Epic 6: Advanced DVM Coordination + TEE          COMPLETE (4/4 stories, 21/21 ACs)
 Epic 7: ILP Address Hierarchy & Protocol Econ    COMPLETE (6/6 stories, 35/35 ACs)
 Epic 8: The Rig -- Arweave DVM + Forge-UI        COMPLETE (8 stories: 8.0 Arweave DVM + 8.1-8.6 Forge-UI + 8.7 Arweave Deploy)
-Epic 9: NIP-to-TOON Skill Pipeline + Socialverse  PLANNED (34 stories: 9.0-9.3 Pipeline + 9.4-9.25 Socialverse NIP Skills + 9.26-9.30 NIP-34 Git [from E8] + 9.31-9.32 DVM + 9.33-9.34 Publish)
+Epic 9: NIP-to-TOON Skill Pipeline + Socialverse  COMPLETE (35/35 stories, 30+ skills, +1,036 tests)
 Epic 10: Compute Primitive (kind:5250)             PLANNED (Provider protocol spec + consumer DX + test harness + provider handoff docs; provider implementations out of scope)
 Epic 11: Chain Bridge Primitive (kind:5260)        PLANNED (Provider protocol spec + consumer DX + test harness + provider handoff docs; provider implementations out of scope)
 Epic 12: Loony — Autonomous Agent                  PLANNED (Example application proving all four primitives + composition; self-bootstrapping agent lifecycle)
@@ -151,7 +202,7 @@ Epic 16: Overmind Biography                          PLANNED (5 stories; recursi
 Epic 17: Overmind Swarm                              PLANNED (5 stories; sub-agent spawning, NIP-44 parent-child comms, DVM task delegation, swarm treasury management)
 ```
 
-**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics -> Build applications on top: blob storage primitive + Forge-UI (DONE) -> Teach agents the protocol (skills pipeline + socialverse) -> Compute provider protocol + DX (spec, test harness, handoff docs) -> Chain bridge provider protocol + DX (spec, test harness, handoff docs) -> Loony autonomous agent (demand-side proof composing all four primitives) -> Overmind sovereign agents (Mina VRF + Arweave state + TEE identity + ILP economics).
+**Epic progression:** Build SDK -> Prove it with relay -> Make protocol production-grade -> Make it verifiable -> Build DVM compute marketplace -> Advanced coordination + verifiable compute -> Hierarchical addressing & protocol economics -> Build applications on top: blob storage primitive + Forge-UI (DONE) -> Teach agents the protocol: skills pipeline + 30+ socialverse skills (DONE) -> Compute provider protocol + DX (spec, test harness, handoff docs) -> Chain bridge provider protocol + DX (spec, test harness, handoff docs) -> Loony autonomous agent (demand-side proof composing all four primitives) -> Overmind sovereign agents (Mina VRF + Arweave state + TEE identity + ILP economics).
 
 **Strategic North Star (Party Mode 2026-03-22, updated 2026-03-24):** TOON Protocol = "Stripe for decentralized services." Four network primitives — Messaging (kind:1), Blob Storage (kind:5094), Compute (kind:5250), Chain Bridge (kind:5260) — with unified ILP payment, Nostr discovery (kind:10035), self-describing receipts, and competing providers. DVM providers are resellers who earn convenience fees for abstracting backend complexity. Protocol proves itself through example applications: **Forge** (decentralized git), **Loony** (autonomous agent), and **Overmind** (sovereign agent living on the network — Mina ZK adjudication, Arweave permanent memory, TEE-born identity, self-funding economics). Provider implementations are out of scope — TOON defines the provider protocol + ships handoff docs; third-party teams build providers for their platforms (HyperBEAM, Oyster CVM, Akash, per-chain bridge operators). Full decision records: `_bmad-output/planning-artifacts/research/party-mode-network-primitives-strategy-2026-03-22.md`, `_bmad-output/planning-artifacts/research/party-mode-overmind-protocol-decisions-2026-03-24.md`
 
@@ -220,13 +271,13 @@ These decisions shape Epics 3-5 and future development. Full details in `_bmad-o
 | 6250 | Compute DVM Result (NIP-90) | Planned (Epic 10) -- compute result with self-describing receipt |
 | 5260 | Chain Bridge DVM (NIP-90) | Planned (Epic 11) -- broadcast signed tx to any blockchain (network primitive #4) |
 | 6260 | Chain Bridge Result (NIP-90) | Planned (Epic 11) -- per-chain tx hash receipt |
-| 30617 | Repository Announcement (NIP-34) | Planned (Epic 9, Story 9.26) -- NIP-33 parameterized replaceable |
-| 1617 | Patch (NIP-34) | Planned (Epic 9, Story 9.26) |
-| 1618 | Pull Request (NIP-34) | Planned (Epic 9, Story 9.26) |
-| 1619 | PR Status Update (NIP-34) | Planned (Epic 9, Story 9.26) |
-| 1621 | Issue (NIP-34) | Planned (Epic 9, Story 9.26) |
-| 1622 | Comment (NIP-34) | Planned (Epic 9, Story 9.26) |
-| 1630-1633 | Status Events (NIP-34) | Planned (Epic 9, Story 9.26) -- open/applied/closed/draft |
+| 30617 | Repository Announcement (NIP-34) | Skill-documented (Epic 9, Story 9.26) -- NIP-33 parameterized replaceable, Forge-UI reads |
+| 1617 | Patch (NIP-34) | Skill-documented (Epic 9, Story 9.26) -- Forge-UI reads |
+| 1618 | Pull Request (NIP-34) | Skill-documented (Epic 9, Story 9.26) -- Forge-UI reads |
+| 1619 | PR Status Update (NIP-34) | Skill-documented (Epic 9, Story 9.26) -- Forge-UI reads |
+| 1621 | Issue (NIP-34) | Skill-documented (Epic 9, Story 9.26) -- Forge-UI reads |
+| 1622 | Comment (NIP-34) | Skill-documented (Epic 9, Story 9.26) -- Forge-UI reads |
+| 1630-1633 | Status Events (NIP-34) | Skill-documented (Epic 9, Story 9.26) -- open/applied/closed/draft |
 | 5099 | Overmind Wake Request | Planned (Epic 13) -- overmind publishes to schedule next wake cycle |
 | 5101 | Overmind Wake Winner Announcement | Planned (Epic 13) -- Chain Bridge publishes after Mina VRF selection |
 | 5102 | Overmind Cycle Execution Record | Planned (Epic 13) -- overmind publishes cycle results, anchored to Arweave |
@@ -359,7 +410,7 @@ A skill factory that converts any Nostr NIP into a TOON-aware Claude Agent Skill
 - "DVM" (Data Vending Machine) -- NIP-90 compute marketplace protocol
 - "Skill descriptor" -- Structured metadata in kind:10035 events advertising DVM capabilities
 
-## @toon-protocol/core (Post-Epic 8)
+## @toon-protocol/core (Post-Epic 9)
 
 Core now includes chain configuration, x402 support, seed relay discovery, service discovery, TEE attestation events, attestation verification, KMS identity derivation, Nix reproducible build infrastructure, NIP-90 DVM event builders/parsers, workflow chain events, agent swarm events, TEE-attested result verification, reputation scoring (reviews, WoT, composite scores), ILP address hierarchy (derivation, assignment, registry, BTP prefix exchange), route-aware fee calculation, prefix claim/grant events, Arweave blob storage DVM events (kind:5094/6094), and NIP-34 Git collaboration types/handler/constants.
 
@@ -718,11 +769,11 @@ SERVICE_DISCOVERY_KIND = 10035
 SEED_RELAY_LIST_KIND = 10036
 ```
 
-## @toon-protocol/sdk (Epics 1+5+6+7+8 -- Complete)
+## @toon-protocol/sdk (Epics 1+5+6+7+8+9 -- Complete)
 
-The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities, in Epic 6 with stateful orchestration components (workflow chains, agent swarms), in Epic 7 with route-aware fee calculation, prepaid protocol model, and prefix claim handler, and in Epic 8 with the Arweave blob storage DVM handler and client-side upload helpers. It provides a developer-facing abstraction for building ILP-gated Nostr services with the TOON protocol.
+The SDK is the main deliverable of Epic 1, extended in Epic 5 with DVM compute marketplace capabilities, in Epic 6 with stateful orchestration components (workflow chains, agent swarms), in Epic 7 with route-aware fee calculation, prepaid protocol model, and prefix claim handler, in Epic 8 with the Arweave blob storage DVM handler and client-side upload helpers, and in Epic 9 with Arweave DVM base64 encoding bug fixes and route fee caching. It provides a developer-facing abstraction for building ILP-gated Nostr services with the TOON protocol.
 
-**SDK Source Files (Post-Epic 8):**
+**SDK Source Files (Post-Epic 9):**
 
 ```
 packages/sdk/src/
@@ -1568,6 +1619,7 @@ packages/rig/src/
     ├── csp.ts                    # Content Security Policy headers
     ├── env.d.ts                  # Vite env type declarations
     ├── index.html                # SPA HTML shell
+    ├── rig-pointer-html.ts       # Rig pointer thin HTML shell generator (Epic 9)
     └── __integration__/          # Integration tests (15 test files)
 ```
 
@@ -1594,10 +1646,89 @@ packages/rig/src/
 | 1630-1633 | Status Events -- open/applied/closed/draft |
 | 0 | Profile -- display names for pubkey rendering |
 
-**Core Sub-Path Exports (Post-Epic 8):**
+**Core Sub-Path Exports (Post-Epic 9):**
 - `@toon-protocol/core` -- main exports (TOON codec, types, constants, chain config, etc.)
 - `@toon-protocol/core/toon` -- TOON codec only (encodeEventToToon, decodeEventFromToon, shallowParseToon)
 - `@toon-protocol/core/nip34` -- NIP-34 types, constants, ForgejoClient, NIP34Handler, GitOperations
+
+## NIP-to-TOON Skill Pipeline + Socialverse Skills (Epic 9 -- Complete)
+
+Epic 9 is the largest epic in TOON Protocol history -- 35 stories across 12 phases, producing 30+ Claude Agent Skills installed in `.claude/skills/`. This is the first epic to produce a fundamentally different deliverable type: structured markdown skill files with eval definitions, reference documents, and validation scripts, rather than traditional TypeScript code packages.
+
+**Epic 9 Stories (35 total):**
+
+| Phase | Stories | Deliverables |
+|-------|---------|-------------|
+| Phase 0: Pipeline Foundation | 9-0 through 9-3 | Social Intelligence base skill, TOON Protocol Core skill, NIP-to-TOON 13-step pipeline skill, Skill Eval Framework |
+| Phase 1: Identity | 9-4 | Social Identity skill (NIP-02/05/24/39) |
+| Phase 2: Content | 9-5, 9-6, 9-7 | Long-form Content, Social Interactions, Content References skills |
+| Phase 3: Community | 9-8, 9-9, 9-10 | Relay Groups, Moderated Communities, Public Chat skills |
+| Phase 4: Curation | 9-11, 9-12, 9-13 | Lists & Labels, Search, App Handlers skills |
+| Phase 5: Media | 9-14, 9-15, 9-16 | Media & Files, Visual Media, File Storage skills |
+| Phase 6: Privacy | 9-17, 9-18 | Encrypted Messaging, Private DMs skills |
+| Phase 7: Advanced Social | 9-19 through 9-25 | Content Control, Sensitive Content, User Statuses, Badges, Highlights, Polls, Drafts & Expiration skills |
+| Phase 8: NIP-34 Git | 9-26 through 9-30 | Git Collaboration, Git Objects, Git-Arweave, Git Workflows, Git Identity skills |
+| Phase 9: DVM + Marketplace | 9-31, 9-32 | DVM Protocol, Marketplace skills |
+| Phase 10: Relay Discovery | 9-33 | Relay Discovery skill |
+| Phase 11: Publication Gate | 9-34 | All skills validated, installed, and integration-tested |
+
+**Skill Architecture:**
+
+Each skill follows a consistent structure produced by the NIP-to-TOON pipeline (Story 9-2):
+
+```
+.claude/skills/<skill-name>/
+├── SKILL.md                    # Main skill file (description, triggers, instructions)
+├── evals/
+│   └── evals.json              # Eval definitions (trigger conditions, expected outputs, grading)
+└── references/
+    ├── nip-spec.md             # NIP specification reference (canonical protocol spec)
+    ├── scenarios.md            # Usage scenarios and decision trees
+    └── toon-extensions.md      # TOON-specific extensions (ILP fees, publishEvent(), TOON format)
+```
+
+- **55 total skill directories** in `.claude/skills/`: 30+ TOON socialverse skills (Epic 9), 18 ILP RFC reference skills (pre-existing), 3 utility skills (skill-creator, playwright-cli, excalidraw-diagram, pre-existing), plus skill-eval-framework (Epic 9)
+- **34 skills with evals** (`evals.json` for rubric-based grading)
+- **Shared foundation:** All skills reference `nostr-protocol-core` and `toon-protocol-context.md` for consistent protocol mechanics
+
+**Key Architectural Decisions:**
+
+- **Skills are knowledge artifacts, not code** -- Markdown + JSON, no TypeScript imports, no build step. Skills teach Claude how to use the TOON protocol, not implement it.
+- **NIP-to-TOON pipeline is a factory** -- Story 9-2's 13-step pipeline was used to produce every subsequent skill, establishing a repeatable process for future NIP conversion.
+- **Progressive disclosure** -- Skills use Level 1 (SKILL.md overview), Level 2 (reference documents), and Level 3 (per-kind resource files) progressive disclosure for complex topics.
+- **Social intelligence is cross-cutting** -- `nostr-social-intelligence` base skill provides interaction decision trees, context norms, trust signals that all other skills inherit.
+- **Transport is ToonClient, not SDK** -- Skills teach agents to publish events via `ToonClient.publishEvent()` from the client package, not `createNode()` from the SDK.
+
+**Code Changes in Epic 9 (alongside skills):**
+
+- **Arweave DVM handler base64 fix** -- Fixed encoding bug in `arweave-dvm-handler.ts` that caused upload failures via ToonClient BTP path
+- **Vite base path fix** -- Fixed Rig UI asset loading for non-root deployments
+- **Route fee caching** -- Added fingerprint-based cache with invalidation to `resolveRouteFees()` (resolved Epic 8 retro A6)
+- **ESLint for rig package** -- Fixed 110 ESLint errors across 22 Rig files (resolved Epic 8 retro A1)
+- **Rig pointer system** -- `rig-pointer-html.ts` generates thin HTML shell pointers for zero-config repo sharing on Arweave
+- **Client Arweave DVM E2E test** -- `docker-arweave-dvm-e2e.test.ts` validates end-to-end ILP repo creation with Arweave DVM uploads
+- **Socialverse E2E test harnesses** -- Multi-agent test harnesses (`socialverse-agent-*.ts`, `socialverse-swarm.ts`) for future E2E validation
+- **Structural validation test suites** -- 8 test files in `packages/core/src/skills/` + 1 in `packages/core/src/nip34/` validating skill structure
+
+**Epic 9 Metrics (Final -- 35/35 stories):**
+
+| Metric | Value |
+|--------|-------|
+| Stories delivered | 35/35 (100%) |
+| Phases completed | 12/12 |
+| Skills created | 30+ Claude Agent Skills |
+| Skill directories total | 55 |
+| Files changed | 528 |
+| Lines added | 105,477 |
+| Monorepo test count (start) | 3,256 (3,191 passed, 65 skipped) |
+| Monorepo test count (end) | 4,292 (4,227 passed, 65 skipped) |
+| Net test growth | +1,036 (largest single-epic growth) |
+| Code review issues | 68 found, 56 fixed, 12 accepted, 0 remaining |
+| Security scan findings (production) | 0 (5th consecutive epic) |
+| NFR assessments | 11/11 PASS (5th consecutive 100%) |
+| Test regressions | 0 (9th consecutive epic) |
+| New runtime dependencies | 0 (5th consecutive epic) |
+| Pre-existing bugs fixed | 2 (Arweave DVM base64, Vite base path) |
 
 ## Critical Implementation Rules
 
@@ -1903,6 +2034,30 @@ packages/rig/src/
 - **Playwright for E2E** -- `@playwright/test` for browser E2E tests in `tests/e2e/`. Vitest for unit and integration tests.
 - **NEVER use `exec()` for git operations** -- Always use `execFile()` to prevent command injection (applies to ATDD stubs in `git/operations.ts`).
 
+### Skill-Specific Rules (Epic 9)
+
+**Skill Structure:**
+
+- **SKILL.md** is the main entry point -- contains description, trigger conditions, and instructions. Must be under ~2000 tokens for efficient context loading.
+- **references/** directory contains progressive disclosure documents -- loaded only when the skill needs deeper knowledge.
+- **evals/evals.json** defines trigger conditions, expected outputs, and grading criteria for rubric-based evaluation.
+- **All skills must reference shared foundations** -- `nostr-protocol-core` for protocol mechanics, `toon-protocol-context.md` for TOON-specific extensions. No skill should independently redefine `publishEvent()`, fee calculation, or TOON format.
+
+**Skill Content Rules:**
+
+- **Transport is ToonClient, not SDK** -- Skills teach agents to publish events via `ToonClient.publishEvent()` from `@toon-protocol/client`. The SDK (`createNode()`, handler registry) is only for DVM providers.
+- **TOON-first, NIP-compatible** -- Every skill teaches TOON protocol (ILP-gated writes, TOON-format reads) with vanilla NIP as baseline.
+- **Why over rules** -- Skills explain reasoning, not rigid ALWAYS/NEVER. LLMs generalize better from explained reasoning.
+- **Economics shape social norms** -- ILP paid-writes create quality floor. Cost-per-byte shapes interaction norms (reactions cheap but not free, long-form signals investment).
+- **No ILP-peer NIPs** -- Excluded: NIP-13 (PoW), NIP-42 (relay auth), NIP-47 (wallet connect), NIP-57 (zaps), NIP-98 (HTTP auth) -- ILP handles all these functions.
+
+**Skill Validation:**
+
+- **Structural tests** validate skill file existence, reference completeness, and eval format -- `tests/skills/test-*-skill.sh` (shell) and `packages/core/src/skills/*.test.ts` (TypeScript).
+- **Eval definitions** use rubric-based grading with trigger descriptions, test inputs, expected behaviors, and grading criteria.
+- **TOON compliance assertions** validate that skills reference correct event kinds, fee calculations, and API patterns.
+- **Skill tests are NOT in CI** (Epic 9 retro A1) -- currently run locally only.
+
 ### Chain Configuration Rules (Epic 3)
 
 **resolveChainConfig() (Story 3.2):**
@@ -2116,7 +2271,7 @@ packages/rig/src/
 **Git/Repository:**
 
 - **Main branch:** `main` (default for PRs)
-- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics, `epic-4` for TEE, `epic-5` for DVM, `epic-6` for Advanced DVM Coordination, `epic-7` for ILP Address Hierarchy, `epic-8` for The Rig)
+- **Epic branches:** `epic-N` for feature work (e.g., `epic-1` for SDK, `epic-2` for Town, `epic-3` for Economics, `epic-4` for TEE, `epic-5` for DVM, `epic-6` for Advanced DVM Coordination, `epic-7` for ILP Address Hierarchy, `epic-8` for The Rig, `epic-9` for Skill Pipeline + Socialverse)
 - **Monorepo with pnpm workspaces** -- All packages managed together
 - **Conventional commits** -- Use prefixes: `feat(story):`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`
 - **Story-scoped commits** -- `feat(4-2): TEE attestation events`
@@ -2223,7 +2378,7 @@ packages/rig/src/
 - **BTP prefix exchange is fail-closed** -- `extractPrefixFromHandshake()` throws `ToonError` if prefix is absent or invalid. Nodes MUST NOT fall back to hardcoded addresses.
 - **Multi-peered nodes have multiple ILP addresses** -- One per upstream peer, tracked by `AddressRegistry`. Primary address is the first inserted (insertion-order stable via Map).
 - **IlpPeerInfo backward compatibility** -- Pre-Epic-7 kind:10032 events lack `ilpAddresses` and `feePerByte`. Parsers default to `ilpAddresses: [ilpAddress]` and `feePerByte: '0'`. No migration required.
-- **resolveRouteFees() rebuilds fee map per call** -- Acceptable for v1 (tens to low hundreds of peers). Needs caching for 1000+ peers (Epic 7 retro A7).
+- **resolveRouteFees() uses fingerprint-based cache** -- Cache rebuilt only when discovered peers change (Epic 9 fix, resolved Epic 8 retro A6). Fingerprint invalidation ensures correctness.
 - **Unknown intermediaries default to feePerByte 0n** -- `resolveRouteFees()` emits a warning but does not fail. Graceful degradation for partially-discovered networks.
 - **publishEvent() amount override changes fee semantics** -- Without amount: total = `basePricePerByte * bytes + hopFees`. With amount: total = `amount + hopFees` (basePricePerByte is NOT added on top).
 - **settleCompute() is deprecated but functional** -- Emits console warning. Prepaid model replaces it: use `publishEvent()` with `{ amount }` option.
@@ -2317,44 +2472,45 @@ packages/rig/src/
 
 ---
 
-## Known Action Items (From Epic 8 Final Retro)
+## Known Action Items (From Epic 9 Final Retro)
 
-**Must-Do for Epic 9:**
-- A1: **Address accumulated E2E test debt (~31+ deferred items across Epics 3-8)** -- Forge-UI added Playwright E2E tests but SDK/core E2E debt remains. This is the project's highest-priority quality risk. (Carried from Epic 7 A1, 2 epics deferred)
-- A2: **Implement BootstrapService.republish() for kind:10032 re-advertisement** -- `addUpstreamPeer`/`removeUpstreamPeer` and prefix claims update in-memory state but cannot trigger kind:10032 republication. Blocks correct multi-address advertisement after topology changes. (Carried from Epic 7 A2, 2 epics deferred)
+**Must-Do for Epic 10:**
+- A1: **Configure CI burn-in for skill tests** -- Skill structural tests (`tests/skills/test-*-skill.sh`) not in CI pipeline. Quality could degrade silently. (New from Epic 9)
+- A2: **Execute Playwright E2E tests against live infra** -- 7+ Playwright specs never executed. E2E debt growing with socialverse test harnesses added. (Carried from Epic 8 A2, 2 epics)
+- A3: **Verify 4 manual ACs after first Arweave deployment** -- AC9, AC10, AC11, AC13 from Story 8-7 still pending. (Carried from Epic 8 A3, 2 epics)
 
 **Should-Do:**
-- A3: Standardize injectable time pattern across coordination components -- SwarmCoordinator uses `setTimeout` while WorkflowOrchestrator uses injectable `now()`. (Carried from Epic 6 A2, 3 epics deferred)
-- A4: Establish load testing infrastructure -- Deferred 8 epics (from Epic 1 NFR). Route-aware fee calculation and multi-address resolution need performance baselines.
-- A5: Set up facilitator ETH monitoring -- Deferred 6 epics (from Epic 3 A8). x402 facilitator account needs ETH monitoring.
-- A6: Commit flake.lock -- Deferred 5 epics (from Epic 4 A5). Requires Nix installation.
-- A7: Add caching to resolveRouteFees() -- Per-call Map rebuild from discovered peers is acceptable for v1 but will not scale to 1000+ peers. (Carried from Epic 7 A7, 2 epics deferred)
-- A8: Formal SLOs for DVM job lifecycle -- With prepaid model and route-aware fees, end-to-end latency SLOs are increasingly relevant. (Carried from Epic 6 A7, 3 epics deferred)
-- A9: Implement startRig() server mode -- `packages/rig/src/index.ts` is an ATDD stub. The server-side rig (NIP-34 event handling, Forgejo integration, git operations) is not yet implemented. ATDD stubs exist for handlers, identity, and git operations. (New from Epic 8)
-- A10: Production Arweave deployment -- `deploy-forge-ui.mjs` supports `--wallet` mode for paid authenticated uploads but has not been run against production Arweave. Free tier (`--dev`) limited to 100KB per file. (New from Epic 8)
+- A4: Create eval scaffold/template generator -- Recurring eval authoring pattern is repetitive. Automation would improve consistency. (New from Epic 9)
+- A5: Backfill audit artifacts for 24 batch stories -- Stories 9-11 through 9-34 lack individual reports. (New from Epic 9)
+- A6: Establish load testing infrastructure -- Deferred 9 epics (from Epic 1 NFR). (Carried)
+- A7: Formal SLOs for DVM job lifecycle -- With Arweave DVM + compute primitive in Epic 10, SLOs increasingly relevant. (Carried from Epic 6, 4 epics deferred)
+- A8: Set up facilitator ETH monitoring -- Deferred 7 epics (from Epic 3 A8). (Carried)
+- A9: Update Docker E2E infra for Arweave DVM handler -- E2E stubs still pending Docker infra update. (Carried from Epic 8 A4, 2 epics)
 
 **Nice-to-Have:**
-- A11: Runtime re-publication of kind:10035 on handler/reputation change -- Carried from Epic 5 A11. Now also relevant for kind:10032 (see A2).
-- A12: Weighted WoT model for reputation scoring -- Carried from Epic 6 A9.
-- A13: Publish @toon-protocol/town to npm -- Carried from Epic 2 A3 (7 epics deferred).
-- A14: Fix NIP-33/NIP-16 doc discrepancy -- Carried from Epic 3 A13 (6 epics deferred).
-- A15: Add protocol-level reputation score verification -- Carried from Epic 6 A6.
-- A16: Docker E2E for workflow chain + swarm coordination -- Carried from Epic 6 A12/A13.
+- A10: Commit flake.lock -- Carried from Epic 4 (6 epics deferred). Requires Nix.
+- A11: Publish @toon-protocol/town to npm -- Carried from Epic 2 (8 epics deferred).
+- A12: Improve blame algorithm (full Myers diff) -- Carried from Epic 8 A11.
+- A13: Weighted WoT model for reputation scoring -- Carried from Epic 6 (4 epics deferred).
+- A14: Docker E2E for workflow chain + swarm coordination -- Carried from Epic 6 (4 epics deferred).
+- A15: Add Arweave object caching to Forge-UI -- Carried from Epic 8 A13.
+
+**Resolved Action Items (from Epic 8 retro, resolved at Epic 9 start):**
+- ~~A1 (critical): ESLint gap for packages/rig~~ RESOLVED -- 110 ESLint errors fixed across 22 files.
+- ~~A6: Route fees caching~~ RESOLVED -- Fingerprint-based cache with invalidation added to `resolveRouteFees()`.
 
 **Resolved Action Items (from Epic 7 retro, resolved during Epic 8):**
 - ~~A1 (partial): E2E test debt~~ PARTIALLY ADDRESSED -- Forge-UI added 6 Playwright E2E spec files + 15 integration test files. Core/SDK E2E debt remains.
 
-**Resolved Action Items (from Epic 5 retro, resolved at Epic 6 start):**
-- ~~A1: Standardize test counting between pipeline steps~~ RESOLVED (root vitest.config.ts now includes `docker/src/**/*.test.ts`)
-- ~~A4: Split large test files~~ RESOLVED (`dvm.test.ts` split into `dvm-builders.test.ts`, `dvm-parsers.test.ts`, `dvm-roundtrip.test.ts`, `dvm-constants.test.ts`)
-- ~~A7: Harden parseJobResult() numeric amount validation~~ RESOLVED (added `/^\d+$/` regex validation, 6 new tests)
-
-**Resolved Action Items (from Epic 4 retro, resolved at Epic 5 start):**
-- ~~A1: Set up genesis node in CI~~ RESOLVED (CI pipeline enhanced with security audit, format check, SDK E2E infra)
-- ~~A2: Replace `console.error` with structured logger~~ RESOLVED (`createLogger()` in `@toon-protocol/core/logger.ts`, 17 tests)
-- ~~A3: Deploy FiatTokenV2_2 on Anvil~~ RESOLVED (`scripts/deploy-mock-usdc.sh`)
-- ~~A4: Create project-level semgrep configuration~~ RESOLVED (`.semgrep.yml` + `.semgrepignore`)
-- ~~A5: Address transitive dependency vulnerabilities~~ RESOLVED (pnpm.overrides patched 8 vulns)
+**Resolved Action Items (from earlier epics):**
+- ~~Epic 5 A1: Standardize test counting~~ RESOLVED (root vitest.config.ts)
+- ~~Epic 5 A4: Split large test files~~ RESOLVED (dvm.test.ts split)
+- ~~Epic 5 A7: Harden parseJobResult() validation~~ RESOLVED
+- ~~Epic 4 A1: Set up genesis node in CI~~ RESOLVED
+- ~~Epic 4 A2: Structured logger~~ RESOLVED (`createLogger()`)
+- ~~Epic 4 A3: Deploy FiatTokenV2_2 on Anvil~~ RESOLVED
+- ~~Epic 4 A4: Project-level semgrep~~ RESOLVED
+- ~~Epic 4 A5: Transitive dependency vulnerabilities~~ RESOLVED
 
 ---
 
@@ -2391,6 +2547,12 @@ packages/rig/src/
 - Use FULFILL data field (not ctx.accept()) when handler needs to relay data back via ILP FULFILL -- return `{ accept: true, data }` directly (Epic 8, Arweave DVM handler pattern)
 - Use multi-gateway fallback with timeout for Arweave gateway access (Epic 8, Forge-UI arweave-client)
 - Browser SPA code must use zero Node.js APIs -- all `fetch()`, `WebSocket`, `AbortSignal.timeout()` (Epic 8, Forge-UI)
+- Use NIP-to-TOON pipeline (Story 9-2) for converting any new NIP to a TOON-aware skill -- 13-step process, consistent structure (Epic 9)
+- All skills must reference `nostr-protocol-core` and `toon-protocol-context.md` for shared protocol context -- no skill should independently redefine protocol mechanics (Epic 9, team agreement #9)
+- Batch processing is acceptable for repetitive, low-risk stories that follow an established pattern (Epic 9, team agreement #8)
+- Factory-pattern skills (like `nip-to-toon-skill`) are first-class reusable assets -- new NIPs can be converted to skills without a full epic (Epic 9, team agreement #10)
+- Skills use SKILL.md + references/ + evals/ structure -- consistent progressive disclosure across all skill families (Epic 9)
+- Skill structural validation uses shell scripts in `tests/skills/` and TypeScript tests in `packages/core/src/skills/` (Epic 9)
 
 **For Humans:**
 

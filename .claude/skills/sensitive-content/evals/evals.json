@@ -1,0 +1,171 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I add a content warning to a note on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-36 and how does the content-warning tag work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I mark content as sensitive on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I add a spoiler warning to my post?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I tag NSFW content on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "Can I add a content warning to a long-form article on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What reason should I use for a content warning on violent content?",
+      "should_trigger": true
+    },
+    {
+      "query": "How should clients handle the content-warning tag?",
+      "should_trigger": true
+    },
+    {
+      "query": "Is this content sensitive enough for a CW?",
+      "should_trigger": true
+    },
+    {
+      "query": "How much does adding a content warning cost on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I delete a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I encrypt a direct message on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I mute someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a patch using NIP-34?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does the protected event dash tag work?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "add-content-warning-to-note",
+      "prompt": "I want to publish a kind:1 note on TOON that describes a violent incident. How do I add a content warning so readers can choose whether to view it?",
+      "expected_output": "Add the content-warning tag to your kind:1 event's tags array: [\"content-warning\", \"violence\"]. This tells clients to hide the content behind a click-through warning displaying 'violence' as the reason. Sign the event, calculate the fee (the tag adds ~32 bytes, approximately $0.0003 extra at default basePricePerByte of 10n), and publish via publishEvent() from @toon-protocol/client. The content warning is part of the signed event and cannot be added after publishing. Clients that support NIP-36 will hide the content; clients that do not will display it normally.",
+      "rubric": {
+        "correct": "Instructs to add [\"content-warning\", \"violence\"] to the tags array. Uses publishEvent() from @toon-protocol/client. Explains the fee impact is negligible (~$0.0003). Notes that clients hide content behind a click-through. Explains the tag is part of the signed event. Does NOT use raw WebSocket writes.",
+        "acceptable": "Correctly describes the content-warning tag and uses publishEvent(), but may not calculate exact fee or fully explain client-side behavior.",
+        "incorrect": "Does not mention the content-warning tag, uses raw WebSocket patterns, omits payment entirely, or claims content warnings provide encryption or access control."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for the content-warning tag overhead",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response explains that content warnings are for reader choice, not censorship",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "content-warning-on-article",
+      "prompt": "I'm publishing a kind:30023 article on TOON about wartime photography that includes descriptions of graphic images. How do I add a content warning with a specific reason?",
+      "expected_output": "Add [\"content-warning\", \"graphic violence, disturbing imagery\"] to your kind:30023 event's tags array alongside the d, title, summary, and other article tags. The reason string is freeform -- use a specific description so readers can make an informed decision. The tag adds approximately 55 bytes (~$0.0006 extra), negligible relative to the article's base cost. Publish via publishEvent(). Note: kind:30023 is a parameterized replaceable event. If you update the article later, include the content-warning tag in the updated version -- it does not carry over automatically. Write the summary field carefully so it does not itself contain the graphic content.",
+      "rubric": {
+        "correct": "Adds content-warning tag with specific reason to the kind:30023 event. Uses publishEvent(). Calculates negligible fee overhead. Notes that replaceable event updates must re-include the tag. Advises careful summary writing. Uses a specific reason rather than generic 'sensitive'.",
+        "acceptable": "Correctly describes adding the content-warning tag to an article and uses publishEvent(), but may not mention the replaceable event update consideration or summary advice.",
+        "incorrect": "Uses raw WebSocket patterns, omits payment, suggests a different mechanism than the content-warning tag, or claims the tag carries over to updated versions automatically."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response notes the negligible fee overhead of the content-warning tag on articles",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response recommends a specific reason rather than generic warning",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "spoiler-warning",
+      "prompt": "I want to post a note discussing the ending of a popular TV show on TOON. How do I add a spoiler warning so I don't ruin it for others?",
+      "expected_output": "Add [\"content-warning\", \"spoiler: Show Title\"] to your kind:1 event's tags array. Include the media title in the reason so readers who have already seen it can safely click through, while those who haven't can skip it. Do NOT put the actual spoiler in the reason string -- keep the spoiler in the content field behind the warning. The tag adds approximately 50-60 bytes (~$0.0005 extra), negligible. Publish via publishEvent() from @toon-protocol/client. Clients that support NIP-36 will hide the content behind a click-through displaying your reason.",
+      "rubric": {
+        "correct": "Uses content-warning tag with spoiler reason including the media title. Warns against putting actual spoilers in the reason string. Uses publishEvent(). Notes negligible cost. Explains that including the title helps readers decide whether to click through.",
+        "acceptable": "Correctly describes the content-warning tag with spoiler reason and uses publishEvent(), but may not explicitly warn against spoilers in the reason string.",
+        "incorrect": "Does not use the content-warning tag, puts the spoiler in the reason string, uses raw WebSocket, or suggests a different spoiler mechanism."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes cost awareness for the spoiler warning tag",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response warns against putting actual spoilers in the reason string",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "querying-content-warned-events",
+      "prompt": "How do I find all events with content warnings on a TOON relay? Is it free to query?",
+      "expected_output": "Subscribe using a NIP-01 filter with the #content-warning tag filter: { \"#content-warning\": [] } to find all events that have the content-warning tag. Combine with kinds or authors filters to narrow results. Reading is free on TOON -- no ILP payment is needed. TOON relays return TOON-format strings in EVENT messages, not JSON objects -- use the TOON decoder to parse responses. Note that not all relays support filtering by arbitrary tag names; if the relay does not support #content-warning filtering, fetch events by kind or author and filter client-side.",
+      "rubric": {
+        "correct": "Uses #content-warning tag filter in NIP-01 subscription. Correctly identifies this as a free read operation. Mentions TOON-format strings and the need for a decoder. Notes that relay support for arbitrary tag filtering may vary. Does NOT suggest payment is needed.",
+        "acceptable": "Correctly describes the subscription filter and mentions free reading on TOON, but may not note relay support variability for arbitrary tag filtering.",
+        "incorrect": "Assumes standard JSON responses, suggests payment is needed to read, or does not describe a valid filter structure."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies querying as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response correctly notes that reading/querying is free on TOON",
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has interaction-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    },
+    {
+      "id": "content-warning-decision",
+      "prompt": "I'm not sure if my post needs a content warning. It discusses drug use but in a clinical/educational context. Should I add a CW on TOON?",
+      "expected_output": "Yes, err on the side of adding a content warning. Use [\"content-warning\", \"drug use\"] in your event's tags. The cost is negligible (~$0.0003 extra). Even in an educational context, some readers may find drug-related content triggering or uncomfortable. The asymmetry of consequences favors proactive use: an unnecessary content warning is a minor inconvenience (one extra click), while a missing one on content that triggers someone causes real harm. On TOON, where publishing costs money and content quality is higher, appropriate content warnings reinforce the quality signal and build trust with your audience.",
+      "rubric": {
+        "correct": "Recommends adding the content warning. Uses the content-warning tag with 'drug use' reason. Notes negligible cost. Explains the asymmetry of consequences (false positive vs false negative). Connects to TOON's quality signal dynamic. Does NOT dismiss the concern or suggest skipping the warning.",
+        "acceptable": "Recommends adding the content warning and mentions the negligible cost, but may not fully articulate the asymmetry argument or TOON quality signal.",
+        "incorrect": "Recommends against adding a content warning, dismisses the concern, suggests no warning is needed for educational content, or uses raw WebSocket patterns."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API or correctly describes the tag without raw WebSocket",
+        "toon-fee-check: Response notes the negligible cost of adding a content warning",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response applies the 'when in doubt, add it' principle with reasoning",
+        "trigger-coverage: Description includes both protocol and social-situation triggers"
+      ]
+    }
+  ]
+}

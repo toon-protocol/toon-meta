@@ -1,0 +1,167 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is kind:7 and how do reactions work on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I repost someone's note on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "Should I downvote this content or is the minus reaction too harsh?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does comment threading work with kind:1111 on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the difference between kind:6 and kind:16 reposts?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I comment on a long-form article on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "Is it worth reacting to this post or should I save my money?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do emoji reactions work on Nostr with NIP-25?",
+      "should_trigger": true
+    },
+    {
+      "query": "When should I repost vs comment on someone's content?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does encrypted messaging work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a group chat on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I set up NIP-05 DNS verification?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I store files using Nostr DVM?",
+      "should_trigger": false
+    },
+    {
+      "query": "What is the fee calculation for multi-hop routing on ILP?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "reaction-creation",
+      "prompt": "I want to react to a short note on a TOON relay with a thumbs-up. The relay's basePricePerByte is 10 micro-USDC. How do I do this and what will it cost?",
+      "expected_output": "Construct a kind:7 event with content '+', e tag pointing to the target event, and p tag for the target author. Publish via publishEvent() from @toon-protocol/client. Approximate fee: ~200 bytes at 10n basePricePerByte = ~$0.002. Reactions cost money on TOON and are intentional signals of value.",
+      "rubric": {
+        "correct": "Constructs a kind:7 event with content set to '+' (or emoji). Includes e tag pointing to the target event and p tag for the target author. Publishes via publishEvent() from @toon-protocol/client. Calculates approximate fee: ~200 bytes * 10n = ~$0.002. Mentions that reactions cost money on TOON and are intentional signals of value. Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses publishEvent() and constructs a kind:7 event with correct tags, but may not calculate exact fee or discuss the economic implications of paid reactions.",
+        "incorrect": "Uses raw WebSocket patterns, omits payment entirely, uses wrong event kind, or does not include e and p tags."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation or cost awareness for reactions",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has interaction-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response constructs a kind:7 event with e tag and p tag"
+      ]
+    },
+    {
+      "id": "downvote-social-implications",
+      "prompt": "Someone posted content I strongly disagree with on TOON. Should I use the minus reaction to downvote it? What are the implications?",
+      "expected_output": "The minus reaction on a paid network is confrontational -- spending money to express disapproval is a deliberate act. Consider alternatives like commenting with a reasoned counterpoint. If downvoting, construct a kind:7 event with content '-', e tag, and p tag, published via publishEvent(). Cost is ~$0.002. Consult the interaction decision tree from nostr-social-intelligence.",
+      "rubric": {
+        "correct": "Explains the social weight of the minus reaction on a paid network: spending money to express disapproval is confrontational. Discusses alternatives (commenting with a reasoned counterpoint may be more constructive). If the user decides to downvote, describes constructing a kind:7 event with content '-', e tag, and p tag, published via publishEvent(). Notes the cost (~$0.002) and that it is a deliberate economic signal. References the interaction decision tree from nostr-social-intelligence.",
+        "acceptable": "Correctly describes how to create a minus reaction and acknowledges the social implications, but may not discuss alternatives or reference the interaction decision tree.",
+        "incorrect": "Does not address the social implications of downvoting on a paid network, uses raw WebSocket patterns, or treats downvoting as casual/costless."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API if describing how to downvote",
+        "toon-fee-check: Response includes cost awareness for the downvote",
+        "social-context-check: Response addresses the social implications of paid downvoting",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response discusses the confrontational nature of minus reactions on a paid network",
+        "Response suggests considering alternatives like commenting"
+      ]
+    },
+    {
+      "id": "repost-with-embedding",
+      "prompt": "I found a great kind:1 note on TOON that I want to repost. Should I embed the original content or leave the content field empty? What are the tradeoffs?",
+      "expected_output": "Two options: bare repost (empty content, ~200 bytes, ~$0.002) vs embedded repost (serialized original event in content, ~500-1500 bytes, ~$0.005-$0.015). Embedding ensures content persistence if the original is deleted but costs more. Use kind:6 for kind:1 reposts with e tag and p tag. Publish via publishEvent(). On TOON, reposting is paid amplification signaling genuine endorsement.",
+      "rubric": {
+        "correct": "Explains both options: bare repost (empty content, ~200 bytes, ~$0.002) vs embedded repost (serialized original event in content, ~500-1500 bytes, ~$0.005-$0.015). Embedding ensures content persistence even if original is deleted but costs more. Uses kind:6 for kind:1 reposts. Includes e tag and p tag. Publishes via publishEvent(). Notes that reposting on TOON is paid amplification signaling genuine endorsement.",
+        "acceptable": "Correctly describes the difference between embedded and bare reposts with publishEvent(), but may not calculate exact costs or discuss the social signal of paid amplification.",
+        "incorrect": "Does not distinguish between embedded and bare reposts, uses wrong event kind, or uses raw WebSocket patterns."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes cost comparison between embedded and bare reposts",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has interaction-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response explains the tradeoff between content persistence and cost"
+      ]
+    },
+    {
+      "id": "comment-threading",
+      "prompt": "I want to comment on a kind:30023 article on TOON, and then someone else wants to reply to my comment. Walk me through the threading model for kind:1111 comments.",
+      "expected_output": "Two-step threading: (1) Top-level comment uses uppercase E tag pointing to the article, K tag with '30023', p tag for author, comment text in content, published via publishEvent(). (2) Reply uses same uppercase E tag (root article), plus lowercase e tag pointing to parent comment, lowercase k tag with '1111', p tags for both author and commenter. Root scope tag is always present regardless of nesting depth. Cost scales with comment length.",
+      "rubric": {
+        "correct": "Describes two-step threading: (1) Top-level comment uses uppercase E tag pointing to the article event, K tag with '30023', p tag for author, and comment text in content. Published via publishEvent(). (2) Reply to comment uses same uppercase E tag (root article), plus lowercase e tag pointing to the parent comment, lowercase k tag with '1111' (parent kind), K tag, p tags for both author and commenter. Explains that the root scope tag is always present regardless of nesting depth. Notes cost scales with comment length.",
+        "acceptable": "Correctly describes the uppercase/lowercase tag distinction and uses publishEvent(), but may not fully explain deep threading or the role of K tags.",
+        "incorrect": "Confuses uppercase and lowercase tags, does not maintain root scope tag in replies, uses wrong event kind, or uses raw WebSocket patterns."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for both comment and reply",
+        "toon-fee-check: Response includes cost awareness for comments",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has interaction-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response correctly describes uppercase E tag for root scope, lowercase e tag for reply threading, and lowercase k tag with 1111 for parent kind"
+      ]
+    },
+    {
+      "id": "reading-reactions",
+      "prompt": "I want to see all reactions on a specific event on a TOON relay. How do I fetch and parse them?",
+      "expected_output": "Subscribe using NIP-01 filter with kinds:[7] and #e:[<event-id>] to find reactions on a specific event. TOON relays return TOON-format strings in EVENT messages, not JSON objects -- use the TOON decoder to parse. Extract the content field to determine reaction type (+, -, emoji). Reading is free (no ILP payment needed). Also filter by kinds:[6, 16] for reposts or kinds:[1111] for comments.",
+      "rubric": {
+        "correct": "Subscribes using NIP-01 filter with kinds:[7] and #e:[<event-id>] to find reactions targeting a specific event. Explains that TOON relays return TOON-format strings in EVENT messages, not JSON objects. Instructs to use the TOON decoder to parse responses. Then extract content field to determine reaction type (+, -, emoji). Reading is free (no ILP payment needed). Can also filter by kinds:[6, 16] for reposts or kinds:[1111] for comments on the same event.",
+        "acceptable": "Correctly describes the subscription filter and mentions TOON format, but may not reference the specific decoder or fully explain parsing the content field for reaction types.",
+        "incorrect": "Assumes standard JSON responses from the relay, suggests JSON.parse directly on the EVENT message, or suggests payment is needed to read."
+      },
+      "assertions": [
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has interaction-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses NIP-01 filter with kinds:[7] and #e tag filter",
+        "Response mentions reading is free on TOON"
+      ]
+    }
+  ]
+}

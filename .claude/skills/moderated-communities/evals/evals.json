@@ -1,0 +1,176 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do moderated communities work on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I post to a community on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does community moderation work with NIP-72?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is a kind:34550 community definition?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do moderators approve posts in a community?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is a kind:4550 approval event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a community on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does cross-posting to communities work?",
+      "should_trigger": true
+    },
+    {
+      "query": "What are the uppercase A/P/K tags for community posts?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I discover communities and read approved posts?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do relay groups work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a group on a relay?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does encrypted messaging work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do reactions work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I search for content on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file using Nostr DVM?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I run a poll on Nostr?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "community-post",
+      "prompt": "I want to post to a moderated community on TOON. The community is defined by pubkey abc123 with d tag 'toon-dev'. How do I construct and publish the post?",
+      "expected_output": "Construct a kind:1111 event with paired uppercase and lowercase tags. Uppercase tags scope to the community: A tag ['A', '34550:abc123:toon-dev'], P tag ['P', 'abc123'], K tag ['K', '34550']. For a top-level post, lowercase tags mirror the uppercase: a tag ['a', '34550:abc123:toon-dev'], p tag ['p', 'abc123'], k tag ['k', '34550']. Set content to your post text. Sign the event. Calculate the fee based on serialized size (~300-500 bytes at default basePricePerByte, approximately $0.003-$0.005). Publish via publishEvent() from @toon-protocol/client. The post requires moderator approval (kind:4550) before appearing in the curated community feed.",
+      "rubric": {
+        "correct": "Constructs kind:1111 with correct uppercase A/P/K tags and lowercase a/p/k tags referencing the community. Signs the event. Calculates approximate byte cost. Publishes via publishEvent(). Mentions that moderator approval is required for visibility.",
+        "acceptable": "Uses publishEvent() with kind:1111 and includes uppercase tags correctly, but may not fully explain the lowercase tag mirroring or exact byte cost.",
+        "incorrect": "Uses raw WebSocket patterns, omits uppercase A/P/K tags, uses kind:1 instead of kind:1111, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for community post byte cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has community-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes uppercase A/P/K tags with correct community reference",
+        "Response mentions moderator approval requirement for community visibility"
+      ]
+    },
+    {
+      "id": "moderator-approval",
+      "prompt": "As a community moderator on TOON, I want to approve a post (event ID evt789) by author def456 for the community defined by pubkey abc123 with d tag 'toon-dev'. How do I create the approval event?",
+      "expected_output": "Create a kind:4550 approval event. Include: community a tag ['a', '34550:abc123:toon-dev'], post reference e tag ['e', 'evt789', '<relay-url>'], author p tag ['p', 'def456'], and the original post's full event JSON as a JSON-encoded string in the content field. Sign the event. The approval is larger than the original post because it embeds the full post content. Calculate fee based on serialized size (~500-1500 bytes depending on post size, approximately $0.005-$0.015). Publish via publishEvent() from @toon-protocol/client. Multiple moderators should approve the same post for resilience against moderator rotation.",
+      "rubric": {
+        "correct": "Uses kind:4550 with community a tag, post e tag, author p tag. Embeds original post as JSON in content. Publishes via publishEvent(). Calculates approximate byte cost. Mentions multiple moderator approvals for resilience.",
+        "acceptable": "Correctly identifies kind:4550 with required tags and publishEvent(), but may not mention embedded content size impact or multiple approvals.",
+        "incorrect": "Uses wrong event kind, omits community a tag or post reference, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for approval event cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has community-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes community a tag and post reference in kind:4550",
+        "Response mentions JSON-encoded original post content in the approval event"
+      ]
+    },
+    {
+      "id": "approval-model-explanation",
+      "prompt": "How does NIP-72 moderated community moderation differ from NIP-29 relay groups? Explain the different trust models.",
+      "expected_output": "NIP-72 moderated communities use an approval-based model: anyone can post to a community (kind:1111 with uppercase A/P/K tags), but posts only appear in the curated feed after a moderator issues an approval event (kind:4550). The community definition (kind:34550) lists moderators via p tags with 'moderator' marker. NIP-29 relay groups use a relay-enforced model: the relay validates group membership before accepting events. Non-members are rejected outright. Communities are public curated feeds; groups are private membership spaces. On TOON, communities have double friction (pay to post + moderator approval), while groups have dual barriers (social membership + ILP payment).",
+      "rubric": {
+        "correct": "Clearly distinguishes approval-based (NIP-72) from relay-enforced (NIP-29). Explains post-then-approve workflow for communities. Mentions kind:34550 for definitions and kind:4550 for approvals. Contrasts public curation vs private membership. Notes TOON economic differences.",
+        "acceptable": "Correctly describes the fundamental difference between approval-based and relay-enforced models, but may not detail all event kinds or TOON-specific economics.",
+        "incorrect": "Conflates the two models, claims communities use relay enforcement, or describes them as equivalent."
+      },
+      "assertions": [
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has community-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response distinguishes approval-based (NIP-72) from relay-enforced (NIP-29)",
+        "Response explains the post-then-approve workflow for communities"
+      ]
+    },
+    {
+      "id": "community-fee-awareness",
+      "prompt": "I want to create a community on TOON with 4 moderators, then post 3 times to it. One of my posts will be cross-posted to 2 other communities. How much will all of this cost me approximately?",
+      "expected_output": "Community definition (kind:34550) with 4 moderators: approximately 800-1200 bytes (~$0.008-$0.012). Each moderator p tag adds ~100-120 bytes. Three community posts (kind:1111): approximately 300-500 bytes each (~$0.003-$0.005 each), totaling ~$0.009-$0.015. Cross-posting to 2 other communities (kind:6 or kind:16): approximately 300-500 bytes each (~$0.003-$0.005 each), totaling ~$0.006-$0.010 for 2 cross-posts. Total estimated cost: approximately $0.023-$0.037. Published via publishEvent() from @toon-protocol/client. Note: moderator approval events (kind:4550) are paid by the moderators, not the post author.",
+      "rubric": {
+        "correct": "Calculates per-event cost for community definition, posts, and cross-posts. Totals the combined cost. Uses publishEvent(). Notes that approval costs are borne by moderators, not the author. Provides reasonable byte estimates.",
+        "acceptable": "Provides reasonable cost estimates and uses publishEvent(), but may not break down each category or mention moderator approval cost separation.",
+        "incorrect": "Claims community creation or posting is free, does not calculate costs, or ignores the ILP payment requirement."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes detailed fee calculation for community definition, posts, and cross-posts",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has community-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response calculates per-event and total cost across multiple event types"
+      ]
+    },
+    {
+      "id": "discover-communities",
+      "prompt": "I want to discover moderated communities on TOON and read the approved posts in a specific community. How do I subscribe and parse the data?",
+      "expected_output": "To discover communities, subscribe with filter kinds: [34550] to receive community definitions. For a specific community's approved posts, subscribe with kinds: [4550] and #a filter matching '34550:<community-author-pubkey>:<d-identifier>'. The kind:4550 approval events contain the original post content as a JSON-encoded string in the content field -- parse this to read the approved post. You can also subscribe to all community posts (including unapproved) with kinds: [1111] and #A filter (uppercase A tag). TOON relays return TOON-format strings in EVENT messages, not standard JSON objects -- use the TOON decoder to parse responses. All reading is free on TOON.",
+      "rubric": {
+        "correct": "Specifies correct filter kinds for community definitions (34550) and approvals (4550). Uses a tag filter for community-specific queries. Explains JSON-encoded content in approval events. Mentions TOON-format parsing. Notes reading is free.",
+        "acceptable": "Correctly identifies subscription filters and TOON-format parsing, but may not explain the JSON-encoded content field or uppercase A tag filtering.",
+        "incorrect": "Uses wrong filter kinds, assumes standard JSON responses, or claims reading costs money."
+      },
+      "assertions": [
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has community-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses correct filter kinds for community definitions and approval events",
+        "Response mentions reading is free on TOON"
+      ]
+    }
+  ]
+}

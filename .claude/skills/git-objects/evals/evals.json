@@ -1,0 +1,154 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I create a git blob object?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the binary format for a git tree entry?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I construct a git commit object for Arweave?",
+      "should_trigger": true
+    },
+    {
+      "query": "How is a git SHA-1 hash computed?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I map a Nostr pubkey to a git author?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I prepare git objects for kind:5094 upload?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the difference between hex SHA-1 and raw binary SHA-1 in tree entries?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I sort entries in a git tree object?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the blob header format with the null byte?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does content-addressed storage work in git?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I submit a patch using NIP-34?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file using NIP-96?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I encrypt a direct message on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a poll on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I set my status on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a DVM job request?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "construct-blob-and-hash",
+      "prompt": "I have a file containing 'hello world\\n' (12 bytes). Walk me through constructing the git blob object, computing its SHA-1, and preparing it for kind:5094 upload on TOON.",
+      "expected_output": "Construct the blob by prepending the header 'blob 12\\0' (8 bytes) to the file content (12 bytes), producing a 20-byte object. The header format is: type string, space, decimal size string, null byte. Compute SHA-1 of the full 20 bytes: 95d09f2b10159347eece71399a7e2e907ea3df4f. Base64-encode the 20-byte binary object for the kind:5094 i tag. Before uploading, check Arweave for duplicates by querying the Git-SHA tag. Publish the kind:5094 event via publishEvent() with Git-SHA, Git-Type: blob, and Repo tags. Cost depends on the base64-encoded payload size plus event overhead.",
+      "rubric": {
+        "correct": "Constructs blob with correct header format (blob <size>\\0). Computes SHA-1 of header+content (not content alone). Mentions base64 encoding for kind:5094. Uses publishEvent() not raw WebSocket. Includes Git-SHA and Git-Type tags.",
+        "acceptable": "Correctly constructs the blob and computes SHA-1, but may not detail the full kind:5094 upload flow or deduplication check.",
+        "incorrect": "Uses wrong header format, computes SHA-1 of content only, or omits the null byte separator."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:5094, not raw WebSocket",
+        "toon-fee-check: Response mentions cost implications of base64 encoding overhead (~33% size increase)",
+        "toon-format-check: Response mentions TOON-format strings when discussing relay responses",
+        "social-context-check: Response notes deduplication via SHA-1 checking before upload to save money",
+        "trigger-coverage: Description includes both protocol triggers (blob header, SHA-1) and practical triggers (prepare for kind:5094)"
+      ]
+    },
+    {
+      "id": "construct-tree-with-sorting",
+      "prompt": "I need to construct a git tree object with entries: a file 'include.h' (mode 100644), a directory 'include' (mode 040000), and a file 'file.c' (mode 100644). What order do I sort them and how do I encode the SHA-1 in each entry?",
+      "expected_output": "Git tree entries must be sorted using a special rule: directory entries have '/' appended to their name for sorting purposes only. So the sort keys are: 'file.c', 'include/' (directory), 'include.h'. Byte-wise comparison gives order: file.c, include (as include/), include.h. Each entry is formatted as '<mode> <name>\\0<20-byte-raw-sha1>'. Critical: the SHA-1 in tree entries is raw 20-byte binary, NOT the 40-character hex string. Use Buffer.from(hexSha1, 'hex') to convert. The tree content is all entries concatenated with no separator. The header is 'tree <content-byte-length>\\0'.",
+      "rubric": {
+        "correct": "Correctly applies directory-suffix sorting rule (include/ sorts after include.h). Uses raw 20-byte binary SHA-1 in entries, not hex. Correctly formats entries with mode, space, name, null byte, raw SHA-1.",
+        "acceptable": "Gets the sorting order correct and mentions raw binary SHA-1, but may not fully explain the directory-suffix rule.",
+        "incorrect": "Sorts entries alphabetically without the directory-suffix rule, or uses hex SHA-1 in tree entries."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:5094 upload of tree objects",
+        "toon-fee-check: Response mentions tree size calculation for cost estimation",
+        "toon-format-check: Response correctly distinguishes raw binary SHA-1 (tree entries) from hex SHA-1 (commit objects)",
+        "social-context-check: Response notes upload ordering constraint -- referenced blobs must exist on Arweave before the tree",
+        "trigger-coverage: Description includes both protocol triggers (tree entry format, sorting) and practical triggers (construct a git tree)"
+      ]
+    },
+    {
+      "id": "construct-commit-with-nostr-identity",
+      "prompt": "I want to create a git commit object for a TOON user with Nostr pubkey abc123...def456. The root tree SHA-1 is 4b825dc6... and there is one parent commit 01234567.... How do I map the Nostr identity to git author fields?",
+      "expected_output": "Map the Nostr hex pubkey to git author fields: use the pubkey (or kind:0 display name if available) as the name, and <pubkey>@nostr as the email. The commit content is: 'tree 4b825dc6...' line, 'parent 01234567...' line, 'author <name> <pubkey@nostr> <timestamp> +0000' line, 'committer <name> <pubkey@nostr> <timestamp> +0000' line, blank line, then the commit message with trailing newline. SHA-1 values in commits are hex-encoded (40 chars), unlike tree entries which use raw 20-byte binary. The header is 'commit <content-byte-length>\\0'. Upload via kind:5094 with Git-Type: commit after all referenced trees and blobs are on Arweave.",
+      "rubric": {
+        "correct": "Maps pubkey to author name and <pubkey>@nostr email. Uses hex SHA-1 in commit (not raw binary). Includes tree, parent, author, committer lines with blank line before message. Notes upload ordering (commit uploaded last).",
+        "acceptable": "Correctly maps Nostr identity and constructs the commit format, but may not emphasize hex vs raw SHA-1 distinction.",
+        "incorrect": "Uses raw binary SHA-1 in commit, omits the blank line before message, or fails to map Nostr identity correctly."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:5094 upload",
+        "toon-fee-check: Response estimates commit object size and cost",
+        "toon-format-check: Response correctly identifies hex SHA-1 encoding in commit objects",
+        "social-context-check: Response explains Nostr pubkey to git author mapping convention (<pubkey>@nostr email)",
+        "trigger-coverage: Description includes both protocol triggers (commit format, parent SHA) and identity triggers (Nostr pubkey mapping)"
+      ]
+    },
+    {
+      "id": "sha1-verification-and-deduplication",
+      "prompt": "I computed a SHA-1 for a blob but it does not match what git hash-object returns. What are the common mistakes, and how do I use SHA-1 for deduplication on Arweave before uploading?",
+      "expected_output": "Common SHA-1 mismatches: (1) Wrong size -- using total object size instead of content-only size in the header. (2) Missing null byte between header and content. (3) Wrong newline format (\\r\\n instead of \\n in commits). (4) Hex SHA-1 in tree entries instead of raw 20-byte binary. (5) Unsorted tree entries. (6) Size encoded as binary integer instead of decimal ASCII string. For deduplication: before uploading any object via kind:5094, query Arweave GraphQL with the Git-SHA tag value and Repo tag. If results exist, the object is already on Arweave -- skip the upload to save the kind:5094 event cost. This is especially valuable for blobs, where identical file contents across repos share the same SHA-1.",
+      "rubric": {
+        "correct": "Lists multiple common SHA-1 mistakes. Explains Arweave deduplication via Git-SHA tag query. Notes that skipping duplicate uploads saves money on TOON.",
+        "acceptable": "Identifies key mistakes (wrong size, missing null byte) and mentions deduplication, but may not list all common errors.",
+        "incorrect": "Does not identify the content-size vs total-size distinction, or omits deduplication checking."
+      },
+      "assertions": [
+        "toon-write-check: Response identifies kind:5094 upload as the TOON write mechanism",
+        "toon-fee-check: Response notes cost savings from deduplication -- avoiding redundant kind:5094 uploads",
+        "toon-format-check: Response mentions Arweave GraphQL query with Git-SHA tag for deduplication",
+        "social-context-check: Response explains that content addressing enables cross-repo deduplication",
+        "trigger-coverage: Description includes both protocol triggers (SHA-1 computation, hash verification) and economic triggers (deduplication savings)"
+      ]
+    }
+  ]
+}

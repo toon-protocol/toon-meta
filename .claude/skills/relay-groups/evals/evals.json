@@ -1,0 +1,167 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do relay-based groups work on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I join a group on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I post a message in a group chat?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the h tag and how does it work for groups?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a group on a relay?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I manage group members as an admin?",
+      "should_trigger": true
+    },
+    {
+      "query": "NIP-29 groups -- how do group permissions work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I invite someone to a closed group?",
+      "should_trigger": true
+    },
+    {
+      "query": "What are kind:9 and kind:11 group events?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does group moderation work on a relay?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a profile on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I link to another note using nostr: URIs?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do reactions work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does encrypted messaging work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do moderated communities (NIP-72) work?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file using Nostr DVM?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "group-chat-message",
+      "prompt": "I want to post a short message in a group chat on TOON. The group ID is 'dev-chat' and it is hosted on wss://relay.example.com. How do I do this?",
+      "expected_output": "Construct a kind:9 event with the message in the content field. Add an [\"h\", \"dev-chat\"] tag to scope the event to the group. Sign the event. Calculate the fee based on serialized size (~200-400 bytes at default basePricePerByte of 10n, approximately $0.002-$0.004). Publish via publishEvent() from @toon-protocol/client, targeting wss://relay.example.com specifically. The relay validates that you are a group member before accepting the message.",
+      "rubric": {
+        "correct": "Constructs kind:9 with h tag set to 'dev-chat'. Signs the event. Calculates approximate byte cost. Publishes via publishEvent() targeting the specific hosting relay. Mentions relay membership validation. Notes that the event must go to the hosting relay.",
+        "acceptable": "Uses publishEvent() with kind:9 and h tag correctly, but may not calculate exact byte cost or explain relay membership validation.",
+        "incorrect": "Uses raw WebSocket patterns, omits the h tag, sends to a non-hosting relay, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for group message byte cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has group-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response includes h tag with group ID 'dev-chat' in the kind:9 event",
+        "Response specifies that the event must be sent to the hosting relay"
+      ]
+    },
+    {
+      "id": "admin-add-member",
+      "prompt": "As a group admin on TOON, I want to add a new member to a closed group. The group ID is 'private-team' and the new member's pubkey is abc123. What event do I need to create?",
+      "expected_output": "Create a kind:9000 event with [\"h\", \"private-team\"] tag and [\"p\", \"abc123\"] tag identifying the user to add. Sign the event. The relay validates that you have the add-user permission before accepting. Calculate fee based on serialized size (~200-300 bytes, approximately $0.002-$0.003). Publish via publishEvent() from @toon-protocol/client. The relay updates kind:39002 (member list) to include the new member.",
+      "rubric": {
+        "correct": "Uses kind:9000 with h tag and p tag. Mentions add-user permission requirement. Publishes via publishEvent(). Calculates approximate byte cost. Notes that the relay updates the member list (kind:39002).",
+        "acceptable": "Correctly identifies kind:9000 with h and p tags and publishEvent(), but may not mention permission validation or member list update.",
+        "incorrect": "Uses wrong event kind, omits h tag or p tag, or does not mention publishEvent()."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee awareness for admin action cost",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has group-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses kind:9000 with h tag and p tag for the new member"
+      ]
+    },
+    {
+      "id": "relay-authority-model",
+      "prompt": "How is the relay's role in NIP-29 groups different from standard Nostr relay behavior? Explain the trust model.",
+      "expected_output": "In standard Nostr, relays are passive store-and-forward systems that accept any validly signed event. In NIP-29, the relay is the authority for its groups. It validates group membership before accepting group-scoped events (kind:9, kind:11), manages group state (kind:39000 metadata, kind:39001 admins, kind:39002 members) as relay-controlled replaceable events, enforces admin permissions for moderation actions (kind:9000-9009), and can delete events or remove members. Group events are only valid on the hosting relay -- sending them elsewhere fails. On TOON, the relay also enforces ILP payment alongside membership checks.",
+      "rubric": {
+        "correct": "Explains the fundamental difference: relay as authority vs passive store-and-forward. Describes membership validation, relay-managed state, permission enforcement. Mentions that group events are relay-specific. Notes TOON's ILP payment layer on top of membership checks.",
+        "acceptable": "Correctly describes the relay-as-authority model and membership validation, but may not fully explain all group state events or TOON-specific ILP interaction.",
+        "incorrect": "Treats NIP-29 groups as standard Nostr events, does not mention relay authority, or claims group events work across any relay."
+      },
+      "assertions": [
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has group-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response explains relay-as-authority model vs standard store-and-forward",
+        "Response mentions membership validation before event acceptance"
+      ]
+    },
+    {
+      "id": "group-fee-awareness",
+      "prompt": "I am an admin of a TOON group and need to remove 5 disruptive members and delete 10 of their messages. How much will this cost me?",
+      "expected_output": "Removing 5 members requires 5 kind:9001 events, each approximately 200-300 bytes (~$0.002-$0.003 each), totaling approximately $0.010-$0.015. Deleting 10 messages requires 10 kind:9005 events, each approximately 200-300 bytes (~$0.002-$0.003 each), totaling approximately $0.020-$0.030. Combined cost: approximately $0.030-$0.045 for all 15 admin actions. Published via publishEvent() from @toon-protocol/client. Each action requires the appropriate permission (remove-user for kind:9001, delete-event for kind:9005). On TOON, this economic cost encourages deliberate moderation rather than impulsive reactions.",
+      "rubric": {
+        "correct": "Calculates per-action cost for both kind:9001 and kind:9005. Totals the combined cost. Uses publishEvent(). Mentions required permissions for each action type. Notes the economic incentive for deliberate moderation.",
+        "acceptable": "Provides reasonable cost estimates and uses publishEvent(), but may not break down per-action costs or discuss moderation deliberateness.",
+        "incorrect": "Claims admin actions are free, does not calculate costs, or ignores the ILP payment requirement."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes detailed fee calculation for multiple admin actions",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has group-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response calculates per-action and total cost for admin operations"
+      ]
+    },
+    {
+      "id": "subscribe-group-state",
+      "prompt": "I want to monitor a group's current members, admins, and messages on TOON. The group ID is 'builders'. How do I subscribe to the group state?",
+      "expected_output": "Subscribe to three group state feeds: kind:39000 with #d filter for 'builders' (metadata), kind:39001 with #d filter for 'builders' (admin list), and kind:39002 with #d filter for 'builders' (member list). For ongoing messages, subscribe to kinds [9, 11] with #h filter for 'builders'. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects -- use the TOON decoder to parse responses. Group state events are replaceable, so always use the latest version. All subscriptions are free on TOON -- reading costs nothing.",
+      "rubric": {
+        "correct": "Specifies correct filter kinds and tag filters (d tag for state events, h tag for messages). Explains TOON-format parsing requirement. Notes that state events are replaceable. Mentions reading is free.",
+        "acceptable": "Correctly identifies the subscription filters and TOON-format parsing, but may not distinguish d tag vs h tag filtering or explain replaceable event semantics.",
+        "incorrect": "Uses wrong filter tags, assumes standard JSON responses, or claims reading costs money."
+      },
+      "assertions": [
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has group-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses d tag filter for state events and h tag filter for messages",
+        "Response mentions reading is free on TOON"
+      ]
+    }
+  ]
+}

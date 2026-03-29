@@ -1,0 +1,171 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I create a poll on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-88 and how do polls work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I vote on a poll on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I publish a kind:1068 poll event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I respond to a poll with a kind:1018 event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How much does voting cost on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I set a deadline on a poll?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I create a rating poll on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "Does voting on TOON prevent ballot stuffing?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I tally poll results on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I encrypt a direct message on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I send a message to a public chat channel?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I set my status on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I upload a file using NIP-96?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a badge on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a patch using NIP-34?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "create-poll-and-publish",
+      "prompt": "I want to create a simple yes/no poll asking my community whether we should adopt NIP-88 polls. The relay's basePricePerByte is 10 micro-USDC. Walk me through the full flow.",
+      "expected_output": "Construct a kind:1068 event with content set to your poll question (e.g., 'Should we adopt NIP-88 polls?'). Add option tags: ['option', '0', 'Yes'] and ['option', '1', 'No']. Optionally add a relay tag to direct responses to a preferred relay. Sign the event with your Nostr private key. A 2-option poll with a short question is approximately 300 bytes. At basePricePerByte of 10n, the cost is approximately $0.003. Publish via publishEvent() from @toon-protocol/client. Do not use raw WebSocket writes.",
+      "rubric": {
+        "correct": "Uses kind:1068 with option tags indexed from 0. Publishes via publishEvent() not raw WebSocket. Calculates fee (~$0.003 for a simple poll). Notes that poll creation costs money on TOON. Correctly describes the content field as the question text.",
+        "acceptable": "Correctly constructs the kind:1068 event with option tags and uses publishEvent(), but may not calculate exact fees or mention the relay tag.",
+        "incorrect": "Uses wrong event kind, omits option tags, uses raw WebSocket writes, or claims poll creation is free on TOON."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:1068, not raw WebSocket",
+        "toon-fee-check: Response calculates poll creation cost based on basePricePerByte (~$0.003-$0.006)",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response notes that poll creation costs money, filtering low-effort polls",
+        "trigger-coverage: Description includes both protocol triggers (kind:1068, NIP-88) and social-situation triggers (create a poll, run a vote)"
+      ]
+    },
+    {
+      "id": "vote-on-poll",
+      "prompt": "I found a poll event (kind:1068) with ID abc123 that has three options. I want to vote for option 1. How do I cast my vote on TOON, and what does it cost?",
+      "expected_output": "Construct a kind:1018 event with content set to an empty string. Add an e tag referencing the poll event ID: ['e', 'abc123']. Add a response tag with the option index: ['response', '1']. Sign the event. A vote is compact at approximately 200-250 bytes. At default basePricePerByte of 10n, the cost is approximately $0.002. Publish via publishEvent() from @toon-protocol/client. Check for an endsAt tag on the poll first -- if the deadline has passed, your vote may be disregarded by clients. Also check if you have already voted -- duplicate votes waste money and clients deduplicate by pubkey.",
+      "rubric": {
+        "correct": "Uses kind:1018 with empty content. Includes e tag for poll reference and response tag with option index. Publishes via publishEvent(). Calculates vote cost (~$0.002). Advises checking endsAt and existing votes.",
+        "acceptable": "Correctly constructs the kind:1018 event and uses publishEvent(), but may not mention deadline checking or duplicate vote prevention.",
+        "incorrect": "Uses wrong event kind, puts vote choice in content field instead of response tag, uses raw WebSocket, or claims voting is free."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:1018, not raw WebSocket",
+        "toon-fee-check: Response calculates vote cost based on basePricePerByte (~$0.002-$0.003)",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response notes voting costs money and advises checking for duplicates or deadlines",
+        "trigger-coverage: Description includes both protocol triggers (kind:1018, response tag) and social-situation triggers (vote, cast a vote)"
+      ]
+    },
+    {
+      "id": "view-poll-results",
+      "prompt": "I want to see the current results of a poll with event ID def456. How do I aggregate the votes? Is reading results free on TOON?",
+      "expected_output": "Reading poll results is free on TOON -- only writing costs money. Subscribe to { kinds: [1018], '#e': ['def456'] } to fetch all votes for the poll. Also fetch the poll itself with { kinds: [1068], ids: ['def456'] } to get the option labels. To aggregate: group votes by author pubkey, deduplicate by keeping only the most recent vote per pubkey (highest created_at), check the poll's endsAt tag and discard votes after the deadline, then count unique voters per option index. Map each index back to the option label from the poll event's option tags. TOON relays return TOON-format strings -- use the TOON decoder to parse.",
+      "rubric": {
+        "correct": "States reading is free. Describes correct NIP-01 subscription filters for fetching votes. Explains deduplication by pubkey. Mentions checking endsAt for deadline enforcement. Notes TOON-format responses.",
+        "acceptable": "Correctly describes the subscription filter and free reading, but may not fully explain deduplication or deadline checking.",
+        "incorrect": "Claims reading costs money, uses incorrect subscription filters, or omits pubkey deduplication."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies reading poll results as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response notes reading is free on TOON",
+        "toon-format-check: Response mentions TOON-format strings when discussing event retrieval from relays",
+        "social-context-check: Response explains deduplication by pubkey to prevent double-counting",
+        "trigger-coverage: Description includes both protocol triggers (subscription filters, kind:1018) and social-situation triggers (tally results, view results)"
+      ]
+    },
+    {
+      "id": "timed-poll-with-deadline",
+      "prompt": "I want to create a poll that expires in 24 hours asking which day works best for a community call. How do I set the deadline, and what happens to votes after it passes?",
+      "expected_output": "Construct a kind:1068 event with your question in content. Add option tags for each day choice (e.g., Monday, Wednesday, Friday). Calculate the Unix timestamp for 24 hours from now and add an endsAt tag: ['endsAt', '<timestamp>']. Optionally add a relay tag to aggregate responses. Sign and publish via publishEvent(). The poll costs approximately $0.004-$0.005 with the extra endsAt tag. After the deadline, the relay does NOT reject late votes -- enforcement is client-side. Well-behaved clients filter out votes with created_at after the endsAt timestamp during result aggregation. You can also manually close a poll early by publishing an event with a closedAt tag.",
+      "rubric": {
+        "correct": "Uses endsAt tag with Unix timestamp. Explains client-side deadline enforcement -- relays accept all paid votes. Mentions closedAt for manual closing. Calculates fee. Uses publishEvent().",
+        "acceptable": "Correctly uses endsAt tag and publishEvent(), but may not explain that enforcement is client-side or mention closedAt.",
+        "incorrect": "Claims relays reject late votes, omits the endsAt tag, or uses wrong timestamp format."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API for kind:1068, not raw WebSocket",
+        "toon-fee-check: Response calculates timed poll cost including the endsAt tag overhead",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response explains that deadline enforcement is client-side, not relay-enforced",
+        "trigger-coverage: Description includes both protocol triggers (endsAt tag, kind:1068) and social-situation triggers (timed poll, poll deadline)"
+      ]
+    },
+    {
+      "id": "ballot-stuffing-prevention",
+      "prompt": "Someone told me that polls on TOON are resistant to ballot stuffing. How does that work? Is it foolproof?",
+      "expected_output": "Ballot-stuffing resistance on TOON is an emergent property of ILP-gated writes, not a protocol-level enforcement mechanism. Every vote (kind:1018) costs approximately $0.002-$0.003. On free Nostr relays, an attacker can create thousands of keypairs and vote for free. On TOON, stuffing 1,000 ballots costs approximately $2.00. This makes manipulation economically visible and costly, especially for small-to-medium polls. However, it is NOT foolproof: well-funded actors can still pay for votes, there is no identity binding (one person with multiple funded keypairs can vote multiple times), and deduplication by pubkey is client-side only -- relays accept all valid paid votes. The economic friction raises the cost of manipulation but does not eliminate it. It transforms ballot stuffing from trivially free to economically detectable.",
+      "rubric": {
+        "correct": "Explains economic friction as the mechanism (not protocol enforcement). Calculates the cost of manipulation at scale. Acknowledges limitations: not foolproof, no identity binding, client-side deduplication only. Distinguishes TOON from free relays.",
+        "acceptable": "Correctly explains economic friction and cost per vote, but may not fully articulate the limitations.",
+        "incorrect": "Claims TOON has protocol-level ballot-stuffing prevention, claims it is foolproof, or omits the economic mechanism entirely."
+      },
+      "assertions": [
+        "toon-write-check: Response identifies voting as a paid operation via publishEvent()",
+        "toon-fee-check: Response calculates the cost of vote manipulation at scale (~$2 for 1,000 votes)",
+        "toon-format-check: Response mentions TOON-format strings when discussing vote retrieval",
+        "social-context-check: Response honestly discusses limitations of economic sybil resistance -- not foolproof, no identity binding",
+        "trigger-coverage: Description includes both protocol triggers (ILP-gated, kind:1018 cost) and social-situation triggers (ballot stuffing, vote manipulation)"
+      ]
+    }
+  ]
+}

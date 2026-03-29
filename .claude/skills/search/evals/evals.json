@@ -1,0 +1,175 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I search on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I find content on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-50 and how does search work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I add a search filter to a REQ subscription?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I search for notes on a Nostr relay?",
+      "should_trigger": true
+    },
+    {
+      "query": "Does this relay support full-text search?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I search by author and kind on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "Is search free on TOON or does it cost money?",
+      "should_trigger": true
+    },
+    {
+      "query": "How does the search field work in NIP-50 filters?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is include:spam and how do search extensions work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a group chat on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I repost someone's note?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do encrypted messages work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I mute a user on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a channel on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a patch on TOON?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "basic-text-search",
+      "prompt": "I want to search for notes about 'bitcoin lightning' on a TOON relay. How do I do this?",
+      "expected_output": "First check the relay's NIP-11 information document to verify NIP-50 support (look for 50 in supported_nips). Then send a REQ message with a filter containing the search field: {\"kinds\": [1], \"search\": \"bitcoin lightning\", \"limit\": 20}. The relay responds with EVENT messages for each match, followed by EOSE. Search is free on TOON -- no ILP payment needed. TOON relays return TOON-format strings in EVENT messages, so decode using the TOON decoder before processing results.",
+      "rubric": {
+        "correct": "Checks NIP-11 for NIP-50 support before searching. Constructs a REQ filter with the search field. Notes that search is a read-only operation -- no publishEvent() needed, no ILP payment. Mentions TOON-format response parsing. Includes a limit in the filter.",
+        "acceptable": "Constructs the correct search filter and notes search is free, but may not mention NIP-11 capability detection or TOON-format parsing.",
+        "incorrect": "Uses publishEvent() for search, claims search costs money, uses raw HTTP instead of WebSocket REQ, or does not include the search field in the filter."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies search as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response correctly notes that searching/reading is free on TOON -- no ILP payment required",
+        "toon-format-check: Response mentions TOON-format strings in relay EVENT responses",
+        "social-context-check: Skill has search-specific Social Context section covering quality signal and responsible search",
+        "trigger-coverage: Description includes both protocol triggers (NIP-50, search filter) and social-situation triggers (how do I find content)"
+      ]
+    },
+    {
+      "id": "filtered-search-by-author",
+      "prompt": "I want to find all long-form articles by a specific author that mention 'interledger'. The author's hex pubkey is abc123...def. How do I construct this search query?",
+      "expected_output": "Construct a REQ filter combining kinds, authors, and search: {\"kinds\": [30023], \"authors\": [\"abc123...def\"], \"search\": \"interledger\", \"limit\": 10}. Send as [\"REQ\", \"<subscription_id>\", <filter>] over WebSocket. The relay returns only kind:30023 events by the specified author containing 'interledger'. Search is free -- no publishEvent() or ILP payment. Parse TOON-format responses to extract article metadata (title, summary, d-tag). Use naddr1 references to link to discovered articles.",
+      "rubric": {
+        "correct": "Combines kinds (30023), authors (hex pubkey), and search fields in a single filter. Notes search is read-only and free. Mentions TOON-format parsing. Suggests naddr1 for referencing found articles. Uses hex pubkey format, not bech32.",
+        "acceptable": "Correctly combines the filter fields and notes search is free, but may not suggest naddr1 references or discuss article metadata extraction.",
+        "incorrect": "Uses publishEvent() for search, puts bech32 npub1 in the authors field, claims search has a fee, or constructs separate queries instead of a combined filter."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies search as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response correctly notes that searching/reading is free on TOON -- no ILP payment required",
+        "toon-format-check: Response mentions TOON-format strings in relay EVENT responses",
+        "social-context-check: Skill has search-specific Social Context section covering quality signal and responsible search",
+        "trigger-coverage: Description includes both protocol triggers (NIP-50, search filter) and social-situation triggers (how do I find content)",
+        "Response combines kinds, authors, and search in a single filter object"
+      ]
+    },
+    {
+      "id": "relay-support-detection",
+      "prompt": "How do I check if a TOON relay at wss://relay.toon.example supports NIP-50 full-text search before I issue search queries?",
+      "expected_output": "Make an HTTP GET request to https://relay.toon.example with the Accept: application/nostr+json header to fetch the NIP-11 relay information document. Parse the JSON response and check the supported_nips array for the value 50. If present, the relay supports NIP-50 search. On TOON relays, you can also check the /health endpoint (e.g., http://relay.toon.example:3100/health) for enriched capability information. Cache the result since relay capabilities change infrequently. If NIP-50 is not supported, do not send search queries -- the relay may ignore the search field or return errors.",
+      "rubric": {
+        "correct": "Describes fetching NIP-11 via HTTP GET with Accept: application/nostr+json header. Checks supported_nips for 50. Mentions the TOON /health endpoint as an additional source. Advises caching and warns against querying unsupported relays.",
+        "acceptable": "Correctly describes NIP-11 detection with the Accept header and supported_nips check, but may not mention the TOON /health endpoint or caching.",
+        "incorrect": "Tries to detect search support by sending a test search query, does not use the correct Accept header, or claims all relays support search."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies search capability detection as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response correctly notes that checking relay capabilities is free",
+        "toon-format-check: Response mentions TOON /health endpoint or NIP-11 relay information document",
+        "social-context-check: Skill has search-specific Social Context section covering quality signal and responsible search",
+        "trigger-coverage: Description includes both protocol triggers (NIP-50, search filter) and social-situation triggers (how do I find content)",
+        "Response describes NIP-11 fetch with Accept: application/nostr+json header"
+      ]
+    },
+    {
+      "id": "search-quality-signal",
+      "prompt": "How does search on a TOON relay differ from search on a free Nostr relay? Is the content quality different?",
+      "expected_output": "Search on TOON benefits from the ILP-gated publishing model. Every event returned by a search query was paid for by its author (basePricePerByte * serializedEventBytes), creating a natural quality filter. On free relays, search results may include spam, low-effort posts, and noise. On TOON, the cost barrier means authors only publish content they consider worth paying for, resulting in a higher signal-to-noise ratio. Search itself is free on TOON -- the cost was borne by the content authors. This makes TOON search a higher-signal discovery mechanism. However, search is still relay-specific and not comprehensive -- NIP-50 support is optional.",
+      "rubric": {
+        "correct": "Explains the quality signal from paid content (ILP fee creates economic barrier to spam). Notes search is free for the searcher. Compares TOON vs free relay search quality. Mentions basePricePerByte as the fee mechanism. Acknowledges search is relay-specific and optional.",
+        "acceptable": "Explains the quality difference from paid content and notes search is free, but may not reference basePricePerByte or discuss relay-specific limitations.",
+        "incorrect": "Claims search costs money on TOON, does not explain the quality signal from paid content, or claims TOON search is comprehensive across all relays."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly notes that content was published via publishEvent() by authors, but searching does not require publishEvent()",
+        "toon-fee-check: Response correctly notes that searching is free but found content was paid for by authors -- explains the quality signal",
+        "toon-format-check: Response mentions TOON-format strings or TOON relay context",
+        "social-context-check: Skill has search-specific Social Context section covering quality signal and responsible search",
+        "trigger-coverage: Description includes both protocol triggers (NIP-50, search filter) and social-situation triggers (how do I find content)",
+        "Response explains the quality signal from ILP-gated paid content in search results"
+      ]
+    },
+    {
+      "id": "search-extensions",
+      "prompt": "I am building a moderation tool. Can I search for spam content on a Nostr relay using NIP-50?",
+      "expected_output": "Some relays that support NIP-50 also support search extensions like include:spam. Add the extension keyword to the search string: {\"kinds\": [1], \"search\": \"gambling include:spam\", \"limit\": 50}. The relay parses include:spam as an extension and includes events flagged as spam that would normally be filtered out. Search extensions are relay-specific and not standardized -- check the relay's documentation for supported extensions. First verify NIP-50 support via NIP-11 (supported_nips containing 50). Search is free on TOON -- no ILP payment for moderation queries.",
+      "rubric": {
+        "correct": "Describes the include:spam extension syntax within the search string. Notes extensions are relay-specific and not standardized. Constructs a valid filter with the extension in the search field. Advises checking NIP-11 for NIP-50 support. Notes search is free.",
+        "acceptable": "Correctly describes include:spam usage and notes it is relay-specific, but may not construct a full filter example or mention NIP-11 detection.",
+        "incorrect": "Claims include:spam is universally supported, puts the extension in a separate filter field instead of the search string, or claims moderation search costs money."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies moderation search as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response correctly notes that searching is free on TOON",
+        "toon-format-check: Response mentions TOON-format strings or relay context",
+        "social-context-check: Skill has search-specific Social Context section covering quality signal and responsible search",
+        "trigger-coverage: Description includes both protocol triggers (NIP-50, search filter) and social-situation triggers (how do I find content)",
+        "Response describes include:spam as a relay-specific extension within the search string"
+      ]
+    }
+  ]
+}

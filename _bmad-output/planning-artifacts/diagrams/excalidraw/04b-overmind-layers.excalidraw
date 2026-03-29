@@ -1,0 +1,218 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "type": "text", "id": "title", "x": 40, "y": 20, "width": 620, "height": 35,
+      "text": "Overmind \u2014 Six-Layer Architecture", "originalText": "Overmind \u2014 Six-Layer Architecture",
+      "fontSize": 28, "fontFamily": 3, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#1e40af", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2001, "version": 1, "versionNonce": 2002,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "lineHeight": 1.25
+    },
+    {
+      "type": "text", "id": "subtitle", "x": 40, "y": 58, "width": 620, "height": 18,
+      "text": "Each layer is independently verifiable and replaceable.", "originalText": "Each layer is independently verifiable and replaceable.",
+      "fontSize": 14, "fontFamily": 3, "textAlign": "left", "verticalAlign": "top",
+      "strokeColor": "#64748b", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2003, "version": 1, "versionNonce": 2004,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": null, "lineHeight": 1.25
+    },
+
+    {
+      "type": "rectangle", "id": "l6_box", "x": 40, "y": 100, "width": 620, "height": 55,
+      "strokeColor": "#1e3a5f", "backgroundColor": "#93c5fd",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2010, "version": 1, "versionNonce": 2011,
+      "isDeleted": false, "groupIds": [],
+      "boundElements": [{"id": "l6_txt", "type": "text"}, {"id": "a56", "type": "arrow"}],
+      "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "l6_txt", "x": 50, "y": 113, "width": 600, "height": 30,
+      "text": "L6: ECONOMICS \u2014 ILP payment channels, self-funding via DVM income",
+      "originalText": "L6: ECONOMICS \u2014 ILP payment channels, self-funding via DVM income",
+      "fontSize": 13, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#1b1b1f", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2012, "version": 1, "versionNonce": 2013,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "l6_box", "lineHeight": 1.25
+    },
+
+    {
+      "type": "arrow", "id": "a56", "x": 350, "y": 155, "width": 0, "height": 20,
+      "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2020, "version": 1, "versionNonce": 2021,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [0, 20]],
+      "startBinding": {"elementId": "l6_box", "focus": 0, "gap": 1},
+      "endBinding": {"elementId": "l5_box", "focus": 0, "gap": 1},
+      "startArrowhead": null, "endArrowhead": "arrow"
+    },
+
+    {
+      "type": "rectangle", "id": "l5_box", "x": 40, "y": 175, "width": 620, "height": 55,
+      "strokeColor": "#b45309", "backgroundColor": "#fef3c7",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2030, "version": 1, "versionNonce": 2031,
+      "isDeleted": false, "groupIds": [],
+      "boundElements": [{"id": "l5_txt", "type": "text"}, {"id": "a56", "type": "arrow"}, {"id": "a45", "type": "arrow"}],
+      "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "l5_txt", "x": 50, "y": 188, "width": 600, "height": 30,
+      "text": "L5: EXECUTION \u2014 DVM providers run docker compose, receive ILP payment",
+      "originalText": "L5: EXECUTION \u2014 DVM providers run docker compose, receive ILP payment",
+      "fontSize": 13, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#1b1b1f", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2032, "version": 1, "versionNonce": 2033,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "l5_box", "lineHeight": 1.25
+    },
+
+    {
+      "type": "arrow", "id": "a45", "x": 350, "y": 230, "width": 0, "height": 20,
+      "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2040, "version": 1, "versionNonce": 2041,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [0, 20]],
+      "startBinding": {"elementId": "l5_box", "focus": 0, "gap": 1},
+      "endBinding": {"elementId": "l4_box", "focus": 0, "gap": 1},
+      "startArrowhead": null, "endArrowhead": "arrow"
+    },
+
+    {
+      "type": "rectangle", "id": "l4_box", "x": 40, "y": 250, "width": 620, "height": 55,
+      "strokeColor": "#6d28d9", "backgroundColor": "#ddd6fe",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2050, "version": 1, "versionNonce": 2051,
+      "isDeleted": false, "groupIds": [],
+      "boundElements": [{"id": "l4_txt", "type": "text"}, {"id": "a45", "type": "arrow"}, {"id": "a34", "type": "arrow"}],
+      "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "l4_txt", "x": 50, "y": 263, "width": 600, "height": 30,
+      "text": "L4: ADJUDICATION \u2014 Mina zkApp, VRF selection, recursive lifecycle proofs",
+      "originalText": "L4: ADJUDICATION \u2014 Mina zkApp, VRF selection, recursive lifecycle proofs",
+      "fontSize": 13, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#1b1b1f", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2052, "version": 1, "versionNonce": 2053,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "l4_box", "lineHeight": 1.25
+    },
+
+    {
+      "type": "arrow", "id": "a34", "x": 350, "y": 305, "width": 0, "height": 20,
+      "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2060, "version": 1, "versionNonce": 2061,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [0, 20]],
+      "startBinding": {"elementId": "l4_box", "focus": 0, "gap": 1},
+      "endBinding": {"elementId": "l3_box", "focus": 0, "gap": 1},
+      "startArrowhead": null, "endArrowhead": "arrow"
+    },
+
+    {
+      "type": "rectangle", "id": "l3_box", "x": 40, "y": 325, "width": 620, "height": 55,
+      "strokeColor": "#1e3a5f", "backgroundColor": "#60a5fa",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2070, "version": 1, "versionNonce": 2071,
+      "isDeleted": false, "groupIds": [],
+      "boundElements": [{"id": "l3_txt", "type": "text"}, {"id": "a34", "type": "arrow"}, {"id": "a23", "type": "arrow"}],
+      "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "l3_txt", "x": 50, "y": 338, "width": 600, "height": 30,
+      "text": "L3: WAKE \u2014 Chain Bridge DVM, kind:5099/5101/5102, zero polling",
+      "originalText": "L3: WAKE \u2014 Chain Bridge DVM, kind:5099/5101/5102, zero polling",
+      "fontSize": 13, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#1b1b1f", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2072, "version": 1, "versionNonce": 2073,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "l3_box", "lineHeight": 1.25
+    },
+
+    {
+      "type": "arrow", "id": "a23", "x": 350, "y": 380, "width": 0, "height": 20,
+      "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2080, "version": 1, "versionNonce": 2081,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [0, 20]],
+      "startBinding": {"elementId": "l3_box", "focus": 0, "gap": 1},
+      "endBinding": {"elementId": "l2_box", "focus": 0, "gap": 1},
+      "startArrowhead": null, "endArrowhead": "arrow"
+    },
+
+    {
+      "type": "rectangle", "id": "l2_box", "x": 40, "y": 400, "width": 620, "height": 55,
+      "strokeColor": "#047857", "backgroundColor": "#a7f3d0",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2090, "version": 1, "versionNonce": 2091,
+      "isDeleted": false, "groupIds": [],
+      "boundElements": [{"id": "l2_txt", "type": "text"}, {"id": "a23", "type": "arrow"}, {"id": "a12", "type": "arrow"}],
+      "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "l2_txt", "x": 50, "y": 413, "width": 600, "height": 30,
+      "text": "L2: MEMORY \u2014 Arweave event log, docker-compose, agent-state.json",
+      "originalText": "L2: MEMORY \u2014 Arweave event log, docker-compose, agent-state.json",
+      "fontSize": 13, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#1b1b1f", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2092, "version": 1, "versionNonce": 2093,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "l2_box", "lineHeight": 1.25
+    },
+
+    {
+      "type": "arrow", "id": "a12", "x": 350, "y": 455, "width": 0, "height": 20,
+      "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2100, "version": 1, "versionNonce": 2101,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "points": [[0, 0], [0, 20]],
+      "startBinding": {"elementId": "l2_box", "focus": 0, "gap": 1},
+      "endBinding": {"elementId": "l1_box", "focus": 0, "gap": 1},
+      "startArrowhead": null, "endArrowhead": "arrow"
+    },
+
+    {
+      "type": "rectangle", "id": "l1_box", "x": 40, "y": 475, "width": 620, "height": 55,
+      "strokeColor": "#b91c1c", "backgroundColor": "#fecaca",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2110, "version": 1, "versionNonce": 2111,
+      "isDeleted": false, "groupIds": [],
+      "boundElements": [{"id": "l1_txt", "type": "text"}, {"id": "a12", "type": "arrow"}],
+      "link": null, "locked": false, "roundness": {"type": 3}
+    },
+    {
+      "type": "text", "id": "l1_txt", "x": 50, "y": 488, "width": 600, "height": 30,
+      "text": "L1: IDENTITY \u2014 TEE key genesis, nsec NEVER leaves enclave, Shamir backup",
+      "originalText": "L1: IDENTITY \u2014 TEE key genesis, nsec NEVER leaves enclave, Shamir backup",
+      "fontSize": 13, "fontFamily": 3, "textAlign": "center", "verticalAlign": "middle",
+      "strokeColor": "#1b1b1f", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+      "angle": 0, "seed": 2112, "version": 1, "versionNonce": 2113,
+      "isDeleted": false, "groupIds": [], "boundElements": null, "link": null, "locked": false,
+      "containerId": "l1_box", "lineHeight": 1.25
+    }
+  ],
+  "appState": {
+    "gridSize": null,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

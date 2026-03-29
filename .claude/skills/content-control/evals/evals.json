@@ -1,0 +1,199 @@
+{
+  "trigger_evals": [
+    {
+      "query": "How do I delete an event on Nostr?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I delete a post on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I protect my content from being rebroadcast?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is NIP-09 and how do deletion requests work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I undo a reaction I posted on TOON?",
+      "should_trigger": true
+    },
+    {
+      "query": "Can I really delete something on Nostr or is it permanent?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I vanish from Nostr and remove all my content?",
+      "should_trigger": true
+    },
+    {
+      "query": "What is the dash tag and how does NIP-70 work?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I construct a kind:5 deletion request event?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I prevent relay-to-relay rebroadcasting of my events?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I publish a long-form article on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I react to a post on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a profile on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I join a relay group on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I mute someone on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How does encrypted messaging work on Nostr?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I submit a patch using NIP-34?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I create a chat channel on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "What is the fee calculation for publishing on TOON?",
+      "should_trigger": false
+    },
+    {
+      "query": "How do I follow someone on TOON?",
+      "should_trigger": false
+    }
+  ],
+  "output_evals": [
+    {
+      "id": "delete-specific-event",
+      "prompt": "I published a kind:1 note on TOON by mistake and want to delete it. The event ID is abc123. How do I request deletion and what will it cost?",
+      "expected_output": "Construct a kind:5 event with an e tag pointing to abc123, a k tag with '1', and optionally set content to a reason like 'published in error'. Sign with the same private key that signed the original event. Publish via publishEvent() from @toon-protocol/client. Cost: ~200 bytes at default basePricePerByte of 10n = ~$0.002. Note that deletion is a REQUEST -- relay compliance is voluntary and the event may persist on relays that do not honor deletion requests.",
+      "rubric": {
+        "correct": "Constructs a kind:5 event with e tag pointing to the target event ID, k tag with '1', and optional reason in content. Signs with the same key as the original event. Publishes via publishEvent() from @toon-protocol/client. Calculates fee (~$0.002). Explains that deletion is a request, not a guarantee, and relay compliance is voluntary. Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses publishEvent() and constructs a kind:5 event with correct tags, but may not fully explain the voluntary nature of relay compliance or calculate exact fee.",
+        "incorrect": "Uses raw WebSocket patterns, omits payment entirely, uses wrong event kind, does not include e and k tags, or claims deletion is guaranteed."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes fee calculation or cost awareness for deletion",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response explains that deletion is a request not a guarantee",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response constructs a kind:5 event with e tag and k tag"
+      ]
+    },
+    {
+      "id": "protected-event-publishing",
+      "prompt": "I want to publish a kind:1 note on TOON but only on specific relays I choose -- I don't want it rebroadcast to other relays. How do I do this?",
+      "expected_output": "Add the '-' tag (['-']) to your kind:1 event's tags array before publishing. This tells relays to only accept the event directly from the author, preventing relay-to-relay rebroadcasting. The tag adds approximately 10 bytes, so the fee increase is negligible (~$0.0001). Publish via publishEvent() to each relay where you want the event to appear. Protection depends on relay-side NIP-70 enforcement. The '-' tag does not encrypt content -- anyone on the relay can still read it.",
+      "rubric": {
+        "correct": "Instructs to add the '-' tag (['-']) to the event's tags array. Publishes via publishEvent(). Explains the tag prevents relay-to-relay rebroadcasting but does not encrypt. Notes the fee increase is negligible. Mentions that protection depends on relay-side NIP-70 enforcement. Clarifies the author must publish separately to each desired relay.",
+        "acceptable": "Correctly describes the '-' tag and uses publishEvent(), but may not fully explain the limitation that protection depends on relay enforcement or that it does not provide encryption.",
+        "incorrect": "Does not mention the '-' tag, suggests encryption instead of distribution control, uses raw WebSocket patterns, or claims the tag guarantees content cannot be seen by unauthorized parties."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response mentions the negligible fee impact of the '-' tag",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response clarifies protection is distribution control not encryption",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response describes adding ['-'] to the tags array",
+        "Response explains that relay-side NIP-70 enforcement is required"
+      ]
+    },
+    {
+      "id": "batch-deletion-economics",
+      "prompt": "I need to delete 10 kind:1 notes on TOON. Should I publish 10 separate kind:5 events or batch them? What are the cost implications?",
+      "expected_output": "Batch them into a single kind:5 event with 10 e tags. Individual deletion (10 separate kind:5 events) costs approximately $0.020. Batch deletion (one kind:5 with 10 e tags) costs approximately $0.009. Batch deletion saves approximately 55% compared to individual requests. Add a k tag with '1' for the kind being deleted. Publish via publishEvent().",
+      "rubric": {
+        "correct": "Recommends batch deletion as a single kind:5 event with multiple e tags. Compares costs: individual (~$0.020) vs batch (~$0.009). Quantifies the savings (~55%). Includes k tag with '1'. Publishes via publishEvent(). Notes this is the economically optimal approach on TOON.",
+        "acceptable": "Recommends batch deletion and uses publishEvent(), but may not calculate exact cost comparison or savings percentage.",
+        "incorrect": "Recommends individual deletion requests without mentioning batch option, uses raw WebSocket patterns, or does not address the economic implications."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response compares costs between individual and batch deletion",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Skill has interaction-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response recommends batch deletion as the more cost-efficient approach",
+        "Response includes multiple e tags in a single kind:5 event"
+      ]
+    },
+    {
+      "id": "vanish-request-implications",
+      "prompt": "I want to completely leave the Nostr network and remove all my content from TOON relays. How do I do this and what should I consider?",
+      "expected_output": "Publish a kind:5 vanish request -- a kind:5 event with no e or a tags, optionally with relay tags listing the relays you have published to. Content can be 'Requesting account deletion'. Publish via publishEvent() to every relay where you have content. Cost: ~$0.002-$0.004. Consider: this is irreversible in intent, relays may refuse future events from your pubkey, relay compliance is voluntary, you should download your event history first, and all money previously spent on publishing is sunk cost.",
+      "rubric": {
+        "correct": "Describes constructing a kind:5 event with no e or a tags as the vanish signal. Optionally includes relay tags. Publishes via publishEvent(). Calculates fee. Explains irreversibility, voluntary compliance, sunk cost implications, and recommends downloading event history first. Treats vanishing as a last resort.",
+        "acceptable": "Correctly describes the vanish request format and uses publishEvent(), but may not fully explore the irreversibility implications or recommend archiving.",
+        "incorrect": "Confuses vanish with standard deletion, claims it guarantees complete removal, uses raw WebSocket patterns, or treats it as a casual action."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response includes cost awareness for the vanish request",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response addresses the serious implications of vanishing",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response describes a kind:5 event with no e or a tags",
+        "Response warns about irreversibility and recommends archiving"
+      ]
+    },
+    {
+      "id": "reading-deletion-requests",
+      "prompt": "How do I check if someone has requested deletion of a specific event on a TOON relay? Is it free to check?",
+      "expected_output": "Subscribe using NIP-01 filter with kinds:[5] and #e:[<event-id>] to find deletion requests targeting a specific event. Reading is free on TOON -- no ILP payment needed. TOON relays return TOON-format strings in EVENT messages, not JSON objects -- use the TOON decoder to parse responses. Check the k tag to confirm the kind being deleted. Verify the pubkey of the kind:5 event matches the pubkey of the original event to confirm it is a valid author-initiated deletion request.",
+      "rubric": {
+        "correct": "Subscribes using NIP-01 filter with kinds:[5] and #e tag filter. Explains reading is free on TOON. Mentions TOON-format strings and the need for a TOON decoder. Recommends verifying that the kind:5 pubkey matches the original event's pubkey. Notes the k tag indicates which kind is being deleted.",
+        "acceptable": "Correctly describes the subscription filter and mentions TOON format and free reading, but may not emphasize pubkey verification.",
+        "incorrect": "Assumes standard JSON responses, suggests payment is needed to read, or does not describe the correct filter structure."
+      },
+      "assertions": [
+        "toon-write-check: Response correctly identifies reading deletion requests as a read-only operation -- no publishEvent() needed",
+        "toon-fee-check: Response correctly notes that reading/querying deletion requests is free on TOON",
+        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "social-context-check: Skill has interaction-specific Social Context section",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response uses NIP-01 filter with kinds:[5] and #e tag filter",
+        "Response mentions reading is free on TOON"
+      ]
+    },
+    {
+      "id": "undo-reaction-workflow",
+      "prompt": "I accidentally reacted to a post on TOON with a '+' and want to undo it. How do I remove my reaction and what will it cost me in total?",
+      "expected_output": "There is no 'unreact' mechanism in Nostr. To undo a reaction, publish a kind:5 deletion request targeting the reaction's event ID (not the event you reacted to). Construct a kind:5 event with an e tag pointing to your kind:7 reaction event ID and a k tag with '7'. Publish via publishEvent(). The deletion costs ~$0.002. Total cost of the react-then-unreact cycle: ~$0.004 (original reaction ~$0.002 + deletion ~$0.002). This economic friction discourages impulsive reactions on TOON.",
+      "rubric": {
+        "correct": "Explains there is no unreact mechanism. Instructs to publish a kind:5 event with e tag pointing to the REACTION event ID (not the reacted-to event), k tag with '7'. Uses publishEvent(). Calculates total cycle cost (~$0.004). Notes the economic friction discourages impulsive reactions.",
+        "acceptable": "Correctly describes using kind:5 to delete the reaction and uses publishEvent(), but may not calculate the full cycle cost or discuss economic implications.",
+        "incorrect": "Suggests an unreact mechanism exists, targets the wrong event ID (the reacted-to event instead of the reaction), uses raw WebSocket, or omits payment."
+      },
+      "assertions": [
+        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+        "toon-fee-check: Response calculates total cost of the react-then-unreact cycle",
+        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "social-context-check: Response discusses economic friction of undoing reactions",
+        "trigger-coverage: Description includes both protocol and social-situation triggers",
+        "Response targets the reaction event ID not the reacted-to event ID",
+        "Response includes k tag with '7' in the deletion request"
+      ]
+    }
+  ]
+}
