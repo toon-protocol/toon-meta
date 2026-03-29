@@ -198,7 +198,7 @@ development_status:
   epic-10: in-progress
   10-1-test-infra-and-shared-seed-library: done
   10-2-seed-script-initial-repo-push: done
-  10-3-seed-nested-directory-structure: backlog
+  10-3-seed-nested-directory-structure: ready-for-dev
   10-4-seed-feature-branch: backlog
   10-5-seed-tag: backlog
   10-6-seed-prs-with-status: backlog
