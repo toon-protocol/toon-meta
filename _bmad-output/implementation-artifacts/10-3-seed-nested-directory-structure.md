@@ -1,6 +1,6 @@
 # Story 10.3: Seed Script — Nested Directory Structure (Push 2)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -18,34 +18,34 @@ so that Playwright specs can verify the known depth navigation bug is fixed and 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create `push-02-nested.ts` module with file content constants (AC: 3.1)
-  - [ ] 1.1: Define content constants for `src/lib/core.ts`, `src/lib/utils/format.ts`, `src/lib/utils/helpers/deep-file.ts`, `docs/guide.md`
-  - [ ] 1.2: Export `Push02State` interface extending Push01State with new commit and file entries
-  - [ ] 1.3: Export `runPush02` function accepting `(aliceClient, aliceSecretKey, push01State)` parameters
-- [ ] Task 2: Build git objects with nested tree structure (AC: 3.1, 3.3)
-  - [ ] 2.1: Create 4 new blobs (core.ts, format.ts, deep-file.ts, guide.md)
-  - [ ] 2.2: Build nested tree hierarchy bottom-up: `helpers/` tree -> `utils/` tree -> `lib/` tree -> `src/` tree -> root tree (also including `docs/` subtree)
-  - [ ] 2.3: Root tree must include ALL entries from Push 1 (README.md, package.json, src/) plus new `docs/` — reuse Push 1 blob SHAs, but trees at `src/` and above are NEW because tree contents changed
-  - [ ] 2.4: Create commit with `parentSha` = Push 1 commit SHA, fixed timestamp for determinism
-- [ ] Task 3: Upload only delta objects to Arweave (AC: 3.2)
-  - [ ] 3.1: Pass accumulated `shaMap` from Push 1 to `uploadGitObject()` — delta logic in `git-builder.ts` skips already-uploaded SHAs
-  - [ ] 3.2: Sign per-object balance proofs via `aliceClient.signBalanceProof(channelId, perObjectAmount)` — same pattern as Push 1
-  - [ ] 3.3: Validate each upload returns a valid txId (fail-fast per R10-003)
-- [ ] Task 4: Publish updated kind:30618 refs (AC: 3.4)
-  - [ ] 4.1: Call `buildRepoRefs()` with REPO_ID, updated `{ 'refs/heads/main': newCommitSha }`, and the full accumulated `shaMap` (both Push 1 + Push 2 entries)
-  - [ ] 4.2: Sign and publish via `publishWithRetry(aliceClient, refsSigned)`
-  - [ ] 4.3: Do NOT re-publish kind:30617 repo announcement (it doesn't change)
-- [ ] Task 5: Return updated state (AC: 3.5)
-  - [ ] 5.1: Return `Push02State` with appended commits array, expanded shaMap, updated files list
-  - [ ] 5.2: State return only — no direct `state.json` writes (orchestrator handles persistence)
-- [ ] Task 6: Write ATDD tests (AC: all)
-  - [ ] 6.1: Create `__tests__/push-02-nested.test.ts` following push-01-init.test.ts pattern
-  - [ ] 6.2: Unit tests for deterministic SHA computation of all 4 new blobs
-  - [ ] 6.3: Unit tests for nested tree structure correctness (entries, sorting, SHA references)
-  - [ ] 6.4: Unit test verifying commit body contains `parent <push01CommitSha>`
-  - [ ] 6.5: Unit test verifying delta logic — only new objects are in the upload list (reused Push 1 blobs like README.md, package.json are NOT re-uploaded)
-  - [ ] 6.6: Unit test verifying kind:30618 refs includes arweave tags from BOTH pushes
-  - [ ] 6.7: Integration test stubs (`.todo`) for live Arweave DVM upload validation
+- [x] Task 1: Create `push-02-nested.ts` module with file content constants (AC: 3.1)
+  - [x] 1.1: Define content constants for `src/lib/core.ts`, `src/lib/utils/format.ts`, `src/lib/utils/helpers/deep-file.ts`, `docs/guide.md`
+  - [x] 1.2: Export `Push02State` interface extending Push01State with new commit and file entries
+  - [x] 1.3: Export `runPush02` function accepting `(aliceClient, aliceSecretKey, push01State)` parameters
+- [x] Task 2: Build git objects with nested tree structure (AC: 3.1, 3.3)
+  - [x] 2.1: Create 4 new blobs (core.ts, format.ts, deep-file.ts, guide.md)
+  - [x] 2.2: Build nested tree hierarchy bottom-up: `helpers/` tree -> `utils/` tree -> `lib/` tree -> `src/` tree -> root tree (also including `docs/` subtree)
+  - [x] 2.3: Root tree must include ALL entries from Push 1 (README.md, package.json, src/) plus new `docs/` — reuse Push 1 blob SHAs, but trees at `src/` and above are NEW because tree contents changed
+  - [x] 2.4: Create commit with `parentSha` = Push 1 commit SHA, fixed timestamp for determinism
+- [x] Task 3: Upload only delta objects to Arweave (AC: 3.2)
+  - [x] 3.1: Pass accumulated `shaMap` from Push 1 to `uploadGitObject()` — delta logic in `git-builder.ts` skips already-uploaded SHAs
+  - [x] 3.2: Sign per-object balance proofs via `aliceClient.signBalanceProof(channelId, perObjectAmount)` — same pattern as Push 1
+  - [x] 3.3: Validate each upload returns a valid txId (fail-fast per R10-003)
+- [x] Task 4: Publish updated kind:30618 refs (AC: 3.4)
+  - [x] 4.1: Call `buildRepoRefs()` with REPO_ID, updated `{ 'refs/heads/main': newCommitSha }`, and the full accumulated `shaMap` (both Push 1 + Push 2 entries)
+  - [x] 4.2: Sign and publish via `publishWithRetry(aliceClient, refsSigned)`
+  - [x] 4.3: Do NOT re-publish kind:30617 repo announcement (it doesn't change)
+- [x] Task 5: Return updated state (AC: 3.5)
+  - [x] 5.1: Return `Push02State` with appended commits array, expanded shaMap, updated files list
+  - [x] 5.2: State return only — no direct `state.json` writes (orchestrator handles persistence)
+- [x] Task 6: Write ATDD tests (AC: all)
+  - [x] 6.1: Create `__tests__/push-02-nested.test.ts` following push-01-init.test.ts pattern
+  - [x] 6.2: Unit tests for deterministic SHA computation of all 4 new blobs
+  - [x] 6.3: Unit tests for nested tree structure correctness (entries, sorting, SHA references)
+  - [x] 6.4: Unit test verifying commit body contains `parent <push01CommitSha>`
+  - [x] 6.5: Unit test verifying delta logic — only new objects are in the upload list (reused Push 1 blobs like README.md, package.json are NOT re-uploaded)
+  - [x] 6.6: Unit test verifying kind:30618 refs includes arweave tags from BOTH pushes
+  - [x] 6.7: Integration test stubs (`.todo`) for live Arweave DVM upload validation
 
 ## Prerequisites
 
@@ -217,13 +217,24 @@ STORY_FILE: _bmad-output/implementation-artifacts/10-3-seed-nested-directory-str
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
+None required — all 19 unit tests passed on first run.
 
 ### Completion Notes List
+- Task 1: Created `push-02-nested.ts` with 4 file content constants (CORE_TS_CONTENT, FORMAT_TS_CONTENT, DEEP_FILE_TS_CONTENT, GUIDE_MD_CONTENT), Push02State interface, and runPush02 function accepting (aliceClient, aliceSecretKey, push01State).
+- Task 2: Built nested git tree hierarchy bottom-up (helpers/ -> utils/ -> lib/ -> src/ -> docs/ -> root), reusing Push 1 blob SHAs for README.md, package.json, index.ts. Commit uses parentSha from push01State and fixed timestamp 1700001000.
+- Task 3: Delta upload implemented — reused blob SHAs checked against shaMap before signing claims, only new objects uploaded. Fail-fast on undefined txId per R10-003.
+- Task 4: kind:30618 refs published with accumulated shaMap from both pushes. kind:30617 repo announcement NOT re-published (passed through from push01State).
+- Task 5: Returns Push02State with appended commits array (2 entries), expanded shaMap, full 7-file list. No direct state.json writes.
+- Task 6: Pre-existing ATDD tests (push-02-nested.test.ts) — all 19 unit tests pass, 14 integration test stubs marked .todo.
 
 ### Change Log
+- 2026-03-29: Created push-02-nested.ts implementation; all ATDD tests green. Updated story status to complete.
 
 ### File List
+- `packages/rig/tests/e2e/seed/push-02-nested.ts` (created)
+- `_bmad-output/implementation-artifacts/10-3-seed-nested-directory-structure.md` (modified — status, tasks, dev agent record)
 
 ## Code Review Record
