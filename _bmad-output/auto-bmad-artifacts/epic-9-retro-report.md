@@ -204,6 +204,13 @@ The NIP-to-TOON pipeline can convert any future NIP specification into a TOON-aw
 
 ## 7. Epic 10 Preparation Tasks
 
+> **NOTE (2026-03-29):** After this retro was written, Epic 10 was renumbered. The "Epic 10"
+> referenced below (Compute Primitive, kind:5250) is now **Epic 11**. The new **Epic 10** is
+> the **Rig E2E Integration Test Suite** (18 stories: read-side E2E via real SDK infra,
+> incremental git pushes, Playwright specs, nested nav regression, multi-client conversations).
+> Action items A1 (CI burn-in) and A2 (Playwright E2E) are directly addressed by the new Epic 10.
+> See commit `5683f55` for the renumbering.
+
 Epic 10 (Compute Primitive -- Provider Protocol & DX, kind:5250) has 8 stories:
 
 | Story | Scope |
