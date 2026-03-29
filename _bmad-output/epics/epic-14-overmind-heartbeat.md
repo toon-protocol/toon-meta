@@ -1,6 +1,6 @@
-# Epic 13: Overmind Heartbeat — Minimal Viable Overmind
+# Epic 14: Overmind Heartbeat — Minimal Viable Overmind
 
-**Epic ID:** 13
+**Epic ID:** 14
 **Status:** DRAFT
 **Author:** Bob (Technical Scrum Master)
 **Date:** 2026-03-24
@@ -37,8 +37,8 @@ A proof-of-concept spike at `packages/overmind/spike/` validated all core ZK mec
 ## Dependencies
 
 - **Existing TOON infrastructure:** DVM lifecycle, ILP payment channels, TEE attestation framework, relay, service discovery
-- **Chain Bridge DVM protocol spec (Epic 11):** Co-developed -- Mina adapter is the first reference implementation
-- **No dependency on Epics 14-17** (this is the foundation epic)
+- **Chain Bridge DVM protocol spec (Epic 12):** Co-developed -- Mina adapter is the first reference implementation
+- **No dependency on Epics 15-18** (this is the foundation epic)
 
 ---
 
@@ -56,15 +56,15 @@ A proof-of-concept spike at `packages/overmind/spike/` validated all core ZK mec
 
 | ID | Title | Dependencies | Complexity |
 |----|-------|--------------|------------|
-| 13.1 | TEE Key Genesis Ceremony | None | M |
-| 13.2 | Arweave State Persistence (Write/Read via ArDrive Turbo) | A.1 | L |
-| 13.3 | OvermindRegistry zkApp on Mina (o1js) | None | XL |
-| 13.4 | Chain Bridge DVM — Mina Adapter | A.3 | XL |
-| 13.5 | VRF-Based Executor Selection (Mode A + Mode B) | A.3, A.2 | L |
-| 13.6 | Wake/Sleep Cycle | A.1, A.2, A.3, A.4, A.5 | L |
-| 13.7 | OODA Decision Engine | A.1, A.2 | XL |
-| 13.8 | Self-Scheduling Wake Cycles | A.6, A.7 | M |
-| 13.9 | E2E Test — 10 Autonomous Cycles via Mina VRF | A.1-A.8 | L |
+| 14.1 | TEE Key Genesis Ceremony | None | M |
+| 14.2 | Arweave State Persistence (Write/Read via ArDrive Turbo) | A.1 | L |
+| 14.3 | OvermindRegistry zkApp on Mina (o1js) | None | XL |
+| 14.4 | Chain Bridge DVM — Mina Adapter | A.3 | XL |
+| 14.5 | VRF-Based Executor Selection (Mode A + Mode B) | A.3, A.2 | L |
+| 14.6 | Wake/Sleep Cycle | A.1, A.2, A.3, A.4, A.5 | L |
+| 14.7 | OODA Decision Engine | A.1, A.2 | XL |
+| 14.8 | Self-Scheduling Wake Cycles | A.6, A.7 | M |
+| 14.9 | E2E Test — 10 Autonomous Cycles via Mina VRF | A.1-A.8 | L |
 
 ---
 
@@ -233,7 +233,7 @@ A proof-of-concept spike at `packages/overmind/spike/` validated all core ZK mec
 **Technical Notes:**
 
 - **Package:** `packages/chain-bridge` (new package). The abstract `ChainBridgeDvm` class lives here. The Mina adapter lives under `src/adapters/mina/`.
-- This is the first reference implementation of the Chain Bridge DVM primitive (Epic 11 / D-OMP-007). The abstract interface must be generic enough for future adapters (Bitcoin, Ethereum L2s, Solana).
+- This is the first reference implementation of the Chain Bridge DVM primitive (Epic 12 / D-OMP-007). The abstract interface must be generic enough for future adapters (Bitcoin, Ethereum L2s, Solana).
 - Postgres trigger SQL is defined in the architecture doc section 4. The adapter uses `pg` (node-postgres) with `LISTEN` for push notifications.
 - Mina daemon GraphQL subscription for `newBlock` uses WebSocket transport (graphql-ws or similar).
 - The Mina GraphQL endpoint for devnet: `https://api.minascan.io/node/devnet/v1/graphql`. Archive node Postgres requires a running archive node (local for dev, hosted for integration).

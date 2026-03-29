@@ -246,26 +246,26 @@ FR-NIP34-3: Epic 8, Stories 8.7-8.10 - Read-only code browsing web UI (split acr
 FR-NIP34-4: Epic 8, Story 8.6 - PR lifecycle via NIP-34 status events
 FR-NIP34-5: Epic 8, Story 8.11 - Issues/PRs from Nostr events on relay
 FR-NIP34-6: Epic 8, Story 8.12 - Publish @toon-protocol/rig package
-FR-COMPUTE-1: Epic 10 - Compute DVM event kind protocol spec (kind:5250/6250)
-FR-COMPUTE-2: Epic 10 - Two-phase compute model protocol spec (submit + async result)
+FR-COMPUTE-1: Epic 11 - Compute DVM event kind protocol spec (kind:5250/6250)
+FR-COMPUTE-2: Epic 11 - Two-phase compute model protocol spec (submit + async result)
 FR-COMPUTE-3: REMOVED - ComputeAdapter interface (provider implementations out of scope)
-FR-COMPUTE-4: Epic 10 - Convenience fee pricing documentation in protocol spec
-FR-COMPUTE-5: Epic 10 - Self-describing compute receipt spec
+FR-COMPUTE-4: Epic 11 - Convenience fee pricing documentation in protocol spec
+FR-COMPUTE-5: Epic 11 - Self-describing compute receipt spec
 FR-COMPUTE-6: DEFERRED - JobTracker async state management (may be added to consumer SDK if DX demands)
-FR-COMPUTE-7: Epic 10 - Provider test harness for compliance validation
-FR-COMPUTE-8: Epic 10 - Provider handoff docs (HyperBEAM, Oyster CVM, Akash)
-FR-BRIDGE-1: Epic 11 - Chain Bridge DVM event kind protocol spec (kind:5260/6260)
-FR-BRIDGE-2: Epic 11 - Tier 1 trustless broadcast protocol spec
-FR-BRIDGE-3: Epic 11 - Multi-chain broadcast packet format spec
-FR-BRIDGE-4: Epic 11 - Self-describing per-chain receipt spec
-FR-BRIDGE-5: Epic 11 - Chain-specific pricing in SkillDescriptor spec
-FR-BRIDGE-6: Epic 11 - AO/HyperBEAM as chain target (not compute backend)
-FR-BRIDGE-7: Epic 11 - Provider handoff docs (Ethereum/EVM, Solana, AO)
-FR-LOONY-1: Epic 12 - Autonomous agent demonstrating all six architecture layers
-FR-LOONY-2: Epic 12 - Decoupled LLM inference via marketplace discovery
-FR-LOONY-3: Epic 12 - Revenue generation as composite service DVM provider
-FR-LOONY-4: Epic 12 - Emergent capability extension via runtime SkillDescriptor discovery
-FR-LOONY-5: Epic 12 - Exercise all four network primitives end-to-end
+FR-COMPUTE-7: Epic 11 - Provider test harness for compliance validation
+FR-COMPUTE-8: Epic 11 - Provider handoff docs (HyperBEAM, Oyster CVM, Akash)
+FR-BRIDGE-1: Epic 12 - Chain Bridge DVM event kind protocol spec (kind:5260/6260)
+FR-BRIDGE-2: Epic 12 - Tier 1 trustless broadcast protocol spec
+FR-BRIDGE-3: Epic 12 - Multi-chain broadcast packet format spec
+FR-BRIDGE-4: Epic 12 - Self-describing per-chain receipt spec
+FR-BRIDGE-5: Epic 12 - Chain-specific pricing in SkillDescriptor spec
+FR-BRIDGE-6: Epic 12 - AO/HyperBEAM as chain target (not compute backend)
+FR-BRIDGE-7: Epic 12 - Provider handoff docs (Ethereum/EVM, Solana, AO)
+FR-LOONY-1: Epic 13 - Autonomous agent demonstrating all six architecture layers
+FR-LOONY-2: Epic 13 - Decoupled LLM inference via marketplace discovery
+FR-LOONY-3: Epic 13 - Revenue generation as composite service DVM provider
+FR-LOONY-4: Epic 13 - Emergent capability extension via runtime SkillDescriptor discovery
+FR-LOONY-5: Epic 13 - Exercise all four network primitives end-to-end
 
 ## Epic List
 
@@ -335,7 +335,7 @@ Fully decentralized git: repos exist on the protocol, not on any server. Git obj
 **Decision source:** Party Mode 2026-03-22 — Arweave DVM + Agent Skills
 **Validates:** Epics 1 (SDK), 2 (relay), 3 (USDC/x402), 4 (TEE), 5 (DVM), 6 (Advanced DVM), 7 (ILP Addressing)
 
-### Epic 10: Compute Primitive — Provider Protocol & DX (kind:5250)
+### Epic 11: Compute Primitive — Provider Protocol & DX (kind:5250)
 
 Define the compute provider protocol, refine the consumer DX, and ship provider handoff documents. **Provider implementations are out of scope** — third-party teams (HyperBEAM, Oyster CVM, Akash) build their own providers using TOON's protocol spec and test harness. TOON ships the marketplace definition; providers integrate.
 
@@ -379,18 +379,18 @@ Define the compute provider protocol, refine the consumer DX, and ship provider 
 - Two-phase model: Phase 1 submit (synchronous, fits ILP timeout) returns jobId. Phase 2 result (async poll via kind:5251 or provider publishes kind:6250).
 - Convenience fee pricing: providers are resellers, `kindPricing` covers backend + margin, no metering infrastructure.
 - Self-describing receipts: `backend`, `job-id`, `gateway`, `compute-ms`, `attestation` tags.
-- AO/HyperBEAM is NOT a compute backend — it is a blockchain (see Epic 11).
+- AO/HyperBEAM is NOT a compute backend — it is a blockchain (see Epic 12).
 - **Provider implementations are out of scope** — TOON defines the protocol, providers integrate. Handoff docs are the key deliverable for third-party adoption.
 - **Provider test harness is the force multiplier** — Validates provider compliance without requiring TOON team involvement.
 - **Decoupled inference model** — LLM providers (Oyster CVM running Llama, Akash running Mixtral, HyperBEAM running WASM models) are just kind:5250 DVM providers. Agent reasoning is a service consumed via the marketplace, not embedded.
 
-### Epic 11: Chain Bridge Primitive — Provider Protocol & DX (kind:5260)
+### Epic 12: Chain Bridge Primitive — Provider Protocol & DX (kind:5260)
 
-Define the chain bridge provider protocol, refine the consumer DX, and ship provider handoff documents. **Provider implementations are out of scope** — per-chain bridge operators build their own providers. Same model as Epic 10: TOON defines the marketplace, providers integrate.
+Define the chain bridge provider protocol, refine the consumer DX, and ship provider handoff documents. **Provider implementations are out of scope** — per-chain bridge operators build their own providers. Same model as Epic 11: TOON defines the marketplace, providers integrate.
 
 **Scope — What TOON ships:**
 1. **Provider Protocol Specification** — Definitive doc for "how to build a TOON chain bridge provider": kind:5260 request format, kind:6260 result format, Tier 1 trustless broadcast semantics, multi-chain packet format, per-chain receipt tags, chain-specific pricing.
-2. **Provider Test Harness** — Extend the Epic 10 test harness for kind:5260: validates tx broadcast handling, per-chain receipt format, multi-chain packet parsing, SkillDescriptor chain-specific pricing.
+2. **Provider Test Harness** — Extend the Epic 11 test harness for kind:5260: validates tx broadcast handling, per-chain receipt format, multi-chain packet parsing, SkillDescriptor chain-specific pricing.
 3. **Consumer SDK Refinements** — Ensure consumer DX for chain bridge: tx submission, receipt verification, multi-chain result parsing, chain discovery by SkillDescriptor features.
 4. **Provider Handoff Documents** — One per target blockchain:
    - `provider-handoff-ethereum.md` — EVM tx broadcast, gas estimation, receipt format
@@ -419,7 +419,7 @@ Define the chain bridge provider protocol, refine the consumer DX, and ship prov
 - **11.7 Provider Handoff Documents** — Write three provider handoff documents (markdown, in `docs/provider-handoffs/`): (1) `provider-handoff-ethereum.md` — EVM tx broadcast provider covering Ethereum, Arbitrum, Base, and other EVM chains. RPC integration (`eth_sendRawTransaction`), gas estimation (`eth_estimateGas`), receipt polling (`eth_getTransactionReceipt`), multi-chain EVM support (same code, different RPC endpoints), receipt format mapping to kind:6260 tags, chain-specific pricing based on gas costs, example SkillDescriptor with multi-chain EVM features. (2) `provider-handoff-solana.md` — Solana tx broadcast provider. `sendTransaction` RPC, slot-based receipts, priority fee handling (`computeUnitPrice`), receipt format mapping (`slot` tag instead of `block`), Solana-specific error codes, example SkillDescriptor. (3) `provider-handoff-ao.md` — AO message broadcast via HyperBEAM node. AO message format (not EVM tx), p4 fee model (provider pays AO compute fee, passes through as convenience fee), HyperBEAM HTTP API for message submission, slot receipt from AO scheduler, example SkillDescriptor with `ao` feature. Explicitly clarifies: AO is a blockchain target for chain bridge, NOT a compute backend — compute on AO is handled by HyperBEAM compute providers via kind:5250.
 - **11.8 Publish Chain Bridge Primitive** — Publish updated packages: `@toon-protocol/core` (kind:5260/6260 builders/parsers, chain bridge receipt types), `@toon-protocol/sdk` (consumer helpers, SkillDescriptor chain bridge extensions), `@toon-protocol/provider-test` (chain bridge test suite). Version bump following semver (minor version for new feature). Update `_bmad-output/project-context.md` with Epic 11 completion status, chain bridge primitive architecture section, and provider handoff doc locations. Verify all exports, run full test suite, validate E2E with reference mock provider.
 
-**Dependencies:** Epic 8 (self-describing receipt pattern), Epic 5 (DVM event kinds), Epic 3 (multi-chain config), Epic 10 (shared test harness infrastructure)
+**Dependencies:** Epic 8 (self-describing receipt pattern), Epic 5 (DVM event kinds), Epic 3 (multi-chain config), Epic 11 (shared test harness infrastructure)
 **Decision source:** Party Mode 2026-03-22 — Network Primitives Strategy (D8-PM-003, D8-PM-006, D8-PM-008); Party Mode 2026-03-23 — Provider Protocol Model
 
 **Key Design Decisions:**
@@ -430,7 +430,7 @@ Define the chain bridge provider protocol, refine the consumer DX, and ship prov
 - Chain-specific pricing in SkillDescriptor (different gas costs per chain).
 - **Provider implementations are out of scope** — same model as compute primitive.
 
-### Epic 12: Loony — Autonomous Agent Application
+### Epic 13: Loony — Autonomous Agent Application
 
 Loony is an example application that proves TOON Protocol can support a self-bootstrapping, self-sustaining, self-extending autonomous agent. Like Forge proves decentralized git, Loony proves the autonomous agent lifecycle. Loony exercises all four network primitives (messaging, storage, compute, chain bridge) plus composition (workflows, marketplace discovery, provider selection).
 
@@ -469,7 +469,7 @@ Loony is an example application that proves TOON Protocol can support a self-boo
 - **12.7 Runtime Capability Extension** — Loony discovers new kind:10035 SkillDescriptors at runtime that didn't exist when Loony was deployed. `CapabilityExtender` class: monitors ServiceRegistry (12.2) for new SkillDescriptors, feeds new descriptors to ReasoningEngine (12.3) with prompt: "A new service is available on the network. Here is its SkillDescriptor (TOON format). What can this service do? How could it be composed with existing services to create value?" LLM reads the descriptor (TOON format is LLM-readable by design), understands the new service API, and suggests compositions. `proposeComposition(newService: SkillDescriptor, existingServices: SkillDescriptor[]): Promise<CompositionProposal[]>` — LLM generates proposed workflows combining new and existing services. If a composition is deemed profitable (estimated margin > 0), Loony auto-registers it as a new composite service via CompositeServiceManager (12.6) and publishes a new SkillDescriptor. The marketplace IS the extension mechanism — no code changes needed to integrate new capabilities. Acceptance: A new SkillDescriptor is published to the relay after Loony starts; Loony discovers it, uses LLM reasoning to understand it, proposes a novel composition incorporating the new service, registers the composition as a new service, and can execute it when requested.
 - **12.8 Self-Sustaining Economics & E2E Validation** — End-to-end validation that Loony operates as a self-sustaining autonomous agent. `LoonyEconomics` tracker: `{ totalEarned, totalSpent, currentBalance, profitableServices: { name, totalRevenue, totalCost, margin }[], unprofitableServices: { name, reason }[] }`. Budget governor integration with OODA loop: Loony won't take actions that would reduce balance below configurable reserve threshold. Economic reporting: Loony periodically publishes its economics summary as a Nostr event (transparent operation). Self-pruning: if a composite service is consistently unprofitable (margin < 0 over N executions), Loony de-registers it and stops offering it. Full E2E integration test scenario: (1) Loony bootstraps from seed phrase on test network, (2) discovers primitive providers (blob, compute, chain bridge), (3) reasons about service opportunities via LLM, (4) registers as composite service provider, (5) receives and fulfills job requests, (6) discovers a new service published mid-test, (7) extends capabilities by composing with new service, (8) maintains positive or stable balance over N OODA cycles. Performance assertions: balance trending positive, at least one composite service registered, at least one capability extension performed. Acceptance: Loony runs autonomously for N cycles demonstrating the complete agent lifecycle (bootstrap → perceive → reason → act → earn → extend) with positive or stable economics.
 
-**Dependencies:** Epic 8 (blob storage primitive), Epic 9 (agent skills for protocol understanding), Epic 10 (compute provider protocol — at least one third-party provider must exist), Epic 11 (chain bridge provider protocol — at least one third-party provider must exist)
+**Dependencies:** Epic 8 (blob storage primitive), Epic 9 (agent skills for protocol understanding), Epic 11 (compute provider protocol — at least one third-party provider must exist), Epic 12 (chain bridge provider protocol — at least one third-party provider must exist)
 **Decision source:** Party Mode 2026-03-23 — Architecture + Loony + Provider Model; Party Mode 2026-03-24 — Story Decomposition
 
 **Key Design Decisions:**
@@ -2727,7 +2727,7 @@ The Overmind Protocol enables autonomous sovereign agents ("overminds") that liv
 
 ### Epic 13: Overmind Heartbeat (9 stories)
 
-Minimal viable overmind: TEE key genesis, Arweave state persistence, Mina VRF executor selection, Chain Bridge DVM with Mina adapter (first reference implementation), OODA decision engine, self-scheduling. Dependencies: Epic 11 (Chain Bridge Primitive — co-developed).
+Minimal viable overmind: TEE key genesis, Arweave state persistence, Mina VRF executor selection, Chain Bridge DVM with Mina adapter (first reference implementation), OODA decision engine, self-scheduling. Dependencies: Epic 12 (Chain Bridge Primitive — co-developed).
 
 | Story | Title | Dependencies | Size |
 |-------|-------|-------------|------|

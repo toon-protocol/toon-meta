@@ -1,6 +1,6 @@
-# Epic 17: Overmind Swarm — Agent Spawning + Coordination
+# Epic 18: Overmind Swarm — Agent Spawning + Coordination
 
-**Epic ID:** 17
+**Epic ID:** 18
 **Status:** DRAFT
 **Author:** Bob (Technical Scrum Master)
 **Date:** 2026-03-24
@@ -18,15 +18,15 @@ Enable a sovereign overmind to create, fund, and coordinate sub-agents, forming 
 
 ## Dependencies
 
-- **Epic 13B "Treasury"** (treasury management for sub-agent funding) — required, must be complete
-- **Epic 13C "Sovereign"** (TEE key management for sub-agent key generation) — required, must be complete
+- **Epic 14B "Treasury"** (treasury management for sub-agent funding) — required, must be complete
+- **Epic 14C "Sovereign"** (TEE key management for sub-agent key generation) — required, must be complete
 - **Existing TOON infrastructure:** DVM lifecycle, ILP payment channels, NIP-44 encryption, relay
 
 ---
 
 ## New Packages / Infrastructure
 
-- No new packages — builds on `packages/overmind` from Epic 13A
+- No new packages — builds on `packages/overmind` from Epic 14A
 - New modules under `packages/overmind/src/swarm/`
 - Multiple concurrent overmind instances required for testing (parent + children)
 
@@ -36,11 +36,11 @@ Enable a sovereign overmind to create, fund, and coordinate sub-agents, forming 
 
 | ID | Title | Dependencies | Complexity |
 |----|-------|--------------|------------|
-| 17.1 | Sub-Agent Spawning | Epics 13B + 13C complete | L |
-| 17.2 | Parent-Child Encrypted Communication | E.1 | M |
-| 17.3 | Task Delegation | E.1, E.2 | L |
-| 17.4 | Swarm Treasury Management | E.1, E.3 | L |
-| 17.5 | E2E: Overmind Spawns 3 Sub-Agents | E.1-E.4 | L |
+| 18.1 | Sub-Agent Spawning | Epics 14B + 14C complete | L |
+| 18.2 | Parent-Child Encrypted Communication | E.1 | M |
+| 18.3 | Task Delegation | E.1, E.2 | L |
+| 18.4 | Swarm Treasury Management | E.1, E.3 | L |
+| 18.5 | E2E: Overmind Spawns 3 Sub-Agents | E.1-E.4 | L |
 
 ---
 
@@ -87,7 +87,7 @@ Enable a sovereign overmind to create, fund, and coordinate sub-agents, forming 
 
 **Acceptance Criteria:**
 
-1. Parent and child communicate via NIP-44 encrypted DMs using their encryption subkeys (from Epic 13C HD key hierarchy).
+1. Parent and child communicate via NIP-44 encrypted DMs using their encryption subkeys (from Epic 14C HD key hierarchy).
 2. Messages are published to the TOON relay as encrypted kind:4 (or NIP-44 kind:1059 gift-wrapped) events.
 3. The parent can send structured task instructions (JSON-encoded) to specific children.
 4. Children can send structured results and status updates back to the parent.
@@ -215,4 +215,4 @@ Enable a sovereign overmind to create, fund, and coordinate sub-agents, forming 
 - [ ] E2E test: parent spawns 3 sub-agents, delegates tasks, collects results, manages treasury
 - [ ] All code reviewed, linted, formatted, tests passing
 
-**Estimated Complexity:** L (5 stories, integrates Epics 13B + 13C capabilities)
+**Estimated Complexity:** L (5 stories, integrates Epics 14B + 14C capabilities)
