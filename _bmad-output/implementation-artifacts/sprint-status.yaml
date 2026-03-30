@@ -203,7 +203,7 @@ development_status:
   10-5-seed-tag: done
   10-6-seed-prs-with-status: done
   10-7-seed-issues-labels-conversations: done
-  10-8-seed-merge-pr-close-issue: backlog
+  10-8-seed-merge-pr-close-issue: done
   10-9-seed-orchestrator: backlog
   10-10-spec-repo-list-and-home: backlog
   10-11-spec-deep-navigation-regression: backlog
