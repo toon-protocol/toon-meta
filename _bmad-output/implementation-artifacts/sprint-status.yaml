@@ -201,7 +201,7 @@ development_status:
   10-3-seed-nested-directory-structure: done
   10-4-seed-feature-branch: done
   10-5-seed-tag: done
-  10-6-seed-prs-with-status: backlog
+  10-6-seed-prs-with-status: done
   10-7-seed-issues-labels-conversations: backlog
   10-8-seed-merge-pr-close-issue: backlog
   10-9-seed-orchestrator: backlog
