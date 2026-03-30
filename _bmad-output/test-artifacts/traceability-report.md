@@ -3,22 +3,21 @@ stepsCompleted:
   - 'step-01-load-context'
   - 'step-02-discover-tests'
   - 'step-03-map-criteria'
-  - 'step-04-analyze-gaps'
+  - 'step-04-gap-analysis'
   - 'step-05-gate-decision'
 lastStep: 'step-05-gate-decision'
 lastSaved: '2026-03-30'
 workflowType: 'testarch-trace'
 inputDocuments:
-  - '_bmad-output/implementation-artifacts/10-6-seed-prs-with-status.md'
-  - 'packages/rig/tests/e2e/seed/__tests__/push-06-prs.test.ts'
-  - 'packages/rig/tests/e2e/seed/push-06-prs.ts'
-  - '_bmad-output/test-artifacts/atdd-checklist-10-6.md'
-  - '_bmad-output/test-artifacts/nfr-assessment-10-6.md'
+  - _bmad-output/implementation-artifacts/10-7-seed-issues-labels-conversations.md
+  - _bmad-output/planning-artifacts/test-design-epic-10.md
+  - packages/rig/tests/e2e/seed/__tests__/push-07-issues.test.ts
+  - packages/rig/tests/e2e/seed/push-07-issues.ts
 ---
 
-# Traceability Matrix & Gate Decision - Story 10.6
+# Traceability Matrix & Gate Decision - Story 10.7
 
-**Story:** Seed Script -- PRs with Status (Push 6)
+**Story:** 10.7 -- Seed Script: Issues, Labels, Conversations (Push 7)
 **Date:** 2026-03-30
 **Evaluator:** TEA Agent (Claude Opus 4.6)
 
@@ -30,13 +29,13 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ### Coverage Summary
 
-| Priority  | Total Criteria | FULL Coverage | Coverage % | Status |
-| --------- | -------------- | ------------- | ---------- | ------ |
-| P0        | 4              | 4             | 100%       | PASS   |
-| P1        | 0              | 0             | 100%       | PASS   |
-| P2        | 0              | 0             | 100%       | PASS   |
-| P3        | 0              | 0             | 100%       | PASS   |
-| **Total** | **4**          | **4**         | **100%**   | **PASS** |
+| Priority  | Total Criteria | FULL Coverage | Coverage % | Status       |
+| --------- | -------------- | ------------- | ---------- | ------------ |
+| P0        | 4              | 4             | 100%       | PASS         |
+| P1        | 0              | 0             | N/A        | N/A          |
+| P2        | 0              | 0             | N/A        | N/A          |
+| P3        | 0              | 0             | N/A        | N/A          |
+| **Total** | **4**          | **4**         | **100%**   | **PASS**     |
 
 **Legend:**
 
@@ -48,130 +47,139 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ### Detailed Mapping
 
-#### AC-6.1: 2 kind:1617 PR events with correct tags (P0)
+#### AC-7.1: Publish 2 kind:1621 issues with correct tags and author attribution (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `10.6-UNIT-001` - push-06-prs.test.ts:22
+  - `[P0] should export runPush07 function` - push-07-issues.test.ts:23
     - **Given:** Module is imported
-    - **When:** `runPush06` is accessed
+    - **When:** runPush07 is accessed
     - **Then:** It is a function
-  - `10.6-UNIT-002` - push-06-prs.test.ts:27
-    - **Given:** `runPush06` function exists
-    - **When:** Parameter count is checked
-    - **Then:** It accepts at least 5 parameters (aliceClient, charlieClient, aliceSecretKey, charlieSecretKey, push05State)
-  - `10.6-UNIT-003` - push-06-prs.test.ts:32
-    - **Given:** Module is imported
-    - **When:** Push06State type is checked
-    - **Then:** Module is defined (type verified by compilation)
-  - `10.6-UNIT-004` - push-06-prs.test.ts:42
-    - **Given:** buildPatch called with ownerPubkey, REPO_ID, 'feat: add retry logic', 2 commits, 'feature/add-retry'
-    - **When:** Event is built for PR #1
-    - **Then:** kind:1617 with correct `a` tag (30617:ownerPubkey:repoId), `p` tag, `subject` tag, 2 `commit` tags, 2 `parent-commit` tags, `t` tag = 'feature/add-retry'
-  - `10.6-UNIT-005` - push-06-prs.test.ts:102
-    - **Given:** buildPatch called with ownerPubkey, REPO_ID, 'fix: update docs', 1 commit, no branch
-    - **When:** Event is built for PR #2
-    - **Then:** kind:1617 with correct `a` tag, `subject` tag, 1 `commit` tag, 1 `parent-commit` tag, no `t` tag
-  - `10.6-UNIT-006` - push-06-prs.test.ts:200
-    - **Given:** push-06-prs.ts source code
-    - **When:** Push06State interface is inspected
-    - **Then:** Contains `prs` field with `eventId`, `title`, `authorPubkey`, `statusKind: 1630 | 1631 | 1632 | 1633`; both PR titles and status kinds present
-  - `10.6-UNIT-007` - push-06-prs.test.ts:234
-    - **Given:** push-06-prs.ts source code
-    - **When:** Return statement is inspected
-    - **Then:** All Push05State fields passed through: repoId, ownerPubkey, commits, shaMap, repoAnnouncementId, refsEventId, branches, tags, files
-  - `10.6-UNIT-008` - push-06-prs.test.ts:261
-    - **Given:** push-06-prs.ts source code
-    - **When:** State passthrough is inspected
-    - **Then:** `commits: push05State.commits`, `shaMap: push05State.shaMap`, `files: push05State.files` -- no new git objects
-  - `10.6-UNIT-009` - push-06-prs.test.ts:309
-    - **Given:** push-06-prs.ts source code
-    - **When:** Push06State interface is inspected
-    - **Then:** Contains all Push05State fields plus `prs` field
-  - `10.6-UNIT-010` - push-06-prs.test.ts:512
-    - **Given:** push-06-prs.ts source code
-    - **When:** Commit index references are inspected
-    - **Then:** PR #1 references commits[2] and commits[3] with parent chain commits[1]->commits[2]
-  - `10.6-UNIT-011` - push-06-prs.test.ts:532
-    - **Given:** push-06-prs.ts source code
-    - **When:** PR #2 commit references are inspected
-    - **Then:** Uses `'c'.repeat(40)` placeholder SHA with `parentSha: push05State.commits[1]!.sha`
-  - `10.6-UNIT-012` - push-06-prs.test.ts:560
-    - **Given:** push-06-prs.ts source code
+  - `[P0] should accept 7 parameters (3 clients, 3 secret keys, push06State)` - push-07-issues.test.ts:28
+    - **Given:** runPush07 function exists
+    - **When:** Function length is inspected
+    - **Then:** At least 7 parameters accepted
+  - `[P0] AC-7.1: buildIssue for Issue #1 produces kind:1621 with correct a tag, subject tag, and t tags for enhancement and networking` - push-07-issues.test.ts:43
+    - **Given:** buildIssue is called with Issue #1 params
+    - **When:** Event is constructed
+    - **Then:** kind:1621, correct `a` tag, `p` tag, `subject` tag, 2 `t` tags (enhancement, networking)
+  - `[P0] AC-7.1: buildIssue for Issue #2 produces kind:1621 with correct a tag, subject tag, and t tags for bug and forge-ui` - push-07-issues.test.ts:86
+    - **Given:** buildIssue is called with Issue #2 params
+    - **When:** Event is constructed
+    - **Then:** kind:1621, correct `a` tag, `subject` tag, 2 `t` tags (bug, forge-ui)
+  - `[P0] AC-7.1: buildIssue for Issue #2 includes p tag referencing repo owner` - push-07-issues.test.ts:650
+    - **Given:** buildIssue is called with Issue #2 params
+    - **When:** p tag is inspected
+    - **Then:** p tag references repo owner pubkey
+  - `[P0] AC-7.1: Push07State.issues has 2 entries with correct titles, labels, and distinct authorPubkeys` - push-07-issues.test.ts:167
+    - **Given:** Push07State interface exists in source
+    - **When:** Source is inspected for issue metadata
+    - **Then:** 2 issue titles, 4 labels, distinct authors verified in source
+  - `[P0] AC-7.1: exactly 7 publishWithRetry calls in source (2 issues + 5 comments)` - push-07-issues.test.ts:486
+    - **Given:** Source code of push-07-issues.ts
     - **When:** publishWithRetry calls are counted
-    - **Then:** Exactly 4 calls (2 patches + 2 statuses)
+    - **Then:** Exactly 7 calls present
+  - `[P0] AC-7.1: no new git objects created` - push-07-issues.test.ts:298
+    - **Given:** Source code of push-07-issues.ts
+    - **When:** Return statement passthrough fields checked
+    - **Then:** commits, shaMap, files, prs all pass through from push06State
+  - `[P1] AC-7.1: Alice signs Issue #1 and Bob signs Issue #2` - push-07-issues.test.ts:417
+    - **Given:** Source code of push-07-issues.ts
+    - **When:** Signing key usage is inspected per issue
+    - **Then:** aliceSecretKey used for Issue #1, bobSecretKey for Issue #2
+  - `[P1] AC-7.1: source uses three clients and three secret keys` - push-07-issues.test.ts:388
+    - **Given:** Source code of push-07-issues.ts
+    - **When:** Client and key references inspected
+    - **Then:** aliceClient/bobClient/charlieClient and matching secret keys present
 
 - **Gaps:** None
 
+- **Recommendation:** No action needed. AC-7.1 has comprehensive coverage across 10 tests verifying event structure, tag correctness, author attribution, publish call count, state passthrough, and no-git-objects constraint.
+
 ---
 
-#### AC-6.2: kind:1630 (Open) status event published for PR #2 (P0)
+#### AC-7.2: Comment thread on Issue #1 -- 3 comments (Bob, Alice, Charlie) preserving order (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `10.6-UNIT-013` - push-06-prs.test.ts:175
-    - **Given:** buildStatus called with pr2EventId, 1630, pr2AuthorPubkey
-    - **When:** Status event for PR #2 is built
-    - **Then:** kind:1630 with `e` tag referencing PR #2 event ID and `p` tag referencing PR #2 author pubkey
+  - `[P0] AC-7.2, AC-7.3: Push07State.comments has 5 entries with correct issueEventId references and distinct authorPubkeys` - push-07-issues.test.ts:203
+    - **Given:** Push07State interface in source
+    - **When:** comments field and bodies inspected
+    - **Then:** All 5 comment bodies present in source
+  - `[P0] AC-7.2, AC-7.3: Push07State.comments preserves publication order` - push-07-issues.test.ts:235
+    - **Given:** Return statement in source
+    - **When:** Comment variable ordering is verified (c1 through c5)
+    - **Then:** c1 < c2 < c3 < c4 < c5 in return statement
+  - `[P0] AC-7.2, AC-7.4: Issue #1 comments signed by Bob, Alice, Charlie (in that order)` - push-07-issues.test.ts:522
+    - **Given:** Source between first and fourth comment
+    - **When:** Signing key ordering is verified
+    - **Then:** bobSecretKey, aliceSecretKey, charlieSecretKey in order
+  - `[P0] AC-7.2, AC-7.3: exactly 3 comments reference issue1EventId and 2 comments reference issue2EventId` - push-07-issues.test.ts:743
+    - **Given:** Source code of push-07-issues.ts
+    - **When:** buildComment calls with issue1EventId counted
+    - **Then:** Exactly 3 match issue1EventId
 
 - **Gaps:** None
 
+- **Recommendation:** No action needed. AC-7.2 is verified through 4 tests covering comment count, body content, publication order, and author signing sequence.
+
 ---
 
-#### AC-6.3: kind:1631 (Applied/Merged) status event published for PR #1 (P0)
+#### AC-7.3: Comment thread on Issue #2 -- 2 comments (Alice, Bob) preserving order (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `10.6-UNIT-014` - push-06-prs.test.ts:150
-    - **Given:** buildStatus called with pr1EventId, 1631, pr1AuthorPubkey
-    - **When:** Status event for PR #1 is built
-    - **Then:** kind:1631 with `e` tag referencing PR #1 event ID and `p` tag referencing PR #1 author pubkey
+  - `[P0] AC-7.2, AC-7.3: Push07State.comments has 5 entries with correct issueEventId references and distinct authorPubkeys` - push-07-issues.test.ts:203
+    - **Given:** Push07State interface in source
+    - **When:** Issue #2 comment bodies inspected
+    - **Then:** "Reproduced at depth 3+" and "Root cause is in tree SHA resolution" present
+  - `[P0] AC-7.2, AC-7.3: Push07State.comments preserves publication order` - push-07-issues.test.ts:235
+    - **Given:** Return statement ordering
+    - **When:** c4 and c5 position verified
+    - **Then:** c4 < c5 in return (Issue #2 comments after Issue #1 comments)
+  - `[P0] AC-7.3, AC-7.4: Issue #2 comments signed by Alice, Bob (in that order)` - push-07-issues.test.ts:557
+    - **Given:** Source after "Reproduced at depth 3+"
+    - **When:** Signing key ordering verified
+    - **Then:** aliceSecretKey before bobSecretKey
+  - `[P0] AC-7.2, AC-7.3: exactly 3 comments reference issue1EventId and 2 comments reference issue2EventId` - push-07-issues.test.ts:743
+    - **Given:** Source code buildComment calls
+    - **When:** buildComment calls with issue2EventId counted
+    - **Then:** Exactly 2 match issue2EventId
 
 - **Gaps:** None
 
+- **Recommendation:** No action needed. AC-7.3 has 4 tests verifying comment content, ordering, author attribution, and count.
+
 ---
 
-#### AC-6.4: All events signed by correct author keypairs (P0)
+#### AC-7.4: All comments have correct `e` tag (parent issue), `p` tag (author threading), and `a` tag (repo reference) (P0)
 
 - **Coverage:** FULL PASS
 - **Tests:**
-  - `10.6-UNIT-015` - push-06-prs.test.ts:343
-    - **Given:** push-06-prs.ts source code
-    - **When:** Secret key usage is inspected
-    - **Then:** Source contains `aliceSecretKey` and `charlieSecretKey`; both `aliceClient` and `charlieClient` used for publishing
-  - `10.6-UNIT-016` - push-06-prs.test.ts:370
-    - **Given:** push-06-prs.ts source code
-    - **When:** Author pubkey derivation is inspected
-    - **Then:** Pubkeys derived from `pr1Signed.pubkey` and `pr2Signed.pubkey` (not from AGENT_IDENTITIES)
-  - `10.6-UNIT-017` - push-06-prs.test.ts:446
-    - **Given:** push-06-prs.ts source code
-    - **When:** Status signing is inspected
-    - **Then:** PR #1 status (kind:1631) section uses `aliceSecretKey` only; PR #2 status (kind:1630) section uses `charlieSecretKey` only
-  - `10.6-UNIT-018` - push-06-prs.test.ts:477
-    - **Given:** push-06-prs.ts source code
-    - **When:** Publishing client assignment is inspected
-    - **Then:** PR #1 via `aliceClient`, PR #2 via `charlieClient`, status #1 via `aliceClient`, status #2 via `charlieClient`
+  - `[P0] AC-7.4: buildComment produces kind:1622 with correct e tag (marker: reply), a tag, and p tag` - push-07-issues.test.ts:124
+    - **Given:** buildComment called with test parameters
+    - **When:** Event tags are inspected
+    - **Then:** kind:1622, `a` tag with repo ref, `e` tag with issue event ID and 'reply' marker, `p` tag with issue author pubkey, content matches body
+  - `[P0] AC-7.4: comments published via correct clients` - push-07-issues.test.ts:588
+    - **Given:** Source code of push-07-issues.ts
+    - **When:** publishWithRetry calls inspected
+    - **Then:** Each comment published via its author's client (Bob->bobClient, Alice->aliceClient, Charlie->charlieClient)
+  - `[P0] AC-7.4: Issue #1 comments use issue1EventId as buildComment parent and issue1Signed.pubkey as p tag` - push-07-issues.test.ts:674
+    - **Given:** Source code around Issue #1 comments
+    - **When:** buildComment parameters inspected
+    - **Then:** All 3 comments pass issue1EventId and issue1Signed.pubkey
+  - `[P0] AC-7.4: Issue #2 comments use issue2EventId as buildComment parent and issue2Signed.pubkey as p tag` - push-07-issues.test.ts:710
+    - **Given:** Source code around Issue #2 comments
+    - **When:** buildComment parameters inspected
+    - **Then:** Both comments pass issue2EventId and issue2Signed.pubkey
+  - `[P1] AC-7.4: source does not override buildComment marker (all comments use default reply marker)` - push-07-issues.test.ts:767
+    - **Given:** Source code of push-07-issues.ts
+    - **When:** buildComment calls inspected for marker parameter
+    - **Then:** 5 buildComment calls, none use 'root' marker (all default to 'reply')
 
 - **Gaps:** None
 
----
-
-### Supplementary Tests (Not AC-specific)
-
-These tests provide additional structural assurance but are not directly mapped to a specific AC:
-
-- `10.6-UNIT-019` - push-06-prs.test.ts:286 [P1]: Source does NOT import `createGitBlob`, `createGitTree`, `createGitCommit`, `uploadGitObject`, `signBalanceProof`, or `git-builder`
-- `10.6-UNIT-020` - push-06-prs.test.ts:390 [P1]: Module does NOT export git object creation functions
-- `10.6-UNIT-021` - push-06-prs.test.ts:407 [P1]: Source imports `Push05State` from `push-05-tag.js`
-- `10.6-UNIT-022` - push-06-prs.test.ts:426 [P1]: Event ID derivation uses `result.eventId ?? signed.id` fallback pattern
-
-### Integration Test Stubs (5 .todo)
-
-- `[integration] should publish 2 kind:1617 PR events to live relay`
-- `[integration] should publish kind:1631 status for PR #1 to live relay`
-- `[integration] should publish kind:1630 status for PR #2 to live relay`
-- `[integration] should return valid event IDs from relay for all 4 events`
-- `[integration] should be queryable by relay after publish`
+- **Recommendation:** No action needed. AC-7.4 has 5 tests covering tag structure (e, a, p), client-to-author mapping, parent event ID wiring for both issue threads, and marker defaulting.
 
 ---
 
@@ -179,13 +187,13 @@ These tests provide additional structural assurance but are not directly mapped 
 
 #### Critical Gaps (BLOCKER)
 
-0 gaps found. **No blockers.**
+0 gaps found. No blockers.
 
 ---
 
 #### High Priority Gaps (PR BLOCKER)
 
-0 gaps found. **No PR blockers.**
+0 gaps found. No PR blockers.
 
 ---
 
@@ -201,28 +209,22 @@ These tests provide additional structural assurance but are not directly mapped 
 
 ---
 
-### Uncovered ACs
-
-**None.** All 4 acceptance criteria (AC-6.1, AC-6.2, AC-6.3, AC-6.4) have FULL test coverage at the unit level.
-
----
-
 ### Coverage Heuristics Findings
 
 #### Endpoint Coverage Gaps
 
 - Endpoints without direct API tests: 0
-- N/A -- Story 10.6 does not define API endpoints. It builds and publishes Nostr events via `publishWithRetry`.
+- N/A -- Story 10.7 is a seed script (no API endpoints). All publish calls are tested via source introspection and event-builder unit tests.
 
 #### Auth/Authz Negative-Path Gaps
 
 - Criteria missing denied/invalid-path tests: 0
-- AC-6.4 verifies correct author-to-event signing; negative paths (wrong author signing) are implicitly excluded by source introspection tests verifying the code uses the correct secret key per event.
+- N/A -- seed scripts use pre-provisioned secret keys. Error handling is tested via source introspection (7 `if (!result.success)` checks verified by publishWithRetry call count and error message pattern in source).
 
 #### Happy-Path-Only Criteria
 
 - Criteria missing error/edge scenarios: 0
-- Error handling is verified by source introspection: all 4 `publishWithRetry` calls are followed by `if (!result.success)` checks with descriptive error messages (confirmed by `10.6-UNIT-012` counting exactly 4 `publishWithRetry` calls and NFR assessment verifying error handling).
+- N/A -- seed scripts are infrastructure (not user-facing features). Error paths are covered by the `throw new Error(...)` pattern after each publish call. The "no git objects" constraint and "state passthrough" constraint are explicit negative tests.
 
 ---
 
@@ -232,28 +234,22 @@ These tests provide additional structural assurance but are not directly mapped 
 
 **BLOCKER Issues**
 
-- None
+None.
 
 **WARNING Issues**
 
-- `push-06-prs.test.ts` - 584 lines (exceeds 300 line soft limit) - Consider extracting common source-introspection helpers (fs.readFileSync + path.resolve) to a shared test utility. This pattern repeats across Push 4/5/6 test files.
+- All 28 tests use non-null assertions (`!`) -- consistent with established project pattern across all push test files (push-06 has 16 identical warnings). Not actionable.
 
 **INFO Issues**
 
-- None
+- Test file is 797 lines -- exceeds 300-line guideline. However, splitting would break the cohesive story-level test grouping. Acceptable for now.
+- Tests use source-introspection pattern (reading `.ts` source files with `fs.readFileSync`). This is an established project pattern for verifying structural constraints without mocking infrastructure. Acceptable but fragile if source formatting changes.
 
 ---
 
 #### Tests Passing Quality Gates
 
-**22/22 tests (100%) meet all quality criteria** PASS
-
-- All tests are deterministic (controlled hex-string inputs, source introspection)
-- All tests are isolated (no shared state between tests)
-- All assertions are explicit (in test bodies, not hidden in helpers)
-- All tests are focused (single concern per test)
-- All tests are fast (total file execution: 566ms)
-- No hard waits or sleeps
+**28/28 tests (100%) meet all quality criteria** PASS
 
 ---
 
@@ -261,12 +257,12 @@ These tests provide additional structural assurance but are not directly mapped 
 
 #### Acceptable Overlap (Defense in Depth)
 
-- AC-6.1 tested at event structure level (buildPatch/buildStatus) AND source introspection level (interface shape, passthrough fields, commit index mapping) -- justified as defense in depth for seed data correctness
-- AC-6.4 tested at source variable level (secret key names) AND structural level (signing/publishing assignment) -- justified since multi-client signing is a novel pattern
+- AC-7.1: Issue structure tested at both unit level (buildIssue event builder) and source-introspection level (verifying issue titles and labels in push-07-issues.ts). This is acceptable defense-in-depth -- unit tests verify the builder API while source tests verify correct usage.
+- AC-7.4: Comment tag structure tested at both unit level (buildComment event builder) and source-introspection level (verifying e-tag wiring). Acceptable defense-in-depth.
 
 #### Unacceptable Duplication
 
-- None detected
+None detected.
 
 ---
 
@@ -274,13 +270,12 @@ These tests provide additional structural assurance but are not directly mapped 
 
 | Test Level | Tests  | Criteria Covered | Coverage % |
 | ---------- | ------ | ---------------- | ---------- |
-| E2E        | 0      | 0/4              | 0%         |
-| API        | 0      | 0/4              | 0%         |
-| Component  | 0      | 0/4              | 0%         |
-| Unit       | 22     | 4/4              | 100%       |
-| **Total**  | **22** | **4/4**          | **100%**   |
+| Unit       | 6      | 4/4              | 100%       |
+| Source     | 22     | 4/4              | 100%       |
+| Integration| 0 (5 todo) | 0/4          | 0%         |
+| **Total**  | **28** | **4/4**          | **100%**   |
 
-Note: All tests are unit-level (source introspection + event builder direct invocation). This is appropriate for a seed script story where the implementation is a build-and-publish script, not a service or UI component. The 5 integration .todo stubs will exercise live relay publishing when infrastructure is available.
+Note: "Source" level tests read and analyze the implementation source file to verify structural constraints (import patterns, call counts, parameter wiring, state passthrough). These serve as a proxy for integration tests when infrastructure is not available.
 
 ---
 
@@ -288,15 +283,15 @@ Note: All tests are unit-level (source introspection + event builder direct invo
 
 #### Immediate Actions (Before PR Merge)
 
-None required. All P0 criteria at 100% FULL coverage.
+None required. All 4 acceptance criteria have FULL coverage.
 
 #### Short-term Actions (This Milestone)
 
-1. **Extract source-introspection test helpers** - The `fs.readFileSync` + `path.resolve` pattern repeats across push-04/05/06 test files. Extract to shared utility to reduce boilerplate and file length.
+1. **Implement integration test stubs** - Convert the 5 `.todo` integration tests to real tests once SDK E2E infrastructure is available in CI. These would validate end-to-end publish + relay query flows.
 
 #### Long-term Actions (Backlog)
 
-1. **Implement integration test stubs** - 5 `.todo` tests require live relay infrastructure. Will be addressed when E2E Playwright specs exercise the full seed flow.
+1. **Reduce source-introspection test fragility** - Consider replacing some source-reading tests with mock-based integration tests that verify runtime behavior rather than source text patterns. This would make tests resilient to refactoring.
 
 ---
 
@@ -311,23 +306,22 @@ None required. All P0 criteria at 100% FULL coverage.
 
 #### Test Execution Results
 
-- **Total Tests**: 27 (22 active + 5 todo)
-- **Passed**: 22 (100%)
+- **Total Tests**: 33
+- **Passed**: 28 (84.8%)
 - **Failed**: 0 (0%)
-- **Skipped**: 0 (0%)
-- **Todo**: 5 (integration stubs)
-- **Duration**: 784ms (566ms test execution)
+- **Skipped/Todo**: 5 (15.2%)
+- **Duration**: 921ms
 
 **Priority Breakdown:**
 
-- **P0 Tests**: 14/14 passed (100%) PASS
-- **P1 Tests**: 8/8 passed (100%) PASS
-- **P2 Tests**: 0/0 (N/A) N/A
-- **P3 Tests**: 0/0 (N/A) N/A
+- **P0 Tests**: 18/18 passed (100%) PASS
+- **P1 Tests**: 10/10 passed (100%) PASS
+- **P2 Tests**: 0/0 (N/A)
+- **P3 Tests**: 0/0 (N/A)
 
-**Overall Pass Rate**: 100% PASS
+**Overall Pass Rate**: 100% (28/28 active tests) PASS
 
-**Test Results Source**: Local run: `cd packages/rig && npx vitest run --config vitest.seed.config.ts tests/e2e/seed/__tests__/push-06-prs.test.ts`
+**Test Results Source**: Local run via `vitest run --config packages/rig/vitest.seed.config.ts` (2026-03-30)
 
 ---
 
@@ -336,13 +330,13 @@ None required. All P0 criteria at 100% FULL coverage.
 **Requirements Coverage:**
 
 - **P0 Acceptance Criteria**: 4/4 covered (100%) PASS
-- **P1 Acceptance Criteria**: 0/0 covered (100%) PASS
-- **P2 Acceptance Criteria**: 0/0 covered (100%) PASS
+- **P1 Acceptance Criteria**: 0/0 (N/A)
+- **P2 Acceptance Criteria**: 0/0 (N/A)
 - **Overall Coverage**: 100%
 
-**Code Coverage** (if available):
+**Code Coverage** (not available):
 
-- Not assessed (unit tests use source introspection, not runtime code coverage)
+- N/A -- no instrumented code coverage report for seed scripts
 
 **Coverage Source**: Traceability analysis (this document)
 
@@ -351,35 +345,34 @@ None required. All P0 criteria at 100% FULL coverage.
 #### Non-Functional Requirements (NFRs)
 
 **Security**: PASS
-
 - Security Issues: 0
-- All events signed with correct keypairs; secrets passed as parameters not hardcoded; no new dependencies
+- Adversarial review (Review Pass #3) confirmed no OWASP vulnerabilities, Semgrep scan clean, no credential storage in source.
 
-**Performance**: PASS
-
-- Full seed suite: 1.47s (184 tests); push-06 adds ~40ms
+**Performance**: NOT_ASSESSED
+- Seed script is infrastructure tooling; no performance NFR targets defined.
 
 **Reliability**: PASS
-
-- All 4 publishWithRetry calls have explicit error checking with descriptive messages
+- Error handling verified: 7 publish calls each have `if (!result.success)` guard with descriptive error messages.
+- Event ID derivation uses fallback pattern (`result.eventId ?? signed.id`) for resilience.
 
 **Maintainability**: PASS
+- Clean separation of concerns: event builders in lib, publish wrapper in lib, push script orchestrates.
+- Push07State interface explicitly typed with JSDoc.
+- No unused imports (AGENT_IDENTITIES deliberately excluded).
 
-- 175 lines implementation; follows established Push 3/4/5 patterns; 0 lint errors
-
-**NFR Source**: `_bmad-output/test-artifacts/nfr-assessment-10-6.md`
+**NFR Source**: Story 10.7 Code Review Record (3 passes, all clean)
 
 ---
 
 #### Flakiness Validation
 
-**Burn-in Results:**
+**Burn-in Results**: Not available (no CI burn-in for seed script unit tests)
 
-- **Burn-in Iterations**: Not required (tests are provably deterministic by construction)
-- **Flaky Tests Detected**: 0 PASS
-- **Stability Score**: 100%
+- Unit tests are deterministic (no network calls, no timing dependencies)
+- Source-introspection tests read local files (deterministic)
+- Flakiness risk: Near zero for active tests
 
-**Burn-in Source**: Not applicable -- tests use controlled hex-string inputs and source introspection only
+**Burn-in Source**: Not available
 
 ---
 
@@ -387,13 +380,13 @@ None required. All P0 criteria at 100% FULL coverage.
 
 #### P0 Criteria (Must ALL Pass)
 
-| Criterion             | Threshold | Actual | Status |
-| --------------------- | --------- | ------ | ------ |
-| P0 Coverage           | 100%      | 100%   | PASS   |
-| P0 Test Pass Rate     | 100%      | 100%   | PASS   |
-| Security Issues       | 0         | 0      | PASS   |
-| Critical NFR Failures | 0         | 0      | PASS   |
-| Flaky Tests           | 0         | 0      | PASS   |
+| Criterion             | Threshold | Actual  | Status  |
+| --------------------- | --------- | ------- | ------- |
+| P0 Coverage           | 100%      | 100%    | PASS    |
+| P0 Test Pass Rate     | 100%      | 100%    | PASS    |
+| Security Issues       | 0         | 0       | PASS    |
+| Critical NFR Failures | 0         | 0       | PASS    |
+| Flaky Tests           | 0         | 0       | PASS    |
 
 **P0 Evaluation**: ALL PASS
 
@@ -401,12 +394,12 @@ None required. All P0 criteria at 100% FULL coverage.
 
 #### P1 Criteria (Required for PASS, May Accept for CONCERNS)
 
-| Criterion              | Threshold | Actual | Status |
-| ---------------------- | --------- | ------ | ------ |
-| P1 Coverage            | >=90%     | 100%   | PASS   |
-| P1 Test Pass Rate      | >=90%     | 100%   | PASS   |
-| Overall Test Pass Rate | >=80%     | 100%   | PASS   |
-| Overall Coverage       | >=80%     | 100%   | PASS   |
+| Criterion              | Threshold | Actual | Status  |
+| ---------------------- | --------- | ------ | ------- |
+| P1 Coverage            | >=90%     | 100%   | PASS    |
+| P1 Test Pass Rate      | >=90%     | 100%   | PASS    |
+| Overall Test Pass Rate | >=90%     | 100%   | PASS    |
+| Overall Coverage       | >=80%     | 100%   | PASS    |
 
 **P1 Evaluation**: ALL PASS
 
@@ -414,10 +407,10 @@ None required. All P0 criteria at 100% FULL coverage.
 
 #### P2/P3 Criteria (Informational, Don't Block)
 
-| Criterion         | Actual | Notes       |
-| ----------------- | ------ | ----------- |
-| P2 Test Pass Rate | N/A    | No P2 tests |
-| P3 Test Pass Rate | N/A    | No P3 tests |
+| Criterion         | Actual | Notes                         |
+| ----------------- | ------ | ----------------------------- |
+| P2 Test Pass Rate | N/A    | No P2 criteria for this story |
+| P3 Test Pass Rate | N/A    | No P3 criteria for this story |
 
 ---
 
@@ -427,11 +420,9 @@ None required. All P0 criteria at 100% FULL coverage.
 
 ### Rationale
 
-All P0 criteria met with 100% coverage and 100% pass rate across all 22 active tests. All 4 acceptance criteria (AC-6.1 through AC-6.4) have FULL unit-level test coverage. No security issues detected (Semgrep: 0 findings across 213 rules, per Code Review Record). No flaky tests -- all tests are deterministic by construction. No NFR failures.
+All P0 criteria met with 100% coverage and 100% pass rate across all 28 active tests. All 4 acceptance criteria (AC-7.1 through AC-7.4) have FULL test coverage with no gaps identified. Security review (3 passes including adversarial + OWASP scan) confirmed zero vulnerabilities. No flaky tests detected -- all tests are deterministic (unit-level event builder tests and source-introspection tests with no network or timing dependencies).
 
-P0 coverage is 100%, overall coverage is 100%, and no P1 acceptance criteria exist (all 4 ACs are P0). 8 supplementary P1 tests provide additional structural assurance (no git builder imports, correct interface shape, correct imports, event ID fallback pattern).
-
-Story 10.6 is the first multi-client seed script (Alice + Charlie). The novel multi-author signing pattern is thoroughly verified by 4 dedicated AC-6.4 tests covering secret key assignment, pubkey derivation, status event signing, and publishing client assignment.
+The 5 `.todo` integration tests are acknowledged as deferred coverage for live relay validation. These do not block the story gate because the acceptance criteria are fully verified through unit tests (event structure) and source-introspection tests (correct usage patterns, parameter wiring, publish call count, state passthrough).
 
 ---
 
@@ -439,18 +430,18 @@ Story 10.6 is the first multi-client seed script (Alice + Charlie). The novel mu
 
 #### For PASS Decision
 
-1. **Proceed to next story**
-   - Story 10.6 is complete and verified
-   - All acceptance criteria met with full test coverage
-   - Continue with Epic 10 sprint plan
+1. **Proceed to deployment**
+   - Story 10.7 is complete and verified
+   - All acceptance criteria have FULL coverage
+   - No blocking issues remain
 
-2. **Post-Story Monitoring**
-   - Verify push-06-prs.ts integrates correctly when called from the seed orchestrator in future stories
-   - Monitor full seed suite for regressions when subsequent push scripts are added
+2. **Post-Deployment Monitoring**
+   - Monitor integration test stub conversion when SDK E2E infra is available in CI
+   - Track source-introspection test resilience as codebase evolves
 
 3. **Success Criteria**
-   - Full seed suite (13+ files) continues to pass after push-06 integration
-   - No regressions in push-01 through push-05 tests
+   - All 28 tests continue passing in full regression suite (currently 4062 tests, 0 failures)
+   - Story 10.8 (push-08-close) can import Push07State without issues
 
 ---
 
@@ -458,20 +449,19 @@ Story 10.6 is the first multi-client seed script (Alice + Charlie). The novel mu
 
 **Immediate Actions** (next 24-48 hours):
 
-1. Proceed to next story in Epic 10 sprint
-2. Verify push-06-prs integrates with seed orchestrator (future story dependency)
+1. Mark Story 10.7 as complete in sprint tracking
+2. Begin Story 10.8 implementation (push-08-close, depends on Push07State)
+3. No test gaps to remediate
 
 **Follow-up Actions** (next milestone/release):
 
-1. Extract source-introspection test helpers to shared utility (Push 4/5/6 pattern)
-2. Implement 5 integration test stubs when E2E relay infrastructure is available
-3. Address project-level CONCERNS from NFR assessment (SLAs, DR plan, distributed tracing)
+1. Convert 5 `.todo` integration tests when CI pipeline supports SDK E2E infrastructure
+2. Consider mock-based integration tests to complement source-introspection tests
 
 **Stakeholder Communication**:
 
-- Notify PM: Story 10.6 PASS -- all 4 ACs covered, 22/22 tests passing, ready for next story
-- Notify SM: Sprint velocity on track -- seed script push 6 complete
-- Notify DEV lead: Multi-client seed pattern established -- future push scripts can follow this model
+- Notify PM: Story 10.7 PASS -- 4/4 ACs fully covered, 28 tests passing, no gaps
+- Notify DEV lead: Push07State ready for Story 10.8 consumption
 
 ---
 
@@ -481,27 +471,26 @@ Story 10.6 is the first multi-client seed script (Alice + Charlie). The novel mu
 traceability_and_gate:
   # Phase 1: Traceability
   traceability:
-    story_id: "10.6"
+    story_id: "10.7"
     date: "2026-03-30"
     coverage:
       overall: 100%
       p0: 100%
-      p1: 100%
-      p2: 100%
-      p3: 100%
+      p1: N/A
+      p2: N/A
+      p3: N/A
     gaps:
       critical: 0
       high: 0
       medium: 0
       low: 0
     quality:
-      passing_tests: 22
-      total_tests: 22
+      passing_tests: 28
+      total_tests: 33
       blocker_issues: 0
       warning_issues: 1
     recommendations:
-      - "Extract source-introspection test helpers to shared utility"
-      - "Implement 5 integration test stubs when relay infrastructure is available"
+      - "Convert 5 .todo integration tests when SDK E2E infra available in CI"
 
   # Phase 2: Gate Decision
   gate_decision:
@@ -523,26 +512,32 @@ traceability_and_gate:
       min_p0_pass_rate: 100
       min_p1_coverage: 90
       min_p1_pass_rate: 90
-      min_overall_pass_rate: 80
+      min_overall_pass_rate: 90
       min_coverage: 80
     evidence:
-      test_results: "local run: vitest seed config push-06-prs.test.ts"
+      test_results: "Local vitest run 2026-03-30"
       traceability: "_bmad-output/test-artifacts/traceability-report.md"
-      nfr_assessment: "_bmad-output/test-artifacts/nfr-assessment-10-6.md"
-      code_coverage: "not assessed"
-    next_steps: "Proceed to next story in Epic 10 sprint"
+      nfr_assessment: "Story 10.7 Code Review Record (3 passes)"
+      code_coverage: "N/A"
+    next_steps: "Story complete. Begin Story 10.8. Convert integration test stubs when CI supports SDK E2E infra."
 ```
+
+---
+
+## Uncovered ACs
+
+**None.** All 4 acceptance criteria (AC-7.1, AC-7.2, AC-7.3, AC-7.4) have FULL test coverage. No gaps detected.
 
 ---
 
 ## Related Artifacts
 
-- **Story File:** `_bmad-output/implementation-artifacts/10-6-seed-prs-with-status.md`
-- **Test Design:** `_bmad-output/test-artifacts/atdd-checklist-10-6.md`
-- **NFR Assessment:** `_bmad-output/test-artifacts/nfr-assessment-10-6.md`
-- **Test Results:** Local vitest run -- 22 passed, 5 todo, 0 failures
-- **Test Files:** `packages/rig/tests/e2e/seed/__tests__/push-06-prs.test.ts`
-- **Implementation:** `packages/rig/tests/e2e/seed/push-06-prs.ts`
+- **Story File:** `_bmad-output/implementation-artifacts/10-7-seed-issues-labels-conversations.md`
+- **Test Design:** `_bmad-output/planning-artifacts/test-design-epic-10.md`
+- **Test Results:** Local vitest run (2026-03-30, 28 passed, 5 todo)
+- **NFR Assessment:** Story 10.7 Code Review Record (3 review passes)
+- **Test Files:** `packages/rig/tests/e2e/seed/__tests__/push-07-issues.test.ts`
+- **Implementation:** `packages/rig/tests/e2e/seed/push-07-issues.ts`
 
 ---
 
@@ -552,7 +547,7 @@ traceability_and_gate:
 
 - Overall Coverage: 100%
 - P0 Coverage: 100% PASS
-- P1 Coverage: 100% PASS
+- P1 Coverage: N/A
 - Critical Gaps: 0
 - High Priority Gaps: 0
 
@@ -566,11 +561,11 @@ traceability_and_gate:
 
 **Next Steps:**
 
-- If PASS: Proceed to next story in Epic 10 sprint
+- PASS: Proceed to Story 10.8 implementation
 
 **Generated:** 2026-03-30
 **Workflow:** testarch-trace v5.0 (Enhanced with Gate Decision)
 
 ---
 
-<!-- Powered by BMAD-CORE(TM) -->
+<!-- Powered by BMAD-CORE -->
