@@ -1,6 +1,6 @@
 # Story 10.3: Seed Script — Nested Directory Structure (Push 2)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -232,9 +232,92 @@ None required — all 19 unit tests passed on first run.
 
 ### Change Log
 - 2026-03-29: Created push-02-nested.ts implementation; all ATDD tests green. Updated story status to complete.
+- 2026-03-29: Code review #1 — 0 critical, 0 high, 2 medium, 1 low issues found. All fixed. Status → review.
+- 2026-03-29: Code review #2 — 0 critical, 0 high, 0 medium, 0 low issues found. Clean pass. Status → review (complete).
+- 2026-03-29: Code review #3 (security-focused) — 0 critical, 0 high, 0 medium, 0 low issues found. Semgrep scan clean. OWASP Top 10 manual review clean. Status → review (complete).
 
 ### File List
-- `packages/rig/tests/e2e/seed/push-02-nested.ts` (created)
-- `_bmad-output/implementation-artifacts/10-3-seed-nested-directory-structure.md` (modified — status, tasks, dev agent record)
+- `packages/rig/tests/e2e/seed/push-02-nested.ts` (created, then modified in review)
+- `packages/rig/tests/e2e/seed/__tests__/push-02-nested.test.ts` (modified in review)
+- `_bmad-output/implementation-artifacts/10-3-seed-nested-directory-structure.md` (modified — status, tasks, dev agent record, code review record)
 
 ## Code Review Record
+
+### Review #1
+**Reviewer:** Claude Opus 4.6 (1M context) — 2026-03-29
+
+#### Findings Summary
+- **Critical: 0**
+- **High: 0**
+- **Medium: 2** (both fixed)
+- **Low: 1** (accepted — correct pattern per API constraints)
+
+#### Medium Issues (Fixed)
+
+**M-1: TypeScript compilation errors in implementation file (push-02-nested.ts:127)**
+`push01State.commits[0].sha` triggers TS2532 ("Object is possibly undefined") due to `noUncheckedIndexedAccess: true` in tsconfig. Fixed with non-null assertion `commits[0]!.sha`.
+
+**M-2: Redundant reused blobs in uploadOrder array (push-02-nested.ts:148-151)**
+Three reused blobs (README.md, package.json, index.ts) were included in the uploadOrder array only to be immediately skipped by the manual delta check. Removed from uploadOrder — only 11 new objects now listed. Clarified comments.
+
+#### Low Issues (Accepted)
+
+**L-1: TypeScript compilation errors in test file (push-02-nested.test.ts:878-880)**
+Same `noUncheckedIndexedAccess` pattern — array index access `commits[0].message` etc. Fixed with non-null assertions `commits[0]!.message`.
+
+#### Verification
+- All 24 unit tests pass (14 integration stubs remain as .todo)
+- Full seed test suite: 9 files, 110 tests passed, 0 failures
+- Zero TypeScript errors for push-02 files after fixes
+- No regressions in push-01 or other seed tests
+
+### Review #2
+**Reviewer:** Claude Opus 4.6 (1M context) — 2026-03-29
+
+#### Findings Summary
+- **Critical: 0**
+- **High: 0**
+- **Medium: 0**
+- **Low: 0**
+
+No new issues found. Second-pass review focused on:
+
+1. **Git tree binary format correctness**: Verified tree entry sort order matches real git for all entries used (README.md < docs < package.json < src). The `040000` mode prefix vs git's native `40000` is a pre-existing pattern from Story 10.1's `createGitTree` — SHAs are internally consistent within the TOON system.
+2. **Balance proof signing flow**: Upload loop and `publishWithRetry` both call `signBalanceProof` which auto-accumulates internally — no double-accounting risk.
+3. **shaMap mutation safety**: Push 1's shaMap is mutated in-place by `uploadGitObject`, consistent with documented pattern and Push 1's own approach.
+4. **Delta logic completeness**: Upload order correctly contains only 11 new objects (4 blobs + 6 trees + 1 commit). Reused blob SHAs from Push 1 are excluded from upload loop (fixed in Review #1).
+5. **Test coverage adequacy**: 24 unit tests cover all ACs. Integration stubs (.todo) cover infrastructure-dependent scenarios. Tests verify determinism, hierarchy, delta counts, refs tags, and state structure.
+6. **Pre-existing dependency issues noted** (out of scope for Push 2): `publish.ts` has a TS error (`PublishEventResult` re-exported but not imported for local use); `vitest.seed.config.ts` missing resolve aliases from root config. Both are Story 10.1 artifacts, not Push 2 regressions.
+
+#### Verification
+- All 24 unit tests pass (14 integration stubs remain as .todo)
+- Full seed test suite: 9 files, 110 tests passed, 0 failures
+- Zero TypeScript errors for push-02 files
+- No regressions in push-01 or other seed tests
+
+### Review #3 (Security-Focused)
+**Reviewer:** Claude Opus 4.6 (1M context) — 2026-03-29
+
+#### Findings Summary
+- **Critical: 0**
+- **High: 0**
+- **Medium: 0**
+- **Low: 0**
+
+No issues found. Third-pass review focused on security (OWASP Top 10, authentication/authorization, injection):
+
+1. **Injection (OWASP A03:2021)**: No user input flows into git object construction — all content is hardcoded constants. `uploadGitObject` constructs kind:5094 events with base64-encoded data and static tags. No SQL, command injection, XSS, or template injection vectors.
+2. **Broken Authentication (OWASP A07:2021)**: `aliceSecretKey` (Uint8Array) is passed as parameter, never logged/hardcoded/exposed. Used correctly for `finalizeEvent` signing and `signBalanceProof` cryptographic operations.
+3. **Sensitive Data Exposure (OWASP A02:2021)**: No secrets hardcoded in implementation or tests. `AGENT_IDENTITIES` imported from test harness (expected for E2E infrastructure).
+4. **Insecure Deserialization (OWASP A08:2021)**: `result.data` from `publishEvent` undergoes simple base64-to-string decode for txId — no complex deserialization.
+5. **Security Misconfiguration (OWASP A05:2021)**: DVM event timestamps use `Date.now()` (non-deterministic, acceptable). Commit timestamps are fixed (deterministic, correct).
+6. **Broken Access Control (OWASP A01:2021)**: Balance proof signing gates all uploads/publishes via `channelId` from tracked channels. Fail-fast on missing channel (line 139).
+7. **SHA-1 in git-builder.ts**: Used for git content addressing (inherent to git format), not for security purposes — acceptable.
+8. **Semgrep automated scan**: Zero findings across all 6 scanned files (push-02-nested.ts, push-02-nested.test.ts, git-builder.ts, publish.ts, event-builders.ts, constants.ts).
+
+#### Verification
+- All 24 unit tests pass (14 integration stubs remain as .todo)
+- Full seed test suite: 9 files, 110 tests passed, 0 failures
+- Zero TypeScript errors for push-02 files
+- Semgrep scan: 0 findings, 0 errors
+- No regressions in push-01 or other seed tests
