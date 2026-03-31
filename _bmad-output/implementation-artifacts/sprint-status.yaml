@@ -204,7 +204,7 @@ development_status:
   10-6-seed-prs-with-status: done
   10-7-seed-issues-labels-conversations: done
   10-8-seed-merge-pr-close-issue: done
-  10-9-seed-orchestrator: backlog
+  10-9-seed-orchestrator: done
   10-10-spec-repo-list-and-home: backlog
   10-11-spec-deep-navigation-regression: backlog
   10-12-spec-file-viewing: backlog
