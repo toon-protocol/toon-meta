@@ -32,11 +32,13 @@ No compiler spans a *process* boundary (a client sends a packet to a connector; 
 
 ### Why this matters (a real example)
 
-`PaymentRequest`/`PaymentResponse` were defined **independently** in the connector *and* in `@toon-protocol/sdk`'s payment-handler bridge — two copies of one wire shape that could silently diverge. Connector PR #140 lifts the canonical definition into `@toon-protocol/shared@1.3.0`.
+The connector's localDelivery `PaymentRequest`/`PaymentResponse` is the canonical wire shape; **connector PR #140 lifts it into `@toon-protocol/shared@1.3.0`** so any process implementing `/handle-packet` imports one definition.
+
+**Nuance discovered (don't naively "dedup"):** `@toon-protocol/sdk`'s payment-handler *bridge* has a **separate, intentionally-different internal type** — flat `{accept, code?, message?, metadata?}` for handler ergonomics (`ctx.accept(metadata)` / `ctx.reject(ilpCode)`) — and `create-node.ts` (~654–694) has a **deliberate adapter** that translates it to the connector's wire shape (`data` base64 + `rejectReason`, via the canonical reject-code map in `@toon-protocol/core`). So sdk's bridge type is **not** a duplicate of the wire contract and must not be merged with it; the correct hardening is to type that *adapter boundary* against `shared`'s wire types.
 
 ## Open follow-ups
 
-1. **sdk** drops its duplicate `PaymentRequest`/`PaymentResponse` and imports from `@toon-protocol/shared@^1.3.0` (gated on shared 1.3.0 publishing — after connector PR #140 merges).
-2. **Admin API DTOs** — unify the connector's `AdminServer` types and hub's `ConnectorAdminClient` into shared.
-3. **Runtime validation** — the shapes above are TS types (erased at runtime). Adding `zod`/JSON-Schema validators in `shared` would make the wire contract *enforced* at the boundary, not just typed. Deferred (adds a dep to `shared`).
+1. **sdk adapter boundary** — type the `create-node.ts` connector-facing adapter (the code that emits `rejectReason`/`data`) against `@toon-protocol/shared`'s `PaymentResponse`, so the boundary is contract-checked. The bridge's internal DX type **stays** (it is not the wire contract). Gated on shared 1.3.0 publishing.
+2. **Admin API DTOs** — large surface (connector `AdminServer` endpoints: peers/routes/channels/earnings/settlement/inventory/… ↔ hub's ~18 `ConnectorAdminClient` DTOs). Unify into shared incrementally, highest-traffic DTOs first (peer registration).
+3. **Runtime validation** — the shapes above are TS types (erased at runtime). Adding `zod`/JSON-Schema validators in `shared` would make the wire contract *enforced* at the boundary, not just typed. Deferred — adds a dependency to the zero-dep `shared` package (a deliberate call).
 4. **Per-seam canary tests** — extend the `connector-contract.test.ts` pattern so each consuming repo asserts it still matches the shared contract.
