@@ -1,36 +1,27 @@
 ---
 name: rfc-0038-settlement-engines
-description: Expert knowledge of Interledger RFC 0038 - Settlement Engines. Use when users ask about settlement engines, ledger integration, settlement triggers, account balance management, or settlement system interfaces. Triggers on 'settlement engine', 'ledger settlement', 'settlement integration', or settlement questions.
+description: How TOON Protocol relates to Interledger RFC 0038 - Settlement Engines. Use when users ask how TOON settles on-chain, whether TOON runs a settlement-engine process, how EVM/Solana/Mina settlement works, or how claims get redeemed. Also covers generic settlement-engine, ledger-integration, and settlement-trigger questions. Triggers on 'settlement engine', 'on-chain settlement', 'claimFromChannel', 'multi-chain settlement', or 'how does TOON settle'.
 ---
 
-# RFC 0038: Settlement Engines
+# RFC 0038: Settlement Engines — and how TOON settles instead
 
-## Overview
+RFC 0038 defines a settlement engine as a **separate process** the connector talks to over HTTP (`/accounts`, `/settlements`), which knows how to move value on one specific ledger.
 
-Provides expert guidance on settlement engine interfaces for integrating different settlement systems and ledgers.
+## How TOON uses / diverges from this RFC
 
-## Core Capabilities
+**TOON does NOT implement the RFC-0038 HTTP settlement-engine interface.** There is no separate settlement-engine process and no `/accounts` + `/settlements` HTTP API. Settlement is **in-process, multi-chain, and claim-driven**:
 
-### 1. RFC Documentation Search
-Access RFC specification details using the MCP tool:
-```
-mcp__interledger_org-v4_Docs__search_rfcs_documentation
-```
+- **In-process providers.** The connector embeds payment-channel providers per chain (`settlement/provider/`): `evm-payment-channel-provider.ts`, `solana-payment-channel-provider.ts`, `mina-payment-channel-provider.ts`, selected via the chain-provider registry. They run inside the connector, not as out-of-process engines.
+- **Claim-driven on-chain redemption.** Each provider implements the same interface (`payment-channel-provider.ts`): `claimFromChannel(...)` (redeem the latest signed balance proof on-chain), `closeChannel(channelId)`, and `settleChannel(channelId)`. Off-chain, paid writes accrue as signed claims; the connector calls these methods to settle on-chain when a threshold is crossed.
+- **Multi-chain.** The same claim model maps to three chains with chain-specific signatures: EVM (EIP-712), Solana (Ed25519), Mina (Pallas/zk). A `payment-channel-claim` carries the chain-self-describing body so the right provider verifies and redeems it.
 
-Search with queries like:
-- "settlement engines"
-- "settlement interface"
-- "ledger integration"
+## What to tell a user asking about TOON settlement
 
-### 2. Answer Questions
-Provide detailed explanations based on the RFC specification.
-
-### 3. Implementation Guidance
-Help users implement and integrate the protocol or feature.
+Don't look for a settlement-engine container or an HTTP settlement API. Settlement happens inside the connector: signed claims accrue off-chain, then `claimFromChannel`/`settleChannel`/`closeChannel` redeem them on EVM/Solana/Mina. The operator runbook for recovering wedged on-chain settlement lives in the townhouse `RUNBOOK.md`.
 
 ## Common Topics
-- Settlement engine interface specification
-- Integration with different ledgers
-- Settlement triggering and processing
-- Account balance management
-- Settlement notification and confirmation
+- Why TOON has no RFC-0038 HTTP settlement engine (in-process instead)
+- The three providers: EVM / Solana / Mina payment-channel providers
+- `claimFromChannel` / `closeChannel` / `settleChannel` interface
+- Threshold-triggered on-chain redemption of signed claims
+- Relationship to `rfc-0032` (clearing/settlement flow), `rfc-0023` (claims)

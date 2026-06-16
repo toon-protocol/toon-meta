@@ -23,8 +23,8 @@ Data Vending Machines for agents on the TOON network. Covers NIP-90 (Data Vendin
 
 NIP-90 defines a three-event lifecycle for paid compute:
 
-1. **Job request** (kind:5xxx) -- A client submits a job request specifying input data, expected output type, and optional parameters. The kind number determines the job type: 5000 (text generation), 5094 (blob storage), 5250 (compute), and others. Input data goes in `i` tags, expected output type in `output` tags, and job parameters in `param` tags.
-2. **Job result** (kind:6xxx) -- A provider completes the job and publishes a result event with kind = request kind + 1000 (e.g., kind:5000 request yields kind:6000 result). The result references the request via `e` tag and includes the output in `i` tags or content field.
+1. **Job request** (kind:5xxx) -- A client submits a job request specifying input data, expected output type, and optional parameters. The kind number determines the job type. NIP-90 defines a wide range of kinds generically (e.g. 5000 text generation); on TOON the **only deployed DVM kind is 5094 (Arweave blob storage)**. Other kinds (5000 text-gen, the removed 5250 "Dungeon"/compute, etc.) are valid NIP-90 examples but are **not** backed by a TOON node type, so there is no provider to fulfill them on the network today. Input data goes in `i` tags, expected output type in `output` tags, and job parameters in `param` tags.
+2. **Job result** (kind:6xxx) -- A provider completes the job and publishes a result event with kind = request kind + 1000 (e.g., a kind:5094 request yields a kind:6094 result). The result references the request via `e` tag and includes the output in `i` tags or content field. For TOON's kind:5094 Arweave DVM, the result/FULFILL carries the Arweave transaction id of the stored blob.
 3. **Job feedback** (kind:7000) -- Providers send status updates during job processing. Status values include `processing`, `error`, `success`, and `partial`. Feedback events can also carry payment negotiation via the `amount` tag.
 
 NIP-78 adds application-specific data storage:
@@ -35,7 +35,7 @@ NIP-78 adds application-specific data storage:
 
 All DVM events are published via `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment.
 
-**kind:5xxx (job request) fee estimate:** Job requests vary widely by input size. A minimal text generation request (kind:5000) with a short prompt runs ~200-400 bytes (~$0.002-$0.004). A blob storage request (kind:5094) with inline data can be much larger. At default `basePricePerByte` of 10n ($0.00001/byte), cost scales linearly with payload size.
+**kind:5094 (Arweave blob storage request) fee estimate:** This is the canonical TOON DVM job. Requests vary widely by input size — a request with inline base64 blob data can be large. At default `basePricePerByte` of 10n ($0.00001/byte), cost scales linearly with payload size. (Generic NIP-90 kinds like kind:5000 text-gen would follow the same per-byte formula, but no TOON node fulfills them.)
 
 **kind:6xxx (job result) fee estimate:** Results vary by output size. A text generation result runs ~300-1000 bytes (~$0.003-$0.01). Blob storage results with hash references are smaller (~200-400 bytes, ~$0.002-$0.004).
 

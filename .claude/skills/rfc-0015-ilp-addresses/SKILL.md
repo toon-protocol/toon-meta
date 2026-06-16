@@ -1,36 +1,31 @@
 ---
 name: rfc-0015-ilp-addresses
-description: Expert knowledge of Interledger RFC 0015 - ILP Addresses specification. Use when users ask about ILP address format, address allocation, ledger/account addressing, address validation, or hierarchical addressing schemes. Triggers on 'ILP address', 'address format', 'address validation', or addressing questions.
+description: How TOON Protocol uses Interledger RFC 0015 - ILP Addresses. Use when users ask about TOON's ILP address scheme, the g.townhouse apex address, how g.townhouse.town resolves, child node addressing, or longest-prefix routing. Also covers generic ILP address format, grammar, and validation questions. Triggers on 'ILP address', 'g.townhouse', 'address format', 'routing prefix', or 'how does TOON address a node'.
 ---
 
-# RFC 0015: ILP Addresses
+# RFC 0015: ILP Addresses on TOON
 
-## Overview
+Implements RFC 0015 hierarchical ILP addressing as TOON's routing scheme. TOON uses the `g.*` (global) allocation with longest-prefix matching (`routing/routing-table.ts:135-157`).
 
-Provides expert guidance on Interledger address format, structure, allocation schemes, and validation rules for ledgers and accounts.
+## How TOON uses this RFC
 
-## Core Capabilities
+- **The apex is `g.townhouse`.** The connector (the parent of every apex deployment) routes under this prefix.
+- **Child nodes resolve under the apex.** The town relay is `g.townhouse.town`; dvm and mill children sit alongside (e.g. `g.townhouse.<child>`). A client publishing to the default relay uses destination `g.townhouse.town`.
+- **Longest-prefix routing.** The connector matches a packet's destination address against its routing table by longest prefix, so `g.townhouse.town` routes to the town child while `g.townhouse` (or an unmatched suffix) is handled by the apex itself.
+- **Hierarchical structure mirrors topology.** The address hierarchy *is* the parent/child topology: the prefix relationship (`g.townhouse` parent of `g.townhouse.town` child) is what the free-forward rule keys on (see `rfc-0032`).
 
-### 1. RFC Documentation Search
-Access RFC specification details using the MCP tool:
-```
-mcp__interledger_org-v4_Docs__search_rfcs_documentation
-```
+## Addressing pitfalls on TOON
 
-Search with queries like:
-- "ILP address format structure"
-- "address allocation schemes"
-- "hierarchical addressing"
+- A child must tag the apex (`g.townhouse`) as its parent (`TOON_PARENT_PEER_ID`) **and** be registered `relation:'child'`. A mismatch between the address hierarchy and the registered relation causes paid traffic to the child to be rejected with **F06 / T00** (see `rfc-0027`, `rfc-0032`).
+- Don't confuse the **ILP address** (routing destination, `g.townhouse.town`) with **Nostr identity** (npub/pubkey, who published an event). Addresses route packets; pubkeys identify actors. TOON has no payment pointers (see `rfc-0026`).
 
-### 2. Answer Questions
-Provide detailed explanations based on the RFC specification.
+## What to tell a user constructing a destination
 
-### 3. Implementation Guidance
-Help users implement and integrate the protocol or feature.
+Use `g.townhouse.town` for the default relay; discover the exact apex/child addresses from the apex's **kind:10032** peer-info advertisement (free read). The client daemon defaults `destination` to the configured apex relay.
 
 ## Common Topics
-- ILP address syntax and grammar
-- Hierarchical address structure
-- Address allocation schemes
-- Validation rules and constraints
-- Destination and source addressing
+- The `g.townhouse` apex prefix and `g.townhouse.town` / child addresses
+- Longest-prefix routing (`routing-table.ts`)
+- Address hierarchy mirroring the parent/child topology
+- F06/T00 from address-vs-relation mismatch
+- ILP address vs Nostr identity vs (absent) payment pointers

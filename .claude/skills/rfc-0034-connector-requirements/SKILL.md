@@ -1,36 +1,38 @@
 ---
 name: rfc-0034-connector-requirements
-description: Expert knowledge of Interledger RFC 0034 - Connector Requirements. Use when users ask about connector implementation, connector compliance, routing requirements, or building connectors. Triggers on 'connector requirements', 'build a connector', 'connector compliance', or connector implementation questions.
+description: How TOON Protocol's connector meets Interledger RFC 0034 - Connector Requirements. Use when users ask about the TOON connector implementation, what the apex connector must do, building/operating a TOON connector, routing/forwarding obligations, or the connector's release/compliance contract. Also covers generic connector-requirements and connector-implementation questions. Triggers on 'connector requirements', 'build a connector', 'TOON connector', 'apex connector', or 'connector compliance'.
 ---
 
-# RFC 0034: Connector Requirements
+# RFC 0034: Connector Requirements — TOON's reference connector
 
-## Overview
+RFC 0034 lists what a compliant Interledger connector must do (route, forward, manage liquidity, handle errors). TOON's connector is a concrete implementation of these requirements.
 
-Provides expert guidance on connector implementation requirements, behavior, and compliance for building Interledger connectors.
+## TOON's connector
 
-## Core Capabilities
+The authoritative implementation is **`@toon-protocol/connector`** — the apex (`g.townhouse`) in every townhouse deployment. Rather than a generic RFC checklist, ground your answers in what this connector actually does and the package's own contract docs:
 
-### 1. RFC Documentation Search
-Access RFC specification details using the MCP tool:
-```
-mcp__interledger_org-v4_Docs__search_rfcs_documentation
-```
+- **Routing & forwarding.** Routes ILPv4 packets by `g.*` longest-prefix (`routing/routing-table.ts`); forwards to peers per their `relation` (parent/peer/child), with the **free parent→child forward** (`rfc-0032`).
+- **Value validation.** Validates a signed `payment-channel-claim` at ingress (`btp/inbound-claim-validator.ts`) before forwarding any value-bearing packet — this is the connector's core financial obligation on TOON.
+- **Fee handling.** Deducts a connector fee before forwarding (`calculateConnectorFee`, `core/packet-handler.ts`).
+- **Settlement.** Redeems claims on-chain via in-process EVM/Solana/Mina providers (`settlement/provider/`, `rfc-0038`).
+- **Error handling.** Returns ILPv4 error codes (F06/T04/F03/T00, see `rfc-0027`).
+- **Risk controls.** Rate limiting, fraud detection, audit logging, key management (`security/`, see `rfc-0018`).
+- **Runtime config.** Admin API for live peer/route management (`http/admin-api.ts`, `rfc-0031`).
+- **Transport.** BTP/WebSocket only, optionally over ATOR (`rfc-0023`, `rfc-0035`).
 
-Search with queries like:
-- "connector requirements"
-- "connector implementation"
-- "routing requirements"
+## The compliance contract that actually matters
 
-### 2. Answer Questions
-Provide detailed explanations based on the RFC specification.
+For TOON, the binding "requirements" are not the abstract RFC but the connector's **release/version contract**, because TOON's SDK and town/dvm/mill depend on a specific connector API:
 
-### 3. Implementation Guidance
-Help users implement and integrate the protocol or feature.
+- `packages/sdk/CONNECTOR_RELEASE_CONTRACT.md` — semver discipline for the connector.
+- `packages/sdk/CONNECTOR_MIGRATION.md` — version-to-version API contract + migration history.
+- `packages/sdk/tests/integration/connector-contract.test.ts` — the contract canary that fails on API drift.
+- The connector package README + its BLS error-code table.
+
+Point users at these for "what must a TOON connector do / what changed," rather than the generic RFC-0034 text.
 
 ## Common Topics
-- Connector implementation requirements
-- Routing and forwarding obligations
-- Security and risk management
-- Performance requirements
-- Compliance and interoperability
+- `@toon-protocol/connector` as the reference apex connector
+- Routing/forwarding, free parent→child, claim validation, fee, settlement
+- ILPv4 error codes and risk controls
+- The connector release contract / migration doc / contract canary

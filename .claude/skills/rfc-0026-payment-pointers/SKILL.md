@@ -1,36 +1,29 @@
 ---
 name: rfc-0026-payment-pointers
-description: Expert knowledge of Interledger RFC 0026 - Payment Pointers. Use when users ask about payment pointers, user-friendly payment addressing, HTTP(S) payment resolution, or simplified payment endpoints. Triggers on 'payment pointer', '$paymentpointer', 'payment address', or payment endpoint resolution.
+description: How TOON Protocol relates to Interledger RFC 0026 - Payment Pointers. Use when users ask whether TOON uses payment pointers, what a TOON "address" is, how to address a TOON node, or how user-facing addressing differs from vanilla Interledger. Also covers generic payment-pointer format/resolution questions. Triggers on 'payment pointer', '$paymentpointer', 'TOON address', or 'how do I address a TOON node'.
 ---
 
-# RFC 0026: Payment Pointers
+# RFC 0026: Payment Pointers — and why TOON does not use them
 
-## Overview
+A payment pointer (`$example.com/alice`) is a human-friendly handle that resolves over HTTPS to an SPSP endpoint, giving a sender the receiver's ILP details.
 
-Provides expert guidance on payment pointer format, syntax, and resolution for user-friendly payment addressing.
+## How TOON uses / diverges from this RFC
 
-## Core Capabilities
+**TOON has no payment pointers.** There is no `$`-prefixed handle and no HTTPS payment-pointer resolution anywhere in production. Because TOON also skips SPSP (`rfc-0009`), the entire payment-pointer → SPSP resolution chain is absent. TOON addresses things two ways instead:
 
-### 1. RFC Documentation Search
-Access RFC specification details using the MCP tool:
-```
-mcp__interledger_org-v4_Docs__search_rfcs_documentation
-```
+- **ILP addresses** identify the routing destination. The apex connector is `g.townhouse`; child nodes resolve under it — e.g. the relay is `g.townhouse.town`, with dvm/mill children alongside. These are hierarchical `g.*` addresses routed by longest-prefix match (see `rfc-0015`). This is what a client puts in a packet's `destination`.
+- **Nostr identity (npub / hex pubkey)** identifies *who* an actor is — the publisher of an event, a DVM provider, a swap counterparty. Identity is a secp256k1 keypair, not a URL.
+- **Discovery** of a node's ILP address + reachable endpoints is via **kind:10032** peer-info events on the relay (free reads), not via resolving a pointer.
 
-Search with queries like:
-- "payment pointers"
-- "payment pointer resolution"
-- "user-friendly addressing"
+## What to tell a user asking "what's the payment pointer for…?"
 
-### 2. Answer Questions
-Provide detailed explanations based on the RFC specification.
-
-### 3. Implementation Guidance
-Help users implement and integrate the protocol or feature.
+There isn't one. To pay a TOON node:
+- use its **ILP address** (`g.townhouse.town` for the default relay) as the packet destination, and
+- find that address by reading the apex's **kind:10032** advertisement.
+To attribute content to a person, use their **npub/pubkey**, not an address.
 
 ## Common Topics
-- Payment pointer format and syntax
-- HTTP(S) resolution of payment endpoints
-- User-friendly payment addressing
-- Payment pointer validation
-- Integration with SPSP
+- Why TOON has no payment pointers (no SPSP chain — see `rfc-0009`)
+- ILP addresses (`g.townhouse`, `g.townhouse.town`) as routing destinations
+- Nostr npub/pubkey as actor identity
+- kind:10032 peer-info as the discovery mechanism
