@@ -1,6 +1,6 @@
 {
   "name": "toon-skills",
-  "description": "Shared TOON Protocol agent skills: Nostr NIP implementations on TOON's ILP-gated relay, Interledger RFC references localized to TOON's signed payment-channel-claim-over-BTP model, git-on-Nostr (NIP-34), content/social, and BMAD workflow skills.",
+  "description": "Shared TOON Protocol agent skills: Nostr NIP implementations on TOON's ILP-gated relay, Interledger RFC references localized to TOON's signed payment-channel-claim-over-BTP model, git-on-Nostr (NIP-34), content/social, and dev utilities.",
   "version": "0.1.0",
   "author": {
     "name": "Jonathan Green",
@@ -9,5 +9,13 @@
   "homepage": "https://github.com/toon-protocol/toon-meta",
   "repository": "https://github.com/toon-protocol/toon-meta",
   "license": "MIT",
-  "keywords": ["toon", "nostr", "interledger", "ilp", "skills", "nip", "rfc"]
+  "keywords": [
+    "toon",
+    "nostr",
+    "interledger",
+    "ilp",
+    "skills",
+    "nip",
+    "rfc"
+  ]
 }
