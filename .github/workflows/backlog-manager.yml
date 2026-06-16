@@ -26,14 +26,18 @@ concurrency:
 jobs:
   backlog:
     runs-on: ubuntu-latest
+    env:
+      # Custom org App enables org-level GitHub Project WRITES (the default
+      # GITHUB_TOKEN and the official Claude app cannot). Set APP_ID/APP_PRIVATE_KEY
+      # as secrets AND share the org secret with this repo. If absent, the loop
+      # still runs and treats the Project board as report-only.
+      APP_ID: ${{ secrets.APP_ID }}
     steps:
       - uses: actions/checkout@v4
 
-      # Custom org App token — REQUIRED to write org-level GitHub Projects.
-      # The default GITHUB_TOKEN and the official Claude app cannot write org Projects.
-      # If you skip this, drop `github_token` below; the board becomes report-only.
       - name: Generate GitHub App token
         id: app-token
+        if: env.APP_ID != ''
         uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ secrets.APP_ID }}
@@ -42,7 +46,7 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ steps.app-token.outputs.token }}
+          github_token: ${{ steps.app-token.outputs.token || github.token }}
           plugin_marketplaces: "https://github.com/toon-protocol/toon-meta.git"
           plugins: "toon-skills@toon-meta"
           prompt: >-

@@ -2,6 +2,10 @@
 # Copy to <repo>/.github/workflows/issue-executor.yml.
 # Two triggers: a new agent:ready label starts execution; a changes_requested
 # review drives the bounded fix loop on the same PR.
+#
+# The custom org App token is REQUIRED here (not just for Projects): a PR opened
+# with the default GITHUB_TOKEN does NOT trigger other workflows, so Loop C's
+# reviewer would never fire. Opening the PR via the App makes the handshake work.
 name: Issue Executor
 
 on:
