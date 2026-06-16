@@ -5,7 +5,8 @@ Cross-cutting assets for the **TOON Protocol** — the shared **context hub** an
 ## Contents
 
 - **[`context/`](./context/)** — the curated **context architecture**: [context](./context/context.md) · [architecture](./context/architecture.md) · [repos](./context/repos.md) · [decisions](./context/decisions.md) · [glossary](./context/glossary.md). **Start at [`context/context.md`](./context/context.md).**
-- **[`skills/`](./skills/)** — the shared Claude Agent Skills (NIP-on-TOON, Interledger RFC localized to TOON's claim-over-BTP model, git-on-Nostr, content/social, dev utilities), published as the **`toon-skills`** plugin. Product skills (`toon-client`, `townhouse-operator`) ship in their own product plugins (`toon-client`, `hub`).
+- **[`skills/`](./skills/)** — the shared Claude Agent Skills (NIP-on-TOON, Interledger RFC localized to TOON's claim-over-BTP model, git-on-Nostr, content/social, dev utilities), published as the **`toon-skills`** plugin. Product skills (`toon-client`, `townhouse-operator`) ship in their own product plugins (`toon-client`, `hub`). Includes the **agent backlog loops** — `backlog-manager` (triage) and `issue-executor` (implements `agent:ready` tickets).
+- **[`templates/agent-loops/`](./templates/agent-loops/)** — copy-in GitHub Actions workflows that run the three backlog loops (manager → executor → reviewer) per repo, **billed to your Claude Max plan**. See its [README](./templates/agent-loops/README.md) for setup, prerequisites, and the dry-run→apply rollout.
 - **[`docs/`](./docs/)** — deep protocol/implementation reference (protocol.md, settlement.md, architecture.md, bootstrap.md, guides).
 
 ## Using the shared skills in another repo
