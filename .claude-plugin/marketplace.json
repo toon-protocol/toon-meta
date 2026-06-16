@@ -1,0 +1,15 @@
+{
+  "name": "toon-meta",
+  "description": "TOON Protocol shared agent skills — install in any TOON repo to get NIP-on-TOON, ILP/RFC (localized to TOON), git-on-Nostr, content, and BMAD workflow skills.",
+  "owner": {
+    "name": "TOON Protocol",
+    "url": "https://github.com/toon-protocol"
+  },
+  "plugins": [
+    {
+      "name": "toon-skills",
+      "source": ".",
+      "description": "Shared TOON Protocol skills: Nostr NIP implementations on TOON, Interledger RFC references (TOON-localized to the signed-claim-over-BTP model), git-on-Nostr, content/social, and BMAD workflow skills. Product skills (toon-client, townhouse-operator) ship in their own product plugins."
+    }
+  ]
+}
