@@ -2,8 +2,9 @@
 name: backlog-manager
 description: >-
   Engineering backlog manager for the TOON Protocol polyrepo. Triages GitHub
-  Issues (and the repo's GitHub Project), classifies each issue by risk and type,
-  marks safe single-PR work `agent:ready` so the issue-executor loop can pick it
+  Issues (and the repo's GitHub Project), classifies each issue by risk (label)
+  and type (native org Issue Type via GraphQL), marks safe single-PR work
+  `agent:ready` so the issue-executor loop can pick it
   up, routes judgment calls to `needs:human`, writes an Agent Assessment plan into
   each issue, and syncs issue/Project state from linked-PR evidence. Defaults to
   dry-run. Use when GitHub Issues for a `toon-protocol` repo are the source of
@@ -56,38 +57,49 @@ Use exactly one source of truth per run:
 Local roadmap/`docs/` files are context only. When they diverge from the tracker,
 report that as quality drift; do not reconcile them as a second backlog.
 
-## Labels (fixed set — do not invent others)
+## Classification surfaces
 
-This skill manages only the labels below. Leave existing tracker labels (`bug`,
-`enhancement`, `good first issue`, etc.) untouched unless the user asks to
-normalize them.
+Two dimensions live in **labels**, one lives in the **native org Issue Type**
+field. Leave unrelated tracker labels (`enhancement`, `good first issue`, etc.)
+untouched unless the user asks to normalize them.
 
-**Risk** — `risk:low` (safe for agent execution when also `agent:ready`),
+**Risk (label)** — `risk:low` (safe for agent execution when also `agent:ready`),
 `risk:medium` (maybe agent-suitable later; not unattended by default),
 `risk:high` (human-led).
 
-**Type** — `type:bug`, `type:feature`, `type:docs`, `type:test`,
-`type:refactor`, `type:chore`.
+**Routing (labels)** — `agent:ready` (permission for the executor loop to pick it
+up), `needs:human` (a decision/clarification/judgment is required).
 
-**Routing** — `agent:ready` (permission for the executor loop to pick it up),
-`needs:human` (a decision/clarification/judgment is required).
-
-**Loop bookkeeping** — `review-round:<n>` is owned by the executor/reviewer
+**Loop bookkeeping (label)** — `review-round:<n>` is owned by the executor/reviewer
 loops; never set it here, but preserve it.
 
-Recommended GitHub colors: `risk:low` `0E8A16`, `risk:medium` `FBCA04`,
-`risk:high` `B60205`, `type:*` `5319E7`, `agent:*` `1D76DB`, `needs:human`
-`D93F0B`.
+Recommended GitHub label colors: `risk:low` `0E8A16`, `risk:medium` `FBCA04`,
+`risk:high` `B60205`, `agent:*` `1D76DB`, `needs:human` `D93F0B`.
+
+### Type is a native Issue Type, not a label
+
+The **Type** dimension uses GitHub's **native organization Issue Types** (a
+first-class single-select field), not `type:*` labels. The org taxonomy is the six
+types **`Bug`, `Feature`, `Docs`, `Test`, `Refactor`, `Chore`** (the default
+`Task` may exist; this skill does not use it). Each issue gets **exactly one**.
+
+`gh` (≤2.45) cannot read or write Issue Types, so use GraphQL (see GitHub
+adapter). Resolve the org type name→ID map once per run before classifying. If a
+required org type is missing, **report it** — do **not** create org-level Issue
+Types from this skill unless the user explicitly asks (it's an org-config change).
+
+If an older repo still carries legacy `type:*` labels, treat them as context only;
+do not manage them. The native Issue Type is authoritative.
 
 ### Managed labels are additive
 
-Trackers don't record who set a label, so treat every existing managed label as
-**deliberately human-set**. Never remove or change an existing `risk:*`,
-`type:*`, `agent:ready`, or `needs:human` label during classification — only fill
-gaps. If your classification disagrees with an existing label, **keep the label
-and raise the disagreement in the report**. The only exception is Step 5
-(PR-evidence sync), which may remove `agent:ready` once work is demonstrably in
-progress or done.
+Trackers don't record who set a label, so treat every existing managed label and
+every existing Issue Type as **deliberately human-set**. Never remove or change an
+existing `risk:*`, `agent:ready`, or `needs:human` label, or an existing Issue
+Type, during classification — only fill gaps. If your classification disagrees
+with an existing value, **keep it and raise the disagreement in the report**. The
+only exception is Step 5 (PR-evidence sync), which may remove `agent:ready` once
+work is demonstrably in progress or done.
 
 ## Risk & routing rules
 
@@ -161,17 +173,21 @@ Use the repo the user names, else the current `toon-protocol` repo via `gh`. Loa
 the GitHub Project and record its field/status-option IDs before any mutation. If
 no source resolves, stop and ask for the repo/Project.
 
-### Step 3 — Ensure labels exist
-`dry-run`: report missing labels. `apply`: create missing managed labels with the
-colors above.
+### Step 3 — Ensure labels and Issue Types exist
+`dry-run`: report missing managed labels and any missing org Issue Types.
+`apply`: create missing managed labels with the colors above. Resolve the org
+Issue Type name→ID map (GraphQL). Do **not** create missing org-level Issue Types
+from this skill — report them as a setup blocker unless the user explicitly asks.
 
 ### Step 4 — Classify open issues
-Fetch open issues with title, body, labels, comments, Project fields, and linked
-PRs. For each: add exactly one `risk:*` if missing, one `type:*` if missing, then
-decide `agent:ready` / `needs:human` / neither. **Never override existing managed
-labels** — fill gaps only, report disagreements. Add/update the Agent Assessment
-only if it changed. When confidence is low, prefer `needs:human` with a specific
-question over a speculative `agent:ready`.
+Fetch open issues with node id, title, body, labels, current Issue Type, comments,
+Project fields, and linked PRs. For each: add exactly one `risk:*` label if
+missing; set the native Issue Type (GraphQL `updateIssueIssueType`) if unset;
+then decide `agent:ready` / `needs:human` / neither. **Never override an existing
+managed label or an already-set Issue Type** — fill gaps only, report
+disagreements. Add/update the Agent Assessment only if it changed. When confidence
+is low, prefer `needs:human` with a specific question over a speculative
+`agent:ready`.
 
 ### Step 5 — Sync issue state with PRs
 Check **live** PR state (draft flag, mergeability, checks, reviews, unresolved
@@ -179,8 +195,8 @@ threads) — never infer completion from a branch name or PR title.
 - **Linked PR open:** move the Project item to the review state if available;
   remove `agent:ready` (work is in progress); comment only if it adds state.
 - **Linked PR merged:** remove `agent:ready`; close the issue when the PR clearly
-  resolves it; move the Project item to Done; preserve `risk:*`/`type:*` for
-  audit.
+  resolves it; move the Project item to Done; preserve the `risk:*` label and the
+  Issue Type for audit.
 - **Linked PR closed unmerged:** remove `agent:ready`; add `needs:human` if the
   next step is unclear; comment the known reason.
 Never close an issue without clear merged-PR evidence. Never mark done while
@@ -208,13 +224,13 @@ List cleanup-prospect branches (merged into default, tied to closed/merged PRs,
 stale automation branches) with evidence. **Never delete branches here.**
 
 ### Step 9 — Verify (apply runs)
-Confirm: every open issue has one `risk:*` + one `type:*`; any `agent:ready`
-without `risk:low` or alongside `needs:human` is **flagged, not auto-fixed**
-(a human may have set it); every `risk:high` has `needs:human` unless clearly
-human-owned; every classified issue has an Agent Assessment; issues with open
-PRs are in review state, merged-PR issues in Done; no issue is both closed and
-left active. Use `gh issue list --json number,title,labels,body` to verify, not
-the web UI.
+Confirm: every open issue has one `risk:*` label **and** a native Issue Type; any
+`agent:ready` without `risk:low` or alongside `needs:human` is **flagged, not
+auto-fixed** (a human may have set it); every `risk:high` has `needs:human` unless
+clearly human-owned; every classified issue has an Agent Assessment; issues with
+open PRs are in review state, merged-PR issues in Done; no issue is both closed and
+left active. Verify labels with `gh issue list --json number,title,labels,body`
+and Issue Types with the GraphQL read query — not the web UI.
 
 ### Step 10 — Report
 Compact summary: repo + Project used, mode, steps run, issues inspected, labels
@@ -232,19 +248,42 @@ merge PRs, publish releases, change secrets, spend money, delete branches, or ma
 high-risk changes. A cron may run in `dry-run`, or in conservative `apply` once
 the user has approved exactly which mutations are allowed for that repo.
 
-## GitHub adapter (gh)
+## GitHub adapter
+
+Labels, comments, and closes use `gh`. **Issue Types use GraphQL** (`gh` ≤2.45
+has no `--type` support and `--json issueType` is rejected).
 
 ```bash
+# Labels / comments / close (gh is fine)
 gh repo view --json nameWithOwner,url
 gh label list --limit 200
 gh label create "risk:low" --color "0E8A16" --description "Low-risk; agent-executable when agent:ready"
 gh issue list --state open --limit 100 --json number,title,body,labels,url,createdAt,updatedAt,comments
-gh issue edit <n> --add-label "risk:low,type:docs,agent:ready"
+gh issue edit <n> --add-label "risk:low,agent:ready"   # routing/risk only — NOT type
 gh issue comment <n> --body-file <file>
 gh issue close <n> --comment "Closed because linked PR <url> merged."
+
+# Project board (org Projects need an App token with Org Projects R/W)
 gh project field-list <num> --owner toon-protocol --format json
 gh project item-list <num> --owner toon-protocol --limit 200 --format json
 gh project item-edit --id <item-id> --project-id <pid> --field-id <status-field-id> --single-select-option-id <option-id>
+```
+
+Issue Types (GraphQL):
+
+```bash
+# 1. Resolve the org type name->ID map once per run
+gh api graphql -f query='query { organization(login:"toon-protocol"){
+  issueTypes(first:20){ nodes { id name } } } }'
+
+# 2. Read an issue's node id + current type
+gh api graphql -f query='query { repository(owner:"OWNER", name:"REPO"){
+  issue(number:N){ id issueType { id name } } } }'
+
+# 3. Set the type (issueTypeId from step 1; pass null to clear)
+gh api graphql -f query='mutation($issue:ID!,$type:ID){
+  updateIssueIssueType(input:{issueId:$issue, issueTypeId:$type}){
+    issue { number issueType { name } } } }' -F issue=<issue-node-id> -F type=<type-id>
 ```
 
 For linked PRs use `gh pr view`/GraphQL — exact linked-PR data, never branch-name
@@ -255,8 +294,10 @@ status.
 ## Safety rules
 
 - Default to `dry-run`; mutate only on explicit `apply`.
-- Never remove/downgrade existing managed labels during classification (Step 5 is
-  the only step allowed to remove `agent:ready`).
+- Never remove/downgrade existing managed labels or an already-set Issue Type
+  during classification (Step 5 is the only step allowed to remove `agent:ready`).
+- Never create or delete org-level Issue Types from this skill; report missing
+  ones as a setup blocker.
 - Never add `agent:ready` to `risk:medium`/`risk:high` issues by default.
 - Never auto-close without clear merged-PR evidence; never mark done with failing
   checks or unresolved actionable review threads.
@@ -265,9 +306,11 @@ status.
 
 ## Quality bar
 
-- [ ] Uses only the fixed managed label set.
-- [ ] Existing managed labels respected; classification only filled gaps.
-- [ ] Each classified issue has one risk + one type label.
+- [ ] Uses only the fixed managed label set (risk + routing); Type is the native
+      Issue Type, never a `type:*` label.
+- [ ] Existing managed labels and Issue Types respected; classification only
+      filled gaps.
+- [ ] Each classified issue has one `risk:*` label and one native Issue Type.
 - [ ] `agent:ready` only on low-risk, clear, verifiable, single-PR work.
 - [ ] Human decisions routed via `needs:human`, not extra labels.
 - [ ] Reasoning lives in the Agent Assessment, not label sprawl.

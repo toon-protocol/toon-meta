@@ -33,6 +33,11 @@ Loop A backlog-manager  ─agent:ready─►  Loop B issue-executor  ─PR─►
      report-only (issues/labels still work via the official Claude app).
 3. **Local gh scope** (for validating Project field/status-option IDs):
    `gh auth refresh -s project,read:project`.
+4. **Native Issue Types** — the backlog-manager classifies the *type* dimension
+   using GitHub's native **org Issue Types** (not `type:*` labels). Define these six
+   at the org (Settings → Planning → Issue types): **Bug, Feature, Docs, Test,
+   Refactor, Chore**. The default `Task` is unused. The custom App needs the
+   issue-types permission to set them; the skill never creates org types itself.
 
 ## Rollout
 
