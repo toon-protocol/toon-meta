@@ -1,7 +1,7 @@
 {
   "name": "toon-skills",
-  "description": "Shared TOON Protocol agent skills: Nostr NIP implementations on TOON's ILP-gated relay, Interledger RFC references localized to TOON's signed payment-channel-claim-over-BTP model, git-on-Nostr (NIP-34), content/social, and dev utilities.",
-  "version": "0.1.0",
+  "description": "Shared TOON Protocol agent skills: Nostr NIP implementations on TOON's ILP-gated relay, Interledger RFC references localized to TOON's signed payment-channel-claim-over-BTP model, git-on-Nostr (NIP-34), content/social, dev utilities, and the backlog-manager + issue-executor agent-loop skills.",
+  "version": "0.2.0",
   "author": {
     "name": "Jonathan Green",
     "email": "dev.jonathan.green@gmail.com"
@@ -16,6 +16,8 @@
     "ilp",
     "skills",
     "nip",
-    "rfc"
+    "rfc",
+    "backlog",
+    "automation"
   ]
 }

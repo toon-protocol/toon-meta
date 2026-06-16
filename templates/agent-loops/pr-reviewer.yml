@@ -1,0 +1,39 @@
+# Loop C — PR Reviewer (independent, adversarial review of executor PRs).
+# Copy to <repo>/.github/workflows/pr-reviewer.yml.
+# Runs ONLY on agent/ branches so human-authored PRs aren't double-reviewed.
+# Reuses Anthropic's published code-review plugin — no custom skill.
+name: PR Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: reviewer-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: startsWith(github.head_ref, 'agent/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
+          plugins: "code-review@claude-code-plugins"
+          # The skill posts inline findings. We explicitly ask for a verdict so the
+          # changes_requested event drives Loop B's bounded fix loop. If the plugin
+          # version doesn't submit a formal review, switch to GitHub Code Review
+          # (https://code.claude.com/docs/en/code-review) — same OAuth token.
+          prompt: >-
+            /code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+            Post findings as inline comments, then submit a formal PR review:
+            REQUEST_CHANGES if any blocking correctness/security issue is found,
+            otherwise APPROVE. Do not merge.
+          claude_args: "--max-turns 20"
