@@ -12,8 +12,8 @@ DVM job kinds follow a structured numbering scheme:
 
 | Range | Purpose | Examples |
 |-------|---------|----------|
-| 5000-5999 | Job requests | 5000 (text generation), 5001 (text-to-image), 5094 (blob storage), 5250 (compute), 5300 (discovery), 5600 (translation) |
-| 6000-6999 | Job results | 6000 (text result), 6001 (image result), 6094 (blob result), 6250 (compute result), 6300 (discovery result), 6600 (translation result) |
+| 5000-5999 | Job requests | 5000 (text generation), 5001 (text-to-image), **5094 (blob storage — canonical TOON DVM)**, 5300 (discovery), 5600 (translation); 5250 (Dungeon DVM — **removed from TOON**) |
+| 6000-6999 | Job results | 6000 (text result), 6001 (image result), 6094 (blob result), 6300 (discovery result), 6600 (translation result) |
 | 7000 | Job feedback | Status updates, payment negotiation |
 
 **Result kind formula:** `result_kind = request_kind + 1000`
@@ -101,22 +101,9 @@ The provider waits for the referenced job to complete, then uses its result as i
 }
 ```
 
-### Example kind:5250 Event (Compute)
+### kind:5250 (Dungeon DVM — Removed)
 
-```json
-{
-  "kind": 5250,
-  "content": "",
-  "tags": [
-    ["i", "https://example.com/script.wasm", "url"],
-    ["output", "application/json"],
-    ["relays", "wss://relay.toon-protocol.com"],
-    ["bid", "200000"],
-    ["param", "runtime", "wasm"],
-    ["param", "timeout", "30"]
-  ]
-}
-```
+> **Do not use on TOON.** kind:5250 (the "Dungeon" compute DVM) was removed from the TOON node. No live TOON node will fulfill kind:5250 requests. This kind exists only as a historical NIP-90 example; see kind:5094 for the canonical TOON DVM.
 
 ### Encrypted Job Requests
 
@@ -331,7 +318,7 @@ kind:30078 is in the parameterized replaceable range (30000-39999). Key implicat
 ```json
 {
   "kind": 30078,
-  "content": "{\"supportedKinds\":[5000,5094,5250],\"maxInputSize\":1048576,\"defaultTimeout\":60,\"pricing\":{\"5000\":\"50000\",\"5094\":\"100000\",\"5250\":\"200000\"}}",
+  "content": "{\"supportedKinds\":[5094],\"maxInputSize\":1048576,\"defaultTimeout\":60,\"pricing\":{\"5094\":\"100000\"}}",
   "tags": [
     ["d", "dvm-config-my-provider"]
   ]
@@ -369,7 +356,7 @@ Subscribe with a filter on the result kind and the `e` tag referencing the reque
 ### Monitoring for Incoming Job Requests (Provider)
 
 ```json
-["REQ", "incoming-jobs", { "kinds": [5000, 5094, 5250], "since": <now> }]
+["REQ", "incoming-jobs", { "kinds": [5094], "since": <now> }]
 ```
 
 ### Finding Application-specific Data

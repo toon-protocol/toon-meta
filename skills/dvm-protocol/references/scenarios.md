@@ -11,11 +11,11 @@
 ### Steps
 
 1. **Choose the job kind.** Select the appropriate kind:5xxx based on the service needed:
-   - kind:5000 for text generation
-   - kind:5094 for blob storage (e.g., Arweave uploads)
-   - kind:5250 for general compute
+   - kind:5094 for blob storage (e.g., Arweave uploads) — **the only deployed TOON DVM kind**
+   - kind:5000 for text generation (generic NIP-90 example — no TOON node fulfills this)
    - kind:5300 for discovery/search
    - kind:5600 for translation
+   - kind:5250 (Dungeon DVM — **removed from TOON; do not use**)
 
 2. **Construct input tags.** Add one or more `["i", "<data>", "<input-type>"]` tags:
    - `["i", "Summarize this article", "text"]` for inline text input
