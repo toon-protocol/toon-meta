@@ -1,23 +1,31 @@
 # Agent backlog loops — setup & rollout
 
-A three-loop system that manages each `toon-protocol` repo's backlog and lets an
+A four-loop system that manages each `toon-protocol` repo's backlog and lets an
 agent team address tickets, running on **GitHub Actions billed to your Claude Max
 plan** (not the API).
 
 ```
 Loop A backlog-manager  ─agent:ready─►  Loop B issue-executor  ─PR─►  Loop C reviewer
-        (cron, dry-run)                      (on label)                 (on agent/ PR)
-        ▲                                        ▲                          │
-        │                                        └──── changes_requested ────┘  (bounded fix loop)
+        (cron, dry-run)                      (on label)  │              (on agent/ PR)
+        ▲                                        ▲       └─agent:split─┐     │
+        │                                        │                     ▼     │
+        │                          Loop D issue-decomposer ◄──agent:split────┤
+        │                                  (on label)  └──child issues──┘     │
+        │                                        └──── changes_requested ──────┘  (bounded fix loop)
         └──────────── PR-evidence sync ◄── merged PR ── human merge ◄── APPROVE + green checks
 ```
 
 - **Loop A** (`backlog-manager.yml`) → skill `toon-skills:backlog-manager`. Triage,
-  label `agent:ready`/`needs:human`, sync issue/Project state from PRs. Dry-run by default.
+  label `agent:ready`/`agent:split`/`needs:human`, sync issue/Project state from PRs
+  (incl. closing a `tracking` parent once its children close). Dry-run by default.
 - **Loop B** (`issue-executor.yml`) → skill `toon-skills:issue-executor`. Implements
   an `agent:ready` ticket in one PR on an `agent/` branch; bounded fix loop on review.
+  Hands off to Loop D with `agent:split` if the work is too large to finish in budget.
 - **Loop C** (`pr-reviewer.yml`) → Anthropic's `code-review` plugin. Independent
   review of executor PRs; `REQUEST_CHANGES`/`APPROVE`. **Humans still merge.**
+- **Loop D** (`issue-decomposer.yml`) → skill `toon-skills:issue-decomposer`. On
+  `agent:split`, slices an oversized-but-clear issue into executor-sized child issues
+  and keeps the parent open as a `tracking` epic. Children re-enter at Loop A/B.
 
 ## Prerequisites (once, org-wide)
 
@@ -41,7 +49,7 @@ Loop A backlog-manager  ─agent:ready─►  Loop B issue-executor  ─PR─►
 
 ## Rollout
 
-Copy the three YAMLs into each repo's `.github/workflows/`. Repo list is in
+Copy the four YAMLs into each repo's `.github/workflows/`. Repo list is in
 `context/repos.md`: `toon`, `relay`, `swap`, `store`, `hub`, `toon-client`,
 `toon-meta`, `connector`.
 
@@ -57,14 +65,17 @@ spike Max usage.
    `workflow_dispatch`; confirm labels + Project sync are sane.
 3. Add `issue-executor.yml` + `pr-reviewer.yml` to that repo; run one trivial
    `agent:ready` ticket end-to-end (issue → PR → review → human merge → auto-close).
-4. Template the proven trio across the remaining 7.
+4. Add `issue-decomposer.yml`; label one oversized-but-clear issue `agent:split`
+   and confirm it produces sane executor-sized children + a `tracking` parent.
+5. Template the proven set across the remaining 7.
 
 ## Rate-limit & safety notes
 
-- 8 repos × 3 loops share **one** Max limit. Keep Loop A **daily** (not hourly),
-  staggered; rely on `--max-turns` caps and per-issue `concurrency`. If volume
-  outgrows Max, swap `claude_code_oauth_token` for `anthropic_api_key` — no other
-  change.
+- 8 repos × 4 loops share **one** Max limit. Keep Loop A **daily** (not hourly),
+  staggered; rely on `--max-turns` caps and per-issue `concurrency`. Loops B and D
+  are event-driven (one run per `agent:ready`/`agent:split` label) and self-limited
+  by the queue. If volume outgrows Max, swap `claude_code_oauth_token` for
+  `anthropic_api_key` — no other change.
 - Defaults are conservative: dry-run, never remove human-set labels, never
   auto-close without merged-PR evidence, never merge/release/delete-branches/spend.
 - The reviewer is mandatory and independent; the executor never reviews or merges
