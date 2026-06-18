@@ -17,16 +17,20 @@ license: MIT
 
 A lightweight product manager for a TOON Protocol repo's backlog. It keeps work
 **transparent, classified, and safe to route** to either a human or an AI agent.
-It is the first of three loops:
+It is the first loop of the backlog pipeline:
 
 ```
 Loop A backlog-manager ─agent:ready─► Loop B issue-executor ─PR─► Loop C reviewer
-        ▲                                                               │
-        └──────────── PR-evidence sync (Step 5) ◄── merged PR ──────────┘
+        ▲   │                                                           │
+        │   └─agent:split─► Loop D issue-decomposer ─child issues─┐     │
+        │                                                         │     │
+        └──────────── PR-evidence sync (Step 5) ◄── merged PR ────┴─────┘
 ```
 
 This skill **does not implement code**. Its only output is a clean, labeled
-backlog and an `agent:ready` queue that [[issue-executor]] consumes.
+backlog: an `agent:ready` queue that [[issue-executor]] consumes, and — for work
+that is clear and safe but **too large for one PR** — an `agent:split` queue that
+[[issue-decomposer]] slices into executor-sized children.
 
 **Default mode is `dry-run`.** Only mutate GitHub when the user explicitly passes
 `apply`. When running unattended (cron / non-interactive), never prompt — record
@@ -68,13 +72,16 @@ untouched unless the user asks to normalize them.
 `risk:high` (human-led).
 
 **Routing (labels)** — `agent:ready` (permission for the executor loop to pick it
-up), `needs:human` (a decision/clarification/judgment is required).
+up), `agent:split` (clear, safe work that is too large for one PR — hand to the
+[[issue-decomposer]] loop), `needs:human` (a decision/clarification/judgment is
+required).
 
 **Loop bookkeeping (label)** — `review-round:<n>` is owned by the executor/reviewer
 loops; never set it here, but preserve it.
 
 Recommended GitHub label colors: `risk:low` `0E8A16`, `risk:medium` `FBCA04`,
-`risk:high` `B60205`, `agent:*` `1D76DB`, `needs:human` `D93F0B`.
+`risk:high` `B60205`, `agent:*` `1D76DB`, `needs:human` `D93F0B`, `tracking`
+`5319E7` (set on a parent that the decomposer split into children).
 
 ### Type is a native Issue Type, not a label
 
@@ -120,11 +127,28 @@ Good `agent:ready` examples: doc updates, broken links, stale README/`CLAUDE.md`
 instructions, simple test additions, lint/format fixes, small chores, patch
 dependency bumps with passing tests, simple CI config drift.
 
+### Add `agent:split` when the ONLY blocker is size
+
+When an issue is otherwise clear and safe — low/medium risk, well-understood
+scope, known verification, **no** product/UX/architecture/security/payments/
+on-chain/settlement/auth/deploy judgment required — but the work is **too large
+for one PR / one executor run**, route it to the [[issue-decomposer]] loop with
+`agent:split` instead of parking it on a human. The decomposer slices it into
+executor-sized children and keeps this issue open as a `tracking` parent.
+
+Use `agent:split` only when size is the *sole* obstacle. If slicing the work would
+itself require a judgment call (which approach, what the phases are), that is a
+`needs:human` decision, not a split — the decomposer will bounce it back anyway.
+Do not also add `agent:ready` to a `agent:split` issue; the parent is never
+executed directly. (A `risk:medium` issue may be `agent:split` even though it is
+not `agent:ready` — its individual slices get re-classified on their own merits.)
+
 ### Add `needs:human` when ANY holds
 
 - requirements/expected behavior are ambiguous
 - a real bug lacks a reproduction
-- too large for one PR
+- too large for one PR **and** slicing it needs a judgment call (otherwise prefer
+  `agent:split` — clean size-only oversize goes to the decomposer, not a human)
 - needs product/UX/architecture/security/payments/on-chain/settlement/auth/deploy
   judgment (much of TOON's protocol surface — claims, BTP, settlement, fees —
   lands here by default)
@@ -202,6 +226,14 @@ threads) — never infer completion from a branch name or PR title.
 Never close an issue without clear merged-PR evidence. Never mark done while
 checks are failing/pending or actionable review threads remain.
 
+**Tracking parents (split by [[issue-decomposer]]):** an issue with the `tracking`
+label and a `## Decomposition` task list is closed indirectly — through its
+children, not a PR of its own. Read its child issues (from the task list); when
+**every** child is closed, check off the list, close the parent (comment linking
+the merged children), and move its Project item to Done. While any child is open,
+keep the parent open and tick off the children that have closed. Never mark a
+child `agent:ready` on the parent, and never re-split a `tracking` parent.
+
 ### Step 6 — Sweep for quality drift (evidence-driven, bounded)
 Look for concrete, fixable problems — not speculative refactors: stale docs that
 misstate issue/code state, local roadmap contradicting the tracker, broken
@@ -225,8 +257,9 @@ stale automation branches) with evidence. **Never delete branches here.**
 
 ### Step 9 — Verify (apply runs)
 Confirm: every open issue has one `risk:*` label **and** a native Issue Type; any
-`agent:ready` without `risk:low` or alongside `needs:human` is **flagged, not
-auto-fixed** (a human may have set it); every `risk:high` has `needs:human` unless
+`agent:ready` without `risk:low` or alongside `needs:human`/`agent:split` is
+**flagged, not auto-fixed** (a human may have set it); every `risk:high` has
+`needs:human` unless
 clearly human-owned; every classified issue has an Agent Assessment; issues with
 open PRs are in review state, merged-PR issues in Done; no issue is both closed and
 left active. Verify labels with `gh issue list --json number,title,labels,body`

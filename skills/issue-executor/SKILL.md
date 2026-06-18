@@ -16,14 +16,21 @@ license: MIT
 # Issue Executor (Loop B)
 
 The execution loop that turns an `agent:ready` ticket into a reviewable PR. It is
-the middle of three loops:
+the middle of the backlog pipeline (with [[issue-decomposer]] as a side-loop for
+oversized work):
 
 ```
 Loop A backlog-manager ─agent:ready─► Loop B issue-executor ─PR─► Loop C reviewer
-                                            ▲                          │
-                                            └── changes_requested ──────┘
+                                            ▲   │                      │
+                                            │   └─agent:split─► Loop D │
+                                            └── changes_requested ─────┘
                                                (bounded fix loop)
 ```
+
+If, while executing, the work turns out to be **too large to implement and verify
+within the turn budget**, this loop does not force a half-done PR and does not
+dead-end on a human: it hands the issue to the [[issue-decomposer]] (Loop D) with
+`agent:split`, which slices it into executor-sized children that flow back here.
 
 [[backlog-manager]] guarantees the queue is safe; this skill trusts `agent:ready`
 and **does not re-litigate product risk** — but it still verifies scope before
@@ -49,9 +56,12 @@ number,title,body,labels,comments,url`) and confirm ALL of:
   payment-channel/claim/on-chain/settlement/auth/deploy judgment
 - it has no already-linked open PR (avoid double work)
 
-If any check fails, **do not implement**. Comment on the issue with the specific
-reason, remove `agent:ready`, add `needs:human`, and exit. Routing back to a human
-is always preferable to guessing.
+If any check fails, **do not implement**. Comment with the specific reason, remove
+`agent:ready`, and route: if the **only** problem is that the scope is too large
+for one PR (everything else is clear and low-risk), add **`agent:split`** to hand
+it to the [[issue-decomposer]]; otherwise add **`needs:human`**. Then exit.
+Routing — to the decomposer or to a human — is always preferable to guessing or to
+shipping a partial change.
 
 ## Workflow
 
@@ -59,7 +69,9 @@ is always preferable to guessing.
 Read the `## Agent Assessment` plan and the repo's `CLAUDE.md`/`context/` docs.
 Follow the plan; if the plan is wrong or incomplete in a way you can fix within
 the same low-risk scope, proceed and note the deviation in the PR body. If fixing
-it would expand scope or require judgment, stop → `needs:human`.
+it would require judgment, stop → `needs:human`. If it would simply expand the
+work beyond one executor-sized PR, stop → `agent:split` (don't start a branch you
+can't finish; let the decomposer slice it first).
 
 ### 2 — Branch
 Create `agent/<issue-n>-<short-slug>` from the default branch. **The `agent/`
@@ -96,12 +108,18 @@ When re-invoked because Loop C requested changes:
   branch, reply to each thread describing the fix, bump the label to
   `review-round:<n+1>`, and push. Pushing re-triggers the reviewer.
 
-## Hard stops → `needs:human`
+## Hard stops
 
-Comment with the specific blocker, add `needs:human`, remove `agent:ready`, and
-exit when: preconditions fail; scope turns out to exceed one PR; verification
-can't be made green within scope; the change would require any of the judgment
-calls listed above; or the fix loop exceeds `MAX_ROUNDS`.
+Always comment with the specific blocker, remove `agent:ready`, and exit. Choose
+the route by **why** you stopped:
+
+- **→ `agent:split`** when the *only* blocker is size: the work won't fit one
+  executor-sized PR but is otherwise clear and low-risk. Discard any branch you
+  started; the [[issue-decomposer]] will slice it. Never open a partial PR.
+- **→ `needs:human`** for everything else: preconditions fail; verification can't
+  be made green within scope; the change would require any of the judgment calls
+  listed above; slicing the work would itself need a decision; or the fix loop
+  exceeds `MAX_ROUNDS`.
 
 ## Safety rules
 
