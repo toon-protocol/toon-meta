@@ -1,8 +1,18 @@
 # Rig Guide
 
-The Rig (`@toon-protocol/rig`) is a decentralized, read-only git interface for the TOON Protocol. It runs entirely in the browser as a static SPA — no backend, no accounts, no servers. Repository metadata is fetched from TOON relays via Nostr events (NIP-34), and git objects (commits, trees, blobs) are fetched directly from Arweave gateways.
+The Rig (`@toon-protocol/rig`) is a **decentralized control plane** for the TOON Protocol that runs entirely in the browser as a static SPA — no backend, no accounts, no servers.
+
+Mechanically, the Rig is just a frontend that **interprets events**. State on TOON lives as Nostr events carried over the wire as packets — writes are ILP-paid PREPARE packets into a relay, reads are free WebSocket subscriptions — and the bulky git objects (commits, trees, blobs) are fetched from Arweave gateways. The Rig subscribes, decodes those events, and renders them. There is no server deciding what the data means; the frontend does.
 
 The Rig itself can be deployed to Arweave, making the entire stack — data and UI — permanent and decentralized.
+
+## Not a GitHub clone
+
+Today the Rig interprets the **NIP-34 git event vocabulary** (repository announcements, refs, issues, patches) backed by git objects stored on Arweave, so it *presents* as a read-only git forge. But it is not a GitHub clone, and "git host" is not the ceiling of what it is:
+
+- **The data is events, not a repository on a server.** Repos, refs, issues, and PRs are all Nostr events delivered as packets. No origin server holds the canonical state — the relay plus Arweave are the substrate, and any frontend can subscribe to the same events and interpret them however it wants.
+- **NIP-34 is one vocabulary, not the product.** The git kinds are simply the first event schema the Rig knows how to render. The same subscribe-decode-render engine can drive any coordination surface built from TOON events.
+- **Because it lives on TOON Protocol, it is a decentralized control plane.** Paid, signed, permanent events + a frontend that interprets them gives you a way to observe and coordinate distributed state — repositories today; agents, deployments, and other resources next — with no central control server. The git forge is the first *view* onto that control plane, not its definition.
 
 ## How It Works
 
