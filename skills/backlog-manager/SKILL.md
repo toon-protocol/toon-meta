@@ -119,8 +119,9 @@ re-litigating product risk.
 - scope is clear and fits in **one pull request**
 - expected output is clear
 - likely verification is known (a test, a command, a visible behavior)
-- no product, UX, architecture, security, payment-channel/claim, on-chain,
-  settlement, auth, or deployment judgment is required
+- no product, UX, architecture, security, auth, or deployment judgment is required;
+  payment-channel/claim, on-chain, and settlement work qualifies **only** under the
+  testnet/devnet carve-out (see below)
 - not already linked to active work
 
 Good `agent:ready` examples: doc updates, broken links, stale README/`CLAUDE.md`
@@ -130,9 +131,10 @@ dependency bumps with passing tests, simple CI config drift.
 ### Add `agent:split` when the ONLY blocker is size
 
 When an issue is otherwise clear and safe — low/medium risk, well-understood
-scope, known verification, **no** product/UX/architecture/security/payments/
-on-chain/settlement/auth/deploy judgment required — but the work is **too large
-for one PR / one executor run**, route it to the [[issue-decomposer]] loop with
+scope, known verification, no product/UX/architecture/security/payments/auth/deploy
+judgment required (payment-channel/claim, on-chain, and settlement work allowed
+under the testnet/devnet carve-out) — but the work is **too large for one PR /
+one executor run**, route it to the [[issue-decomposer]] loop with
 `agent:split` instead of parking it on a human. The decomposer slices it into
 executor-sized children and keeps this issue open as a `tracking` parent.
 
@@ -151,12 +153,32 @@ not `agent:ready` — its individual slices get re-classified on their own merit
   `agent:split` — clean size-only oversize goes to the decomposer, not a human)
 - needs product/UX/architecture/security/payments/on-chain/settlement/auth/deploy
   judgment (much of TOON's protocol surface — claims, BTP, settlement, fees —
-  lands here by default)
+  lands here by default) **except** when the testnet/devnet carve-out applies (see
+  below)
 - you cannot classify with confidence
 - a previous agent attempt failed and the next step is unclear
 
 Do not mark `risk:medium`/`risk:high` issues `agent:ready` unless the user
 explicitly opts in for this run.
+
+### Testnet/devnet carve-out
+
+On-chain, settlement, payment-channel/claim, and deploy work is **not** auto-routed
+to `needs:human` when **both** of the following signals appear in the issue body:
+
+```
+**Network:** testnet / devnet
+**Funds:** treasury wallet, ≤ $X (bounded)
+```
+
+When both signals are present (they appear in every WS2/WS3 issue body), classify
+such work as `risk:low` + `agent:ready` provided all other conditions hold. The
+signals confirm: (a) no mainnet exposure, (b) no real user funds at risk, (c)
+amounts are explicitly bounded.
+
+**Always `needs:human`** regardless of signals: any mainnet contact, real or
+unbounded user funds, key custody changes, fee/settlement-parameter decisions, or
+BTP transport mutations.
 
 ## Agent Assessment
 

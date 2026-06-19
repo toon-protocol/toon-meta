@@ -53,7 +53,8 @@ number,title,body,labels,comments,url`) and confirm ALL of:
 - it does **not** carry `needs:human`
 - it has an **`## Agent Assessment`** block with a concrete suggested plan
 - the scope still fits **one PR** and needs no product/UX/architecture/security/
-  payment-channel/claim/on-chain/settlement/auth/deploy judgment
+  payment-channel/claim/on-chain/settlement/auth/deploy judgment — **unless** the
+  testnet/devnet carve-out applies (see below)
 - it has no already-linked open PR (avoid double work)
 
 If any check fails, **do not implement**. Comment with the specific reason, remove
@@ -62,6 +63,25 @@ for one PR (everything else is clear and low-risk), add **`agent:split`** to han
 it to the [[issue-decomposer]]; otherwise add **`needs:human`**. Then exit.
 Routing — to the decomposer or to a human — is always preferable to guessing or to
 shipping a partial change.
+
+### Testnet/devnet carve-out
+
+On-chain, settlement, payment-channel/claim, and deploy work is **not** auto-refused
+when **both** of the following signals appear in the issue body:
+
+```
+**Network:** testnet / devnet
+**Funds:** treasury wallet, ≤ $X (bounded)
+```
+
+When both signals are present (they appear in every WS2/WS3 Agent Assessment), the
+executor treats the issue as in-scope provided all other `agent:ready` conditions
+hold. The signals confirm: (a) no mainnet exposure, (b) no real user funds at risk,
+(c) amounts are explicitly bounded.
+
+**Always → `needs:human`** regardless of signals: any mainnet contact, real or
+unbounded user funds, key custody changes, fee/settlement-parameter decisions, or
+BTP transport mutations.
 
 ## Workflow
 
@@ -128,8 +148,10 @@ the route by **why** you stopped:
 - **Never review your own work** — the independent reviewer loop is mandatory.
 - Never touch secrets, releases, deployments, or delete branches.
 - Never edit on-chain contracts, settlement, payment-channel/claim, or BTP
-  transport code unless the issue is explicitly `risk:low` and narrowly scoped —
-  when in doubt, `needs:human`.
+  transport code **on mainnet or with real/unbounded funds** — add `needs:human`.
+  Testnet/devnet work using a treasury wallet with bounded amounts is permitted when
+  the issue body carries both carve-out signals (see Preconditions); when in doubt,
+  `needs:human`.
 - One issue → one branch → one PR. Use `concurrency` (the workflow enforces this)
   so an issue is never executed twice in parallel.
 
