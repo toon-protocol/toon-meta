@@ -4,7 +4,7 @@ Runs a **hub (direct BTP)** against Base Sepolia / Solana devnet / Mina devnet,
 exercises the full SocialFi + DeFi journey with a client-side agent, and captures
 on-chain settlement receipts. Treasury wallet, small/bounded amounts.
 
-**Phase 2 addendum** (§6) re-runs the same journey with the hub behind the anyone
+**Phase 2 addendum** (below) re-runs the same journey with the hub behind the anyone
 proxy (`.anon`).
 
 **Dependencies:** WS1 hub preset (`hub#15`) must be merged before the
