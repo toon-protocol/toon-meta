@@ -120,8 +120,8 @@ re-litigating product risk.
 - expected output is clear
 - likely verification is known (a test, a command, a visible behavior)
 - no product, UX, architecture, security, auth, or deployment judgment is required;
-  payment-channel/claim, on-chain, and settlement work qualifies **only** under the
-  testnet/devnet carve-out (see below)
+  payment-channel/claim, on-chain, settlement, and deploy work qualifies **only**
+  under the testnet/devnet carve-out (see below)
 - not already linked to active work
 
 Good `agent:ready` examples: doc updates, broken links, stale README/`CLAUDE.md`
@@ -132,8 +132,8 @@ dependency bumps with passing tests, simple CI config drift.
 
 When an issue is otherwise clear and safe — low/medium risk, well-understood
 scope, known verification, no product/UX/architecture/security/payments/auth/deploy
-judgment required (payment-channel/claim, on-chain, and settlement work allowed
-under the testnet/devnet carve-out) — but the work is **too large for one PR /
+judgment required (payment-channel/claim, on-chain, settlement, and deploy work
+allowed under the testnet/devnet carve-out) — but the work is **too large for one PR /
 one executor run**, route it to the [[issue-decomposer]] loop with
 `agent:split` instead of parking it on a human. The decomposer slices it into
 executor-sized children and keeps this issue open as a `tracking` parent.

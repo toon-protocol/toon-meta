@@ -146,8 +146,8 @@ the route by **why** you stopped:
 - **Never merge** any PR. Merging is a human action (or an opt-in auto-merge that
   this skill does not perform).
 - **Never review your own work** — the independent reviewer loop is mandatory.
-- Never touch secrets, releases, deployments, or delete branches.
-- Never edit on-chain contracts, settlement, payment-channel/claim, or BTP
+- Never touch secrets, releases, or delete branches.
+- Never edit on-chain contracts, settlement, payment-channel/claim, deploy, or BTP
   transport code **on mainnet or with real/unbounded funds** — add `needs:human`.
   Testnet/devnet work using a treasury wallet with bounded amounts is permitted when
   the issue body carries both carve-out signals (see Preconditions); when in doubt,
