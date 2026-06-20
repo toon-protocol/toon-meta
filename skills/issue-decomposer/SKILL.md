@@ -3,9 +3,9 @@ name: issue-decomposer
 description: >-
   Splitter for a TOON Protocol repo. Picks up an issue labeled `agent:split`
   (because the [[backlog-manager]] judged it too large for one PR, or the
-  [[issue-executor]] hit the wall mid-run), and breaks it into the smallest set
-  of independently-shippable child issues that each fit ONE PR and the executor's
-  bounded turn budget. It keeps the parent open as a tracking/epic issue with a
+  [[issue-executor]] judged it too large mid-run), and breaks it into the smallest
+  set of independently-shippable child issues that each fit ONE PR and one focused
+  executor run. It keeps the parent open as a tracking/epic issue with a
   task list, classifies and writes an Agent Assessment for every child, and marks
   a child `agent:ready` only when that child independently clears the same
   low-risk single-PR bar the backlog-manager uses — otherwise it routes the child
@@ -28,10 +28,10 @@ Loop A backlog-manager ─agent:ready──────────────�
                  Loop D issue-decomposer ──child issues──► (re-enter Loop A / executor)
 ```
 
-The executor runs with a hard `--max-turns` cap (currently **40**). An issue that
-can't be implemented *and verified* within that budget will never complete — it
-just burns a run and stalls. This loop turns one oversized ticket into several
-that each finish comfortably inside the cap.
+The executor runs under a wall-clock timeout (currently **30 min**), not a turn
+cap. An issue that can't be implemented *and verified* within one run will never
+complete — it just burns a run and stalls. This loop turns one oversized ticket
+into several that each finish comfortably inside a single run.
 
 This skill **does not implement code**. Like [[backlog-manager]], its only output
 is GitHub Issue state: new child issues and an updated tracking parent.
@@ -82,12 +82,13 @@ as a contradiction the human must resolve: do **not** decompose. Comment that
 `needs:human` must be removed first to authorize the split, leave both labels in
 place, and exit. The deliberate label change is the approval.
 
-## What "fits one PR and the turn budget" means
+## What "fits one PR and one executor run" means
 
-The executor gets ~40 turns and must spend them on: reading context (~5), making
-the change, running verification (~5), opening the PR + label bookkeeping (~3),
-and leaving headroom for the bounded fix loop. So size each child as work the
-executor could **implement *and* verify well inside 40 turns** — concretely:
+The executor gets a single ~30-minute run, which it must spend on: reading
+context, making the change, running verification, opening the PR + label
+bookkeeping, and leaving headroom for the bounded fix loop. So size each child as
+work the executor could **implement *and* verify comfortably within one run** —
+concretely:
 
 - **one concern**, one coherent change — not "and also";
 - a **bounded, nameable** set of files/areas (rule of thumb: a handful, not a
@@ -111,7 +112,7 @@ slice boundaries.
 
 ### 2 — Plan the decomposition
 Produce the **smallest set** of children that fully covers the parent, where each
-child satisfies "fits one PR and the turn budget" above. For each child capture:
+child satisfies "fits one PR and one executor run" above. For each child capture:
 
 - a focused title: `<parent area>: <this slice>`;
 - scope + explicit **acceptance criteria**;
@@ -258,7 +259,7 @@ wrong.
 - [ ] Children created **without** `agent:ready`, then labeled in a **separate**
       step so the executor's `labeled` event actually fires.
 - [ ] Each child is one concern, bounded files, with verification and acceptance
-      criteria — plausibly implementable *and* verified within the 40-turn cap.
+      criteria — plausibly implementable *and* verified within one executor run.
 - [ ] Children collectively cover the parent; dependencies recorded as
       `Blocked by #<sibling>`.
 - [ ] Each child has one `risk:*` label, one native Issue Type, and an Agent

@@ -72,7 +72,8 @@ spike Max usage.
 ## Rate-limit & safety notes
 
 - 8 repos × 4 loops share **one** Max limit. Keep Loop A **daily** (not hourly),
-  staggered; rely on `--max-turns` caps and per-issue `concurrency`. Loops B and D
+  staggered; rely on per-job `timeout-minutes` backstops and per-issue
+  `concurrency`. Loops B and D
   are event-driven (one run per `agent:ready`/`agent:split` label) and self-limited
   by the queue. If volume outgrows Max, swap `claude_code_oauth_token` for
   `anthropic_api_key` — no other change.
