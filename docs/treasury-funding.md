@@ -15,7 +15,7 @@ derives keys for EVM (Base Sepolia), Solana (devnet), and Mina (devnet).
 
 | Variable | Purpose |
 |----------|---------|
-| `TOWNHOUSE_MNEMONIC` | 12- or 24-word BIP-39 seed for the hub operator wallet. Passed to `townhouse init / up` and the Fastify API container. **Never commit this.** |
+| `TOWNHOUSE_MNEMONIC` | 12- or 24-word BIP-39 seed for the hub operator wallet. Passed to `townhouse init / up` and the Fastify API container. **Never commit this.** Requires a hub image ≥ the P1b entrypoint change (see `docs/townhouse-mcp-design.md` §3); a pre-P1b image ignores this var and falls back to the wallet-prompt flow. |
 | `TOON_SETTLEMENT_PRIVATE_KEY` | **Auto-derived from `TOWNHOUSE_MNEMONIC`; do not set.** Raw hex EVM private key for the hub's on-chain settlement signer. The hub derives and injects this automatically when `TOWNHOUSE_MNEMONIC` is set; overriding it manually will conflict with the mnemonic-derived key. |
 | `TOON_CLIENT_MNEMONIC` | Separate 12- or 24-word seed for the client-side demo agent (`toon-clientd`). Must be distinct from the hub seed. |
 
@@ -40,7 +40,8 @@ node scripts/e2e-wallet.mjs generate   # prints mnemonic (SECRET)
 
 ### Local secrets file
 
-Create `.env.demo.local` (gitignored in the hub repo) with your seeds:
+Create `.env.demo.local` **in the hub repo root** (where you run `townhouse up`,
+not the `toon-meta` checkout where this doc lives); it is gitignored there:
 
 ```bash
 touch .env.demo.local   # add to .gitignore if not already there
@@ -161,7 +162,7 @@ curl -s -X POST http://localhost:9400/wallet/withdraw \
   -d '{
     "nodeType": "hub",
     "chainFamily": "evm",
-    "token": "usdc",
+    "token": "USDC",
     "recipient": "<your-treasury-address>",
     "amount": "<amount-in-minor-units>"
   }'

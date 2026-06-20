@@ -20,6 +20,12 @@ enables CI-driven runs. See [toon-meta#22](https://github.com/toon-protocol/toon
 - Node.js ≥ 20 and pnpm
 - Treasury wallet seeded and faucet-funded — see [`docs/treasury-funding.md`](./treasury-funding.md)
 - Deployed testnet contracts in `e2e/testnets.json` — see [`docs/e2e-testnets.md`](./e2e-testnets.md)
+- **Hub image must ship the P1b entrypoint change.** Passing `TOWNHOUSE_MNEMONIC`
+  to a containerised `townhouse up` only works if the image is ≥ the commit that
+  ships P1b (see `docs/townhouse-mcp-design.md` §3). A pre-P1b published image
+  silently falls back to the wallet-prompt / encrypted-wallet flow this runbook
+  does not cover. If your published image predates P1b, build from source
+  (`pull_policy: never` for local testing).
 
 Confirm the treasury addresses have been funded before starting:
 
@@ -34,6 +40,10 @@ npx @toon-protocol/townhouse wallet show   # prints addresses
 
 The demo preset wires the hub for testnet settlement against all three chains,
 loads the treasury wallet, and enables relay + store + swap child nodes.
+
+> In a fresh terminal, `source .env.demo.local` first so `$TOWNHOUSE_MNEMONIC`
+> and `$TOON_CLIENT_MNEMONIC` are set — otherwise the commands below silently
+> pass empty strings.
 
 ```bash
 # 2a. Initialise (one-time per wallet; safe to re-run after `down --purge`)
