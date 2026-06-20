@@ -16,7 +16,7 @@ derives keys for EVM (Base Sepolia), Solana (devnet), and Mina (devnet).
 | Variable | Purpose |
 |----------|---------|
 | `TOWNHOUSE_MNEMONIC` | 12- or 24-word BIP-39 seed for the hub operator wallet. Passed to `townhouse init / up` and the Fastify API container. **Never commit this.** |
-| `TOON_SETTLEMENT_PRIVATE_KEY` | Raw hex EVM private key for the hub's on-chain settlement signer (derived from `TOWNHOUSE_MNEMONIC` at account index 0). Passed through to the connector; the hub derives it automatically when `TOWNHOUSE_MNEMONIC` is set. |
+| `TOON_SETTLEMENT_PRIVATE_KEY` | **Auto-derived from `TOWNHOUSE_MNEMONIC`; do not set.** Raw hex EVM private key for the hub's on-chain settlement signer (account index 0). The hub derives and injects this automatically when `TOWNHOUSE_MNEMONIC` is set; overriding it manually will conflict with the mnemonic-derived key. |
 | `TOON_CLIENT_MNEMONIC` | Separate 12- or 24-word seed for the client-side demo agent (`toon-clientd`). Must be distinct from the hub seed. |
 
 > **Rule:** never reuse a seed that has held mainnet funds. Testnet-only.
@@ -27,21 +27,15 @@ derives keys for EVM (Base Sepolia), Solana (devnet), and Mina (devnet).
 
 ```bash
 # Hub treasury seed
-node -e "const {generateMnemonic} = require('@toon-protocol/sdk'); \
-  console.log(generateMnemonic())"
+node scripts/e2e-wallet.mjs generate   # prints mnemonic (SECRET)
 # → paste into TOWNHOUSE_MNEMONIC in .env.demo.local
 
-# Client seed (separate generation run)
-node -e "const {generateMnemonic} = require('@toon-protocol/sdk'); \
-  console.log(generateMnemonic())"
-# → paste into TOON_CLIENT_MNEMONIC in .env.demo.local
-```
+# Also print addresses to fund:
+node scripts/e2e-wallet.mjs addresses
 
-Or use the SDK e2e helper (which also prints addresses):
-
-```bash
+# Client seed (separate run — must be distinct from the hub seed)
 node scripts/e2e-wallet.mjs generate   # prints mnemonic (SECRET)
-node scripts/e2e-wallet.mjs addresses  # prints public addresses to fund
+# → paste into TOON_CLIENT_MNEMONIC in .env.demo.local
 ```
 
 ### Local secrets file

@@ -90,7 +90,7 @@ Register the client MCP server with Claude Code for interactive demo driving:
 ```bash
 claude mcp add toon \
   -e TOON_MNEMONIC="$TOON_CLIENT_MNEMONIC" \
-  -- npx @toon-protocol/client-mcp
+  -- npx -y @toon-protocol/client-mcp
 ```
 
 Or add to `claude_desktop_config.json` for Claude Desktop:
@@ -243,12 +243,6 @@ and re-announces the hub's kind:10032 peer-info with the new BTP endpoint.
 ```bash
 curl -s http://localhost:9400/api/transport | jq '.anonHostname'
 # → "abc123xyz.anon"
-```
-
-Or via the connector endpoint (hub#15 / `connector#151`):
-
-```bash
-curl -s http://localhost:9400/api/anon-hostname
 ```
 
 ### Connect the client via .anon
