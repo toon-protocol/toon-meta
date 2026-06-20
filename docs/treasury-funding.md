@@ -29,6 +29,7 @@ derives keys for EVM (Base Sepolia), Solana (devnet), and Mina (devnet).
 # Hub treasury seed
 node scripts/e2e-wallet.mjs generate   # prints mnemonic (SECRET)
 # → paste into TOWNHOUSE_MNEMONIC in .env.demo.local
+source .env.demo.local
 
 # Also print addresses to fund:
 node scripts/e2e-wallet.mjs addresses
@@ -44,7 +45,7 @@ Create `.env.demo.local` **in the hub repo root** (where you run `townhouse up`,
 not the `toon-meta` checkout where this doc lives); it is gitignored there:
 
 ```bash
-touch .env.demo.local   # add to .gitignore if not already there
+touch .env.demo.local   # already gitignored in the hub repo
 ```
 
 `.env.demo.local` shape (hub repo root):
@@ -58,8 +59,7 @@ TOON_CLIENT_MNEMONIC="word1 word2 … word12"
 ```
 
 `TOON_SETTLEMENT_PRIVATE_KEY` is derived automatically from `TOWNHOUSE_MNEMONIC`
-by `townhouse up`; you do not need to set it manually unless you are passing a
-raw key to the connector directly.
+by `townhouse up`; do not set it manually.
 
 ---
 
