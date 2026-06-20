@@ -16,7 +16,7 @@ derives keys for EVM (Base Sepolia), Solana (devnet), and Mina (devnet).
 | Variable | Purpose |
 |----------|---------|
 | `TOWNHOUSE_MNEMONIC` | 12- or 24-word BIP-39 seed for the hub operator wallet. Passed to `townhouse init / up` and the Fastify API container. **Never commit this.** |
-| `TOON_SETTLEMENT_PRIVATE_KEY` | **Auto-derived from `TOWNHOUSE_MNEMONIC`; do not set.** Raw hex EVM private key for the hub's on-chain settlement signer (account index 0). The hub derives and injects this automatically when `TOWNHOUSE_MNEMONIC` is set; overriding it manually will conflict with the mnemonic-derived key. |
+| `TOON_SETTLEMENT_PRIVATE_KEY` | **Auto-derived from `TOWNHOUSE_MNEMONIC`; do not set.** Raw hex EVM private key for the hub's on-chain settlement signer. The hub derives and injects this automatically when `TOWNHOUSE_MNEMONIC` is set; overriding it manually will conflict with the mnemonic-derived key. |
 | `TOON_CLIENT_MNEMONIC` | Separate 12- or 24-word seed for the client-side demo agent (`toon-clientd`). Must be distinct from the hub seed. |
 
 > **Rule:** never reuse a seed that has held mainnet funds. Testnet-only.
@@ -155,9 +155,16 @@ Recover remaining channel balance:
 
 ```bash
 # Trigger on-chain settlement before teardown (optional, testnet only)
-npx @toon-protocol/townhouse wallet withdraw \
-  --chain evm:base:84532 \
-  --to <your-treasury-address>
+# All five fields are required — adjust token, amount, and recipient as needed:
+curl -s -X POST http://localhost:9400/wallet/withdraw \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "nodeType": "hub",
+    "chainFamily": "evm",
+    "token": "usdc",
+    "recipient": "<your-treasury-address>",
+    "amount": "<amount-in-minor-units>"
+  }'
 ```
 
 CI/nightly: the `townhouse down` step in the GH Actions workflow removes
