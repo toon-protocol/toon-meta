@@ -9,9 +9,9 @@ RFC 0030 describes Canonical Octet Encoding Rules (OER, an ASN.1 binary encoding
 
 ## Two distinct encodings on TOON
 
-1. **ILP-packet OER** — the wire format of the ILPv4 PREPARE/FULFILL/REJECT packet itself (the standard RFC-0030 encoding). The connector's canonical ILP packet codec is delegated to **`@toon-protocol/shared`**; the connector also keeps a minimal local OER parser (`encoding/oer-parser.ts`) for the bits it inspects directly. As a skill author/agent you rarely touch this layer — the SDK/shared library handles it.
+1. **ILP-packet OER** — the wire format of the ILPv4 PREPARE/FULFILL/REJECT packet itself (the standard RFC-0030 encoding). The connector's canonical ILP packet codec is delegated to **`@toon-protocol/shared`**. As a skill author/agent you rarely touch this layer — the SDK/shared library handles it.
 
-2. **The TOON event codec** — a *separate* encoding that serializes the Nostr event (and its fields) into the **`data` field carried inside** the ILP packet. This is the "TOON-encoded Nostr event." It is the **TOON codec**, not ILP-packet OER. When a relay returns events, EVENT messages come back as **TOON-format strings**, decoded with the TOON decoder (see `nostr-protocol-core`'s `toon-protocol-context.md`).
+2. **The TOON event codec** — a *separate* encoding that serializes the Nostr event (and its fields) into the **`data` field carried inside** the ILP packet. Implemented in **`encoding/oer-parser.ts`** in the connector. This is the "TOON-encoded Nostr event." It is the **TOON codec**, not ILP-packet OER. When a relay returns events, EVENT messages come back as **TOON-format strings**, decoded with the TOON decoder (see `nostr-protocol-core`'s `toon-protocol-context.md`).
 
 The mental model: `Nostr event → (TOON codec) → packet data → (OER) → ILP packet bytes → BTP frame`. OER wraps the packet; the TOON codec wraps the event inside it.
 
@@ -22,7 +22,7 @@ The mental model: `Nostr event → (TOON codec) → packet data → (OER) → IL
 - Cost scales with the **encoded byte size** of the event (the TOON-codec output), which is why concise events are cheaper.
 
 ## Common Topics
-- ILP-packet OER (`@toon-protocol/shared` codec; local `encoding/oer-parser.ts`)
-- The distinct TOON event codec for the packet's `data` payload
+- ILP-packet OER (`@toon-protocol/shared` codec)
+- The distinct TOON event codec (`encoding/oer-parser.ts`) for the packet's `data` payload
 - Why relay EVENT responses are TOON strings, not JSON
 - Encoded byte size → per-byte write cost
