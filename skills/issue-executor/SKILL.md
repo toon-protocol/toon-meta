@@ -28,7 +28,7 @@ Loop A backlog-manager ─agent:ready─► Loop B issue-executor ─PR─► Lo
 ```
 
 If, while executing, the work turns out to be **too large to implement and verify
-within the turn budget**, this loop does not force a half-done PR and does not
+within one run**, this loop does not force a half-done PR and does not
 dead-end on a human: it hands the issue to the [[issue-decomposer]] (Loop D) with
 `agent:split`, which slices it into executor-sized children that flow back here.
 
@@ -102,7 +102,7 @@ When re-invoked because Loop C requested changes:
 - Read every unresolved review thread on the PR
   (`gh pr view <pr> --json reviews,comments` / review-thread GraphQL).
 - Read the current `review-round:<n>` label (absent ⇒ `n = 0`). If
-  `n >= MAX_ROUNDS` (default **3**), stop: comment summarizing what remains, add
+  `n >= MAX_ROUNDS` (default **6**), stop: comment summarizing what remains, add
   `needs:human`, and exit — do not loop forever.
 - Otherwise address the comments with focused commits on the **same** `agent/`
   branch, reply to each thread describing the fix, bump the label to
