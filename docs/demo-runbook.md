@@ -257,7 +257,11 @@ curl -s http://localhost:9400/api/transport | jq '.anonHostname'
 
 ### Connect the client via .anon
 
-Update the client daemon to peer with the hub's `.anon` address:
+Two paths depending on whether the client is already relay-peered from Phase 1:
+
+**Option A — fresh client (not yet relay-peered with the hub)**
+
+Set `TOON_HUB_URL` to the `.anon` BTP address explicitly:
 
 ```bash
 TOON_MNEMONIC="$TOON_CLIENT_MNEMONIC" \
@@ -265,9 +269,16 @@ TOON_HUB_URL="btp+wss://abc123xyz.anon" \
   npx @toon-protocol/client-mcp run
 ```
 
-The client discovers the `.anon` BTP endpoint from the hub's kind:10032
-announcement — no manual URL override required if the client is already peered
-with the hub's relay.
+**Option B — client already running from Phase 1 (relay-peered)**
+
+No env override required. The client discovers the updated BTP endpoint
+automatically from the hub's re-announced kind:10032 peer-info event. Simply
+restart the client daemon without a `TOON_HUB_URL` override:
+
+```bash
+TOON_MNEMONIC="$TOON_CLIENT_MNEMONIC" \
+  npx @toon-protocol/client-mcp run
+```
 
 ### Re-run the journey
 
