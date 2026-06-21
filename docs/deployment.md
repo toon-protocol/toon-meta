@@ -44,31 +44,41 @@ To stop the infrastructure:
 | Peer 2 BLS | http://localhost:19110 | ILP packet validation |
 | Peer 2 Relay | ws://localhost:19710 | Nostr WebSocket |
 
-## Akash Devnet
+## Linode Devnet
 
-Public, browser-reachable EVM + Solana dev chains (plus Otterscan)
-hosted on the [Akash Network](https://console.akash.network). Used by
-the operator dashboard, demos, and anyone who wants to test against
-TOON without standing up local infrastructure.
+Public, self-hosted EVM + Solana dev chains hosted on a Linode box we control.
+Used by the operator dashboard, demos, and anyone who wants to test against TOON
+without standing up local infrastructure — peers point a TOON node/SDK at these
+stable TLS endpoints. **Replaces the former Akash devnet.**
+
+It is a thin deployment overlay (`connector/infra/linode/`) on connector's
+existing `docker-compose.yml` — it runs the `evm` + `solana` profiles and puts
+nginx + Let's Encrypt in front. Provision a fresh box with
+`connector/infra/linode/bootstrap.sh`; operate it with `devnet.sh`:
 
 ```bash
-export AKASH_CONSOLE_API_KEY=ac.sk.production.…   # console.akash.network → API Keys
+cd connector/infra/linode
+cp .env.example .env && $EDITOR .env     # DOMAIN, LETSENCRYPT_EMAIL, PUBLIC_IFACE
+./bootstrap.sh                           # one-time provision (Docker, firewall, chains, TLS)
 
-./scripts/akash-status.sh                # health check every lease
-./scripts/akash-deploy.sh redeploy-all   # close + redeploy current set in dependency order
-./scripts/akash-deploy.sh redeploy-all --rebuild   # also rebuild + push images first
-./scripts/akash-deploy.sh all            # first-time deploy from empty leases.json
+./devnet.sh status                       # probe every backend + public URL
+./devnet.sh redeploy                     # wipe + restart chains (addresses reproduce)
+./devnet.sh logs anvil                   # follow logs
 ```
 
-| Service | Notes |
-|---------|-------|
-| Anvil | EVM chain-id 31337, Mock USDC at `0x5FbDB2…` baked in |
-| Solana | `solana-test-validator`, Mock USDC SPL mint `6Gbdr…` bootstrapped on each fresh ledger |
-| Otterscan | EVM block explorer pointing at our Anvil |
+| Service | Public endpoint | Notes |
+|---------|-----------------|-------|
+| Anvil | `https://evm-rpc.<DOMAIN>` | EVM chain-id 31337, Mock USDC `0x5FbDB2…` + `TokenNetworkRegistry` auto-deployed |
+| Faucet | `https://faucet.<DOMAIN>` | `POST /api/request {address}` → 100 ETH + 10k USDC (EVM only) |
+| Solana | `https://solana-rpc.<DOMAIN>` (+ `wss://solana-ws.<DOMAIN>`) | `solana-test-validator`, payment-channel program auto-deployed |
+| Mina | `https://mina.<DOMAIN>/graphql` | **proxy of the public Mina devnet** — no node hosted (lightnet too heavy) |
 
-Current lease URLs live in `deploy/akash/leases.json` (committed). For
-service catalog, faucet usage, troubleshooting, and design decisions,
-see [`deploy/akash/README.md`](../deploy/akash/README.md).
+Current endpoint URLs + deployed addresses live in
+`connector/infra/linode/endpoints.json` (committed sample; regenerated per-host).
+For run order, reset semantics, security (Docker-bypasses-ufw firewalling), and
+the known gaps (no Solana SPL-USDC mint yet; no Otterscan — Anvil lacks the
+`ots_*` namespace), see
+[`connector/infra/linode/README.md`](https://github.com/toon-protocol/connector/tree/main/infra/linode).
 
 ## Town CLI
 
