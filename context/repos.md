@@ -26,6 +26,20 @@ Strictly downward. `hub` consumes the libs from npm **and** pins child node imag
 - **`hub` pins image digests** for relay/swap/store (+ connector), validated by a preflight against `constants.ts`.
 - **Agent context** is shared via this repo: `CLAUDE.md` in each code repo links here; the `toon-skills` plugin distributes the shared skills.
 
+## Dev environment
+
+All code repos pin their toolchain with Devbox per the [dev-environment.md](./dev-environment.md)
+standard (base = Node 22 + pnpm 8.15.0; chain tooling opt-in). Adoption status:
+
+| Repo | Devbox status |
+|------|---------------|
+| **connector** | ✅ adopted (reference impl: Node + Rust + Foundry + Solana) |
+| swap | ⏳ pending — base + Foundry (`anvil` for integration tests) |
+| toon · relay · store · hub · toon-client | ⏳ pending — base-only (pure TS) |
+| toon-meta | n/a (no build step) |
+
+Rollout via the `#1` ticket in each repo (epic [toon-meta#11](https://github.com/toon-protocol/toon-meta/issues/11)); the stalled `agent/*-devbox` branches are superseded by the template.
+
 ## Archived / not migrated
 
 The pet-game packages (`pet-dvm`, `pet-circuit`, `mina-zkapp` [the game one], `memvid-node`) and `faucet`/`examples` stay in the archived original monorepo. The **connector** owns the canonical settlement `@toon-protocol/mina-zkapp`.
