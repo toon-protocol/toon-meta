@@ -57,6 +57,20 @@ The Rust/Foundry/Solana blocks (packages + `init_hook` + `solana-build`/`forge-b
 scripts) are lifted verbatim from `connector/devbox.json` — see the template's commented
 opt-in sections. Solana is installed by the `init_hook` (via `release.anza.xyz`), not Nix.
 
+## Lock file (`devbox.lock`)
+
+The rollout PR **commits both `devbox.json` and a generated `devbox.lock`.** The agent
+producing the PR generates the lock itself — it installs the Devbox CLI in its run
+(`curl -fsSL https://get.jetify.com/devbox | bash -s -- -f`) and runs `devbox install`,
+then commits the result.
+
+**The `devbox-validate` CI job is read-only — it must never commit `devbox.lock` back to
+the PR branch.** That write-back pattern (CI mutating the PR branch, which needs branch
+write access) is rejected: it got an early rollout PR closed. If the agent genuinely
+cannot run Devbox in its environment, commit `devbox.json` alone and say so in the PR —
+`devbox`/`devbox-validate` still resolve from `devbox.json`, and the non-gating job won't
+block the merge; a lock can be added in a follow-up. Never wire CI to commit it.
+
 ## CI validation
 
 Add the `devbox-validate` job from [`../templates/devbox/ci-devbox-validate.yml`](../templates/devbox/ci-devbox-validate.yml):

@@ -6,6 +6,11 @@
 # This is the BASE version (Node + pnpm). If the repo pins chain tooling, enable
 # the matching opt-in lines in "Assert tool versions" and add the Solana cache
 # step (see the commented blocks below + templates/devbox/README.md).
+#
+# READ-ONLY: this job validates only. It must NEVER `git commit`/push devbox.lock
+# (or anything) back to the PR branch — that write-back pattern needs branch write
+# access and got an early rollout PR closed. The committed devbox.lock comes from
+# the author running `devbox install`, not from CI.
 
   devbox-validate:
     name: Devbox Environment Validation

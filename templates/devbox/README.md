@@ -25,7 +25,11 @@ and rationale live in [`../../context/dev-environment.md`](../../context/dev-env
 3. Paste the `devbox-validate` job from `ci-devbox-validate.yml` into the repo's CI
    workflow. Keep it **non-gating** (not in any `ci-status` `needs:`).
 4. Paste `README-devbox.md` into the repo README; fill in `<PNPM_VERSION>`.
-5. Generate the lockfile: `devbox install` (commits `devbox.lock`).
+5. Generate the lockfile and commit it. Install the Devbox CLI if absent
+   (`curl -fsSL https://get.jetify.com/devbox | bash -s -- -f`), run `devbox install`, and
+   **commit `devbox.lock` alongside `devbox.json`.** Do NOT rely on CI to commit the lock
+   back to the branch — `devbox-validate` is read-only. (If Devbox genuinely can't run in
+   your environment, commit `devbox.json` alone and note it; the lock can follow.)
 6. Gitignore the Nix dir: add `.devbox/` to `.gitignore`.
 
 ## Opt-in chain blocks (lifted from `connector/devbox.json`)
