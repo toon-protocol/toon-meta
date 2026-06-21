@@ -5,11 +5,11 @@ TOON is a **polyrepo** under the `toon-protocol` GitHub org. Code is shared via 
 | Repo | Packages / contents | Publishes | Owner |
 |------|---------------------|-----------|-------|
 | **toon** | `@toon-protocol/core`, `@toon-protocol/sdk` | npm libs (no image/CLI) | Platform |
-| **relay** | `@toon-protocol/relay` (+ `town` launcher, pending merge), `@toon-protocol/bls` | npm + `relay` image | Relay |
-| **swap** | `@toon-protocol/mill` (repo named `swap`; pkg rename pending) | npm + `swap` image | Swap |
+| **relay** | `@toon-protocol/relay`, `@toon-protocol/bls` (+ `town` launcher code-merge pending) | npm + `relay` image | Relay |
+| **swap** | `@toon-protocol/swap` | npm + `swap` image | Swap |
 | **store** | Arweave DVM build context (`Dockerfile.dvm` + entrypoint over sdk handler) | `store` image | Store |
-| **hub** | `@toon-protocol/townhouse` (+ web, mcp; rename pending) | npm + `hub-api` image + plugin | Operator |
-| **toon-client** | `@toon-protocol/client`, `@toon-protocol/client-mcp`, `rig`, `toon-plugin` | npm + plugin | Client |
+| **hub** | `@toon-protocol/hub`, `@toon-protocol/hub-web`, `@toon-protocol/hub-mcp` | npm + `hub-api` image + plugin | Operator |
+| **toon-client** | `@toon-protocol/client`, `@toon-protocol/client-mcp`, `@toon-protocol/rig`, `@toon-protocol/views` | npm + plugin | Client |
 | **toon-meta** | this repo — shared skills, context, docs | the `toon-skills` plugin | Cross-cutting |
 | **connector** *(pre-existing)* | the ILP payment engine + on-chain contracts/programs/zkApp + `@toon-protocol/mina-zkapp` | npm `@toon-protocol/connector`, `shared`, `mina-zkapp` + image | Payments |
 
@@ -44,6 +44,10 @@ Rollout via the `#1` ticket in each repo (epic [toon-meta#11](https://github.com
 
 The pet-game packages (`pet-dvm`, `pet-circuit`, `mina-zkapp` [the game one], `memvid-node`) and `faucet`/`examples` stay in the archived original monorepo. The **connector** owns the canonical settlement `@toon-protocol/mina-zkapp`.
 
+## Package names (final)
+
+The split + rename is complete on npm: `mill→swap` and `townhouse→hub`/`hub-web`/`hub-mcp` are the published names. Cross-repo deps resolve cleanly against published versions. Epic [toon-meta#42](https://github.com/toon-protocol/toon-meta/issues/42) swept the last stale `@toon-protocol/mill` ref in `store` and scrubbed residual `town`/`townhouse`/`mill` **metadata** (`repository.url`s, hub workspace dirs, descriptions). Note: `g.townhouse.*` ILP node-ids, `TOWNHOUSE_*` env vars, and `town`/`mill`/`dvm` node-type terms are **live wire-protocol identifiers**, not old names — left intact.
+
 ## Outstanding follow-ups
 
-Package renames (`mill→swap`, `townhouse→hub` + deprecate-redirect), `town→relay` code merge, `store` trim-to-dvm, image-publish workflows + hub image-manifest, optional `TransportConfig` decoupling. See the split plan / repo `CLAUDE.md`s.
+`town→relay` code merge (launcher still a separate repo), `store` trim-to-dvm, image-publish workflows + hub image-manifest, optional `TransportConfig` decoupling. See the split plan / repo `CLAUDE.md`s.
