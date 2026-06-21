@@ -106,7 +106,12 @@ refactors, no unrelated formatting churn. Keep it to one PR's worth of diff.
 
 ### 4 — Verify locally
 Run the repo's own verification before opening the PR — tests, lint, typecheck,
-build, per `CLAUDE.md`/`package.json` scripts/justfile. If verification fails and
+build, per `CLAUDE.md`/`package.json` scripts/justfile. **If the repo has a
+`devbox.json`, run that verification inside the pinned shell** (`devbox run build`,
+`devbox run test`, … or `devbox run -- <cmd>`) so you build against the same
+toolchain CI's `devbox-validate` job uses (the toon-meta `context/dev-environment.md`
+standard). Repos without
+a `devbox.json` use their documented commands directly. If verification fails and
 you can't fix it within scope, stop → `needs:human` with the failing output. Never
 open a PR you know is red.
 

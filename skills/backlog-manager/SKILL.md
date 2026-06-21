@@ -126,7 +126,10 @@ re-litigating product risk.
 
 Good `agent:ready` examples: doc updates, broken links, stale README/`CLAUDE.md`
 instructions, simple test additions, lint/format fixes, small chores, patch
-dependency bumps with passing tests, simple CI config drift.
+dependency bumps with passing tests, simple CI config drift, adopting the devbox
+dev-environment standard (a `devbox.json` + non-gating `devbox-validate` CI job +
+README section from the toon-meta `templates/devbox/` — `risk:low` `Chore`, no
+on-chain/funds exposure).
 
 ### Add `agent:split` when the ONLY blocker is size
 
