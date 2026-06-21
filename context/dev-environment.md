@@ -19,7 +19,13 @@ per repo; do not hand-roll a divergent setup.
 | Tool | Pin | Notes |
 |------|-----|-------|
 | Node | `nodejs@22` + `disable_plugin: true` | **org standard — matches connector (`22.11.0`).** Resolves the Node 20 EOL / nixpkgs-insecure problem (see [Decisions](#decisions)). The rollout bumps each repo's `engines.node` to `>=22` and its CI/release `node-version` to `22` in the same PR. `disable_plugin` is **required for `"type": "module"` repos** — see below. |
-| pnpm | `pnpm_8` @ `8.15.9` | org package manager (`package.json` `packageManager`), pinned as a Devbox package. Use the nixpkgs attribute `pnpm_8` (resolves to the latest `8.15.x` — `8.15.9`); a bare `pnpm@8.15.0` does **not** resolve in nixpkgs. `pnpm publish` rewrites `workspace:*`, see [repos.md](./repos.md). |
+| pnpm | `pnpm_8` @ `8.15.9` | org package manager, pinned as a Devbox package. Use the nixpkgs attribute `pnpm_8` (resolves to the latest `8.15.x` — `8.15.9`); a bare `pnpm@8.15.0` does **not** resolve in nixpkgs. `pnpm publish` rewrites `workspace:*`, see [repos.md](./repos.md). |
+
+**Keep the pnpm version consistent everywhere.** Because devbox resolves `pnpm_8` → `8.15.9`,
+the rollout PR must also bump the repo's `package.json` `packageManager` field **and every
+`pnpm/action-setup` `version:` — in `ci.yml` *and* `release.yml`** — from `8.15.0` to
+`8.15.9`, so the manifest, both workflows, devbox, and `devbox.lock` all agree. A leftover
+`8.15.0` in any one of these is the single most common reviewer catch on a rollout PR.
 
 Because of `disable_plugin`, the base template uses the **object** package form:
 

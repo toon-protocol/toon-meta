@@ -21,6 +21,9 @@ and rationale live in [`../../context/dev-environment.md`](../../context/dev-env
    **`disable_plugin: true` on nodejs is required** — without it devbox's corepack init
    script crashes on `"type": "module"` repos (every TOON TS repo); see the standard's
    "Base toolchain" note. A non-`type:module` repo (e.g. connector) may omit it.
+   **Also bump pnpm `8.15.0` → `8.15.9` everywhere** it appears — `package.json`
+   `packageManager` and every `pnpm/action-setup` `version:` in `ci.yml` *and* `release.yml`
+   — so all of them match what devbox resolves (`pnpm_8` → `8.15.9`).
 2. **Chain tooling (only if the repo compiles contracts/programs):** add the relevant
    opt-in block below to `devbox.json`, and uncomment the matching assertions + Solana
    cache step in the CI job. Base-only repos (toon, relay, store, hub, toon-client) skip
