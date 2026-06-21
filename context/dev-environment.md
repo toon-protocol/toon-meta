@@ -46,10 +46,15 @@ as of 0.17.3.)
 Base devbox `scripts`:
 
 ```
-build: pnpm install --frozen-lockfile && pnpm build
+build: pnpm install --no-frozen-lockfile && pnpm build
 lint:  pnpm lint
 test:  pnpm test
 ```
+
+Use **`--no-frozen-lockfile`** (matching the repos' own CI `build` job). A devbox rollout
+must not fail on — or regenerate/commit — a pre-existing `pnpm-lock.yaml` drift; lockfile
+hygiene is a separate concern and out of scope. (connector, which uses `npm`, runs
+`npm ci`.) Align the build target to the repo (`pnpm build` vs `pnpm -r build`).
 
 A repo whose real targets live in a `Makefile`/`justfile` should have its devbox scripts
 shell out to those (e.g. `test: make test`) so there is exactly one definition of each

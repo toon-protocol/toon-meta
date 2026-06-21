@@ -56,4 +56,7 @@
           echo "✅ All devbox tools resolved at expected versions"
 
       - name: Smoke build
-        run: devbox run -- bash -c "pnpm install --frozen-lockfile && pnpm build"
+        # Use --no-frozen-lockfile to match the repos' own CI install. A devbox
+        # rollout must not fail on (or regenerate) a pre-existing lockfile drift —
+        # that's out of scope. Align the build target to the repo (e.g. `pnpm -r build`).
+        run: devbox run -- bash -c "pnpm install --no-frozen-lockfile && pnpm build"
