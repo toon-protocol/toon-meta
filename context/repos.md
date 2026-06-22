@@ -51,4 +51,4 @@ The pet-game packages (`pet-dvm`, `pet-circuit`, `mina-zkapp` [the game one], `m
 
 ## Outstanding follow-ups
 
-Deprecate/redirect the still-live old `@toon-protocol/townhouse` npm package, `town→relay` code merge (launcher still a separate repo), `store` trim-to-dvm, image-publish workflows + hub image-manifest, optional `TransportConfig` decoupling. See the split plan / repo `CLAUDE.md`s.
+`town→relay` code merge (launcher still a separate repo), `store` trim-to-dvm, image-publish workflows + hub image-manifest, optional `TransportConfig` decoupling. See the split plan / repo `CLAUDE.md`s.
