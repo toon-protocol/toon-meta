@@ -29,16 +29,17 @@ Strictly downward. `hub` consumes the libs from npm **and** pins child node imag
 ## Dev environment
 
 All code repos pin their toolchain with Devbox per the [dev-environment.md](./dev-environment.md)
-standard (base = Node 22 + pnpm 8.15.0; chain tooling opt-in). Adoption status:
+standard (base = Node 22 + `pnpm_8`@8.15.9, `disable_plugin` on nodejs; chain tooling opt-in).
+**Adoption complete — all 7 code repos have `devbox.json` + a non-gating `devbox-validate` job on `main`:**
 
-| Repo | Devbox status |
-|------|---------------|
-| **connector** | ✅ adopted (reference impl: Node + Rust + Foundry + Solana) |
-| swap | ⏳ pending — base + Foundry (`anvil` for integration tests) |
-| toon · relay · store · hub · toon-client | ⏳ pending — base-only (pure TS) |
+| Repo | Devbox toolchain |
+|------|------------------|
+| **connector** | ✅ reference impl — Node + Rust + Foundry + Solana |
+| swap | ✅ base + Foundry (`anvil` for integration tests) |
+| connector · toon · relay · store · hub · toon-client | ✅ base-only (pure TS), except connector/swap above |
 | toon-meta | n/a (no build step) |
 
-Rollout via the `#1` ticket in each repo (epic [toon-meta#11](https://github.com/toon-protocol/toon-meta/issues/11)); the stalled `agent/*-devbox` branches are superseded by the template.
+Rolled out via the `#1` ticket in each repo (epic [toon-meta#11](https://github.com/toon-protocol/toon-meta/issues/11)). The canary surfaced two devbox 0.17.3 gotchas now baked into the standard: the nodejs corepack plugin crashes on `"type": "module"` repos (→ `disable_plugin`), and `--frozen-lockfile` trips pre-existing lockfile drift (→ `--no-frozen-lockfile`, matching each repo's own CI).
 
 ## Archived / not migrated
 
