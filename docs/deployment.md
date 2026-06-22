@@ -44,40 +44,64 @@ To stop the infrastructure:
 | Peer 2 BLS | http://localhost:19110 | ILP packet validation |
 | Peer 2 Relay | ws://localhost:19710 | Nostr WebSocket |
 
-## Linode Devnet
+## Linode Devnet — LIVE
 
-Public, self-hosted EVM + Solana dev chains hosted on a Linode box we control.
-Used by the operator dashboard, demos, and anyone who wants to test against TOON
-without standing up local infrastructure — peers point a TOON node/SDK at these
-stable TLS endpoints. **Replaces the former Akash devnet.**
+A public, self-hosted multi-chain devnet hosted on a Linode box we control. It is
+**live now** at `devnet.toonprotocol.dev` — used by the operator dashboard, demos,
+and anyone who wants to test against TOON without standing up local infrastructure.
+Peers point a TOON node/SDK at these stable TLS endpoints. **Replaces the former
+Akash devnet.**
 
-It is a thin deployment overlay (`connector/infra/linode/`) on connector's
-existing `docker-compose.yml` — it runs the `evm` + `solana` profiles and puts
-nginx + Let's Encrypt in front. Provision a fresh box with
-`connector/infra/linode/bootstrap.sh`; operate it with `devnet.sh`:
+- Host: Linode `toon-devnet` (2GB), IP `69.164.211.211`, domain
+  `devnet.toonprotocol.dev` (Porkbun `*.devnet` A-record → the IP).
+  No-domain fallback: `*.69-164-211-211.sslip.io`.
+- Provisioned/redeployed by the connector `devnet-deploy` GitHub Actions workflow
+  (linode-cli, `LINODE_CLI_TOKEN`).
 
-```bash
-cd connector/infra/linode
-cp .env.example .env && $EDITOR .env     # DOMAIN, LETSENCRYPT_EMAIL, PUBLIC_IFACE
-./bootstrap.sh                           # one-time provision (Docker, firewall, chains, TLS)
+> **TLS note:** certs are currently **self-signed** (Let's Encrypt duplicate-cert
+> rate-limit from repeated redeploys; a cert-persistence fix is in progress). The
+> endpoints work — clients may need to accept the cert until it re-issues trusted.
 
-./devnet.sh status                       # probe every backend + public URL
-./devnet.sh redeploy                     # wipe + restart chains (addresses reproduce)
-./devnet.sh logs anvil                   # follow logs
-```
+### Endpoints
 
 | Service | Public endpoint | Notes |
 |---------|-----------------|-------|
-| Anvil | `https://evm-rpc.<DOMAIN>` | EVM chain-id 31337, Mock USDC `0x5FbDB2…` + `TokenNetworkRegistry` auto-deployed |
-| Faucet | `https://faucet.<DOMAIN>` | `POST /api/request {address}` → 100 ETH + 10k USDC (EVM only) |
-| Solana | `https://solana-rpc.<DOMAIN>` (+ `wss://solana-ws.<DOMAIN>`) | `solana-test-validator`, payment-channel program auto-deployed |
-| Mina | `https://mina.<DOMAIN>/graphql` | **proxy of the public Mina devnet** — no node hosted (lightnet too heavy) |
+| EVM RPC | `https://evm-rpc.devnet.toonprotocol.dev` | anvil, chain-id **31337**, Mock USDC `0x5FbDB2315678afecb367f032d93F642f64180aa3` (**6 decimals**) + `TokenNetworkRegistry`, auto-deployed |
+| Solana RPC | `https://solana-rpc.devnet.toonprotocol.dev` (+ WS `wss://solana-ws.devnet.toonprotocol.dev`) | `solana-test-validator`, mock USDC SPL mint `H8HSreUF2s8r8hem4qMttE3bWYCpFuh71jbuos5bA77H` (**6 decimals**) |
+| Mina | `https://mina.devnet.toonprotocol.dev/graphql` | **proxy to the public Mina devnet** — no node hosted |
+| Faucet | `https://faucet.devnet.toonprotocol.dev` | multi-chain faucet — see routes below |
 
-Current endpoint URLs + deployed addresses live in
-`connector/infra/linode/endpoints.json` (committed sample; regenerated per-host).
-For run order, reset semantics, security (Docker-bypasses-ufw firewalling), and
-the known gaps (no Solana SPL-USDC mint yet; no Otterscan — Anvil lacks the
-`ots_*` namespace), see
+### Faucet routes
+
+| Method & path | Body | Drips |
+|---------------|------|-------|
+| `POST /api/request` | `{address}` | 100 ETH + 10k USDC (EVM) |
+| `POST /api/solana/request` | `{address}` | SOL + USDC (Solana) |
+| `POST /api/mina/request` | `{address}` | native MINA (treasury-funded; **USDC-on-Mina deferred — not live**) |
+
+The Mina faucet treasury (top up when low) is
+`B62qqEMaUpm1aZ5M2weUoGXQRGbF3j6VjEtaEdzfM1NAWmeHnywiC2P`.
+
+### Pointing a node/SDK at the devnet
+
+Configure the `chainRpcUrls` map so the node/SDK talks to the live endpoints:
+
+```jsonc
+{
+  "chainRpcUrls": {
+    "evm:anvil:31337": "https://evm-rpc.devnet.toonprotocol.dev",
+    "solana:devnet":   "https://solana-rpc.devnet.toonprotocol.dev",
+    "mina:devnet":     "https://mina.devnet.toonprotocol.dev/graphql"
+  }
+}
+```
+
+### Operating it
+
+The deployment is a thin overlay (`connector/infra/linode/`) on connector's
+existing `docker-compose.yml` — it runs the `evm` + `solana` profiles and puts
+nginx + Let's Encrypt in front. For run order, reset semantics, security
+(Docker-bypasses-ufw firewalling), and known gaps, see
 [`connector/infra/linode/README.md`](https://github.com/toon-protocol/connector/tree/main/infra/linode).
 
 ## Town CLI
