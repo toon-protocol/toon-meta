@@ -26,7 +26,7 @@ Authoritative definitions for the terms an agent meets working with TOON Protoco
 
 - **Connector** — a node that receives ILP packets and forwards them toward their destination. TOON's connector is `@toon-protocol/connector` (the apex).
 - **ILP address** — hierarchical `g.*` routing identifier (e.g. `g.townhouse.town`); routed by longest prefix.
-- **BTP** — Bilateral Transfer Protocol (RFC 0023); TOON's only ILP transport, over WebSocket.
+- **BTP** — Bilateral Transfer Protocol (RFC 0023); TOON's session + inter-connector ILP transport, over WebSocket. (The one-shot edge ingress is **ILP-over-HTTP**, `rfc-0035`, with an HTTP→BTP upgrade.)
 - **PREPARE / FULFILL / REJECT** — the ILPv4 packet lifecycle. FULFILL = accepted, REJECT = refused (with an error code like F06/T04).
 - **Settlement** — moving the cleared off-chain balance on-chain; in TOON, in-process per-chain providers redeeming claims (`claimFromChannel`).
 - **Clearing** — the off-chain accrual of signed claims before settlement.
@@ -34,7 +34,7 @@ Authoritative definitions for the terms an agent meets working with TOON Protoco
 
 ## Notably absent terms (don't assume they apply to TOON)
 
-SPSP, payment pointer, STREAM, STREAM receipt, HTLC, execution condition (as a live mechanism), ILP-over-HTTP — see `rfc-0009`, `rfc-0026`, `rfc-0029`, `rfc-0039`, `rfc-0022`, `rfc-0035` for why each is absent from TOON's pay path.
+SPSP, payment pointer, STREAM, STREAM receipt, and on-chain HTLC escrow — see `rfc-0009`, `rfc-0026`, `rfc-0029`, `rfc-0039`, `rfc-0022` for why each is absent from TOON's pay path. **Present, by contrast** (don't list these as absent): **ILP-over-HTTP** (`rfc-0035`, the one-shot edge ingress + HTTP→BTP upgrade) and packet-level **execution-condition/fulfillment** (active under NIP-59 claim-wrapping).
 
 ## Common Topics
 - TOON terms: apex, child, claim, balance proof, free-forward, nonce watermark

@@ -30,11 +30,11 @@ Implements the RFC 0001 layered model as the foundation of TOON Protocol: **pay-
 
 ## What TOON deliberately omits from the classic ILP stack
 
-TOON's value layer is the signed channel claim, so several classic ILP pieces are **absent from the pay path**: SPSP (`rfc-0009`), payment pointers (`rfc-0026`), STREAM and STREAM receipts (`rfc-0029`/`rfc-0039`), ILP-over-HTTP (`rfc-0035`), and classic HTLCs (`rfc-0022`). When reasoning about TOON, don't assume these are present.
+TOON's value layer is the signed channel claim, so several classic ILP pieces are **absent from the pay path**: SPSP (`rfc-0009`), payment pointers (`rfc-0026`), and STREAM / STREAM receipts (`rfc-0029`/`rfc-0039`). Two caveats often misremembered: **ILP-over-HTTP (`rfc-0035`) IS used** — as the one-shot edge ingress (`POST /ilp`) with an HTTP→BTP upgrade, alongside BTP; and while there is **no on-chain HTLC escrow (`rfc-0022`)**, multi-hop *does* use packet-level **execution-condition/fulfillment** (active when NIP-59 claim-wrapping is enabled). When reasoning about TOON, don't assume the genuinely-absent pieces are present.
 
 ## Common Topics
 - The apex (`g.townhouse`) + town/dvm/mill child topology
 - How pay-to-write / free-read maps to ILP's four layers
 - Claims-over-BTP as the value layer; in-process multi-chain settlement
-- Why SPSP/STREAM/HTLC/ILP-over-HTTP are not in TOON's stack
+- Why SPSP/STREAM and on-chain HTLC escrow are not in TOON's stack; how ILP-over-HTTP and packet-level execution-conditions *are* used
 - The free parent→child forward (apex model)

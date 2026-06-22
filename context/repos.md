@@ -25,6 +25,7 @@ Strictly downward. `hub` consumes the libs from npm **and** pins child node imag
 - **npm semver** replaces in-tree `workspace:*`. Publish with **`pnpm publish`** (rewrites the workspace protocol) — **never `npm publish`** (it shipped the broken `sdk@0.5.0`/`town@0.4.0`).
 - **`hub` pins image digests** for relay/swap/store (+ connector), validated by a preflight against `constants.ts`.
 - **Agent context** is shared via this repo: `CLAUDE.md` in each code repo links here; the `toon-skills` plugin distributes the shared skills.
+- **Payment termination (direction).** The `connector` can act as a payment-terminating reverse proxy in front of any HTTP backend (onboard via x402 → transparent HTTP-in-ILP → HTTP→BTP upgrade). See [`docs/payment-termination.md`](../docs/payment-termination.md).
 
 ## Dev environment
 

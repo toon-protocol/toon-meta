@@ -30,4 +30,4 @@ A **live shared devnet** is up at `devnet.toonprotocol.dev` (EVM + Solana + prox
 
 ## What TOON deliberately does NOT use
 
-TOON uses its own **signed payment-channel claim** protocol over BTP — **not** ILP's SPSP, STREAM, payment-pointers, HTLCs, or ILP-over-HTTP. Settlement is **in-process multi-chain**, not a separate settlement-engine service. See [decisions.md](./decisions.md) and the `rfc-*` skills for the per-RFC rationale.
+TOON uses its own **signed payment-channel claim** protocol — **not** ILP's SPSP, STREAM, or payment-pointers. Claims ride over **BTP/WebSocket** (duplex sessions + peering) **and ILP-over-HTTP** (`POST /ilp`, the one-shot edge ingress, with an HTTP→BTP upgrade). Multi-hop atomicity uses packet-level execution-condition/fulfillment (no on-chain HTLC escrow). Settlement is **in-process multi-chain**, not a separate settlement-engine service. See [decisions.md](./decisions.md), [payment-termination](../docs/payment-termination.md), and the `rfc-*` skills for the per-RFC rationale.

@@ -5,7 +5,7 @@ description: How TOON Protocol uses Interledger RFC 0023 - Bilateral Transfer Pr
 
 # RFC 0023: Bilateral Transfer Protocol (BTP) on TOON
 
-Implements RFC 0023 (BTP 2.0) as TOON's **only ILP transport**. Every paid write on TOON travels over a single bilateral BTP WebSocket session between the client and the apex/connector — there is no ILP-over-HTTP (RFC-0035) and no other binding in the pay path.
+Implements RFC 0023 (BTP 2.0) as TOON's **session and inter-connector peer transport**. A paid write travels over a bilateral BTP WebSocket session between the client and the apex/connector. BTP is no longer the *only* ILP transport: **ILP-over-HTTP (RFC-0035)** is the one-shot edge/onboarding ingress (`POST /ilp`), and a client can **upgrade HTTP→BTP** on the shared listener (see `rfc-0035`). BTP remains the binding for duplex sessions and connector-to-connector peering.
 
 ## How TOON uses / diverges from this RFC
 
