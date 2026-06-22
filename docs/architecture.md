@@ -29,6 +29,8 @@ TOON Protocol is a monorepo with packages organized into four layers. Each layer
 
 **Key distinction:** Identity (Nostr pubkey) is permanent. ILP addresses are ephemeral — derived from peering topology, one per upstream connection. A node with two upstream peers has two ILP addresses. See [Protocol — ILP Address Hierarchy](protocol.md#ilp-address-hierarchy) for details.
 
+**Payment termination (direction).** Beyond building *on* TOON (the storage-layer relay/store apps), a connector at the edge can **terminate payment** in front of any existing HTTP service — onboarding agents via x402 and forwarding clean HTTP to a payment-oblivious backend, the way nginx terminates TLS. See [Payment Termination →](payment-termination.md).
+
 ## Package Dependency Graph
 
 ```
