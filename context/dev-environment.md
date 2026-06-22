@@ -18,17 +18,49 @@ per repo; do not hand-roll a divergent setup.
 
 | Tool | Pin | Notes |
 |------|-----|-------|
-| Node | `nodejs@22` | **org standard — matches connector (`22.11.0`).** Resolves the Node 20 EOL / nixpkgs-insecure problem (see [Decisions](#decisions)). The rollout bumps each repo's `engines.node` to `>=22` and its CI/release `node-version` to `22` in the same PR. |
-| pnpm | `pnpm@8.15.0` | org package manager (`package.json` `packageManager`), pinned as a Devbox package — `pnpm publish` rewrites `workspace:*`, see [repos.md](./repos.md). |
+| Node | `nodejs@22` + `disable_plugin: true` | **org standard — matches connector (`22.11.0`).** Resolves the Node 20 EOL / nixpkgs-insecure problem (see [Decisions](#decisions)). The rollout bumps each repo's `engines.node` to `>=22` and its CI/release `node-version` to `22` in the same PR. `disable_plugin` is **required for `"type": "module"` repos** — see below. |
+| pnpm | `pnpm_8` @ `8.15.9` | org package manager, pinned as a Devbox package. Use the nixpkgs attribute `pnpm_8` (resolves to the latest `8.15.x` — `8.15.9`); a bare `pnpm@8.15.0` does **not** resolve in nixpkgs. `pnpm publish` rewrites `workspace:*`, see [repos.md](./repos.md). |
+
+**Keep the pnpm version consistent everywhere.** Because devbox resolves `pnpm_8` → `8.15.9`,
+the rollout PR must also bump the repo's `package.json` `packageManager` field **and every
+`pnpm/action-setup` `version:` — in `ci.yml` *and* `release.yml`** — from `8.15.0` to
+`8.15.9`, so the manifest, both workflows, devbox, and `devbox.lock` all agree. A leftover
+`8.15.0` in any one of these is the single most common reviewer catch on a rollout PR.
+
+Because of `disable_plugin`, the base template uses the **object** package form:
+
+```json
+"packages": {
+  "nodejs": { "version": "22", "disable_plugin": true },
+  "pnpm_8": { "version": "8.15.9" }
+}
+```
+
+**Why `disable_plugin` on nodejs (load-bearing):** Devbox's built-in nodejs plugin runs
+`node setup-corepack.js` in its `init_hook` on every `devbox shell`/`devbox run`. In
+devbox 0.17.3 (current latest) that script is a `.js` using CommonJS `require`, so in a
+repo whose root `package.json` has `"type": "module"` Node loads it as ESM and it crashes
+(`require is not defined`) — breaking the shell entirely. Every TOON TS repo is
+`type: module`. We pin pnpm as a Devbox package and don't use Devbox's corepack, so
+disabling the plugin is the clean fix (verified against devbox's own `disable-plugin`
+test). connector escapes this only because it is not `type: module`; a non-module repo may
+omit `disable_plugin`. (Upstream renamed the script to `.cjs`, but that fix is unreleased
+as of 0.17.3.)
 
 `devbox.lock` fixes the exact resolved build. If a repo declares no `packageManager` (e.g.
-`store`), set it to `pnpm@8.15.0` to match its siblings in the same PR. Base devbox `scripts`:
+`store`), set it to `pnpm@8.15.0` in `package.json` to match its siblings in the same PR.
+Base devbox `scripts`:
 
 ```
-build: pnpm install --frozen-lockfile && pnpm build
+build: pnpm install --no-frozen-lockfile && pnpm build
 lint:  pnpm lint
 test:  pnpm test
 ```
+
+Use **`--no-frozen-lockfile`** (matching the repos' own CI `build` job). A devbox rollout
+must not fail on — or regenerate/commit — a pre-existing `pnpm-lock.yaml` drift; lockfile
+hygiene is a separate concern and out of scope. (connector, which uses `npm`, runs
+`npm ci`.) Align the build target to the repo (`pnpm build` vs `pnpm -r build`).
 
 A repo whose real targets live in a `Makefile`/`justfile` should have its devbox scripts
 shell out to those (e.g. `test: make test`) so there is exactly one definition of each
@@ -56,6 +88,20 @@ found `store` is pure TS and `swap` needs only Foundry (`anvil`) — no Rust/Sol
 The Rust/Foundry/Solana blocks (packages + `init_hook` + `solana-build`/`forge-build`
 scripts) are lifted verbatim from `connector/devbox.json` — see the template's commented
 opt-in sections. Solana is installed by the `init_hook` (via `release.anza.xyz`), not Nix.
+
+## Lock file (`devbox.lock`)
+
+The rollout PR **commits both `devbox.json` and a generated `devbox.lock`.** The agent
+producing the PR generates the lock itself — it installs the Devbox CLI in its run
+(`curl -fsSL https://get.jetify.com/devbox | bash -s -- -f`) and runs `devbox install`,
+then commits the result.
+
+**The `devbox-validate` CI job is read-only — it must never commit `devbox.lock` back to
+the PR branch.** That write-back pattern (CI mutating the PR branch, which needs branch
+write access) is rejected: it got an early rollout PR closed. If the agent genuinely
+cannot run Devbox in its environment, commit `devbox.json` alone and say so in the PR —
+`devbox`/`devbox-validate` still resolve from `devbox.json`, and the non-gating job won't
+block the merge; a lock can be added in a follow-up. Never wire CI to commit it.
 
 ## CI validation
 
