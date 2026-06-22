@@ -20,6 +20,8 @@ Operators run a **hub** (apex) = the connector (nodeId `g.townhouse`) + child re
 
 The codebase was a single monorepo; it is being split into **per-team repos** (see [`repos.md`](./repos.md)). Code is shared via **npm** (semver); deployment composition via **pinned Docker image digests**. The ILP payment engine is the separate **connector** repo.
 
+A **live shared devnet** is up at `devnet.toonprotocol.dev` (EVM + Solana + proxied Mina) with a multi-chain faucet — point a node/SDK at it instead of standing up local chains. See [deployment.md → Linode Devnet](../docs/deployment.md#linode-devnet--live).
+
 ## How to use this repo (toon-meta)
 
 - **Shared agent skills** — installable as a Claude Code plugin: `/plugin marketplace add toon-protocol/toon-meta` → `/plugin install toon-skills@toon-meta`. (Product skills ship in `toon-client`/`hub`.)
