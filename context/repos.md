@@ -47,7 +47,7 @@ The pet-game packages (`pet-dvm`, `pet-circuit`, `mina-zkapp` [the game one], `m
 
 ## Package names (final)
 
-`mill→swap` and `townhouse→hub`/`hub-web`/`hub-mcp` are the active published names, and cross-repo deps resolve cleanly against them. `@toon-protocol/mill` is fully gone (404); `@toon-protocol/swap` and `@toon-protocol/hub` are the live packages. **Not yet done:** the old `@toon-protocol/townhouse` package is still live on npm (last at `0.34.3`, undeprecated) — the deprecate-redirect is still pending (see follow-ups). Epic [toon-meta#42](https://github.com/toon-protocol/toon-meta/issues/42) swept the last stale `@toon-protocol/mill` ref in `store` and scrubbed residual `town`/`townhouse`/`mill` **metadata** (`repository.url`s, hub workspace dirs, descriptions). Note: `g.townhouse.*` ILP node-ids, `TOWNHOUSE_*` env vars, and `town`/`mill`/`dvm` node-type terms are **live wire-protocol identifiers**, not old names — left intact.
+`mill→swap` and `townhouse→hub`/`hub-web`/`hub-mcp` are the active published names, and cross-repo deps resolve cleanly against them. `@toon-protocol/mill` is fully gone (404); `@toon-protocol/swap` and `@toon-protocol/hub` are the live packages. The old `@toon-protocol/townhouse` package has been deprecated/redirected (completed 2026-06-22, issue #44). Epic [toon-meta#42](https://github.com/toon-protocol/toon-meta/issues/42) swept the last stale `@toon-protocol/mill` ref in `store` and scrubbed residual `town`/`townhouse`/`mill` **metadata** (`repository.url`s, hub workspace dirs, descriptions). Note: `g.townhouse.*` ILP node-ids, `TOWNHOUSE_*` env vars, and `town`/`mill`/`dvm` node-type terms are **live wire-protocol identifiers**, not old names — left intact.
 
 ## Outstanding follow-ups
 
