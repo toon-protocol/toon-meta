@@ -376,7 +376,7 @@ format so the backlog tooling can track delivery.
 
 **Acceptance criteria.**
 - AC1: Planning artifact in `docs/epic-44-payment-proxy.md` with executive summary, architecture, stories mirroring the child issues, risks table, and Definition of Done.
-- AC2: Cross-links to RFC (`docs/payment-proxy.md`) and all child issues (connector#216–225, toon-client#50–51, relay#23, toon-meta#53).
+- AC2: Cross-links to RFC (`docs/payment-proxy.md`) and all child issues (connector#216–224, toon-client#50–51, relay#23, toon-meta#53).
 - AC3: Consistent with corrected transport docs and updated proxy vocabulary: ILP-over-HTTP = edge ingress (RFC-0035); BTP = session/peer transport (RFC-0023); apex nodeId = `g.proxy`; env vars = `PROXY_*`.
 
 **Files.** `docs/epic-44-payment-proxy.md` (this document).
