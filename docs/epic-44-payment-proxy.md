@@ -1,4 +1,4 @@
-# Epic 44: Payment Termination — run any HTTP service behind the connector like nginx
+# Epic 44: Payment Proxy — run any HTTP service behind the connector like nginx
 
 **Date:** 2026-06-23
 **Author:** claude[bot] (issue-executor — agent/53)
@@ -7,14 +7,14 @@
 **Type:** Feature — new local-delivery handler + x402 greeting + client shim + relay decoupling
 **North-star tier served:** T1 (mechanical; makes "deploy any app behind the connector" real for any HTTP service)
 **Roadmap reference:** toon-protocol/toon-meta#52
-**RFC:** `docs/payment-proxy.md` (formerly `docs/payment-termination.md`; renamed in PR #55 — historical snapshot readable via `git show 131a22b:docs/payment-termination.md`)
+**RFC:** `docs/payment-proxy.md` (see [toon-meta/docs/payment-proxy.md](payment-proxy.md); formerly `payment-termination.md`, renamed in PR #55)
 
 ---
 
 ## Executive Summary
 
-Terminate **payment** at the edge the way nginx terminates **TLS**: a standalone connector acts as
-a payment-terminating reverse proxy, and apps run *behind* it, payment-oblivious. The north star:
+Put a **payment** proxy at the edge, the way nginx sits in front of **TLS**: a standalone connector
+acts as a payment reverse proxy, and apps run *behind* it, payment-oblivious. The north star:
 **deploying an app behind a connector is as easy as deploying an app behind nginx.**
 
 ### Why this comes first
@@ -36,16 +36,16 @@ existing HTTP services (zero app changes), riding x402's installed base.
    plain x402 agents degrade gracefully while TOON-aware agents upgrade.
 3. A **nginx-style route→upstream config surface** (`route {} upstream {}`) with runtime mutation
    via `PUT /admin/desired-state`.
-4. A **connector CLI** (`connector up`, `connector app add`) so operators configure the terminator
+4. A **connector CLI** (`connector up`, `connector app add`) so operators configure the proxy
    without curling the admin API.
 5. **RFC 9421 claim↔request binding** (MVP subset, from Epic 38) on the critical path so a cheap
    claim cannot be replayed against an expensive route.
 6. A **local Docker Compose** (connector + relay + chain devnet) for zero-friction local dev.
-7. A **Linode public-internet test** proving the terminator + decoupled relay against real TLS on
+7. A **Linode public-internet test** proving the proxy + decoupled relay against real TLS on
    the live `devnet.toonprotocol.dev` chains.
 8. `ToonClient.h402Fetch` + `toon_http_fetch_paid` MCP tool on the client side.
 9. The relay **decoupled** from its embedded ConnectorNode — it now runs as a plain HTTP app behind
-   the connector, proving the topology.
+   the proxy, proving the topology.
 
 ---
 
@@ -59,9 +59,10 @@ a WebSocket upgrade.
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │ Rung 1 — Onboard via x402 / HTTP 402                                            │
-│  Agent sends unpaid request → Terminator replies 402 with dual accepts:          │
+│  Agent sends unpaid request → Proxy replies 402 with dual accepts:               │
 │    accepts[0]: { scheme:"exact",        ...on-chain USDC }   ← plain x402 agent │
-│    accepts[1]: { scheme:"toon-channel", ilpAddress, /ilp }   ← TOON-aware agent │
+│    accepts[1]: { scheme:"toon-channel", ilpAddress:"g.proxy", /ilp }            │
+│                                                              ← TOON-aware agent  │
 └──────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────┐
@@ -72,7 +73,7 @@ a WebSocket upgrade.
 │                    data = raw HTTP request (request-line + headers + body)       │
 │            header: ILP-Payment-Channel-Claim: base64(claim)                     │
 │                                                                                  │
-│  Terminator:                                                                     │
+│  Proxy:                                                                          │
 │    1. validate claim (ClaimReceiver) + RFC 9421 claim↔request binding           │
 │    2. strip hop-by-hop headers; inject X-TOON-Payer / X-TOON-Amount /           │
 │       X-TOON-Chain                                                               │
@@ -107,10 +108,19 @@ alongside (never inside data):
 ```
 
 The connector's only operation on `data` is `sha256(data)` to mint a transfer ID — it **never
-parses it**. This keeps the connector format-agnostic (the relay's Nostr events and the terminator's
+parses it**. This keeps the connector format-agnostic (the relay's Nostr events and the proxy's
 HTTP requests ride as identical opaque blobs). The TOON event codec (`encodeEventToToon` /
 `shallowParseToon`) lives exclusively in handler-layer apps; the connector core imports only ILP-OER
 framing.
+
+### ILP address conventions
+
+The proxy apex's on-wire nodeId is **`g.proxy`** (renamed from the legacy `g.townhouse` in Epic 42).
+Child services addressed off the apex follow the `g.proxy.<type>` scheme — e.g. the relay is
+`g.proxy.relay`. Clients pay `g.proxy`; the apex validates, takes a fee, and free-forwards to
+children. Operator env vars use the **`PROXY_*`** prefix (e.g. `PROXY_MNEMONIC` for the seed
+phrase). These names are load-bearing wire identifiers shared across connector, client, and every
+child deployment; changing them is a coordinated cross-repo change.
 
 ### Layering
 
@@ -137,16 +147,16 @@ framing.
 The connector does **not** embed a relay. The relay is a sibling backend behind the connector:
 
 ```
-  Internet ──TLS──► nginx (dumb TLS terminator, existing)
+  Internet ──TLS──► nginx (dumb TLS proxy, existing)
                       │
-                      ├─ /ilp ──► Connector (terminator) ──► Relay (oblivious app, plain HTTP)
-                      │                                   ──► Any other HTTP app
+                      ├─ /ilp ──► Connector (proxy, g.proxy) ──► Relay (oblivious app, plain HTTP, g.proxy.relay)
+                      │                                       ──► Any other HTTP app
                       └─ /ws ───► Relay WS (free reads; no payment path)
 ```
 
 ### nginx parallel
 
-| nginx concept | TOON terminator equivalent |
+| nginx concept | TOON proxy equivalent |
 |---|---|
 | `server {} / location {}` | `route {} upstream {}` config grammar |
 | `proxy_pass` | `HttpProxyHandler` replay |
@@ -158,7 +168,7 @@ The connector does **not** embed a relay. The relay is a sibling backend behind 
 
 ## Stories
 
-### Story 44.1: HTTP reverse-proxy local-delivery handler (terminator core)
+### Story 44.1: HTTP reverse-proxy local-delivery handler (proxy core)
 
 **Goal.** A connector-side handler that decodes the literal HTTP request from the opaque ILP
 PREPARE `data`, validates a prepaid claim, replays byte-for-byte to a configured upstream, and
@@ -188,8 +198,8 @@ while TOON-aware agents upgrade.
 **Status:** ✅ Closed — toon-protocol/connector#217
 
 **Acceptance criteria.**
-- AC1: Unpaid request to a terminated route returns HTTP `402` with x402 `accepts` array.
-- AC2: `accepts` contains a vanilla on-chain entry (`scheme:"exact"`, e.g. Base/Solana USDC) AND a `toon-channel` entry (`{ ilpAddress, endpoint:"/ilp", price, chains, settlementAddresses }`).
+- AC1: Unpaid request to a proxied route returns HTTP `402` with x402 `accepts` array.
+- AC2: `accepts` contains a vanilla on-chain entry (`scheme:"exact"`, e.g. Base/Solana USDC) AND a `toon-channel` entry (`{ ilpAddress:"g.proxy", endpoint:"/ilp", price, chains, settlementAddresses }`).
 - AC3: Plain x402 agent that ignores `toon-channel` scheme still gets a valid on-chain challenge.
 - AC4: Advertised price/chains/ILP address sourced from the route config.
 
@@ -201,7 +211,7 @@ while TOON-aware agents upgrade.
 
 ### Story 44.3: nginx-style route→upstream config surface
 
-**Goal.** "Configure a connector as easily as nginx" — a route→upstream grammar that maps terminated
+**Goal.** "Configure a connector as easily as nginx" — a route→upstream grammar that maps proxied
 routes to upstreams, prices, and accepted chains.
 
 **Status:** ✅ Closed — toon-protocol/connector#218
@@ -221,14 +231,14 @@ routes to upstreams, prices, and accepted chains.
 
 ### Story 44.4: Connector CLI + "add an app" UX
 
-**Goal.** `connector up` + `connector app add` so operators configure the terminator without curling
+**Goal.** `connector up` + `connector app add` so operators configure the proxy without curling
 the admin API.
 
 **Status:** ✅ Closed — toon-protocol/connector#219
 
 **Acceptance criteria.**
 - AC1: `connector up` boots a standalone connector from a config file.
-- AC2: `connector app add <name> --upstream <url> --route <path> --price <n> --chains <list>` registers a terminated app.
+- AC2: `connector app add <name> --upstream <url> --route <path> --price <n> --chains <list>` registers a proxied app.
 - AC3: `connector route add` / `connector route ls` / `connector app ls` manage routes/upstreams at runtime.
 - AC4: No hub dependency; works against a bare connector container.
 - AC5: `--json` output on all read commands; help text.
@@ -242,25 +252,25 @@ the admin API.
 ### Story 44.5: RFC 9421 claim↔request binding (MVP subset)
 
 **Goal.** Bind a prepaid claim to *this* request so a cheap claim cannot be replayed against an
-expensive terminated route. Pull the minimal slice of Epic 38 onto the critical path.
+expensive proxied route. Pull the minimal slice of Epic 38 onto the critical path.
 
 **Status:** ✅ Closed — toon-protocol/connector#220
 
 **Acceptance criteria.**
-- AC1: Terminator verifies RFC 9421 signature covering `@method`, `@path`, `content-digest`, and advertised price for terminated requests.
+- AC1: Proxy verifies RFC 9421 signature covering `@method`, `@path`, `content-digest`, and advertised price for proxied requests.
 - AC2: Claim presented for a different method/path/body/price is rejected.
 - AC3: Reuses Epic 38 signer/verifier modules where they exist; does not block on the full 13-story Epic 38.
 - AC4: Tests: replay against a different route is rejected; matching request is accepted.
 
-**Files.** Terminator path in `packages/connector/src/http/ilp-http-adapter.ts` + proxy handler; Epic 38 signer/verifier imported.
+**Files.** Proxy path in `packages/connector/src/http/ilp-http-adapter.ts` + proxy handler; Epic 38 signer/verifier imported.
 
 **Dependencies.** Story 44.1; Epic 38 Stories 38.2–38.3 (signer/verifier modules).
 
 ---
 
-### Story 44.6: Local Docker Compose — standalone terminator + one app behind it
+### Story 44.6: Local Docker Compose — standalone proxy + one app behind it
 
-**Goal.** One `docker compose up` brings up connector-as-terminator + oblivious relay + chain devnet
+**Goal.** One `docker compose up` brings up connector-as-proxy + oblivious relay + chain devnet
 for zero-friction local development.
 
 **Status:** ✅ Closed — toon-protocol/connector#221
@@ -268,20 +278,20 @@ for zero-friction local development.
 **Network:** local anvil (no real funds)
 
 **Acceptance criteria.**
-- AC1: Compose file runs: connector (terminator) + relay (oblivious app, decoupled) + anvil + faucet.
-- AC2: Relay reachable *only* through the terminator for paid writes; free reads stay on the relay's Nostr WS.
-- AC3: End-to-end smoke test: `h402Fetch`/curl a paid route → terminator validates claim → relay stores → FULFILL.
+- AC1: Compose file runs: connector (proxy, `g.proxy`) + relay (oblivious app, decoupled, `g.proxy.relay`) + anvil + faucet.
+- AC2: Relay reachable *only* through the proxy for paid writes; free reads stay on the relay's Nostr WS.
+- AC3: End-to-end smoke test: `h402Fetch`/curl a paid route → proxy validates claim → relay stores → FULFILL.
 - AC4: Documented in connector README; one command up/down.
 
 **Files.** `connector/docker-compose.yml` (extended); `connector/infra/` devnet compose profile.
 
-**Dependencies.** Stories 44.1–44.5; Story 44.9 (relay decoupled so it can run as a plain HTTP app behind the terminator).
+**Dependencies.** Stories 44.1–44.5; Story 44.10 (relay decoupled so it can run as a plain HTTP app behind the proxy).
 
 ---
 
-### Story 44.7: Linode public-internet test — terminator + relay-behind-connector
+### Story 44.7: Linode public-internet test — proxy + relay-behind-connector
 
-**Goal.** Test the terminator + decoupled relay against the public internet on Linode, reusing the
+**Goal.** Test the proxy + decoupled relay against the public internet on Linode, reusing the
 live chain devnet at `devnet.toonprotocol.dev`.
 
 **Status:** ✅ Closed — toon-protocol/connector#222
@@ -289,14 +299,14 @@ live chain devnet at `devnet.toonprotocol.dev`.
 **Network:** devnet · **Funds:** treasury wallet, ≤ $50 (bounded)
 
 **Acceptance criteria.**
-- AC1: `connector/infra/linode` extended to run the terminator + oblivious relay.
+- AC1: `connector/infra/linode` extended to run the proxy + oblivious relay; `PROXY_MNEMONIC` seed phrase passed to the proxy container.
 - AC2: Public route reachable over TLS; external client completes a paid `h402Fetch` end-to-end with on-chain settlement on devnet chains.
 - AC3: Cloud-init / treasury-funding patterns lifted from hub deploy without hub-repo dependency.
 - AC4: GitHub Actions deploy job (re)deploys idempotently; status/endpoints published.
 
-**Files.** `connector/infra/linode/` (extended); `.github/workflows/deploy-terminator.yml`.
+**Files.** `connector/infra/linode/` (extended); `.github/workflows/deploy-proxy.yml`.
 
-**Dependencies.** Stories 44.1–44.6, 44.8 (client shim for the e2e test), 44.9 (relay decoupled).
+**Dependencies.** Stories 44.1–44.6, 44.8 (client shim for the e2e test), 44.10 (relay decoupled).
 
 ---
 
@@ -308,7 +318,7 @@ pay over TOON, return a normal `Response`.
 **Status:** ✅ Closed — toon-protocol/toon-client#50
 
 **Acceptance criteria.**
-- AC1: `client.h402Fetch(url, opts)` issues the request; on `402` parses x402 `accepts` and selects the `toon-channel` entry.
+- AC1: `client.h402Fetch(url, opts)` issues the request; on `402` parses x402 `accepts` and selects the `toon-channel` entry (using the advertised `g.proxy` ILP address to route the payment).
 - AC2: Opens/reuses a payment channel via `ChannelManager` and sends a transparent HTTP-in-ILP packet to `POST /ilp` via `HttpIlpClient` (raw HTTP request in `data`, claim in `ILP-Payment-Channel-Claim` header).
 - AC3: Returns a normal `Response` from the FULFILL payload; surface errors cleanly.
 
@@ -337,39 +347,39 @@ tool call.
 
 ---
 
-### Story 44.10: Decouple relay — run as an oblivious app behind the connector
+### Story 44.10: Decouple relay — run as an oblivious app behind the proxy
 
 **Goal.** Flip the topology: relay stops embedding a `ConnectorNode` and runs as a standalone,
-payment-oblivious HTTP app behind the standalone connector (the first real "app behind the
-connector").
+payment-oblivious HTTP app behind the standalone connector proxy (the first real "app behind the
+proxy").
 
 **Status:** ✅ Closed — toon-protocol/relay#23
 
 **Acceptance criteria.**
 - AC1: Relay can run without auto-creating an embedded connector; `setPacketHandler` self-wiring is optional/removed for this mode.
-- AC2: Relay exposes a plain-HTTP write surface (event-as-JSON); trusts injected `X-TOON-Payer/Amount/Chain` (payment already validated by the terminator).
+- AC2: Relay exposes a plain-HTTP write surface (event-as-JSON); trusts injected `X-TOON-Payer/Amount/Chain` (payment already validated by the proxy).
 - AC3: Relay free-read WebSocket path unaffected.
-- AC4: End-to-end: connector terminator → relay stores event → FULFILL — smoke-tested in Story 44.6 Docker Compose.
+- AC4: End-to-end: connector proxy (`g.proxy`) → relay (`g.proxy.relay`) stores event → FULFILL — smoke-tested in Story 44.6 Docker Compose.
 
 **Files.** `relay/src/` (remove/gate embedded connector wiring); new plain-HTTP ingest handler.
 
-**Dependencies.** Story 44.1 (terminator delivers to the relay's plain-HTTP surface).
+**Dependencies.** Story 44.1 (proxy delivers to the relay's plain-HTTP surface).
 
 ---
 
 ### Story 44.11: Author epic planning artifact (BMAD format)
 
-**Goal.** Formalize the payment-termination RFC and child-issue landscape into this org BMAD epic
+**Goal.** Formalize the payment-proxy RFC and child-issue landscape into this org BMAD epic
 format so the backlog tooling can track delivery.
 
 **Status:** ✅ Closed — toon-protocol/toon-meta#53 (this document)
 
 **Acceptance criteria.**
-- AC1: Planning artifact in `docs/epic-44-payment-termination.md` with executive summary, architecture, stories mirroring the child issues, risks table, and Definition of Done.
-- AC2: Cross-links to RFC (PR #51, commit 131a22b) and all child issues.
-- AC3: Consistent with corrected transport docs: ILP-over-HTTP = edge ingress (RFC-0035); BTP = session/peer transport (RFC-0023).
+- AC1: Planning artifact in `docs/epic-44-payment-proxy.md` with executive summary, architecture, stories mirroring the child issues, risks table, and Definition of Done.
+- AC2: Cross-links to RFC (`docs/payment-proxy.md`) and all child issues (connector#216–225, toon-client#50–51, relay#23, toon-meta#53).
+- AC3: Consistent with corrected transport docs and updated proxy vocabulary: ILP-over-HTTP = edge ingress (RFC-0035); BTP = session/peer transport (RFC-0023); apex nodeId = `g.proxy`; env vars = `PROXY_*`.
 
-**Files.** `docs/epic-44-payment-termination.md` (this document).
+**Files.** `docs/epic-44-payment-proxy.md` (this document).
 
 **Dependencies.** None.
 
@@ -393,7 +403,7 @@ wiring, not new primitives.
 
 ---
 
-### Story 44.13: RFC 9421 hardening on the terminator path [future]
+### Story 44.13: RFC 9421 hardening on the proxy path [future]
 
 **Goal.** Complete RFC 9421 hardening beyond the MVP claim↔request binding: replay cache, JWKS /
 `.well-known`, content-digest canonicalisation, key lifecycle, migration telemetry.
@@ -401,7 +411,7 @@ wiring, not new primitives.
 **Status:** 🔵 Open — toon-protocol/connector#224
 
 **Scope.** Pull remaining Epic 38 stories (38.4–38.10, 38.12–38.13) as they apply to the
-terminator surface. Deferred; decompose into executor-sized children when prioritised.
+proxy surface. Deferred; decompose into executor-sized children when prioritised.
 
 **Dependencies.** Story 44.5; Epic 38 full delivery.
 
@@ -422,16 +432,16 @@ terminator surface. Deferred; decompose into executor-sized children when priori
 
 ## Definition of Done
 
-- [x] Terminator core (Story 44.1) — `HttpProxyHandler` wired via `setPacketHandler`; unit + integration tests green.
-- [x] x402 dual-entry `402` greeting (Story 44.2) — vanilla x402 agents degrade gracefully; TOON-aware agents upgrade.
+- [x] Proxy core (Story 44.1) — `HttpProxyHandler` wired via `setPacketHandler`; unit + integration tests green.
+- [x] x402 dual-entry `402` greeting (Story 44.2) — vanilla x402 agents degrade gracefully; TOON-aware agents upgrade; advertises `g.proxy` ILP address.
 - [x] nginx-style config surface (Story 44.3) — boot-load + runtime mutation via `PUT /admin/desired-state`.
 - [x] Connector CLI (Story 44.4) — `connector up` + `connector app add`; no hub dependency.
 - [x] RFC 9421 claim↔request binding (Story 44.5) — cheap claim cannot be replayed against an expensive route.
 - [x] Local Docker Compose (Story 44.6) — `docker compose up`; end-to-end smoke test passes.
-- [x] Linode public-internet test (Story 44.7) — paid `h402Fetch` e2e with on-chain devnet settlement.
+- [x] Linode public-internet test (Story 44.7) — paid `h402Fetch` e2e with on-chain devnet settlement; `PROXY_MNEMONIC` used for operator key.
 - [x] `ToonClient.h402Fetch` (Story 44.8) — `fetch()`-like client; 402 detection and payment transparent to caller.
 - [x] `toon_http_fetch_paid` MCP tool (Story 44.9) — agent tool registered; smoke-tested through daemon.
-- [x] Relay decoupled (Story 44.10) — relay runs as a plain HTTP app behind the connector; zero embedded ConnectorNode in the new topology.
+- [x] Relay decoupled (Story 44.10) — relay runs as a plain HTTP app behind the connector proxy (`g.proxy.relay`); zero embedded ConnectorNode in the new topology.
 - [x] This planning artifact (Story 44.11).
 - [ ] Swap-as-routing-FX-hop (Story 44.12) — token-agnostic routing; tracked in connector#223.
 - [ ] RFC 9421 hardening (Story 44.13) — full replay cache + JWKS + key lifecycle; tracked in connector#224.
@@ -447,5 +457,5 @@ Future stories: each requires its own decomposition before estimation.
 
 - Unit tests: `http-proxy-handler.ts`, claim↔request binding (Story 44.5), config loader (Story 44.3).
 - Integration tests: Docker Compose e2e smoke (Story 44.6), `h402Fetch` round-trip (Story 44.8).
-- Public-internet test: Linode terminator + relay + devnet chains (Story 44.7).
+- Public-internet test: Linode proxy + relay + devnet chains (Story 44.7).
 - Negative-path matrix for RFC 9421 hardening: tracked in Story 44.13 / Epic 38 `test-design-epic-38.md`.
