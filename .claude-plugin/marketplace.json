@@ -9,7 +9,7 @@
     {
       "name": "toon-skills",
       "source": ".",
-      "description": "Shared TOON Protocol skills: Nostr NIP implementations on TOON, Interledger RFC references (TOON-localized to the signed-claim-over-BTP model), git-on-Nostr, content/social, and dev utilities. Product skills (toon-client, townhouse-operator) ship in their own product plugins."
+      "description": "Shared TOON Protocol skills: Nostr NIP implementations on TOON, Interledger RFC references (TOON-localized to the signed-claim-over-BTP model), git-on-Nostr, content/social, and dev utilities. Product-specific skills (e.g. toon-client) ship in their own product plugins."
     }
   ]
 }

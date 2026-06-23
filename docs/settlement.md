@@ -59,9 +59,9 @@ A client built from a single BIP-39 mnemonic derives an identity on every suppor
 
 The canonical hash/field layouts live in `@toon-protocol/core` (`packages/core/src/settlement/`) so client signers and connector verifiers cannot drift.
 
-### On-Chain Settlement Through a Townhouse Apex
+### On-Chain Settlement Through a Proxy Apex
 
-When a client pays a Townhouse apex, the apex validates the claim, returns FULFILL, and — once the per-channel settlement threshold is exceeded — auto-drives the on-chain redemption (the client never submits a settlement transaction itself):
+When a client pays a proxy apex, the apex validates the claim, returns FULFILL, and — once the per-channel settlement threshold is exceeded — auto-drives the on-chain redemption (the client never submits a settlement transaction itself):
 
 - **EVM** — net balance settled on the `TokenNetwork` contract.
 - **Solana** — the connector calls `CLAIM_FROM_CHANNEL` per advancing claim; the recipient's tokens are credited **at channel close** via `SETTLE_CHANNEL` (vault → recipient ATA).

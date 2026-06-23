@@ -15,57 +15,58 @@ derives keys for EVM (Base Sepolia), Solana (devnet), and Mina (devnet).
 
 | Variable | Purpose |
 |----------|---------|
-| `TOWNHOUSE_MNEMONIC` | 12- or 24-word BIP-39 seed for the hub operator wallet. Passed to `townhouse init / up` and the Fastify API container. **Never commit this.** Requires a hub image ≥ the P1b entrypoint change (see `docs/townhouse-mcp-design.md` §3); a pre-P1b image ignores this var and falls back to the wallet-prompt flow. |
-| `TOON_SETTLEMENT_PRIVATE_KEY` | **Auto-derived from `TOWNHOUSE_MNEMONIC`; do not set.** Raw hex EVM private key for the hub's on-chain settlement signer. The hub derives and injects this automatically when `TOWNHOUSE_MNEMONIC` is set; overriding it manually will conflict with the mnemonic-derived key. |
-| `TOON_CLIENT_MNEMONIC` | Separate 12- or 24-word seed for the client-side demo agent (`toon-clientd`). Must be distinct from the hub seed. |
+| `PROXY_MNEMONIC` | 12- or 24-word BIP-39 seed for the proxy operator wallet. Passed to `proxy init / up` and the Fastify API container. **Never commit this.** Requires a proxy image whose entrypoint reads `PROXY_MNEMONIC` directly; an older image ignores this var and falls back to the wallet-prompt flow. |
+| `TOON_SETTLEMENT_PRIVATE_KEY` | **Auto-derived from `PROXY_MNEMONIC`; do not set.** Raw hex EVM private key for the proxy's on-chain settlement signer. The proxy derives and injects this automatically when `PROXY_MNEMONIC` is set; overriding it manually will conflict with the mnemonic-derived key. |
+| `TOON_CLIENT_MNEMONIC` | Separate 12- or 24-word seed for the client-side demo agent (`toon-clientd`). Must be distinct from the proxy seed. |
 
 > **Rule:** never reuse a seed that has held mainnet funds. Testnet-only.
 > **Rule:** never commit `.env.demo.local` or print private keys. Derive addresses
-> only via `townhouse wallet show` or `scripts/e2e-wallet.mjs addresses`.
+> only via `proxy wallet show` or `scripts/e2e-wallet.mjs addresses`.
 
 ### Generate fresh seeds
 
 ```bash
-# Hub treasury seed
+# Proxy treasury seed
 node scripts/e2e-wallet.mjs generate   # prints mnemonic (SECRET)
-# → paste into TOWNHOUSE_MNEMONIC in .env.demo.local
+# → paste into PROXY_MNEMONIC in .env.demo.local
 source .env.demo.local
 
 # Also print addresses to fund:
 node scripts/e2e-wallet.mjs addresses
 
-# Client seed (separate run — must be distinct from the hub seed)
+# Client seed (separate run — must be distinct from the proxy seed)
 node scripts/e2e-wallet.mjs generate   # prints mnemonic (SECRET)
 # → paste into TOON_CLIENT_MNEMONIC in .env.demo.local
 ```
 
 ### Local secrets file
 
-Create `.env.demo.local` **in the hub repo root** (where you run `townhouse up`,
-not the `toon-meta` checkout where this doc lives); it is gitignored there:
+Create `.env.demo.local` **in the proxy deployment's repo root** (where you run
+`proxy up`, not the `toon-meta` checkout where this doc lives); it is gitignored
+there:
 
 ```bash
-touch .env.demo.local   # already gitignored in the hub repo
+touch .env.demo.local   # already gitignored in the proxy deployment repo
 ```
 
-`.env.demo.local` shape (hub repo root):
+`.env.demo.local` shape (proxy deployment repo root):
 
 ```bash
-# Hub treasury — operator wallet + settlement key
-TOWNHOUSE_MNEMONIC="word1 word2 … word12"
+# Proxy treasury — operator wallet + settlement key
+PROXY_MNEMONIC="word1 word2 … word12"
 
 # Client demo agent
 TOON_CLIENT_MNEMONIC="word1 word2 … word12"
 ```
 
-`TOON_SETTLEMENT_PRIVATE_KEY` is derived automatically from `TOWNHOUSE_MNEMONIC`
-by `townhouse up`; do not set it manually.
+`TOON_SETTLEMENT_PRIVATE_KEY` is derived automatically from `PROXY_MNEMONIC`
+by `proxy up`; do not set it manually.
 
 ---
 
 ## Faucet sources & bounded amounts
 
-Fund the **hub treasury** addresses (printed by `townhouse wallet show`) before
+Fund the **proxy treasury** addresses (printed by `proxy wallet show`) before
 running the demo. Each chain has a hard spend cap for a single demo run.
 
 | Chain | Network | Faucet | Gas floor | Token cap |
@@ -77,17 +78,17 @@ running the demo. Each chain has a hard spend cap for a single demo run.
 Faucet tips:
 
 - **Base Sepolia:** Alchemy faucet requires a free account and caps at 0.1 ETH/day.
-  The hub typically needs ≤ 0.01 ETH per demo run for gas.
+  The proxy typically needs ≤ 0.01 ETH per demo run for gas.
 - **Solana:** `solana airdrop` works on devnet up to 2 SOL per call. For the
   demo, 0.1 SOL comfortably covers settlement + SPL account creation fees.
 - **Mina:** Devnet resets periodically. After a reset, request fresh faucet funds.
   Deployments (zkApp) also need re-running; see `docs/e2e-testnets.md`.
 
-Print the hub treasury addresses to fund:
+Print the proxy treasury addresses to fund:
 
 ```bash
 source .env.demo.local
-npx @toon-protocol/townhouse wallet show
+npx @toon-protocol/proxy wallet show
 # prints: Nostr pubkey, EVM address, Solana address, Mina address
 ```
 
@@ -95,9 +96,9 @@ npx @toon-protocol/townhouse wallet show
 
 ## Fund the client
 
-The client agent opens payment channels from its own wallet to the hub. Fund the
+The client agent opens payment channels from its own wallet to the proxy. Fund the
 **client** addresses separately (same faucets, smaller amounts — the client only
-needs gas to open a channel; the hub treasury covers the settlement side):
+needs gas to open a channel; the proxy treasury covers the settlement side):
 
 ```bash
 # After toon-clientd starts, print client addresses:
@@ -115,8 +116,8 @@ npx @toon-protocol/client-mcp wallet show
 ## Contract addresses (testnets)
 
 Contract addresses for all three testnets are pinned in `e2e/testnets.json` in
-the `toon` monorepo (or the `hub` repo's `deploy/` directory). The demo preset
-(`townhouse init --preset demo`) reads them automatically. See
+the `toon` monorepo (or the proxy deployment's `deploy/` directory). The demo preset
+(`proxy init --preset demo`) reads them automatically. See
 `docs/e2e-testnets.md` for the one-time deployment procedures.
 
 ---
@@ -127,9 +128,9 @@ If a seed leaks (low stakes on testnets, but best practice):
 
 1. Generate a new mnemonic (`node scripts/e2e-wallet.mjs generate`).
 2. Fund the new addresses from the faucets.
-3. Update `TOWNHOUSE_MNEMONIC` and `TOON_CLIENT_MNEMONIC` in `.env.demo.local`
+3. Update `PROXY_MNEMONIC` and `TOON_CLIENT_MNEMONIC` in `.env.demo.local`
    and in any CI secrets.
-4. Run `townhouse down && townhouse init --preset demo` to re-initialise with the
+4. Run `proxy down && proxy init --preset demo` to re-initialise with the
    new wallet.
 
 ---
@@ -140,11 +141,11 @@ The demo runs against testnet infra — nothing permanent to clean up beyond
 stopping the Docker stack.
 
 ```bash
-# Stop hub containers (preserves wallet config + data dir)
-npx @toon-protocol/townhouse down
+# Stop proxy containers (preserves wallet config + data dir)
+npx @toon-protocol/proxy down
 
 # Full reset (removes wallet config + data dir — generates new identity on next init)
-npx @toon-protocol/townhouse down --purge
+npx @toon-protocol/proxy down --purge
 ```
 
 On-chain channels remain open until the settlement timeout expires or a party
@@ -160,7 +161,7 @@ Recover remaining channel balance:
 curl -s -X POST http://localhost:9400/wallet/withdraw \
   -H 'Content-Type: application/json' \
   -d '{
-    "nodeType": "hub",
+    "nodeType": "proxy",
     "chainFamily": "evm",
     "token": "USDC",
     "recipient": "<your-treasury-address>",
@@ -168,5 +169,5 @@ curl -s -X POST http://localhost:9400/wallet/withdraw \
   }'
 ```
 
-CI/nightly: the `townhouse down` step in the GH Actions workflow removes
+CI/nightly: the `proxy down` step in the GH Actions workflow removes
 containers; the faucet-funded testnet wallet persists across runs.

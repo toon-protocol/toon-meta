@@ -21,7 +21,7 @@ These are the real controls in the connector's `security/` tree — name these, 
 
 ## Key risk insight for TOON
 
-The biggest *misconfiguration* risk isn't covered by RFC 0018's generic advice: a mis-tagged child (wrong `relation` / parent tag) causes paid traffic to be rejected (F06/T00). That's an operational correctness control, surfaced via the connector logs and the townhouse `RUNBOOK.md`, not a fraud control.
+The biggest *misconfiguration* risk isn't covered by RFC 0018's generic advice: a mis-tagged child (wrong `relation` / parent tag) causes paid traffic to be rejected (F06/T00). That's an operational correctness control, surfaced via the connector logs and the proxy `RUNBOOK.md`, not a fraud control.
 
 ## Common Topics
 - Token-bucket rate limiting (`security/rate-limiter.ts`)

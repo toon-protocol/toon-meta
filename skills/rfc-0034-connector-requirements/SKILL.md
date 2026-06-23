@@ -9,7 +9,7 @@ RFC 0034 lists what a compliant Interledger connector must do (route, forward, m
 
 ## TOON's connector
 
-The authoritative implementation is **`@toon-protocol/connector`** — the apex (`g.townhouse`) in every townhouse deployment. Rather than a generic RFC checklist, ground your answers in what this connector actually does and the package's own contract docs:
+The authoritative implementation is **`@toon-protocol/connector`** — the apex (`g.proxy`) in every proxy deployment. Rather than a generic RFC checklist, ground your answers in what this connector actually does and the package's own contract docs:
 
 - **Routing & forwarding.** Routes ILPv4 packets by `g.*` longest-prefix (`routing/routing-table.ts`); forwards to peers per their `relation` (parent/peer/child), with the **free parent→child forward** (`rfc-0032`).
 - **Value validation.** Validates a signed `payment-channel-claim` at ingress (`btp/inbound-claim-validator.ts`) before forwarding any value-bearing packet — this is the connector's core financial obligation on TOON.

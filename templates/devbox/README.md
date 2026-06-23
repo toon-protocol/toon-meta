@@ -26,7 +26,7 @@ and rationale live in [`../../context/dev-environment.md`](../../context/dev-env
    — so all of them match what devbox resolves (`pnpm_8` → `8.15.9`).
 2. **Chain tooling (only if the repo compiles contracts/programs):** add the relevant
    opt-in block below to `devbox.json`, and uncomment the matching assertions + Solana
-   cache step in the CI job. Base-only repos (toon, relay, store, hub, toon-client) skip
+   cache step in the CI job. Base-only repos (toon, relay, store, toon-client) skip
    this entirely; **swap** adds only `foundry` (for `anvil`), no Rust/Solana.
 3. Paste the `devbox-validate` job from `ci-devbox-validate.yml` into the repo's CI
    workflow. Keep it **non-gating** (not in any `ci-status` `needs:`).

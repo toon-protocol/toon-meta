@@ -160,10 +160,10 @@ The only piece preventing actual on-chain settlement is the registry-key inconsi
 
 - `docs/handoff-connector-claim-receiver-registry-lookup.md` — this doc
 - `packages/client/scripts/social-flow-hs-e2e.ts` — repro script
-- `docker/configs/townhouse-hs-connector.yaml` — apex chainProviders config
+- `docker/configs/proxy-hs-connector.yaml` — apex chainProviders config
 - `packages/client/src/btp/IsomorphicBtpClient.ts` — BTP MESSAGE wire path
 - `packages/client/src/adapters/BtpRuntimeClient.ts` — sendClaimMessage wrapper
 
 ## Contact
 
-Open an issue against `toon-protocol/town`. Repro deployment in `docker-compose-townhouse-hs.yml`; apex container `townhouse-hs-connector`.
+Open an issue against `toon-protocol/town`. Repro deployment in `docker-compose-proxy-hs.yml`; apex container `proxy-hs-connector`.

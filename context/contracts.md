@@ -20,11 +20,11 @@ No compiler spans a *process* boundary (a client sends a packet to a connector; 
 | ILP packet (OER) | client → connector → node | `@toon-protocol/shared` (`types/ilp`, `encoding/oer`) | ✅ one home |
 | **localDelivery `/handle-packet`** | connector ↔ relay/store/node | **`@toon-protocol/shared`** (`types/local-delivery` → `PaymentRequest`/`PaymentResponse`, **zod-validated**) | ✅ unified + runtime-validated (PR #140) |
 | payment-channel claim (BTP `payment-channel-claim`) | client/swap sign ↔ connector validates | connector `btp/` (message shapes) + `@toon-protocol/core` (`balanceProofHash*` helpers) | 🟡 split; claim hashing is shared |
-| connector Admin HTTP API | hub → connector | **`@toon-protocol/shared`** (`types/admin` → `PeerRegistrationRequest`, zod) for peer-registration; rest still connector/hub local | 🟡 peer-registration unified (PR #140; connector derives from it); other DTOs = backlog |
+| connector Admin HTTP API | operator/client → connector | **`@toon-protocol/shared`** (`types/admin` → `PeerRegistrationRequest`, zod) for peer-registration; rest still connector-local | 🟡 peer-registration unified (PR #140; connector derives from it); other DTOs = backlog |
 | TOON event codec (event ↔ bytes) | everywhere | `@toon-protocol/core` (`toon/`) | ✅ one home |
 | Nostr event kinds + tags (10032 peer-info, 10035 SkillDescriptor, 5094/6094 Arweave DVM) | cross-node discovery / DVM | `@toon-protocol/core` (`events/`, builders) | ✅ mostly central |
-| Fastify telemetry API | hub-web → hub | `@toon-protocol/hub` API server | product-local |
-| MCP tool schemas | agent ↔ client-mcp / hub-mcp | each product's MCP package | product-local |
+| Fastify telemetry API | operator UI → connector | the connector's admin/telemetry HTTP API | connector-local |
+| MCP tool schemas | agent ↔ client-mcp | the client-mcp package | product-local |
 
 ### The rule
 
@@ -45,7 +45,7 @@ The connector's localDelivery `PaymentRequest`/`PaymentResponse` is the canonica
 
 **Gated consumer adoptions (wait on `shared@1.3.0` publishing — PR #140 merge + npm token):**
 1. **sdk adapter boundary** — type `create-node.ts`'s connector-facing adapter against `shared`'s `PaymentResponse`. The bridge's internal DX type **stays** (it is not the wire contract).
-2. **hub** — import `PeerRegistrationRequest` from `shared` for its `registerPeer` calls (drops hub's local copy).
+2. **operator admin clients** — any caller of the connector's `registerPeer` admin endpoint imports `PeerRegistrationRequest` from `shared` rather than keeping a local copy.
 
 **Remaining backlog:**
 3. **Other admin DTOs** — routes / channels / earnings / settlement / inventory (incremental, same pattern as peer-registration).

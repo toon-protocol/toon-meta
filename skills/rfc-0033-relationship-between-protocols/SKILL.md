@@ -19,7 +19,7 @@ ILP packet `data`  (TOON-encoded event)
 BTP MESSAGE  +  payment-channel-claim sub-protocol  (rfc-0023)
         │  WebSocket  (optionally over ATOR `.anon`)
         ▼
-Connector / apex (g.townhouse)  — validates claim, takes fee, routes by ILP address (rfc-0015)
+Connector / apex (g.proxy)  — validates claim, takes fee, routes by ILP address (rfc-0015)
         │  free parent→child forward  (rfc-0032)
         ▼
 Child node: town (relay) / dvm (kind:5094) / mill (swap)

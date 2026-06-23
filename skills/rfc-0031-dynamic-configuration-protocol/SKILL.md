@@ -20,11 +20,11 @@ The admin API is the control plane, gated by `adminApi.apiKey`, and is **not** t
 
 ## Practical note for operators
 
-A common operational gotcha: a connector restart can drop runtime-added routes/peers, so re-adding the town route after a restart is a known recovery step (two admin POSTs) — see the townhouse `RUNBOOK.md`. Tools like `ConnectorAdminClient` and the townhouse CLI/MCP wrap these admin calls.
+A common operational gotcha: a connector restart can drop runtime-added routes/peers, so re-adding the town route after a restart is a known recovery step (two admin POSTs) — see the proxy `RUNBOOK.md`. Tools like `ConnectorAdminClient` and the proxy CLI/MCP wrap these admin calls.
 
 ## What to tell a user asking "how do I reconfigure TOON at runtime?"
 
-Use the connector admin API (`/admin/peers`, `/admin/routes`) with the `adminApi.apiKey`, or the townhouse tooling that wraps it — not an RFC-0031 negotiation handshake.
+Use the connector admin API (`/admin/peers`, `/admin/routes`) with the `adminApi.apiKey`, or the proxy tooling that wraps it — not an RFC-0031 negotiation handshake.
 
 ## Common Topics
 - Why TOON doesn't implement RFC-0031 (admin API instead)
