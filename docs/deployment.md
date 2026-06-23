@@ -52,15 +52,24 @@ and anyone who wants to test against TOON without standing up local infrastructu
 Peers point a TOON node/SDK at these stable TLS endpoints. **Replaces the former
 Akash devnet.**
 
-- Host: Linode `toon-devnet` (2GB), IP `69.164.211.211`, domain
-  `devnet.toonprotocol.dev` (Porkbun `*.devnet` A-record → the IP).
-  No-domain fallback: `*.69-164-211-211.sslip.io`.
+- Host: Linode `toon-devnet`, domain `devnet.toonprotocol.dev` (Porkbun `*.devnet`
+  A-record → the box IP). No-domain fallback: `*.<ip-dashed>.sslip.io`.
 - Provisioned/redeployed by the connector `devnet-deploy` GitHub Actions workflow
   (linode-cli, `LINODE_CLI_TOKEN`).
 
-> **TLS note:** certs are currently **self-signed** (Let's Encrypt duplicate-cert
-> rate-limit from repeated redeploys; a cert-persistence fix is in progress). The
-> endpoints work — clients may need to accept the cert until it re-issues trusted.
+> **⚠️ Migration in progress (2026-06-23):** the box was rebuilt on **8GB
+> (`g6-standard-4`)** to fix a chronic `solana-test-validator` freeze (the ledger
+> was on RAM-backed `tmpfs`; moved to disk — connector PR #235). A plan-change
+> rebuild **recreates** the VM, so the IP changed to **`97.107.135.110`** and the
+> box is currently reachable only at **`*.97-107-135-110.sslip.io`**. To restore
+> the canonical domain: point the Porkbun `*.devnet` A-record → `97.107.135.110`,
+> then redeploy with `domain=devnet.toonprotocol.dev`. The endpoint URLs below use
+> the canonical domain (substitute the sslip.io host until DNS is updated).
+
+> **TLS note:** certs are **Let's Encrypt staging** (untrusted) — clients must
+> accept/skip cert verification (Node: `NODE_TLS_REJECT_UNAUTHORIZED=0`). The
+> cert-volume Object Storage backup is also broken (invalid `LINODE_OBJ_*` creds,
+> connector #239), so trusted re-issue is pending.
 
 ### Endpoints
 
@@ -71,13 +80,41 @@ Akash devnet.**
 | Mina | `https://mina.devnet.toonprotocol.dev/graphql` | **proxy to the public Mina devnet** — no node hosted |
 | Faucet | `https://faucet.devnet.toonprotocol.dev` | multi-chain faucet — see routes below |
 
+### Deployed settlement contracts
+
+The payment-channel programs/contracts and the USDC token on each chain.
+**USDC is 6-decimal on every chain** (uniform claim base units). Verified by a
+full paid round-trip per chain (channel open + deposit → per-packet claim →
+`POST /ilp` FULFILL → relay read-back → on-chain redemption).
+
+| Chain | What | Address |
+|-------|------|---------|
+| EVM (anvil 31337) | TokenNetworkRegistry | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
+| EVM (anvil 31337) | Mock USDC (ERC-20, 6dp) | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
+| Solana (devnet) | Payment-channel **program** | `7CLmNaK9z6QgUWQpCFdeUTqfwXeZH5ssohAKtyXKY4Hp` |
+| Solana (devnet) | Mock USDC SPL **mint** (6dp) | `H8HSreUF2s8r8hem4qMttE3bWYCpFuh71jbuos5bA77H` |
+| Mina (public devnet) | **PaymentChannel** zkApp | `B62qigQwEwBAsSZad4GhSun8CAwkh3GUbx2YN2TbUHU8tzVFcFTE95x` |
+| Mina (public devnet) | USDC **FungibleToken** zkApp (6dp) | `B62qqwnm9NZs7MPFRSK4AjAw4kHJ7F5ttfbb4pFSqZvCHqpZWpx6yYk` |
+| Mina (public devnet) | USDC **tokenId** | `13770394610291091689442727083129874284486561081541786615444915557572882540748` |
+
+> The Mina zkApps live on the **public** Mina devnet (not the box), so they
+> survive box rebuilds. The `PaymentChannel` zkApp supports both native MINA
+> (`tokenId = Field(1)`) and the USDC fungible token. Writes must go to
+> `https://api.minascan.io/node/devnet/v1/graphql` directly — the `mina.*` proxy
+> 504s on `send()` (it's fine for reads).
+>
+> **Caveats:** the Solana program id is **non-deterministic** (regenerated each
+> `cargo build-sbf` — not a committed keypair) and the validator ledger is
+> ephemeral (`--reset`), so a fresh devnet provision needs a re-deploy + this
+> table updated. The mock-USDC SPL mint and EVM addresses are deterministic.
+
 ### Faucet routes
 
 | Method & path | Body | Drips |
 |---------------|------|-------|
 | `POST /api/request` | `{address}` | 100 ETH + 10k USDC (EVM) |
 | `POST /api/solana/request` | `{address}` | SOL + USDC (Solana) |
-| `POST /api/mina/request` | `{address}` | native MINA (treasury-funded; **USDC-on-Mina deferred — not live**) |
+| `POST /api/mina/request` | `{address}` | native MINA only (treasury-funded). USDC-on-Mina **is** now deployed (see contracts above) but the faucet does **not** drip it — transfer USDC from the treasury for channel deposits. |
 
 The Mina faucet treasury (top up when low) is
 `B62qqEMaUpm1aZ5M2weUoGXQRGbF3j6VjEtaEdzfM1NAWmeHnywiC2P`.
