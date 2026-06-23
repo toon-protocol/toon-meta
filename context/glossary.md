@@ -4,7 +4,7 @@
 
 **BTP** — Bilateral Transfer Protocol (RFC-0023). WebSocket session between two peers carrying ILP packets. TOON's **only** transport; clients pay an apex over BTP.
 
-**ILP address** — hierarchical routing label, e.g. `g.proxy`, `g.proxy.relay`. Longest-prefix matched by the connector's routing table.
+**ILP address** — hierarchical routing label, e.g. `g.connector`, `g.connector.relay`. Longest-prefix matched by the connector's routing table. `g.connector` is the canonical apex term (see *Apex / proxy*).
 
 **PREPARE / FULFILL / REJECT** — the three ILPv4 packet types. A TOON write is one PREPARE; the node answers FULFILL (accepted) or REJECT (with an error code, e.g. F06/T00/T04).
 
@@ -14,7 +14,7 @@
 
 **Settlement** — redeeming accumulated claims on-chain via `claimFromChannel` once a threshold is crossed. In-process, multi-chain.
 
-**Apex / proxy** — an operator's deployment: the connector acting as a payment **proxy-server layer** (nodeId `g.proxy`) in front of child relay/swap/store nodes. Clients pay the apex; it free-forwards to children. (No separate "hub" product — the proxy role lives in the connector itself.)
+**Apex / proxy** — an operator's deployment: the connector acting as a payment **proxy-server layer** in front of child relay/swap/store nodes. Clients pay the apex; it free-forwards to children. (No separate "hub" product — the proxy role lives in the connector itself.) **Naming:** the canonical term is **`connector` / `g.connector`** (apex `g.connector`, children `g.connector.<type>`, vhost `connector.<domain>/ilp`). Pending cleanup: `origin/main` still has ~60 legacy `g.townhouse` references to purge toward `g.connector`. The Path A payment-proxy **core is shipped on connector `main`** (proven live at `connector.pay.toonprotocol.dev`); only the devnet roundtrip harness (PR #245) and the `deploy/pay-edge/` bundle (PR #246) remain open PRs.
 
 **Parent / child / peer** — connector peer relations. Child packets are claim-free (settled in aggregate); a child must tag the apex as parent.
 
@@ -36,4 +36,4 @@
 
 **relay / swap / store** — the three TOON node products (Nostr relay / multi-chain swap / Arweave DVM). Formerly town / mill / dvm.
 
-**connector node `g.proxy`** — the apex's on-wire ILP nodeId; load-bearing (baked into the connector + every child's parent tag, so it must match across the deployment).
+**connector apex nodeId (`g.connector`)** — the apex's on-wire ILP nodeId and the canonical apex term; load-bearing (baked into the connector + every child's parent tag, so it must match across the deployment). A cleanup to purge ~60 legacy `g.townhouse` references on `origin/main` in favor of `g.connector` is pending.

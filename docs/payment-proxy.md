@@ -254,14 +254,27 @@ follow-on spec; it is **not** proxy MVP.
 - **FX primitives**: the swap/mill node's `applyRate` + multi-chain claim issuance (at a
   destination, today).
 
-**New work this RFC motivates (cross-repo, not in this docs change):**
-- the **x402 greeting** (the dual-entry 402) at the proxy edge;
-- the **proxy-handler local-delivery** (decode → replay → reserialize to an oblivious backend);
-- the **agent-side client shim** that turns the exchange into a `fetch()`;
-- pulling **RFC 9421** onto the critical path for claim↔request binding (currently filed under
-  egress, `epic-38`);
-- the **nginx-style config surface**;
-- and, as a follow-on, **swap-as-routing-FX-hop** for true token-agnosticism.
+**Also shipped on connector `main` (the Path A core):**
+- the **x402 greeting** (the dual-entry 402) at the proxy edge (x402 v2, #217);
+- the **proxy-handler local-delivery** (decode → replay → reserialize to an oblivious backend, #216);
+- the **agent-side client shim** that turns the exchange into a `fetch()` (`h402Fetch`);
+- **RFC 9421** claim↔request binding on the critical path (#220, gated by `requireRequestBinding`);
+- the **`RouteTermination` config surface** + route-upstream registry + admin API (#218).
+
+> **Proven live** at **`connector.pay.toonprotocol.dev/ilp`**: a generic, payment-oblivious
+> backend was fronted by the connector payment-proxy and verified by a real paid round-trip
+> (paid `POST /ilp` → FULFILL with injected `x-toon-*` headers; unpaid → 402; real on-chain
+> USDC settlement). Reusable artifact: connector `deploy/pay-edge/`.
+
+**In-flight PRs (not yet merged):**
+- the **devnet multi-chain roundtrip harness + connector naming + Porkbun DNS provider**
+  (connector PR #245, mergeable);
+- the **`deploy/pay-edge/` deploy bundle** (connector PR #246).
+
+**Remaining future work this RFC motivates:**
+- as a follow-on, **swap-as-routing-FX-hop** for true token-agnosticism (cross-chain FX on the
+  forwarding path);
+- a **nginx-style text-config surface** (ergonomics; `RouteTermination` is the working surface today).
 
 Outbound ILP-over-HTTP **egress** (`transport/http-peer-transport.ts`, planned in `epic-38`) is not
 required for the proxy.
