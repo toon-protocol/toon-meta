@@ -7,7 +7,7 @@
 **Type:** Feature — new local-delivery handler + x402 greeting + client shim + relay decoupling
 **North-star tier served:** T1 (mechanical; makes "deploy any app behind the connector" real for any HTTP service)
 **Roadmap reference:** toon-protocol/toon-meta#52
-**RFC:** `docs/payment-termination.md` (authored PR #51 · merge commit 131a22b; note: file removed from `main` in PR #54 — readable via `git show 131a22b:docs/payment-termination.md`)
+**RFC:** `docs/payment-proxy.md` (formerly `docs/payment-termination.md`; renamed in PR #55 — historical snapshot readable via `git show 131a22b:docs/payment-termination.md`)
 
 ---
 
