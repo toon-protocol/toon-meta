@@ -67,13 +67,13 @@ trusted Let's Encrypt TLS.
 
 | Service | Endpoint | Node | Notes |
 |---------|----------|------|-------|
-| EVM RPC | `https://evm-rpc.<box>` | toon-devnet-evm | Anvil chain-id **31337**, Mock USDC `0x5FbDB2315678afecb367f032d93F642f64180aa3` (6 dec), `TokenNetworkRegistry` — auto-deployed by `DeployLocal.s.sol` |
-| Solana RPC | `https://solana-rpc.<box>` | toon-devnet-sol | `solana-test-validator`, mock USDC SPL mint `H8HSreUF2s8r8hem4qMttE3bWYCpFuh71jbuos5bA77H` (6 dec) |
+| EVM RPC | `https://evm-rpc.<box>` | toon-devnet-evm | Anvil chain-id **31337** |
+| Solana RPC | `https://solana-rpc.<box>` | toon-devnet-sol | `solana-test-validator` |
 | Solana WS | `wss://solana-ws.<box>` | toon-devnet-sol | WebSocket subscription endpoint |
-| Mina GraphQL | `https://mina.<box>/graphql` | toon-devnet-mina | Mina lightnet (o1labs/mina-local-network); fresh chain — zkApps deployed on first boot |
-| Mina accounts | `https://mina-accounts.<box>` | toon-devnet-mina | Lightnet accounts manager (acquire keys, check balances) |
+| Mina GraphQL | `https://mina.<box>/graphql` | toon-devnet-mina | Mina lightnet (`PROOF_LEVEL=none`) |
+| Mina accounts | `https://mina-accounts.<box>` | toon-devnet-mina | Lightnet accounts manager |
 | Relay | `wss://relay-ws.<box>` | toon | Nostr WebSocket (oblivious relay, free read) |
-| Payment proxy | `https://proxy.<box>` | toon | ILP-over-HTTP ingress (`g.proxy.relay`); TOON connector BTP port |
+| Payment proxy | `https://proxy.<box>` | toon | ILP-over-HTTP ingress (`g.proxy.relay`) |
 | Faucet | `https://faucet.<box>` | toon | Multi-chain faucet — see routes below |
 
 > **TLS:** all endpoints serve **trusted Let's Encrypt certs** (one cert per node).
@@ -127,9 +127,9 @@ The Mina faucet treasury (top up when low) is
     "solana:devnet": "https://solana-rpc.devnet.toonprotocol.dev",
     "mina:devnet":   "https://mina.devnet.toonprotocol.dev/graphql"
   },
-  "relayUrl":   "wss://relay-ws.devnet.toonprotocol.dev",
-  "proxyUrl":   "https://proxy.devnet.toonprotocol.dev",
-  "faucetUrl":  "https://faucet.devnet.toonprotocol.dev"
+  "relayUrl":  "wss://relay-ws.devnet.toonprotocol.dev",
+  "proxyUrl":  "https://proxy.devnet.toonprotocol.dev",
+  "faucetUrl": "https://faucet.devnet.toonprotocol.dev"
 }
 ```
 
