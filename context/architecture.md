@@ -14,7 +14,7 @@ connector (separate repo)  ── the ILP payment engine: validates claims, fees
   relay · swap · store · client  ── nodes + consumer, each its own repo + image
         │
         ▼
-  hub  ── operator product: runs connector + child nodes; pins their image digests
+  deployment  ── the operator runs the connector as a proxy-server layer in front of co-located child nodes; the connector pins their image digests
 ```
 
 - **core** — TOON binary codec, Nostr peer discovery (kind:10032), bootstrap, ILP address derivation/validation, settlement config, the structural `EmbeddableConnectorLike` interface. Never imports the connector.
@@ -24,9 +24,9 @@ connector (separate repo)  ── the ILP payment engine: validates claims, fees
 ## Runtime topology (one paid write)
 
 ```
-client ─(1) BTP PREPARE + signed claim─► connector (apex, g.townhouse)
+client ─(1) BTP PREPARE + signed claim─► connector (apex, g.proxy)
                                           (2) ClaimReceiver verifies claim, takes fee,
-                                              routing table → g.townhouse.relay
+                                              routing table → g.proxy.relay
                                           (3) localDelivery HTTP POST /handle-packet ─► relay BLS
 client ◄─(5) BTP FULFILL─ connector ◄─(4) accept (event stored) ◄──────────────────┘
                                           (6) at threshold → SettlementMonitor →
@@ -39,8 +39,8 @@ discovery: nodes publish kind:10032 peer-info on Nostr; clients read it to find 
 ## Load-bearing invariants
 
 1. **Claim validation happens once, in the connector.** Nodes receive an already-paid `PaymentRequest` and only run business logic — they never re-verify signatures/balances (and couldn't; they don't hold channel state). See [decisions.md](./decisions.md).
-2. **Parent→child forwarding is free** (settled in aggregate). The child must be registered `relation:'child'` AND tag the apex nodeId `g.townhouse` as its parent (`TOON_PARENT_PEER_ID`); get either wrong and paid traffic to the child is rejected (T00/F06).
-3. **`g.townhouse` is an on-wire ILP nodeId** baked into the connector + every child's parent tag. Cosmetic renames (e.g. the repo concept `townhouse → hub`) must NOT change it.
+2. **Parent→child forwarding is free** (settled in aggregate). The child must be registered `relation:'child'` AND tag the apex nodeId `g.proxy` as its parent (`TOON_PARENT_PEER_ID`); get either wrong and paid traffic to the child is rejected (T00/F06).
+3. **`g.proxy` is an on-wire ILP nodeId** baked into the connector + every child's parent tag — load-bearing: the connector and every child must agree on it, or paid forwarding breaks (T00/F06).
 4. **Reads are free** Nostr WS and bypass the payment path entirely.
 
 ## Payment model

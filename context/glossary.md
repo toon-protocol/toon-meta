@@ -4,7 +4,7 @@
 
 **BTP** — Bilateral Transfer Protocol (RFC-0023). WebSocket session between two peers carrying ILP packets. TOON's **only** transport; clients pay an apex over BTP.
 
-**ILP address** — hierarchical routing label, e.g. `g.townhouse`, `g.townhouse.relay`. Longest-prefix matched by the connector's routing table.
+**ILP address** — hierarchical routing label, e.g. `g.proxy`, `g.proxy.relay`. Longest-prefix matched by the connector's routing table.
 
 **PREPARE / FULFILL / REJECT** — the three ILPv4 packet types. A TOON write is one PREPARE; the node answers FULFILL (accepted) or REJECT (with an error code, e.g. F06/T00/T04).
 
@@ -14,7 +14,7 @@
 
 **Settlement** — redeeming accumulated claims on-chain via `claimFromChannel` once a threshold is crossed. In-process, multi-chain.
 
-**Apex / hub** — an operator's deployment: the connector (nodeId `g.townhouse`) + child relay/swap/store nodes. Clients pay the apex; it free-forwards to children.
+**Apex / proxy** — an operator's deployment: the connector acting as a payment **proxy-server layer** (nodeId `g.proxy`) in front of child relay/swap/store nodes. Clients pay the apex; it free-forwards to children. (No separate "hub" product — the proxy role lives in the connector itself.)
 
 **Parent / child / peer** — connector peer relations. Child packets are claim-free (settled in aggregate); a child must tag the apex as parent.
 
@@ -36,4 +36,4 @@
 
 **relay / swap / store** — the three TOON node products (Nostr relay / multi-chain swap / Arweave DVM). Formerly town / mill / dvm.
 
-**connector node `g.townhouse`** — the apex's on-wire ILP nodeId. Frozen across cosmetic renames.
+**connector node `g.proxy`** — the apex's on-wire ILP nodeId; load-bearing (baked into the connector + every child's parent tag, so it must match across the deployment).

@@ -10,9 +10,9 @@ Authoritative definitions for the terms an agent meets working with TOON Protoco
 ## TOON-specific terms
 
 - **TOON Protocol** — pay-to-write Nostr over Interledger. A write is an ILP packet carrying a TOON-encoded Nostr event plus a signed payment-channel claim; reads are free.
-- **Apex** — a deployment's connector, nodeId `g.townhouse`. The parent of the child service nodes. Owns the BTP port, validates claims, takes a fee, routes by ILP address.
+- **Apex** — a deployment's connector, nodeId `g.proxy`. The parent of the child service nodes. Owns the BTP port, validates claims, takes a fee, routes by ILP address.
 - **Child** — a service node under the apex: **town** (Nostr relay, pay-per-publish), **dvm** (NIP-90 compute; only kind:5094 Arweave blob storage is deployed), **mill** (multi-chain swap peer). Registered `relation:'child'`, tags the apex as parent.
-- **Townhouse** — the operator product that runs an apex (connector + town/dvm/mill containers).
+- **The proxy** — the connector acting as the proxy-server layer: the apex connector (nodeId `g.proxy`) plus its co-located backend nodes (town/dvm/mill containers). There is no separate operator product — the proxy *is* the connector at the edge.
 - **Claim / payment-channel claim** — a signed off-chain **balance proof** (EIP-712 / Ed25519 / Pallas) asserting a monotonic `nonce` and cumulative `transferredAmount` against an on-chain channel deposit. TOON's unit of payment; sent over BTP as the `payment-channel-claim` sub-protocol.
 - **Balance proof** — synonym for the claim; the signed assertion of how much has been transferred on a channel.
 - **Free-forward** — the apex forwarding a packet to its own child without a per-packet claim (parent→child carries no claim; settled in aggregate).
@@ -25,7 +25,7 @@ Authoritative definitions for the terms an agent meets working with TOON Protoco
 ## Standard ILP terms (as used in TOON)
 
 - **Connector** — a node that receives ILP packets and forwards them toward their destination. TOON's connector is `@toon-protocol/connector` (the apex).
-- **ILP address** — hierarchical `g.*` routing identifier (e.g. `g.townhouse.town`); routed by longest prefix.
+- **ILP address** — hierarchical `g.*` routing identifier (e.g. `g.proxy.town`); routed by longest prefix.
 - **BTP** — Bilateral Transfer Protocol (RFC 0023); TOON's session + inter-connector ILP transport, over WebSocket. (The one-shot edge ingress is **ILP-over-HTTP**, `rfc-0035`, with an HTTP→BTP upgrade.)
 - **PREPARE / FULFILL / REJECT** — the ILPv4 packet lifecycle. FULFILL = accepted, REJECT = refused (with an error code like F06/T04).
 - **Settlement** — moving the cleared off-chain balance on-chain; in TOON, in-process per-chain providers redeeming claims (`claimFromChannel`).

@@ -14,7 +14,7 @@ Guiding thesis: **"sending a message and sending money are the same action."** E
 - **store** — NIP-90 **Arweave DVM** (kind:5094): pay to store a blob permanently; the FULFILL returns the Arweave tx id.
 - **swap** — multi-chain swap peer: pay asset A, receive a signed target-chain claim redeemable for asset B (EVM / Solana / Mina).
 
-Operators run a **hub** (apex) = the connector (nodeId `g.townhouse`) + child relay/swap/store containers. Clients pay the hub over BTP; it validates, fees, and **free-forwards** to the child.
+Operators run the **connector as a proxy-server layer** — the apex (nodeId `g.proxy`) sitting in front of child relay/swap/store containers. Clients pay the proxy over BTP; it validates, fees, and **free-forwards** to the child.
 
 ## Current state (2026-06)
 
@@ -24,10 +24,10 @@ A **live shared devnet** is up at `devnet.toonprotocol.dev` (EVM + Solana + prox
 
 ## How to use this repo (toon-meta)
 
-- **Shared agent skills** — installable as a Claude Code plugin: `/plugin marketplace add toon-protocol/toon-meta` → `/plugin install toon-skills@toon-meta`. (Product skills ship in `toon-client`/`hub`.)
+- **Shared agent skills** — installable as a Claude Code plugin: `/plugin marketplace add toon-protocol/toon-meta` → `/plugin install toon-skills@toon-meta`. (Product skills ship in `toon-client`.)
 - **Context** — this `context/` folder: [architecture](./architecture.md) · [repos](./repos.md) · [decisions](./decisions.md) · [glossary](./glossary.md).
 - **Deep protocol docs** — [`../docs/`](../docs/) (protocol.md, settlement.md, architecture.md, guides).
 
 ## What TOON deliberately does NOT use
 
-TOON uses its own **signed payment-channel claim** protocol — **not** ILP's SPSP, STREAM, or payment-pointers. Claims ride over **BTP/WebSocket** (duplex sessions + peering) **and ILP-over-HTTP** (`POST /ilp`, the one-shot edge ingress, with an HTTP→BTP upgrade). Multi-hop atomicity uses packet-level execution-condition/fulfillment (no on-chain HTLC escrow). Settlement is **in-process multi-chain**, not a separate settlement-engine service. See [decisions.md](./decisions.md), [payment-termination](../docs/payment-termination.md), and the `rfc-*` skills for the per-RFC rationale.
+TOON uses its own **signed payment-channel claim** protocol — **not** ILP's SPSP, STREAM, or payment-pointers. Claims ride over **BTP/WebSocket** (duplex sessions + peering) **and ILP-over-HTTP** (`POST /ilp`, the one-shot edge ingress, with an HTTP→BTP upgrade). Multi-hop atomicity uses packet-level execution-condition/fulfillment (no on-chain HTLC escrow). Settlement is **in-process multi-chain**, not a separate settlement-engine service. See [decisions.md](./decisions.md), [payment proxy](../docs/payment-proxy.md), and the `rfc-*` skills for the per-RFC rationale.

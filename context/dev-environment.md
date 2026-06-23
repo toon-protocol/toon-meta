@@ -76,7 +76,6 @@ unused Rust/Solana toolchain to a pure-TS repo — it just slows cold installs.
 | toon | ✓ | | | | pure TS |
 | relay | ✓ | | | | pure TS |
 | store | ✓ | | | | pure TS (Arweave DVM; no `forge`/`solana` in the build) |
-| hub | ✓ | | | | pure TS |
 | toon-client | ✓ | | | | pure TS |
 | swap | ✓ | | ✓ | | no Rust/Solana program; `anvil` is used by `test:integration:anvil` |
 | **connector** | ✓ | ✓ | ✓ | ✓ | multi-chain: Solana SBF program + EVM contracts |

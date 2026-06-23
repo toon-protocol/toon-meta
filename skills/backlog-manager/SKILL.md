@@ -40,7 +40,7 @@ blockers in the final report and exit.
 
 The source of truth is GitHub Issues for one `toon-protocol` repo, plus that
 repo's GitHub Project board when accessible. The org repos and their owners are in
-`context/repos.md` (`toon`, `relay`, `swap`, `store`, `hub`, `toon-client`,
+`context/repos.md` (`toon`, `relay`, `swap`, `store`, `toon-client`,
 `toon-meta`, `connector`). Run this skill **per repo** — never merge backlogs
 across repos. Read the repo's `CLAUDE.md` and the toon-meta `context/` docs for
 risk classification, but treat them as context, not as a competing backlog.

@@ -9,12 +9,12 @@ Curated, durable decisions. ADR-lite: each is *decision → why*.
 - **TOON's value layer is the signed payment-channel claim — not SPSP / STREAM / payment-pointers.** SPSP kinds (23194/23195) were removed. *Why:* a write is one packet + one balance-proof claim; there's no stream to chunk, no quoting. *Transports:* claims ride over **BTP/WebSocket** (duplex sessions + inter-connector peering) **and ILP-over-HTTP** (`POST /ilp`, the one-shot edge/onboarding ingress, with an HTTP→BTP upgrade) — see `rfc-0023`, `rfc-0035`. *Atomicity:* multi-hop uses packet-level **execution-condition/fulfillment** (active when NIP-59 claim-wrapping supplies the preimage); there is **no on-chain HTLC escrow**. See the `rfc-*` skills for per-RFC detail.
 - **USDC is the sole user-facing token.** *Why:* simplicity; operator staking tokens stay invisible to relay users.
 - **Claims are per-chain balance proofs:** EIP-712 (EVM), Ed25519 (Solana), Pallas/Schnorr zk (Mina). Settlement is **in-process multi-chain** (not RFC-0038's separate service), redeeming via `claimFromChannel` at a per-peer threshold.
-- **Payment termination (TOON in front of any HTTP service).** A connector at the edge can terminate payment the way nginx terminates TLS: onboard via **x402** (HTTP 402), pay one-shot via **transparent HTTP-in-ILP** (the raw HTTP request rides in the opaque ILP `data`), upgrade to **BTP** for sessions; the backend stays payment-oblivious and the connector never parses `data`. *Why:* agent-first adoption — ride x402's installed base, and channels + n-hop routing beat per-request on-chain settlement at volume. See [`payment-termination.md`](../docs/payment-termination.md).
+- **Payment proxy (TOON in front of any HTTP service).** A connector at the edge can act as a **payment proxy server** — proxying the payment the way nginx fronts TLS: onboard via **x402** (HTTP 402), pay one-shot via **transparent HTTP-in-ILP** (the raw HTTP request rides in the opaque ILP `data`), upgrade to **BTP** for sessions; the backend stays payment-oblivious and the connector never parses `data`. *Why:* agent-first adoption — ride x402's installed base, and channels + n-hop routing beat per-request on-chain settlement at volume. See [`payment-proxy.md`](../docs/payment-proxy.md).
 
 ## Boundaries
 
 - **Claim validation lives ONLY in the connector.** `core` never imports the connector (structural `EmbeddableConnectorLike` interface); `sdk` dynamically imports it only to auto-create one; the `payment-handler-bridge` dispatches an *already-paid* packet to business logic. *Why:* the connector is the only component holding channel state — re-validating downstream is double work and incorrect.
-- **Apex / free-forward.** Operators run an apex (connector `g.townhouse`) + child nodes; parent→child packets carry no per-packet claim (settled in aggregate). Children must be `relation:'child'` and tag `g.townhouse` as parent. *Why:* one paid hop at the edge; children earn via aggregate settlement.
+- **Apex / free-forward.** Operators run an apex (the connector as a proxy-server layer, `g.proxy`) + child nodes; parent→child packets carry no per-packet claim (settled in aggregate). Children must be `relation:'child'` and tag `g.proxy` as parent. *Why:* one paid hop at the edge; children earn via aggregate settlement.
 - **Trust degrades; money doesn't.** (TEE) Attestation state changes never trigger payment-channel closure. *Why:* trust is a gradient, not a gate.
 
 ## Repo split (2026-06)
@@ -23,7 +23,7 @@ Curated, durable decisions. ADR-lite: each is *decision → why*.
 - **`toon` (core+sdk) is libraries only; connector is an optional peer.** *Why:* the library layer must build/publish independent of the payment engine.
 - **The connector owns & publishes `@toon-protocol/mina-zkapp`.** *Why:* one canonical Mina channel contract; the connector already depends on it, and it was unpublished/`private`, breaking installs.
 - **Publish via `pnpm publish` / changesets, never `npm publish`.** *Why:* `npm publish` shipped unresolved `workspace:*`, making `sdk@0.5.0`/`town@0.4.0` uninstallable. (See `SKILLS_AUDIT.md` lineage / the split plan.)
-- **`g.townhouse` wire nodeId is frozen** across cosmetic renames. *Why:* it's baked into the connector + child parent tags; changing it breaks paid forwarding (T00/F06).
+- **`g.proxy` is the apex wire nodeId** (renamed from the legacy `g.townhouse`). *Why:* it's baked into the connector + child parent tags and every party must agree on it, or paid forwarding breaks (T00/F06) — so the rename is a coordinated cross-repo wire change, not a cosmetic one.
 
 ## Knowledge architecture
 

@@ -64,16 +64,16 @@ Expected:
 ## Direct evidence (from a live deployment)
 
 ```
-$ docker exec townhouse-hs-connector node --version
+$ docker exec proxy-hs-connector node --version
 v22.22.2
 
-$ docker exec townhouse-hs-connector cat /app/node_modules/better-sqlite3/package.json | grep version
+$ docker exec proxy-hs-connector cat /app/node_modules/better-sqlite3/package.json | grep version
   "version": "11.10.0",
 
-$ docker exec townhouse-hs-connector ls /app/node_modules/better-sqlite3/build/
+$ docker exec proxy-hs-connector ls /app/node_modules/better-sqlite3/build/
 ls: /app/node_modules/better-sqlite3/build/: No such file or directory
 
-$ docker exec townhouse-hs-connector find /app/node_modules/better-sqlite3 -name '*.node'
+$ docker exec proxy-hs-connector find /app/node_modules/better-sqlite3 -name '*.node'
 (empty)
 ```
 
@@ -198,9 +198,9 @@ We've verified the rest of the architecture works end-to-end — see `packages/c
 ## Files referenced (TOON repo, for context)
 
 - `docs/handoff-connector-better-sqlite3.md` — this doc
-- `docker/configs/townhouse-hs-connector.yaml` — example chainProviders block
+- `docker/configs/proxy-hs-connector.yaml` — example chainProviders block
 - `packages/client/scripts/social-flow-hs-e2e.ts` — the e2e harness exhibiting the bug
 
 ## Contact
 
-Questions: open an issue against `toon-protocol/town`. The repro deployment is in `docker-compose-townhouse-hs.yml` of that repo; the apex container name there is `townhouse-hs-connector`.
+Questions: open an issue against `toon-protocol/town`. The repro deployment is in `docker-compose-proxy-hs.yml` of that repo; the apex container name there is `proxy-hs-connector`.

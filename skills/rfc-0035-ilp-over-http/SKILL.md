@@ -11,7 +11,7 @@ an alternative to BTP.
 ## How TOON uses this RFC
 
 **TOON uses ILP-over-HTTP as its edge/onboarding ingress transport** (it did not, historically —
-this is a deliberate, shipped reversal; see `context/decisions.md` and `docs/payment-termination.md`).
+this is a deliberate, shipped reversal; see `context/decisions.md` and `docs/payment-proxy.md`).
 TOON now runs **two** ILP transports, by role:
 
 - **ILP-over-HTTP (RFC-0035) — one-shot edge ingress.** A client `POST`s an OER-encoded ILP PREPARE
@@ -34,8 +34,8 @@ A client that already authenticated over HTTP (`ILP-Peer-Id` + `Authorization`) 
 same connection to a duplex BTP session** with no second handshake — a `BtpPreAuth` carries the
 authenticated identity across the upgrade (`btp/btp-server.ts`). One-shot HTTP calls stay on
 `POST /ilp`; high-frequency / streaming / large-payload flows upgrade to BTP. This mirrors the
-HTTP→WebSocket upgrade and is the basis of the payment-termination ladder
-(`docs/payment-termination.md`).
+HTTP→WebSocket upgrade and is the basis of the payment-proxy ladder
+(`docs/payment-proxy.md`).
 
 ## Egress
 
@@ -60,4 +60,4 @@ built** — inter-connector forwarding is BTP-only today. HTTP egress is planned
 - Egress (HTTP peer forwarding) still unbuilt — `epic-38`
 - Connector admin API (`/admin/*`) is control-plane, not ILP-over-HTTP
 - Relationship to `rfc-0023` (BTP), `rfc-0031` (admin-API runtime config),
-  `docs/payment-termination.md` (the termination architecture)
+  `docs/payment-proxy.md` (the payment-proxy architecture)

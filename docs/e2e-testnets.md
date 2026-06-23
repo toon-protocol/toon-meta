@@ -110,7 +110,7 @@ pinned in `e2e/testnets.json`. Reproducible scripts:
   connector settles by landing an on-chain `claimFromChannel`. Confirm the Mina
   `nonceField` advances **0 → 1** on the first settled publish (that transition
   is the on-chain proof a Mina-settled write landed). See
-  `packages/townhouse/RUNBOOK.md` § "Mina reset gotcha — bare-zkApp precondition".
+  `packages/proxy/RUNBOOK.md` § "Mina reset gotcha — bare-zkApp precondition".
 
 The deployed addresses currently in `e2e/testnets.json` were produced by these
 scripts against the live testnets.

@@ -17,7 +17,7 @@ RFC 0038 defines a settlement engine as a **separate process** the connector tal
 
 ## What to tell a user asking about TOON settlement
 
-Don't look for a settlement-engine container or an HTTP settlement API. Settlement happens inside the connector: signed claims accrue off-chain, then `claimFromChannel`/`settleChannel`/`closeChannel` redeem them on EVM/Solana/Mina. The operator runbook for recovering wedged on-chain settlement lives in the townhouse `RUNBOOK.md`.
+Don't look for a settlement-engine container or an HTTP settlement API. Settlement happens inside the connector: signed claims accrue off-chain, then `claimFromChannel`/`settleChannel`/`closeChannel` redeem them on EVM/Solana/Mina. The operator runbook for recovering wedged on-chain settlement lives in the proxy `RUNBOOK.md`.
 
 ## Common Topics
 - Why TOON has no RFC-0038 HTTP settlement engine (in-process instead)

@@ -13,14 +13,14 @@ TOON uses ILPv4's packet structure, routing, and error codes, but the **value is
 
 - **PREPARE / FULFILL / REJECT.** TOON uses all three (BTP framing, `btp/btp-types.ts:9-17`). A successful paid write returns FULFILL; a refused one returns REJECT with an error code.
 - **`executionCondition` / `fulfillment` are placeholders.** In classic ILPv4 these implement an HTLC: the FULFILL must contain the preimage of the PREPARE's condition. On TOON they are **zero/placeholder** in the normal pay path — payment is proven by the attached `payment-channel-claim` balance proof, not a hash preimage. (The optional NIP-59-wrapped-claim path derives a preimage via ECDH; see `rfc-0022`.) So **do not treat the condition/fulfillment fields as the proof of payment.**
-- **Routing by ILP address.** The connector routes on the PREPARE's destination address using hierarchical `g.*` longest-prefix matching (`routing/routing-table.ts:135-157`). TOON's scheme: the apex is `g.townhouse`; child node types resolve under it (`g.townhouse.town` for the relay, plus dvm/mill children). See `rfc-0015`.
+- **Routing by ILP address.** The connector routes on the PREPARE's destination address using hierarchical `g.*` longest-prefix matching (`routing/routing-table.ts:135-157`). TOON's scheme: the apex is `g.proxy`; child node types resolve under it (`g.proxy.town` for the relay, plus dvm/mill children). See `rfc-0015`.
 - **Connector fee.** Before forwarding, the connector deducts its fee from the packet amount (`calculateConnectorFee`, `core/packet-handler.ts:501`; ~0.1% default). Parent→child forwards are free (no per-packet claim, no extra fee).
 
 ## Error codes a TOON client actually sees
 
 The connector maps internal conditions onto ILPv4 error codes. The ones that matter when debugging TOON writes:
 
-- **F06** — the destination has "no reason to pay us," i.e. a **parent/child mis-tag**: the child wasn't registered `relation:'child'` AND tagging the apex `g.townhouse` as its parent (`TOON_PARENT_PEER_ID`). The single most common paid-traffic rejection. Often appears with **T00** (internal/relationship error) at the parent→child ingress.
+- **F06** — the destination has "no reason to pay us," i.e. a **parent/child mis-tag**: the child wasn't registered `relation:'child'` AND tagging the apex `g.proxy` as its parent (`TOON_PARENT_PEER_ID`). The single most common paid-traffic rejection. Often appears with **T00** (internal/relationship error) at the parent→child ingress.
 - **T04** — insufficient liquidity / channel balance: the claim's cumulative amount would exceed the on-chain channel deposit.
 - **F03** — invalid packet (malformed claim, bad signature, regressed nonce).
 - Generic `Fxx` (final) errors are not retryable; `Txx` (temporary) errors may be after addressing the cause. Never blind-retry a rejected claim — it can still cost a fee.
@@ -30,6 +30,6 @@ Surface the `code` + `message` verbatim to the user rather than guessing. The co
 ## Common Topics
 - ILPv4 PREPARE/FULFILL/REJECT framing on TOON
 - Why condition/fulfillment are placeholders (claim is the proof)
-- Longest-prefix routing under the `g.townhouse` apex
+- Longest-prefix routing under the `g.proxy` apex
 - The F06/T00 parent-child mis-tag, T04 insufficient balance, F03 invalid claim
 - Connector fee deduction before forward; free parent→child forward
