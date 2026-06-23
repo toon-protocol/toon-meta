@@ -19,14 +19,14 @@ connector (separate repo)  ── the ILP payment engine: validates claims, fees
 
 - **core** — TOON binary codec, Nostr peer discovery (kind:10032), bootstrap, ILP address derivation/validation, settlement config, the structural `EmbeddableConnectorLike` interface. Never imports the connector.
 - **sdk** — `createNode()` pipeline (verify → price → dispatch), handler registry, the Arweave DVM handler, swap modules, multi-chain settlement engines. Dynamically imports the connector only when auto-creating one.
-- **connector** — `ConnectorNode`, BTP server/client (RFC-0023), routing table (longest-prefix), `ClaimReceiver` (validates inbound claims), `SettlementMonitor` + executors, admin HTTP API. **The sole claim validator.**
+- **connector** — `ConnectorNode`, BTP server/client (RFC-0023), routing table (longest-prefix), `ClaimReceiver` (validates inbound claims), `SettlementMonitor` + executors, admin HTTP API. **The sole claim validator.** Also hosts the **payment-proxy** path (front any oblivious HTTP backend): proxy handler, x402 greeting, RFC 9421 binding, `RouteTermination` config — **core shipped on `main`** (proven live at `connector.pay.toonprotocol.dev`); only the devnet roundtrip harness (PR #245) and `deploy/pay-edge/` bundle (PR #246) remain open PRs. See [`../docs/payment-proxy.md`](../docs/payment-proxy.md).
 
 ## Runtime topology (one paid write)
 
 ```
-client ─(1) BTP PREPARE + signed claim─► connector (apex, g.proxy)
+client ─(1) BTP PREPARE + signed claim─► connector (apex, g.connector)
                                           (2) ClaimReceiver verifies claim, takes fee,
-                                              routing table → g.proxy.relay
+                                              routing table → g.connector.relay
                                           (3) localDelivery HTTP POST /handle-packet ─► relay BLS
 client ◄─(5) BTP FULFILL─ connector ◄─(4) accept (event stored) ◄──────────────────┘
                                           (6) at threshold → SettlementMonitor →
@@ -39,8 +39,8 @@ discovery: nodes publish kind:10032 peer-info on Nostr; clients read it to find 
 ## Load-bearing invariants
 
 1. **Claim validation happens once, in the connector.** Nodes receive an already-paid `PaymentRequest` and only run business logic — they never re-verify signatures/balances (and couldn't; they don't hold channel state). See [decisions.md](./decisions.md).
-2. **Parent→child forwarding is free** (settled in aggregate). The child must be registered `relation:'child'` AND tag the apex nodeId `g.proxy` as its parent (`TOON_PARENT_PEER_ID`); get either wrong and paid traffic to the child is rejected (T00/F06).
-3. **`g.proxy` is an on-wire ILP nodeId** baked into the connector + every child's parent tag — load-bearing: the connector and every child must agree on it, or paid forwarding breaks (T00/F06).
+2. **Parent→child forwarding is free** (settled in aggregate). The child must be registered `relation:'child'` AND tag the apex nodeId `g.connector` as its parent (`TOON_PARENT_PEER_ID`); get either wrong and paid traffic to the child is rejected (T00/F06).
+3. **The apex nodeId is an on-wire ILP nodeId** baked into the connector + every child's parent tag — load-bearing: the connector and every child must agree on it, or paid forwarding breaks (T00/F06). The canonical term is **`g.connector`** (used by code, infra, and live edge); a cleanup to purge ~60 legacy `g.townhouse` references still on `origin/main` is pending.
 4. **Reads are free** Nostr WS and bypass the payment path entirely.
 
 ## Payment model

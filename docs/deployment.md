@@ -46,39 +46,38 @@ To stop the infrastructure:
 
 ## Linode Devnet — LIVE
 
-A public, self-hosted multi-chain devnet hosted on a Linode box we control. It is
-**live now** at `devnet.toonprotocol.dev` — used by the operator dashboard, demos,
-and anyone who wants to test against TOON without standing up local infrastructure.
-Peers point a TOON node/SDK at these stable TLS endpoints. **Replaces the former
-Akash devnet.**
+A public, self-hosted multi-chain devnet hosted on **four dedicated Linode nodes** —
+one per chain plus a TOON connector node. Used by the operator dashboard, demos,
+and anyone building against TOON without standing up local infrastructure.
+DNS is Porkbun-managed; all endpoints are under `*.devnet.toonprotocol.dev` with
+trusted Let's Encrypt TLS.
 
-- Host: Linode `toon-devnet`, domain `devnet.toonprotocol.dev` (Porkbun `*.devnet`
-  A-record → the box IP). No-domain fallback: `*.<ip-dashed>.sslip.io`.
-- Provisioned/redeployed by the connector `devnet-deploy` GitHub Actions workflow
-  (linode-cli, `LINODE_CLI_TOKEN`).
+### Node layout
 
-> **⚠️ Migration in progress (2026-06-23):** the box was rebuilt on **8GB
-> (`g6-standard-4`)** to fix a chronic `solana-test-validator` freeze (the ledger
-> was on RAM-backed `tmpfs`; moved to disk — connector PR #235). A plan-change
-> rebuild **recreates** the VM, so the IP changed to **`97.107.135.110`** and the
-> box is currently reachable only at **`*.97-107-135-110.sslip.io`**. To restore
-> the canonical domain: point the Porkbun `*.devnet` A-record → `97.107.135.110`,
-> then redeploy with `domain=devnet.toonprotocol.dev`. The endpoint URLs below use
-> the canonical domain (substitute the sslip.io host until DNS is updated).
-
-> **TLS note:** certs are **Let's Encrypt staging** (untrusted) — clients must
-> accept/skip cert verification (Node: `NODE_TLS_REJECT_UNAUTHORIZED=0`). The
-> cert-volume Object Storage backup is also broken (invalid `LINODE_OBJ_*` creds,
-> connector #239), so trusted re-issue is pending.
+| Node | Linode label | IP | Plan |
+|------|-------------|-----|------|
+| EVM (Anvil) | `toon-devnet-evm` | `104.237.150.131` | g6-standard-1 (2 GB) |
+| Solana | `toon-devnet-sol` | `104.237.150.132` | g6-standard-2 (4 GB) |
+| Mina lightnet | `toon-devnet-mina` | `172.104.27.242` | g6-standard-4 (8 GB) |
+| TOON connector | `toon` | `104.237.150.177` | g6-standard-1 (2 GB) |
 
 ### Endpoints
 
-| Service | Public endpoint | Notes |
-|---------|-----------------|-------|
-| EVM RPC | `https://evm-rpc.devnet.toonprotocol.dev` | anvil, chain-id **31337**, Mock USDC `0x5FbDB2315678afecb367f032d93F642f64180aa3` (**6 decimals**) + `TokenNetworkRegistry`, auto-deployed |
-| Solana RPC | `https://solana-rpc.devnet.toonprotocol.dev` (+ WS `wss://solana-ws.devnet.toonprotocol.dev`) | `solana-test-validator`, mock USDC SPL mint `H8HSreUF2s8r8hem4qMttE3bWYCpFuh71jbuos5bA77H` (**6 decimals**) |
-| Mina | `https://mina.devnet.toonprotocol.dev/graphql` | **proxy to the public Mina devnet** — no node hosted |
-| Faucet | `https://faucet.devnet.toonprotocol.dev` | multi-chain faucet — see routes below |
+`<box>` = `devnet.toonprotocol.dev`
+
+| Service | Endpoint | Node | Notes |
+|---------|----------|------|-------|
+| EVM RPC | `https://evm-rpc.<box>` | toon-devnet-evm | Anvil chain-id **31337** |
+| Solana RPC | `https://solana-rpc.<box>` | toon-devnet-sol | `solana-test-validator` |
+| Solana WS | `wss://solana-ws.<box>` | toon-devnet-sol | WebSocket subscription endpoint |
+| Mina GraphQL | `https://mina.<box>/graphql` | toon-devnet-mina | Mina lightnet (`PROOF_LEVEL=none`) |
+| Mina accounts | `https://mina-accounts.<box>` | toon-devnet-mina | Lightnet accounts manager |
+| Relay | `wss://relay-ws.<box>` | toon | Nostr WebSocket (oblivious relay, free read) |
+| Payment proxy | `https://proxy.<box>` | toon | ILP-over-HTTP ingress (`g.proxy.relay`) |
+| Faucet | `https://faucet.<box>` | toon | Multi-chain faucet — see routes below |
+
+> **TLS:** all endpoints serve **trusted Let's Encrypt certs** (one cert per node).
+> No `NODE_TLS_REJECT_UNAUTHORIZED=0` needed.
 
 ### Deployed settlement contracts
 
@@ -121,25 +120,54 @@ The Mina faucet treasury (top up when low) is
 
 ### Pointing a node/SDK at the devnet
 
-Configure the `chainRpcUrls` map so the node/SDK talks to the live endpoints:
-
 ```jsonc
 {
   "chainRpcUrls": {
-    "evm:anvil:31337": "https://evm-rpc.devnet.toonprotocol.dev",
-    "solana:devnet":   "https://solana-rpc.devnet.toonprotocol.dev",
-    "mina:devnet":     "https://mina.devnet.toonprotocol.dev/graphql"
-  }
+    "evm:31337":     "https://evm-rpc.devnet.toonprotocol.dev",
+    "solana:devnet": "https://solana-rpc.devnet.toonprotocol.dev",
+    "mina:devnet":   "https://mina.devnet.toonprotocol.dev/graphql"
+  },
+  "relayUrl":  "wss://relay-ws.devnet.toonprotocol.dev",
+  "proxyUrl":  "https://proxy.devnet.toonprotocol.dev",
+  "faucetUrl": "https://faucet.devnet.toonprotocol.dev"
 }
 ```
 
-### Operating it
+### Operating the devnet
 
-The deployment is a thin overlay (`connector/infra/linode/`) on connector's
-existing `docker-compose.yml` — it runs the `evm` + `solana` profiles and puts
-nginx + Let's Encrypt in front. For run order, reset semantics, security
-(Docker-bypasses-ufw firewalling), and known gaps, see
-[`connector/infra/linode/README.md`](https://github.com/toon-protocol/connector/tree/main/infra/linode).
+The devnet is managed by `infra/devnet-manage.sh` in the connector repo
+(`feat/devnet-multi-node` branch). Use the `/deploy-devnet` Claude Code skill
+(`.claude/commands/deploy-devnet.md`) or run the script directly:
+
+```bash
+bash ../connector/infra/devnet-manage.sh status    # probe all endpoints
+bash ../connector/infra/devnet-manage.sh redeploy  # pull latest + restart
+bash ../connector/infra/devnet-manage.sh down      # stop (boxes keep running)
+bash ../connector/infra/devnet-manage.sh destroy   # delete all Linode boxes
+```
+
+Each chain box runs `connector/infra/linode/` with a per-chain nginx template
+(`evm.conf.template`, `sol.conf.template`, `mina.conf.template`).
+The TOON node runs `connector/infra/linode-node/` (connector + relay + faucet + nginx).
+
+### Path A reference deployment — `deploy/pay-edge/` (separate box)
+
+The Path A payment-proxy app deployment is a **separate box** from the chains box
+above. Its reusable artifact is the connector repo's **`deploy/pay-edge/`** bundle:
+`docker-compose.yml` + `docker-compose.caddy.yml` (Caddy auto-HTTPS publishing only
+80/443; the connector port is unpublished via `ports: !reset []`) + `connector.yaml`
++ `.env.example` (primary knob `TOON_MNEMONIC`) + `prove-roundtrip.ts` + `README.md`.
+
+On a box with wildcard DNS + ports 80/443: set a 3-line Caddyfile and `.env`, then
+`docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d`; Caddy
+issues a **trusted** cert in ~6s. This is **proven live** at
+**`https://connector.pay.toonprotocol.dev/ilp`** — a generic, payment-oblivious
+backend fronted by the connector proxy, verified by a real paid round-trip (paid
+`POST /ilp` → FULFILL with injected `x-toon-*` headers; unpaid → 402; real on-chain
+USDC settlement). The Path A **core is shipped on connector `main`**; the
+`deploy/pay-edge/` bundle itself is in connector PR #246 (the devnet multi-chain roundtrip
+harness is in connector PR #245). See
+[deploy-app-guide.md → Path A](deploy-app-guide.md#path-a--payment-proxy-front-an-http-app-).
 
 ## Town CLI
 

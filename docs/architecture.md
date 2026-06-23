@@ -1,6 +1,6 @@
 # Architecture
 
-TOON Protocol is a monorepo with packages organized into four layers. Each layer has a single responsibility.
+TOON Protocol is a polyrepo (under the `toon-protocol` org) whose packages organize into four layers. Each layer has a single responsibility, and the dependency direction is strictly downward.
 
 ## System Layers
 
@@ -18,6 +18,9 @@ TOON Protocol is a monorepo with packages organized into four layers. Each layer
 ├─────────────────────────────────────────────────────┤
 │  Payment Layer                                      │
 │  ILP Connector (@toon-protocol/connector)           │
+│  Terminates/validates payment at the edge, then     │
+│  forwards a clean packet on — nginx for payment.    │
+│  Format-agnostic: only sha256(data) for transfer-id │
 │  Route micropayments between peers                  │
 │  Each hop deducts its fee and forwards the rest     │
 ├─────────────────────────────────────────────────────┤
@@ -76,7 +79,7 @@ Validation order matters — TOON format is checked **before** payment. Malforme
 
 #### Multi-Chain Settlement
 
-The payment a write carries is a signed payment-channel balance proof, and that proof can be denominated on **EVM, Solana, or Mina**. A client built from a single BIP-39 mnemonic derives an identity on each chain (Nostr/EVM share secp256k1; Solana is Ed25519; Mina is Pallas) and signs the claim format that chain's connector verifier expects — EIP-712 for EVM, a raw Ed25519 message for Solana, a Pallas-Schnorr claim over a Poseidon commitment for Mina. When the destination is the proxy apex (`g.proxy`), the apex validates the claim, fulfills, and auto-drives the on-chain redemption on the matching chain once the per-channel settlement threshold is exceeded. The EVM and Solana paths credit the recipient on-chain (Solana at channel close via `SETTLE_CHANNEL`); on Mina the per-publish claim redeems on-chain (`claimFromChannel`, apex co-signs the counterparty signature) but recipient credit-at-close is a deferred follow-up (Story 34.4). Full detail: [Settlement →](settlement.md).
+The payment a write carries is a signed payment-channel balance proof, and that proof can be denominated on **EVM, Solana, or Mina**. A client built from a single BIP-39 mnemonic derives an identity on each chain (Nostr/EVM share secp256k1; Solana is Ed25519; Mina is Pallas) and signs the claim format that chain's connector verifier expects — EIP-712 for EVM, a raw Ed25519 message for Solana, a Pallas-Schnorr claim over a Poseidon commitment for Mina. When the destination is the proxy apex (`g.connector`), the apex validates the claim, fulfills, and auto-drives the on-chain redemption on the matching chain once the per-channel settlement threshold is exceeded. The EVM and Solana paths credit the recipient on-chain (Solana at channel close via `SETTLE_CHANNEL`); on Mina the per-publish claim redeems on-chain (`claimFromChannel`, apex co-signs the counterparty signature) but recipient credit-at-close is a deferred follow-up (Story 34.4). Full detail: [Settlement →](settlement.md).
 
 ### Reading (Free)
 

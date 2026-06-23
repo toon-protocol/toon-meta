@@ -14,13 +14,24 @@ Guiding thesis: **"sending a message and sending money are the same action."** E
 - **store** — NIP-90 **Arweave DVM** (kind:5094): pay to store a blob permanently; the FULFILL returns the Arweave tx id.
 - **swap** — multi-chain swap peer: pay asset A, receive a signed target-chain claim redeemable for asset B (EVM / Solana / Mina).
 
-Operators run the **connector as a proxy-server layer** — the apex (nodeId `g.proxy`) sitting in front of child relay/swap/store containers. Clients pay the proxy over BTP; it validates, fees, and **free-forwards** to the child.
+Operators run the **connector as a proxy-server layer** — the apex (nodeId `g.connector`) sitting in front of child relay/swap/store containers. Clients pay the proxy over BTP; it validates, fees, and **free-forwards** to the child.
 
 ## Current state (2026-06)
 
 The codebase was a single monorepo; it is being split into **per-team repos** (see [`repos.md`](./repos.md)). Code is shared via **npm** (semver); deployment composition via **pinned Docker image digests**. The ILP payment engine is the separate **connector** repo.
 
-A **live shared devnet** is up at `devnet.toonprotocol.dev` (EVM + Solana + proxied Mina) with a multi-chain faucet — point a node/SDK at it instead of standing up local chains. See [deployment.md → Linode Devnet](../docs/deployment.md#linode-devnet--live).
+A **shared devnet** runs on **four dedicated Linode nodes** (one per chain + TOON connector) under `*.devnet.toonprotocol.dev` (Porkbun DNS, trusted Let's Encrypt TLS — no `NODE_TLS_REJECT_UNAUTHORIZED` needed):
+
+| Endpoint | Node |
+|----------|------|
+| `https://evm-rpc.devnet.toonprotocol.dev` | Anvil, chain-id 31337, USDC `0x5FbDB2…` |
+| `https://solana-rpc.devnet.toonprotocol.dev` | solana-test-validator, USDC `H8HSre…` |
+| `https://mina.devnet.toonprotocol.dev/graphql` | Mina lightnet (o1labs/mina-local-network) |
+| `wss://relay-ws.devnet.toonprotocol.dev` | Nostr relay (free read) |
+| `https://proxy.devnet.toonprotocol.dev` | TOON connector ILP ingress (`g.proxy.relay`) |
+| `https://faucet.devnet.toonprotocol.dev` | Multi-chain faucet |
+
+Managed by `connector/infra/devnet-manage.sh` (`feat/devnet-multi-node` branch) or the `/deploy-devnet` Claude Code skill. See [deployment.md → Linode Devnet](../docs/deployment.md#linode-devnet--live).
 
 ## How to use this repo (toon-meta)
 
