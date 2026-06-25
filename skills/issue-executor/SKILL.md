@@ -104,7 +104,43 @@ Make the smallest change that satisfies the issue. Match surrounding code style,
 naming, and comment density. Touch only what the ticket requires — no drive-by
 refactors, no unrelated formatting churn. Keep it to one PR's worth of diff.
 
-### 4 — Verify locally
+### 4 — Add a changeset (if the repo uses Changesets)
+Many TOON repos (e.g. `toon-client`, `toon`) gate every PR on a **required
+"Changeset check"** status that fails on any PR lacking a changeset — bot PRs
+that skip this are red on arrival. Before opening the PR, detect Changesets by
+the presence of a **`.changeset/config.json`** at the repo root. If it is
+absent, skip this step. If it is present, add a changeset file under
+`.changeset/` on the same `agent/` branch (it ships in this PR's diff):
+
+- **Code change to a published package** (a fix or feature): write a normal
+  changeset. Find the exact package name(s) from the `name` field of the
+  changed package's `package.json`, and confirm the package is versioned via
+  `.changeset/config.json`. Use bump **`patch`** for a fix, **`minor`** for a
+  feature. Example for a `views` feature:
+
+  ```
+  ---
+  "@toon-protocol/views": minor
+  ---
+
+  Add <one-line summary of the change>.
+  ```
+
+- **Docs-only / non-package change** (or any change that should bump no
+  version): write an **empty** changeset — exactly an empty frontmatter
+  followed by a one-line summary:
+
+  ```
+  ---
+  ---
+
+  <one-line summary of the change>.
+  ```
+
+Name the file descriptively (e.g. `.changeset/issue-<n>-<slug>.md`). The
+changeset is committed as part of this same PR branch — never a separate PR.
+
+### 5 — Verify locally
 Run the repo's own verification before opening the PR — tests, lint, typecheck,
 build, per `CLAUDE.md`/`package.json` scripts/justfile. **If the repo has a
 `devbox.json`, run that verification inside the pinned shell** (`devbox run build`,
@@ -115,14 +151,15 @@ a `devbox.json` use their documented commands directly. If verification fails an
 you can't fix it within scope, stop → `needs:human` with the failing output. Never
 open a PR you know is red.
 
-### 5 — Open the PR
-Push the branch and open a PR whose body includes `Closes #<n>`, a short summary,
-the verification you ran (commands + result), and any deviation from the Agent
+### 6 — Open the PR
+Push the branch (including the changeset, if any) and open a PR whose body
+includes `Closes #<n>`, a short summary, the verification you ran (commands +
+result), and any deviation from the Agent
 Assessment plan. Then remove `agent:ready` from the issue (work is now in
 progress; Loop A's PR-sync would also strip it). Do **not** add a review label —
 the reviewer loop owns that.
 
-### 6 — Bounded fix loop (on `changes_requested`)
+### 7 — Bounded fix loop (on `changes_requested`)
 When re-invoked because Loop C requested changes:
 - Read every unresolved review thread on the PR
   (`gh pr view <pr> --json reviews,comments` / review-thread GraphQL).
@@ -166,6 +203,8 @@ the route by **why** you stopped:
 - [ ] Branch is `agent/<n>-<slug>` so the reviewer loop runs.
 - [ ] Diff is minimal and scoped to the issue; no drive-by churn.
 - [ ] Repo verification was run and is green before the PR opened.
+- [ ] Changeset present when the repo uses Changesets (normal for package
+      changes, empty for docs-only / non-package changes).
 - [ ] PR body has `Closes #<n>`, verification evidence, and any plan deviation.
 - [ ] Fix loop is bounded by `review-round:<n>`; escalates at the cap.
 - [ ] Never merged, never self-reviewed, never touched secrets/releases/branches.
