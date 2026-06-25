@@ -1,6 +1,6 @@
 # /deploy-devnet
 
-Deploy or manage the TOON devnet — four separate Linode nodes (EVM / Solana / Mina lightnet / TOON connector) with stable `*.devnet.toonprotocol.dev` DNS and trusted Let's Encrypt TLS. After deployment, update toon-meta docs with the live URLs.
+Deploy or manage the TOON devnet — five Linode nodes split into **chains** (EVM / Solana / Mina lightnet) and **apps** (toon = connector+relay, store = connector+Arweave DVM) — with stable `*.devnet.toonprotocol.dev` DNS and trusted Let's Encrypt TLS. The deploy is split so you can redeploy the **apps** without rebuilding the **chains** (the `apps` command injects the current chain config — EVM/Solana are deterministic; Mina is captured from the toon node and shared to the store). After deployment, update toon-meta docs with the live URLs.
 
 ## What this skill does
 
@@ -16,7 +16,10 @@ Deploy or manage the TOON devnet — four separate Linode nodes (EVM / Solana / 
 | EVM (Anvil) | toon-devnet-evm | g6-standard-1 (2GB) | `https://evm-rpc.devnet.toonprotocol.dev` |
 | Solana | toon-devnet-sol | g6-standard-2 (4GB) | `https://solana-rpc.devnet.toonprotocol.dev`, `wss://solana-ws.devnet.toonprotocol.dev` |
 | Mina lightnet | toon-devnet-mina | g6-standard-4 (8GB) | `https://mina.devnet.toonprotocol.dev/graphql`, `https://mina-accounts.devnet.toonprotocol.dev` |
-| TOON connector | toon | g6-standard-1 (2GB) | `wss://relay-ws.devnet.toonprotocol.dev`, `https://proxy.devnet.toonprotocol.dev`, `https://faucet.devnet.toonprotocol.dev` |
+| TOON connector (toon = relay app) | toon | g6-standard-1 (2GB) | `wss://relay-ws.devnet.toonprotocol.dev`, `https://proxy.devnet.toonprotocol.dev`, `https://faucet.devnet.toonprotocol.dev` |
+| Store (Arweave DVM app) | store | g6-standard-1 (2GB) | `https://store.devnet.toonprotocol.dev` (paid `/ilp` edge; route `g.proxy.store`) |
+
+Nodes split into two groups: **chains** (`evm` / `sol` / `mina`) and **apps** (`toon` = connector+relay, `store` = connector+store). Each app node runs its own connector (payment proxy) in front of its app. The store reuses the toon node's Mina zkApps (deployed once on the toon node, captured + injected by the `apps` command).
 
 ## Prerequisites (check these first)
 
@@ -31,15 +34,24 @@ Deploy or manage the TOON devnet — four separate Linode nodes (EVM / Solana / 
 Run with no args to get status. Pass a command as the first argument:
 
 ```
-/deploy-devnet up        # Provision all boxes + deploy everything + update DNS
+/deploy-devnet chains    # (Re)deploy ONLY the chain boxes (evm/sol/mina)
+/deploy-devnet apps      # (Re)deploy ONLY the app nodes (toon[relay] + store);
+                         #   injects the current chain config (Mina captured from
+                         #   the toon node) — run AFTER chains
+/deploy-devnet up        # Full devnet = chains then apps + update DNS
 /deploy-devnet down      # Stop containers (boxes stay running; restart is fast)
 /deploy-devnet destroy   # Delete all Linode boxes (loses chain state!)
 /deploy-devnet status    # Probe every public endpoint
-/deploy-devnet redeploy  # Pull latest images + restart containers on all nodes
+/deploy-devnet redeploy  # Pull latest images + restart containers on ALL nodes (back-compat)
 /deploy-devnet dns       # Sync Porkbun DNS to current box IPs (run after IP changes)
 /deploy-devnet ips       # Print current box IPs
 /deploy-devnet endpoints # Print current endpoints.json
 ```
+
+**Typical "redeploy the apps, keep the chains" flow** (the common case — chain
+state is expensive to rebuild): `/deploy-devnet apps`. To refresh the chains
+(resets the Mina lightnet → new zkApp addresses): `/deploy-devnet chains` then
+`/deploy-devnet apps` (so the app nodes pick up the new Mina addresses).
 
 ## Execution instructions
 
