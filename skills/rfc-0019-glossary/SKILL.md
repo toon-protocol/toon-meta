@@ -1,6 +1,6 @@
 ---
 name: rfc-0019-glossary
-description: Glossary of Interledger (RFC 0019) and TOON Protocol terms. Use when users ask "what is" / "define" for a TOON or ILP term - apex, child, claim, balance proof, free-forward, town/dvm/mill, kind:10032, connector, BTP, settlement - or need clarification on protocol terminology. Triggers on 'what is', 'define', 'terminology', 'glossary', or an unclear TOON/ILP term.
+description: Glossary of Interledger (RFC 0019) and TOON Protocol terms. Use when users ask "what is" / "define" for a TOON or ILP term - apex, child, claim, balance proof, free-forward, town/dvm/swap, kind:10032, connector, BTP, settlement - or need clarification on protocol terminology. Triggers on 'what is', 'define', 'terminology', 'glossary', or an unclear TOON/ILP term.
 ---
 
 # RFC 0019: Interledger + TOON Glossary
@@ -11,8 +11,8 @@ Authoritative definitions for the terms an agent meets working with TOON Protoco
 
 - **TOON Protocol** — pay-to-write Nostr over Interledger. A write is an ILP packet carrying a TOON-encoded Nostr event plus a signed payment-channel claim; reads are free.
 - **Apex** — a deployment's connector, nodeId `g.proxy`. The parent of the child service nodes. Owns the BTP port, validates claims, takes a fee, routes by ILP address.
-- **Child** — a service node under the apex: **town** (Nostr relay, pay-per-publish), **dvm** (NIP-90 compute; only kind:5094 Arweave blob storage is deployed), **mill** (multi-chain swap peer). Registered `relation:'child'`, tags the apex as parent.
-- **The proxy** — the connector acting as the proxy-server layer: the apex connector (nodeId `g.proxy`) plus its co-located backend nodes (town/dvm/mill containers). There is no separate operator product — the proxy *is* the connector at the edge.
+- **Child** — a service node under the apex: **town** (Nostr relay, pay-per-publish), **dvm** (NIP-90 compute; only kind:5094 Arweave blob storage is deployed), **swap** (multi-chain swap peer). Registered `relation:'child'`, tags the apex as parent.
+- **The proxy** — the connector acting as the proxy-server layer: the apex connector (nodeId `g.proxy`) plus its co-located backend nodes (town/dvm/swap containers). There is no separate operator product — the proxy *is* the connector at the edge.
 - **Claim / payment-channel claim** — a signed off-chain **balance proof** (EIP-712 / Ed25519 / Pallas) asserting a monotonic `nonce` and cumulative `transferredAmount` against an on-chain channel deposit. TOON's unit of payment; sent over BTP as the `payment-channel-claim` sub-protocol.
 - **Balance proof** — synonym for the claim; the signed assertion of how much has been transferred on a channel.
 - **Free-forward** — the apex forwarding a packet to its own child without a per-packet claim (parent→child carries no claim; settled in aggregate).

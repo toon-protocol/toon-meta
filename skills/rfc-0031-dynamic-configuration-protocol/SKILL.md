@@ -11,7 +11,7 @@ RFC 0031 defines an in-band protocol for two nodes to negotiate configuration pa
 
 **TOON does NOT implement the RFC-0031 negotiation protocol.** There is no in-band config-negotiation exchange between peers. Instead, runtime reconfiguration of a TOON connector is done **out-of-band via the connector admin API** (`http/admin-api.ts`):
 
-- **`POST /admin/peers`** — register a peer at runtime (with its `relation`, transport, authToken). This is how a child node (town/dvm/mill) is added to a running apex.
+- **`POST /admin/peers`** — register a peer at runtime (with its `relation`, transport, authToken). This is how a child node (town/dvm/swap) is added to a running apex.
 - **`PUT /admin/peers/:peerId`** — update an existing peer.
 - **`POST /admin/routes`** — add/update routes at runtime.
 - Other admin endpoints expose earnings/metrics/health and HS hostname.

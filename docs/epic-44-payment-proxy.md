@@ -128,7 +128,7 @@ child deployment; changing them is a coordinated cross-repo change.
 ┌──────────────────────────────────────────────────────────────┐
 │  HANDLER LAYER   HttpProxyHandler (new)                      │
 │                  wired via ConnectorNode.setPacketHandler    │
-│                  sibling to: swap/mill node, relay NIP-01    │
+│                  sibling to: swap node, relay NIP-01         │
 ├──────────────────────────────────────────────────────────────┤
 │  EDGE            ILP-over-HTTP ingress (POST /ilp)           │  ← already shipped
 │                  RFC 9421 claim↔request binding (MVP)        │  ← Story 44.5
@@ -394,7 +394,7 @@ wiring, not new primitives.
 **Status:** 🔵 Open — toon-protocol/connector#223
 
 **Scope.**
-- Lift `applyRate` + multi-chain claim issuance from the swap/mill destination handler (`swap-handler.ts`) into the connector forwarding path (fire when inbound ledger ≠ outbound ledger).
+- Lift `applyRate` + multi-chain claim issuance from the swap destination handler (`swap-handler.ts`) into the connector forwarding path (fire when inbound ledger ≠ outbound ledger).
 - Let routing select a swap-capable hop when the destination accepts a token the sender doesn't hold.
 - Add sender-side intent ("deliver ≥ X of destination asset for ≤ Y of my asset") + a quote.
 - Atomicity survives conversion: execution-condition binds the path end-to-end even as the amount changes at the FX hop.
