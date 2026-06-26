@@ -20,7 +20,7 @@
   "content": "Working on TOON SDK",
   "tags": [
     ["d", "general"],
-    ["r", "https://github.com/toon-protocol/town"]
+    ["r", "https://github.com/toon-protocol/relay"]
   ]
 }
 ```

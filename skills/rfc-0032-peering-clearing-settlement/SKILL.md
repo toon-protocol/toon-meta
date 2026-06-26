@@ -5,7 +5,7 @@ description: How TOON Protocol implements Interledger RFC 0032 - Peering, Cleari
 
 # RFC 0032: Peering, Clearing and Settlement — TOON's apex/child model
 
-Implements RFC 0032 semantics with TOON's specific topology: a single **apex** connector (`g.proxy`) and its **child** service nodes (town/dvm/mill). This skill describes the real peering relations, clearing, and settlement TOON uses.
+Implements RFC 0032 semantics with TOON's specific topology: a single **apex** connector (`g.proxy`) and its **child** service nodes (relay/store/swap). This skill describes the real peering relations, clearing, and settlement TOON uses.
 
 ## Peering: static relations (`relation: parent | peer | child`)
 
@@ -15,7 +15,7 @@ TOON peers are statically configured with a `relation` (`config/types.ts:71-88`)
 - **`peer`** — a lateral bilateral peer; a per-packet claim flows on every value-bearing forward in either direction. **This is the default** when `relation` is omitted.
 - **`child`** — a downstream node that settles *up* to this node. **A parent never issues per-packet claims down to a child.** Value-bearing forwards to a `child` next hop therefore **skip the mandatory per-packet claim**.
 
-The apex model: the connector is the parent (`g.proxy`); town/dvm/mill are children. A client is a peer/customer of the apex (pays with claims); the apex forwards to its children for free.
+The apex model: the connector is the parent (`g.proxy`); relay/store/swap are children. A client is a peer/customer of the apex (pays with claims); the apex forwards to its children for free.
 
 ## The free-forward rule (the part people get wrong)
 
@@ -40,7 +40,7 @@ On a value-bearing forward, the connector deducts its fee from the packet amount
 
 ## Common Topics
 - `relation: parent | peer | child` and how claims flow per relation
-- The apex (`g.proxy`) + town/dvm/mill child topology
+- The apex (`g.proxy`) + relay/store/swap child topology
 - The free parent→child forward and the `relation:'child'` + parent-tag requirement
 - T00/F06 from a mis-tagged child
 - Off-chain clearing (claim accrual) vs threshold on-chain settlement

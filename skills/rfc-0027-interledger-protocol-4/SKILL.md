@@ -13,7 +13,7 @@ TOON uses ILPv4's packet structure, routing, and error codes, but the **value is
 
 - **PREPARE / FULFILL / REJECT.** TOON uses all three (BTP framing, `btp/btp-types.ts:9-17`). A successful paid write returns FULFILL; a refused one returns REJECT with an error code.
 - **`executionCondition` / `fulfillment` are placeholders.** In classic ILPv4 these implement an HTLC: the FULFILL must contain the preimage of the PREPARE's condition. On TOON they are **zero/placeholder** in the normal pay path — payment is proven by the attached `payment-channel-claim` balance proof, not a hash preimage. (The optional NIP-59-wrapped-claim path derives a preimage via ECDH; see `rfc-0022`.) So **do not treat the condition/fulfillment fields as the proof of payment.**
-- **Routing by ILP address.** The connector routes on the PREPARE's destination address using hierarchical `g.*` longest-prefix matching (`routing/routing-table.ts:135-157`). TOON's scheme: the apex is `g.proxy`; child node types resolve under it (`g.proxy.town` for the relay, plus dvm/mill children). See `rfc-0015`.
+- **Routing by ILP address.** The connector routes on the PREPARE's destination address using hierarchical `g.*` longest-prefix matching (`routing/routing-table.ts:135-157`). TOON's scheme: the apex is `g.proxy`; child node types resolve under it (`g.proxy.relay` for the relay, plus store/swap children). See `rfc-0015`.
 - **Connector fee.** Before forwarding, the connector deducts its fee from the packet amount (`calculateConnectorFee`, `core/packet-handler.ts:501`; ~0.1% default). Parent→child forwards are free (no per-packet claim, no extra fee).
 
 ## Error codes a TOON client actually sees

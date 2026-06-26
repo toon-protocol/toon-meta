@@ -10,8 +10,8 @@
 ## Building from Source
 
 ```bash
-git clone https://github.com/toon-protocol/town.git
-cd toon
+git clone https://github.com/toon-protocol/relay.git
+cd relay
 
 pnpm install        # Install dependencies
 pnpm build          # Build all packages
@@ -169,7 +169,7 @@ USDC settlement). The Path A **core is shipped on connector `main`**; the
 harness is in connector PR #245). See
 [deploy-app-guide.md → Path A](deploy-app-guide.md#path-a--payment-proxy-front-an-http-app-).
 
-## Town CLI
+## Relay CLI
 
 Run a relay with one command (no Docker required):
 
@@ -177,7 +177,7 @@ Run a relay with one command (no Docker required):
 npx @toon-protocol/town --mnemonic "your twelve word mnemonic phrase here"
 ```
 
-Town embeds its own ILP connector by default — no external connector needed. See the [Town Guide](town-guide.md) for full CLI reference and environment variables.
+Relay embeds its own ILP connector by default — no external connector needed. See the [Relay Guide](relay-guide.md) for full CLI reference and environment variables.
 
 ## Health Checks
 
@@ -204,8 +204,8 @@ cd packages/sdk && pnpm test:e2e:docker
 # Client E2E (requires SDK E2E infrastructure)
 cd packages/client && pnpm test:e2e
 
-# Town E2E (requires SDK E2E infrastructure)
-cd packages/town && pnpm test:e2e
+# Relay E2E (requires SDK E2E infrastructure)
+cd packages/relay && pnpm test:e2e
 ```
 
 ## Troubleshooting

@@ -1,7 +1,7 @@
 # Handoff: connector ClaimReceiver lookup-key inconsistency blocks externally-opened channels
 
 **Audience:** connector team (the team publishing `ghcr.io/toon-protocol/connector`)
-**Reporting context:** TOON Protocol (`toon-protocol/town`)
+**Reporting context:** TOON Protocol (`toon-protocol/relay`)
 **Date:** 2026-05-07
 **Image affected:** `ghcr.io/toon-protocol/connector:3.4.0` (and likely earlier)
 **Severity:** blocks on-chain settlement for any channel opened directly via `TokenNetwork.openChannel()` (i.e. NOT through the connector's `POST /admin/channels`).
@@ -166,4 +166,4 @@ The only piece preventing actual on-chain settlement is the registry-key inconsi
 
 ## Contact
 
-Open an issue against `toon-protocol/town`. Repro deployment in `docker-compose-proxy-hs.yml`; apex container `proxy-hs-connector`.
+Open an issue against `toon-protocol/relay`. Repro deployment in `docker-compose-proxy-hs.yml`; apex container `proxy-hs-connector`.

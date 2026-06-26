@@ -175,12 +175,12 @@ That message change is the canonical confirmation the claim service is loaded an
 
 ## Context for the connector team (optional reading)
 
-TOON Protocol is an ILP-gated Nostr relay system. Each "town" node hosts a Nostr relay that charges per-event publishing fees via ILP. The deployment topology is hierarchical: an apex connector (your image) is the public BTP entry point, and town/mill/dvm child nodes embed their own `ConnectorNode` instances that BTP-dial the apex as parent peers. A successful kind:1 publish requires:
+TOON Protocol is an ILP-gated Nostr relay system. Each "relay" node hosts a Nostr relay that charges per-event publishing fees via ILP. The deployment topology is hierarchical: an apex connector (your image) is the public BTP entry point, and relay/store/swap child nodes embed their own `ConnectorNode` instances that BTP-dial the apex as parent peers. A successful kind:1 publish requires:
 
 1. Client → apex BTP (over Anyone hidden service in our case): client signs balance proof
-2. Apex receives PREPARE, routes to town
-3. **Apex signs a fresh balance proof for the apex→town hop** ← this is where we hit the bug
-4. Town verifies, accepts, persists the event
+2. Apex receives PREPARE, routes to relay
+3. **Apex signs a fresh balance proof for the apex→relay hop** ← this is where we hit the bug
+4. Relay verifies, accepts, persists the event
 
 Step 3 is what `PerPacketClaimService` does. Without it, paid kind:1 events can't flow.
 
@@ -203,4 +203,4 @@ We've verified the rest of the architecture works end-to-end — see `packages/c
 
 ## Contact
 
-Questions: open an issue against `toon-protocol/town`. The repro deployment is in `docker-compose-proxy-hs.yml` of that repo; the apex container name there is `proxy-hs-connector`.
+Questions: open an issue against `toon-protocol/relay`. The repro deployment is in `docker-compose-proxy-hs.yml` of that repo; the apex container name there is `proxy-hs-connector`.

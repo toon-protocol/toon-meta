@@ -22,7 +22,7 @@ BTP MESSAGE  +  payment-channel-claim sub-protocol  (rfc-0023)
 Connector / apex (g.proxy)  — validates claim, takes fee, routes by ILP address (rfc-0015)
         │  free parent→child forward  (rfc-0032)
         ▼
-Child node: town (relay) / dvm (kind:5094) / mill (swap)
+Child node: relay / store (kind:5094) / swap
         │  threshold on-chain settlement, in-process EVM/Solana/Mina (rfc-0038)
 ```
 

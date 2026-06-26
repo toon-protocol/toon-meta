@@ -37,10 +37,10 @@ TOON Protocol is a polyrepo (under the `toon-protocol` org) whose packages organ
 ## Package Dependency Graph
 
 ```
-@toon-protocol/town
+@toon-protocol/town (launcher, pending rename/merge)
 ├── @toon-protocol/sdk
 │   └── @toon-protocol/core
-├── @toon-protocol/relay
+├── @toon-protocol/relay (relay server)
 │   └── @toon-protocol/core
 └── @toon-protocol/connector (peer dependency)
 
@@ -51,7 +51,7 @@ TOON Protocol is a polyrepo (under the `toon-protocol` org) whose packages organ
 - **`@toon-protocol/core`** — Foundation with no TOON dependencies. Provides bootstrap, discovery, settlement negotiation, [TOON](https://github.com/toon-format/toon) codec, and [NIP-34](https://github.com/nostr-protocol/nips/blob/master/34.md) handling.
 - **`@toon-protocol/sdk`** — Framework layer. Adds identity derivation, handler registry, verification pipeline, pricing validation, and node composition on top of core.
 - **`@toon-protocol/relay`** — [Nostr](https://github.com/nostr-protocol/nips) relay server with WebSocket ([NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md)), SQLite event store, and upstream relay propagation.
-- **`@toon-protocol/town`** — Production relay. Composes SDK + relay + BLS + storage into a single `startTown()` call.
+- **`@toon-protocol/town`** — Production relay launcher (rename to `@toon-protocol/relay` pending code merge). Composes SDK + relay + BLS + storage into a single `startTown()` call (will become `startRelay()` post-merge).
 - **`@toon-protocol/bls`** — Standalone business logic server. HTTP endpoint that validates ILP packets and stores events.
 - **`@toon-protocol/faucet`** — Development tool. Distributes test ETH and tokens for local development.
 

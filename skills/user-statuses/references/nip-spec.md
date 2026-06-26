@@ -14,7 +14,7 @@ kind:30315 is a **parameterized replaceable event** (per NIP-01). The `d` tag de
   "content": "Working on the TOON SDK",
   "tags": [
     ["d", "general"],
-    ["r", "https://github.com/toon-protocol/town"]
+    ["r", "https://github.com/toon-protocol/relay"]
   ]
 }
 ```
@@ -115,7 +115,7 @@ To fetch a user's statuses, use NIP-01 filters:
   "content": "Building the future of decentralized payments",
   "tags": [
     ["d", "general"],
-    ["r", "https://github.com/toon-protocol/town"]
+    ["r", "https://github.com/toon-protocol/relay"]
   ]
 }
 ```

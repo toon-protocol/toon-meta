@@ -13,7 +13,7 @@ STREAM is Interledger's transport protocol: it chunks a large payment into many 
 
 - **One paid write = one BTP packet + one balance-proof claim.** A write is a single ILPv4 PREPARE over the BTP session (see `rfc-0023`), carrying a TOON-encoded Nostr event in `data` and a signed **payment-channel claim** as the value proof. It is fulfilled or rejected as a unit — there is no multi-packet stream to reassemble.
 - **No chunking / flow control.** Because each write is atomic and small (a Nostr event), there is nothing to chunk. Cost scales linearly with the encoded byte size of the event; the client just makes the event concise.
-- **No quoting.** STREAM's exchange-rate discovery is irrelevant: the fee is per-byte at the connector's configured rate, and cross-asset conversion only happens explicitly at a **mill** swap node, not implicitly during a write.
+- **No quoting.** STREAM's exchange-rate discovery is irrelevant: the fee is per-byte at the connector's configured rate, and cross-asset conversion only happens explicitly at a **swap** node, not implicitly during a write.
 - **End-to-end encryption** of the message, when needed, comes from Nostr's own NIP-44/NIP-59 (gift-wrap), not STREAM's encryption — and an optional NIP-59 claim wrapper exists for privacy (see `rfc-0022`).
 
 ## What to tell a user expecting STREAM behavior

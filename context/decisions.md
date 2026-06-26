@@ -22,7 +22,7 @@ Curated, durable decisions. ADR-lite: each is *decision → why*.
 - **Polyrepo with npm + pinned-digest coupling** (not a monorepo, not submodules). *Why:* per-team ownership; teams build/test/release without rebuilding the world. Mirrors how the connector was already consumed.
 - **`toon` (core+sdk) is libraries only; connector is an optional peer.** *Why:* the library layer must build/publish independent of the payment engine.
 - **The connector owns & publishes `@toon-protocol/mina-zkapp`.** *Why:* one canonical Mina channel contract; the connector already depends on it, and it was unpublished/`private`, breaking installs.
-- **Publish via `pnpm publish` / changesets, never `npm publish`.** *Why:* `npm publish` shipped unresolved `workspace:*`, making `sdk@0.5.0`/`town@0.4.0` uninstallable. (See `SKILLS_AUDIT.md` lineage / the split plan.)
+- **Publish via `pnpm publish` / changesets, never `npm publish`.** *Why:* `npm publish` shipped unresolved `workspace:*`, making `sdk@0.5.0`/`town@0.4.0` (now `relay`) uninstallable. (See `SKILLS_AUDIT.md` lineage / the split plan.)
 - **`g.connector` is the canonical apex wire nodeId.** *Why:* it's baked into the connector + child parent tags and every party must agree on it, or paid forwarding breaks (T00/F06) — so it's a load-bearing on-wire term, not cosmetic. **Status:** the code, infra, and live edge all use **`g.connector`** (vhost `connector.<domain>/ilp`). A cleanup to purge the ~60 legacy `g.townhouse` references still on `origin/main` in favor of `g.connector` is a **pending follow-up**.
 
 ## Knowledge architecture
