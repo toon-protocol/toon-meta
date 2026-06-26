@@ -225,7 +225,7 @@ unchanged. No per-role mnemonics needed.
   operator/CI-only** (needs the secret + a funded treasury).
 - ✅ **Nightly CI burn-in** (`.github/workflows/e2e-public-testnet.yml`, #184):
   `schedule` + `workflow_dispatch` only (fork PRs get no secret), injects
-  `E2E_DEV_MNEMONIC`, and runs fund → `--public` up → SDK/mill e2es → teardown,
+  `E2E_DEV_MNEMONIC`, and runs fund → `--public` up → SDK/swap e2es → teardown,
   every step `continue-on-error` until proven stable.
 - ⏳ Next: run the live Mina **bare** deploy (`scripts/deploy-e2e-mina-zkapp-bare.mjs`,
   #185/#186) against devnet and pin the address; then, once the burn-in is stable,

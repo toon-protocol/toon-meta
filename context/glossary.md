@@ -34,6 +34,6 @@
 
 **SkillDescriptor (kind:10035)** — a provider's advertised capabilities + per-kind pricing; the basis for prepaid DVM.
 
-**relay / swap / store** — the three TOON node products (Nostr relay / multi-chain swap / Arweave DVM). Formerly town / mill / dvm.
+**relay / swap / store** — the three TOON node products (Nostr relay / multi-chain swap / Arweave DVM).
 
 **connector apex nodeId (`g.connector`)** — the apex's on-wire ILP nodeId and the canonical apex term; load-bearing (baked into the connector + every child's parent tag, so it must match across the deployment). A cleanup to purge ~60 legacy `g.townhouse` references on `origin/main` in favor of `g.connector` is pending.

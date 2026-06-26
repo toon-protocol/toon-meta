@@ -19,7 +19,7 @@ Implements the RFC 0001 layered model as the foundation of TOON Protocol: **pay-
 ## TOON's actual topology
 
 - **Apex = the connector** (`@toon-protocol/connector`), nodeId `g.proxy`. It owns the BTP port, validates claims, takes a fee, and routes by ILP address.
-- **Children** = service nodes under the apex: **town** (the Nostr relay, pay-per-publish), **dvm** (NIP-90 compute; the only deployed kind is 5094 Arweave blob storage), **mill** (multi-chain swap peer). Each is registered `relation:'child'` and tags `g.proxy` as its parent.
+- **Children** = service nodes under the apex: **town** (the Nostr relay, pay-per-publish), **dvm** (NIP-90 compute; the only deployed kind is 5094 Arweave blob storage), **swap** (multi-chain swap peer). Each is registered `relation:'child'` and tags `g.proxy` as its parent.
 - **Clients** pay the apex over BTP with a signed balance-proof claim; the apex validates, takes its fee, and **forwards to the child for free** (parent→child packets carry no per-packet claim — settled in aggregate).
 
 ## The core mental model
@@ -33,7 +33,7 @@ Implements the RFC 0001 layered model as the foundation of TOON Protocol: **pay-
 TOON's value layer is the signed channel claim, so several classic ILP pieces are **absent from the pay path**: SPSP (`rfc-0009`), payment pointers (`rfc-0026`), and STREAM / STREAM receipts (`rfc-0029`/`rfc-0039`). Two caveats often misremembered: **ILP-over-HTTP (`rfc-0035`) IS used** — as the one-shot edge ingress (`POST /ilp`) with an HTTP→BTP upgrade, alongside BTP; and while there is **no on-chain HTLC escrow (`rfc-0022`)**, multi-hop *does* use packet-level **execution-condition/fulfillment** (active when NIP-59 claim-wrapping is enabled). When reasoning about TOON, don't assume the genuinely-absent pieces are present.
 
 ## Common Topics
-- The apex (`g.proxy`) + town/dvm/mill child topology
+- The apex (`g.proxy`) + town/dvm/swap child topology
 - How pay-to-write / free-read maps to ILP's four layers
 - Claims-over-BTP as the value layer; in-process multi-chain settlement
 - Why SPSP/STREAM and on-chain HTLC escrow are not in TOON's stack; how ILP-over-HTTP and packet-level execution-conditions *are* used

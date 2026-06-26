@@ -97,7 +97,7 @@ yields three guarantees that keep the design clean:
    event. The Nostr-event / `kind` assumption lives **only** in the SDK `createNode` pipeline
    (`shallowParseToon` → kind dispatch) used by the **relay/store** apps. The **proxy is a
    *sibling* local-delivery handler** wired to the connector's `setPacketHandler` seam (the same
-   seam the swap/mill node uses), bypassing `shallowParseToon` and treating `data` as HTTP.
+   seam the swap node uses), bypassing `shallowParseToon` and treating `data` as HTTP.
 2. **The claim is carried in a header / protocolData**, never in `data` — so an arbitrary HTTP
    payload can never collide with the payment.
 3. **Gift-wrap means the CLAIM, not the data.** The connector-level NIP-59 claim wrap encrypts the
@@ -220,7 +220,7 @@ atomic multi-hop via the **execution-condition/fulfillment** mechanism (active w
 claim-wrapping is enabled; see *What's built*).
 
 The missing half is **transparent cross-chain FX**, and it is *wiring, not new primitives*: the
-swap/mill node already embeds a connector, holds multi-chain channels, and runs `applyRate(...)` +
+swap node already embeds a connector, holds multi-chain channels, and runs `applyRate(...)` +
 multi-chain claim issuance — but today it does so as an *explicitly-addressed destination*, and the
 connector's forwarding path does **no** rate conversion (single token per runtime,
 `forwardedAmount = amount − fee`). To make "the request doesn't care what token the destination
@@ -251,7 +251,7 @@ follow-on spec; it is **not** proxy MVP.
   (`core/packet-handler.ts` — `sha256(fulfillment) === executionCondition`), active when NIP-59
   claim-wrapping supplies the preimage. (On-chain HTLC escrow remains absent — atomicity here is
   packet-level, not an on-chain hashlock.)
-- **FX primitives**: the swap/mill node's `applyRate` + multi-chain claim issuance (at a
+- **FX primitives**: the swap node's `applyRate` + multi-chain claim issuance (at a
   destination, today).
 
 **Also shipped on connector `main` (the Path A core):**
