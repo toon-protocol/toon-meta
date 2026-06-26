@@ -174,7 +174,7 @@ harness is in connector PR #245). See
 Run a relay with one command (no Docker required):
 
 ```bash
-npx @toon-protocol/relay --mnemonic "your twelve word mnemonic phrase here"
+npx @toon-protocol/town --mnemonic "your twelve word mnemonic phrase here"
 ```
 
 Relay embeds its own ILP connector by default — no external connector needed. See the [Relay Guide](relay-guide.md) for full CLI reference and environment variables.

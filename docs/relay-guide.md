@@ -1,35 +1,35 @@
 # Relay Guide
 
-`@toon-protocol/relay` is a production-ready relay node built on `@toon-protocol/sdk`. It provides a complete Nostr relay with an embedded ILP connector, payment validation, SQLite storage, WebSocket serving, and automatic bootstrap — all in a single function call or CLI command.
+`@toon-protocol/town` is the production relay launcher (pending rename to `@toon-protocol/relay`) built on `@toon-protocol/relay` and `@toon-protocol/sdk`. It provides a complete Nostr relay with an embedded ILP connector, payment validation, SQLite storage, WebSocket serving, and automatic bootstrap — all in a single function call or CLI command.
 
-## Where Relay Sits in the Stack
+## Where the Relay Launcher Sits in the Stack
 
 ```
-@toon-protocol/relay
-├── startRelay() / CLI         ← You configure here
+@toon-protocol/town (pending rename to @toon-protocol/relay)
+├── startTown() / CLI          ← You configure here
 ├── @toon-protocol/sdk             ← Verification, pricing, handlers
 │   └── @toon-protocol/core        ← Bootstrap, discovery
 ├── @toon-protocol/relay           ← WebSocket relay, event store
 └── Embedded ILP Connector     ← Payment routing (included)
 ```
 
-Relay composes everything the SDK provides into an opinionated, ready-to-run relay. The ILP connector is embedded by default — no external connector needed. If you need custom handlers or different storage, use the [SDK](sdk-guide.md) directly.
+The relay launcher composes everything the SDK provides into an opinionated, ready-to-run relay. The ILP connector is embedded by default — no external connector needed. If you need custom handlers or different storage, use the [SDK](sdk-guide.md) directly.
 
 ## Quick Start
 
 ### CLI
 
 ```bash
-npx @toon-protocol/relay \
+npx @toon-protocol/town \
   --mnemonic "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 ```
 
 ### Programmatic
 
 ```typescript
-import { startRelay } from '@toon-protocol/relay';
+import { startTown } from '@toon-protocol/town';
 
-const relay = await startRelay({
+const relay = await startTown({
   mnemonic: 'abandon abandon abandon ...',
 });
 
@@ -44,7 +44,7 @@ await relay.stop();
 
 ## Configuration
 
-### RelayConfig
+### TownConfig
 
 | Option | Type | Default | Required | Purpose |
 |--------|------|---------|----------|---------|
@@ -89,7 +89,7 @@ announcement (legacy behavior).
 ### CLI Flags
 
 ```
-npx @toon-protocol/relay [options]
+npx @toon-protocol/town [options]
 
 Options:
   --mnemonic <phrase>          BIP-39 mnemonic for node identity
@@ -106,7 +106,7 @@ Options:
 
 ## What Happens on Start
 
-When `startRelay()` is called, it performs these steps in order:
+When `startTown()` is called, it performs these steps in order:
 
 1. Validate identity (mnemonic XOR secretKey — exactly one required)
 2. Derive identity (Nostr pubkey + EVM address from key)
@@ -122,9 +122,9 @@ When `startRelay()` is called, it performs these steps in order:
 12. Track running state
 13. Execute bootstrap (discover peers, register, announce)
 14. Set up outbound subscription tracking
-15. Return `RelayInstance`
+15. Return `TownInstance`
 
-## RelayInstance API
+## TownInstance API
 
 ### `isRunning(): boolean`
 
@@ -134,7 +134,7 @@ Check if the relay is currently running.
 
 Gracefully shut down all services — close WebSocket connections, stop HTTP server, clean up subscriptions.
 
-### `subscribe(relayUrl, filter): RelaySubscription`
+### `subscribe(relayUrl, filter): TownSubscription`
 
 Open a WebSocket subscription to a remote relay. Received events are stored in the local event store.
 
@@ -154,7 +154,7 @@ Subscriptions are tracked and cleaned up automatically when `relay.stop()` is ca
 |----------|------|-------------|
 | `pubkey` | `string` | Node's Nostr public key |
 | `evmAddress` | `string` | Node's EVM address |
-| `config` | `ResolvedRelayConfig` | Resolved configuration with defaults |
+| `config` | `ResolvedTownConfig` | Resolved configuration with defaults |
 | `bootstrapResult` | `{ peerCount, channelCount }` | Bootstrap outcome |
 
 ## Event Storage

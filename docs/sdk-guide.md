@@ -68,7 +68,7 @@ const node = createNode({
 });
 ```
 
-> **Note:** The SDK uses an embedded connector that runs in-process for zero-latency direct function calls. [`@toon-protocol/relay`](../relay) also uses embedded mode by default, or can connect to an external connector via `connectorUrl` for advanced deployments.
+> **Note:** The SDK uses an embedded connector that runs in-process for zero-latency direct function calls. [`@toon-protocol/town`](../town) also uses embedded mode by default, or can connect to an external connector via `connectorUrl` for advanced deployments.
 
 ### NodeConfig Reference
 
