@@ -145,15 +145,18 @@ Subsequent runs use the cached artifact.
 ## Verifier Time and Proof Size
 
 **Proof size:** A Groth16 BN254 proof is **256 bytes** (three curve points: π_A on G1,
-π_B on G2, π_C on G1, each compressed). Together with the public inputs (four 254-bit
-scalars = 128 bytes) the full proof blob sent to the relay is approximately **385 bytes**.
+π_B on G2, π_C on G1, each uncompressed (affine coordinates, as produced by snarkjs)).
+Together with the public inputs (four 254-bit scalars = 128 bytes) the full proof blob
+sent to the relay is approximately **384 bytes**.
 
 **Verifier time:** Groth16 verification requires three bilinear pairings over BN254:
 
 ```
-e(π_A, π_B) = e([vk_α]₁, [vk_β]₂)
-            · e([vk_γ]₁ · Σᵢ(publicᵢ · [vk_γᵢ]₁), [vk_δ]₂)
-            · e([π_C]₁, [vk_δ]₂)
+e(π_A, π_B) = e([α]₁, [β]₂)
+            · e(IC_sum, [γ]₂)
+            · e([π_C]₁, [δ]₂)
+
+where IC_sum = vk_IC[0] + Σᵢ(publicᵢ · vk_IC[i])
 ```
 
 On modern server hardware, three BN254 pairings complete in **< 1 ms**. On an Ethereum
@@ -196,7 +199,7 @@ changes are primarily in the circuit *instantiation* and supporting infrastructu
 4. **Trusted setup**: if the circuit is modified (case 3 above), a new per-circuit ceremony
    is required. If the circuit is used unmodified, the Semaphore team's existing `.zkey`
    can be reused.
-5. **Proof serialisation**: encode the 385-byte proof blob into the TOON/ILP PREPARE packet
+5. **Proof serialisation**: encode the 384-byte proof blob into the TOON/ILP PREPARE packet
    data field. No circuit change; handled at the SDK layer.
 
 ---
