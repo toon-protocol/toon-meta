@@ -7,7 +7,7 @@ TOON is a **polyrepo** under the `toon-protocol` GitHub org. Code is shared via 
 | **toon** | `@toon-protocol/core`, `@toon-protocol/sdk` | npm libs (no image/CLI) | Platform |
 | **relay** | `@toon-protocol/relay`, `@toon-protocol/bls` (+ `town` launcher code-merge pending) | npm + `relay` image | Relay |
 | **swap** | `@toon-protocol/swap` | npm + `swap` image | Swap |
-| **store** | Arweave DVM build context (`Dockerfile.dvm` + entrypoint over sdk handler) | `store` image | Store |
+| **store** | Arweave DVM build context (`Dockerfile.store` + entrypoint over sdk handler) | `store` image | Store |
 | **toon-client** | `@toon-protocol/client`, `@toon-protocol/client-mcp`, `@toon-protocol/rig`, `@toon-protocol/views` | npm + plugin | Client |
 | **toon-meta** | this repo — shared skills, context, docs | the `toon-skills` plugin | Cross-cutting |
 | **connector** *(pre-existing)* | the ILP payment engine + on-chain contracts/programs/zkApp + `@toon-protocol/mina-zkapp` | npm `@toon-protocol/connector`, `shared`, `mina-zkapp` + image | Payments |

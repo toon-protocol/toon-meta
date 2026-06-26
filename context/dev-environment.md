@@ -120,7 +120,7 @@ merge — it's a bake-in signal, not a gate.
   `nodejs@20` as insecure, so Devbox can't pin it without an insecure-override. Resolution:
   **standardize on Node 22**, matching the connector pilot (`22.11.0`). Each rollout PR
   bumps `engines.node` → `>=22` and CI/release `node-version` → `22`. `store`'s
-  `Dockerfile.dvm` runtime image stays `node:20-alpine` (a separate image-versioning
+  `Dockerfile.store` runtime image stays `node:20-alpine` (a separate image-versioning
   follow-up, out of scope for devbox adoption).
 
 ## Known divergence (not part of devbox adoption)
