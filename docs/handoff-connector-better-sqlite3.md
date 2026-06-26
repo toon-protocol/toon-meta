@@ -175,7 +175,7 @@ That message change is the canonical confirmation the claim service is loaded an
 
 ## Context for the connector team (optional reading)
 
-TOON Protocol is an ILP-gated Nostr relay system. Each "town" node hosts a Nostr relay that charges per-event publishing fees via ILP. The deployment topology is hierarchical: an apex connector (your image) is the public BTP entry point, and town/mill/dvm child nodes embed their own `ConnectorNode` instances that BTP-dial the apex as parent peers. A successful kind:1 publish requires:
+TOON Protocol is an ILP-gated Nostr relay system. Each "town" node hosts a Nostr relay that charges per-event publishing fees via ILP. The deployment topology is hierarchical: an apex connector (your image) is the public BTP entry point, and town/mill/store child nodes embed their own `ConnectorNode` instances that BTP-dial the apex as parent peers. A successful kind:1 publish requires:
 
 1. Client → apex BTP (over Anyone hidden service in our case): client signs balance proof
 2. Apex receives PREPARE, routes to town
