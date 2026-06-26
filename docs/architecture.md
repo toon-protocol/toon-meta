@@ -37,7 +37,7 @@ TOON Protocol is a polyrepo (under the `toon-protocol` org) whose packages organ
 ## Package Dependency Graph
 
 ```
-@toon-protocol/relay (launcher)
+@toon-protocol/town (launcher, pending rename/merge)
 ├── @toon-protocol/sdk
 │   └── @toon-protocol/core
 ├── @toon-protocol/relay (relay server)
