@@ -5,7 +5,7 @@ TOON is a **polyrepo** under the `toon-protocol` GitHub org. Code is shared via 
 | Repo | Packages / contents | Publishes | Owner |
 |------|---------------------|-----------|-------|
 | **toon** | `@toon-protocol/core`, `@toon-protocol/sdk` | npm libs (no image/CLI) | Platform |
-| **relay** | `@toon-protocol/relay`, `@toon-protocol/bls` (+ `town` launcher code-merge pending) | npm + `relay` image | Relay |
+| **relay** | `@toon-protocol/relay`, `@toon-protocol/bls` (+ relay launcher code-merge pending) | npm + `relay` image | Relay |
 | **swap** | `@toon-protocol/swap` | npm + `swap` image | Swap |
 | **store** | Arweave DVM build context (`Dockerfile.dvm` + entrypoint over sdk handler) | `store` image | Store |
 | **toon-client** | `@toon-protocol/client`, `@toon-protocol/client-mcp`, `@toon-protocol/rig`, `@toon-protocol/views` | npm + plugin | Client |
@@ -21,7 +21,7 @@ Strictly downward. The **connector** — the proxy-server layer at the edge — 
 
 ## Coupling rules
 
-- **npm semver** replaces in-tree `workspace:*`. Publish with **`pnpm publish`** (rewrites the workspace protocol) — **never `npm publish`** (it shipped the broken `sdk@0.5.0`/`town@0.4.0`).
+- **npm semver** replaces in-tree `workspace:*`. Publish with **`pnpm publish`** (rewrites the workspace protocol) — **never `npm publish`** (it shipped the broken `sdk@0.5.0`/`relay@0.4.0`).
 - **The connector pins image digests** for relay/swap/store, validated by a preflight against `constants.ts`.
 - **Agent context** is shared via this repo: `CLAUDE.md` in each code repo links here; the `toon-skills` plugin distributes the shared skills.
 - **Payment proxy.** The `connector` can act as a payment **proxy server** in front of any HTTP backend (onboard via x402 → transparent HTTP-in-ILP → HTTP→BTP upgrade). **Path A core is shipped on connector `main`** (proxy handler, x402 greeting, `h402Fetch`, RFC 9421, `RouteTermination`; proven live at `connector.pay.toonprotocol.dev`); only the devnet roundtrip harness (PR #245) and the `deploy/pay-edge/` bundle (PR #246) remain open PRs. See [`docs/payment-proxy.md`](../docs/payment-proxy.md).
@@ -47,8 +47,8 @@ The pet-game packages (`pet-dvm`, `pet-circuit`, `mina-zkapp` [the game one], `m
 
 ## Package names (final)
 
-`mill→swap` is the active published swap-package name, and cross-repo deps resolve cleanly. `@toon-protocol/mill` is fully gone (404); `@toon-protocol/swap` is the live swap package. The former operator product — `@toon-protocol/townhouse`, later renamed `@toon-protocol/hub`/`hub-web`/`hub-mcp` — is **removed**: the proxy-server role now lives in the **connector** itself. `@toon-protocol/townhouse` was already deprecated/redirected (completed 2026-06-22, issue #44), and the `hub*` packages are likewise deprecated. The wire vocabulary's **canonical term** is apex nodeId **`g.connector`**, child addresses `g.connector.<type>`, vhost `connector.<domain>/ilp` — used by the code, infra, and live edge. **Pending cleanup:** `origin/main` still carries ~60 legacy **`g.townhouse`** references to purge in favor of `g.connector` (and stray `terminator` from the older retired name); that is a naming-cleanup follow-up, not a "proxy rename". The `town`/`mill`/`dvm` node-**type** terms are a separate naming axis and remain live wire-protocol identifiers, left intact. Epic [toon-meta#42](https://github.com/toon-protocol/toon-meta/issues/42) swept the last stale `@toon-protocol/mill` ref in `store`.
+`mill→swap` is the active published swap-package name, and cross-repo deps resolve cleanly. `@toon-protocol/mill` is fully gone (404); `@toon-protocol/swap` is the live swap package. The former operator product — `@toon-protocol/townhouse`, later renamed `@toon-protocol/hub`/`hub-web`/`hub-mcp` — is **removed**: the proxy-server role now lives in the **connector** itself. `@toon-protocol/townhouse` was already deprecated/redirected (completed 2026-06-22, issue #44), and the `hub*` packages are likewise deprecated. The wire vocabulary's **canonical term** is apex nodeId **`g.connector`**, child addresses `g.connector.<type>`, vhost `connector.<domain>/ilp` — used by the code, infra, and live edge. **Pending cleanup:** `origin/main` still carries ~60 legacy **`g.townhouse`** references to purge in favor of `g.connector` (and stray `terminator` from the older retired name); that is a naming-cleanup follow-up, not a "proxy rename". The node-type terms have been renamed to match product packages: relay / store / swap. Epic [toon-meta#42](https://github.com/toon-protocol/toon-meta/issues/42) swept the last stale `@toon-protocol/mill` ref in `store`.
 
 ## Outstanding follow-ups
 
-`town→relay` code merge (launcher still a separate repo), `store` trim-to-dvm, image-publish workflows + connector image-manifest, optional `TransportConfig` decoupling. See the split plan / repo `CLAUDE.md`s.
+relay launcher repo merge (still a separate repo), `store` trim-to-dvm, image-publish workflows + connector image-manifest, optional `TransportConfig` decoupling. See the split plan / repo `CLAUDE.md`s.

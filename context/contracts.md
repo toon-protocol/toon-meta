@@ -6,7 +6,7 @@ How the TOON repos talk to each other, and where each contract's **source of tru
 
 When repo B `npm install`s repo A's package, the published **`.d.ts` + semver** *is* the contract and the TS compiler enforces it. Discipline:
 
-- Publish with **`pnpm publish`** (rewrites `workspace:*`); never `npm publish`. (See the broken `sdk@0.5.0`/`town@0.4.0`/`bls@1.2.0` for what happens otherwise.)
+- Publish with **`pnpm publish`** (rewrites `workspace:*`); never `npm publish`. (See the broken `sdk@0.5.0`/`relay@0.4.0`/`bls@1.2.0` for what happens otherwise.)
 - The toon↔connector boundary is guarded by the **canary test** `packages/sdk/tests/integration/connector-contract.test.ts` + `CONNECTOR_RELEASE_CONTRACT.md`. Replicate this pattern on any boundary that matters.
 
 This layer is in good shape; no shared schema package is needed for it.

@@ -1,50 +1,50 @@
-# Town Guide
+# Relay Guide
 
-`@toon-protocol/town` is a production-ready relay node built on `@toon-protocol/sdk`. It provides a complete Nostr relay with an embedded ILP connector, payment validation, SQLite storage, WebSocket serving, and automatic bootstrap — all in a single function call or CLI command.
+`@toon-protocol/relay` is a production-ready relay node built on `@toon-protocol/sdk`. It provides a complete Nostr relay with an embedded ILP connector, payment validation, SQLite storage, WebSocket serving, and automatic bootstrap — all in a single function call or CLI command.
 
-## Where Town Sits in the Stack
+## Where Relay Sits in the Stack
 
 ```
-@toon-protocol/town
-├── startTown() / CLI          ← You configure here
+@toon-protocol/relay
+├── startRelay() / CLI         ← You configure here
 ├── @toon-protocol/sdk             ← Verification, pricing, handlers
 │   └── @toon-protocol/core        ← Bootstrap, discovery
 ├── @toon-protocol/relay           ← WebSocket relay, event store
 └── Embedded ILP Connector     ← Payment routing (included)
 ```
 
-Town composes everything the SDK provides into an opinionated, ready-to-run relay. The ILP connector is embedded by default — no external connector needed. If you need custom handlers or different storage, use the [SDK](sdk-guide.md) directly.
+Relay composes everything the SDK provides into an opinionated, ready-to-run relay. The ILP connector is embedded by default — no external connector needed. If you need custom handlers or different storage, use the [SDK](sdk-guide.md) directly.
 
 ## Quick Start
 
 ### CLI
 
 ```bash
-npx @toon-protocol/town \
+npx @toon-protocol/relay \
   --mnemonic "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 ```
 
 ### Programmatic
 
 ```typescript
-import { startTown } from '@toon-protocol/town';
+import { startRelay } from '@toon-protocol/relay';
 
-const town = await startTown({
+const relay = await startRelay({
   mnemonic: 'abandon abandon abandon ...',
 });
 
-console.log(`Relay running on ws://localhost:${town.config.relayPort}`);
-console.log(`BLS running on http://localhost:${town.config.blsPort}`);
-console.log(`Pubkey: ${town.pubkey}`);
-console.log(`Peers: ${town.bootstrapResult.peerCount}`);
+console.log(`Relay running on ws://localhost:${relay.config.relayPort}`);
+console.log(`BLS running on http://localhost:${relay.config.blsPort}`);
+console.log(`Pubkey: ${relay.pubkey}`);
+console.log(`Peers: ${relay.bootstrapResult.peerCount}`);
 
 // Later...
-await town.stop();
+await relay.stop();
 ```
 
 ## Configuration
 
-### TownConfig
+### RelayConfig
 
 | Option | Type | Default | Required | Purpose |
 |--------|------|---------|----------|---------|
@@ -89,7 +89,7 @@ announcement (legacy behavior).
 ### CLI Flags
 
 ```
-npx @toon-protocol/town [options]
+npx @toon-protocol/relay [options]
 
 Options:
   --mnemonic <phrase>          BIP-39 mnemonic for node identity
@@ -106,7 +106,7 @@ Options:
 
 ## What Happens on Start
 
-When `startTown()` is called, it performs these steps in order:
+When `startRelay()` is called, it performs these steps in order:
 
 1. Validate identity (mnemonic XOR secretKey — exactly one required)
 2. Derive identity (Nostr pubkey + EVM address from key)
@@ -122,31 +122,31 @@ When `startTown()` is called, it performs these steps in order:
 12. Track running state
 13. Execute bootstrap (discover peers, register, announce)
 14. Set up outbound subscription tracking
-15. Return `TownInstance`
+15. Return `RelayInstance`
 
-## TownInstance API
+## RelayInstance API
 
 ### `isRunning(): boolean`
 
-Check if the town is currently running.
+Check if the relay is currently running.
 
 ### `stop(): Promise<void>`
 
 Gracefully shut down all services — close WebSocket connections, stop HTTP server, clean up subscriptions.
 
-### `subscribe(relayUrl, filter): TownSubscription`
+### `subscribe(relayUrl, filter): RelaySubscription`
 
 Open a WebSocket subscription to a remote relay. Received events are stored in the local event store.
 
 ```typescript
-const sub = town.subscribe('ws://other-relay:7100', { kinds: [1] });
+const sub = relay.subscribe('ws://other-relay:7100', { kinds: [1] });
 console.log(sub.isActive());  // true
 sub.close();
 ```
 
-Validates WebSocket URL scheme (must be `ws://` or `wss://`). Throws if town is not running.
+Validates WebSocket URL scheme (must be `ws://` or `wss://`). Throws if relay is not running.
 
-Subscriptions are tracked and cleaned up automatically when `town.stop()` is called.
+Subscriptions are tracked and cleaned up automatically when `relay.stop()` is called.
 
 ### Properties
 
@@ -154,12 +154,12 @@ Subscriptions are tracked and cleaned up automatically when `town.stop()` is cal
 |----------|------|-------------|
 | `pubkey` | `string` | Node's Nostr public key |
 | `evmAddress` | `string` | Node's EVM address |
-| `config` | `ResolvedTownConfig` | Resolved configuration with defaults |
+| `config` | `ResolvedRelayConfig` | Resolved configuration with defaults |
 | `bootstrapResult` | `{ peerCount, channelCount }` | Bootstrap outcome |
 
 ## Event Storage
 
-Town uses `createEventStorageHandler()` to handle incoming events:
+Relay uses `createEventStorageHandler()` to handle incoming events:
 
 1. Decode TOON payload to NostrEvent
 2. Store in SQLite via EventStore

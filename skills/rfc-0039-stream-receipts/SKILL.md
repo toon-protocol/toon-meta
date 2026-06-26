@@ -13,7 +13,7 @@ STREAM receipts are signed records a STREAM receiver issues to prove how much it
 
 - **Proof of payment = the signed payment-channel claim.** Each paid write produces a counterparty-signed **balance-proof claim** (`payment-channel-claim`, see `rfc-0023`) asserting a monotonically-increasing `nonce` and cumulative `transferredAmount` against an on-chain channel deposit. The claim is itself the non-repudiable proof: the payer signed it (EIP-712 / Ed25519 / Pallas), and it can be redeemed on-chain.
 - **On-chain settlement is the final proof.** When a threshold is crossed, the connector redeems the latest claim on the underlying chain (`claimFromChannel` → `settleChannel`/`closeChannel`), producing an on-chain transaction — the strongest form of payment proof.
-- **Proof of delivery = the ILP FULFILL.** A FULFILL returned by the destination (e.g. the town relay accepting an event, or the kind:5094 DVM returning an Arweave tx id in the FULFILL `data`) is the receiver's acknowledgment that it received and acted on the packet. A REJECT means it was not accepted.
+- **Proof of delivery = the ILP FULFILL.** A FULFILL returned by the destination (e.g. the relay accepting an event, or the kind:5094 DVM returning an Arweave tx id in the FULFILL `data`) is the receiver's acknowledgment that it received and acted on the packet. A REJECT means it was not accepted.
 
 ## What to tell a user asking "where's my receipt?"
 

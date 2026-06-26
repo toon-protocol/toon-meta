@@ -22,7 +22,7 @@ The authoritative implementation is **`@toon-protocol/connector`** — the apex 
 
 ## The compliance contract that actually matters
 
-For TOON, the binding "requirements" are not the abstract RFC but the connector's **release/version contract**, because TOON's SDK and town/dvm/mill depend on a specific connector API:
+For TOON, the binding "requirements" are not the abstract RFC but the connector's **release/version contract**, because TOON's SDK and relay/store/swap depend on a specific connector API:
 
 - `packages/sdk/CONNECTOR_RELEASE_CONTRACT.md` — semver discipline for the connector.
 - `packages/sdk/CONNECTOR_MIGRATION.md` — version-to-version API contract + migration history.
