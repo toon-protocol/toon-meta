@@ -11,7 +11,7 @@
 
 ```bash
 git clone https://github.com/toon-protocol/relay.git
-cd toon
+cd relay
 
 pnpm install        # Install dependencies
 pnpm build          # Build all packages
