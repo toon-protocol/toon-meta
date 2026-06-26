@@ -10,7 +10,7 @@ Implements RFC 0015 hierarchical ILP addressing as TOON's routing scheme. TOON u
 ## How TOON uses this RFC
 
 - **The apex is `g.proxy`.** The connector (the parent of every apex deployment) routes under this prefix.
-- **Child nodes resolve under the apex.** The town relay is `g.proxy.town`; dvm and mill children sit alongside (e.g. `g.proxy.<child>`). A client publishing to the default relay uses destination `g.proxy.town`.
+- **Child nodes resolve under the apex.** The town relay is `g.proxy.town`; store and mill children sit alongside (e.g. `g.proxy.<child>`). A client publishing to the default relay uses destination `g.proxy.town`.
 - **Longest-prefix routing.** The connector matches a packet's destination address against its routing table by longest prefix, so `g.proxy.town` routes to the town child while `g.proxy` (or an unmatched suffix) is handled by the apex itself.
 - **Hierarchical structure mirrors topology.** The address hierarchy *is* the parent/child topology: the prefix relationship (`g.proxy` parent of `g.proxy.town` child) is what the free-forward rule keys on (see `rfc-0032`).
 

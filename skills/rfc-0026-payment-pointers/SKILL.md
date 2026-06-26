@@ -11,7 +11,7 @@ A payment pointer (`$example.com/alice`) is a human-friendly handle that resolve
 
 **TOON has no payment pointers.** There is no `$`-prefixed handle and no HTTPS payment-pointer resolution anywhere in production. Because TOON also skips SPSP (`rfc-0009`), the entire payment-pointer → SPSP resolution chain is absent. TOON addresses things two ways instead:
 
-- **ILP addresses** identify the routing destination. The apex connector is `g.proxy`; child nodes resolve under it — e.g. the relay is `g.proxy.town`, with dvm/mill children alongside. These are hierarchical `g.*` addresses routed by longest-prefix match (see `rfc-0015`). This is what a client puts in a packet's `destination`.
+- **ILP addresses** identify the routing destination. The apex connector is `g.proxy`; child nodes resolve under it — e.g. the relay is `g.proxy.town`, with store/mill children alongside. These are hierarchical `g.*` addresses routed by longest-prefix match (see `rfc-0015`). This is what a client puts in a packet's `destination`.
 - **Nostr identity (npub / hex pubkey)** identifies *who* an actor is — the publisher of an event, a DVM provider, a swap counterparty. Identity is a secp256k1 keypair, not a URL.
 - **Discovery** of a node's ILP address + reachable endpoints is via **kind:10032** peer-info events on the relay (free reads), not via resolving a pointer.
 
