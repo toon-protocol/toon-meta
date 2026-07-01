@@ -115,7 +115,7 @@ framing.
 
 ### ILP address conventions
 
-The proxy apex's on-wire nodeId is **`g.proxy`** (renamed from the legacy `g.townhouse` in Epic 42).
+The proxy apex's on-wire nodeId is **`g.proxy`**.
 Child services addressed off the apex follow the `g.proxy.<type>` scheme — e.g. the relay is
 `g.proxy.relay`. Clients pay `g.proxy`; the apex validates, takes a fee, and free-forwards to
 children. Operator env vars use the **`PROXY_*`** prefix (e.g. `PROXY_MNEMONIC` for the seed

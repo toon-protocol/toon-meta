@@ -6,6 +6,8 @@ Mechanically, the Rig is just a frontend that **interprets events**. State on TO
 
 The Rig itself can be deployed to Arweave, making the entire stack — data and UI — permanent and decentralized.
 
+The UI is branded **"The Rig"** (a cleanup PR is renaming the remaining "TOON Forge" branding in the header and page title to match).
+
 ## Not a GitHub clone
 
 Today the Rig interprets the **NIP-34 git event vocabulary** (repository announcements, refs, issues, patches) backed by git objects stored on Arweave, so it *presents* as a read-only git forge. But it is not a GitHub clone, and "git host" is not the ceiling of what it is:
@@ -54,29 +56,22 @@ pnpm build
 
 Output goes to `packages/rig/dist/` — a static directory you can serve from anywhere.
 
-### Deploy to Arweave
+### Deploy
 
-```bash
-# Free tier (testing, <=100KB per file)
-node scripts/deploy-forge-ui.mjs --dev
+The build output is a plain static directory — serve `packages/rig/dist/` from any static host (nginx, Caddy, object storage, an Arweave gateway).
 
-# Paid (no size limit, requires Arweave JWK wallet with Turbo credits)
-node scripts/deploy-forge-ui.mjs --wallet ~/.arweave/wallet.json --confirm
-
-# Dry run (build only, no upload)
-node scripts/deploy-forge-ui.mjs --dry-run
-```
-
-The deploy script builds the SPA, uploads each file to Arweave via ArDrive Turbo, and creates a path manifest. The result is a single Arweave transaction ID that serves the entire app:
+For a fully decentralized deployment, upload the built files to Arweave (e.g. via ArDrive Turbo) and create a path manifest; the manifest's transaction ID then serves the entire app from any gateway:
 
 ```
 https://ar-io.dev/<manifest-txId>/#relay=wss://relay.example
 ```
 
+> Note: the old dedicated deploy script (`scripts/deploy-forge-ui.mjs`) no longer ships in `toon-client` — deployment is just "build, then publish `dist/`" via whatever static/Arweave tooling you prefer.
+
 Bake in a default relay at build time:
 
 ```bash
-VITE_DEFAULT_RELAY=wss://relay.toon-protocol.org node scripts/deploy-forge-ui.mjs --dev
+VITE_DEFAULT_RELAY=wss://relay.toon-protocol.org pnpm build
 ```
 
 ## Relay Configuration
@@ -133,22 +128,15 @@ The Rig detects `README.md` (or `readme.md`, `README`, `README.txt`) in the repo
 | `1630`-`1633` | NIP-34 | PR status (open, merged, closed, draft) |
 | `0` | NIP-01 | User profiles (for display names) |
 
-**Arweave Gateways (HTTPS)** — Git objects are fetched with fallback across three gateways:
-
-1. `ar-io.dev` (primary)
-2. `arweave.net` (fallback)
-3. `permagate.io` (fallback)
+**Arweave Gateways (HTTPS)** — the gateway preference list is no longer hardcoded in the Rig: it is owned by the shared **`@toon-protocol/arweave`** package (the single source of truth for gateway ordering and fetch timeouts, also used by `views` and the `client-mcp` daemon). The default order is `ar-io.dev` (primary) → `arweave.net` → `permagate.io`, with automatic failover. The list can be overridden — the `client-mcp` daemon honors the `TOON_CLIENT_ARWEAVE_GATEWAYS` env var (comma-separated); the browser Rig uses the package defaults.
 
 SHA-to-txId resolution uses Arweave GraphQL, filtered by `Git-SHA` and `Repo` tags. Results are cached in-memory (bounded to 10,000 entries). When `kind:30618` events include `arweave` tags with pre-mapped SHA→txId pairs, the Rig seeds its cache directly — avoiding the GraphQL indexing delay after fresh uploads.
 
-### No External Dependencies
+### Browser-Only Stack
 
-The Rig has exactly two runtime dependencies:
+The Rig was rewritten as a **React 19 + shadcn/ui SPA** (React Router 7, Radix UI primitives, Tailwind CSS 4, Shiki for syntax highlighting), sharing `@toon-protocol/views` components and the `@toon-protocol/arweave` gateway package. `@toon-format/toon` decodes TOON-format relay responses.
 
-- `@toon-format/toon` — Decodes TOON format relay responses
-- `marked` — Markdown rendering
-
-No React, no framework, no nostr-tools, no Node.js APIs. Everything runs in the browser with native `fetch()` and `WebSocket`.
+What still matters is what *hasn't* changed: it is **browser-only**. There is no backend, no server-side rendering, no Node.js runtime — the build output is static files, and all data access is native `fetch()` (Arweave) and `WebSocket` (relay) from the browser. No origin server holds or interprets the state.
 
 ### Security
 
@@ -204,4 +192,10 @@ The Rig is currently **read-only**. These capabilities are stubbed for future ph
 - Git push / receive-pack
 - Git clone / upload-pack (read-only serving)
 
-Write operations will require a TOON client (with ILP payments) to publish NIP-34 events to the relay and upload git objects to Arweave via the blob storage DVM.
+Write operations go through a TOON client paying the connector payment proxy: NIP-34 events are published to the relay (paid ILP writes), and git objects are uploaded to the Arweave store (a paid `POST /store` to the payment-oblivious store backend behind the proxy). The Rig itself stays read-only — clients that hold keys and pay (CLI / MCP) do the writing.
+
+## Agent Orchestration — the Next Vocabulary
+
+NIP-34 git is the Rig's first event vocabulary, not its last. The **verifiable swarm-market epic** ([toon-meta#84](https://github.com/toon-protocol/toon-meta/issues/84)) is the incentive layer of this same control plane: propositions about agent work ("bug #142 merged by Friday") become parimutuel markets whose stakes stay escrowed in the betters' own payment channels, and **resolver DVMs** decide the outcome by evaluating a frozen predicate over the signed NIP-34 event log — the **same events the Rig renders are the oracle log**. A worker's YES bet doubles as task claim, lock, and delivery bond; doubters' NO stakes fund the work.
+
+Nothing new is needed on the read side: the Rig remains the read-only view onto that control plane, rendering the tasks, claims, and lifecycle events that the resolvers later read as evidence. Writes (bets, claims, work products) happen via CLI/MCP clients that hold keys and pay over ILP, exactly as with git writes above.
