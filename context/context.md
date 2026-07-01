@@ -14,7 +14,7 @@ Guiding thesis: **"sending a message and sending money are the same action."** E
 - **store** — NIP-90 **Arweave DVM** (kind:5094): pay to store a blob permanently; the FULFILL returns the Arweave tx id.
 - **swap** — multi-chain swap peer: pay asset A, receive a signed target-chain claim redeemable for asset B (EVM / Solana / Mina).
 
-Operators run the **connector as a proxy-server layer** — the apex (nodeId `g.connector`) sitting in front of child relay/swap/store containers. Clients pay the proxy over BTP; it validates, fees, and **free-forwards** to the child.
+Operators run the **connector as a proxy-server layer** — the apex (nodeId `g.proxy`) sitting in front of child relay/swap/store containers. Clients pay the proxy over BTP; it validates, fees, and **free-forwards** to the child.
 
 ## Current state (2026-06)
 
