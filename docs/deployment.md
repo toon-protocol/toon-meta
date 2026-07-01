@@ -167,7 +167,7 @@ backend fronted by the connector proxy, verified by a real paid round-trip (paid
 USDC settlement). The Path A **core is shipped on connector `main`**; the
 `deploy/pay-edge/` bundle itself is in connector PR #246 (the devnet multi-chain roundtrip
 harness is in connector PR #245). See
-[deploy-app-guide.md → Path A](deploy-app-guide.md#path-a--payment-proxy-front-an-http-app-).
+[deploy-app-guide.md → Path A](deploy-app-guide.md#path-a--payment-proxy-front-an-http-app).
 
 ## Town CLI
 
