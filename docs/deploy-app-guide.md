@@ -13,8 +13,10 @@ upgrade to a duplex BTP session; your backend never changes and never sees payme
 client shim, RFC 9421 claim↔request binding, and the `RouteTermination` config surface all exist
 on `main` and were verified by a real paid round-trip — proven live at
 `connector.pay.toonprotocol.dev`. Still open: the devnet multi-chain roundtrip harness (connector
-PR #245) and the `deploy/pay-edge/` deploy bundle (connector PR #246); the only remaining future
-item is transparent cross-chain FX.
+PR #245) and the `deploy/pay-edge/` deploy bundle (connector PR #246). Two future items remain
+tracked in the epic: transparent cross-chain FX (Story 44.12, `connector#223`) and full RFC 9421
+hardening beyond the shipped MVP claim↔request binding — replay cache, JWKS/`.well-known`,
+content-digest canonicalisation, key lifecycle (Story 44.13, `connector#224`).
 
 Start here:
 - [`payment-proxy.md`](./payment-proxy.md) — the RFC: architecture, the x402/BTP three-rung
@@ -30,7 +32,7 @@ Build your app directly on TOON's protocol primitives instead of fronting an exi
 your handlers speak Nostr events and ILP claims natively, with no HTTP-passthrough layer in
 between.
 
-**Status: shipped, in production use.** `@toon-protocol/sdk` (identity, signature verification,
+**Status: shipped, production-ready.** `@toon-protocol/sdk` (identity, signature verification,
 pricing, handler dispatch) and `@toon-protocol/town` (a production-ready relay with an embedded
 ILP connector, one command to run) are both published packages.
 
