@@ -1,6 +1,6 @@
 # Rig Guide
 
-The Rig (`@toon-protocol/rig-web`) is a **decentralized control plane** for the TOON Protocol that runs entirely in the browser as a static SPA — no backend, no accounts, no servers. (The npm name `@toon-protocol/rig` belongs to the *write-path* package that ships the `rig` CLI — see [the write path](#writing-to-the-rig--the-write-path) below.)
+The Rig (`@toon-protocol/rig-web`) is a **decentralized control plane** for the TOON Protocol that runs entirely in the browser as a static SPA — no backend, no accounts, no servers. The standing deployment is **<https://toon-protocol.github.io/toon-client/>** (interim GitHub Pages host, devnet-pointed; the Arweave-permanent deploy is pending a funded Turbo JWK — see [Deploy](#deploy)). (The npm name `@toon-protocol/rig` belongs to the *write-path* package that ships the `rig` CLI — see [the write path](#writing-to-the-rig--the-write-path) below.)
 
 Mechanically, the Rig is just a frontend that **interprets events**. State on TOON lives as Nostr events carried over the wire as packets — writes are ILP-paid PREPARE packets into a relay, reads are free WebSocket subscriptions — and the bulky git objects (commits, trees, blobs) are fetched from Arweave gateways. The Rig subscribes, decodes those events, and renders them. There is no server deciding what the data means; the frontend does.
 
@@ -41,7 +41,7 @@ cd packages/rig-web
 pnpm dev
 ```
 
-Opens a Vite dev server. By default connects to `wss://localhost:7100` — override with `VITE_DEFAULT_RELAY`:
+Opens a Vite dev server. By default connects to `ws://localhost:7100` — override with `VITE_DEFAULT_RELAY`:
 
 ```bash
 VITE_DEFAULT_RELAY=wss://relay.example pnpm dev
@@ -59,6 +59,8 @@ Output goes to `packages/rig-web/dist/` — a static directory you can serve fro
 ### Deploy
 
 The build output is a plain static directory — serve `packages/rig-web/dist/` from any static host (nginx, Caddy, object storage, an Arweave gateway).
+
+The **standing deployment** is GitHub Pages: <https://toon-protocol.github.io/toon-client/> — the devnet-pointed build on the `gh-pages` branch. This is the interim, centralized host; the Arweave-permanent deploy is currently blocked on a funded Turbo JWK (the free ArDrive Turbo tier caps single files at 105 KiB, which four build outputs exceed) — see `packages/rig-web/README.md` for the unblock details. Point the deployed SPA at any relay without rebuilding: `…/toon-client/#relay=wss://relay.example`.
 
 For a fully decentralized deployment, upload the built files to Arweave (e.g. via ArDrive Turbo) and create a path manifest; the manifest's transaction ID then serves the entire app from any gateway:
 
@@ -78,7 +80,7 @@ VITE_DEFAULT_RELAY=wss://relay.toon-protocol.org pnpm build
 
 The Rig resolves its relay URL in priority order:
 
-1. **URL hash fragment** — `#relay=wss://relay.example` (preferred — shareable, works on all Arweave gateways)
+1. **URL hash fragment** — `#relay=wss://relay.example` (preferred — shareable, works on all Arweave gateways). The SPA uses a hash router, so boot code rewrites the bare fragment in place to the router-safe `#/?relay=…` before the router mounts ([toon-client#266](https://github.com/toon-protocol/toon-client/issues/266)) — both forms work.
 2. **Query parameter** — `?relay=wss://relay.example` (legacy — auto-migrated to hash)
 3. **Build-time default** — `VITE_DEFAULT_RELAY` env var baked into the Vite build
 
@@ -184,40 +186,56 @@ The optional `arweave` tags map git SHAs to Arweave transaction IDs, allowing th
 
 ## Writing to the Rig — the Write Path
 
-The Rig SPA itself stays read-only — it holds no keys and pays for nothing. Writes come from **clients that hold keys and pay** the connector payment proxy: NIP-34 events are published to the relay (paid ILP writes), and git objects are uploaded to the Arweave store (a paid `POST /store` to the payment-oblivious store backend behind the proxy). That write path is **shipped** ([toon-client#222](https://github.com/toon-protocol/toon-client/issues/222); git-native v0.2 UX in [toon-client#246](https://github.com/toon-protocol/toon-client/issues/246)), on two surfaces:
+The Rig SPA itself stays read-only — it holds no keys and pays for nothing. Writes come from **clients that hold keys and pay** the connector payment proxy: NIP-34 events are published to the relay (paid ILP writes), and git objects are uploaded to the Arweave store (a paid `POST /store` to the payment-oblivious store backend behind the proxy). That write path is **shipped** ([toon-client#222](https://github.com/toon-protocol/toon-client/issues/222); git-native v0.2 UX in [toon-client#246](https://github.com/toon-protocol/toon-client/issues/246); official-client parity in [toon-client#261](https://github.com/toon-protocol/toon-client/issues/261)).
 
-- **The `rig` CLI** — shipped by [`@toon-protocol/rig`](https://github.com/toon-protocol/toon-client/tree/main/packages/rig) (the old `@toon-protocol/git` package name is deprecated on npm). rig is a **1:1 git experience with a TOON remote**: it owns a handful of TOON verbs — `rig init`, `rig remote add/remove/list`, `rig push`, `rig issue create`, `rig comment`, `rig pr create`, `rig pr status` — and **every other command passes through to system git verbatim** (`rig status` IS `git status`).
-- **The `toon_git_*` MCP tools** — shipped by `@toon-protocol/client-mcp`, so Claude (Code or Desktop) drives the same path through the `toon-clientd` daemon: `toon_git_push`, `toon_git_issue`, `toon_git_comment`, `toon_git_patch`, `toon_git_status`.
+### Official client implementations
+
+There are two **official TOON client implementations**, peers of each other, both built over `@toon-protocol/client`:
+
+1. **`toon-clientd` + the `toon_*`/`toon_git_*` MCP tools** — the **agent-host client**. A long-running daemon holds the identity and channels; Claude (Desktop or Code) drives it conversationally over MCP (`@toon-protocol/client-mcp`): `toon_publish`, `toon_fund_wallet`, `toon_open_channel`, and the git verbs `toon_git_push`, `toon_git_issue`, `toon_git_comment`, `toon_git_patch`, `toon_git_status`.
+2. **The Rig** — the **git-native client**: the `rig` CLI ([`@toon-protocol/rig`](https://github.com/toon-protocol/toon-client/tree/main/packages/rig), the old `@toon-protocol/git` name is deprecated on npm) plus the read-only rig-web SPA. The CLI is **standalone — no daemon**: it embeds its own payment client, bootstraps the full payment topology from a bare mnemonic (network discovery below), owns the whole money lifecycle (`rig fund`, `rig channel open|close|settle`, `rig balance`), and is a **1:1 git experience with a TOON remote** — it owns the TOON verbs (`rig init`, `rig remote add/remove/list`, `rig push`, `rig issue create`, `rig comment`, `rig pr create`, `rig pr status`, `rig fund`, `rig balance`, `rig channel …`) and **every other command passes through to system git verbatim** (`rig status` IS `git status`).
+
+**When to reach for which:** in an agent host (Claude Desktop/Code) use the daemon + MCP tools — the daemon's key signs and its channels pay, and the confirm gate is tool-call policy. In a terminal, in CI, or anywhere git lives, use the Rig — mnemonic-only bootstrap, no long-running process, and a strict `--json` contract for scripts and agent consumers (stdout carries exactly one JSON document; everything human-facing goes to stderr, so `rig <command> --json | jq` always parses). The Rig is a peer implementation, not a demo: a fresh user with only a mnemonic can install, fund, and transact like any first-class client, daemon-free — the journey was proven end-to-end on devnet ([toon-client#261](https://github.com/toon-protocol/toon-client/issues/261)).
 
 Both follow the same discipline: **estimate → confirm → execute**. Every write quotes its fee before spending, and every write is **permanent and non-refundable** — events cannot be unpublished, uploads cannot be deleted.
 
 ### Quickstart
 
+The full fresh-outsider journey, as proven on devnet — the mnemonic, `rig init`, and `rig remote add origin` are the ONLY hand-fed inputs; everything else (uplink, ILP routes, settlement chain, contract addresses) is discovered from the network:
+
 ```sh
-npm install -g @toon-protocol/rig @toon-protocol/client
+npm install -g @toon-protocol/rig
 
 # 1. identity — a BIP-39 seed phrase, in your environment…
 export RIG_MNEMONIC="abandon abandon … about"
 #    …or in a project-local .env (gitignore it!):
 echo 'RIG_MNEMONIC="abandon abandon … about"' >> .env
 
-# 2. one-shot repo setup (free, idempotent)
+# 2. money (devnet: free faucet drip; elsewhere prints addresses to fund)
+rig fund
+rig balance                  # wallet balances + channel holdings (free)
+
+# 3. one-shot repo setup (free, idempotent)
 rig init
 
-# 3. add your relay as an origin — a REAL git remote
+# 4. add your relay as an origin — a REAL git remote
 rig remote add origin wss://relay.example
 
-# 4. work exactly like git — unowned commands pass through to system git
+# 5. work exactly like git — unowned commands pass through to system git
 rig add -p && rig commit -m "fix"
 
-# 5. push (paid) — estimate → confirm → execute, defaults to origin
+# 6. push (paid) — estimate → confirm → execute, defaults to origin.
+#    The first paid command opens the payment channel lazily and records
+#    it; later invocations resume the same channel (rig channel list).
 rig push
 ```
+
+Every rig-owned command takes `--json` for machine consumers — the strict contract guarantees exactly one JSON document on stdout with all human-facing output on stderr. The pushed repo is browsable immediately in the standing SPA: <https://toon-protocol.github.io/toon-client/>.
 
 ### Install & prerequisites
 
 1. **Node 22+ and `git`** on PATH — the CLI reads your local repository with real git plumbing, and unowned subcommands are executed by your system git.
-2. **The CLI:** `npm install -g @toon-protocol/rig` (ships the `rig` bin). Install `@toon-protocol/client` alongside it — the optional peer the embedded payment client is built from. The old `@toon-protocol/git` package is deprecated; uninstall it.
+2. **The CLI:** `npm install -g @toon-protocol/rig` (ships the `rig` bin). `@toon-protocol/client` — the embedded payment client — is a regular dependency and installs automatically ([toon-client#259](https://github.com/toon-protocol/toon-client/issues/259) made the bare global install work from the registry; it is no longer an optional peer you add yourself). The old `@toon-protocol/git` package is deprecated; uninstall it.
 3. **A TOON identity that can pay.** The CLI is **standalone-only** — it embeds its own payment client built from your seed phrase; there is no daemon mode in the CLI (the daemon path lives on as the `toon_git_*` MCP tools). The mnemonic is resolved along one precedence chain — highest first:
    1. `RIG_MNEMONIC` environment variable
    2. `TOON_CLIENT_MNEMONIC` environment variable — deprecated alias for the CLI, warns on stderr; rename it to `RIG_MNEMONIC` (the `toon-clientd` daemon itself still uses `TOON_CLIENT_MNEMONIC` — only the CLI alias is deprecated)
@@ -226,7 +244,23 @@ rig push
 
    Every paid command reports which source is active and the derived pubkey (`Identity: <pubkey> (from …)`, and an `identity` object in `--json` output) — the phrase itself is never printed and never written to git config or any repo file.
 
-**Funding is owner-side — there is no x402 onboarding in this path.** The repo owner self-funds a payment channel before the first push, using the existing client flows: `toon_fund_wallet` (get funds onto the settlement chain) and `toon_open_channel` (open the channel writes spend from). `rig` then spends from the channel your identity already holds; if you can `toon_publish`, you can `rig push`.
+**Funding is owner-side — there is no x402 onboarding in this path.** The repo owner self-funds before the first push, and since [toon-client#263](https://github.com/toon-protocol/toon-client/issues/263) the CLI owns the full money lifecycle itself:
+
+- **`rig fund`** — free: drips devnet faucet funds to the active identity's wallet (`--chain evm|solana|mina`); on other networks it prints the derived address(es) to fund externally.
+- **`rig balance`** — free: on-chain wallet balances plus recorded payment-channel holdings, reading the actual settlement chain the bootstrap selected.
+- **`rig channel list | open | close | settle`** — `list` shows the channels paid commands hold (free); `open` explicitly opens (or resumes) the channel for a peer, with `--deposit` to add collateral; `close` starts the on-chain settlement challenge window; `settle` releases the remaining collateral after it elapses.
+
+You don't have to open a channel by hand: the first paid command opens one lazily, **records it under `~/.toon-client` (`rig-channels.json`), and every later invocation resumes the same channel** instead of opening a new one per run ([toon-client#262](https://github.com/toon-protocol/toon-client/issues/262)). The daemon flows (`toon_fund_wallet`, `toon_open_channel`) remain the MCP-host equivalents; if you can `toon_publish`, you can `rig push`.
+
+### Network bootstrap — zero hand-fed topology
+
+Standalone rig resolves the payment topology — uplink, ILP destinations/routes, settlement chain and its on-chain parameters — **from the network itself**, not from hand-fed constants ([toon-client#264](https://github.com/toon-protocol/toon-client/issues/264)). Per field, first hit wins:
+
+1. **Explicit user config** — env vars / shared client-config file fields (always available as an override).
+2. **Live `kind:10032` announce** — the payment peer's `IlpPeerInfo` event discovered on the relay the paid command resolved via `rig remote` (uplink endpoints, ILP channel anchor, supported chains + settlement addresses, publish/store routes).
+3. **Genesis seed** — `@toon-protocol/core`'s committed genesis peer seed (core ≥ 2.0.1 ships the live devnet apex), the offline fallback when the relay is unreachable or serves no valid announce.
+
+Settlement-chain selection is equally predictable: explicit config → the chain of the most recently used recorded channel (collateral is already locked there) → the first announced EVM chain where the identity holds a balance → the first announced chain, with a printed rationale. Net effect: a bare mnemonic plus a relay URL is a complete configuration.
 
 ### Repo setup — `rig init` and relays as origins
 
