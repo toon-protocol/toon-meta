@@ -1,6 +1,6 @@
 # Rig Guide
 
-The Rig (`@toon-protocol/rig`) is a **decentralized control plane** for the TOON Protocol that runs entirely in the browser as a static SPA — no backend, no accounts, no servers.
+The Rig (`@toon-protocol/rig-web`) is a **decentralized control plane** for the TOON Protocol that runs entirely in the browser as a static SPA — no backend, no accounts, no servers. (The npm name `@toon-protocol/rig` belongs to the *write-path* package that ships the `rig` CLI — see [the write path](#writing-to-the-rig--the-write-path) below.)
 
 Mechanically, the Rig is just a frontend that **interprets events**. State on TOON lives as Nostr events carried over the wire as packets — writes are ILP-paid PREPARE packets into a relay, reads are free WebSocket subscriptions — and the bulky git objects (commits, trees, blobs) are fetched from Arweave gateways. The Rig subscribes, decodes those events, and renders them. There is no server deciding what the data means; the frontend does.
 
@@ -37,7 +37,7 @@ All reads are free — the relay is ILP-gated for writes, but subscriptions cost
 ### Development
 
 ```bash
-cd packages/rig
+cd packages/rig-web
 pnpm dev
 ```
 
@@ -50,15 +50,15 @@ VITE_DEFAULT_RELAY=wss://relay.example pnpm dev
 ### Production Build
 
 ```bash
-cd packages/rig
+cd packages/rig-web
 pnpm build
 ```
 
-Output goes to `packages/rig/dist/` — a static directory you can serve from anywhere.
+Output goes to `packages/rig-web/dist/` — a static directory you can serve from anywhere.
 
 ### Deploy
 
-The build output is a plain static directory — serve `packages/rig/dist/` from any static host (nginx, Caddy, object storage, an Arweave gateway).
+The build output is a plain static directory — serve `packages/rig-web/dist/` from any static host (nginx, Caddy, object storage, an Arweave gateway).
 
 For a fully decentralized deployment, upload the built files to Arweave (e.g. via ArDrive Turbo) and create a path manifest; the manifest's transaction ID then serves the entire app from any gateway:
 
@@ -184,35 +184,87 @@ The optional `arweave` tags map git SHAs to Arweave transaction IDs, allowing th
 
 ## Writing to the Rig — the Write Path
 
-The Rig SPA itself stays read-only — it holds no keys and pays for nothing. Writes come from **clients that hold keys and pay** the connector payment proxy: NIP-34 events are published to the relay (paid ILP writes), and git objects are uploaded to the Arweave store (a paid `POST /store` to the payment-oblivious store backend behind the proxy). That write path is **shipped** ([toon-client#222](https://github.com/toon-protocol/toon-client/issues/222)), on two surfaces:
+The Rig SPA itself stays read-only — it holds no keys and pays for nothing. Writes come from **clients that hold keys and pay** the connector payment proxy: NIP-34 events are published to the relay (paid ILP writes), and git objects are uploaded to the Arweave store (a paid `POST /store` to the payment-oblivious store backend behind the proxy). That write path is **shipped** ([toon-client#222](https://github.com/toon-protocol/toon-client/issues/222); git-native v0.2 UX in [toon-client#246](https://github.com/toon-protocol/toon-client/issues/246)), on two surfaces:
 
-- **The `rig` CLI** — shipped by [`@toon-protocol/git`](https://github.com/toon-protocol/toon-client/tree/main/packages/git): `rig push`, `rig issue create`, `rig comment`, `rig pr create`, `rig status`.
-- **The `toon_git_*` MCP tools** — shipped by `@toon-protocol/client-mcp`, so Claude (Code or Desktop) drives the same path: `toon_git_push`, `toon_git_issue`, `toon_git_comment`, `toon_git_patch`, `toon_git_status`.
+- **The `rig` CLI** — shipped by [`@toon-protocol/rig`](https://github.com/toon-protocol/toon-client/tree/main/packages/rig) (the old `@toon-protocol/git` package name is deprecated on npm). rig is a **1:1 git experience with a TOON remote**: it owns a handful of TOON verbs — `rig init`, `rig remote add/remove/list`, `rig push`, `rig issue create`, `rig comment`, `rig pr create`, `rig pr status` — and **every other command passes through to system git verbatim** (`rig status` IS `git status`).
+- **The `toon_git_*` MCP tools** — shipped by `@toon-protocol/client-mcp`, so Claude (Code or Desktop) drives the same path through the `toon-clientd` daemon: `toon_git_push`, `toon_git_issue`, `toon_git_comment`, `toon_git_patch`, `toon_git_status`.
 
 Both follow the same discipline: **estimate → confirm → execute**. Every write quotes its fee before spending, and every write is **permanent and non-refundable** — events cannot be unpublished, uploads cannot be deleted.
 
+### Quickstart
+
+```sh
+npm install -g @toon-protocol/rig @toon-protocol/client
+
+# 1. identity — a BIP-39 seed phrase, in your environment…
+export RIG_MNEMONIC="abandon abandon … about"
+#    …or in a project-local .env (gitignore it!):
+echo 'RIG_MNEMONIC="abandon abandon … about"' >> .env
+
+# 2. one-shot repo setup (free, idempotent)
+rig init
+
+# 3. add your relay as an origin — a REAL git remote
+rig remote add origin wss://relay.example
+
+# 4. work exactly like git — unowned commands pass through to system git
+rig add -p && rig commit -m "fix"
+
+# 5. push (paid) — estimate → confirm → execute, defaults to origin
+rig push
+```
+
 ### Install & prerequisites
 
-1. **Node 22+ and `git`** on PATH — the CLI reads your local repository with real git plumbing.
-2. **The CLI:** `npm install -g @toon-protocol/git` (ships the `rig` bin).
-3. **A TOON identity that can pay**, in one of two forms:
-   - **Daemon** — a running `toon-clientd` (from `@toon-protocol/client-mcp`) on loopback. The daemon's key signs everything, so *the daemon identity is the repo owner*. This is also the identity the `toon_git_*` MCP tools use.
-   - **Standalone** — your own BIP-39 seed phrase in `TOON_CLIENT_MNEMONIC` (or a `mnemonic`/`keystorePath` entry in `~/.toon-client/config.json`); an embedded client is built per run.
+1. **Node 22+ and `git`** on PATH — the CLI reads your local repository with real git plumbing, and unowned subcommands are executed by your system git.
+2. **The CLI:** `npm install -g @toon-protocol/rig` (ships the `rig` bin). Install `@toon-protocol/client` alongside it — the optional peer the embedded payment client is built from. The old `@toon-protocol/git` package is deprecated; uninstall it.
+3. **A TOON identity that can pay.** The CLI is **standalone-only** — it embeds its own payment client built from your seed phrase; there is no daemon mode in the CLI (the daemon path lives on as the `toon_git_*` MCP tools). The mnemonic is resolved along one precedence chain — highest first:
+   1. `RIG_MNEMONIC` environment variable
+   2. `TOON_CLIENT_MNEMONIC` environment variable — deprecated alias for the CLI, warns on stderr; rename it to `RIG_MNEMONIC` (the `toon-clientd` daemon itself still uses `TOON_CLIENT_MNEMONIC` — only the CLI alias is deprecated)
+   3. project-local `.env` — found by walking up from the working directory (through the repo root); ONLY the `RIG_MNEMONIC` line is parsed out of it (rig never loads arbitrary env from the file). **Gitignore it** — the phrase must never be committed.
+   4. the shared `~/.toon-client` state dir (`TOON_CLIENT_HOME` override): encrypted keystore (`keystorePath` + `TOON_CLIENT_KEYSTORE_PASSWORD`), then the `mnemonic` config field
 
-**Funding is owner-side — there is no x402 onboarding in this path.** The repo owner self-funds a payment channel before the first push, using the existing client flows: `toon_fund_wallet` (get funds onto the settlement chain) and `toon_open_channel` (open the channel writes spend from). `rig` then spends from the channel your daemon (or standalone identity) already holds; if you can `toon_publish`, you can `rig push`.
+   Every paid command reports which source is active and the derived pubkey (`Identity: <pubkey> (from …)`, and an `identity` object in `--json` output) — the phrase itself is never printed and never written to git config or any repo file.
+
+**Funding is owner-side — there is no x402 onboarding in this path.** The repo owner self-funds a payment channel before the first push, using the existing client flows: `toon_fund_wallet` (get funds onto the settlement chain) and `toon_open_channel` (open the channel writes spend from). `rig` then spends from the channel your identity already holds; if you can `toon_publish`, you can `rig push`.
+
+### Repo setup — `rig init` and relays as origins
+
+`rig init` is the free, idempotent one-shot setup. It checks you are inside a git repository, resolves and reports the active identity (source + pubkey), and writes the repo address to the repository's **local git config**:
+
+| Key | Meaning |
+|-----|---------|
+| `toon.repoid` | repository id — the NIP-34 `d` tag (default: the repo directory name; `rig init --repo-id my-repo` to pick one) |
+| `toon.owner` | owner pubkey — derived from the resolved identity |
+
+These keys make every follow-up command flag-free: the `a`-tag address (`30617:<owner>:<repoId>`) is read from git config; `--repo-id`/`--owner` override it (use `--owner` for repos you don't own). An unconfigured repo is a clear "run `rig init`" error, and pushing never mutates git config.
+
+Relays are configured as **real git remotes** (`rig remote add` is `git remote add` underneath — `git remote -v` shows them, and remotes added with plain git work too, as long as the URL is `ws://`/`wss://`/`http://`/`https://`):
+
+```sh
+rig remote add origin wss://relay.example
+rig remote list              # names + URLs; --json for machines
+rig remote remove origin
+```
+
+Paid commands resolve their relay git-style: an explicit `--relay <url>` (ad-hoc override — bypasses the configured remotes entirely) → a named remote (`rig push staging main`; the event commands take `--remote <name>`) → `origin` → the deprecated v0.1 `git config toon.relay` key as a fallback (paid commands print a one-line deprecation nudge; the key is removed in v0.3, and `rig init` migrates a single `toon.relay` URL to a real `origin` remote automatically) → a clear ``no origin configured — run `rig remote add origin <relay-url>` `` error. **One relay URL per remote:** a remote with multiple URLs (`git remote set-url --add`) is refused before anything is uploaded, published, or paid — rig publishes to exactly one relay per paid command.
+
+### Git passthrough
+
+rig behaves like git; the TOON verbs are additive. Any subcommand rig does not own is executed as `git <args...>` verbatim with inherited stdio (interactive commands, pagers, colors, and prompts all work) and git's exact exit code — `rig status`, `rig add -p`, `rig commit`, `rig log --oneline`, `rig rebase -i` behave exactly like git. rig-owned verbs take precedence: in particular `rig push` is the TOON transport and **shadows `git push`** — plain-git pushes stay available by calling `git push` directly.
 
 ### First push
 
-From inside any git repository:
+From inside a `rig init`-ed repository with an `origin` relay remote:
 
 ```sh
 rig push
 ```
 
-The CLI picks a publisher mode (see [Limits & modes](#limits--modes-v1)), plans the push against the relay's current remote state, and renders the fee table before anything is spent:
+The CLI plans the push against the relay's current remote state and renders the fee table before anything is spent:
 
 ```
-Push plan for repo "demo" (daemon mode) — first push, will announce (kind:30617)
+Push plan for repo "demo" — first push, will announce (kind:30617)
 Refs:
   refs/heads/main  (none) → a1b2c3d  (create)
 Objects: 9 to upload (14,210 bytes)
@@ -230,30 +282,23 @@ On confirm, three things happen, in dependency-safe order:
 2. **`kind:30617` announcement** — first push only: the repository announcement that makes the repo appear in the Rig's repo list.
 3. **One cumulative `kind:30618` refs event** — branch → SHA mappings plus the full `arweave` sha→txId map, so the Rig resolves every object without waiting on Arweave GraphQL indexing. The repo is browsable in the Rig immediately.
 
-After the first successful push, `rig` persists the repo address into the repository's git config:
+Uploads are content-addressed, so a re-push never re-pays for objects the store already has, and a crashed push resumes idempotently.
 
-| Key | Meaning |
-|-----|---------|
-| `toon.repoid` | repository id — the NIP-34 `d` tag (default: the repo directory name) |
-| `toon.owner` | owner pubkey — the identity that signed the push |
-| `toon.relay` | relay URL(s) pushed to |
-
-These keys make the follow-up commands flag-free: the `a`-tag address (`30617:<owner>:<repoId>`) is read from git config; `--repo-id`/`--owner` override it (use `--owner` for repos you don't own).
-
-Common variants:
+Common variants — `rig push [remote] [refspecs...]`, resolved git-style (when the first positional matches a configured remote name it is the remote; otherwise it is a refspec and the remote defaults to `origin`):
 
 ```sh
 rig push main v1.0.0 --yes                 # specific refs, skip the confirm prompt
+rig push staging main                      # push via another configured remote
 rig push --all --tags                      # every local branch and tag
 rig push --json                            # machine-readable estimate — nothing executed
 rig push --json --yes                      # machine-readable execute (agents)
 rig push --force                           # allow non-fast-forward (overwrites remote history)
-rig push --relay wss://relay.example --repo-id demo   # override the defaults
+rig push --relay wss://relay.example --repo-id demo   # ad-hoc overrides
 ```
 
 ### Issues, PRs, and status — from the CLI
 
-The single-event subcommands follow the same paid-write discipline as push: the flat per-event fee is quoted (daemon `/status` `feePerEvent`, or the standalone fee rates) and confirmed before publishing; `--yes` skips the prompt (required when stdin is not a TTY), `--json` without `--yes` is a free estimate.
+The single-event subcommands follow the same paid-write discipline as push: the flat per-event fee is quoted and confirmed before publishing; `--yes` skips the prompt (required when stdin is not a TTY), `--json` without `--yes` is a free estimate. They use the `rig init` config and resolve their relay the same way as push (`--remote <name>`, default `origin`; `--relay <url>` as ad-hoc override).
 
 ```sh
 rig issue create --title "Fix the flux" --body "It broke."   # kind:1621
@@ -262,13 +307,13 @@ rig comment <root-event-id> --body "Nice catch."             # kind:1622
 rig pr create --title "Add feature" --range main..feature    # kind:1617 with
                                                              # REAL format-patch text
 rig pr create --title "Backport" --patch-file fix.patch      # pre-generated patch
-rig status <event-id> applied                                # kind:1631
+rig pr status <event-id> applied                             # kind:1631
 ```
 
 - `rig issue create` — body from `--body`, `--body-file`, or piped stdin; `--label` is repeatable.
 - `rig comment <root-event-id>` — comments on an issue or patch; `--parent-author` and `--marker root|reply` control NIP-34 threading.
 - `rig pr create` — `--range` runs real `git format-patch --stdout` locally and derives the `commit`/`parent-commit` tags; a multi-commit range publishes ONE kind:1617 event carrying the whole series (cover-letter threading is out of scope in v1).
-- `rig status <event-id> <open|applied|closed|draft>` — kind:1630–1633, with the repo `a` tag attached so readers can scope a status stream to the repository.
+- `rig pr status <event-id> <open|applied|closed|draft>` — kind:1630–1633, with the repo `a` tag attached so readers can scope a status stream to the repository. **Renamed in v0.2** (BREAKING): this was top-level `rig status <event-id> <state>` in v0.1 — bare `rig status` now passes through to `git status`.
 
 ### …and from Claude — the `toon_git_*` MCP tools
 
@@ -277,7 +322,7 @@ The daemon exposes the same path over MCP, so an agent can push repos and file i
 - **`toon_git_push`** is two-step: call with `dry_run: true` first (free — plans the push and returns the itemized fee table), quote `estimate.totalFee` to the user, then call again with `confirm: true` to execute. A push without `confirm: true` is rejected by the daemon.
 - **`toon_git_issue` / `toon_git_comment` / `toon_git_patch` / `toon_git_status`** each spend one flat per-event channel claim; the agent quotes `feePerEvent` (via `toon_status`) and confirms with the user before calling.
 
-The daemon's key signs, so the daemon identity is the repo owner — same as daemon-mode `rig`, and the two share the underlying `/git/*` control routes.
+The daemon's key signs, so the daemon identity is the repo owner. The daemon's `/git/*` control routes are the MCP host path and are **unaffected by the CLI going standalone-only** — the v0.2 CLI change removed daemon mode from `rig`, not from the daemon.
 
 ### Cost model
 
@@ -286,13 +331,23 @@ The daemon's key signs, so the daemon identity is the repo owner — same as dae
 - **Delta pushes skip known objects.** Uploads are content-addressed: the plan subtracts everything already on Arweave (via the `kind:30618` `arweave` map and a Git-SHA GraphQL fallback), so a re-push never re-pays for objects the store already has. A push with nothing new is a free no-op (`Everything up-to-date — nothing to push (and nothing paid).`), and a crashed push resumes without double-paying.
 - **Estimates are free.** `--json` without `--yes` (CLI) and `dry_run: true` (MCP) plan and price without paying.
 
-### Limits & modes (v1)
+### Limits & guardrails
 
 - **95KB object cap.** Any single git object over 95KB is a hard error at plan time — nothing is uploaded or paid. The paid large-object path is tracked in [toon-client#235](https://github.com/toon-protocol/toon-client/issues/235); until then, keep big binaries out of pushed history.
-- **Mode selection.** Explicit `--daemon`/`--standalone` flags win; otherwise `rig` probes the `toon-clientd` loopback `/status` — reachable and reporting an identity ⇒ daemon; else standalone when a mnemonic source exists; else a hard error naming both remediations.
-- **Standalone is single-relay.** The standalone publisher publishes to exactly one relay and refuses a plural relay list up front, before anything is paid. Daemon mode publishes via its apex and accepts multiple relays.
-- **The nonce guard (why standalone is careful).** A payment channel's balance proof is a *cumulative* watermark — two writers signing claims on the same channel from separate processes keep independent counters, race the watermark, and can double-charge. Standalone mode therefore refuses to run while a daemon with the **same identity** is up (a daemon on a different identity holds different channels and is harmless), and takes a per-pubkey advisory lockfile under `~/.toon-client` so two standalone processes can't race each other either.
-- **Still not implemented:** native git transports (`git push`/`git clone` via receive-pack/upload-pack — writes go through `rig`, reads through the Rig and Arweave gateways) and ref deletion.
+- **The CLI is standalone-only.** There is no mode selection: the v0.1 `--daemon`/`--standalone` flags and the daemon probe are gone. `rig` always builds its embedded payment client from the resolved mnemonic; hosts that want the daemon's identity use the `toon_git_*` MCP tools instead.
+- **One relay per paid command.** The CLI publishes to exactly one relay per paid command and refuses a multi-URL remote up front, before anything is paid. (The daemon MCP path publishes via its apex and accepts multiple relays.)
+- **The nonce guard (why the CLI is careful).** A payment channel's balance proof is a *cumulative* watermark — two writers signing claims on the same channel from separate processes keep independent counters, race the watermark, and can double-charge. The CLI therefore refuses to run while a `toon-clientd` daemon with the **same identity** is up (a daemon on a different identity holds different channels and is harmless) — stop the daemon or publish through its `toon_git_*` tools instead — and takes a per-pubkey advisory lockfile under `~/.toon-client` so two CLI processes can't race each other either.
+- **Still not implemented:** native git transports (`git push`/`git clone` via receive-pack/upload-pack — writes go through `rig push`, reads through the Rig and Arweave gateways) and ref deletion.
+
+### Migrating from v0.1
+
+| v0.1 | v0.2 |
+|------|------|
+| `npm install -g @toon-protocol/git` | `npm install -g @toon-protocol/rig` — the old package is deprecated on npm |
+| `rig status <event-id> <state>` | `rig pr status <event-id> <state>` (**BREAKING** — bare `rig status` is now `git status`) |
+| `git config toon.relay <url>` | `rig remote add origin <url>` — `rig init` migrates a single `toon.relay` automatically; the key still works as a fallback with a deprecation nudge and is removed in v0.3 |
+| `TOON_CLIENT_MNEMONIC` (CLI identity) | `RIG_MNEMONIC` — the old name still works as a deprecated alias and warns on stderr |
+| daemon mode (`--daemon`, loopback probe) | removed from the CLI — the daemon path is the `toon_git_*` MCP tools, unchanged |
 
 ## Agent Orchestration — the Next Vocabulary
 
