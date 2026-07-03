@@ -223,6 +223,15 @@ failing any check are non-eligible; no market can be opened against them.
    `predicateArweaveTx` immutably so anyone can re-run the check. For the check to be
    independently recomputable at all, the uploaded ELF MUST come from RISC Zero's reproducible
    dockerized build (`cargo risczero build`) — see §3.3.
+
+   *Compressed-at-rest storage.* The bytes at `predicateArweaveTx` MAY be a gzip-compressed
+   ELF (single-member DEFLATE, RFC 1952) rather than the raw ELF, stored with
+   `Content-Type: application/gzip`; clients performing this check MUST decompress before
+   calling `compute_image_id` when that content type (or gzip magic `1f 8b`) is present. The
+   image ID always commits to the **decompressed** ELF, so compression is a pure transport
+   encoding with no consensus surface — decompression of fixed stored bytes is deterministic.
+   Rationale: size-optimized guest ELFs (~164 KB) gzip to well under the ~100 KiB Turbo
+   free-upload tier, making predicate publication free on devnet.
 3. **Input manifest hash committed.** `marketParamsHash` MUST be set at creation and is
    immutable thereafter.
 4. **Deadline sanity.** `deadline > block.timestamp`, `lockWindowEnd < deadline`, and
