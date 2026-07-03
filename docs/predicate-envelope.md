@@ -28,7 +28,7 @@ bug in this document — file it.
 ## 1. Journal format
 
 The journal is the public output every predicate commits from inside the zkVM via
-`env::commit()`, and the only predicate data `CapabilityMarket.sol` ever sees. It binds four
+`env::commit_slice()`, and the only predicate data `CapabilityMarket.sol` ever sees. It binds four
 facts: *which program ran* (`image_id`), *against which market* (`market_params_hash`), *over
 which submission* (`submission_hash`), and *what it concluded* (`verdict`).
 
@@ -37,7 +37,6 @@ which submission* (`submission_hash`), and *what it concluded* (`verdict`).
 Rust guest side:
 
 ```rust
-#[derive(Serialize)]
 struct Journal {
     image_id: [u8; 32],
     market_params_hash: [u8; 32],
@@ -45,6 +44,10 @@ struct Journal {
     verdict: bool,
 }
 ```
+
+(Reference implementation: the `journal` crate at `predicates/crates/journal` in
+[toon-protocol/capability-market](https://github.com/toon-protocol/capability-market). It
+deliberately does **not** derive a generic serializer — encoding is the explicit §1.2 layout.)
 
 Solidity settlement side:
 
@@ -61,7 +64,7 @@ Field semantics:
 
 | Field | Meaning |
 |---|---|
-| `image_id` / `imageId` | The RISC Zero image ID of the guest program itself. The guest MUST commit its own image ID as pinned data; the contract MUST check it equals the market's committed `imageId`. |
+| `image_id` / `imageId` | The RISC Zero image ID of the guest program itself. A guest cannot hash itself, so the image ID is supplied to the guest **as an input** and committed verbatim; its integrity is established on-chain, not by the guest — the verifier checks the seal against the market's pinned image ID, and the contract MUST additionally check `journal.imageId` equals the market's committed `imageId`, so a prover lying about the input produces a journal the contract rejects. |
 | `market_params_hash` / `marketParamsHash` | SHA-256 of the input manifest (§2). Binds the proof to one specific market's frozen parameters. |
 | `submission_hash` / `submissionHash` | SHA-256 of the exact submission bytes the predicate evaluated. Bound at reveal time (§4). |
 | `verdict` | `true` iff the sealed predicate returned PASS on the submission. |
@@ -88,10 +91,11 @@ Normative rules:
   other value — a "truthy" nonzero byte is not a valid encoding.
 - The encoded journal MUST be exactly 97 bytes. Decoders MUST reject any other length. There is
   no length prefix, no padding, and no trailing data.
-- The Rust guest MUST commit exactly these 97 bytes (i.e. the serializer output passed to
-  `env::commit_slice()` / produced by `env::commit()` MUST be byte-identical to this layout —
-  verify against the test vectors in §1.4; do not assume a generic serde serializer gets this
-  right for free).
+- The Rust guest MUST commit exactly these 97 bytes via `env::commit_slice()` over the
+  canonical encoder's output. It MUST NOT use `env::commit()` — that path goes through RISC
+  Zero's word-oriented serde and produces different bytes, so `sha256(journal)` on-chain would
+  never match. Verify against the golden test vectors of §1.5; do not assume a generic serde
+  serializer gets this layout right for free.
 
 ### 1.3 Verification binding
 
@@ -130,10 +134,19 @@ from 97 so v1 decoders reject it unambiguously.
 ### 1.5 Cross-implementation acceptance rule
 
 From #119: **independent Rust and Solidity implementations MUST decode identical journal bytes
-to identical field values.** Concretely, both repos MUST share golden test vectors — at minimum
-one `verdict: true` journal, one `verdict: false` journal, and rejection cases (96 bytes, 98
-bytes, verdict byte `0x02`) — and CI on both sides MUST assert byte-for-byte agreement on
-encode (Rust) and field-for-field agreement on decode (Solidity).
+to identical field values.** The canonical shared vector file is
+
+> [`predicates/crates/journal/tests/golden_journal_vectors.json`](https://github.com/toon-protocol/capability-market/blob/main/predicates/crates/journal/tests/golden_journal_vectors.json)
+
+in the capability-market repo. Both implementations consume it: the Rust `journal` crate's
+tests load the JSON directly, and the Solidity conformance suite
+(`contracts/test/JournalConformance.t.sol`) embeds the same vectors verbatim. It covers, at
+minimum, `verdict: true` journals, `verdict: false` journals, and each vector's expected
+`sha256` journal digest; both suites additionally assert the rejection cases (96 bytes, 98
+bytes, verdict byte `0x02`). CI on both sides MUST assert byte-for-byte agreement on encode
+(Rust) and field-for-field agreement on decode (Solidity) against that file — do not fork or
+re-derive the vectors elsewhere; if the layout ever changes (a protocol migration, §1.4), the
+file changes first and both suites follow it.
 
 ---
 
@@ -199,12 +212,17 @@ failing any check are non-eligible; no market can be opened against them.
 ### 3.1 On-chain checks (contract-enforced)
 
 1. **Image ID present.** `imageId` MUST be a 32-byte hash committed on-chain, not a name.
-2. **Predicate bytes retrievable from Arweave.** `predicateArweaveTx` MUST be resolvable and
-   `sha256(bytes) == imageId` MUST hold — verified **off-chain before the mint transaction is
-   broadcast**, since the contract cannot read Arweave directly. This is a documented
-   client-side pre-broadcast workflow (§3.3), enforced by the front-end / authoring tooling;
-   the contract's role is to commit `predicateArweaveTx` immutably so anyone can re-run the
-   check.
+2. **Predicate bytes retrievable from Arweave.** `predicateArweaveTx` MUST be resolvable, and
+   the guest ELF fetched from it MUST recompute to the market's image ID:
+   `risc0_binfmt::compute_image_id(elf) == imageId`. Note this is **not** a flat hash — a RISC
+   Zero image ID is a structured commitment over the ELF's loaded memory image (its initial
+   zkVM state), so `sha256(elf)` would never match; clients MUST use `compute_image_id`.
+   Verified **off-chain before the mint transaction is broadcast**, since the contract cannot
+   read Arweave directly. This is a documented client-side pre-broadcast workflow (§3.3),
+   enforced by the front-end / authoring tooling; the contract's role is to commit
+   `predicateArweaveTx` immutably so anyone can re-run the check. For the check to be
+   independently recomputable at all, the uploaded ELF MUST come from RISC Zero's reproducible
+   dockerized build (`cargo risczero build`) — see §3.3.
 3. **Input manifest hash committed.** `marketParamsHash` MUST be set at creation and is
    immutable thereafter.
 4. **Deadline sanity.** `deadline > block.timestamp`, `lockWindowEnd < deadline`, and
@@ -233,11 +251,19 @@ failing any check are non-eligible; no market can be opened against them.
 
 Before broadcasting `createMarket`, the authoring client MUST:
 
-1. Fetch the predicate bytes from `predicateArweaveTx` via an Arweave gateway (retrievability
-   probe — a tx that cannot be fetched fails eligibility);
-2. verify `sha256(fetched_bytes) == imageId`;
+1. Fetch the predicate guest ELF from `predicateArweaveTx` via an Arweave gateway
+   (retrievability probe — a tx that cannot be fetched fails eligibility);
+2. recompute the image ID from the fetched ELF with `risc0_binfmt::compute_image_id(elf)` and
+   verify it equals the market's `imageId` (NOT `sha256` of the bytes — the image ID is a
+   structured commitment over the ELF's memory image, see §3.1 check 2);
 3. fetch the manifest bytes and verify `sha256(manifest_bytes) == marketParamsHash`;
 4. only then sign and broadcast the transaction.
+
+For step 2 to be reproducible by anyone, the ELF pinned on Arweave MUST be the output of RISC
+Zero's deterministic dockerized build (`cargo risczero build`), not a local host build — local
+builds are not guaranteed bit-reproducible across machines/toolchains, and a non-reproducible
+image ID cannot be independently recomputed. Authors SHOULD run the docker build twice (ideally
+on two machines / in CI) and require identical image IDs before pinning one in `createMarket`.
 
 Any observer can repeat steps 1–3 at any time against the market's committed on-chain values;
 a market whose Arweave content has drifted or vanished is publicly detectable, even though the
@@ -276,7 +302,9 @@ On `reveal`, the contract MUST, in order:
 2. **Verify commit timestamp ≤ `deadline`.** The commitment must have landed inside the commit
    window; the reveal itself may land after the deadline, within the grace window (§4.3).
 3. **Call the RISC Zero verifier** with `(proof, marketImageId, sha256(journal))` — the
-   digest binding of §1.3.
+   digest binding of §1.3. The verifier is risc0-ethereum's
+   `IRiscZeroVerifier.verify(seal, imageId, journalDigest)`, which **reverts** on an invalid
+   seal rather than returning a bool.
 4. **Decode the journal (per §1.2) and check field-by-field match** against the market's
    committed values: `journal.imageId == market.imageId`,
    `journal.marketParamsHash == market.marketParamsHash`, and
@@ -333,7 +361,7 @@ discovery is hard:
 ```rust
 fn main() {
     // Inputs bound by manifest name (§2.3): host supplies bytes, guest re-verifies hashes.
-    let params: MarketParams = read_input("market_params");   // n=4, field=GF(2), max_muls=46
+    let params: MarketParams = read_input("market_params");   // abi.encode(uint256(46)): the rank bound
     let submission: Vec<u8>  = read_input("submission");      // late-bound at reveal
     let _deadline: u64       = read_input("frozen_clock");    // pinned literal; unused by the check
 
@@ -344,7 +372,7 @@ fn main() {
     };
 
     env::commit_slice(&Journal {
-        image_id: OWN_IMAGE_ID,                               // pinned at build time
+        image_id,                                             // supplied as input (§1.1); enforced on-chain
         market_params_hash: sha256(manifest_bytes),
         submission_hash: sha256(&submission),
         verdict,
@@ -352,20 +380,21 @@ fn main() {
 }
 ```
 
-**Step 2 — Build.** The #119 toolchain compiles the guest and emits the image ID
-reproducibly: `(image_id = 0xIMG…, guest_binary)`. Rebuilding from the same source MUST yield
-the same image ID.
+**Step 2 — Build.** The #119 toolchain compiles the guest and emits the image ID reproducibly
+via RISC Zero's dockerized build (`cargo risczero build`): `(image_id = 0xIMG…, guest_elf)`.
+Rebuilding from the same source MUST yield the same image ID (§3.3).
 
-**Step 3 — Upload.** Push `guest_binary` to Arweave via the Turbo pipeline (#112) →
-`predicateArweaveTx = 0xART…`. Re-fetch and confirm `sha256(bytes) == 0xIMG…`.
+**Step 3 — Upload.** Push the docker-built `guest_elf` to Arweave via the Turbo pipeline
+(#112) → `predicateArweaveTx = 0xART…`. Re-fetch and confirm
+`risc0_binfmt::compute_image_id(elf) == 0xIMG…` (§3.3 step 2).
 
 **Step 4 — Manifest.** Author and upload the manifest; hash it:
 
 ```yaml
 input_manifest:
   - name: "market_params"
-    hash: sha256:3d1a…        # {n: 4, field: GF(2), max_muls: 46}, RLP-encoded, on Arweave
-    encoding: rlp
+    hash: sha256:3d1a…        # abi.encode(uint256(46)) — the rank bound, 32 bytes, on Arweave
+    encoding: raw_bytes        # matmul-market-params-v1: n=4 / GF(2) are baked into the predicate
   - name: "submission"
     hash: <bound at reveal time>
     encoding: raw_bytes
