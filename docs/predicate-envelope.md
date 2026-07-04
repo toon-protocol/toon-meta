@@ -65,7 +65,7 @@ Field semantics:
 | Field | Meaning |
 |---|---|
 | `image_id` / `imageId` | The RISC Zero image ID of the guest program itself. A guest cannot hash itself, so the image ID is supplied to the guest **as an input** and committed verbatim; its integrity is established on-chain, not by the guest — the verifier checks the seal against the market's pinned image ID, and the contract MUST additionally check `journal.imageId` equals the market's committed `imageId`, so a prover lying about the input produces a journal the contract rejects. |
-| `market_params_hash` / `marketParamsHash` | SHA-256 of the input manifest (§2). Binds the proof to one specific market's frozen parameters. |
+| `market_params_hash` / `marketParamsHash` | SHA-256 of the **canonical input-manifest bytes** (§2.3) — `sha256(manifest_bytes)`, not `sha256(raw params)` (the [capability-market#4](https://github.com/toon-protocol/capability-market/issues/4) decision). Binds the proof to one specific market's frozen parameters. |
 | `submission_hash` / `submissionHash` | SHA-256 of the exact submission bytes the predicate evaluated. Bound at reveal time (§4). |
 | `verdict` | `true` iff the sealed predicate returned PASS on the submission. |
 
@@ -152,53 +152,129 @@ file changes first and both suites follow it.
 
 ## 2. Input manifest format
 
-Every mintable proposition declares its inputs as a content-addressed manifest. The manifest is
-the market's frozen parameter set: hashed once at creation, immutable forever after.
+Every mintable proposition declares its inputs as a content-addressed **input manifest**. The
+manifest is the market's frozen parameter set: hashed once at creation, immutable forever after.
 
-### 2.1 Schema
+**Normative decision (resolves the [capability-market#4](https://github.com/toon-protocol/capability-market/issues/4)
+fork):** `marketParamsHash = sha256(canonical manifest bytes)` — the SHA-256 of the exact
+canonical `manifest-v1` byte stream defined in §2.3. It is **NOT** `sha256(raw params bytes)`.
+The guest reads the manifest, commits `sha256(manifest_bytes)` as its journal
+`market_params_hash`, and extracts each predicate parameter from the manifest **by name**. Both
+the off-chain authoring tool (which computes the value pinned in `createMarket`) and the in-guest
+parse hash the identical bytes, so the encoding MUST be byte-reproducible and canonical.
+
+### 2.1 Logical model
+
+A manifest is an ordered set of named entries. Each entry has a `name` (the handle the guest
+program uses to request the input) and is exactly one of three kinds:
+
+- **`hash`** — a content address: the 32-byte SHA-256 digest of externally stored bytes. The
+  prover supplies those bytes to the guest out of band, and the guest MUST verify
+  `sha256(bytes) == digest` before trusting them.
+- **`value`** — a literal pinned parameter embedded directly in the manifest (e.g.
+  `frozen_clock`, the deadline pinned as data so the predicate itself is timeless; or a small
+  predicate parameter such as the matmul rank bound).
+- **`slot`** — the one late-bound input, `submission`: its content is not known at mint time and
+  the manifest reserves only the named slot. It carries no bytes.
+
+A convenient human-readable rendering (illustrative only — the hashed artifact is the binary
+form of §2.3):
 
 ```yaml
-input_manifest:
-  - name: "market_params"
-    hash: sha256:9f2c…            # content-addressed problem parameters
-    encoding: rlp                  # rlp | ssz | raw_bytes
-  - name: "submission"
-    hash: <bound at reveal time>   # the one late-bound slot
-    encoding: raw_bytes
-  - name: "frozen_clock"           # deadline as pinned data
-    value: 1719792000              # literal Unix timestamp
+input_manifest:              # matmul flagship
+  - name: "market_params"    # value: matmul-market-params-v1 (32-byte BE rank bound)
+    value: 0x…0000002e        #   0x2e = 46
+  - name: "frozen_clock"     # value: deadline pinned as an 8-byte LE u64
+    value: 1735689600
+  - name: "submission"       # slot: bound at reveal time
+    slot: true
 ```
-
-Each entry has a `name` (the handle the guest program uses to request the input) and exactly
-one of:
-
-- `hash` — a content-address (`sha256:<hex>`) of externally stored bytes, plus an `encoding`
-  declaring how the guest interprets them (`rlp`, `ssz`, or `raw_bytes`); or
-- `value` — a literal pinned value embedded directly in the manifest (e.g. `frozen_clock`, the
-  deadline pinned as data so the predicate itself is timeless).
 
 ### 2.2 Rules
 
-1. **Every input is either a hash of content-addressed data or a literal pinned value.** There
-   MUST NOT be any input whose content is resolved by name, URL, or any other mutable
-   reference. A predicate whose inputs cannot all be reduced to hashes and literals is not
-   eligible (§3).
-2. **The manifest itself is hashed, and that hash is `marketParamsHash`** — committed at
-   `createMarket` and immutable thereafter. `marketParamsHash = sha256(manifest_bytes)` over
-   the exact stored manifest bytes. Authors SHOULD canonicalize before hashing (UTF-8, LF line
-   endings, no trailing whitespace) and SHOULD store the manifest bytes on Arweave next to the
-   predicate; but the hash always binds the literal stored bytes, not a re-serialization.
-3. **The guest program consumes inputs by manifest name; the runtime binds them from the reveal
-   transaction.** The prover host resolves each `hash` entry to its bytes (fetching from
-   content-addressed storage), supplies each `value` entry literally, and binds the one
-   late-bound slot — `submission` — from the revealing miner's solution. The guest MUST verify
-   that every hash-declared input it reads actually hashes to the manifest's declared digest,
-   and MUST set the journal's `submission_hash` to the SHA-256 of the submission bytes it
-   actually evaluated.
+1. **Every input is either a hash of content-addressed data, a literal pinned value, or the one
+   late-bound submission slot.** There MUST NOT be any input whose content is resolved by name,
+   URL, or any other mutable reference. A predicate whose inputs cannot all be reduced to
+   hashes, literals, and the single submission slot is not eligible (§3).
+2. **The manifest is serialized to the canonical `manifest-v1` bytes of §2.3, and
+   `marketParamsHash = sha256(those bytes)`** — committed at `createMarket` and immutable
+   thereafter. Because the encoding is canonical (exactly one byte string decodes to a given
+   manifest; the §2.3 rules are enforced on parse), the preimage is unambiguous: the off-chain
+   author and the in-guest parser hash identical bytes. Authors SHOULD store the manifest bytes
+   on Arweave next to the predicate so any observer can re-derive `marketParamsHash` (§3.3).
+3. **The guest program consumes inputs by manifest name.** The prover host supplies each `value`
+   entry literally (embedded in the manifest bytes), resolves each `hash` entry to its bytes
+   from content-addressed storage and passes them alongside, and binds the one late-bound
+   `slot` — `submission` — from the revealing miner's solution. The guest MUST verify that every
+   `hash`-declared input it reads actually hashes to the manifest's declared digest, and MUST
+   set the journal's `submission_hash` to the SHA-256 of the submission bytes it actually
+   evaluated. The launch predicates (§5, and the `matmul`/`sat`/`difftest` crates) embed their
+   parameters as `value` entries, so their guests read exactly `(image_id, manifest_bytes,
+   submission)` with no side-channel input.
 
-The `submission` entry is the only slot whose hash is not fixed at mint time — everything else
-is frozen. This is what makes the market question well-posed: the predicate, its parameters,
-and its deadline are all sealed; only the world's answer is open.
+The `submission` slot is the only input whose content is not fixed at mint time — everything
+else is frozen. This is what makes the market question well-posed: the predicate, its
+parameters, and its deadline are all sealed; only the world's answer is open.
+
+### 2.3 Canonical byte encoding (`manifest-v1`)
+
+The manifest is a **length-prefixed binary TLV** — chosen over a textual format (JSON/YAML) so
+the in-zkVM parse is a handful of slice reads with no parser or canonicalizer dependency beyond
+the SHA-256 the guest already links. All multi-byte integers are **little-endian**. The stream
+is:
+
+```
+offset  size            field
+0       4               magic = b"TMF1"   (0x54 0x4D 0x46 0x31)   ← version tag
+4       2  (u16 LE)     entry_count       (MUST be ≥ 1)
+6       …               entry_count entries, concatenated
+```
+
+Each entry is:
+
+```
+1  (u8)      kind        0x01 = HASH, 0x02 = VALUE, 0x03 = SLOT
+2  (u16 LE)  name_len    (MUST be ≥ 1)
+N            name        name_len bytes, UTF-8
+4  (u32 LE)  data_len
+M            data        data_len bytes
+```
+
+- **HASH** (`0x01`): `data_len` MUST be `32`; `data` is the SHA-256 digest of the externally
+  stored bytes.
+- **VALUE** (`0x02`): `data` is the literal parameter bytes (`data_len` MAY be `0`).
+- **SLOT** (`0x03`): `data_len` MUST be `0` (the submission carries no bytes in the manifest).
+
+Normative canonical-form rules — a decoder MUST reject any input that violates them, so the
+encoding is a bijection and no two byte strings can share a `marketParamsHash` preimage:
+
+1. `magic` MUST equal `TMF1`.
+2. `entry_count ≥ 1` and MUST equal the number of entries actually present.
+3. Entries MUST appear in **strictly ascending order of `name`** (bytewise `memcmp`), which also
+   forbids duplicate names.
+4. `kind` MUST be one of `0x01`/`0x02`/`0x03`; the HASH length (32) and SLOT length (0)
+   constraints above MUST hold.
+5. `name` MUST be non-empty valid UTF-8.
+6. There MUST be no trailing bytes after the final entry, and no truncation.
+
+The 4-byte `magic` doubles as the version tag: `TMF1` is manifest-v1. Like the journal (§1.4),
+the version is also bound out-of-band — the market's `imageId` transitively pins the exact
+manifest parser the guest was built with. A new layout means a new magic, new guest images, and
+a protocol migration.
+
+### 2.4 Cross-implementation acceptance rule
+
+As with the journal (§1.5), independent implementations MUST encode/decode identical manifest
+bytes to identical entry sets and identical `marketParamsHash`. The canonical shared vector file
+is
+
+> [`predicates/crates/manifest/tests/golden_manifest_vectors.json`](https://github.com/toon-protocol/capability-market/blob/main/predicates/crates/manifest/tests/golden_manifest_vectors.json)
+
+in the capability-market repo (reference implementation: the `manifest` crate). Each vector pins
+an entry set, its canonical `encoded` bytes, and its `sha256` (the `marketParamsHash`). Any
+tooling that assembles or hashes a manifest MUST agree with these vectors byte-for-byte; do not
+fork or re-derive them. If the layout ever changes (a protocol migration), the file changes
+first and implementations follow it.
 
 ---
 
@@ -369,20 +445,24 @@ discovery is hard:
 
 ```rust
 fn main() {
-    // Inputs bound by manifest name (§2.3): host supplies bytes, guest re-verifies hashes.
-    let params: MarketParams = read_input("market_params");   // abi.encode(uint256(46)): the rank bound
-    let submission: Vec<u8>  = read_input("submission");      // late-bound at reveal
-    let _deadline: u64       = read_input("frozen_clock");    // pinned literal; unused by the check
+    // Guest inputs (§2): image_id, the canonical manifest bytes, submission.
+    let image_id: [u8; 32]     = env::read();
+    let manifest_bytes: Vec<u8> = env::read();               // the §2.3 TLV stream
+    let submission: Vec<u8>    = env::read();                 // late-bound at reveal
+
+    let manifest = Manifest::parse(&manifest_bytes);         // strict canonical parse (§2.3)
+    let params = manifest.value("market_params");            // matmul-market-params-v1: the rank bound
+    let _deadline = manifest.value("frozen_clock");          // pinned literal; unused by the check
 
     let verdict = match Scheme::parse(&submission) {
-        Ok(s) => s.num_muls() <= params.max_muls
-              && s.computes_matmul_exhaustive_gf2(params.n),  // all 2^16 × 2^16 pairs, or symbolic
+        Ok(s) => s.num_muls() <= parse_rank_bound(params)
+              && s.computes_matmul_exhaustive_gf2(),          // all 2^16 × 2^16 pairs, or symbolic
         Err(_) => false,                                      // malformed submission = FAIL, not panic
     };
 
     env::commit_slice(&Journal {
         image_id,                                             // supplied as input (§1.1); enforced on-chain
-        market_params_hash: sha256(manifest_bytes),
+        market_params_hash: sha256(&manifest_bytes),          // the #4 decision: hash the MANIFEST
         submission_hash: sha256(&submission),
         verdict,
     }.encode_v1());                                           // the 97 bytes of §1.2
@@ -397,21 +477,21 @@ Rebuilding from the same source MUST yield the same image ID (§3.3).
 (#112) → `predicateArweaveTx = 0xART…`. Re-fetch and confirm
 `risc0_binfmt::compute_image_id(elf) == 0xIMG…` (§3.3 step 2).
 
-**Step 4 — Manifest.** Author and upload the manifest; hash it:
+**Step 4 — Manifest.** Author the manifest and serialize it to the canonical `manifest-v1`
+bytes (§2.3). For matmul the rank bound and deadline are small, so both are pinned as `value`
+entries and the guest reads only `(image_id, manifest_bytes, submission)`:
 
-```yaml
-input_manifest:
-  - name: "market_params"
-    hash: sha256:3d1a…        # abi.encode(uint256(46)) — the rank bound, 32 bytes, on Arweave
-    encoding: raw_bytes        # matmul-market-params-v1: n=4 / GF(2) are baked into the predicate
-  - name: "submission"
-    hash: <bound at reveal time>
-    encoding: raw_bytes
-  - name: "frozen_clock"
-    value: 1735689600          # D = 2025-01-01T00:00:00Z (example)
+```
+entries (canonical ascending-name order):
+  "frozen_clock"   VALUE  8 bytes   1735689600 as u64 LE   # D = 2025-01-01T00:00:00Z (example)
+  "market_params"  VALUE  32 bytes  abi.encode(uint256(46)) # matmul-market-params-v1 rank bound
+  "submission"     SLOT   0 bytes                          # bound at reveal
 ```
 
-`marketParamsHash = sha256(manifest_bytes) = 0xMPH…`
+`marketParamsHash = sha256(manifest_bytes) = 0xMPH…` — computed off-chain with the `manifest`
+crate (`manifest::encode(entries)` then `sha256`), and re-derived identically inside the guest.
+Upload the manifest bytes to Arweave next to the predicate so any observer can re-check the hash
+(§3.3 step 3). See the golden vectors of §2.4 for the exact byte layout.
 
 **Step 5 — Mint.** Run the pre-broadcast checks of §3.3, then:
 
