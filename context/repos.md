@@ -18,7 +18,7 @@ TOON is a **polyrepo** under the `toon-protocol` GitHub org. Code is shared via 
 
 ```
 connector ◄─ (optional peer) ─ toon (core, sdk) ─► relay · swap · store · client
-capability-market ─► connector (Base settlement) · toon (predicate envelope conventions)
+capability-market ─► toon-meta (predicate envelope spec, docs/predicate-envelope.md) — settlement is direct-USDC on Base, no connector dependency
 swarm ─► toon-client (@toon-protocol/client, optional peer) · capability-market (market feed / reveals)
 ```
 Strictly downward. The **connector** — the proxy-server layer at the edge — consumes the libs from npm **and** pins the child node image digests for a deployment.
