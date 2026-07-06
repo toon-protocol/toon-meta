@@ -9,7 +9,7 @@ The public-testnet E2E mode runs the settlement/swap/pay-to-write flows against
 | Solana | **Devnet** (`solana:devnet`)      | `https://api.devnet.solana.com`                  | `solana airdrop` / https://faucet.solana.com              |
 | Mina   | **Devnet** (`mina:devnet`)        | `https://api.minascan.io/node/devnet/v1/graphql` | https://faucet.minaprotocol.com                           |
 
-Endpoints + deployed contract addresses live in [`e2e/testnets.json`](../e2e/testnets.json)
+Endpoints + deployed contract addresses live in `e2e/testnets.json`
 (public, committed). The funded wallet **seed phrase** does **not** — it lives in
 `E2E_DEV_MNEMONIC` (org GitHub secret in CI, `.env.e2e.local` locally).
 
