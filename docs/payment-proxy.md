@@ -266,10 +266,11 @@ follow-on spec; it is **not** proxy MVP.
 > (paid `POST /ilp` → FULFILL with injected `x-toon-*` headers; unpaid → 402; real on-chain
 > USDC settlement). Reusable artifact: connector `deploy/pay-edge/`.
 
-**In-flight PRs (not yet merged):**
+**Also shipped:**
 - the **devnet multi-chain roundtrip harness + connector naming + Porkbun DNS provider**
-  (connector PR #245, mergeable);
-- the **`deploy/pay-edge/` deploy bundle** (connector PR #246).
+  (connector PR #245, merged);
+- the **`deploy/pay-edge/` deploy bundle** (connector PR #252, merged; supersedes closed
+  connector PR #246).
 
 **Remaining future work this RFC motivates:**
 - as a follow-on, **swap-as-routing-FX-hop** for true token-agnosticism (cross-chain FX on the

@@ -24,7 +24,7 @@ Strictly downward. The **connector** — the proxy-server layer at the edge — 
 - **npm semver** replaces in-tree `workspace:*`. Publish with **`pnpm publish`** (rewrites the workspace protocol) — **never `npm publish`** (it shipped the broken `sdk@0.5.0`/`town@0.4.0`).
 - **The connector pins image digests** for relay/swap/store, validated by a preflight against `constants.ts`.
 - **Agent context** is shared via this repo: `CLAUDE.md` in each code repo links here; the `toon-skills` plugin distributes the shared skills.
-- **Payment proxy.** The `connector` can act as a payment **proxy server** in front of any HTTP backend (onboard via x402 → transparent HTTP-in-ILP → HTTP→BTP upgrade). **Path A core is shipped on connector `main`** (proxy handler, x402 greeting, `h402Fetch`, RFC 9421, `RouteTermination`; proven live at `connector.pay.toonprotocol.dev`); only the devnet roundtrip harness (PR #245) and the `deploy/pay-edge/` bundle (PR #246) remain open PRs. See [`docs/payment-proxy.md`](../docs/payment-proxy.md).
+- **Payment proxy.** The `connector` can act as a payment **proxy server** in front of any HTTP backend (onboard via x402 → transparent HTTP-in-ILP → HTTP→BTP upgrade). **Path A core is shipped on connector `main`** (proxy handler, x402 greeting, `h402Fetch`, RFC 9421, `RouteTermination`; proven live at `connector.pay.toonprotocol.dev`); the devnet roundtrip harness (PR #245, merged) and the `deploy/pay-edge/` bundle (PR #252, merged; supersedes closed PR #246) have also shipped. See [`docs/payment-proxy.md`](../docs/payment-proxy.md).
 
 ## Dev environment
 

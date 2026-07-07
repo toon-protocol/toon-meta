@@ -12,9 +12,10 @@ upgrade to a duplex BTP session; your backend never changes and never sees payme
 **Status: core shipped on connector `main`.** The proxy handler, x402 greeting, `h402Fetch`
 client shim, RFC 9421 claim↔request binding, and the `RouteTermination` config surface all exist
 on `main` and were verified by a real paid round-trip — proven live at
-`connector.pay.toonprotocol.dev`. Still open: the devnet multi-chain roundtrip harness (connector
-PR #245) and the `deploy/pay-edge/` deploy bundle (connector PR #246). Two future items remain
-tracked in the epic: transparent cross-chain FX (Story 44.12, `connector#223`) and full RFC 9421
+`connector.pay.toonprotocol.dev`. Also shipped: the devnet multi-chain roundtrip harness
+(connector PR #245, merged) and the `deploy/pay-edge/` deploy bundle (connector PR #252, merged;
+supersedes closed connector PR #246). Two future items remain tracked in the epic: transparent
+cross-chain FX (Story 44.12, `connector#223`) and full RFC 9421
 hardening beyond the shipped MVP claim↔request binding — replay cache, JWKS/`.well-known`,
 content-digest canonicalisation, key lifecycle (Story 44.13, `connector#224`).
 
