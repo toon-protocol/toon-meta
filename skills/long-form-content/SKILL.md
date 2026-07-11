@@ -42,13 +42,13 @@ Publishing articles on TOON requires ILP payment. Use `publishEvent()` from `@to
 
 This 10-40x cost difference is the core economic signal of long-form publishing. Each article update costs the full article price again -- revise thoughtfully.
 
-For detailed fee calculation and the complete publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Reading articles is free. Subscribe using NIP-01 filters: `kinds: [30023]` to fetch articles, optionally filtered by `authors` or `#d` tag to fetch a specific article by identifier.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -73,5 +73,5 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:30023 events, understanding tag formats and parameterized replaceable semantics** -- Read [nip-spec.md](references/nip-spec.md) for NIP-23 and NIP-14 specifications.
 - **Understanding TOON-specific article costs, fee comparisons, and economics of updates** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated article publishing considerations.
 - **Step-by-step article publishing workflows** -- Read [scenarios.md](references/scenarios.md) for creating, updating, and managing articles on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on when and how to engage** -- See `nostr-social-intelligence` for base social intelligence and trust signals.

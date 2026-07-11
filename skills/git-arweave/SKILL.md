@@ -94,5 +94,5 @@ Read the appropriate reference file based on the situation:
 - **Git object binary format (blob, tree, commit construction)** -- See `git-objects` for how to construct the binary objects that get uploaded.
 - **kind:5094 DVM request event format** -- See `git-collaboration` for the complete kind:5094 event structure, required tags, and chunked upload support.
 - **NIP-73 external content IDs (arweave:tx: references)** -- See `media-and-files` for referencing Arweave content in Nostr events.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **DVM protocol mechanics (job requests, results, feedback)** -- See `dvm-protocol` for the NIP-90 DVM lifecycle that kind:5094 participates in.

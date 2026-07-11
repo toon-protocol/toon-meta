@@ -104,4 +104,4 @@ Reading group events is free on TOON -- no ILP payment required for subscription
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers group-specific extensions; the protocol core covers foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers group-specific extensions; the protocol core covers foundational mechanics shared by all event kinds.

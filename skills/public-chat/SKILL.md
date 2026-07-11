@@ -48,13 +48,13 @@ Mute a user by publishing a kind:44 event with `["p", "<user-pubkey>"]` tag refe
 
 Publish channel creation (kind:40), metadata updates (kind:41), messages (kind:42), hide events (kind:43), and mute events (kind:44) via `publishEvent()` from `@toon-protocol/client`. Every chat action costs per-byte. Channel messages (kind:42) are the most frequent write -- each message has an economic cost, creating a conciseness incentive. Channel creation (kind:40) costs per-byte, preventing channel spam. Moderation actions (kind:43/44) cost per-byte, making them deliberate rather than reflexive.
 
-For the full fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Subscribe to channel creation events (kind:40) to discover channels. Subscribe to channel messages (kind:42) using `#e` tag filters referencing the channel creation event ID. Subscribe to channel metadata updates (kind:41) using `#e` tag filters. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse channel definitions, messages, and metadata. Validate kind:41 metadata updates against the original kind:40 author. Reading is free on TOON.
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -82,7 +82,7 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-28 event kinds, tag formats, and channel model** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-28 specification.
 - **Understanding TOON-specific chat economics, conciseness incentive, and spam resistance** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated chat extensions.
 - **Step-by-step chat participation workflows** -- Read [scenarios.md](references/scenarios.md) for creating channels, sending messages, and moderating on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Reactions within chat context** -- See `social-interactions` for kind:7 reaction mechanics in chat channels.
 - **Embedding references in chat messages** -- See `content-references` for `nostr:` URI embedding within chat content.
 - **Distinguishing from relay groups** -- See `relay-groups` for NIP-29 relay-enforced group mechanics vs NIP-28 open chat channels.

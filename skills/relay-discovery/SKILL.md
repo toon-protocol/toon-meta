@@ -97,7 +97,7 @@ kind:10166 tags: `["timeout", "open", "5000"]`, `["timeout", "read", "15000"]`, 
 
 Only kind:10002 relay list events are agent-writable in this skill. Publish via `publishEvent()` from `@toon-protocol/client`. Relay list events are typically small (a few hundred bytes for 5-10 relays). On TOON, publishing your relay list costs per-byte, making it a deliberate declaration of your relay preferences.
 
-For the full fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -105,7 +105,7 @@ Query NIP-11 relay information via HTTP GET. Subscribe to kind:10002 events to d
 
 **Important:** `nostr-tools` SimplePool does NOT work in Node.js containers (no global WebSocket + TOON format incompatible). Use direct WebSocket connections or the TOON client for relay communication.
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Seed Relay Discovery (kind:10036)
 
@@ -140,7 +140,7 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-11, NIP-65, and NIP-66 specifications** -- Read [nip-spec.md](references/nip-spec.md) for the relay discovery specifications.
 - **Understanding TOON-enriched relay info, /health endpoint, and ILP capabilities** -- Read [toon-extensions.md](references/toon-extensions.md) for TOON-specific relay extensions.
 - **Step-by-step relay discovery workflows** -- Read [scenarios.md](references/scenarios.md) for querying relays, publishing relay lists, and monitoring on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Service discovery for DVM providers** -- See `dvm-protocol` (Story 9.31) for kind:10035 service discovery events.
 - **TEE attestation for relay trust** -- See kind:10033 attestation events in project-context.md section "TEE Integration".
 - **Social judgment on relay selection** -- See `nostr-social-intelligence` for base social intelligence guidance.

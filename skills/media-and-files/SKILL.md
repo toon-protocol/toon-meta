@@ -101,7 +101,7 @@ Publish kind:1063 file metadata events and events containing `imeta` tags via `p
 
 Adding `imeta` tags increases the host event's byte size and therefore its per-byte cost. kind:1063 metadata events are small relative to the files they describe -- on TOON, you pay for the metadata, not the file storage. `i` tags with `arweave:tx:` IDs add minimal byte overhead but reference large off-chain data.
 
-For the full fee formula and `publishEvent()` API, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and `publishEvent()` API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -109,7 +109,7 @@ Query kind:1063 file metadata events using `kinds: [1063]` filters. Filter by `#
 
 TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse file metadata events and extract `imeta`/`i` tags. Reading is free on TOON.
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -138,7 +138,7 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-92/NIP-94/NIP-73 tag formats and event structures** -- Read [nip-spec.md](references/nip-spec.md) for the consolidated specification.
 - **Understanding TOON-specific media economics and Arweave integration** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated media extensions.
 - **Step-by-step media attachment and file metadata workflows** -- Read [scenarios.md](references/scenarios.md) for attaching media, creating file metadata events, and referencing Arweave content.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Using `imeta` tags within long-form articles** -- See `long-form-content` for kind:30023 article structure and media embedding.
 - **Embedding `nostr:` URIs alongside media references** -- See `content-references` for NIP-21/NIP-27 inline linking.
 - **Reactions to media events (kind:7 on kind:1063)** -- See `social-interactions` for reaction mechanics.

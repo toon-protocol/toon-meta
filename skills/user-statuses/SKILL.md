@@ -37,13 +37,13 @@ Publishing status events on TOON requires ILP payment. Use `publishEvent()` from
 
 **Fee calculation:** `basePricePerByte * serializedEventBytes`. A typical kind:30315 status event (200-400 bytes) costs $0.002-$0.004 at default pricing. Statuses are short text, making them among the cheapest events to publish.
 
-Because kind:30315 is parameterized replaceable, only the latest version per `d` tag matters on the network -- but each update costs money. For detailed fee calculation and the complete publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Because kind:30315 is parameterized replaceable, only the latest version per `d` tag matters on the network -- but each update costs money. For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Reading user statuses is free. Subscribe using NIP-01 filters: filter by `kinds: [30315]` and `authors: [<pubkey>]` to fetch all statuses for a user, or add `#d: ["general"]` to fetch a specific status type.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -70,6 +70,6 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:30315 events, understanding tag formats** -- Read [nip-spec.md](references/nip-spec.md) for the full NIP-38 specification.
 - **Understanding TOON-specific status economics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated status updates and fee optimization.
 - **Step-by-step status management workflows** -- Read [scenarios.md](references/scenarios.md) for setting, updating, expiring, and clearing statuses on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Profile context for status display** -- See `social-identity` for kind:0 profile metadata that provides context alongside statuses.
 - **Linking status to external content** -- See `content-references` for nostr: URI scheme and `r` tag URL conventions.

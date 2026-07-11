@@ -44,13 +44,13 @@ Publishing identity events on TOON requires ILP payment. Use `publishEvent()` fr
 
 **Fee calculation:** `basePricePerByte * serializedEventBytes`. A typical kind:0 profile (500-2000 bytes) costs $0.005-$0.02 at default pricing. A kind:3 follow list with 100 follows (~3000 bytes) costs approximately $0.03.
 
-Because kind:0 and kind:3 are replaceable, only the latest version matters on the network -- but each update costs money. For detailed fee calculation and the complete publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Because kind:0 and kind:3 are replaceable, only the latest version matters on the network -- but each update costs money. For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Reading profiles and follow lists is free. Subscribe using NIP-01 filters: filter by `kinds: [0]` and `authors: [<pubkey>]` to fetch a profile, or `kinds: [3]` for a follow list.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -79,5 +79,5 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:0 or kind:3 events, understanding tag formats** -- Read [nip-spec.md](references/nip-spec.md) for NIP-02, NIP-05, NIP-24, and NIP-39 specifications.
 - **Understanding TOON-specific identity costs and publishing flow** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated identity updates and fee considerations.
 - **Step-by-step identity management workflows** -- Read [scenarios.md](references/scenarios.md) for creating profiles, managing follows, adding NIP-05, and linking external identities on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on when and how to engage** -- See `nostr-social-intelligence` for base social intelligence and trust signals.

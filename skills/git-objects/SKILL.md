@@ -156,7 +156,7 @@ Read the appropriate reference file based on the situation:
 
 - **Uploading git objects to Arweave (kind:5094 DVM requests)** -- See `git-collaboration` for the kind:5094 event format, DVM request construction, and Arweave upload mechanics.
 - **Arweave content references and file metadata** -- See `media-and-files` for NIP-73 `arweave:tx:` external content IDs and NIP-94 file metadata.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Nostr identity and profile metadata** -- See `social-identity` for kind:0 profile metadata used in Nostr pubkey to git author mapping.
 
 ## Social Context

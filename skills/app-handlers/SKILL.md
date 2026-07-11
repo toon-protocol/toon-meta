@@ -42,7 +42,7 @@ Both kind:31990 and kind:31989 are published via `publishEvent()` from `@toon-pr
 
 **Parameterized replaceable cost advantage:** Both kinds are parameterized replaceable. Updating an app listing or changing a recommendation replaces the old event rather than accumulating entries. This keeps relay storage bounded and means you only pay for the current version.
 
-For the complete fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the complete fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -52,7 +52,7 @@ Reading handler information and recommendations is free. Subscribe using NIP-01 
 - `kinds: [31989], authors: [<pubkey>]` for a specific user's app recommendations
 - `kinds: [31989], #d: ["30023"]` for recommendations for kind:30023 handlers
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -80,7 +80,7 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:31990 or kind:31989 events, understanding tag formats and URL templates** -- Read [nip-spec.md](references/nip-spec.md) for the full NIP-89 specification with tag tables for both kinds.
 - **Step-by-step workflows for advertising apps, recommending apps, and discovering handlers** -- Read [scenarios.md](references/scenarios.md) for complete TOON publishing scenarios.
 - **Understanding TOON-specific extensions: kind:10035 SkillDescriptor integration, parameterized replaceable cost savings, TOON-aware client considerations** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated app handler extensions.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on when and whether to engage** -- See `nostr-social-intelligence` for base social intelligence and interaction decisions.
 - **Organizing app preferences into lists or labeling app quality** -- See `lists-and-labels` for NIP-51 bookmark sets and NIP-32 labeling that can categorize app handlers.
 - **Understanding relay discovery for relay hint tags** -- See `relay-discovery` for NIP-11 and NIP-65 relay information used in `r` tags.

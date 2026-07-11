@@ -71,7 +71,7 @@ Events that anyone can publish, regardless of identity:
 | kind:1621 (issue) | 300-2000 bytes | ~$0.003-$0.02 |
 | kind:1622 (comment) | 200-1000 bytes | ~$0.002-$0.01 |
 
-For detailed fee calculation, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For detailed fee calculation, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Economic Implications of Pubkey-Only Identity
 
@@ -139,4 +139,4 @@ If a maintainer's key is compromised, the repository creator should immediately 
 
 When reading events from a TOON relay to resolve pubkey-to-author mappings, remember that TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse kind:0 profile events before extracting `name` or `display_name` fields.
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.

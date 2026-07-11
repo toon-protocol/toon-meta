@@ -31,7 +31,7 @@ Four complete end-to-end workflows:
 
 All event publishing uses `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment for every event. Fee formula: `basePricePerByte * serializedEventBytes` (default 10n = $0.00001/byte).
 
-For the full fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -51,7 +51,7 @@ Read the appropriate reference file based on the situation:
 
 - **NIP-34 event kinds (kind:30617, kind:1617, etc.)** -- See `git-collaboration` for individual event kind tag formats, validation rules, and per-kind references.
 - **Git object binary format (blob, tree, commit)** -- See `git-objects` for binary construction, SHA-1 computation, and Nostr pubkey to git author mapping.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Arweave content references and file metadata** -- See `media-and-files` for NIP-73 `arweave:tx:` external content IDs.
 - **Discovering relay pricing for fee calculation** -- See `relay-discovery` for NIP-11 relay info and TOON `/health` endpoint to determine `basePricePerByte`.
 - **Social judgment on code review and contribution norms** -- See `nostr-social-intelligence` for collaboration engagement guidance.

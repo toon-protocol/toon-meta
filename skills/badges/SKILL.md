@@ -48,7 +48,7 @@ All badge operations on TOON require ILP payment. Use `publishEvent()` from `@to
 
 **Fee formula:** `basePricePerByte * serializedEventBytes` where default `basePricePerByte` = 10n ($0.00001/byte). Badge definitions are moderate-cost writes. Awards are cheap individually but can add up for prolific issuers. Profile badge lists scale with the number of displayed badges.
 
-For detailed fee calculation and the complete publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -57,7 +57,7 @@ Reading badges is free. Subscribe using NIP-01 filters:
 - Badge awards: `kinds: [8]` with `#a: [30009:<pubkey>:<d-tag>]` or `#p: [<awardee-pubkey>]`
 - Profile badges: `kinds: [30008]` with `authors: [<pubkey>]` and `#d: [profile_badges]`
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -92,5 +92,5 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:30009, kind:8, or kind:30008 events, understanding tag formats** -- Read [nip-spec.md](references/nip-spec.md) for NIP-58 event specifications and tag structures.
 - **Understanding TOON-specific badge costs and economic dynamics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated badge operations and fee considerations.
 - **Step-by-step badge workflows** -- Read [scenarios.md](references/scenarios.md) for creating badges, awarding badges, displaying profile badges, and revoking badges on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on when and how to engage** -- See `nostr-social-intelligence` for base social intelligence and trust signals.

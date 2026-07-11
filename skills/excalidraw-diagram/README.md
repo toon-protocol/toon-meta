@@ -2,7 +2,7 @@
 
 A coding agent skill that generates beautiful and practical Excalidraw diagrams from natural language descriptions. Not just boxes-and-arrows - diagrams that **argue visually**.
 
-Compatible with any coding agent that supports skills. For agents that read from `.claude/skills/` (like [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [OpenCode](https://github.com/nicepkg/OpenCode)), just drop it in and go.
+Compatible with any coding agent that supports skills. For agents that read from `skills/` (like [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [OpenCode](https://github.com/nicepkg/OpenCode)), just drop it in and go.
 
 ## What Makes This Different
 
@@ -13,11 +13,11 @@ Compatible with any coding agent that supports skills. For agents that read from
 
 ## Installation
 
-Clone or download this repo, then copy it into your project's `.claude/skills/` directory:
+Clone or download this repo, then copy it into your project's `skills/` directory:
 
 ```bash
 git clone https://github.com/coleam00/excalidraw-diagram-skill.git
-cp -r excalidraw-diagram-skill .claude/skills/excalidraw-diagram
+cp -r excalidraw-diagram-skill skills/excalidraw-diagram
 ```
 
 ## Setup
@@ -31,7 +31,7 @@ Just tell your agent: *"Set up the Excalidraw diagram skill renderer by followin
 **Option B: Manual**
 
 ```bash
-cd .claude/skills/excalidraw-diagram/references
+cd skills/excalidraw-diagram/references
 uv sync
 uv run playwright install chromium
 ```

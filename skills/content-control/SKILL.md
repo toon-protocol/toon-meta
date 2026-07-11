@@ -27,13 +27,13 @@ All content control events on TOON require ILP payment. Use `publishEvent()` fro
 
 **The economics of content control on TOON:** Even deletion costs money. This means: think before publishing (prevention is cheaper than cleanup), batch deletions when possible (one kind:5 event can reference multiple `e` tags), and use the `-` tag proactively on sensitive content rather than relying on deletion after the fact.
 
-For the complete TOON write model, fee calculation, and publishing flow details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the complete TOON write model, fee calculation, and publishing flow details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Reading deletion requests and protected events is free. Subscribe using NIP-01 filters: `kinds: [5]` for deletion requests. Use `#e` tag filters to find deletion requests targeting a specific event, or `authors` filters to find all deletion requests from a specific pubkey.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 **Relay compliance varies.** A TOON relay that has processed a kind:5 deletion request MAY return the deleted events, MAY return nothing, or MAY return a notice that the events were deleted. Clients should handle all three cases. Protected events (with the `-` tag) will not appear on relays where the author did not directly publish them, but this depends on relay-side enforcement.
 
@@ -65,7 +65,7 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:5 events, understanding tag formats for deletion and vanish requests** -- Read [nip-spec.md](references/nip-spec.md) for NIP-09, NIP-62, and NIP-70 specifications.
 - **Understanding TOON-specific content control costs and economics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated content control extensions and fee considerations.
 - **Step-by-step content control workflows** -- Read [scenarios.md](references/scenarios.md) for deleting events, protecting content, vanishing, and handling deletion requests on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Undoing reactions or social interactions** -- See `social-interactions` for how kind:5 deletion connects to reaction management.
 - **Muting and blocking as alternatives to deletion** -- See `lists-and-labels` for mute lists (kind:10000) as a softer content control mechanism.
 - **Core event structure and NIP-01 fundamentals** -- See `nostr-protocol-core` for the base protocol layer that content control builds upon.

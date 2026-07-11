@@ -24,13 +24,13 @@ NIP-34 defines a complete decentralized git workflow:
 
 Publish all git collaboration events via `publishEvent()` from `@toon-protocol/client`. Every event costs `basePricePerByte * serializedEventBytes`. Patches (kind:1617) are the most expensive events because they contain full diff output -- keep diffs minimal and focused. Repository announcements and state updates are parameterized replaceable events, so updates replace the previous version at the same cost. Status events are small and cheap. Never use raw WebSocket writes -- the relay requires ILP payment.
 
-For the full fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Subscribe to repository announcements (kind:30617) to discover repos. Subscribe to patches (kind:1617), PRs (kind:1618), and issues (kind:1621) using `#a` tag filters referencing the repository address (`30617:<pubkey>:<repo-id>`). Subscribe to comments (kind:1622) using `#e` tag filters. Subscribe to status events (kind:1630-1633) using `#e` tag filters referencing the target event. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse events. Reading is free on TOON.
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -91,7 +91,7 @@ Read the appropriate reference file based on the situation:
 
 ### Cross-Skill References
 
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Reactions to patches, PRs, or issues** -- See `social-interactions` for kind:7 reaction mechanics.
 - **Embedding references in issue descriptions or comments** -- See `content-references` for `nostr:` URI embedding within markdown content.
 - **Social judgment on code review norms** -- See `nostr-social-intelligence` for base social intelligence and collaboration engagement guidance.

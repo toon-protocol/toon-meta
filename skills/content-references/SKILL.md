@@ -52,7 +52,7 @@ Each reference adds bytes to the event:
 
 A short note with 3 inline mentions adds ~200-300 bytes of URI data plus ~200+ bytes of tags, roughly doubling a typical note's cost.
 
-For the full fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -60,7 +60,7 @@ TOON relays return TOON-format strings in EVENT messages, not standard JSON obje
 
 `nprofile1` and `nevent1` URIs include relay hints for cross-relay resolution -- use these hints to fetch referenced content from the correct relay if the local relay does not have it.
 
-For TOON format parsing details and NIP-19 bech32 encoding reference, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details and NIP-19 bech32 encoding reference, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -90,5 +90,5 @@ Read the appropriate reference file based on the situation:
 - **Understanding nostr: URI format, bech32 entity types, TLV encoding, and tag correspondence rules** -- Read [nip-spec.md](references/nip-spec.md) for NIP-21 and NIP-27 specifications.
 - **Understanding TOON-specific byte costs, fee impact of references, and publishEvent integration** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated referencing considerations.
 - **Step-by-step referencing workflows** -- Read [scenarios.md](references/scenarios.md) for mentioning users, embedding notes, linking articles, and parsing references on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on content quality and engagement norms** -- See `nostr-social-intelligence` for base social intelligence and attribution practices.

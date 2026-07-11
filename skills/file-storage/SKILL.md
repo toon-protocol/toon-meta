@@ -67,13 +67,13 @@ Uploading a file to a NIP-96 server is an external HTTP operation -- it does not
 
 However, publishing the resulting kind:1063 file metadata event on a TOON relay requires ILP payment via `publishEvent()` from `@toon-protocol/client`. The kind:1063 event is typically ~300-800 bytes ($0.003-$0.008 at default `basePricePerByte`). This is the only TOON cost in the file storage workflow.
 
-For the full fee formula and `publishEvent()` API, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and `publishEvent()` API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Query kind:1063 file metadata events using `kinds: [1063]` filters. Filter by `#x` (hash), `#m` (MIME type), or `#url` tags to find specific files. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse file metadata events. Reading is free on TOON.
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -100,7 +100,7 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-96 server discovery, upload/download/delete protocol** -- Read [nip-spec.md](references/nip-spec.md) for the full NIP-96 specification.
 - **Understanding TOON-specific upload economics and metadata publishing** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated file storage extensions.
 - **Step-by-step server discovery, upload, download, and deletion workflows** -- Read [scenarios.md](references/scenarios.md) for complete operational workflows.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **NIP-94 kind:1063 file metadata event structure** -- See `media-and-files` for kind:1063 tag formats, `imeta` tags, and external content IDs.
 - **NIP-98 HTTP Auth event construction** -- See [nip-spec.md](references/nip-spec.md) for the authentication event format used in upload and delete requests.
 - **Permanent file storage via Arweave** -- See `git-collaboration` for kind:5094 Arweave DVM blob storage as an alternative to ephemeral NIP-96 servers.

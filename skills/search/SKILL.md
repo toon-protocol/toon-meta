@@ -35,7 +35,7 @@ TOON relays return TOON-format strings in EVENT messages, not standard JSON obje
 3. Receive EOSE (End of Stored Events) to signal completion of stored results
 4. Optionally keep the subscription open for new events matching the search
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -60,6 +60,6 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-50 search filter syntax, relay support detection, and search extensions** -- Read [nip-spec.md](references/nip-spec.md) for the full NIP-50 specification.
 - **Step-by-step search workflows** -- Read [scenarios.md](references/scenarios.md) for basic text search, filtered search, checking relay support, and author-scoped search.
 - **Understanding TOON-specific search behavior, quality signals, and /health endpoint** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated search considerations.
-- **TOON read model, format parsing, and subscription mechanics** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON read model, format parsing, and subscription mechanics** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Checking relay capabilities and NIP-11 support detection** -- See `relay-discovery` for NIP-11 relay information document parsing and NIP-50 support verification.
 - **Referencing content found via search** -- See `content-references` for constructing `nostr:` URIs to link to discovered events.

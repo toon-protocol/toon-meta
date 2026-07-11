@@ -53,13 +53,13 @@ Clients may query kind:1 events with community `a` tags for backward compatibili
 
 Publish community posts (kind:1111), approval events (kind:4550), and community definitions (kind:34550) via `publishEvent()` from `@toon-protocol/client`. Each costs per-byte like all TOON writes. Cross-posting (kind:6/kind:16) costs per-byte per repost. The double-friction model means posting costs money AND requires moderator approval -- moderators also pay per-byte to approve, making moderation a paid commitment.
 
-For the full fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Subscribe to community definitions (kind:34550) using `a` tag filters to discover communities. Approved posts (kind:4550) contain the original post content as JSON-encoded content within the approval event. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse community definitions, approval events, and community posts. Reading is free on TOON.
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -87,7 +87,7 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-72 event kinds, approval flow, tag formats, and community definitions** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-72 specification.
 - **Understanding TOON-specific community economics, double-friction dynamics, and moderation costs** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated community extensions.
 - **Step-by-step community participation workflows** -- Read [scenarios.md](references/scenarios.md) for creating communities, posting, approving, and cross-posting on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Reactions within community context** -- See `social-interactions` for kind:7 reaction mechanics.
 - **Embedding references in community posts** -- See `content-references` for `nostr:` URI embedding within community content.
 - **Distinguishing from relay groups** -- See `relay-groups` for NIP-29 relay-enforced group mechanics vs NIP-72 approval-based communities.

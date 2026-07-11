@@ -65,13 +65,13 @@ Publish picture events (kind:20), horizontal video events (kind:34235), and vert
 
 Visual content events have higher per-event cost than text-only notes because of rich metadata tags. Each `imeta` tag adds ~100-300 bytes. Tags like `title`, `summary`, `duration`, `dim`, `image`, and `thumb` each add ~30-80 bytes. The media data itself (images, videos) is hosted externally and not included in the event -- you pay for the metadata, not the media.
 
-For the full fee formula and `publishEvent()` API, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and `publishEvent()` API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Subscribe to picture events with `kinds: [20]`, horizontal videos with `kinds: [34235]`, and vertical videos with `kinds: [34236]`. Filter by author (`authors`), by hashtag (`#t`), or by time range. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse visual media events and extract metadata tags. For video events, use `#d` tag filters to query specific videos by identifier. Reading is free on TOON.
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -104,7 +104,7 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-68/NIP-71 event kinds, tag formats, and visual media model** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-68 and NIP-71 specifications.
 - **Understanding TOON-specific visual media economics and metadata cost optimization** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated visual media extensions.
 - **Step-by-step picture and video publishing workflows** -- Read [scenarios.md](references/scenarios.md) for posting pictures, publishing videos, and querying visual content on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **`imeta` tag construction and NIP-92 media metadata** -- See `media-and-files` for the foundational media metadata layer that picture events build upon.
 - **Embedding references in captions or descriptions** -- See `content-references` for `nostr:` URI embedding within visual content captions.
 - **Reactions to visual content** -- See `social-interactions` for kind:7 reaction mechanics on picture and video events.

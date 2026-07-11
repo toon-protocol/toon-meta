@@ -199,7 +199,7 @@ All marketplace events are published via `publishEvent()` from `@toon-protocol/c
 
 Products with many images, long descriptions, or extensive specs cost more. Keep listings concise to minimize per-byte costs. Updating a listing (republishing with the same `d` tag) costs the same as creating a new one.
 
-For the full fee formula and `publishEvent()` API, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and `publishEvent()` API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -213,7 +213,7 @@ TOON relays return TOON-format strings in EVENT messages, not standard JSON obje
 
 To find all products in a stall, query by the merchant's pubkey and kind:30018, then filter by `stall_id` in the parsed content JSON. To browse by category, use `#t` tag filters.
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -250,7 +250,7 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-15 stall/product protocol and NIP-99 classified format** -- Read [nip-spec.md](references/nip-spec.md) for the full NIP specifications.
 - **Understanding TOON-specific marketplace economics and DVM service mapping** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated marketplace extensions.
 - **Step-by-step stall creation, product listing, classified posting, and discovery workflows** -- Read [scenarios.md](references/scenarios.md) for complete operational workflows.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Order negotiation via encrypted DMs** -- See `private-dms` for NIP-17 DM construction, gift wrapping, and per-message costs.
 - **Product images via NIP-96 file storage** -- See `media-and-files` for kind:1063 file metadata and `imeta` tag format; see `file-storage` for NIP-96 upload workflow.
 - **DVM service marketplace mapping** -- Read [toon-extensions.md](references/toon-extensions.md) for how DVM compute services map to NIP-15 stalls and products.

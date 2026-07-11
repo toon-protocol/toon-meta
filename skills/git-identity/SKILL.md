@@ -106,7 +106,7 @@ Identity-related writes on TOON go through `publishEvent()` from `@toon-protocol
 - Status events (kind:1630-1633) that enforce authorization are small and cheap (~$0.002-$0.004).
 - Submitting patches, PRs, and issues costs per-byte regardless of identity -- anyone pays the same rate.
 
-For the full fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -117,7 +117,7 @@ All identity verification is free on TOON -- reading events costs nothing:
 - **Resolve display names:** Subscribe to kind:0 for a pubkey to get profile metadata.
 - **Validate status events:** Check that the pubkey on a kind:1631 (merge) event belongs to a listed maintainer.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse events. For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse events. For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -156,5 +156,5 @@ Read the appropriate reference file based on the situation:
 
 - **Full NIP-34 git collaboration event kinds and workflows** -- See `git-collaboration` for kind:30617 repository announcements, patches, PRs, issues, comments, and status events.
 - **Nostr profile metadata and NIP-05 DNS verification** -- See `social-identity` for kind:0 profiles, display names, and external identity linking that supplements pubkey identity.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Content control and event deletion** -- See `content-control` for NIP-09 deletion requests and NIP-70 protected events that interact with maintainer authority.
