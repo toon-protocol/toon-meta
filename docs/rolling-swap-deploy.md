@@ -312,6 +312,10 @@ unsettled claims; settle/drain before stopping if real value has flowed (D4).
 | Devnet mill process | none | swap 1.0.0 | ☐ Stage 4 |
 | `@toon-protocol/connector` (mill pin) | ^3.10.0 | ^3.20.1 (publish gap; ^3.28 follow-up) | — |
 
+Connector publish gap: decided 2026-07-12 — **forward-only**. Merging
+toon-protocol/connector#312 cuts and publishes the next patch (3.28.6+);
+versions 3.21–3.28.5 stay npm-absent and are not backfilled.
+
 ---
 
 ## 7. Open decisions (blockers marked ⛔)
@@ -319,18 +323,15 @@ unsettled claims; settle/drain before stopping if real value has flowed (D4).
 - **D1 ⛔ Window timing.** When do Stages 1–2 land, and when is the Stage 4
   go-live? Merges/publishes are safe any time; only Stage 4 needs a chosen
   window.
-- **D2 ⛔ Mill hosting model.** The swap repo has no deploy artifact. Ad-hoc
-  container/pm2 on an existing box (`toon` next to the apex is the natural
-  choice — lowest-latency BTP parent) vs. first building a baked-config
-  image + deploy/ dir like relay/store (slower, but matches org convention and
-  avoids another hand-tuned-box drift). Also: which ILP address/nodeId
-  (`g.proxy.swap`?) and the apex-side route/peer entry in the bind-mounted
-  connector.yaml.
-- **D3 ⛔ Soak gate.** Gate Stage 4 on the client release being live for N
-  days? Recommended: yes, small N (2–7 days) + announcement — the residual
-  risk is only users who point an *old* client at the *new* mill, and that
-  failure is silent. N=0 is defensible on the argument that no swap surface
-  exists today anyway; N too large just delays the epic's next wave.
+- **D2 ✅ DECIDED (2026-07-12): baked-config image + deploy/ dir.** Follow the
+  relay/store convention: build a `swap-connector` baked-config image and a
+  committed deploy/ dir in the swap repo before go-live (survives box resets,
+  no new hand-tuned snowflake). Still open within D2: the mill's ILP
+  address/nodeId (`g.proxy.swap`?) and the apex-side route/peer entry in the
+  bind-mounted connector.yaml (dual-control-plane rule applies).
+- **D3 ✅ DECIDED (2026-07-12): no soak (N=0).** No live mill exists today, so
+  no existing swap traffic can break. Stand the mill up dark as soon as the
+  client release is published, verify with a real swap, then announce.
 - **D4 Mill persistence.** swap#52 (state persistence; today mill state is
   fully in-memory) is implemented but unmerged. Deploy the devnet mill before
   or after it merges? Before ⇒ every restart strands unsettled claims
