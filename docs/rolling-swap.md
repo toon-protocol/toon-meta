@@ -1,6 +1,6 @@
 # Rolling Swap — re-priced coupled micro-packets, adaptive sizing, batched settlement
 
-**Status:** Design spec (pre-implementation) · **Scope:** cross-chain swap path across `@toon-protocol/swap`, `@toon-protocol/sdk`, the connector, and toon-client · **Audience:** swap-node (maker) operators, SDK implementers, client integrators
+**Status:** Design spec (pre-implementation, except §4: the `maxRateAge` guard is prototyped and calibrated — swap#48/swap#53, reconciled into §4/§4.1) · **Scope:** cross-chain swap path across `@toon-protocol/swap`, `@toon-protocol/sdk`, the connector, and toon-client · **Audience:** swap-node (maker) operators, SDK implementers, client integrators
 
 This document is the design spec for the rolling cross-chain swap
 ([toon-meta#145](https://github.com/toon-protocol/toon-meta/issues/145)): a large swap executed
@@ -13,11 +13,17 @@ escrow: because each packet re-prices at the current rate and is loss-bounded to
 packet window, neither side ever carries a stale-price option larger than one δ. This is the
 ILP/STREAM risk model (rfc-0029) pointed at a cross-*currency*, cross-*chain* trade.
 
+**Terminology.** The component historically called "the mill" is the **swap node** (its
+counterparty role: the **maker**); the mill vocabulary is retired. `mill`-named identifiers
+below (`mill.ts`, `MillInventory`, …) appear only in code citations pinned to
+`@toon-protocol/swap` 0.1.0, where the shipped code still uses the old names — the code
+rename (`SwapNodeConfig`/`startSwapNode`, `SWAP_*` env) is landing in parallel.
+
 The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as in RFC 2119.
 
 **Acceptance for this spec:** a fresh reader can implement a rolling-swap maker and a
 rolling-swap sender against the extension points named in §3–§8 and understand exactly what
-changes relative to the deployed mill, end to end, without asking questions. If you find
+changes relative to the deployed swap node, end to end, without asking questions. If you find
 yourself asking one, that is a bug in this document — file it.
 
 **Version pins.** All `file:line` references below were verified 2026-07-12 against:
@@ -28,17 +34,17 @@ sdk ^0.5.0). The 0.5.x/1.x split is itself a migration hazard — see §10.1.
 
 ---
 
-## 1. Motivation — what the custodial mill actually does today
+## 1. Motivation — what the custodial swap node actually does today
 
 The current swap node is a **custodial, pre-funded, single-maker FX desk**. A sender streams
-NIP-59 gift-wrapped fill requests at it; per packet, the mill debits its own asset-B inventory
+NIP-59 gift-wrapped fill requests at it; per packet, the swap node debits its own asset-B inventory
 and returns a signed chain-B balance proof *inside the FULFILL `data`*
 (`swap/src/claim-issuer.ts:143-250`, metadata assembly `sdk/src/swap-handler.ts:781-805`).
 Three structural problems, each grounded in the shipped code:
 
 ### 1.1 Delivery-atomic, not value-atomic — and in the deployed client, not even verified
 
-The intended guarantee is that the sender's chain-A payment only commits if the mill returns a
+The intended guarantee is that the sender's chain-A payment only commits if the swap node returns a
 FULFILL. But nothing binds the *value* of what comes back: by the time the sender can inspect
 the returned claim, chain A has committed. All of the `chainRecipient` and signer-address
 validation in `claim-issuer.ts:157-170` is verify-after-commit, not enforcement.
@@ -56,31 +62,31 @@ The deployed reality is weaker still, in two ways:
 - **The deployed client verifies nothing.** `ClientRunner.swap`
   (`toon-client/packages/client-mcp/src/daemon/client-runner.ts:1442-1482`) wires neither
   `onPacket` nor `rateDeviationThreshold`, performs no signature, channelId, nonce, or amount
-  validation, and returns the mill's claims to the MCP caller as base64. The SDK's settlement
+  validation, and returns the swap node's claims to the MCP caller as base64. The SDK's settlement
   verifier (`sdk/src/settlement/build-settlement-tx.ts:76-478`) and `verifyAccumulatedClaim`
-  (`:495-562`) have **zero call sites in toon-client**. If the mill returns a bogus claim,
+  (`:495-562`) have **zero call sites in toon-client**. If the swap node returns a bogus claim,
   leg A is committed, and there is no error path, rollback, or refund. The epic's
   "verify-after-commit" critique is *understated* for the deployed client: it is
   no-verify-at-all.
 
 ### 1.2 Inventory is a honeypot sized to notional
 
-The operator pre-funds `MillConfig.inventory` per chain (`swap/src/mill.ts:228`, seeded at
+The operator pre-funds `SwapNodeConfig.inventory` (formerly `MillConfig`) per chain (`swap/src/mill.ts:228`, seeded at
 `:755-766`); every issued claim permanently debits `available` by the full `targetAmount`
 (`swap/src/inventory.ts:75-98`), and `credit` is only ever called for rollbacks
 (`claim-issuer.ts:187,207`). There is no refill loop, no rebalancing, no top-up path anywhere
-in the repo. The pool must therefore be sized to the **total notional flow** the mill expects
+in the repo. The pool must therefore be sized to the **total notional flow** the swap node expects
 to fill, on every chain it supports, held hot behind one mnemonic (`swap/src/wallet.ts:2-10`).
 That is a cross-chain custodial honeypot plus capital drag, and it is all in-memory, lost on
 restart (`swap/src/channel-state.ts:18`).
 
 ### 1.3 Single maker
 
-The rate is a **static decimal string** in the mill's kind:10032 event
+The rate is a **static decimal string** in the swap node's kind:10032 event
 (`SwapPair.rate`, `toon/packages/core/src/types.ts:71-82`, published at
 `swap/src/mill.ts:1380-1409`). The live-rate hook `rateProvider`
 (`sdk/src/swap-handler.ts:158`, called per packet at `:667-678`) is wired by nothing — the
-swap CLI never sets it, so deployed mills price at the config-frozen rate. Client-side, the
+swap CLI never sets it, so deployed swap nodes price at the config-frozen rate. Client-side, the
 pair (including the rate) is a caller-supplied MCP parameter
 (`toon-client/packages/client-mcp/src/mcp-tools.ts:392-443`); the client repo contains no code
 that fetches a quote from anywhere. One quote source, no price competition, a censorship
@@ -115,7 +121,7 @@ viable (explicitly a fast-follow, §12).
 ### 2.2 Packet lifecycle
 
 A rolling swap is one **RFQ round trip** followed by a **stream of fill packets**. The split
-is deliberate: NIP-59 gift wrap (and its `MILL_MNEMONIC` recipient footgun,
+is deliberate: NIP-59 gift wrap (and its `SWAP_MNEMONIC` — formerly `MILL_MNEMONIC` — recipient footgun,
 `toon-meta/docs/protocol.md:28-46`) stays on the occasional negotiation message; the frequent
 fill packets are plain ILP packets — unwrapped channel advances under the shared condition.
 This keeps the hot path off Nostr.
@@ -140,10 +146,10 @@ re-broadcast in plaintext on every packet.
 
 | Piece | Extension point |
 |---|---|
-| Maker termination (replaces `issueClaim`-in-FULFILL) | `setPacketHandler` → `localDeliveryHandler` dispatch (`connector/src/core/packet-handler.ts:390-398`, `:1178-1207`; mill registration `swap/src/mill.ts:1138-1146`) |
+| Maker termination (replaces `issueClaim`-in-FULFILL) | `setPacketHandler` → `localDeliveryHandler` dispatch (`connector/src/core/packet-handler.ts:390-398`, `:1178-1207`; swap-node registration `swap/src/mill.ts:1138-1146`) |
 | Maker fresh quote | the existing per-packet `rateProvider` hook (`sdk/src/swap-handler.ts:667-678`) — finally wired |
-| Staleness reject | inbound gate: `InboundClaimValidatorFn` before the packet handler (`connector/src/btp/btp-server.ts:905-941`) — see §4 for why the *gate*, not the handler |
-| Maker leg-B egress | `ConnectorNode.sendPacket` (`connector/src/core/connector-node.ts:593-635`), same path the mill already uses for kind:10032 publishes |
+| Staleness reject | inbound gate: `InboundClaimValidatorFn` before the packet handler (`connector/src/btp/btp-server.ts:905-941`) — see §4 for why the *gate*, not the handler (prototyped at the handler seam in swap#53; calibrated defaults in §4.1) |
+| Maker leg-B egress | `ConnectorNode.sendPacket` (`connector/src/core/connector-node.ts:593-635`), same path the swap node already uses for kind:10032 publishes |
 | Condition pass-through | existing skip-if-nonzero at `packet-handler.ts:1512-1519`; verify at `:1554-1594` (§3, R3/R6) |
 | Sender controller | `streamSwapControlled` pause/resume + per-packet `onPacket` (`sdk/src/stream-swap.ts:824-909`, `:1230-1271`) |
 | Quote tape carrier | the FULFILL accept-metadata dict (`sdk/src/swap-handler.ts:781-805`) — additive fields (§7) |
@@ -237,7 +243,7 @@ for this protocol, not for anything: received chain-B claims are currently retur
 caller as base64 and never persisted, verified, or settled (`client-runner.ts:1459-1481`; zero
 `buildSettlementTx`/`verifyAccumulatedClaim` call sites). This is a hard dependency of the
 rolling engine, tracked as its own story under #145, and nothing in this spec silently assumes
-it. The natural shape is the daemon registering a local-delivery handler the same way the mill
+it. The natural shape is the daemon registering a local-delivery handler the same way the swap node
 does (`setPacketHandler`, §2.3) on a lightweight embedded child node, with received claims
 persisted beside `ChannelStore` (`toon-client/packages/client/src/channel/ChannelStore.ts:3-91`).
 
@@ -256,28 +262,92 @@ packet. This is the newest behavior in the stack and the hinge the fairness argu
   `lastRateUpdate` is the timestamp of its own rate source's latest tick for the pair. The
   bound is on the *maker's own feed*, not on anything the sender claims — the sender never
   prices packets in rolling mode, so there is nothing sender-side to age-check.
-- The reject MUST be **benign and machine-readable**: ILP code `T99` (temporary, application
-  layer — the T-class tells the sender "retry later" as opposed to the F-class "don't retry")
-  with `data = {"reason":"stale_rate","maxRateAgeMs":…,"lastRateAt":…}`. The swap handler's
-  existing reject-code ladder (`sdk/src/swap-handler.ts:206-237`, reverse-mapped at
-  `swap/src/mill.ts:1118-1130`) gains this entry.
+- The reject MUST be **benign and machine-readable**. The contract as implemented
+  ([swap#53](https://github.com/toon-protocol/swap/pull/53)): handler-level code `T99`
+  (temporary, application layer — the T-class tells the sender "retry later" as opposed to
+  the F-class "don't retry"), `message` the bare token `stale_rate`, and base64-JSON
+  `data = {"reason":"stale_rate","maxRateAgeMs":…,"lastRateAt":…,"pair":…}`
+  (`lastRateAt: null` = feed never ticked). The swap handler's existing reject-code ladder
+  (`sdk/src/swap-handler.ts:206-237`, reverse-mapped at `swap/src/mill.ts:1118-1130`) gains
+  this entry. **The sender's authoritative discriminator is `data.reason === "stale_rate"`
+  (fallback: `message === "stale_rate"`), never the wire code.** Connector caveat: the
+  published connector (≤ 3.20.1) has no `stale_rate`/T99 entry in its `REJECT_CODE_MAP`, and
+  an unmapped semantic would collapse to F99 — F-class, "don't retry", inverting the benign
+  contract — so the prototype pins the semantic reason to `timeout` and the wire code is
+  currently **T00** (still T-class, retryable). A connector follow-up PR adds
+  `stale_rate: 'T99'` to the map; until it ships, senders MUST NOT key any behavior off
+  seeing `T99` on the wire.
 - The reject MUST be enforced at the **inbound gate** — the `InboundClaimValidatorFn` that
   runs before the packet handler (`connector/src/btp/btp-server.ts:905-941`, semantics in
   `connector/src/btp/inbound-claim-validator.ts:124-288`) — not in the swap handler. At the
   gate the leg-A claim has not yet been ingested, so a staleness reject leaves no watermark
   advance and no maker debt (R8). Rejecting later, in the handler, would strand a live claim
-  on every feed hiccup.
+  on every feed hiccup. *Implementation status:* the swap#53 prototype enforces the bound at
+  the **handler seam** (a decorator ahead of replay reservation, pricing, inventory debit,
+  and leg-B claim issuance) — so prototype rejects today still leave the leg-A claim
+  ingested, exactly the R8 hazard this rule exists to close. The calibration confirmed the
+  gate as final placement and surfaced what it needs: at the gate the packet is an opaque
+  gift wrap, so the gate needs the swap node's unwrap capability, a coarser per-destination
+  scope, or the toon#82 on-wire rate timestamp to resolve the pair. Moving there is blocked
+  on the connector publish pipeline (nothing past 3.20.1 is published).
 - `maxRateAge` is a **maker-owned, per-chain-pair config knob**, advertised in the RFQ
-  response (§2.2) alongside the spread — not a protocol constant. Calibration is the epic's
-  highest-risk open question (too loose → slow-feed makers farmed; too tight → Mina swaps
-  stall on constant rejects) and is explicitly a prototype-first story, not resolved by this
-  document. Indicative starting points: low hundreds of ms on Base-class chains, tens of
-  seconds on Mina-class chains.
+  response (§2.2) alongside the spread — not a protocol constant. The calibration confirmed
+  this design point empirically: the bound alone cannot make a slow-feed maker whole
+  (§4.1, finding 3), so it is co-tuned with the advertised spread per maker and per pair.
+  What was the epic's highest-risk open question (too loose → slow-feed makers farmed; too
+  tight → Mina swaps stall on constant rejects) is now answered — under simulated feeds —
+  by the [swap#48](https://github.com/toon-protocol/swap/issues/48) calibration; see §4.1
+  for the recommended defaults. (An earlier revision of this document suggested "low
+  hundreds of ms on Base-class chains" as an indicative starting point. That intuition was
+  wrong: 100 ms against a realistic ~250 ms Base-class feed is a 65% reject storm. Superseded
+  by §4.1.)
 
-**Sender response:** a `T99 stale_rate` reject is not an error. The sender SHOULD back off
+**Sender response:** a `stale_rate` reject is not an error. The sender SHOULD back off
 briefly (≥ one `maxRateAge`), MAY re-issue the RFQ for a fresh board quote, and MUST count the
 event in the controller as a shrink signal (§6). Preimage `P_i` is discarded; `seq` is not
 reused.
+
+### 4.1 Calibration — recommended defaults (empirical, simulated feeds)
+
+**Status: empirical, not normative.** Everything in this subsection comes from the swap#48
+calibration prototype (writeup:
+[swap#48 calibration comment](https://github.com/toon-protocol/swap/issues/48#issuecomment-4952509158);
+harness in [swap#53](https://github.com/toon-protocol/swap/pull/53),
+`packages/swap/src/max-rate-age.calibration.test.ts`) — a seeded, deterministic
+**simulation**: lognormal feed-tick intervals with an occasional-gap tail, Poisson fill
+arrivals, reject iff quote age > A at arrival, staleness exposure of an accepted fill
+proxied as σ·√age bps (calm σ = 1 bps/√s ≈ 60% annualized; burst = 10×, which is when
+farming actually pays). **Live-devnet measurement against a real Mina-class feed is the
+remaining follow-up** before the rolling engine hard-depends on the guard. The defaults
+below are maker-advisory starting points (exported as `RECOMMENDED_MAX_RATE_AGE_MS`,
+assertion-pinned in the harness), not protocol constants.
+
+| chain class | recommended `maxRateAge` | reject rate | worst burst exposure |
+|---|---|---|---|
+| evm (Base-class, ~250 ms median tick) | **1500 ms** | 0.22% | 12.2 bps |
+| solana (~500 ms median tick) | **3000 ms** | 0.62% | 17.3 bps |
+| mina (~4 s median tick, heavy gap tail) | **15000 ms** | 1.51% | 38.7 bps |
+
+What the curves say:
+
+1. **Rule of thumb: `A ≈ 4–6× the feed's median tick interval ≈ its p99 gap`** — the knee of
+   every measured curve. Below it, rejects explode: 100 ms on a ~250 ms Base-class feed is
+   64.8% rejects, and even 2× the median cadence (500 ms) still bounces ~5% of fresh
+   traffic.
+2. **There is a knee, not a monotone tradeoff.** Past the feed's gap tail, rejects go to ~0
+   while the farmable staleness exposure keeps growing ~√A: loosening mina 20 s → 60 s buys
+   0.48% → ~0% rejects but grows the worst-case burst budget 44.7 → 77.5 bps. Bounds looser
+   than the knee are pure adversary subsidy.
+3. **`maxRateAge` alone cannot make a slow chain safe.** Even at the recommended Mina bound,
+   burst-volatility worst-case staleness (~39 bps) exceeds a typical 10–30 bps half-spread.
+   The residual must be priced by the maker's advertised spread and absorbed by the §6
+   controller shrinking δ on `stale_rate` signals — which is why the bound stays a
+   maker-owned knob co-tuned with the spread rather than a protocol constant.
+4. **The worked example's regime is routine, not a fluke.** On a Mina-class feed a 10 s
+   bound rejects ~4× more than 15 s (5.85% vs 1.51%); 12.6 s feed gaps are ordinary events
+   in that regime (the §11 tape's reject is a genuine 16.8 s blackout). Stalls are bounded,
+   not fatal: the worst stall equals the worst feed blackout beyond the bound (tens of
+   seconds on Mina-class), and the sender backoff (≥ one `maxRateAge`) rides through it.
 
 ---
 
@@ -302,7 +372,7 @@ The sender-side guard, per rfc-0029: a hard cap on the worst-case fill.
   same claim cannot succeed), packet fails, controller shrink signal.
 
 Today's nearest analogue — `rateDeviationThreshold` + `onPacket`
-(`stream-swap.ts:1150-1196`, `:1286-1293`) — is soft, post-hoc, computed from the mill's
+(`stream-swap.ts:1150-1196`, `:1286-1293`) — is soft, post-hoc, computed from the maker's
 self-reported `targetAmount`, and not wired by the daemon (`client-runner.ts:1446-1457`). It
 is superseded by the floor, not extended.
 
@@ -329,8 +399,8 @@ window) bounds *timing/liveness risk* and, per §3.1, the worst-case unrecovered
   second read off the quote tape (§7); `τ` is an EWMA of observed round-trip times; both
   update on every fulfilled packet. A maker can paint its own tape calm — which is why the
   floor (§5) holds standalone and is never relaxed.
-- **Asymmetric adjustment, one knob per step.** On a shrink signal (a `T99 stale_rate`
-  reject, an R5 failure, or realized per-packet slip `> ε`): multiplicative —
+- **Asymmetric adjustment, one knob per step.** On a shrink signal (a `stale_rate`
+  reject (§4), an R5 failure, or realized per-packet slip `> ε`): multiplicative —
   `δ ← max(δ_min, δ/2)`, or if the signal was a timeout/expiry, `W ← max(1, ⌈W/2⌉)`. On a
   clean streak of `K = 16` consecutive fulfills: additive — `δ ← min(delta_cap, δ + δ_0)` or
   `W ← min(W_max, W + 1)`, alternating, never both in one step. One knob per step keeps
@@ -428,7 +498,7 @@ required_B(chain, asset) = δ_max·W_max · R      (in-flight reservation ceilin
 - `MillChannelState.reserve/release` (`channel-state.ts:156-201`) semantics are unchanged —
   nonce+1, cumulative watermark — but the state MUST be persisted. Today everything is
   in-memory and lost on restart (`channel-state.ts:18`), and a crash mid-stream
-  desynchronizes the mill's watermark from claims already handed out. The rolling engine
+  desynchronizes the swap node's watermark from claims already handed out. The rolling engine
   hands out claims continuously; **persistence is a prerequisite, not an improvement**
   (§10.2).
 - `resolveChannel`'s sticky sender→channel binding (`channel-state.ts:123-150`) is kept, and
@@ -452,7 +522,7 @@ touches the settlement layer (see `settlement.md`):
 - Every claim on both legs is a **cumulative watermark** (monotone nonce, cumulative amount),
   so N micro-swap advances net to **one settlement per chain**: `buildSettlementTx` redeems
   only the highest-nonce claim per `(chain, channelId)` (`build-settlement-tx.ts:371-394`);
-  superseded claims are informational. The mill-side E2E already demonstrates the minimum —
+  superseded claims are informational. The swap-node E2E already demonstrates the minimum —
   one `closeChannel` with the final nonce/transferredAmount
   (`swap/tests/e2e/docker-swap-flow-evm-e2e.test.ts:341-402`). The client-side leg-A channel
   has the same property (`ChannelManager.signBalanceProof`,
@@ -475,7 +545,7 @@ touches the settlement layer (see `settlement.md`):
    receive-side Mina co-sign path exists in toon-client (the existing client Mina signer is
    payer-side only, `toon-client/packages/client/src/signing/mina-signer.ts:205-262`). A
    Mina-destination rolling swap is blocked on this; EVM and Solana destinations are not.
-   Relatedly, the mill's Mina signer silently falls back to a **fake sha256 "signature"**
+   Relatedly, the swap node's Mina signer silently falls back to a **fake sha256 "signature"**
    when the `mina-signer` peer dep is absent (`swap/src/payment-channel-signer.ts:253-263`) —
    R5(a) verification on the sender side catches this before any reveal, which is a good
    sanity check that the coupling is doing its job.
@@ -486,7 +556,7 @@ touches the settlement layer (see `settlement.md`):
 
 ### 10.1 The sdk 0.5.x → 1.x wire drift comes first
 
-The deployed mill and the deployed client both pin `@toon-protocol/sdk` ^0.5.0
+The deployed swap node and the deployed client both pin `@toon-protocol/sdk` ^0.5.0
 (`swap/packages/swap/package.json:61-63`; `toon-client/packages/client/package.json:73`),
 which puts `millSignerAddress`/`millPubkey` on the wire. SDK HEAD (1.0.1) renamed the
 vocabulary to `swapSignerAddress`/`swapPubkey` (commit `af4cd24`, toon#48) **with no wire
@@ -513,8 +583,8 @@ only; do not fork the spec to the old names.
 
 ### 10.3 Cutover sequence
 
-1. Land P1–P5. P5 can ship dark: a sender that sets real conditions against a legacy mill
-   still works, because the legacy mill's FULFILL path injects the NIP-59-derived preimage
+1. Land P1–P5. P5 can ship dark: a sender that sets real conditions against a legacy swap node
+   still works, because the legacy swap node's FULFILL path injects the NIP-59-derived preimage
    (`packet-handler.ts:1191-1196`) — but note it will F99 if the condition doesn't match that
    derivation, so dark-shipping means *sending* the condition field end-to-end while gating
    enforcement behind the session type.
@@ -542,7 +612,8 @@ widen only).
 **Step 1 — RFQ.** Sender mints `streamNonce = 0x9f…e2`, gift-wraps a kind:20033 to the maker's
 kind:10032 pubkey with pair `USDC:base → MINA:mina`, size hint 100 USDC, its Mina
 `chainRecipient`. Maker answers (kind:20034): `R₀ = 4.0000 MINA/USDC`, `spread = 40 bps`,
-`maxRateAge = 10 s` (Mina-class feed), `maxAmount = 25 USDC`/packet, quote expiry 60 s.
+`maxRateAge = 15 s` (the calibrated Mina-class default, §4.1), `maxAmount = 25 USDC`/packet,
+quote expiry 60 s.
 
 **Step 2 — Sender arms the guards.**
 - Floor: `minExchangeRate = R₀ × (1 − 50 bps) = 3.9800` — fixed for the session, never moves.
@@ -561,7 +632,7 @@ reveals `P_i`; the maker relays `P_i` as the leg-A fulfillment. The tape:
 | 1 | 8 | 4.0012 | 0.4 s | 32.0096 | 8 | 32.0096 | FULFILL |
 | 2 | 8 | 4.0009 | 1.1 s | 32.0072 | 16 | 64.0168 | FULFILL |
 | 3–8 | 8 × 6 | 4.0011 … 3.9998 | < 2 s | 192.005 | 64 | 256.022 | FULFILL ×6 |
-| 9 | 8 | — | **12.6 s** | — | 64* | 256.022 | **T99 `stale_rate`** |
+| 9 | 8 | — | **16.8 s** | — | 64* | 256.022 | **reject `stale_rate`** |
 | 10 | 4 | 4.0031 | 0.3 s | 16.0124 | 68 | 272.034 | FULFILL |
 | 11–17 | 4 × 7 | ≈ 4.0007 | < 2 s | 112.020 | 96 | 384.054 | FULFILL ×7 |
 | 18 | 4 | 4.0004 | 0.8 s | 16.0016 | 100 | 400.056 | FULFILL (final) |
@@ -569,11 +640,16 @@ reveals `P_i`; the maker relays `P_i` as the leg-A fulfillment. The tape:
 (Row 3–8 and 11–17 are elided ranges; every packet is individually priced and coupled.
 Numbers illustrative; leg-B units truncate toward zero per `applyRate`.)
 
-**Step 4 — The staleness reject, in detail (seq 9).** The maker's Mina feed gaps: its last
-tick is 12.6 s old > `maxRateAge = 10 s`. The inbound gate rejects **before claim ingestion**
-(§4), so the seq-9 leg-A claim never lands — cumulative A stays 64 (marked * above), no maker
-debt, `P_9` discarded. The sender receives `T99 {"reason":"stale_rate"}`, backs off 10 s, and
-applies the shrink knob: `δ ← max(δ_min, 8/2) = 4 USDC`. One knob, one step: `W` stays 2.
+**Step 4 — The staleness reject, in detail (seq 9).** The maker's Mina feed blacks out: its
+last tick is 16.8 s old > `maxRateAge = 15 s`. (Routine 12.6 s gaps — ordinary in this
+regime per the §4.1 calibration — sail *under* the 15 s bound; at the calibrated default a
+Mina-class maker bounces ~1.5% of fills, versus ~4× that at the 10 s bound an earlier
+revision of this example used.) The inbound gate rejects **before claim ingestion** (§4), so
+the seq-9 leg-A claim never lands — cumulative A stays 64 (marked * above), no maker debt,
+`P_9` discarded. The sender receives the benign staleness reject and discriminates on
+`data.reason === "stale_rate"` (wire code T00 on today's connector, T99 once the connector's
+`REJECT_CODE_MAP` follow-up ships — §4), backs off 15 s, and applies the shrink knob:
+`δ ← max(δ_min, 8/2) = 4 USDC`. One knob, one step: `W` stays 2.
 
 **Step 5 — Recovery and completion.** The feed resumes; packets 10–18 fill at δ = 4. After
 `K = 16` clean fulfills the controller would widen additively (`δ ← 4 + δ_0`), but the session
@@ -615,8 +691,9 @@ Carried over from #145's out-of-scope list, so nobody looks for them here:
 ## 13. Related
 
 - [toon-meta#145](https://github.com/toon-protocol/toon-meta/issues/145) — the rolling-swap epic (this document's owner; decided context and open spikes)
+- [swap#48](https://github.com/toon-protocol/swap/issues/48) — `maxRateAge` prototype + calibration; the [calibration writeup](https://github.com/toon-protocol/swap/issues/48#issuecomment-4952509158) is the empirical source for §4.1 · [swap#53](https://github.com/toon-protocol/swap/pull/53) — the prototype + seeded calibration harness (`packages/swap/src/max-rate-age.calibration.test.ts`)
 - [toon-meta#96](https://github.com/toon-protocol/toon-meta/issues/96) — swarm-market multi-chain payout path; upgrades from single-issued-claim to rolling coupled packets (step 4 of §10.3)
 - [toon-meta#84](https://github.com/toon-protocol/toon-meta/issues/84) / [toon-protocol/capability-market](https://github.com/toon-protocol/capability-market) — sibling coordination design; the maker board reuses its NIP-34/pay-to-write pattern
 - [Interledger rfc-0029](https://interledger.org/rfcs/0029-stream/) (STREAM) — the packetized-payment risk model this design instantiates; [rfc-0039](https://interledger.org/rfcs/0039-stream-receipts/) (STREAM receipts) — the role §7.2's receipts play. Neither has an existing implementation in this stack (§7).
 - [`docs/settlement.md`](./settlement.md) — payment channels, multi-chain claim shapes, proxy-apex auto-drive (§9 builds on it unchanged)
-- [`docs/protocol.md`](./protocol.md) — NIP-59 gift-wrap mechanics and the `MILL_MNEMONIC` recipient footgun (§2.2 keeps gift wrap on the RFQ only)
+- [`docs/protocol.md`](./protocol.md) — NIP-59 gift-wrap mechanics and the `SWAP_MNEMONIC` recipient footgun (§2.2 keeps gift wrap on the RFQ only)
