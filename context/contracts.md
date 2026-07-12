@@ -18,9 +18,9 @@ No compiler spans a *process* boundary (a client sends a packet to a connector; 
 | Seam (A → B) | Message shape | Source of truth | Status |
 |---|---|---|---|
 | ILP packet (OER) | client → connector → node | `@toon-protocol/shared` (`types/ilp`, `encoding/oer`) | ✅ one home |
-| **localDelivery `/handle-packet`** | connector ↔ relay/store/node | **`@toon-protocol/shared`** (`types/local-delivery` → `PaymentRequest`/`PaymentResponse`, **zod-validated**) | ✅ unified + runtime-validated (PR #140) |
+| **localDelivery `/handle-packet`** | connector ↔ relay/store/node | **`@toon-protocol/shared`** (`types/local-delivery` → `PaymentRequest`/`PaymentResponse`, **zod-validated**) | ✅ unified + runtime-validated (PR #140, merged) |
 | payment-channel claim (BTP `payment-channel-claim`) | client/swap sign ↔ connector validates | connector `btp/` (message shapes) + `@toon-protocol/core` (`balanceProofHash*` helpers) | 🟡 split; claim hashing is shared |
-| connector Admin HTTP API | operator/client → connector | **`@toon-protocol/shared`** (`types/admin` → `PeerRegistrationRequest`, zod) for peer-registration; rest still connector-local | 🟡 peer-registration unified (PR #140; connector derives from it); other DTOs = backlog |
+| connector Admin HTTP API | operator/client → connector | **`@toon-protocol/shared`** (`types/admin` → `PeerRegistrationRequest`, zod) for peer-registration; rest still connector-local | 🟡 peer-registration unified (PR #140, merged; connector derives from it); other DTOs = backlog |
 | TOON event codec (event ↔ bytes) | everywhere | `@toon-protocol/core` (`toon/`) | ✅ one home |
 | Nostr event kinds + tags (10032 peer-info, 10035 SkillDescriptor, 5094/6094 Arweave DVM) | cross-node discovery / DVM | `@toon-protocol/core` (`events/`, builders) | ✅ mostly central |
 | Fastify telemetry API | operator UI → connector | the connector's admin/telemetry HTTP API | connector-local |
@@ -32,7 +32,7 @@ No compiler spans a *process* boundary (a client sends a packet to a connector; 
 
 ### Why this matters (a real example)
 
-The connector's localDelivery `PaymentRequest`/`PaymentResponse` is the canonical wire shape; **connector PR #140 lifts it into `@toon-protocol/shared@1.3.0`** so any process implementing `/handle-packet` imports one definition.
+The connector's localDelivery `PaymentRequest`/`PaymentResponse` is the canonical wire shape; **connector PR #140 (merged) lifted it into `@toon-protocol/shared@1.3.0`** so any process implementing `/handle-packet` imports one definition.
 
 **Nuance discovered (don't naively "dedup"):** `@toon-protocol/sdk`'s payment-handler *bridge* has a **separate, intentionally-different internal type** — flat `{accept, code?, message?, metadata?}` for handler ergonomics (`ctx.accept(metadata)` / `ctx.reject(ilpCode)`) — and `create-node.ts` (~654–694) has a **deliberate adapter** that translates it to the connector's wire shape (`data` base64 + `rejectReason`, via the canonical reject-code map in `@toon-protocol/core`). So sdk's bridge type is **not** a duplicate of the wire contract and must not be merged with it; the correct hardening is to type that *adapter boundary* against `shared`'s wire types.
 
@@ -43,7 +43,7 @@ The connector's localDelivery `PaymentRequest`/`PaymentResponse` is the canonica
 - ✅ **Admin peer-registration slice** — `PeerRegistrationRequest`/`PeerRelation` live in `shared`; the connector now **derives** its `config/types` `PeerRegistrationRequest` from the shared wire shape (refining `settlement`) and re-exports `PeerRelation` from shared.
 - ✅ **Canary** — `shared/types/contract.test.ts` (6 cases) validates accept/reject of sample payloads; runs in the connector's Jest suite.
 
-**Gated consumer adoptions (wait on `shared@1.3.0` publishing — PR #140 merge + npm token):**
+**Gated consumer adoptions (wait on `shared@1.3.0` publishing to npm — PR #140 itself is merged; the npm token/publish step is the only remaining unknown, not verifiable from this repo):**
 1. **sdk adapter boundary** — type `create-node.ts`'s connector-facing adapter against `shared`'s `PaymentResponse`. The bridge's internal DX type **stays** (it is not the wire contract).
 2. **operator admin clients** — any caller of the connector's `registerPeer` admin endpoint imports `PeerRegistrationRequest` from `shared` rather than keeping a local copy.
 
