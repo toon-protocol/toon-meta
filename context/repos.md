@@ -11,11 +11,15 @@ TOON is a **polyrepo** under the `toon-protocol` GitHub org. Code is shared via 
 | **toon-client** | the two **official TOON client implementations**, both over `@toon-protocol/client`: `@toon-protocol/client-mcp` (`toon-clientd` + the `toon_*`/`toon_git_*` MCP tools — the agent-host client) and `@toon-protocol/rig` (the `rig` CLI — the git-native client, standalone/daemon-free; replaces the deprecated `@toon-protocol/git`); plus `@toon-protocol/rig-web` (the Rig SPA read surface), `@toon-protocol/views`, `@toon-protocol/arweave` | npm + plugin | Client |
 | **toon-meta** | this repo — shared skills, context, docs | the `toon-skills` plugin | Cross-cutting |
 | **connector** *(pre-existing)* | the ILP payment engine + on-chain contracts/programs/zkApp + `@toon-protocol/mina-zkapp` | npm `@toon-protocol/connector`, `shared`, `mina-zkapp` + image | Payments |
+| **capability-market** | `CapabilityMarket.sol` parimutuel escrow (Foundry, deployed on Base) + RISC Zero sealed-predicate toolchain (Rust cargo workspace under `predicates/`) — umbrella epic [toon-meta#84](https://github.com/toon-protocol/toon-meta/issues/84) | on-chain contract deployments (no npm/image) | TBD — confirm |
+| **swarm** | `@toon-protocol/swarm` — capability-market miner: connects an LLM to the market, solves sealed predicates, submits reveals — [toon-meta#84](https://github.com/toon-protocol/toon-meta/issues/84) | npm CLI (`swarm` bin) | TBD — confirm |
 
 ## Dependency direction
 
 ```
 connector ◄─ (optional peer) ─ toon (core, sdk) ─► relay · swap · store · client
+capability-market ─► toon-meta (predicate envelope spec, docs/predicate-envelope.md) — settlement is direct-USDC on Base, no connector dependency
+swarm ─► toon-client (@toon-protocol/client, optional peer) · capability-market (market feed / reveals)
 ```
 Strictly downward. The **connector** — the proxy-server layer at the edge — consumes the libs from npm **and** pins the child node image digests for a deployment.
 
