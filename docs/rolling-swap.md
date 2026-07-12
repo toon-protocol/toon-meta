@@ -13,11 +13,17 @@ escrow: because each packet re-prices at the current rate and is loss-bounded to
 packet window, neither side ever carries a stale-price option larger than one δ. This is the
 ILP/STREAM risk model (rfc-0029) pointed at a cross-*currency*, cross-*chain* trade.
 
+**Terminology.** The component historically called "the mill" is the **swap node** (its
+counterparty role: the **maker**); the mill vocabulary is retired. `mill`-named identifiers
+below (`mill.ts`, `MillInventory`, …) appear only in code citations pinned to
+`@toon-protocol/swap` 0.1.0, where the shipped code still uses the old names — the code
+rename (`SwapNodeConfig`/`startSwapNode`, `SWAP_*` env) is landing in parallel.
+
 The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as in RFC 2119.
 
 **Acceptance for this spec:** a fresh reader can implement a rolling-swap maker and a
 rolling-swap sender against the extension points named in §3–§8 and understand exactly what
-changes relative to the deployed mill, end to end, without asking questions. If you find
+changes relative to the deployed swap node, end to end, without asking questions. If you find
 yourself asking one, that is a bug in this document — file it.
 
 **Version pins.** All `file:line` references below were verified 2026-07-12 against:
@@ -28,17 +34,17 @@ sdk ^0.5.0). The 0.5.x/1.x split is itself a migration hazard — see §10.1.
 
 ---
 
-## 1. Motivation — what the custodial mill actually does today
+## 1. Motivation — what the custodial swap node actually does today
 
 The current swap node is a **custodial, pre-funded, single-maker FX desk**. A sender streams
-NIP-59 gift-wrapped fill requests at it; per packet, the mill debits its own asset-B inventory
+NIP-59 gift-wrapped fill requests at it; per packet, the swap node debits its own asset-B inventory
 and returns a signed chain-B balance proof *inside the FULFILL `data`*
 (`swap/src/claim-issuer.ts:143-250`, metadata assembly `sdk/src/swap-handler.ts:781-805`).
 Three structural problems, each grounded in the shipped code:
 
 ### 1.1 Delivery-atomic, not value-atomic — and in the deployed client, not even verified
 
-The intended guarantee is that the sender's chain-A payment only commits if the mill returns a
+The intended guarantee is that the sender's chain-A payment only commits if the swap node returns a
 FULFILL. But nothing binds the *value* of what comes back: by the time the sender can inspect
 the returned claim, chain A has committed. All of the `chainRecipient` and signer-address
 validation in `claim-issuer.ts:157-170` is verify-after-commit, not enforcement.
@@ -56,31 +62,31 @@ The deployed reality is weaker still, in two ways:
 - **The deployed client verifies nothing.** `ClientRunner.swap`
   (`toon-client/packages/client-mcp/src/daemon/client-runner.ts:1442-1482`) wires neither
   `onPacket` nor `rateDeviationThreshold`, performs no signature, channelId, nonce, or amount
-  validation, and returns the mill's claims to the MCP caller as base64. The SDK's settlement
+  validation, and returns the swap node's claims to the MCP caller as base64. The SDK's settlement
   verifier (`sdk/src/settlement/build-settlement-tx.ts:76-478`) and `verifyAccumulatedClaim`
-  (`:495-562`) have **zero call sites in toon-client**. If the mill returns a bogus claim,
+  (`:495-562`) have **zero call sites in toon-client**. If the swap node returns a bogus claim,
   leg A is committed, and there is no error path, rollback, or refund. The epic's
   "verify-after-commit" critique is *understated* for the deployed client: it is
   no-verify-at-all.
 
 ### 1.2 Inventory is a honeypot sized to notional
 
-The operator pre-funds `MillConfig.inventory` per chain (`swap/src/mill.ts:228`, seeded at
+The operator pre-funds `SwapNodeConfig.inventory` (formerly `MillConfig`) per chain (`swap/src/mill.ts:228`, seeded at
 `:755-766`); every issued claim permanently debits `available` by the full `targetAmount`
 (`swap/src/inventory.ts:75-98`), and `credit` is only ever called for rollbacks
 (`claim-issuer.ts:187,207`). There is no refill loop, no rebalancing, no top-up path anywhere
-in the repo. The pool must therefore be sized to the **total notional flow** the mill expects
+in the repo. The pool must therefore be sized to the **total notional flow** the swap node expects
 to fill, on every chain it supports, held hot behind one mnemonic (`swap/src/wallet.ts:2-10`).
 That is a cross-chain custodial honeypot plus capital drag, and it is all in-memory, lost on
 restart (`swap/src/channel-state.ts:18`).
 
 ### 1.3 Single maker
 
-The rate is a **static decimal string** in the mill's kind:10032 event
+The rate is a **static decimal string** in the swap node's kind:10032 event
 (`SwapPair.rate`, `toon/packages/core/src/types.ts:71-82`, published at
 `swap/src/mill.ts:1380-1409`). The live-rate hook `rateProvider`
 (`sdk/src/swap-handler.ts:158`, called per packet at `:667-678`) is wired by nothing — the
-swap CLI never sets it, so deployed mills price at the config-frozen rate. Client-side, the
+swap CLI never sets it, so deployed swap nodes price at the config-frozen rate. Client-side, the
 pair (including the rate) is a caller-supplied MCP parameter
 (`toon-client/packages/client-mcp/src/mcp-tools.ts:392-443`); the client repo contains no code
 that fetches a quote from anywhere. One quote source, no price competition, a censorship
@@ -115,7 +121,7 @@ viable (explicitly a fast-follow, §12).
 ### 2.2 Packet lifecycle
 
 A rolling swap is one **RFQ round trip** followed by a **stream of fill packets**. The split
-is deliberate: NIP-59 gift wrap (and its `MILL_MNEMONIC` recipient footgun,
+is deliberate: NIP-59 gift wrap (and its `SWAP_MNEMONIC` — formerly `MILL_MNEMONIC` — recipient footgun,
 `toon-meta/docs/protocol.md:28-46`) stays on the occasional negotiation message; the frequent
 fill packets are plain ILP packets — unwrapped channel advances under the shared condition.
 This keeps the hot path off Nostr.
@@ -140,10 +146,10 @@ re-broadcast in plaintext on every packet.
 
 | Piece | Extension point |
 |---|---|
-| Maker termination (replaces `issueClaim`-in-FULFILL) | `setPacketHandler` → `localDeliveryHandler` dispatch (`connector/src/core/packet-handler.ts:390-398`, `:1178-1207`; mill registration `swap/src/mill.ts:1138-1146`) |
+| Maker termination (replaces `issueClaim`-in-FULFILL) | `setPacketHandler` → `localDeliveryHandler` dispatch (`connector/src/core/packet-handler.ts:390-398`, `:1178-1207`; swap-node registration `swap/src/mill.ts:1138-1146`) |
 | Maker fresh quote | the existing per-packet `rateProvider` hook (`sdk/src/swap-handler.ts:667-678`) — finally wired |
 | Staleness reject | inbound gate: `InboundClaimValidatorFn` before the packet handler (`connector/src/btp/btp-server.ts:905-941`) — see §4 for why the *gate*, not the handler (prototyped at the handler seam in swap#53; calibrated defaults in §4.1) |
-| Maker leg-B egress | `ConnectorNode.sendPacket` (`connector/src/core/connector-node.ts:593-635`), same path the mill already uses for kind:10032 publishes |
+| Maker leg-B egress | `ConnectorNode.sendPacket` (`connector/src/core/connector-node.ts:593-635`), same path the swap node already uses for kind:10032 publishes |
 | Condition pass-through | existing skip-if-nonzero at `packet-handler.ts:1512-1519`; verify at `:1554-1594` (§3, R3/R6) |
 | Sender controller | `streamSwapControlled` pause/resume + per-packet `onPacket` (`sdk/src/stream-swap.ts:824-909`, `:1230-1271`) |
 | Quote tape carrier | the FULFILL accept-metadata dict (`sdk/src/swap-handler.ts:781-805`) — additive fields (§7) |
@@ -237,7 +243,7 @@ for this protocol, not for anything: received chain-B claims are currently retur
 caller as base64 and never persisted, verified, or settled (`client-runner.ts:1459-1481`; zero
 `buildSettlementTx`/`verifyAccumulatedClaim` call sites). This is a hard dependency of the
 rolling engine, tracked as its own story under #145, and nothing in this spec silently assumes
-it. The natural shape is the daemon registering a local-delivery handler the same way the mill
+it. The natural shape is the daemon registering a local-delivery handler the same way the swap node
 does (`setPacketHandler`, §2.3) on a lightweight embedded child node, with received claims
 persisted beside `ChannelStore` (`toon-client/packages/client/src/channel/ChannelStore.ts:3-91`).
 
@@ -281,7 +287,7 @@ packet. This is the newest behavior in the stack and the hinge the fairness argu
   and leg-B claim issuance) — so prototype rejects today still leave the leg-A claim
   ingested, exactly the R8 hazard this rule exists to close. The calibration confirmed the
   gate as final placement and surfaced what it needs: at the gate the packet is an opaque
-  gift wrap, so the gate needs the mill's unwrap capability, a coarser per-destination
+  gift wrap, so the gate needs the swap node's unwrap capability, a coarser per-destination
   scope, or the toon#82 on-wire rate timestamp to resolve the pair. Moving there is blocked
   on the connector publish pipeline (nothing past 3.20.1 is published).
 - `maxRateAge` is a **maker-owned, per-chain-pair config knob**, advertised in the RFQ
@@ -366,7 +372,7 @@ The sender-side guard, per rfc-0029: a hard cap on the worst-case fill.
   same claim cannot succeed), packet fails, controller shrink signal.
 
 Today's nearest analogue — `rateDeviationThreshold` + `onPacket`
-(`stream-swap.ts:1150-1196`, `:1286-1293`) — is soft, post-hoc, computed from the mill's
+(`stream-swap.ts:1150-1196`, `:1286-1293`) — is soft, post-hoc, computed from the maker's
 self-reported `targetAmount`, and not wired by the daemon (`client-runner.ts:1446-1457`). It
 is superseded by the floor, not extended.
 
@@ -492,7 +498,7 @@ required_B(chain, asset) = δ_max·W_max · R      (in-flight reservation ceilin
 - `MillChannelState.reserve/release` (`channel-state.ts:156-201`) semantics are unchanged —
   nonce+1, cumulative watermark — but the state MUST be persisted. Today everything is
   in-memory and lost on restart (`channel-state.ts:18`), and a crash mid-stream
-  desynchronizes the mill's watermark from claims already handed out. The rolling engine
+  desynchronizes the swap node's watermark from claims already handed out. The rolling engine
   hands out claims continuously; **persistence is a prerequisite, not an improvement**
   (§10.2).
 - `resolveChannel`'s sticky sender→channel binding (`channel-state.ts:123-150`) is kept, and
@@ -516,7 +522,7 @@ touches the settlement layer (see `settlement.md`):
 - Every claim on both legs is a **cumulative watermark** (monotone nonce, cumulative amount),
   so N micro-swap advances net to **one settlement per chain**: `buildSettlementTx` redeems
   only the highest-nonce claim per `(chain, channelId)` (`build-settlement-tx.ts:371-394`);
-  superseded claims are informational. The mill-side E2E already demonstrates the minimum —
+  superseded claims are informational. The swap-node E2E already demonstrates the minimum —
   one `closeChannel` with the final nonce/transferredAmount
   (`swap/tests/e2e/docker-swap-flow-evm-e2e.test.ts:341-402`). The client-side leg-A channel
   has the same property (`ChannelManager.signBalanceProof`,
@@ -539,7 +545,7 @@ touches the settlement layer (see `settlement.md`):
    receive-side Mina co-sign path exists in toon-client (the existing client Mina signer is
    payer-side only, `toon-client/packages/client/src/signing/mina-signer.ts:205-262`). A
    Mina-destination rolling swap is blocked on this; EVM and Solana destinations are not.
-   Relatedly, the mill's Mina signer silently falls back to a **fake sha256 "signature"**
+   Relatedly, the swap node's Mina signer silently falls back to a **fake sha256 "signature"**
    when the `mina-signer` peer dep is absent (`swap/src/payment-channel-signer.ts:253-263`) —
    R5(a) verification on the sender side catches this before any reveal, which is a good
    sanity check that the coupling is doing its job.
@@ -550,7 +556,7 @@ touches the settlement layer (see `settlement.md`):
 
 ### 10.1 The sdk 0.5.x → 1.x wire drift comes first
 
-The deployed mill and the deployed client both pin `@toon-protocol/sdk` ^0.5.0
+The deployed swap node and the deployed client both pin `@toon-protocol/sdk` ^0.5.0
 (`swap/packages/swap/package.json:61-63`; `toon-client/packages/client/package.json:73`),
 which puts `millSignerAddress`/`millPubkey` on the wire. SDK HEAD (1.0.1) renamed the
 vocabulary to `swapSignerAddress`/`swapPubkey` (commit `af4cd24`, toon#48) **with no wire
@@ -577,8 +583,8 @@ only; do not fork the spec to the old names.
 
 ### 10.3 Cutover sequence
 
-1. Land P1–P5. P5 can ship dark: a sender that sets real conditions against a legacy mill
-   still works, because the legacy mill's FULFILL path injects the NIP-59-derived preimage
+1. Land P1–P5. P5 can ship dark: a sender that sets real conditions against a legacy swap node
+   still works, because the legacy swap node's FULFILL path injects the NIP-59-derived preimage
    (`packet-handler.ts:1191-1196`) — but note it will F99 if the condition doesn't match that
    derivation, so dark-shipping means *sending* the condition field end-to-end while gating
    enforcement behind the session type.
@@ -690,4 +696,4 @@ Carried over from #145's out-of-scope list, so nobody looks for them here:
 - [toon-meta#84](https://github.com/toon-protocol/toon-meta/issues/84) / [toon-protocol/capability-market](https://github.com/toon-protocol/capability-market) — sibling coordination design; the maker board reuses its NIP-34/pay-to-write pattern
 - [Interledger rfc-0029](https://interledger.org/rfcs/0029-stream/) (STREAM) — the packetized-payment risk model this design instantiates; [rfc-0039](https://interledger.org/rfcs/0039-stream-receipts/) (STREAM receipts) — the role §7.2's receipts play. Neither has an existing implementation in this stack (§7).
 - [`docs/settlement.md`](./settlement.md) — payment channels, multi-chain claim shapes, proxy-apex auto-drive (§9 builds on it unchanged)
-- [`docs/protocol.md`](./protocol.md) — NIP-59 gift-wrap mechanics and the `MILL_MNEMONIC` recipient footgun (§2.2 keeps gift wrap on the RFQ only)
+- [`docs/protocol.md`](./protocol.md) — NIP-59 gift-wrap mechanics and the `SWAP_MNEMONIC` recipient footgun (§2.2 keeps gift wrap on the RFQ only)
