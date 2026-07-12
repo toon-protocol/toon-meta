@@ -9,9 +9,14 @@ The public-testnet E2E mode runs the settlement/swap/pay-to-write flows against
 | Solana | **Devnet** (`solana:devnet`)      | `https://api.devnet.solana.com`                  | `solana airdrop` / https://faucet.solana.com              |
 | Mina   | **Devnet** (`mina:devnet`)        | `https://api.minascan.io/node/devnet/v1/graphql` | https://faucet.minaprotocol.com                           |
 
-Endpoints + deployed contract addresses live in [`e2e/testnets.json`](../e2e/testnets.json)
-(public, committed). The funded wallet **seed phrase** does **not** — it lives in
-`E2E_DEV_MNEMONIC` (org GitHub secret in CI, `.env.e2e.local` locally).
+Endpoints + deployed contract addresses are meant to live in `e2e/testnets.json`
+(public — no secrets). **That file has never actually been committed to this
+repo, or to any other `toon-protocol` repo** — despite several places below
+historically describing it as done/pinned, `e2e/testnets.json` doesn't exist
+anywhere today (confirmed via full git history + an org-wide search). Treat
+every reference to it below as the *intended* location until it's checked in.
+The funded wallet **seed phrase** does **not** belong there either way — it
+lives in `E2E_DEV_MNEMONIC` (org GitHub secret in CI, `.env.e2e.local` locally).
 
 > This is an **additive** mode. The local devnet stack
 > (`scripts/sdk-e2e-infra.sh`) stays as the fast, free, offline path for PR
@@ -72,7 +77,8 @@ node scripts/e2e-wallet.mjs addresses
 
 Deployed **once** per testnet from the funded deployer (the role index in
 `E2E_DEPLOYER_INDEX`, default 2 — the only funded role today); addresses are
-pinned in `e2e/testnets.json`. Reproducible scripts:
+meant to be pinned in `e2e/testnets.json` (not actually committed yet — see the
+note near the top of this doc). Reproducible scripts:
 
 - **Base Sepolia** — `node scripts/deploy-e2e-testnet-evm.mjs`. Deploys
   `MockERC20` (USDC) + `TokenNetworkRegistry` and creates the `TokenNetwork`,
@@ -112,7 +118,8 @@ pinned in `e2e/testnets.json`. Reproducible scripts:
   is the on-chain proof a Mina-settled write landed). See
   `packages/proxy/RUNBOOK.md` § "Mina reset gotcha — bare-zkApp precondition".
 
-The deployed addresses currently in `e2e/testnets.json` were produced by these
+`e2e/testnets.json` still isn't committed (see the note near the top of this
+doc); once it is checked in, its addresses should have been produced by these
 scripts against the live testnets.
 
 ---
@@ -193,11 +200,14 @@ unchanged. No per-role mnemonics needed.
 ## Status
 
 - ✅ Key plumbing: `.env.e2e.example`, `.gitignore`, `scripts/e2e-wallet.mjs`,
-  `e2e/testnets.json`, this runbook.
+  this runbook. ⏳ `e2e/testnets.json` itself is still not committed (see the
+  note near the top of this doc).
 - ✅ Distinct per-peer keys on every chain from one seed (SDK #177).
 - ✅ Wallet funded (idx 2 / treasury) + `E2E_DEV_MNEMONIC` org secret.
 - ✅ **Contracts deployed to all three testnets** (Base Sepolia / Solana devnet
-  / Mina devnet) and pinned in `e2e/testnets.json`, via the scripts above.
+  / Mina devnet) via the scripts above. ⏳ Their addresses were meant to be
+  pinned in `e2e/testnets.json`, but that file is still not committed (see the
+  note near the top of this doc).
 - ✅ **Public-mode harness** (`scripts/sdk-e2e-infra.sh --public`, #183): skips
   the local chain boot and points the docker peers at the live testnets. It
   derives the per-peer settlement keys (idx0=peer1, idx1=peer2) from

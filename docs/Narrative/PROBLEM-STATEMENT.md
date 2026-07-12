@@ -159,6 +159,4 @@ The result: autonomous agents that route payments and messages through the same 
 
 ## References
 
-- [Project Overview](PROJECT-OVERVIEW.md) — Full project description and capabilities
 - [Elevator Pitch](ELEVATOR-PITCH.md) — Concise summary for quick reference
-- [Epic List](prd/epic-list.md) — Technical roadmap
