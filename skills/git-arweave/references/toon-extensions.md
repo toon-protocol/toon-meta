@@ -225,7 +225,7 @@ This model favors well-considered, infrequent uploads. On TOON, the per-byte cos
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers git-Arweave-specific upload economics; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers git-Arweave-specific upload economics; the protocol core covers the foundational mechanics shared by all event kinds.
 
 For the kind:5094 event structure and tag format, see the `git-collaboration` skill's `kind-5094-blob-storage.md` reference.
 

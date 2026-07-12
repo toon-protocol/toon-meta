@@ -96,4 +96,4 @@ The cost dynamics suggest a simple decision framework:
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers content-warning-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers content-warning-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.

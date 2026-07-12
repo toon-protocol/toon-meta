@@ -113,7 +113,7 @@ All list and label publishing on TOON goes through `publishEvent()` from `@toon-
 
 **Labels are cheap:** kind:1985 events are regular (non-replaceable) and typically small. Labeling is one of the most cost-effective write operations on TOON.
 
-For the complete publishing flow and fee calculation details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the complete publishing flow and fee calculation details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -156,7 +156,7 @@ Read the appropriate reference file based on the situation:
 - **Constructing list or label events, understanding tag formats, encrypted content, replaceable semantics** -- Read [nip-spec.md](references/nip-spec.md) for NIP-51 and NIP-32 wire format specifications.
 - **Understanding TOON-specific costs for list curation, fee estimates, ILP considerations** -- Read [toon-extensions.md](references/toon-extensions.md) for TOON economics of list and label events.
 - **Step-by-step curation and labeling workflows, social context scenarios** -- Read [scenarios.md](references/scenarios.md) for list management, mute list usage, labeling, and public vs private entry decisions.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference).
 - **Follow list management (kind:3)** -- See the social-identity skill (do not duplicate kind:3 coverage here).
 - **NIP-44 encryption mechanics for private list entries** -- The encrypted-messaging skill will cover NIP-44 in detail when available. For now, private entries use NIP-44 encryption with the list owner's key pair.
 - **Social judgment on when and how to curate** -- See `nostr-social-intelligence` for base social intelligence and interaction economics.

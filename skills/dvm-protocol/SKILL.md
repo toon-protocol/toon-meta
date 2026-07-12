@@ -45,7 +45,7 @@ All DVM events are published via `publishEvent()` from `@toon-protocol/client`. 
 
 **TOON prepaid model:** On TOON, the job request IS the payment. The ILP payment attached to the kind:5xxx event covers both the relay write fee and the compute fee. There is no separate `settleCompute` step. The provider's kindPricing from their SkillDescriptor (kind:10035) determines the total cost.
 
-For the complete fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the complete fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -56,7 +56,7 @@ Reading DVM events is free. Subscribe using NIP-01 filters:
 - `kinds: [10035]` for DVM service discovery (SkillDescriptor events)
 - `kinds: [30078]` with `#d: ["<app-identifier>"]` for application-specific data
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -94,7 +94,7 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:5xxx, kind:6xxx, kind:7000, or kind:30078 events, understanding tag formats and event structures** -- Read [nip-spec.md](references/nip-spec.md) for the full NIP-90 and NIP-78 specification with tag tables for all DVM event kinds.
 - **Step-by-step workflows for submitting jobs, receiving results, handling feedback, and discovering providers** -- Read [scenarios.md](references/scenarios.md) for complete TOON DVM scenarios.
 - **Understanding TOON-specific extensions: prepaid model, kindPricing, SkillDescriptor integration, and DVM economics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated DVM protocol extensions.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on when and whether to engage** -- See `nostr-social-intelligence` for base social intelligence and interaction decisions.
 - **Service discovery via kind:10035 and relay capabilities** -- See `relay-discovery` for NIP-11 relay info and SkillDescriptor discovery.
 - **Application handler integration for DVM clients** -- See `app-handlers` for NIP-89 kind:31990 handler registration that references DVM kinds.

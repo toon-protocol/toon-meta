@@ -50,7 +50,7 @@ Measure the value-add of a skill by running parallel evaluations:
 
 Validate all skills in one pass:
 
-1. Discover skills: find all directories under `.claude/skills/` that contain `evals/evals.json`.
+1. Discover skills: find all directories under `skills/` that contain `evals/evals.json`.
 2. Filter: skip `skill-creator`, `playwright-cli`, `rfc-*` (different format, no TOON evals).
 3. For each discovered skill: run structural validation + TOON compliance assertions.
 4. Collect per-skill results: `{ skill_name, structural_pass, toon_compliance: { assertion: pass/fail }, overall: pass/fail }`.

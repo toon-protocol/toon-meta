@@ -6,13 +6,13 @@
 
 The batch runner discovers skills by searching for directories that contain eval files:
 
-1. Start from the skills root directory (default: `.claude/skills/`).
+1. Start from the skills root directory (default: `skills/`).
 2. Find all subdirectories that contain `evals/evals.json`.
 3. This automatically includes pipeline-generated skills (Stories 9.0, 9.1, and future 9.4-9.33) and excludes skills without evals.
 
 ## Filtering Rules
 
-Not all skills in `.claude/skills/` are TOON NIP skills. Filter out:
+Not all skills in `skills/` are TOON NIP skills. Filter out:
 
 - **`skill-creator`**: The meta-skill defining skill anatomy. Uses a different eval format.
 - **`playwright-cli`**: Browser automation skill. Not a TOON/Nostr skill.
@@ -79,7 +79,7 @@ In addition to the JSON report (stdout), the batch runner produces a human-reada
 TOON Skill Batch Validation Report
 ===================================
 Date: 2026-03-25T10:30:00Z
-Skills root: .claude/skills/
+Skills root: skills/
 
   SKIP: skill-creator (filtered)
   SKIP: skill-eval-framework (filtered)

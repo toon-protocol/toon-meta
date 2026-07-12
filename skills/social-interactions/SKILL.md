@@ -46,13 +46,13 @@ All social interactions on TOON require ILP payment. Use `publishEvent()` from `
 
 **Fee formula:** `basePricePerByte * serializedEventBytes` where default `basePricePerByte` = 10n ($0.00001/byte). Reactions are the cheapest write events but not free. Reposts with embedded content cost significantly more. Comments scale with length like short notes.
 
-For detailed fee calculation and the complete publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Reading reactions, reposts, and comments is free. Subscribe using NIP-01 filters: `kinds: [7]` for reactions, `kinds: [6, 16]` for reposts, `kinds: [1111]` for comments. Use `#e` tag filters to find interactions targeting a specific event.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -83,5 +83,5 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:7, kind:6, kind:16, or kind:1111 events, understanding tag formats and threading** -- Read [nip-spec.md](references/nip-spec.md) for NIP-25, NIP-18, and NIP-22 specifications.
 - **Understanding TOON-specific interaction costs and economics of social engagement** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated interaction extensions and fee considerations.
 - **Step-by-step interaction workflows** -- Read [scenarios.md](references/scenarios.md) for reacting, reposting, commenting, and threading on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on when and whether to engage** -- See `nostr-social-intelligence` for base social intelligence, interaction decisions, and economics of engagement.

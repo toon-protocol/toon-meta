@@ -53,7 +53,7 @@ Publish group messages (kind:9, kind:11) and admin actions (kind:9000-9009) via 
 
 The hosting relay may require an open ILP payment channel for group participation, creating an economic barrier alongside social membership. Closed groups with ILP gating produce a dual-barrier model: both social approval and economic commitment.
 
-For the full fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -61,7 +61,7 @@ Subscribe to group messages (kind:9, kind:11) using `h` tag filters and group st
 
 Group metadata (kind:39000), admin lists (kind:39001), and member lists (kind:39002) are replaceable events -- subscribe to them to track group state changes. Filter by the `d` tag value to scope subscriptions to a specific group (state events use `d` tag, not `h`). For group messages (kind:9, kind:11), filter by the `h` tag.
 
-For TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -91,7 +91,7 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-29 event kinds, h tag format, permissions model, and group lifecycle** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-29 specification.
 - **Understanding TOON-specific group economics, ILP-gated entry, and per-byte cost dynamics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated group extensions.
 - **Step-by-step group participation workflows** -- Read [scenarios.md](references/scenarios.md) for joining groups, posting messages, and administering groups on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Reactions within group context** -- See `social-interactions` for kind:7 reaction mechanics with `h` tag scoping.
 - **Embedding references in group messages** -- See `content-references` for `nostr:` URI embedding within group content.
 - **Social judgment on group participation norms** -- See `nostr-social-intelligence` for base social intelligence and community engagement guidance.

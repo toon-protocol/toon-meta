@@ -50,7 +50,7 @@ Gift-wrapped messages are published to TOON relays via `publishEvent()` from `@t
 
 Encryption is a privacy premium -- expect 2-5x the byte cost of equivalent plaintext content.
 
-For detailed fee calculation and the complete publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -62,7 +62,7 @@ Reading kind:1059 gift wraps is free. Subscribe using NIP-01 filters: `kinds: [1
 3. Decrypt the seal content using the recipient's private key and the real author's pubkey from the seal -- this yields the inner event (rumor)
 4. The inner event contains the actual message content and the real author's identity
 
-For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -91,6 +91,6 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-44 encryption primitives or NIP-59 gift wrap structure** -- Read [nip-spec.md](references/nip-spec.md) for NIP-44 and NIP-59 specifications.
 - **Understanding TOON-specific encryption costs and overhead** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated encryption extensions and fee considerations.
 - **Step-by-step encryption and decryption workflows** -- Read [scenarios.md](references/scenarios.md) for encrypting, gift-wrapping, decrypting, and key management on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Key management and identity** -- See `social-identity` for profile and key management.
 - **Deleting encrypted content** -- See `content-control` for kind:5 deletion requests targeting encrypted events.

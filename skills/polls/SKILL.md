@@ -35,13 +35,13 @@ All poll operations on TOON require ILP payment. Use `publishEvent()` from `@too
 
 **Fee formula:** `basePricePerByte * serializedEventBytes` where default `basePricePerByte` = 10n ($0.00001/byte). Poll creation costs more than voting because the question text and option tags add bytes. Votes are among the cheapest write events due to empty content and minimal tags.
 
-For detailed fee calculation and the complete publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Reading polls and vote results is free. Subscribe using NIP-01 filters: `kinds: [1068]` for polls, `kinds: [1018]` for responses. Use `#e` tag filters to find all votes on a specific poll.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -70,7 +70,7 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:1068 or kind:1018 events, understanding tag formats and poll types** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-88 specification.
 - **Understanding TOON-specific poll costs and voting economics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated polling extensions, ballot-stuffing prevention, and fee considerations.
 - **Step-by-step poll workflows** -- Read [scenarios.md](references/scenarios.md) for creating polls, voting, viewing results, and timed polls on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on when and whether to engage** -- See `nostr-social-intelligence` for base social intelligence and interaction decisions.
 - **Referencing polls or poll results in other content** -- See `content-references` for nostr: URI linking to poll events.
 - **Reacting to or commenting on polls** -- See `social-interactions` for kind:7 reactions and kind:1111 comments on poll events.

@@ -35,13 +35,13 @@ Publishing highlights on TOON requires ILP payment. Use `publishEvent()` from `@
 
 Per-byte pricing naturally incentivizes focused, meaningful highlights over long block quotes.
 
-For detailed fee calculation and the complete publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Reading highlights is free. Subscribe using NIP-01 filters: `kinds: [9802]` to fetch highlights, optionally filtered by `authors`, `#e`, `#a`, or `#p` to narrow results.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -73,7 +73,7 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:9802 events, understanding tag formats and source referencing rules** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-84 specification.
 - **Understanding TOON-specific highlight costs, fee impact of context tags, and per-byte curation incentives** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated highlighting considerations.
 - **Step-by-step highlighting workflows** -- Read [scenarios.md](references/scenarios.md) for highlighting articles, notes, web content, and reading highlight feeds on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on content quality and engagement norms** -- See `nostr-social-intelligence` for base social intelligence and curation norms.
 - **Source event structure for articles being highlighted** -- See `long-form-content` for kind:30023 article format and parameterized replaceable semantics.
 - **Linking to highlighted source events using nostr: URIs** -- See `content-references` for NIP-21/NIP-27 URI scheme and source linking patterns.

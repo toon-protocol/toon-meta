@@ -40,13 +40,13 @@ Publishing drafts and expiring events on TOON requires ILP payment. Use `publish
 
 Drafts are parameterized replaceable, so each save overwrites the previous version for the same `d` tag -- you pay per save, but the relay only retains the latest version.
 
-For detailed fee calculation and the complete publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
 Reading drafts and expiring events is free. Subscribe using NIP-01 filters: `kinds: [31234]` and `authors: [<own-pubkey>]` to fetch your drafts. Filter by `#k` to fetch drafts targeting a specific kind.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -75,7 +75,7 @@ Read the appropriate reference file based on the situation:
 - **Constructing kind:31234 draft events or expiration tags, understanding tag formats** -- Read [nip-spec.md](references/nip-spec.md) for NIP-37 and NIP-40 specifications.
 - **Understanding TOON-specific draft costs, expiration economics, and optimization** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated draft and expiration considerations.
 - **Step-by-step draft and expiration workflows** -- Read [scenarios.md](references/scenarios.md) for saving, publishing, and expiring content on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Long-form article drafting** -- See `long-form-content` for kind:30023 article structure and lifecycle.
 - **Encrypting draft content** -- See `encrypted-messaging` for NIP-44 encryption mechanics.
 - **Expiring statuses** -- See `user-statuses` for kind:30315 status events with NIP-40 expiration.

@@ -61,7 +61,7 @@ Publish kind:1059 gift wraps via `publishEvent()` from `@toon-protocol/client`. 
 - Long DM (500+ bytes): ~1000-1800 bytes = ~$0.010-$0.018
 - Group DM to N recipients: N * single gift wrap cost (linear scaling)
 
-For the full fee formula and publishing flow, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -73,7 +73,7 @@ Reading DMs is free on TOON. Subscribe using NIP-01 filters: `{ kinds: [1059], "
 3. Decrypt seal content using your private key + real author pubkey from the seal -- yields the kind:14 rumor
 4. Parse the kind:14 to get the message content, real author, real timestamp, and conversation participants (from `p` tags)
 
-For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -105,7 +105,7 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-17 kind:14 event structure, tag format, and group DM model** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-17 specification.
 - **Understanding TOON-specific DM costs, per-recipient scaling, and privacy premium** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated DM extensions and fee considerations.
 - **Step-by-step DM workflows: sending, replying, group DMs, reading inbox** -- Read [scenarios.md](references/scenarios.md) for DM participation workflows on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **NIP-44 encryption primitives and NIP-59 gift wrap structure** -- See `encrypted-messaging` for the cryptographic layer underlying DMs.
 - **Key management and identity** -- See `social-identity` for profile and pubkey resolution.
 - **Deleting DMs** -- See `content-control` for kind:5 deletion requests targeting kind:1059 gift wraps.

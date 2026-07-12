@@ -206,4 +206,4 @@ TOON relays return TOON-format strings in EVENT messages, not standard JSON obje
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers workflow-level cost aggregation; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers workflow-level cost aggregation; the protocol core covers the foundational mechanics shared by all event kinds.

@@ -156,4 +156,4 @@ Reading is free on TOON. Use NIP-01 filters to subscribe to git collaboration ev
 
 TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse event data.
 
-For full TOON format parsing details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For full TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.

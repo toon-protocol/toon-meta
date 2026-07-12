@@ -128,6 +128,6 @@ Reading file metadata events is free on TOON -- no ILP payment required for subs
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers file-storage-specific extensions; the protocol core covers foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers file-storage-specific extensions; the protocol core covers foundational mechanics shared by all event kinds.
 
 For kind:1063 event structure, `imeta` tag format, and external content IDs, refer to the `media-and-files` skill. NIP-96 produces kind:1063 events; the `media-and-files` skill covers how to construct and consume them.

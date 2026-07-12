@@ -72,7 +72,7 @@ After decoding search results:
 - **Resolve references** within found content using the `content-references` skill for `nostr:` URI extraction
 - **Check event kind** to determine the content type (kind:1 for notes, kind:30023 for articles, etc.)
 
-For complete TOON format parsing details, refer to `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For complete TOON format parsing details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Integration with Other Skills
 

@@ -29,7 +29,7 @@ Adding a content warning to any event on TOON is done through `publishEvent()` f
 
 **Publishing flow:** Construct the event with the `content-warning` tag included, sign it, calculate the fee based on the full serialized size, and publish via `publishEvent()`. The content warning is part of the signed event and cannot be added or removed after publishing without creating a new event.
 
-For the complete TOON write model, fee calculation, and publishing flow details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the complete TOON write model, fee calculation, and publishing flow details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## TOON Read Model
 
@@ -39,7 +39,7 @@ Reading events with content warnings is free on TOON. Subscribe using standard N
 
 **Client display responsibility:** When an event includes the `content-warning` tag, the client SHOULD hide the content behind a click-through or collapsible warning. Display the reason text if present. If no reason is given, display a generic "Sensitive content" warning. The reader decides whether to view the content -- the warning is advisory, not a block.
 
-For TOON format details, read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
@@ -69,7 +69,7 @@ Read the appropriate reference file based on the situation:
 - **Understanding the content-warning tag format and NIP-36 specification** -- Read [nip-spec.md](references/nip-spec.md) for the full NIP-36 specification, tag format, and client behavior requirements.
 - **Understanding TOON-specific content warning economics and quality signaling** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated content warning extensions and fee considerations.
 - **Step-by-step content warning workflows** -- Read [scenarios.md](references/scenarios.md) for adding content warnings to notes, articles, and other event kinds on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **NIP-32 labels for structured content classification** -- See `lists-and-labels` for labeling events with namespaces and label tags (kind:1985).
 - **Core event structure and NIP-01 fundamentals** -- See `nostr-protocol-core` for the base protocol layer that content warnings build upon.
 - **Social judgment on engagement with sensitive content** -- See `nostr-social-intelligence` for base social intelligence and engagement decisions.

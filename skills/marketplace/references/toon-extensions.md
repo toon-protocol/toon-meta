@@ -171,4 +171,4 @@ Minimize back-and-forth by including complete information in the initial order r
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `.claude/skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers marketplace-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers marketplace-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.
