@@ -7,10 +7,11 @@ on-chain settlement receipts. Treasury wallet, small/bounded amounts.
 **Phase 2 addendum** (below) re-runs the same journey with the proxy behind the anyone
 proxy (`.anon`).
 
-**Dependencies:** The WS1 proxy preset must be merged before the
-`--preset demo` flag is available. WS5 journey orchestrator (`toon-client#19`)
-must be merged before `run-journey` works. WS7 mcp-use harness (`toon-client#21`)
-enables CI-driven runs. See [toon-meta#22](https://github.com/toon-protocol/toon-meta/issues/22).
+**Dependencies:** WS5 journey orchestrator (`toon-client#19`) and WS7 mcp-use
+harness (`toon-client#21`) are both merged, so `run-journey` and CI-driven
+runs work today. The WS1 hub preset (`hub#15`) is the only remaining blocker
+for the `--preset demo` flag. See
+[toon-meta#22](https://github.com/toon-protocol/toon-meta/issues/22).
 
 ---
 
@@ -126,7 +127,7 @@ Or add to `claude_desktop_config.json` for Claude Desktop:
 
 ### Option A — journey orchestrator (WS5)
 
-Once `toon-client#19` ships, the orchestrator runs the full journey end-to-end:
+The orchestrator (`toon-client#19`, merged) runs the full journey end-to-end:
 
 ```bash
 npx @toon-protocol/client-mcp run-journey \
