@@ -86,26 +86,41 @@ The payment-channel programs/contracts and the USDC token on each chain.
 full paid round-trip per chain (channel open + deposit → per-packet claim →
 `POST /ilp` FULFILL → relay read-back → on-chain redemption).
 
+> **Authoritative runtime source (connector ≥ 3.33.0, deployed 2026-07-16):**
+> the apex's kind:10032 announce on `wss://relay-ws.devnet.toonprotocol.dev`
+> now carries per-chain `tokenNetworks` (TokenNetwork contract on EVM,
+> payment-channel program on Solana, PaymentChannel zkApp on Mina) and
+> `preferredTokens` (ERC-20 / SPL mint / token-owner zkApp) — clients should
+> derive settlement parameters from the announce (connector#331,
+> toon-client#378). This table is a human-readable snapshot.
+
 | Chain | What | Address |
 |-------|------|---------|
 | EVM (anvil 31337) | TokenNetworkRegistry | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
+| EVM (anvil 31337) | TokenNetwork (runtime-resolved) | `0xCafac3dD18aC6c6e92c921884f9E4176737C052c` |
 | EVM (anvil 31337) | Mock USDC (ERC-20, 6dp) | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
-| Solana (devnet) | Payment-channel **program** | `7CLmNaK9z6QgUWQpCFdeUTqfwXeZH5ssohAKtyXKY4Hp` |
+| Solana (devnet) | Payment-channel **program** | `D2Z35z8ShA4K7odczUysBYRP5hXQGDp6r5c2EBSxRsHh` |
 | Solana (devnet) | Mock USDC SPL **mint** (6dp) | `H8HSreUF2s8r8hem4qMttE3bWYCpFuh71jbuos5bA77H` |
-| Mina (public devnet) | **PaymentChannel** zkApp | `B62qigQwEwBAsSZad4GhSun8CAwkh3GUbx2YN2TbUHU8tzVFcFTE95x` |
-| Mina (public devnet) | USDC **FungibleToken** zkApp (6dp) | `B62qqwnm9NZs7MPFRSK4AjAw4kHJ7F5ttfbb4pFSqZvCHqpZWpx6yYk` |
-| Mina (public devnet) | USDC **tokenId** | `13770394610291091689442727083129874284486561081541786615444915557572882540748` |
+| Mina (box lightnet) | **PaymentChannel** zkApp | `B62qoMNmZQQYSxuoNx42JnZtNZwHfwL16wxUYNEuLGyrVq1bXfS15Rn` |
+| Mina (box lightnet) | USDC **FungibleToken** zkApp (6dp) | `B62qjfa5osSnjaAhgiJTu5WRg7RCw66mY6bhaxZecyMTTtESKBwQ4x3` |
+| Mina (box lightnet) | USDC **tokenId** | `26807032406297178681731937210594998657168795100878204131916024453275711913842` |
 
-> The Mina zkApps live on the **public** Mina devnet (not the box), so they
-> survive box rebuilds. The `PaymentChannel` zkApp supports both native MINA
-> (`tokenId = Field(1)`) and the USDC fungible token. Writes must go to
+> The live apex settles Mina on the **box lightnet**
+> (`https://mina.devnet.toonprotocol.dev/graphql`, PaymentChannel deployed
+> 2026-06-23); the older public-devnet zkApps
+> (`B62qigQwEwBAs…` / `B62qqwnm9NZs…` / tokenId `13770394…0748`) remain live on
+> the public Mina devnet for the roundtrip harness. The `PaymentChannel` zkApp
+> supports both native MINA (`tokenId = Field(1)`) and the USDC fungible token.
+> Public-devnet writes must go to
 > `https://api.minascan.io/node/devnet/v1/graphql` directly — the `mina.*` proxy
 > 504s on `send()` (it's fine for reads).
 >
 > **Caveats:** the Solana program id is **non-deterministic** (regenerated each
 > `cargo build-sbf` — not a committed keypair) and the validator ledger is
-> ephemeral (`--reset`), so a fresh devnet provision needs a re-deploy + this
-> table updated. The mock-USDC SPL mint and EVM addresses are deterministic.
+> ephemeral (`--reset`), so a fresh devnet provision needs a re-deploy — since
+> connector 3.33.0 the announce picks the new id up automatically from the
+> box's `connector.yaml`. The mock-USDC SPL mint and EVM addresses are
+> deterministic.
 
 ### Faucet routes
 
