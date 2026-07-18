@@ -104,20 +104,34 @@ full paid round-trip per chain (channel open + deposit → per-packet claim →
 | Mina (box lightnet) | **PaymentChannel** zkApp | `B62qoMNmZQQYSxuoNx42JnZtNZwHfwL16wxUYNEuLGyrVq1bXfS15Rn` |
 | Mina (box lightnet) | USDC **FungibleToken** zkApp (6dp) | `B62qjfa5osSnjaAhgiJTu5WRg7RCw66mY6bhaxZecyMTTtESKBwQ4x3` |
 | Mina (box lightnet) | USDC **tokenId** | `26807032406297178681731937210594998657168795100878204131916024453275711913842` |
-| Mina (public devnet) | USDC **FungibleToken** zkApp (6dp, 2026-07-17) | `B62qmM6queHpUAWW1G6Hkb5MCEk1xKZ2wmydVdke4LvtZ8mL3AYkRKw` |
-| Mina (public devnet) | USDC **FungibleTokenAdmin** contract | `B62qkHwT6qbkqyyrxVs8cPBmmVJTVX5es63DKZK9vewNWRD2Vs5jE2k` |
-| Mina (public devnet) | USDC **tokenId** | `11023656268526876025673184191684945855837551514830012586280356683923962762116` |
+| Mina (public devnet) | USDC **UsdcChannelToken** zkApp (6dp, **canonical**, 2026-07-18) | `B62qqN1Pu3kF2KGmqLA8EwpqfWrnFTVZJGDSDHQuQRoVt5BCFjhNz3d` |
+| Mina (public devnet) | USDC **RateLimitedUsdcAdmin** contract | `B62qpeGPgEhz6Vbd9E11PoTzz2EZZCJjqhwALxJ2BnkdozFm2rZtmRB` |
+| Mina (public devnet) | USDC **tokenId** | `9497120696276615621907376728658022802954262638363646162765282600447713419198` |
 
-> **Public Mina devnet USDC (2026-07-17 redeploy):** deployed with the
-> connector#352 single-o1js-instance tooling (deploy tx
-> `5JuNDoaPZEg1WCybyD9sAG8Kc4sSKRbwBxYTu3DTse6fytt4GTx6`;
-> `UsdcChannelToken` vk hash
+> **Canonical public Mina devnet USDC (2026-07-18, rate-limited mint):**
+> anyone can mint **to their own address**, capped **1,000 USDC per address
+> per ~24 h window** (480 slots), enforced in-circuit and by ledger
+> preconditions on a per-address mint-receipt account — verified live: a
+> stale second mint failed **at inclusion** with
+> `Account_app_state_precondition_unsatisfied`
+> (tx `5JuaxmQXqBAHY3xudW3tDkm8fhwdLcmZZao9X83nMPVZzBBxsuHX`). Mint with
+> connector `tools/mina/self-mint-usdc.mts` (the recipient must sign — the
+> old admin-mint `fund-usdc` path does not work against this token). Admin
+> authority `B62qqss8MphndS1nGNdtwaE936AaojqLu4wPFfw9yjA5Ga66XdVBoiE` holds
+> **pause/upgrade only**, never needed for minting. Deploy tx
+> `5JuiWcRt7BhamqsBRsJn8parsjzSgceYbs1Jw7XspVuEMhBuUvDM`; vk hashes:
+> `UsdcChannelToken`
 > `9692307225143487166733467413506207145324336685411164992097971188215422741850`,
-> `FungibleTokenAdmin` vk hash
-> `18691595165066726042633902806776623651617801388146374388725017604854573364243`).
-> The **mint authority is a session throwaway key** — treat this instance as
-> an e2e deployment; a durable shared devnet token needs one redeploy with an
-> operator-held admin key. The older public-devnet zkApps
+> `RateLimitedUsdcAdmin`
+> `15646924668446182536665832553975716875665619363054690992558188740688863581713`
+> (pinned in connector CI). See connector#355.
+>
+> **Superseded:** the 2026-07-17 instance
+> (`B62qmM6queHpUAWW1G6Hkb5MCEk1xKZ2wmydVdke4LvtZ8mL3AYkRKw`, tokenId
+> `1102365626…2762116`, stock `FungibleTokenAdmin`
+> `B62qkHwT6qbkqyyrxVs8cPBmmVJTVX5es63DKZK9vewNWRD2Vs5jE2k`) — its mint
+> authority was a discarded session key, so no further minting is possible;
+> existing balances remain readable. The older public-devnet zkApps
 > (`B62qqwnm9NZs…` / tokenId `13770394…0748`) remain live for the roundtrip
 > harness. **PaymentChannel on the public devnet has no canonical address** —
 > the zkApp address *is* the channel id, deployed per channel (e.g. the
