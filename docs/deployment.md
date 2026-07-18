@@ -162,10 +162,18 @@ full paid round-trip per chain (channel open + deposit → per-packet claim →
 |---------------|------|-------|
 | `POST /api/request` | `{address}` | 100 ETH + 10k USDC (EVM) |
 | `POST /api/solana/request` | `{address}` | SOL + USDC (Solana) |
-| `POST /api/mina/request` | `{address}` | native MINA only (treasury-funded). USDC-on-Mina **is** now deployed (see contracts above) but the faucet does **not** drip it — transfer USDC from the treasury for channel deposits. |
+| `POST /api/mina/request` | `{address}` | native MINA (treasury-funded) + a USDC transfer leg (see below) |
+| `POST /api/mina/usdc-request` | `{address}` | USDC-on-Mina drip via **treasury transfer** (connector#356): the faucet treasury lazily **self-mints its own 1,000 USDC/day allowance** against the rate-limited canonical token (see contracts above) and drips by uncapped token transfer, paying the recipient's 1-MINA token-account creation. Off-chain per-address 24 h cooldown. Total faucet throughput is capped by the treasury's own 1,000/day mint window — **anyone holding ~1.2 devnet MINA should instead self-mint directly** (`connector tools/mina/self-mint-usdc.mts`, 1,000 USDC/address/day, no faucet involved). |
 
 The Mina faucet treasury (top up when low) is
 `B62qqEMaUpm1aZ5M2weUoGXQRGbF3j6VjEtaEdzfM1NAWmeHnywiC2P`.
+
+> **USDC-leg rollout status:** the self-mint drip leg (connector#356) is
+> merged but the live faucet box has not been redeployed yet — bringing it
+> live needs an operator to (1) redeploy the faucet image, (2) set
+> `MINA_USDC_TREASURY_KEY`, and (3) fund the treasury with ~3.5 MINA once
+> (its first self-mint creates the treasury's receipt + token accounts).
+> Until then, use the direct self-mint CLI.
 
 ### Pointing a node/SDK at the devnet
 
