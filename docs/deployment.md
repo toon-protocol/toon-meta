@@ -104,6 +104,26 @@ full paid round-trip per chain (channel open + deposit → per-packet claim →
 | Mina (box lightnet) | **PaymentChannel** zkApp | `B62qoMNmZQQYSxuoNx42JnZtNZwHfwL16wxUYNEuLGyrVq1bXfS15Rn` |
 | Mina (box lightnet) | USDC **FungibleToken** zkApp (6dp) | `B62qjfa5osSnjaAhgiJTu5WRg7RCw66mY6bhaxZecyMTTtESKBwQ4x3` |
 | Mina (box lightnet) | USDC **tokenId** | `26807032406297178681731937210594998657168795100878204131916024453275711913842` |
+| Mina (public devnet) | USDC **FungibleToken** zkApp (6dp, 2026-07-17) | `B62qmM6queHpUAWW1G6Hkb5MCEk1xKZ2wmydVdke4LvtZ8mL3AYkRKw` |
+| Mina (public devnet) | USDC **FungibleTokenAdmin** contract | `B62qkHwT6qbkqyyrxVs8cPBmmVJTVX5es63DKZK9vewNWRD2Vs5jE2k` |
+| Mina (public devnet) | USDC **tokenId** | `11023656268526876025673184191684945855837551514830012586280356683923962762116` |
+
+> **Public Mina devnet USDC (2026-07-17 redeploy):** deployed with the
+> connector#352 single-o1js-instance tooling (deploy tx
+> `5JuNDoaPZEg1WCybyD9sAG8Kc4sSKRbwBxYTu3DTse6fytt4GTx6`;
+> `UsdcChannelToken` vk hash
+> `9692307225143487166733467413506207145324336685411164992097971188215422741850`,
+> `FungibleTokenAdmin` vk hash
+> `18691595165066726042633902806776623651617801388146374388725017604854573364243`).
+> The **mint authority is a session throwaway key** — treat this instance as
+> an e2e deployment; a durable shared devnet token needs one redeploy with an
+> operator-held admin key. The older public-devnet zkApps
+> (`B62qqwnm9NZs…` / tokenId `13770394…0748`) remain live for the roundtrip
+> harness. **PaymentChannel on the public devnet has no canonical address** —
+> the zkApp address *is* the channel id, deployed per channel (e.g. the
+> 2026-07-17 e2e instances: native-MINA channel
+> `B62qprWmyvrhCcEjDTCasRfyYX7dQtNicnE9MXJdrFzcyEhxYHhCxCd`, plus a
+> USDC-denominated channel paid through with `assertClaimTokenId` active).
 
 > The live apex settles Mina on the **box lightnet**
 > (`https://mina.devnet.toonprotocol.dev/graphql`, PaymentChannel deployed
