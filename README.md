@@ -2,6 +2,23 @@
 
 Cross-cutting assets for the **TOON Protocol** — the shared **context hub** and **agent-skills source**, kept independent of any product repo.
 
+## Quickstart — send your first paid packet
+
+The live devnet settles on **public chains** (exact-match chain ids: `evm:84532` ·
+`solana:devnet` · `mina:devnet`). The fastest path from zero to a paid write:
+
+1. `npm i -g @toon-protocol/rig` and follow the
+   [rig README](https://github.com/toon-protocol/toon-client/blob/main/packages/rig/README.md)
+   (steps 1–8: identity → remote → fund → push). Its
+   ["Devnet reference (public chains)"](https://github.com/toon-protocol/toon-client/blob/main/packages/rig/README.md#devnet-reference-public-chains)
+   section has every endpoint and contract address.
+2. Fund a wallet at **<https://faucet.devnet.toonprotocol.dev>** (web UI, all
+   three chains) or `rig fund`.
+3. The exact client config + full address book:
+   [docs/deployment.md → "Pointing a client at the devnet"](./docs/deployment.md#pointing-a-client-at-the-devnet-rig-standalone).
+   The scripted end-to-end demo (push → permaweb site → ArNS name):
+   [`scripts/demo-e2e.sh`](./scripts/demo-e2e.sh).
+
 ## Contents
 
 - **[`context/`](./context/)** — the curated **context architecture**: [context](./context/context.md) · [architecture](./context/architecture.md) · [repos](./context/repos.md) · [decisions](./context/decisions.md) · [glossary](./context/glossary.md). **Start at [`context/context.md`](./context/context.md).**

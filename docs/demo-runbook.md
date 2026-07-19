@@ -1,5 +1,19 @@
 # E2E Demo Runbook — SocialFi + DeFi journey on 3 testnets
 
+> ## ⚠️ Historical — superseded 2026-07-19
+>
+> This runbook predates the public-chain cutover and drives tooling that no
+> longer exists as described: the `@toon-protocol/proxy` npm package was never
+> published, `e2e/testnets.json` was never committed, several `toon_*` MCP tool
+> names differ from the shipped client-mcp surface, and the `hub#15` blocker
+> refers to a removed product. **For the current demo path use:**
+> [`deployment.md` → "Pointing a client at the devnet"](./deployment.md#pointing-a-client-at-the-devnet-rig-standalone),
+> the [rig README "Devnet reference (public chains)"](https://github.com/toon-protocol/toon-client/blob/main/packages/rig/README.md#devnet-reference-public-chains),
+> and the scripted flow in [`scripts/demo-e2e.sh`](../scripts/demo-e2e.sh).
+> Chain ids are exact-match announce strings: `evm:84532`, `solana:devnet`,
+> `mina:devnet` (this doc's `evm:base:84532` spelling predates that rule).
+> The on-chain receipt-observation sections (§ explorers) remain accurate.
+
 Runs a **proxy (direct BTP)** against Base Sepolia / Solana devnet / Mina devnet,
 exercises the full SocialFi + DeFi journey with a client-side agent, and captures
 on-chain settlement receipts. Treasury wallet, small/bounded amounts.

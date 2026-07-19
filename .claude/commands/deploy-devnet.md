@@ -11,13 +11,19 @@ Deploy or manage the TOON devnet — five Linode nodes (EVM / Solana / Mina ligh
 
 ## Node layout
 
+> **⚠️ 2026-07-19: the three chain boxes are RETIRED.** Settlement moved to
+> public networks (Base Sepolia / Solana devnet / Mina devnet); the EVM/Solana/
+> Mina Linodes and their DNS records were deleted. Only the `toon` and `store`
+> rows below remain live — do NOT re-provision the chain boxes. See
+> `docs/deployment.md` for the current layout.
+
 | Node | Linode label | Size | Public URLs |
 |------|-------------|------|-------------|
-| EVM (Anvil) | toon-devnet-evm | g6-standard-1 (2GB) | `https://evm-rpc.devnet.toonprotocol.dev` |
-| Solana | toon-devnet-sol | g6-standard-2 (4GB) | `https://solana-rpc.devnet.toonprotocol.dev`, `wss://solana-ws.devnet.toonprotocol.dev` |
-| Mina lightnet | toon-devnet-mina | g6-standard-4 (8GB) | `https://mina.devnet.toonprotocol.dev/graphql`, `https://mina-accounts.devnet.toonprotocol.dev` |
+| ~~EVM (Anvil)~~ RETIRED | ~~toon-devnet-evm~~ | — | settlement now on public Base Sepolia (`sepolia.base.org`) |
+| ~~Solana~~ RETIRED | ~~toon-devnet-sol~~ | — | settlement now on public Solana devnet (`api.devnet.solana.com`) |
+| ~~Mina lightnet~~ RETIRED | ~~toon-devnet-mina~~ | — | settlement now on public Mina devnet (minascan GraphQL) |
 | TOON connector (toon = relay app) | toon | g6-standard-1 (2GB) | `wss://relay-ws.devnet.toonprotocol.dev`, `https://proxy.devnet.toonprotocol.dev`, `https://faucet.devnet.toonprotocol.dev` |
-| Store (Arweave DVM app) | store | g6-standard-1 (2GB) | `https://store.devnet.toonprotocol.dev` (paid `/ilp` edge; route `g.proxy.store`) |
+| Store (Arweave DVM app) | store | g6-standard-1 (2GB) | `https://proxy.store.devnet.toonprotocol.dev/ilp` (route `g.proxy.store`), `https://dvm.devnet.toonprotocol.dev` |
 
 The `toon` and `store` boxes each run their own connector (payment proxy) in front of their app (relay / Arweave DVM). The store reuses the toon node's Mina zkApps. Use the `store` command to (re)deploy just the store box; `up` / `redeploy` cover all nodes.
 
