@@ -44,22 +44,21 @@ To stop the infrastructure:
 | Peer 2 BLS | http://localhost:19110 | ILP packet validation |
 | Peer 2 Relay | ws://localhost:19710 | Nostr WebSocket |
 
-## Linode Devnet — LIVE
+## Linode Devnet — LIVE (public-chain settlement)
 
-A public, self-hosted multi-chain devnet hosted on **four dedicated Linode nodes** —
-one per chain plus a TOON connector node. Used by the operator dashboard, demos,
-and anyone building against TOON without standing up local infrastructure.
-DNS is Porkbun-managed; all endpoints are under `*.devnet.toonprotocol.dev` with
-trusted Let's Encrypt TLS.
+The devnet runs on **two Linode boxes** (relay/proxy/faucet + Arweave store DVM)
+and settles on **public networks** — Base Sepolia, Solana devnet, and Mina
+devnet. The three self-hosted blockchain boxes (Anvil, solana-test-validator,
+Mina lightnet) were **deleted on 2026-07-19** as part of the public-chain
+cutover. DNS is Porkbun-managed; endpoints are under
+`*.devnet.toonprotocol.dev` with trusted Let's Encrypt TLS.
 
 ### Node layout
 
 | Node | Linode label | IP | Plan |
 |------|-------------|-----|------|
-| EVM (Anvil) | `toon-devnet-evm` | `104.237.150.131` | g6-standard-1 (2 GB) |
-| Solana | `toon-devnet-sol` | `104.237.150.132` | g6-standard-2 (4 GB) |
-| Mina lightnet | `toon-devnet-mina` | `172.104.27.242` | g6-standard-4 (8 GB) |
-| TOON connector | `toon` | `104.237.150.177` | g6-standard-1 (2 GB) |
+| TOON apex (connector + relay + faucet) | `toon` | `104.237.150.177` | g6-standard-1 (2 GB) |
+| Store (connector + Arweave DVM) | `toon-devnet-store` | `45.79.173.113` | g6-standard-1 (2 GB) |
 
 ### Endpoints
 
@@ -67,145 +66,121 @@ trusted Let's Encrypt TLS.
 
 | Service | Endpoint | Node | Notes |
 |---------|----------|------|-------|
-| EVM RPC | `https://evm-rpc.<box>` | toon-devnet-evm | Anvil chain-id **31337** |
-| Solana RPC | `https://solana-rpc.<box>` | toon-devnet-sol | `solana-test-validator` |
-| Solana WS | `wss://solana-ws.<box>` | toon-devnet-sol | WebSocket subscription endpoint |
-| Mina GraphQL | `https://mina.<box>/graphql` | toon-devnet-mina | Mina lightnet (`PROOF_LEVEL=none`) |
-| Mina accounts | `https://mina-accounts.<box>` | toon-devnet-mina | Lightnet accounts manager |
 | Relay | `wss://relay-ws.<box>` | toon | Nostr WebSocket (oblivious relay, free read) |
-| Payment proxy | `https://proxy.<box>` | toon | ILP-over-HTTP ingress (`g.proxy.relay`) |
-| Faucet | `https://faucet.<box>` | toon | Multi-chain faucet — see routes below |
+| Payment proxy | `https://proxy.<box>` / `wss://proxy.<box>:443` | toon | ILP ingress (`g.proxy.relay`) |
+| Faucet (+ frontend) | `https://faucet.<box>` | toon | Multi-chain faucet, 3-chain web UI at `/` |
+| Store ILP edge | `https://proxy.store.<box>/ilp` | store | route `g.proxy.store` |
+| Store DVM | `https://dvm.<box>` | store | `/health`; `/store` = payment-oblivious job route (kind:5094/5095/5096) |
 
-> **TLS:** all endpoints serve **trusted Let's Encrypt certs** (one cert per node).
-> No `NODE_TLS_REJECT_UNAUTHORIZED=0` needed.
+Retired endpoints (DNS records pending removal): `evm-rpc.*`, `solana-rpc.*`,
+`solana-ws.*`, `mina.*`, `mina-accounts.*`. `store.<box>` was never wired
+(parked at the registrar) — use `dvm.<box>` / `proxy.store.<box>`.
 
-### Deployed settlement contracts
+Public chain RPCs (no self-hosted chain infra):
 
-The payment-channel programs/contracts and the USDC token on each chain.
-**USDC is 6-decimal on every chain** (uniform claim base units). Verified by a
-full paid round-trip per chain (channel open + deposit → per-packet claim →
-`POST /ilp` FULFILL → relay read-back → on-chain redemption).
+| Chain | Chain id (announced) | RPC |
+|-------|----------------------|-----|
+| EVM Base Sepolia | `evm:84532` | `https://sepolia.base.org` (channel-open flows prefer a single-backend RPC, e.g. `https://base-sepolia-rpc.publicnode.com` — the official LB serves stale reads that break open→deposit sequencing) |
+| Solana devnet | `solana:devnet` | `https://api.devnet.solana.com` |
+| Mina devnet | `mina:devnet` | `https://api.minascan.io/node/devnet/v1/graphql` |
 
-> **Authoritative runtime source (connector ≥ 3.33.0, deployed 2026-07-16):**
-> the apex's kind:10032 announce on `wss://relay-ws.devnet.toonprotocol.dev`
-> now carries per-chain `tokenNetworks` (TokenNetwork contract on EVM,
-> payment-channel program on Solana, PaymentChannel zkApp on Mina) and
-> `preferredTokens` (ERC-20 / SPL mint / token-owner zkApp) — clients should
-> derive settlement parameters from the announce (connector#331,
-> toon-client#378). This table is a human-readable snapshot.
+### Deployed settlement contracts (public networks, verified 2026-07-19)
+
+**USDC is 6-decimal on every chain** (uniform claim base units). Verified by
+paid `rig push` round-trips per chain (channel open → per-packet claims →
+FULFILL → relay read-back; Solana claims redeemed on-chain).
+
+> **Authoritative runtime source:** the apex's kind:10032 announce on
+> `wss://relay-ws.devnet.toonprotocol.dev` carries `supportedChains`,
+> `settlementAddresses`, `tokenNetworks`, `preferredTokens`, and per-route
+> `capabilities` prices — clients derive settlement parameters from the
+> announce. This table is a human-readable snapshot.
 
 | Chain | What | Address |
 |-------|------|---------|
-| EVM (anvil 31337) | TokenNetworkRegistry | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
-| EVM (anvil 31337) | TokenNetwork (runtime-resolved) | `0xCafac3dD18aC6c6e92c921884f9E4176737C052c` |
-| EVM (anvil 31337) | Mock USDC (ERC-20, 6dp) | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
-| Solana (devnet) | Payment-channel **program** | `D2Z35z8ShA4K7odczUysBYRP5hXQGDp6r5c2EBSxRsHh` |
-| Solana (devnet) | Mock USDC SPL **mint** (6dp) | `H8HSreUF2s8r8hem4qMttE3bWYCpFuh71jbuos5bA77H` |
-| Mina (box lightnet) | **PaymentChannel** zkApp | `B62qoMNmZQQYSxuoNx42JnZtNZwHfwL16wxUYNEuLGyrVq1bXfS15Rn` |
-| Mina (box lightnet) | USDC **FungibleToken** zkApp (6dp) | `B62qjfa5osSnjaAhgiJTu5WRg7RCw66mY6bhaxZecyMTTtESKBwQ4x3` |
-| Mina (box lightnet) | USDC **tokenId** | `26807032406297178681731937210594998657168795100878204131916024453275711913842` |
-| Mina (public devnet) | USDC **UsdcChannelToken** zkApp (6dp, **canonical**, 2026-07-18) | `B62qqN1Pu3kF2KGmqLA8EwpqfWrnFTVZJGDSDHQuQRoVt5BCFjhNz3d` |
-| Mina (public devnet) | USDC **RateLimitedUsdcAdmin** contract | `B62qpeGPgEhz6Vbd9E11PoTzz2EZZCJjqhwALxJ2BnkdozFm2rZtmRB` |
-| Mina (public devnet) | USDC **tokenId** | `9497120696276615621907376728658022802954262638363646162765282600447713419198` |
+| Base Sepolia | TokenNetworkRegistry | `0xcC9079adE929b168B54145f6d25262b64FAB9D5b` |
+| Base Sepolia | TokenNetwork (runtime-resolved) | `0x1E95493fEF46707E034b4a1945f25a8C76A1823D` |
+| Base Sepolia | Mock USDC (ERC-20, 6dp, **ungated mint**) | `0x49beE1Bca5d15Fb0963117923403F9498119a9Ce` |
+| Solana devnet | Payment-channel **program** | `2aEVJ8koKD8LTZrLRSGtAtU7LBt4e7QjjCgf1kzQ7Rip` |
+| Solana devnet | Mock USDC SPL **mint** (6dp) | `xyc5J8MgKFiEN13PnfftdXxUzYH34FEvw1LCrFwN7in` |
+| Mina devnet | **PaymentChannel** zkApp (bare, client-build vk) | `B62qmgPhv2Xo6QVEtwjLja8UZJUtu8yapRFAR6gaoGtbM9zE5hG7Tkf` |
+| Mina devnet | Rate-limited mock USDC token (6dp, permissionless mint 1000/addr/24h) | `B62qqN1Pu3kF2KGmqLA8EwpqfWrnFTVZJGDSDHQuQRoVt5BCFjhNz3d` |
+| Mina devnet | USDC **tokenId** | `9497120696276615621907376728658022802954262638363646162765282600447713419198` |
 
-> **Canonical public Mina devnet USDC (2026-07-18, rate-limited mint):**
-> anyone can mint **to their own address**, capped **1,000 USDC per address
-> per ~24 h window** (480 slots), enforced in-circuit and by ledger
-> preconditions on a per-address mint-receipt account — verified live: a
-> stale second mint failed **at inclusion** with
-> `Account_app_state_precondition_unsatisfied`
-> (tx `5JuaxmQXqBAHY3xudW3tDkm8fhwdLcmZZao9X83nMPVZzBBxsuHX`). Mint with
-> connector `tools/mina/self-mint-usdc.mts` (the recipient must sign — the
-> old admin-mint `fund-usdc` path does not work against this token). Admin
-> authority `B62qqss8MphndS1nGNdtwaE936AaojqLu4wPFfw9yjA5Ga66XdVBoiE` holds
-> **pause/upgrade only**, never needed for minting. Deploy tx
-> `5JuiWcRt7BhamqsBRsJn8parsjzSgceYbs1Jw7XspVuEMhBuUvDM`; vk hashes:
-> `UsdcChannelToken`
-> `9692307225143487166733467413506207145324336685411164992097971188215422741850`,
-> `RateLimitedUsdcAdmin`
-> `15646924668446182536665832553975716875665619363054690992558188740688863581713`
-> (pinned in connector CI). See connector#355.
->
-> **Superseded:** the 2026-07-17 instance
-> (`B62qmM6queHpUAWW1G6Hkb5MCEk1xKZ2wmydVdke4LvtZ8mL3AYkRKw`, tokenId
-> `1102365626…2762116`, stock `FungibleTokenAdmin`
-> `B62qkHwT6qbkqyyrxVs8cPBmmVJTVX5es63DKZK9vewNWRD2Vs5jE2k`) — its mint
-> authority was a discarded session key, so no further minting is possible;
-> existing balances remain readable. The older public-devnet zkApps
-> (`B62qqwnm9NZs…` / tokenId `13770394…0748`) remain live for the roundtrip
-> harness. **PaymentChannel on the public devnet has no canonical address** —
-> the zkApp address *is* the channel id, deployed per channel (e.g. the
-> 2026-07-17 e2e instances: native-MINA channel
-> `B62qprWmyvrhCcEjDTCasRfyYX7dQtNicnE9MXJdrFzcyEhxYHhCxCd`, plus a
-> USDC-denominated channel paid through with `assertClaimTokenId` active).
+> **Mina vk gotcha (cost a redeploy):** the PaymentChannel zkApp MUST be
+> deployed from the **client-side build** (`@toon-protocol/mina-zkapp@0.1.1`
+> npm package + o1js 2.14.0, BARE — no `initializeChannel`) or the client's
+> channel-open proof fails with "Stale verification key". The connector repo's
+> local `packages/mina-zkapp` dist has drifted from the published 0.1.1
+> (same version, different vk). Deploy records + zkApp key:
+> `~/.toon-client/keys/mina-zkapp-client-deploy.json` (operator Mac).
+> Mina USDC deploy record: `~/.toon-client/keys/usdc-rl-deploy.json`.
 
-> The live apex settles Mina on the **box lightnet**
-> (`https://mina.devnet.toonprotocol.dev/graphql`, PaymentChannel deployed
-> 2026-06-23); the older public-devnet zkApps
-> (`B62qigQwEwBAs…` / `B62qqwnm9NZs…` / tokenId `13770394…0748`) remain live on
-> the public Mina devnet for the roundtrip harness. The `PaymentChannel` zkApp
-> supports both native MINA (`tokenId = Field(1)`) and the USDC fungible token.
-> Public-devnet writes must go to
-> `https://api.minascan.io/node/devnet/v1/graphql` directly — the `mina.*` proxy
-> 504s on `send()` (it's fine for reads).
->
-> **Caveats:** the Solana program id is **non-deterministic** (regenerated each
-> `cargo build-sbf` — not a committed keypair) and the validator ledger is
-> ephemeral (`--reset`), so a fresh devnet provision needs a re-deploy — since
-> connector 3.33.0 the announce picks the new id up automatically from the
-> box's `connector.yaml`. The mock-USDC SPL mint and EVM addresses are
-> deterministic.
-
-### Faucet routes
+### Faucet routes (`https://faucet.devnet.toonprotocol.dev`)
 
 | Method & path | Body | Drips |
 |---------------|------|-------|
-| `POST /api/request` | `{address}` | 100 ETH + 10k USDC (EVM) |
-| `POST /api/solana/request` | `{address}` | SOL + USDC (Solana) |
-| `POST /api/mina/request` | `{address}` | native MINA (treasury-funded) + a USDC transfer leg (see below) |
-| `POST /api/mina/usdc-request` | `{address}` | USDC-on-Mina drip via **treasury transfer** (connector#356): the faucet treasury lazily **self-mints its own 1,000 USDC/day allowance** against the rate-limited canonical token (see contracts above) and drips by uncapped token transfer, paying the recipient's 1-MINA token-account creation. Off-chain per-address 24 h cooldown. Total faucet throughput is capped by the treasury's own 1,000/day mint window — **anyone holding ~1.2 devnet MINA should instead self-mint directly** (`connector tools/mina/self-mint-usdc.mts`, 1,000 USDC/address/day, no faucet involved). |
+| `POST /api/base-sepolia/request` | `{address}` | 1000 USDC (ungated on-chain mint; faucet key only pays gas) |
+| `POST /api/solana/request` | `{address}` | 2 SOL airdrop + 1000 USDC treasury transfer (airdrop leg subject to the public devnet's per-IP quota) |
+| `POST /api/mina/request` | `{address}` | 5 MINA + USDC (treasury self-mint on the rate-limited token) |
+| `POST /api/request` | `{address}` | **deprecated** legacy anvil leg (`local:true`, dead) |
 
-The Mina faucet treasury (top up when low) is
-`B62qqEMaUpm1aZ5M2weUoGXQRGbF3j6VjEtaEdzfM1NAWmeHnywiC2P`.
+The web frontend at `/` exposes all three public chains. Treasuries:
+Mina `B62qmVAwZb65H8Kv9wc2yhZJSirNcuq2FuhsrXdB8uM2W1AiQqJJmUD` (top up via
+https://faucet.minaprotocol.com), Solana `AEPoA5xTTJY9SR8c5CfsemFGC5TmxQBe6Xf6wewEtnYa`
+(mint authority; keypair at `~/.toon-client/keys/solana-usdc-treasury.json` and
+`/root/keys/solana-usdc-treasury.json` on the toon box), Base Sepolia faucet key
+`0x6bafedaF18FF62f0a63dd0148bafa163204627F6` (needs only gas ETH).
+**Never send transactions from the faucet's hot keys manually while the
+service is live — it desyncs the faucet's nonce manager.**
 
-> **USDC-leg rollout status:** the self-mint drip leg (connector#356) is
-> merged but the live faucet box has not been redeployed yet — bringing it
-> live needs an operator to (1) redeploy the faucet image, (2) set
-> `MINA_USDC_TREASURY_KEY`, and (3) fund the treasury with ~3.5 MINA once
-> (its first self-mint creates the treasury's receipt + token accounts).
-> Until then, use the direct self-mint CLI.
+### Pointing a client at the devnet (rig standalone)
 
-### Pointing a node/SDK at the devnet
+Keep `~/.toon-client/config.json` **minimal** — settlement params derive from
+the announce. Verified working shape (2026-07-19):
 
 ```jsonc
 {
-  "chainRpcUrls": {
-    "evm:31337":     "https://evm-rpc.devnet.toonprotocol.dev",
-    "solana:devnet": "https://solana-rpc.devnet.toonprotocol.dev",
-    "mina:devnet":   "https://mina.devnet.toonprotocol.dev/graphql"
+  "network": "devnet",
+  "btpUrl":  "wss://proxy.devnet.toonprotocol.dev:443",
+  "relayUrl": "wss://relay-ws.devnet.toonprotocol.dev",
+  "faucetUrl": "https://faucet.devnet.toonprotocol.dev",
+  "destination": "g.proxy.relay",
+  "feePerEvent": "1000",              // = announced route price
+  "chainRpcUrls": {                    // per-field overrides only
+    "evm:84532":   "https://base-sepolia-rpc.publicnode.com",
+    "mina:devnet": "https://api.minascan.io/node/devnet/v1/graphql"
   },
-  "relayUrl":  "wss://relay-ws.devnet.toonprotocol.dev",
-  "proxyUrl":  "https://proxy.devnet.toonprotocol.dev",
-  "faucetUrl": "https://faucet.devnet.toonprotocol.dev"
+  "minaChannel": {                     // rig cannot derive this from announce
+    "graphqlUrl": "https://api.minascan.io/node/devnet/v1/graphql",
+    "zkAppAddress": "B62qmgPhv2Xo6QVEtwjLja8UZJUtu8yapRFAR6gaoGtbM9zE5hG7Tkf",
+    "tokenId": "9497120696276615621907376728658022802954262638363646162765282600447713419198",
+    "networkId": "devnet"
+  }
 }
 ```
 
+Do **not** set `supportedChains`/`tokenNetworks`/`preferredTokens` explicitly —
+explicit topology bypasses announce-derived route prices and reintroduces F06
+rejections. Pin a settlement chain per command with the **announced** spelling:
+`TOON_CLIENT_CHAIN=evm:84532|solana:devnet|mina:devnet`. After config changes,
+delete `~/.toon-client/rig-topology-cache.json` (cached topology can mask
+edits). Requires `rig >= 2.10.2`.
+
+The end-to-end demo flow (fund → push → site → ArNS name) is scripted in
+[`scripts/demo-e2e.sh`](../scripts/demo-e2e.sh).
+
 ### Operating the devnet
 
-The devnet is managed by `infra/devnet-manage.sh` in the connector repo
-(`feat/devnet-multi-node` branch). Use the `/deploy-devnet` Claude Code skill
-(`.claude/commands/deploy-devnet.md`) or run the script directly:
+The two boxes are managed from the connector repo checkouts on the boxes
+themselves (`/root/connector`, branches `feat/devnet-multi-node` /
+`feat/devnet-store-node`; compose files `infra/linode-node/docker-compose.node.yml`
+and `infra/linode-store/docker-compose.store.yml`). `infra/devnet-manage.sh`
+still automates provisioning but its chain-box legs are now historical.
 
-```bash
-bash ../connector/infra/devnet-manage.sh status    # probe all endpoints
-bash ../connector/infra/devnet-manage.sh redeploy  # pull latest + restart
-bash ../connector/infra/devnet-manage.sh down      # stop (boxes keep running)
-bash ../connector/infra/devnet-manage.sh destroy   # delete all Linode boxes
-```
-
-Each chain box runs `connector/infra/linode/` with a per-chain nginx template
-(`evm.conf.template`, `sol.conf.template`, `mina.conf.template`).
-The TOON node runs `connector/infra/linode-node/` (connector + relay + faucet + nginx).
+> **Restart order matters:** connector 3.36.x downstream BTP clients give up
+> permanently after 5 reconnect retries (~60 s). After any apex connector
+> restart, `docker restart linode-store-connector-1` on the store box.
 
 ### Path A reference deployment — `deploy/pay-edge/` (separate box)
 
