@@ -13,13 +13,20 @@ When two nodes want to peer, they need to agree on which blockchain to use for s
 3. `negotiateSettlementChain()` finds the intersection of supported chains
 4. Picks the optimal chain (prefer mainnet over testnet, lower fees over higher)
 
-**Chain format:** `{blockchain}:{network}:{chainId}`
+**Chain format:** negotiation is an **exact string intersection** — a chain id
+only matches if both sides spell it identically. The devnet apex announces the
+short forms `evm:{chainId}` / `{chain}:{network}`:
 
-| Example | Chain |
-|---------|-------|
-| `evm:arbitrum:42161` | Arbitrum One (mainnet) |
-| `evm:arbitrum:421614` | Arbitrum Sepolia (testnet) |
-| `evm:anvil:31337` | Local Anvil |
+| Announced id | Chain |
+|--------------|-------|
+| `evm:84532` | Base Sepolia (the live devnet EVM chain) |
+| `solana:devnet` | Solana devnet (public cluster) |
+| `mina:devnet` | Mina devnet (public) |
+
+Client-side code may also use the longer `evm:{family}:{chainId}` spelling
+(e.g. `evm:base:84532`); rig ≥2.10.2 aligns it to the announced spelling by
+numeric chain id, but when writing configs or docs prefer the announced
+strings verbatim.
 
 ## Payment Channels
 
@@ -67,7 +74,7 @@ When a client pays a proxy apex, the apex validates the claim, returns FULFILL, 
 - **Solana** — the connector calls `CLAIM_FROM_CHANNEL` per advancing claim; the recipient's tokens are credited **at channel close** via `SETTLE_CHANNEL` (vault → recipient ATA).
 - **Mina** — the connector calls `claimFromChannel` per advancing claim, **co-signing the counterparty signature** with the apex Mina key, so the on-chain zkApp nonce and balance commitment advance and the tx lands. The recipient's tokens are credited **at channel close** via the Story 34.4 fund-custody zkApp (`@toon-protocol/connector` ≥3.10.0): `deposit()` escrows the deposit on the zkApp account and `settle()` drains the custodied balance to the participants (`balanceB`→recipient / apex, `balanceA`→depositor refund) — the Mina analog of Solana's `SETTLE_CHANNEL` vault→recipient transfer.
 
-(Verified against `@toon-protocol/connector` 3.10.0; see `packages/sdk/CONNECTOR_MIGRATION.md` for the version-by-version settlement history.)
+(Per-chain settle mechanics first verified against `@toon-protocol/connector` 3.10.0 and unchanged in behavior through 3.38.0 — the current published release; see `packages/sdk/CONNECTOR_MIGRATION.md` for the version-by-version settlement history.)
 
 ## Settlement Info in kind:10032
 
@@ -75,25 +82,38 @@ Nodes advertise their settlement capabilities in kind:10032 events:
 
 ```json
 {
-  "supportedChains": ["evm:base:84532", "evm:base:31337"],
+  "supportedChains": ["evm:84532", "solana:devnet", "mina:devnet"],
   "settlementAddresses": {
-    "evm:base:84532": "0xABC...",
-    "evm:base:31337": "0xDEF..."
+    "evm:84532": "0xC0E55cD2E967a4F625627DaE5d4946f54267C7ab",
+    "solana:devnet": "CVZRVzvRppQQ5n6UW4rNAG4sX4wPdDQoW6bZtVXfPnzY",
+    "mina:devnet": "B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq"
   },
   "tokenNetworks": {
-    "evm:base:31337": "0xCafac3dD18aC6c6e92c921884f9E4176737C052c"
+    "evm:84532": "0x1E95493fEF46707E034b4a1945f25a8C76A1823D",
+    "solana:devnet": "2aEVJ8koKD8LTZrLRSGtAtU7LBt4e7QjjCgf1kzQ7Rip",
+    "mina:devnet": "B62qmgPhv2Xo6QVEtwjLja8UZJUtu8yapRFAR6gaoGtbM9zE5hG7Tkf"
   },
   "preferredTokens": {
-    "evm:base:31337": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    "evm:84532": "0x49beE1Bca5d15Fb0963117923403F9498119a9Ce",
+    "solana:devnet": "xyc5J8MgKFiEN13PnfftdXxUzYH34FEvw1LCrFwN7in",
+    "mina:devnet": "B62qqN1Pu3kF2KGmqLA8EwpqfWrnFTVZJGDSDHQuQRoVt5BCFjhNz3d"
   }
 }
 ```
 
+(This is the live devnet apex's announce as of 2026-07-19 — see
+[deployment.md](./deployment.md#deployed-settlement-contracts-public-networks-verified-2026-07-19)
+for the full table. The announce also carries per-route `capabilities` prices;
+paid packets must claim at least the route price.)
+
 The TokenNetwork address (not the registry address) must be published — peers use this to open channels directly.
 
-## Contracts (Local Anvil)
+## Contracts (Local Anvil — `sdk-e2e-infra` only)
 
-These addresses are deterministic from the Anvil deployment:
+These addresses apply **only** to the local docker `sdk-e2e-infra` Anvil
+deployment (they are deterministic there). The live devnet's public-chain
+contracts are in
+[deployment.md](./deployment.md#deployed-settlement-contracts-public-networks-verified-2026-07-19).
 
 | Contract | Address |
 |----------|---------|

@@ -20,18 +20,16 @@ Operators run the **connector as a proxy-server layer** — the apex (nodeId `g.
 
 The codebase was a single monorepo; it is being split into **per-team repos** (see [`repos.md`](./repos.md)). Code is shared via **npm** (semver); deployment composition via **pinned Docker image digests**. The ILP payment engine is the separate **connector** repo.
 
-A **shared devnet** runs on **four dedicated Linode nodes** (one per chain + TOON connector) under `*.devnet.toonprotocol.dev` (Porkbun DNS, trusted Let's Encrypt TLS — no `NODE_TLS_REJECT_UNAUTHORIZED` needed):
+A **shared devnet** runs on **two Linode boxes** (apex connector+relay+faucet, and the Arweave store DVM) under `*.devnet.toonprotocol.dev` (Porkbun DNS, trusted Let's Encrypt TLS). **Settlement happens on public chains** — Base Sepolia (`evm:84532`), Solana devnet, Mina devnet; there is no self-hosted chain infrastructure (the chain boxes were retired 2026-07-19):
 
-| Endpoint | Node |
+| Endpoint | What |
 |----------|------|
-| `https://evm-rpc.devnet.toonprotocol.dev` | Anvil, chain-id 31337, USDC `0x5FbDB2…` |
-| `https://solana-rpc.devnet.toonprotocol.dev` | solana-test-validator, USDC `H8HSre…` |
-| `https://mina.devnet.toonprotocol.dev/graphql` | Mina lightnet (o1labs/mina-local-network) |
-| `wss://relay-ws.devnet.toonprotocol.dev` | Nostr relay (free read) |
-| `https://proxy.devnet.toonprotocol.dev` | TOON connector ILP ingress (`g.proxy.relay`) |
-| `https://faucet.devnet.toonprotocol.dev` | Multi-chain faucet |
+| `wss://relay-ws.devnet.toonprotocol.dev` | Nostr relay (free reads) |
+| `wss://proxy.devnet.toonprotocol.dev:443` | TOON connector ILP ingress (`g.proxy.relay`, paid writes) |
+| `https://faucet.devnet.toonprotocol.dev` | Multi-chain USDC faucet (web UI + API, all 3 chains) |
+| `https://dvm.devnet.toonprotocol.dev` | Arweave store DVM (kind:5094/5095/5096) |
 
-Managed by `connector/infra/devnet-manage.sh` (`feat/devnet-multi-node` branch) or the `/deploy-devnet` Claude Code skill. See [deployment.md → Linode Devnet](../docs/deployment.md#linode-devnet--live).
+Chain RPCs are the public networks' own (`sepolia.base.org`, `api.devnet.solana.com`, minascan devnet GraphQL); settlement contracts and client config live in [deployment.md → Linode Devnet](../docs/deployment.md#linode-devnet--live-public-chain-settlement), and the client-side quickstart is the [rig README's "Devnet reference (public chains)"](https://github.com/toon-protocol/toon-client/blob/main/packages/rig/README.md#devnet-reference-public-chains). Chain ids are **exact-match strings** from the apex's kind:10032 announce: `evm:84532`, `solana:devnet`, `mina:devnet`.
 
 ## How to use this repo (toon-meta)
 
