@@ -45,12 +45,12 @@ the "your app + seedphrase, `docker compose up`" ideal:
 ## Cross-cutting — naming (observed across WS1/WS1b)
 
 The payment-proxy role now has a single canonical name. **Resolved:** the canonical
-apex on-wire nodeId is **`g.proxy`** (children `g.proxy.<type>`, env prefix `PROXY_*`),
+apex on-wire nodeId is **`g.toon`** (children `g.toon.<type>`, env prefix `PROXY_*`),
 as used by the live devnet and the epic-44 docs; "connector" remains the repo/product
 name. Live ILP edges include `connector.pay.toonprotocol.dev/ilp` and
 `proxy.store.devnet.toonprotocol.dev/ilp` (no single canonical vhost scheme).
 **Pending cleanup:** purge remaining legacy `g.connector` references in favor of
-`g.proxy` — a follow-up, *not* a "proxy rename".
+`g.toon` — a follow-up, *not* a "proxy rename".
 
 ---
 

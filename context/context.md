@@ -14,7 +14,7 @@ Guiding thesis: **"sending a message and sending money are the same action."** E
 - **store** — NIP-90 **Arweave DVM** (kind:5094): pay to store a blob permanently; the FULFILL returns the Arweave tx id.
 - **swap** — multi-chain swap peer: pay asset A, receive a signed target-chain claim redeemable for asset B (EVM / Solana / Mina).
 
-Operators run the **connector as a proxy-server layer** — the apex (nodeId `g.proxy`) sitting in front of child relay/swap/store containers. Clients pay the proxy over BTP; it validates, fees, and **free-forwards** to the child.
+Operators run the **connector as a proxy-server layer** — the apex (nodeId `g.toon`) sitting in front of child relay/swap/store containers. Clients pay the proxy over BTP; it validates, fees, and **free-forwards** to the child.
 
 ## Current state (2026-06)
 
@@ -25,7 +25,7 @@ A **shared devnet** runs on **two Linode boxes** (apex connector+relay+faucet, a
 | Endpoint | What |
 |----------|------|
 | `wss://relay-ws.devnet.toonprotocol.dev` | Nostr relay (free reads) |
-| `wss://proxy.devnet.toonprotocol.dev:443` | TOON connector ILP ingress (`g.proxy.relay`, paid writes) |
+| `wss://proxy.devnet.toonprotocol.dev:443` | TOON connector ILP ingress (`g.toon.relay`, paid writes) |
 | `https://faucet.devnet.toonprotocol.dev` | Multi-chain USDC faucet (web UI + API, all 3 chains) |
 | `https://dvm.devnet.toonprotocol.dev` | Arweave store DVM (kind:5094/5095/5096) |
 

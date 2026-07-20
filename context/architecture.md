@@ -24,9 +24,9 @@ connector (separate repo)  ── the ILP payment engine: validates claims, fees
 ## Runtime topology (one paid write)
 
 ```
-client ─(1) BTP PREPARE + signed claim─► connector (apex, g.proxy)
+client ─(1) BTP PREPARE + signed claim─► connector (apex, g.toon)
                                           (2) ClaimReceiver verifies claim, takes fee,
-                                              routing table → g.proxy.relay
+                                              routing table → g.toon.relay
                                           (3) localDelivery HTTP POST /handle-packet ─► relay BLS
 client ◄─(5) BTP FULFILL─ connector ◄─(4) accept (event stored) ◄──────────────────┘
                                           (6) at threshold → SettlementMonitor →
@@ -39,8 +39,8 @@ discovery: nodes publish kind:10032 peer-info on Nostr; clients read it to find 
 ## Load-bearing invariants
 
 1. **Claim validation happens once, in the connector.** Nodes receive an already-paid `PaymentRequest` and only run business logic — they never re-verify signatures/balances (and couldn't; they don't hold channel state). See [decisions.md](./decisions.md).
-2. **Parent→child forwarding is free** (settled in aggregate). The child must be registered `relation:'child'` AND tag the apex nodeId `g.proxy` as its parent (`TOON_PARENT_PEER_ID`); get either wrong and paid traffic to the child is rejected (T00/F06).
-3. **The apex nodeId is an on-wire ILP nodeId** baked into the connector + every child's parent tag — load-bearing: the connector and every child must agree on it, or paid forwarding breaks (T00/F06). The canonical apex nodeId is **`g.proxy`** (children `g.proxy.<type>`, env prefix `PROXY_*`; used by the live devnet and epic-44); a cleanup to purge remaining legacy `g.connector` references in favor of `g.proxy` is pending. "Connector" stays the repo/product name.
+2. **Parent→child forwarding is free** (settled in aggregate). The child must be registered `relation:'child'` AND tag the apex nodeId `g.toon` as its parent (`TOON_PARENT_PEER_ID`); get either wrong and paid traffic to the child is rejected (T00/F06).
+3. **The apex nodeId is an on-wire ILP nodeId** baked into the connector + every child's parent tag — load-bearing: the connector and every child must agree on it, or paid forwarding breaks (T00/F06). The canonical apex nodeId is **`g.toon`** (children `g.toon.<type>`, env prefix `PROXY_*`; used by the live devnet and epic-44); a cleanup to purge remaining legacy `g.connector` references in favor of `g.toon` is pending. "Connector" stays the repo/product name.
 4. **Reads are free** Nostr WS and bypass the payment path entirely.
 
 ## Payment model

@@ -14,7 +14,7 @@ Curated, durable decisions. ADR-lite: each is *decision → why*.
 ## Boundaries
 
 - **Claim validation lives ONLY in the connector.** `core` never imports the connector (structural `EmbeddableConnectorLike` interface); `sdk` dynamically imports it only to auto-create one; the `payment-handler-bridge` dispatches an *already-paid* packet to business logic. *Why:* the connector is the only component holding channel state — re-validating downstream is double work and incorrect.
-- **Apex / free-forward.** Operators run an apex (the connector as a proxy-server layer, `g.proxy`) + child nodes; parent→child packets carry no per-packet claim (settled in aggregate). Children must be `relation:'child'` and tag `g.proxy` as parent. *Why:* one paid hop at the edge; children earn via aggregate settlement.
+- **Apex / free-forward.** Operators run an apex (the connector as a proxy-server layer, `g.toon`) + child nodes; parent→child packets carry no per-packet claim (settled in aggregate). Children must be `relation:'child'` and tag `g.toon` as parent. *Why:* one paid hop at the edge; children earn via aggregate settlement.
 - **Trust degrades; money doesn't.** (TEE) Attestation state changes never trigger payment-channel closure. *Why:* trust is a gradient, not a gate.
 
 ## Repo split (2026-06)
@@ -23,7 +23,7 @@ Curated, durable decisions. ADR-lite: each is *decision → why*.
 - **`toon` (core+sdk) is libraries only; connector is an optional peer.** *Why:* the library layer must build/publish independent of the payment engine.
 - **The connector owns & publishes `@toon-protocol/mina-zkapp`.** *Why:* one canonical Mina channel contract; the connector already depends on it, and it was unpublished/`private`, breaking installs.
 - **Publish via `pnpm publish` / changesets, never `npm publish`.** *Why:* `npm publish` shipped unresolved `workspace:*`, making `sdk@0.5.0`/`town@0.4.0` uninstallable.
-- **`g.proxy` is the canonical apex wire nodeId.** *Why:* it's baked into the connector + child parent tags and every party must agree on it, or paid forwarding breaks (T00/F06) — so it's a load-bearing on-wire term, not cosmetic. **Status:** the live devnet and the epic-44 docs use **`g.proxy`** (children `g.proxy.<type>`, env prefix `PROXY_*`; live ILP edges e.g. `connector.pay.toonprotocol.dev/ilp`, `proxy.store.devnet.toonprotocol.dev/ilp`). "Connector" remains the repo/product name — only the on-wire nodeId + env prefix are the `g.proxy` axis. A cleanup to purge remaining legacy `g.connector` references in favor of `g.proxy` is a **pending follow-up**.
+- **`g.toon` is the canonical apex wire nodeId.** *Why:* it's baked into the connector + child parent tags and every party must agree on it, or paid forwarding breaks (T00/F06) — so it's a load-bearing on-wire term, not cosmetic. **Status:** the live devnet and the epic-44 docs use **`g.toon`** (children `g.toon.<type>`, env prefix `PROXY_*`; live ILP edges e.g. `connector.pay.toonprotocol.dev/ilp`, `proxy.store.devnet.toonprotocol.dev/ilp`). "Connector" remains the repo/product name — only the on-wire nodeId + env prefix are the `g.toon` axis. A cleanup to purge remaining legacy `g.connector` references in favor of `g.toon` is a **pending follow-up**.
 
 ## Knowledge architecture
 

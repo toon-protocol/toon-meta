@@ -67,9 +67,9 @@ cutover. DNS is Porkbun-managed; endpoints are under
 | Service | Endpoint | Node | Notes |
 |---------|----------|------|-------|
 | Relay | `wss://relay-ws.<box>` | toon | Nostr WebSocket (oblivious relay, free read) |
-| Payment proxy | `https://proxy.<box>` / `wss://proxy.<box>:443` | toon | ILP ingress (`g.proxy.relay`) |
+| Payment proxy | `https://proxy.<box>` / `wss://proxy.<box>:443` | toon | ILP ingress (`g.toon.relay`) |
 | Faucet (+ frontend) | `https://faucet.<box>` | toon | Multi-chain faucet, 3-chain web UI at `/` |
-| Store ILP edge | `https://proxy.store.<box>/ilp` | store | route `g.proxy.store` |
+| Store ILP edge | `https://proxy.store.<box>/ilp` | store | route `g.toon.ario` |
 | Store DVM | `https://dvm.<box>` | store | `/health`; `/store` = payment-oblivious job route (kind:5094/5095/5096) |
 
 Retired endpoints (DNS records pending removal): `evm-rpc.*`, `solana-rpc.*`,
@@ -120,10 +120,20 @@ FULFILL → relay read-back; Solana claims redeemed on-chain).
 
 | Method & path | Body | Drips |
 |---------------|------|-------|
-| `POST /api/base-sepolia/request` | `{address}` | 1000 USDC (ungated on-chain mint; faucet key only pays gas) |
-| `POST /api/solana/request` | `{address}` | 2 SOL airdrop + 1000 USDC treasury transfer (airdrop leg subject to the public devnet's per-IP quota) |
+| `POST /api/base-sepolia/request` | `{address}` | 1000 USDC (ungated on-chain mint; faucet key only pays gas — **no ETH drip**, fund gas separately) |
+| `POST /api/solana/request` | `{address}` | 2 SOL airdrop + 1000 USDC treasury transfer. The airdrop is **skipped** when the recipient already holds SOL, and a **failed** airdrop (public devnet quota/dry) no longer aborts the USDC transfer |
+| `POST /api/solana/usdc-request` | `{address}` | **USDC only, no airdrop** — treasury-funded token transfer. Works even when the devnet airdrop is dry and when the recipient holds 0 SOL. Use for addresses already funded with SOL |
 | `POST /api/mina/request` | `{address}` | 5 MINA + USDC (treasury self-mint on the rate-limited token) |
-| `POST /api/request` | `{address}` | **deprecated** legacy anvil leg (`local:true`, dead) |
+| `POST /api/mina/usdc-request` | `{address}` | **USDC only** — treasury transfer, no native MINA leg (rate-limited ~1000/24h) |
+| `GET /api/info` | — | machine-readable per-chain config (routes, `usdcMint`/`tokenAddress`, `ready`, drip amounts) — **query this to discover live addresses** |
+| `POST /api/request` | `{address}` | **deprecated** legacy anvil leg (`local:true`, dead). ⚠️ Stale clients (e.g. older `rig fund`) hit this by mistake — use the `/api/base-sepolia/request` route for public EVM USDC |
+
+> **Airdrop coupling (fixed).** The Solana `/api/solana/request` leg used to abort the whole
+> request (and thus the USDC transfer) whenever the public Solana devnet airdrop was
+> rate-limited/dry (`429 "airdrop faucet has run dry"`). The USDC transfer is treasury-funded and
+> independent of that airdrop, so it is now decoupled: the airdrop is skipped for already-funded
+> recipients and tolerated on failure, and `POST /api/solana/usdc-request` drips USDC with no
+> airdrop leg at all. (connector `packages/faucet/src/solana.js`.)
 
 The web frontend at `/` exposes all three public chains. Treasuries:
 Mina `B62qmVAwZb65H8Kv9wc2yhZJSirNcuq2FuhsrXdB8uM2W1AiQqJJmUD` (top up via
@@ -145,7 +155,7 @@ the announce. Verified working shape (2026-07-19):
   "btpUrl":  "wss://proxy.devnet.toonprotocol.dev:443",
   "relayUrl": "wss://relay-ws.devnet.toonprotocol.dev",
   "faucetUrl": "https://faucet.devnet.toonprotocol.dev",
-  "destination": "g.proxy.relay",
+  "destination": "g.toon.relay",
   "feePerEvent": "1000",              // = announced route price
   "chainRpcUrls": {                    // per-field overrides only
     "evm:84532":   "https://base-sepolia-rpc.publicnode.com",

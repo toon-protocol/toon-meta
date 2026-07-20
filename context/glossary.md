@@ -4,7 +4,7 @@
 
 **BTP** — Bilateral Transfer Protocol (RFC-0023). WebSocket session between two peers carrying ILP packets. TOON's **only** transport; clients pay an apex over BTP.
 
-**ILP address** — hierarchical routing label, e.g. `g.proxy`, `g.proxy.relay`. Longest-prefix matched by the connector's routing table. `g.proxy` is the canonical apex nodeId (see *Apex / proxy*).
+**ILP address** — hierarchical routing label, e.g. `g.toon`, `g.toon.relay`. Longest-prefix matched by the connector's routing table. `g.toon` is the canonical apex nodeId (see *Apex / proxy*).
 
 **PREPARE / FULFILL / REJECT** — the three ILPv4 packet types. A TOON write is one PREPARE; the node answers FULFILL (accepted) or REJECT (with an error code, e.g. F06/T00/T04).
 
@@ -14,7 +14,7 @@
 
 **Settlement** — redeeming accumulated claims on-chain via `claimFromChannel` once a threshold is crossed. In-process, multi-chain.
 
-**Apex / proxy** — an operator's deployment: the connector acting as a payment **proxy-server layer** in front of child relay/swap/store nodes. Clients pay the apex; it free-forwards to children. **Naming:** the canonical apex on-wire nodeId is **`g.proxy`** (children `g.proxy.<type>`, e.g. `g.proxy.relay`; env prefix `PROXY_*`). "Connector" remains the correct name for the repo and the payment-engine product — the `g.proxy` axis is only the on-wire nodeId + env prefix. There is no single canonical vhost scheme; live ILP edges include `connector.pay.toonprotocol.dev/ilp`, `proxy.devnet.toonprotocol.dev`, and `proxy.store.devnet.toonprotocol.dev/ilp`. Pending cleanup: purge remaining legacy `g.connector` references in favor of `g.proxy`. The Path A payment-proxy **core is shipped on connector `main`** (proven live at `connector.pay.toonprotocol.dev`); the devnet roundtrip harness (PR #245, merged) and the `deploy/pay-edge/` bundle (PR #252, merged; supersedes closed PR #246) have also shipped.
+**Apex / proxy** — an operator's deployment: the connector acting as a payment **proxy-server layer** in front of child relay/swap/store nodes. Clients pay the apex; it free-forwards to children. **Naming:** the canonical apex on-wire nodeId is **`g.toon`** (children `g.toon.<type>`, e.g. `g.toon.relay`; env prefix `PROXY_*`). "Connector" remains the correct name for the repo and the payment-engine product — the `g.toon` axis is only the on-wire nodeId + env prefix. There is no single canonical vhost scheme; live ILP edges include `connector.pay.toonprotocol.dev/ilp`, `proxy.devnet.toonprotocol.dev`, and `proxy.store.devnet.toonprotocol.dev/ilp`. Pending cleanup: purge remaining legacy `g.connector` references in favor of `g.toon`. The Path A payment-proxy **core is shipped on connector `main`** (proven live at `connector.pay.toonprotocol.dev`); the devnet roundtrip harness (PR #245, merged) and the `deploy/pay-edge/` bundle (PR #252, merged; supersedes closed PR #246) have also shipped.
 
 **Parent / child / peer** — connector peer relations. Child packets are claim-free (settled in aggregate); a child must tag the apex as parent.
 
@@ -36,4 +36,4 @@
 
 **relay / swap / store** — the three TOON node products (Nostr relay / multi-chain swap / Arweave DVM). Formerly town / mill / dvm.
 
-**apex nodeId (`g.proxy`)** — the apex's on-wire ILP nodeId and the canonical apex term; load-bearing (baked into the connector + every child's parent tag, so it must match across the deployment). A cleanup to purge remaining legacy `g.connector` references in favor of `g.proxy` is pending.
+**apex nodeId (`g.toon`)** — the apex's on-wire ILP nodeId and the canonical apex term; load-bearing (baked into the connector + every child's parent tag, so it must match across the deployment). A cleanup to purge remaining legacy `g.connector` references in favor of `g.toon` is pending.

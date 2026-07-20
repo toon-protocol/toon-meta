@@ -3,6 +3,12 @@
 Two ways to deploy and monetize an app on TOON Protocol, depending on whether you already have
 an HTTP service or are building natively on TOON's protocol primitives.
 
+> **Just want to run a node and join the network?** If you want to run a prebuilt **relay / store /
+> swap** node (rather than deploy an app), start at the **[Node Operator Guide](./node-operator-guide.md)** —
+> it walks the Docker-image + peering path end-to-end and links the runnable
+> [`deploy/node-quickstart/`](https://github.com/toon-protocol/connector/tree/main/deploy/node-quickstart)
+> bundle. This page (deploy-an-app) covers the two *app* paths below.
+
 ## Path A — payment-proxy (front an HTTP app)
 
 Put a connector in front of an existing, payment-oblivious HTTP service — the way nginx sits in
