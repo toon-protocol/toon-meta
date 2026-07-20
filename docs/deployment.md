@@ -55,10 +55,23 @@ cutover. DNS is Porkbun-managed; endpoints are under
 
 ### Node layout
 
-| Node | Linode label | IP | Plan |
-|------|-------------|-----|------|
-| TOON apex (connector + relay + faucet) | `toon` | `104.237.150.177` | g6-standard-1 (2 GB) |
-| Store (connector + Arweave DVM) | `toon-devnet-store` | `45.79.173.113` | g6-standard-1 (2 GB) |
+Three connector nodes form a **cross-currency multi-hop** path. A client pays the
+sandbox entry in **Mina USDC**; each connector hop settles with the next in a
+different chain (**Mina → Base → Solana**), terminating at the ario store DVM.
+
+| Node | Linode label | IP | Plan | Role |
+|------|-------------|-----|------|------|
+| Sandbox apex (client entry: connector + relay) | `toon-relay-test` | `50.116.48.49` | g6-standard-2 (4 GB) | accepts **Mina USDC** from clients; settles **Base** with `toon` |
+| TOON apex (connector + relay + faucet) | `toon` | `104.237.150.177` | g6-standard-1 (2 GB) | settles **Base** with sandbox; settles **Solana** with `ario` |
+| Store (connector + Arweave DVM + ARIO gas station) | `ario` | `45.79.173.113` | g6-standard-1 (2 GB) | terminates `g.toon.ario`; receives **Sol USDC** |
+
+Settlement links (per-peer `chain:` in each `connector.yaml`): sandbox↔toon on
+`evm:84532`; toon↔ario on `solana:devnet` (one shared bidirectional Solana channel
+`5z6znXjH…`). The sandbox forwards `g.toon.relay` / `g.toon.ario` / `g.toon.relay.ario`
+up to `toon`. Per-peer non-EVM channel settlement requires the connector fix on the
+`3.36.x` line (image `3.36.3-solchan.0`); see the `fix/channelmanager-open-3.36` branch.
+Clients pay the sandbox in Mina against a **dedicated** client-build PaymentChannel
+zkApp (one zkApp per participant pair — the apex's cannot be reused).
 
 ### Endpoints
 
