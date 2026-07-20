@@ -1,4 +1,4 @@
-# Handoff — Arweave DVM (`g.proxy.store`) deploy on Linode
+# Handoff — Arweave DVM (`g.toon.ario`) deploy on Linode
 
 Status as of 2026-06-24. Deploys the Arweave DVM (kind:5094) to its own Linode box,
 peered to the apex so the apex earns a routing fee, and advertised on the shared
@@ -19,18 +19,18 @@ relay for discovery.
   mina `B62qn3RVqmEqg8k27yND4692JVTdaTAKdebCspSKck23WoDudFEbWbt`. Faucet-funded.
 - **Peer + fee** — store connector is a `relation: peer` of the apex (BTP,
   `wss://…:443`). Bilateral channels open (store→apex `0x1bdfd98a…`, apex→store
-  `0x952ade04…`). Apex routes `g.proxy.store` → store peer with
+  `0x952ade04…`). Apex routes `g.toon.ario` → store peer with
   `connectorFeePercentage: 0.1` → **apex earns the hop fee**. (connector **PR #257**,
   branch `feat/devnet-store-peering`.)
 - **Discovery** — the DVM publishes a complete, payable **kind:10032** to relay-ws
-  (`ilpAddress g.proxy.store`, public btpEndpoint, settlementAddresses, chains,
-  price). `toon_add_apex g.proxy.store` → **`ready:true`** (client discovers + opens
+  (`ilpAddress g.toon.ario`, public btpEndpoint, settlementAddresses, chains,
+  price). `toon_add_apex g.toon.ario` → **`ready:true`** (client discovers + opens
   a pay-channel). Publish goes as a paid `POST /write` HTTP envelope → relay stored
   it (`accepted:true`).
 
 ## The gap (NOT yet working): the actual paid kind:5094 job round-trip
 
-A standard client can discover `g.proxy.store` and open a channel, but a paid
+A standard client can discover `g.toon.ario` and open a channel, but a paid
 kind:5094 job never reaches the DVM handler. Root cause = **payload-format skew
 between the deployed connector and the published SDK**:
 

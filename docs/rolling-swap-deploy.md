@@ -63,8 +63,8 @@ peer's sdk major first.**
 
 As of 2026-07-12 **there is no live swap node on devnet**:
 
-- kind:10032 announcements on the devnet relay list only `g.proxy.relay` and
-  `g.proxy.store` (plus a stale `g.connector.relay` on an old sslip host). No
+- kind:10032 announcements on the devnet relay list only `g.toon.relay` and
+  `g.toon.ario` (plus a stale `g.connector.relay` on an old sslip host). No
   swap node announces.
 - `connector/infra/linode/` (devnet.sh, docker-compose.linode.yml,
   endpoints.json) contains no swap-node service.
@@ -230,7 +230,7 @@ docker run -d --name devnet-swap --restart unless-stopped \
   -e TOON_CONNECTOR_URL='wss://proxy.devnet.toonprotocol.dev:443' \
   -e TOON_PARENT_PEER_ID='apex' \
   -e TOON_PARENT_AUTH_TOKEN='<token>' \
-  -e TOON_ILP_ADDRESS='g.proxy.swap' \
+  -e TOON_ILP_ADDRESS='g.toon.swap' \
   -e SWAP_BLS_PORT=8090 -p 8090:8090 \
   -v /opt/devnet-swap/swap.config.json:/config/swap.config.json:ro \
   node:22-slim \
@@ -256,7 +256,7 @@ self-publish kind:10032 (D5).
 curl -fsS http://<box>:8090/health
 
 # 2. Not yet announced (while dark): toon_query kinds:[10032] lists only
-#    g.proxy.relay / g.proxy.store — no swap node.
+#    g.toon.relay / g.toon.ario — no swap node.
 
 # 3. Wire proof — a real devnet swap from an UPGRADED client (>=0.17.0):
 #    toon_swap against the swap node's ILP address/pubkey; assert:
@@ -331,7 +331,7 @@ versions 3.21–3.28.5 stay npm-absent and are not backfilled.
   relay/store convention: build a `swap-connector` baked-config image and a
   committed deploy/ dir in the swap repo before go-live (survives box resets,
   no new hand-tuned snowflake). Still open within D2: the swap node's ILP
-  address/nodeId (`g.proxy.swap`?) and the apex-side route/peer entry in the
+  address/nodeId (`g.toon.swap`?) and the apex-side route/peer entry in the
   bind-mounted connector.yaml (dual-control-plane rule applies).
 - **D3 ✅ DECIDED (2026-07-12): no soak (N=0).** No live swap node exists today, so
   no existing swap traffic can break. Stand the swap node up dark as soon as the

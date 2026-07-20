@@ -61,7 +61,7 @@ a WebSocket upgrade.
 │ Rung 1 — Onboard via x402 / HTTP 402                                            │
 │  Agent sends unpaid request → Proxy replies 402 with dual accepts:               │
 │    accepts[0]: { scheme:"exact",        ...on-chain USDC }   ← plain x402 agent │
-│    accepts[1]: { scheme:"toon-channel", ilpAddress:"g.proxy", /ilp }            │
+│    accepts[1]: { scheme:"toon-channel", ilpAddress:"g.toon", /ilp }            │
 │                                                              ← TOON-aware agent  │
 └──────────────────────────────────────────────────────────────────────────────────┘
 
@@ -115,9 +115,9 @@ framing.
 
 ### ILP address conventions
 
-The proxy apex's on-wire nodeId is **`g.proxy`**.
-Child services addressed off the apex follow the `g.proxy.<type>` scheme — e.g. the relay is
-`g.proxy.relay`. Clients pay `g.proxy`; the apex validates, takes a fee, and free-forwards to
+The proxy apex's on-wire nodeId is **`g.toon`**.
+Child services addressed off the apex follow the `g.toon.<type>` scheme — e.g. the relay is
+`g.toon.relay`. Clients pay `g.toon`; the apex validates, takes a fee, and free-forwards to
 children. Operator env vars use the **`PROXY_*`** prefix (e.g. `PROXY_MNEMONIC` for the seed
 phrase). These names are load-bearing wire identifiers shared across connector, client, and every
 child deployment; changing them is a coordinated cross-repo change.
@@ -149,7 +149,7 @@ The connector does **not** embed a relay. The relay is a sibling backend behind 
 ```
   Internet ──TLS──► nginx (dumb TLS proxy, existing)
                       │
-                      ├─ /ilp ──► Connector (proxy, g.proxy) ──► Relay (oblivious app, plain HTTP, g.proxy.relay)
+                      ├─ /ilp ──► Connector (proxy, g.toon) ──► Relay (oblivious app, plain HTTP, g.toon.relay)
                       │                                       ──► Any other HTTP app
                       └─ /ws ───► Relay WS (free reads; no payment path)
 ```
@@ -199,7 +199,7 @@ while TOON-aware agents upgrade.
 
 **Acceptance criteria.**
 - AC1: Unpaid request to a proxied route returns HTTP `402` with x402 `accepts` array.
-- AC2: `accepts` contains a vanilla on-chain entry (`scheme:"exact"`, e.g. Base/Solana USDC) AND a `toon-channel` entry (`{ ilpAddress:"g.proxy", endpoint:"/ilp", price, chains, settlementAddresses }`).
+- AC2: `accepts` contains a vanilla on-chain entry (`scheme:"exact"`, e.g. Base/Solana USDC) AND a `toon-channel` entry (`{ ilpAddress:"g.toon", endpoint:"/ilp", price, chains, settlementAddresses }`).
 - AC3: Plain x402 agent that ignores `toon-channel` scheme still gets a valid on-chain challenge.
 - AC4: Advertised price/chains/ILP address sourced from the route config.
 
@@ -278,7 +278,7 @@ for zero-friction local development.
 **Network:** local anvil (no real funds)
 
 **Acceptance criteria.**
-- AC1: Compose file runs: connector (proxy, `g.proxy`) + relay (oblivious app, decoupled, `g.proxy.relay`) + anvil + faucet.
+- AC1: Compose file runs: connector (proxy, `g.toon`) + relay (oblivious app, decoupled, `g.toon.relay`) + anvil + faucet.
 - AC2: Relay reachable *only* through the proxy for paid writes; free reads stay on the relay's Nostr WS.
 - AC3: End-to-end smoke test: `h402Fetch`/curl a paid route → proxy validates claim → relay stores → FULFILL.
 - AC4: Documented in connector README; one command up/down.
@@ -318,7 +318,7 @@ pay over TOON, return a normal `Response`.
 **Status:** ✅ Closed — toon-protocol/toon-client#50
 
 **Acceptance criteria.**
-- AC1: `client.h402Fetch(url, opts)` issues the request; on `402` parses x402 `accepts` and selects the `toon-channel` entry (using the advertised `g.proxy` ILP address to route the payment).
+- AC1: `client.h402Fetch(url, opts)` issues the request; on `402` parses x402 `accepts` and selects the `toon-channel` entry (using the advertised `g.toon` ILP address to route the payment).
 - AC2: Opens/reuses a payment channel via `ChannelManager` and sends a transparent HTTP-in-ILP packet to `POST /ilp` via `HttpIlpClient` (raw HTTP request in `data`, claim in `ILP-Payment-Channel-Claim` header).
 - AC3: Returns a normal `Response` from the FULFILL payload; surface errors cleanly.
 
@@ -359,7 +359,7 @@ proxy").
 - AC1: Relay can run without auto-creating an embedded connector; `setPacketHandler` self-wiring is optional/removed for this mode.
 - AC2: Relay exposes a plain-HTTP write surface (event-as-JSON); trusts injected `X-TOON-Payer/Amount/Chain` (payment already validated by the proxy).
 - AC3: Relay free-read WebSocket path unaffected.
-- AC4: End-to-end: connector proxy (`g.proxy`) → relay (`g.proxy.relay`) stores event → FULFILL — smoke-tested in Story 44.6 Docker Compose.
+- AC4: End-to-end: connector proxy (`g.toon`) → relay (`g.toon.relay`) stores event → FULFILL — smoke-tested in Story 44.6 Docker Compose.
 
 **Files.** `relay/src/` (remove/gate embedded connector wiring); new plain-HTTP ingest handler.
 
@@ -377,7 +377,7 @@ format so the backlog tooling can track delivery.
 **Acceptance criteria.**
 - AC1: Planning artifact in `docs/epic-44-payment-proxy.md` with executive summary, architecture, stories mirroring the child issues, risks table, and Definition of Done.
 - AC2: Cross-links to RFC (`docs/payment-proxy.md`) and all child issues (connector#216–224, toon-client#50–51, relay#23, toon-meta#53).
-- AC3: Consistent with corrected transport docs and updated proxy vocabulary: ILP-over-HTTP = edge ingress (RFC-0035); BTP = session/peer transport (RFC-0023); apex nodeId = `g.proxy`; env vars = `PROXY_*`.
+- AC3: Consistent with corrected transport docs and updated proxy vocabulary: ILP-over-HTTP = edge ingress (RFC-0035); BTP = session/peer transport (RFC-0023); apex nodeId = `g.toon`; env vars = `PROXY_*`.
 
 **Files.** `docs/epic-44-payment-proxy.md` (this document).
 
@@ -433,7 +433,7 @@ proxy surface. Deferred; decompose into executor-sized children when prioritised
 ## Definition of Done
 
 - [x] Proxy core (Story 44.1) — `HttpProxyHandler` wired via `setPacketHandler`; unit + integration tests green.
-- [x] x402 dual-entry `402` greeting (Story 44.2) — vanilla x402 agents degrade gracefully; TOON-aware agents upgrade; advertises `g.proxy` ILP address.
+- [x] x402 dual-entry `402` greeting (Story 44.2) — vanilla x402 agents degrade gracefully; TOON-aware agents upgrade; advertises `g.toon` ILP address.
 - [x] nginx-style config surface (Story 44.3) — boot-load + runtime mutation via `PUT /admin/desired-state`.
 - [x] Connector CLI (Story 44.4) — `connector up` + `connector app add`; no hub dependency.
 - [x] RFC 9421 claim↔request binding (Story 44.5) — cheap claim cannot be replayed against an expensive route.
@@ -441,7 +441,7 @@ proxy surface. Deferred; decompose into executor-sized children when prioritised
 - [x] Linode public-internet test (Story 44.7) — paid `h402Fetch` e2e with on-chain devnet settlement; `PROXY_MNEMONIC` used for operator key.
 - [x] `ToonClient.h402Fetch` (Story 44.8) — `fetch()`-like client; 402 detection and payment transparent to caller.
 - [x] `toon_http_fetch_paid` MCP tool (Story 44.9) — agent tool registered; smoke-tested through daemon.
-- [x] Relay decoupled (Story 44.10) — relay runs as a plain HTTP app behind the connector proxy (`g.proxy.relay`); zero embedded ConnectorNode in the new topology.
+- [x] Relay decoupled (Story 44.10) — relay runs as a plain HTTP app behind the connector proxy (`g.toon.relay`); zero embedded ConnectorNode in the new topology.
 - [x] This planning artifact (Story 44.11).
 - [ ] Swap-as-routing-FX-hop (Story 44.12) — token-agnostic routing; tracked in connector#223.
 - [ ] RFC 9421 hardening (Story 44.13) — full replay cache + JWKS + key lifecycle; tracked in connector#224.
