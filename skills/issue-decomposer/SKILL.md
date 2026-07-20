@@ -249,6 +249,10 @@ wrong.
 - **Authorization is by label, not comment.** Never clear a `needs:human` gate
   yourself or infer approval from a comment; a maintainer must remove the label.
   `agent:split` + `needs:human` together → refuse and report, don't decompose.
+- Never test `gh issue edit --body` / GraphQL body-mutation syntax against a
+  real numbered issue — a stray or malformed test edit can overwrite a live
+  tracking issue's content. Verify mutation syntax against a freshly created,
+  clearly-labeled scratch issue and close it in the same run.
 
 ## Quality bar
 
