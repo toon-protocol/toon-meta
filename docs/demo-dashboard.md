@@ -8,8 +8,8 @@ forwarding to each box's admin dashboard.
 
 **Live at:** `https://faucet.devnet.toonprotocol.dev/dash`
 
-Source: [`scripts/demo-dashboard/index.html`](../scripts/demo-dashboard/index.html)
-(self-contained — no build, no external deps) · nginx snippet:
+Source: [`scripts/demo-dashboard/`](../scripts/demo-dashboard) — a Vite + React +
+Tailwind + **shadcn/ui** app (built to a static bundle) · nginx snippet:
 [`scripts/demo-dashboard/nginx-telemetry.conf`](../scripts/demo-dashboard/nginx-telemetry.conf).
 
 ## What it shows
@@ -89,24 +89,38 @@ the 2 GB boxes):
   `settle ✓` (not a value) and its session profit reads ~0. Base and Solana legs
   report exact USDC amounts.
 
+## Build
+
+```sh
+cd scripts/demo-dashboard
+npm install          # on Apple Silicon, if the build errors on a missing
+                     # rolldown native binding, run: npm i @rolldown/binding-darwin-arm64
+npm run build        # → dist/  (Vite base is /dash/, so assets resolve under /dash/)
+```
+
 ## Deploy
 
 Per box, add the read-only telemetry `location` to the `listen 443 ssl` block of
-its `node.conf` (see snippet), then on the TOON apex box also add the `/dash`
-page block and drop the page in:
+its `node.conf` (see snippet). On the TOON apex box also add the `/dash` page
+block and drop the **built bundle** in (the `conf.d` dir is bind-mounted into the
+nginx container, so `dashsite/` is served directly):
 
 ```sh
-# TOON apex box (104.237.150.177):
+# TOON apex box (104.237.150.177) — serves the page:
 CD=/root/connector/infra/linode-node/nginx/conf.d
-mkdir -p $CD/dashsite && cp index.html $CD/dashsite/index.html
-# ...edit $CD/node.conf per the snippet...
+tar -czf /tmp/dash.tgz -C dist .          # from scripts/demo-dashboard on your Mac; scp to the box
+rm -rf $CD/dashsite && mkdir -p $CD/dashsite && tar -xzf /tmp/dash.tgz -C $CD/dashsite
+# ...edit $CD/node.conf per the snippet (telemetry + /dash location)...
 docker exec linode-node-nginx-1 nginx -t && docker exec linode-node-nginx-1 nginx -s reload
 
 # sandbox (50.116.48.49) and ario (45.79.173.113): telemetry location only, then
 docker exec <box>-nginx-1 nginx -t && docker exec <box>-nginx-1 nginx -s reload
 ```
 
-Box IPs / hostnames / connector layout: [deployment.md](deployment.md).
+The nginx `/dash/` location uses `alias …/dashsite/` with
+`try_files $uri $uri/ /dash/index.html`, so the SPA and its `/dash/assets/*`
+bundle both resolve. Box IPs / hostnames / connector layout:
+[deployment.md](deployment.md).
 
 ## Teardown (after demo day)
 
