@@ -360,6 +360,10 @@ status.
 - Never auto-close without clear merged-PR evidence; never mark done with failing
   checks or unresolved actionable review threads.
 - Never implement code, merge PRs, or delete branches from this skill.
+- Never test `gh issue edit --body` / GraphQL body-mutation syntax against a
+  real numbered issue — a stray or malformed test edit can overwrite a live
+  tracking issue's content. Verify mutation syntax against a freshly created,
+  clearly-labeled scratch issue and close it in the same run.
 - When unsure, classify conservatively and route through `needs:human`.
 
 ## Quality bar
