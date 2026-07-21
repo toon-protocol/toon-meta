@@ -51,6 +51,11 @@ rig init
 rig remote add origin wss://relay-ws.devnet.toonprotocol.dev
 ```
 
+**Watch it (public dashboard).** Open `https://faucet.devnet.toonprotocol.dev/dash`
+on the projector — the live packet-flow view across all three connectors
+(per-hop packet counts, kind-labelled Nostr packet stream, settlement). Packets
+appear as you push. Full detail: [demo-dashboard.md](demo-dashboard.md).
+
 ## The four acts
 
 **Act 1 — paid push settling on Base Sepolia (apex entry):**
