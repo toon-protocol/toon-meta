@@ -259,12 +259,19 @@ degenerate two-entry case of a general directory. It generalizes to:
     {
       "capability": "os.store",                  // namespace name (human handle)
       "address": "g.peer1.store",                // flat ILP address — the plane bridge (§1)
-      "price": { "assetCode": "USDC", "assetScale": 6, "perByte": "2" },  // optional
+      "price": "2",                               // optional — atomic units, non-negative decimal string
       "schema": "sha256:ab01…"                   // content-addressed interface descriptor
     }
   ]
 }
 ```
+
+`price` is a flat non-negative decimal string of atomic units, matching the repo-wide
+`RouteConfig.price` convention — not a structured `{assetCode, assetScale, perByte}` object; a
+structured entry is defensively dropped by the parser.
+
+The legacy `routes: { publish, store }` hints map onto this directory as `os.publish` (the
+relay-write/publish hint) and `os.store` (the blob-store hint).
 
 As with the routing block (§2.1), this rides in the JSON content with no wire-type change.
 Discovery is a NIP-01 filter over kind:10032 plus a client-side match on
