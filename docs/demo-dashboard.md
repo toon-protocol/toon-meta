@@ -26,9 +26,22 @@ Source: [`scripts/demo-dashboard/index.html`](../scripts/demo-dashboard/index.ht
   event (pretty-printed `content` + raw JSON).
 - **Node detail modal** — click a node for its resolved **routes** (prefix →
   nextHop, price, chains, per-chain settlement addresses), **settlement
-  channels** (id / chain / status / deposit / last activity), **peers** (ILP
-  addresses), and the full **packet log**; claim rows are clickable for the
-  full settlement-claim data.
+  channels** (id / chain / status / deposit / last activity), **wallets &
+  balances**, **settlement policy**, **peers** (ILP addresses), a per-node
+  **packets** list (relay events, kind-labelled), and the **settlement claims**
+  log; packet and claim rows are clickable for their full data.
+- **Wallets & balances** — per node, each settlement wallet (Base / Solana /
+  Mina) with address (copy + explorer link) and **live on-chain balance**
+  (native gas + USDC), queried client-side. The **store's ArNS DVM wallet** and
+  its **ARIO** token balance (ar.io devnet SPL) and the **gas station** wallet
+  are shown too. Node cards carry a compact gas chip that turns red below a
+  floor (ETH < 0.005 / SOL < 0.1 / MINA < 1), and the header flags how many
+  wallets are low — the top-up cue.
+- **Settlement policy** — the on-chain settle threshold (`defaultThreshold`
+  5000 base units = 0.005 USDC) and timeout (`settlementTimeoutSecs` 3600), plus
+  a per-counterparty proximity bar. The connector's *live unsettled balance*
+  is not exposed by the 3.36.x admin API, so the bar shows the largest recent
+  claim vs the threshold as a proxy (stated on the page).
 
 ## Architecture
 
@@ -51,7 +64,16 @@ live data from two sources, both already public:
    `wss://relay-ws.sandbox.devnet.toonprotocol.dev` (already public; no CORS /
    nginx change needed) and `REQ`s recent events. This is the only real source
    of packet **kind** and payload — the connector forwards opaque packets and
-   cannot decode the Nostr event.
+   cannot decode the Nostr event. The per-node packets list attributes events
+   by relay source (sandbox events → sandbox node; toon-relay events → toon and
+   ario, which publishes to the toon relay).
+
+3. **Chain RPCs** — the browser reads wallet balances directly from public RPCs
+   (Base Sepolia `base-sepolia-rpc.publicnode.com`, Solana `api.devnet.solana.com`,
+   Mina `api.minascan.io`), all of which allow browser CORS. Polled every 45 s
+   (with an 8 s per-request timeout so one slow RPC can't stall the sweep). ARIO
+   balance = the ArNS DVM Solana wallet's holding of SPL mint
+   `6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN`.
 
 ## Two caveats (both are connector-version limitations, not the dashboard)
 

@@ -62,6 +62,9 @@
     background:rgba(255,212,121,.08);border:1px solid rgba(255,212,121,.18)}
   .profit .tag{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
   .profit .v{margin-left:auto;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums}
+  .gas{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .gas .g{font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted);background:#131c2b;border:1px solid var(--line);border-radius:7px;padding:2px 7px}
+  .gas .g.low{color:#04121a;background:var(--bad);border-color:var(--bad);font-weight:650}
   .meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);border-top:1px solid var(--line);padding-top:8px}
   .peers,.claims{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
   .claims{min-height:52px}
@@ -166,6 +169,7 @@
   <div class="totbar">
     <div class="t"><div class="n" id="totProfit">0.0000<small>USDC</small></div><div class="l">network profit · session (net settled)</div></div>
     <div class="t pkt"><div class="n" id="totPkts">0</div><div class="l">packets forwarded · all nodes</div></div>
+    <div id="lowWarn" style="color:var(--bad);font-weight:650;font-size:13px"></div>
     <div class="brk" id="profitBrk"></div>
   </div>
 
@@ -201,8 +205,11 @@
     <div class="mstats" id="mStats"></div>
     <div class="msec"><h3>Routes resolved &nbsp;<span class="pill" id="mRouteCount"></span></h3><div id="mRoutes"></div></div>
     <div class="msec"><h3>Settlement channels &nbsp;<span class="pill" id="mChanCount"></span></h3><div id="mChannels"></div></div>
+    <div class="msec"><h3>Wallets &amp; balances <span class="hint" style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(top-up targets — live on-chain)</span></h3><div id="mWallets"></div></div>
+    <div class="msec"><h3>Settlement policy</h3><div id="mSettle"></div></div>
     <div class="msec"><h3>Peers</h3><div id="mPeers"></div></div>
-    <div class="msec"><h3>Packet log · recent claims <span class="hint" style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(click a row for full data)</span></h3><div id="mLog"></div></div>
+    <div class="msec"><h3>Packets · relay events <span class="hint" style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(kind-labelled — click for full data)</span></h3><div id="mNodePackets" class="plist" style="max-height:280px"></div></div>
+    <div class="msec"><h3>Settlement claims <span class="hint" style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(money — click a row for full data)</span></h3><div id="mLog"></div></div>
   </div>
 </div>
 
@@ -245,6 +252,63 @@ const ASSETS = {
   'B62qqN1Pu3kF2KGmqLA8EwpqfWrnFTVZJGDSDHQuQRoVt5BCFjhNz3d':{sym:'USDC',net:'Mina',color:getcss('--mina')},
   'MINA':{sym:'USDC',net:'Mina',color:getcss('--mina')},
 };
+// ---- wallets & on-chain balances (queried client-side; RPCs allow browser CORS) ----
+const RPC={ base:'https://base-sepolia-rpc.publicnode.com', sol:'https://api.devnet.solana.com', mina:'https://api.minascan.io/node/devnet/v1/graphql' };
+const BASE_USDC='0x49beE1Bca5d15Fb0963117923403F9498119a9Ce';
+const SOL_USDC='xyc5J8MgKFiEN13PnfftdXxUzYH34FEvw1LCrFwN7in';
+const ARIO_MINT='6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN';   // ar.io/ARIO devnet SPL (ArNS purchases)
+const NATIVE={ base:'ETH', sol:'SOL', mina:'MINA' };
+const GAS_FLOOR={ base:0.005, sol:0.1, mina:1 };                  // warn below → top up
+const EXPL={ base:a=>`https://sepolia.basescan.org/address/${a}`, sol:a=>`https://explorer.solana.com/address/${a}?cluster=devnet`, mina:a=>`https://minascan.io/devnet/account/${a}` };
+const SETTLE_THRESHOLD=5000, SETTLE_TIMEOUT=3600;                 // connector.yaml: defaultThreshold / settlementTimeoutSecs
+// per-node wallets (settlement addresses from /admin/routes; ario ArNS+gas Solana pubkeys derived on-box)
+const WALLETS={
+  sandbox:{ settle:{ base:'0xe92297B66Dc4e8D7CE366C7136307f596c935b34', mina:'B62qk3yPDFyerASmmmDgN4GF1eNTgo9YXXJ5gHkrDQx82vqfcePRjAY' } },
+  toon:{ settle:{ base:'0xC0E55cD2E967a4F625627DaE5d4946f54267C7ab', sol:'CVZRVzvRppQQ5n6UW4rNAG4sX4wPdDQoW6bZtVXfPnzY', mina:'B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq' } },
+  ario:{ settle:{ base:'0x1f4E12A9357a3c46477F95F6f9813eeBF49f106e', sol:'4AhgNKLgXi9NygSL85xrA1hcm3beHtXTHiEWQMhUMBvt', mina:'B62qn3RVqmEqg8k27yND4692JVTdaTAKdebCspSKck23WoDudFEbWbt' },
+    extra:[ {role:'ArNS DVM · ARIO', chain:'sol', addr:'Eh2duioeJoVWxUYYXPi1ZV54o8vBVuhjnZpekJf2A35p', ario:true},
+            {role:'gas station', chain:'sol', addr:'7YsQ8b3B9CjgRPP43i7AL4ssSMv39LzqcRG3bNDmXdSa'} ] },
+};
+function walletRows(key){ const w=WALLETS[key]||{}; const rows=[]; const s=w.settle||{};
+  for(const ch of ['base','sol','mina']) if(s[ch]) rows.push({role:'settlement', chain:ch, addr:s[ch]});
+  for(const x of (w.extra||[])) rows.push(x); return rows; }
+const bal={}; // addr -> {native, usdc, ario, err}
+async function rpc(url,body){ const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),8000);
+  try{ const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal}); return r.json(); }
+  finally{ clearTimeout(t); } }
+async function readBal(chain,addr,wantArio){
+  try{
+    if(chain==='base'){ const b=await rpc(RPC.base,{jsonrpc:'2.0',id:1,method:'eth_getBalance',params:[addr,'latest']});
+      const data='0x70a08231'+addr.slice(2).toLowerCase().padStart(64,'0');
+      const u=await rpc(RPC.base,{jsonrpc:'2.0',id:2,method:'eth_call',params:[{to:BASE_USDC,data},'latest']});
+      return {native:parseInt(b.result||'0x0',16)/1e18, usdc:parseInt(u.result||'0x0',16)/1e6}; }
+    if(chain==='sol'){ const b=await rpc(RPC.sol,{jsonrpc:'2.0',id:1,method:'getBalance',params:[addr]});
+      const t=await rpc(RPC.sol,{jsonrpc:'2.0',id:2,method:'getTokenAccountsByOwner',params:[addr,{programId:'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'},{encoding:'jsonParsed'}]});
+      let usdc=0,ario=0; for(const a of (t.result?.value||[])){ const i=a.account.data.parsed.info; const amt=i.tokenAmount.uiAmount||0;
+        if(i.mint===SOL_USDC) usdc+=amt; if(i.mint===ARIO_MINT) ario+=amt; }
+      return {native:(b.result?.value||0)/1e9, usdc, ario:wantArio?ario:undefined}; }
+    if(chain==='mina'){ const r=await rpc(RPC.mina,{query:`{account(publicKey:"${addr}"){balance{total}}}`});
+      return {native:Number(r.data?.account?.balance?.total||0)/1e9}; }
+  }catch(e){ return {err:e.message||'err'}; }
+}
+let lastBal=0;
+async function fetchBalances(){
+  lastBal=Date.now();
+  // per-node so one slow RPC can't block the others; render each card as its wallets resolve
+  await Promise.allSettled(Object.keys(WALLETS).map(async key=>{
+    await Promise.allSettled(walletRows(key).map(async r=>{ bal[r.addr]=await readBal(r.chain,r.addr,r.ario); }));
+    renderCardGas(key); renderLowWarn(); if(modalKey===key) renderWallets(key);
+  }));
+}
+function gasWarn(chain,v){ return v!=null && v<GAS_FLOOR[chain]; }
+function renderCardGas(key){ const el=cards[key]; if(!el) return; const box=el.querySelector('[data-gas]'); if(!box) return;
+  const rows=walletRows(key).filter(r=>r.role==='settlement');
+  box.innerHTML=rows.map(r=>{ const b=bal[r.addr]||{}; const v=b.native; const warn=gasWarn(r.chain,v);
+    const val= b.err?'—': v==null?'…': (v<1?v.toFixed(3):v.toFixed(2));
+    return `<span class="g ${warn?'low':''}">${NATIVE[r.chain]} ${val}${warn?' ⚠':''}</span>`; }).join('');
+}
+function renderLowWarn(){ let n=0; for(const key of Object.keys(WALLETS)) for(const r of walletRows(key)){ const b=bal[r.addr]; if(b&&!b.err&&gasWarn(r.chain,b.native)) n++; }
+  const el=document.getElementById('lowWarn'); if(el) el.innerHTML = n? `⚠ ${n} wallet${n>1?'s':''} low on gas` : ''; }
 // Nostr kind → human label (git-over-nostr / DVM / TOON)
 const KIND = {1:'note',3:'contacts',4:'dm',1063:'file-meta',1111:'comment',
   10032:'route-announce',10002:'relay-list',
@@ -291,6 +355,7 @@ for(const n of NODES){
         <div><div class="rej" data-rej>0</div><div class="lbl">rejected</div></div>
       </div>
       <div class="profit"><span class="tag">net settled · session</span><span class="v" data-profit>0.0000 USDC</span></div>
+      <div class="gas" data-gas></div>
       <div class="meta"><span>uptime <span data-upt>—</span></span><span data-bytes>— KB</span></div>
       <div class="peers"><div class="ph">peers</div><div data-peers></div></div>
       <div class="claims"><div class="ph">recent claims</div><div data-claims><div class="empty">waiting…</div></div></div>`;
@@ -381,7 +446,8 @@ function openModal(key){ modalKey=key; const n=nodeByKey[key];
   document.getElementById('mName').textContent=n.name;
   document.getElementById('mId').textContent=n.nid+' · '+n.ip;
   document.getElementById('mRole').textContent=n.role;
-  modal.hidden=false; refreshModal(); }
+  document.getElementById('mWallets').innerHTML='<div class="empty">reading balances…</div>';
+  modal.hidden=false; refreshModal(); if(Date.now()-lastBal>20000) fetchBalances(); }
 async function refreshModal(){
   if(modalKey==null) return; const n=nodeByKey[modalKey]; const st=state[modalKey]||{};
   const agg=(st.metrics||{}).aggregate||{};
@@ -392,13 +458,41 @@ async function refreshModal(){
     `<div class="s"><div class="n gold">${fmtAmt(profit[modalKey])} <small style="font-size:13px;color:var(--muted)">USDC</small></div><div class="l">net settled · session</div></div>`+
     `<div class="s"><div class="n">${((agg.bytesSent||0)/1024).toFixed(1)}<small style="font-size:13px;color:var(--muted)"> KB</small></div><div class="l">bytes</div></div>`+
     `<div class="s"><div class="n">${upt((st.metrics||{}).uptimeSeconds)}</div><div class="l">uptime</div></div>`;
+  renderNodePackets(modalKey);
   renderClaims(document.getElementById('mLog'), (st.earnings||{}).recentClaims, 40, true, modalKey);
   const [routes,peers,channels]=await Promise.allSettled([
     fetchJSON(n.base,'/admin/routes'),fetchJSON(n.base,'/admin/peers'),fetchJSON(n.base,'/admin/channels')]);
   if(modalKey!==n.key) return;
   if(routes.status==='fulfilled') renderRoutes(routes.value);
   if(peers.status==='fulfilled') renderPeers(peers.value);
-  if(channels.status==='fulfilled') renderChannels(channels.value);
+  if(channels.status==='fulfilled'){ state[modalKey].channels=channels.value; renderChannels(channels.value); }
+  renderWallets(modalKey); renderSettle(modalKey);
+}
+function renderWallets(key){
+  const box=document.getElementById('mWallets'); if(!box||modalKey!==key) return;
+  const rows=walletRows(key).map(r=>{ const b=bal[r.addr]||{}; const warn=gasWarn(r.chain,b.native);
+    const nat = b.err?'<span class="addr">rpc err</span>' : b.native==null?'…' : `<b class="${warn?'':''}" style="${warn?'color:var(--bad)':''}">${(b.native<1?b.native.toFixed(4):b.native.toFixed(3))} ${NATIVE[r.chain]}</b>${warn?' <span style="color:var(--bad)">⚠ low</span>':''}`;
+    let tok='—'; if(r.ario) tok = b.ario==null?'…':`<b style="color:var(--ar)">${(b.ario||0).toLocaleString(undefined,{maximumFractionDigits:2})} ARIO</b>`;
+      else if(b.usdc!=null) tok=`${b.usdc.toLocaleString(undefined,{maximumFractionDigits:2})} USDC`;
+    return `<tr><td>${esc(r.role)}</td><td><span class="cbadge" style="background:${chainColor(r.chain)}">${r.chain}</span></td>
+      <td class="mono"><a href="${EXPL[r.chain](r.addr)}" target="_blank" rel="noopener" style="color:var(--warn);text-decoration:none">${trunc(r.addr,8,6)} ↗</a>
+        <span class="cp" onclick="copy('${esc(r.addr)}')" style="margin-left:6px">copy</span></td>
+      <td>${nat}</td><td>${tok}</td></tr>`; }).join('');
+  box.innerHTML=`<table class="tbl"><thead><tr><th>wallet</th><th>chain</th><th>address</th><th>native gas</th><th>token</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderSettle(key){
+  const box=document.getElementById('mSettle'); if(!box||modalKey!==key) return;
+  const thr=SETTLE_THRESHOLD/1e6;
+  const claims=((state[key]||{}).earnings||{}).recentClaims||[];
+  const byPeer={}; for(const c of claims){ if(Number(c.amount)>0){ const k=c.peerId; byPeer[k]=Math.max(byPeer[k]||0, Number(c.amount)); } }
+  const peerRows=Object.entries(byPeer).slice(0,6).map(([p,a])=>{ const frac=Math.min(1,a/SETTLE_THRESHOLD);
+    return `<tr><td class="mono">${trunc(p,12,6)}</td><td>${fmtAmt(a)} USDC</td>
+      <td style="width:160px"><div style="background:#0a1019;border:1px solid var(--line);border-radius:6px;height:8px;overflow:hidden"><div style="height:100%;width:${(frac*100).toFixed(0)}%;background:${frac>=1?getcss('--ok'):getcss('--warn')}"></div></div></td>
+      <td class="addr">${frac>=1?'≥ threshold · settles promptly':(frac*100).toFixed(0)+'% of threshold'}</td></tr>`; }).join('');
+  box.innerHTML=`
+    <div class="dl"><div class="k">on-chain settle at</div><div class="v"><b>≥ ${thr} USDC</b> unsettled per channel <span class="addr">(threshold ${SETTLE_THRESHOLD} base units)</span> — or every <b>${SETTLE_TIMEOUT/60} min</b> (settlementTimeoutSecs ${SETTLE_TIMEOUT})</div></div>
+    ${peerRows?`<table class="tbl" style="margin-top:8px"><thead><tr><th>counterparty</th><th>largest recent claim</th><th></th><th></th></tr></thead><tbody>${peerRows}</tbody></table>`:''}
+    <div class="addr" style="font-size:11.5px;margin-top:8px">The connector's <b>live unsettled balance</b> is not exposed by the 3.36.x admin API — the bar shows the largest recent claim vs the threshold as a proximity proxy, not the exact pending amount.</div>`;
 }
 function renderRoutes(d){
   document.getElementById('mRouteCount').textContent=(d.routeCount||0)+' routes';
@@ -485,7 +579,19 @@ function packetDesc(ev){
 function addPacket(ev,src){
   if(pById.has(ev.id)) return; ev._src=src; ev._fresh=!firstBatch; pById.set(ev.id,ev); packets.push(ev);
   packets.sort((a,b)=>b.created_at-a.created_at); if(packets.length>80){ const rm=packets.pop(); pById.delete(rm.id); }
-  renderPackets();
+  renderPackets(); if(modalKey!=null) renderNodePackets(modalKey);
+}
+// per-node packet list — events traverse the multihop; attribute by relay source
+const NODE_RELAY={ sandbox:'sandbox', toon:'toon', ario:'toon' };
+function packetRow(ev){ const d=packetDesc(ev); const row=document.createElement('div'); row.className='prow';
+  row.innerHTML=`<span class="kind" style="background:${kindColor(ev.kind)}">${kindLabel(ev.kind)}</span>
+    <span class="desc">${d.line}</span><span class="src">${esc(ev._src)}</span>
+    <span class="ago" data-at="${ev.created_at*1000}">${ago(ev.created_at*1000)}</span>`;
+  row.addEventListener('click',()=>openPacket(ev)); return row; }
+function renderNodePackets(key){ const box=document.getElementById('mNodePackets'); if(!box||modalKey!==key) return;
+  const src=NODE_RELAY[key]; const list=packets.filter(e=>e._src===src).slice(0,25);
+  if(!list.length){ box.innerHTML='<div class="empty" style="padding:8px">no packets seen yet on this node’s relay</div>'; return; }
+  box.innerHTML=''; for(const ev of list) box.appendChild(packetRow(ev));
 }
 function renderPackets(){
   const box=document.getElementById('plist'); if(!packets.length){ return; }
@@ -528,6 +634,7 @@ async function tick(){
   else if(!firstOk){ txt.textContent='connecting…'; } else { dot.className='dot'; txt.textContent='reconnecting…'; }
 }
 tick(); setInterval(tick,1500);
+fetchBalances(); setInterval(fetchBalances,45000);
 </script>
 </body>
 </html>
