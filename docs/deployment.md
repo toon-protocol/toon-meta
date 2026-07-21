@@ -71,7 +71,10 @@ Settlement links (per-peer `chain:` in each `connector.yaml`): sandbox↔toon on
 up to `toon`. Per-peer non-EVM channel settlement requires the connector fix on the
 `3.36.x` line (image `3.36.3-solchan.0`); see the `fix/channelmanager-open-3.36` branch.
 Clients pay the sandbox in Mina against a **dedicated** client-build PaymentChannel
-zkApp (one zkApp per participant pair — the apex's cannot be reused).
+zkApp (one zkApp per participant pair — the apex's cannot be reused). rig ≥ 2.13.0
+deploys this zkApp **automatically** on the first Mina channel open (or explicitly
+via `rig channel deploy-zkapp`); the zkApp key is recorded in
+`~/.toon-client/keys/rig-mina-zkapps.json`.
 
 ### Endpoints
 
@@ -84,6 +87,8 @@ zkApp (one zkApp per participant pair — the apex's cannot be reused).
 | Faucet (+ frontend) | `https://faucet.<box>` | toon | Multi-chain faucet, 3-chain web UI at `/` |
 | Store ILP edge | `https://proxy.store.<box>/ilp` | store | route `g.toon.ario` |
 | Store DVM | `https://dvm.<box>` | store | `/health`; `/store` = payment-oblivious job route (kind:5094/5095/5096) |
+| Sandbox relay | `wss://relay-ws.sandbox.<box>` | sandbox | Mina-only multihop entry (demo path); switch with `rig entry sandbox` |
+| Sandbox payment proxy | `wss://proxy.sandbox.<box>:443` | sandbox | ILP ingress accepting **Mina USDC only**; forwards `g.toon.*` to `toon` |
 
 Retired endpoints (DNS records pending removal): `evm-rpc.*`, `solana-rpc.*`,
 `solana-ws.*`, `mina.*`, `mina-accounts.*`. `store.<box>` was never wired
@@ -159,39 +164,43 @@ service is live — it desyncs the faucet's nonce manager.**
 
 ### Pointing a client at the devnet (rig standalone)
 
-Keep `~/.toon-client/config.json` **minimal** — settlement params derive from
-the announce. Verified working shape (2026-07-19):
+With `rig >= 2.13.0` **no `config.json` is needed at all** on the apex path:
 
-```jsonc
-{
-  "network": "devnet",
-  "btpUrl":  "wss://proxy.devnet.toonprotocol.dev:443",
-  "relayUrl": "wss://relay-ws.devnet.toonprotocol.dev",
-  "faucetUrl": "https://faucet.devnet.toonprotocol.dev",
-  "destination": "g.toon.relay",
-  "feePerEvent": "1000",              // = announced route price
-  "chainRpcUrls": {                    // per-field overrides only
-    "evm:84532":   "https://base-sepolia-rpc.publicnode.com",
-    "mina:devnet": "https://api.minascan.io/node/devnet/v1/graphql"
-  },
-  "minaChannel": {                     // rig cannot derive this from announce
-    "graphqlUrl": "https://api.minascan.io/node/devnet/v1/graphql",
-    "zkAppAddress": "B62qmgPhv2Xo6QVEtwjLja8UZJUtu8yapRFAR6gaoGtbM9zE5hG7Tkf",
-    "tokenId": "9497120696276615621907376728658022802954262638363646162765282600447713419198",
-    "networkId": "devnet"
-  }
-}
-```
+- relay + payment ingress come from core's committed genesis seed (the live
+  devnet apex), or a live kind:10032 announce once discovered;
+- `rig fund` infers devnet (and the faucet URL) from the same seed on a truly
+  fresh install;
+- chain RPCs, tokens, TokenNetworks, and the Solana/Mina channel params derive
+  from the announce + core 3.1.2 presets;
+- on Mina, the first channel open **auto-deploys** the identity's dedicated
+  PaymentChannel zkApp (single-pair; key saved under
+  `~/.toon-client/keys/rig-mina-zkapps.json`; pre-deploy with
+  `rig channel deploy-zkapp` to keep the first paid write fast).
 
-Do **not** set `supportedChains`/`tokenNetworks`/`preferredTokens` explicitly —
-explicit topology bypasses announce-derived route prices and reintroduces F06
-rejections. Pin a settlement chain per command with the **announced** spelling:
-`TOON_CLIENT_CHAIN=evm:84532|solana:devnet|mina:devnet`. After config changes,
-delete `~/.toon-client/rig-topology-cache.json` (cached topology can mask
-edits). Requires `rig >= 2.10.2`.
+Steering knobs (all free, local-config writes):
+
+- `rig chain set <evm|sol|mina>` — which chain/USDC settles paid writes
+  (per-run override: `TOON_CLIENT_CHAIN=evm:84532|solana:devnet|mina:devnet`,
+  announced spellings).
+- `rig entry <apex|sandbox|url>` — which entry node to pay through.
+  `rig entry sandbox` targets the Mina-only multihop entry and auto-clears the
+  topology cache. NOTE: a repo publishes to its git `origin` relay, which
+  overrides config — after switching, `rig remote add origin
+  wss://relay-ws.sandbox.devnet.toonprotocol.dev` (or use a fresh repo).
+- `rig channels` — the recorded payment channels (`rig balance` for wallets).
+
+Manual overrides remain available for self-hosted networks — the pre-2.13
+shape (btpUrl/relayUrl/faucetUrl/chainRpcUrls/minaChannel fields in
+`~/.toon-client/config.json`) still wins over every derived value. Do **not**
+set `supportedChains`/`tokenNetworks`/`preferredTokens` explicitly — explicit
+topology bypasses announce-derived route prices and reintroduces F06
+rejections. After HAND-editing config, delete
+`~/.toon-client/rig-topology-cache.json` (cached topology can mask edits;
+`rig entry` does this for you).
 
 The end-to-end demo flow (fund → push → site → ArNS name) is scripted in
-[`scripts/demo-e2e.sh`](../scripts/demo-e2e.sh).
+[`scripts/demo-e2e.sh`](../scripts/demo-e2e.sh); the demo-day command sequence
+lives in [`docs/demo-day-runbook.md`](demo-day-runbook.md).
 
 ### Operating the devnet
 

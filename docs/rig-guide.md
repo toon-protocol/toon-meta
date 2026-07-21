@@ -211,7 +211,9 @@ export RIG_MNEMONIC="abandon abandon … about"
 #    …or in a project-local .env (gitignore it!):
 echo 'RIG_MNEMONIC="abandon abandon … about"' >> .env
 
-# 2. money (devnet: free faucet drip; elsewhere prints addresses to fund)
+# 2. money (devnet: free faucet drip — works with ZERO config; rig ≥ 2.13
+#    infers the devnet faucet from the built-in genesis seed. Elsewhere it
+#    prints addresses to fund. Gas is assumed: hold a little ETH/SOL/MINA.)
 rig fund
 rig balance                  # wallet balances + channel holdings (free)
 
@@ -219,6 +221,7 @@ rig balance                  # wallet balances + channel holdings (free)
 rig init
 
 # 4. add your relay as an origin — a REAL git remote
+#    (the shared devnet relay: wss://relay-ws.devnet.toonprotocol.dev)
 rig remote add origin wss://relay.example
 
 # 5. work exactly like git — unowned commands pass through to system git
@@ -231,6 +234,14 @@ rig push
 ```
 
 Every rig-owned command takes `--json` for machine consumers — the strict contract guarantees exactly one JSON document on stdout with all human-facing output on stderr. The pushed repo is browsable immediately in the standing SPA: <https://toon-protocol.github.io/toon-client/>.
+
+**Steering knobs** (all free — they only write local config):
+
+- `rig chain set <evm|sol|mina>` — pin which chain (and therefore which USDC) settles paid writes; `rig chain` shows the current pick, `rig chain unset` reverts to auto.
+- `rig entry <apex|sandbox|url>` — pick the network entry node (payment ingress + relay). `rig entry sandbox` targets the devnet's Mina-only multihop entry (pays Mina; the hops settle Base then Solana) and clears the topology cache for you.
+- `rig channels` — shorthand for `rig channel list`.
+
+**Mina note:** the Mina `PaymentChannel` zkApp is single-pair, so each identity needs its own deployment — rig ≥ 2.13.0 **auto-deploys** it on the first Mina channel open (needs ~1.5 MINA gas in the wallet; compile ≈1-3 min + block inclusion ≈3-6 min, one-time). Pre-deploy with `rig channel deploy-zkapp` so the first paid Mina write stays fast.
 
 ### Install & prerequisites
 
