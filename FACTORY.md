@@ -59,6 +59,51 @@ runs on self-hosted Actions, that runner must provide a Docker/Podman daemon.
 
 ---
 
+## Factory runtime policy
+
+Two org-wide runtime rules apply to every repo's `.sandcastle/` runners: which model each
+role runs on, and how much of an agent's context window it may use before handing off.
+
+### Model tiering
+
+Each sandcastle role is pinned to a specific model. Planning and merging are single-shot,
+judgment-heavy passes over the whole backlog/branch set and stay on Opus; the
+high-iteration, mechanical roles run on Sonnet:
+
+| Role                                    | Model             | Why                                                       |
+|------------------------------------------|-------------------|------------------------------------------------------------|
+| `planner` (incl. `planner-dry-run`)      | `claude-opus-4-8` | Dependency-graph reasoning over the open backlog; once per cycle. |
+| `merger`                                 | `claude-opus-4-8` | Conflict resolution across completed branches; once per cycle.    |
+| `implementer`                            | `claude-sonnet-5` | Mechanical, high-iteration (up to 100 iterations) — the bulk of factory spend. |
+| `reviewer`                                | `claude-sonnet-5` | Single-pass review against a fixed standards file.                 |
+| `open-pr`                                | `claude-sonnet-5` | Mechanical: push the branch, open the PR.                          |
+| `push-review` (the review runner's push agent) | `claude-sonnet-5` | Mechanical: push the reviewer's refinement commits back to the PR. |
+
+Match by the role's `name` field in each `.sandcastle/*.ts` runner, not by line number or
+file — the same role name gets the same model everywhere it appears.
+
+This mirrors the org's general model-routing guidance for operator work:
+
+- **Claude Opus 4.8** — diagnosis, architecture, and pilots (one-shot, judgment-heavy work).
+- **Claude Sonnet 5** — mechanical implementation and reconnaissance (the bulk of iteration volume).
+- **Claude Haiku 4.5** — trivial, high-fan-out work only.
+- **Claude Fable 5** — reserved for the hardest, longest-horizon work only.
+
+### Context ceiling (~60%)
+
+No sandcastle agent should run its context window past ~60% before handing off to a fresh
+agent. This is enforced two ways:
+
+1. **Slice tickets small.** Issues fed to the `implementer` role must be scoped so a single
+   run stays comfortably under the ceiling. Oversized work is split into follow-up issues
+   **before** dispatch — not discovered mid-run.
+2. **Agents self-hand-off.** `implement-prompt.md` and `review-prompt.md` both instruct the
+   agent: on approaching ~60% context, write a structured handoff note (current state +
+   remaining steps) to `.sandcastle/logs/handoff-<task-id>.md` and end the turn, so a fresh
+   agent continues rather than degrading mid-task.
+
+---
+
 ## Label reconciliation (old loops → sandcastle)
 
 The new sandcastle triggers **replace** the old backlog-loop triggers; the triage vocabulary is
