@@ -102,7 +102,7 @@ Ordered checklist, proven on relay. Do it in this order:
 
 ---
 
-## 3. The three gotchas
+## 3. The gotchas
 
 ### (a) Typed-lint goes red from `.sandcastle/*.ts`
 
@@ -142,6 +142,30 @@ Ordered checklist, proven on relay. Do it in this order:
 - **Fix:** enable pnpm via corepack as root before the `USER` switch (recipe step 3),
   drop `copyToWorktree`, and run `pnpm install --frozen-lockfile` in `onSandboxReady`
   (recipe step 4).
+
+### CI gotcha (from store #190 live run): in-sandbox git push isn't authenticated
+
+- **Symptom:** the implementer commits, but the branch is never pushed and no PR
+  appears — while the runner logs success (green job, silent no-op). First caught on
+  store's first live `agent:implement` run (store#190).
+- **Cause:** `@ai-hero/sandcastle@0.12.0` configures only git `safe.directory` +
+  `user.name`/`user.email` in the sandbox — it wires **no git credential helper**.
+  `gh` is authenticated from `GH_TOKEN`, but a bare `git push` over HTTPS uses git's
+  own credential system, which is unwired — so the push has no deterministic auth. It
+  succeeds only by luck (relay's early runs) and otherwise fails silently.
+- **Fix (two parts):**
+  1. Add a guarded `gh auth setup-git` as the FIRST `onSandboxReady` hook in every
+     runner — `if [ -n "$GH_TOKEN" ]; then gh auth setup-git; fi`, ahead of the
+     install step. It installs `gh` as git's credential helper (reads `GH_TOKEN` at
+     push time, stores no token in any file); the guard makes token-less local dev a
+     no-op rather than a fatal setup abort.
+  2. After the open-pr phase, VERIFY from the authenticated host that an open PR
+     actually exists (`gh pr list --head <branch> --state open`) and **exit non-zero**
+     with a push/PR state dump if it does not — never log false success. The review
+     runner does the analogous check on its push (branch head advanced to the review
+     commits).
+- **Propagated org-wide:** store#51, then the relay / rig / toon / swap / toon-client /
+  connector / toon-meta sweep. Validated by store#52.
 
 ---
 

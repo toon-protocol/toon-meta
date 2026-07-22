@@ -62,7 +62,19 @@ const MAX_ITERATIONS = 10;
 // dependency tree is small, and a fresh `npm ci` avoids bind-mounting a host
 // node_modules across the worktree boundary.
 const hooks = {
-  sandbox: { onSandboxReady: [{ command: "npm ci" }] },
+  sandbox: {
+    onSandboxReady: [
+      // Wire `git push` auth deterministically inside the container. The engine
+      // (@ai-hero/sandcastle@0.12.0) configures git identity + safe.directory
+      // but NO credential helper, so a bare `git push` is unauthenticated and
+      // only succeeds by luck. `gh auth setup-git` installs `gh` as git's
+      // credential helper (reads GH_TOKEN at push time, stores no token in any
+      // file). Guarded on GH_TOKEN so token-less local dev no-ops rather than
+      // aborting setup. See ./agent-implement-issue.ts for the full note.
+      { command: 'if [ -n "$GH_TOKEN" ]; then gh auth setup-git; fi' },
+      { command: "npm ci" },
+    ],
+  },
 };
 
 // ---------------------------------------------------------------------------

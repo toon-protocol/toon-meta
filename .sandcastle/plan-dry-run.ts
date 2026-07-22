@@ -36,7 +36,17 @@ const planSchema = z.object({
 // toon-meta is a plain npm package — install deterministically from the
 // committed lockfile (mirrors main.ts). No copyToWorktree node_modules.
 const hooks = {
-  sandbox: { onSandboxReady: [{ command: "npm ci" }] },
+  sandbox: {
+    onSandboxReady: [
+      // Wire `git push` auth deterministically inside the container (the engine
+      // sets git identity + safe.directory but NO credential helper). Guarded on
+      // GH_TOKEN so token-less local dev no-ops. The dry-run planner only reads,
+      // but we keep the hook identical to the other runners so the sandbox setup
+      // is uniform. See ./agent-implement-issue.ts for the full note.
+      { command: 'if [ -n "$GH_TOKEN" ]; then gh auth setup-git; fi' },
+      { command: "npm ci" },
+    ],
+  },
 };
 
 const plan = await sandcastle.run({
