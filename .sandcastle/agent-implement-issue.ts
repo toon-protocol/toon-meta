@@ -135,7 +135,7 @@ try {
   const implement = await sandbox.run({
     name: "implementer",
     maxIterations: 100,
-    agent: sandcastle.claudeCode("claude-opus-4-8"),
+    agent: sandcastle.claudeCode("claude-sonnet-5"),
     promptFile: "./.sandcastle/implement-prompt.md",
     promptArgs: {
       TASK_ID: issueNumber,
@@ -159,7 +159,7 @@ try {
   await sandbox.run({
     name: "reviewer",
     maxIterations: 1,
-    agent: sandcastle.claudeCode("claude-opus-4-8"),
+    agent: sandcastle.claudeCode("claude-sonnet-5"),
     promptFile: "./.sandcastle/review-prompt.md",
     promptArgs: { BRANCH: branch },
   });
@@ -186,7 +186,7 @@ try {
     await sandbox.run({
       name: "open-pr",
       maxIterations: 1,
-      agent: sandcastle.claudeCode("claude-opus-4-8"),
+      agent: sandcastle.claudeCode("claude-sonnet-5"),
       promptFile: "./.sandcastle/open-pr-prompt.md",
       promptArgs: {
         TASK_ID: issueNumber,
