@@ -158,20 +158,22 @@ Engine mechanics, the per-repo recipe, and known gotchas: [docs/factory-engine-n
 
 ## Per-repo factory table
 
-The **8 going-forward repos** — the org's live, actively-worked set. Each row is filled in as
-that repo's factory proves out (image builds → dry-run `plan` passes → a real `agent:implement`
-PR merges → old loops retired). All rows start **pending**.
+The **8 going-forward repos** — the org's live, actively-worked set. A row qualifies as
+**live** once its image builds, its dry-run `plan` resolves, and — for the repos named as
+variant proofs below — a real `agent:implement` PR has merged. The plain pnpm repetitions
+(rig/toon/swap/toon-client) qualify on image-build + plan alone; they don't each need a
+separate merged-PR proof once the pnpm recipe is proven once (relay).
 
-| Repo        | Pkg mgr | Template | Gate (lint/typecheck/test/build) | Status  | Merged-PR proof | Notes |
-|-------------|---------|----------|----------------------------------|---------|-----------------|-------|
-| relay       | —       | —        | —                                | pending | —               | Pilot — hard checkpoint; no other repo starts until relay is end-to-end green. |
-| toon-client | —       | —        | —                                | pending | —               | Proves the pattern scales to the large monorepo. |
-| rig         | —       | —        | —                                | pending | —               | |
-| store       | —       | —        | —                                | pending | —               | pnpm but no `lint`, esbuild build — own gate variant. |
-| connector   | —       | —        | —                                | pending | —               | npm workspaces, hand-ordered build — exotic, done late. |
-| toon        | —       | —        | —                                | pending | —               | Tighten the 941-warning lint budget so the gate isn't a rubber stamp. |
-| swap        | —       | —        | —                                | pending | —               | |
-| toon-meta   | —       | —        | —                                | pending | —               | Docs factory (markdownlint + link-check + JSON/template validation); no `package.json` yet. Sequenced last. |
+| Repo        | Pkg mgr | Template | Gate (lint/typecheck/test/build) | Status | Merged-PR proof | Notes |
+|-------------|---------|----------|----------------------------------|--------|-----------------|-------|
+| relay       | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven, **merged agent PR** | [relay#70](https://github.com/toon-protocol/relay/pull/70) (merged) | Pilot / gold reference for the whole pnpm recipe; hard checkpoint — no other repo started until this went green. Old 4 loops now **RETIRED** ([relay#71](https://github.com/toon-protocol/relay/pull/71), closes toon-meta#185). |
+| toon-client | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Largest repo (6 packages); proves the pattern scales. `pnpm-lock.yaml` is `lockfileVersion 9` but `packageManager` pins `pnpm@8.15.9` (frozen install impossible) — tracked in [toon-client#425](https://github.com/toon-protocol/toon-client/issues/425); runners use `--no-frozen-lockfile` (matches existing `ci.yml`). Typecheck debt 82 errors (76 in `rig-web`, excluded from root `tsconfig.json`) is soft-gated pending follow-up. |
+| rig         | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Standalone repo since the 2026-07-21 extraction from toon-client; **never had the old 4-loop backlog system** (no `backlog-manager.yml` in its history) — nothing to retire here. |
+| store       | pnpm | `parallel-planner-with-review` | typecheck / vitest / esbuild (**no lint** — no eslint config) | Live — scaffolded, image builds, dry-run plan proven, **merged agent PR** | [store#52](https://github.com/toon-protocol/store/pull/52) (merged) | Lint-less pnpm + esbuild variant — first "exotic" gate shape. Build is `node esbuild.config.mjs`, not `pnpm -r run build`. 0 pre-existing typecheck debt. |
+| connector   | npm workspaces | `parallel-planner-with-review` | `npm run lint/typecheck/test --workspaces --if-present` + hand-ordered `build` (`shared` → `mina-zkapp` → `--workspaces --if-present`) | Live — scaffolded, image builds, dry-run plan proven, **merged agent PR** | [connector#394](https://github.com/toon-protocol/connector/pull/394) (merged) | npm-workspaces + mina-zkapp variant, done last (most exotic). Sole repo with no root `"type": "module"` → tsx transpiles `.sandcastle/*.ts` to CJS, which broke on top-level `await` (fixed connector#392, `main()` wrapper) and then on `require()`-ing the ESM-only engine (fixed connector#393, nested `.sandcastle/package.json` = `{"type":"module"}` scopes just the runner dir). `npm ci` (no corepack); native deps (o1js/libsql/bigint-buffer) build clean in `node:22-bookworm` with zero apt additions. 0 typecheck debt. |
+| toon        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Lint budget tightened as part of scaffolding: gate line is `eslint . --max-warnings 940` (down from the pre-existing 941-warning baseline), so the gate isn't a rubber stamp. Pre-existing typecheck debt carries an explicit caveat in the implement/review/merge prompts. |
+| swap        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Applied the proven pnpm recipe verbatim; no repo-specific deviations surfaced. |
+| toon-meta   | npm (docs) | `parallel-planner-with-review` | markdownlint / link-check / JSON-validate (`npm run gate`) | Live — scaffolded, gate proven, **merged agent PR** | [toon-meta#201](https://github.com/toon-protocol/toon-meta/pull/201) (merged) | Docs factory, sequenced last; no `package.json` before scaffolding. Markdownlint baseline is real-but-lenient (`.markdownlint-cli2.jsonc`) — ~40 structural rules enforced, noisy stylistic rules disabled by policy pending a cleanup slice. |
 
 **Out of scope — being archived:** `swarm` and `capability-market`. Both are active on GitHub
 but ~18 days cold and not part of the going-forward set; they are being archived (`gh repo
@@ -185,8 +187,63 @@ are ignored.
 As each repo's old 4-loop backlog system (`backlog-manager.yml`, `issue-executor.yml`,
 `pr-reviewer.yml`, `issue-decomposer.yml`) is retired, the following are **kept** and remain in
 force: `ci.yml`, `release.yml`, `e2e.yml`, `journey.yml`, `deploy-*.yml`, and image-publish
-workflows. Anything intentionally kept beyond this list should be noted in the relevant repo row
-above with the reason.
+workflows — plus the new `agent-image.yml` / `agent-implement.yml` / `agent-review.yml`
+sandcastle runners themselves. Anything intentionally kept beyond this list should be noted in
+the relevant repo row above with the reason.
+
+---
+
+## Old-loop retirement status
+
+Per-repo retirement PRs (deleting `backlog-manager.yml` / `issue-executor.yml` /
+`pr-reviewer.yml` / `issue-decomposer.yml`) are gated on that repo first landing a **merged**
+`agent:implement` PR — the same hard-checkpoint rule relay's retirement (relay#71) followed.
+Verified directly against each repo's `.github/workflows/` on its default branch:
+
+| Repo        | Old loops                       | Retirement PR |
+|-------------|----------------------------------|----------------|
+| relay       | **RETIRED**                      | [relay#71](https://github.com/toon-protocol/relay/pull/71) (merged), closes toon-meta#185 |
+| toon-client | Still present                    | Queued — pending this repo's retirement PR |
+| rig         | **N/A** — never had the old loops (standalone repo since the 2026-07-21 toon-client extraction; no `backlog-manager.yml` in its commit history) | None needed |
+| store       | Still present                    | Queued — pending this repo's retirement PR |
+| connector   | Still present                    | Queued — pending this repo's retirement PR |
+| toon        | Still present                    | Queued — pending this repo's retirement PR |
+| swap        | Still present                    | Queued — pending this repo's retirement PR |
+| toon-meta   | Still present                    | Queued — pending this repo's retirement PR |
+
+Old and new triggers stay on disjoint labels (see [Label reconciliation](#label-reconciliation-old-loops--sandcastle)
+above) for exactly this reason: coexistence during rollout is safe, so retirement can be
+sequenced per-repo without risking double-execution in the interim.
+
+**KEEP list** (per the epic, unaffected by any per-repo retirement): `ci.yml`, `release.yml`,
+`e2e.yml`, `journey.yml`, `deploy-*.yml`, image-publish workflows, and the `agent-image.yml` /
+`agent-implement.yml` / `agent-review.yml` sandcastle runners. Only the four named old-loop
+files are ever removed by a retirement PR.
+
+---
+
+## Straggler-sweep checklist
+
+Epic #178's end-of-epic audit (toon-meta#193). **Not run yet** — per-repo retirement PRs are
+still queued for 6 of the 8 repos (see the table above), and #193 stays open until this sweep
+actually happens. Recorded here so the final closeout has a fixed checklist instead of
+re-deriving scope from scratch:
+
+- [ ] **Old-loop files gone from all 8 repos.** For the 6 repos still "Still present" above,
+  confirm their retirement PR merged and `backlog-manager.yml` / `issue-executor.yml` /
+  `pr-reviewer.yml` / `issue-decomposer.yml` are actually gone from `.github/workflows/` on the
+  default branch (not just closed-PR intent) — rig needs no check (never had them); relay is
+  already confirmed retired.
+- [ ] **Unused `REVIEWER_TOKEN`-style secrets.** The old loops used their own review-bot
+  token(s) distinct from `CLAUDE_CODE_OAUTH_TOKEN`; once a repo's old loops are gone, check
+  org- and repo-level secrets for any now-orphaned token and revoke/remove it.
+- [ ] **Stale coexistence comments.** The old/new disjoint-label coexistence note (this doc's
+  [Label reconciliation](#label-reconciliation-old-loops--sandcastle) section, plus any
+  per-repo README/runbook callouts) is only true *during* rollout — once a repo retires its old
+  loops, sweep for and remove that repo's now-stale "old and new coexist" language.
+- [ ] **`swarm` / `capability-market` archival** actually completed (`gh repo archive`), not
+  just intended — these are out-of-scope-not-factored, tracked separately from the 8-repo set
+  above.
 
 ---
 
