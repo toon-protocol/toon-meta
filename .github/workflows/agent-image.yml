@@ -1,0 +1,65 @@
+name: Agent image
+
+# Minimal build-only check for the sandcastle agent container image.
+# Proves the `.sandcastle/Dockerfile` (node:22-bookworm + gh + Claude Code CLI,
+# plain npm — no corepack/pnpm) builds and has a working toolchain. Also runs
+# the doc gate so a PR touching the factory config is verified end-to-end. This
+# is NOT the label→runner: the agent:implement / agent:review triggered runners
+# are agent-implement.yml / agent-review.yml.
+
+on:
+  pull_request:
+    paths:
+      - '.sandcastle/**'
+      - '.github/workflows/agent-image.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.markdownlint-cli2.jsonc'
+      - 'scripts/factory/**'
+  workflow_dispatch:
+
+jobs:
+  gate:
+    name: Doc gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run doc gate (markdownlint + link-check + JSON/template validation)
+        run: npm run gate
+
+  build-image:
+    name: Build sandcastle agent image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Docker is preinstalled on ubuntu-latest GitHub-hosted runners.
+      # `sandcastle docker build-image` builds .sandcastle/Dockerfile,
+      # defaulting the AGENT_UID/AGENT_GID build args to the runner's uid/gid.
+      # The checkout dir is `toon-meta`, so the image is tagged
+      # `sandcastle:toon-meta` (engine derives the tag from the repo dir name).
+      - name: Build agent image
+        run: npx --yes @ai-hero/sandcastle@0.12.0 docker build-image
+
+      - name: Verify toolchain inside image
+        run: |
+          docker run --rm --entrypoint bash sandcastle:toon-meta -lc '
+            set -e
+            node --version
+            npm --version
+            gh --version | head -1
+            test "$(whoami)" = "agent"
+            test -x /home/agent/.local/bin/claude
+          '
