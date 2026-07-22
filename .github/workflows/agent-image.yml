@@ -28,6 +28,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm' # gate speed (#231): restores ~/.npm keyed on package-lock.json
 
       - name: Install dependencies
         run: npm ci
