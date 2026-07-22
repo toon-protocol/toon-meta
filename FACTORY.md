@@ -107,6 +107,8 @@ if upstream vanishes; **no local patches** live there, so there is no drift to r
   (`/plugin marketplace add mattpocock/skills` → `/plugin install mattpocock-skills@mattpocock`),
   or via skills.sh copy-in (`npx skills@latest add mattpocock/skills`).
 
+Engine mechanics, the per-repo recipe, and known gotchas: [docs/factory-engine-notes.md](docs/factory-engine-notes.md).
+
 ---
 
 ## Per-repo factory table
