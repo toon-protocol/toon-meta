@@ -175,6 +175,18 @@ separate merged-PR proof once the pnpm recipe is proven once (relay).
 | swap        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Applied the proven pnpm recipe verbatim; no repo-specific deviations surfaced. |
 | toon-meta   | npm (docs) | `parallel-planner-with-review` | markdownlint / link-check / JSON-validate (`npm run gate`) | Live — scaffolded, gate proven, **merged agent PR** | [toon-meta#201](https://github.com/toon-protocol/toon-meta/pull/201) (merged) | Docs factory, sequenced last; no `package.json` before scaffolding. Markdownlint baseline is real-but-lenient (`.markdownlint-cli2.jsonc`) — ~40 structural rules enforced, noisy stylistic rules disabled by policy pending a cleanup slice. |
 
+**Forge (9th, planned — [#198](https://github.com/toon-protocol/toon-meta/issues/198)):** the
+factory *manager* is itself a factory *consumer* — it runs its own `.sandcastle/` like every
+other repo. Its row is **hand-added to this table at bootstrap** (when its stage-0 factory is
+scaffolded), not withheld for self-registration — a running-but-unregistered factory would make
+this registry lie by omission. Forge is unique in two ways: it is the **only `forge-core`-driven
+row** (all others run raw `@ai-hero/sandcastle`), and its factory ships as **two stories at
+opposite ends of #198** — an early hand-rolled stage-0 gate (raw sandcastle, relay recipe) that
+*blocks* forge-core, and a late `forge new` self-stamp that swaps the engine to forge-core and
+reaches **green (behavioral, not byte) parity** — the self-host checkpoint, distinct from and
+additional to the external relay re-stamp. See `context/decisions.md` → *Software factory
+(Forge)*.
+
 **Out of scope — being archived:** `swarm` and `capability-market`. Both are active on GitHub
 but ~18 days cold and not part of the going-forward set; they are being archived (`gh repo
 archive`) rather than given a factory. Already-archived repos (`hub`, `town`, `Town-Frontend`)
