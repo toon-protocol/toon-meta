@@ -46,7 +46,7 @@ To stop the infrastructure:
 
 ## Linode Devnet — LIVE (public-chain settlement)
 
-The devnet runs on **two Linode boxes** (relay/proxy/faucet + Arweave store DVM)
+The devnet runs on **three Linode boxes** (sandbox entry + relay/proxy/faucet + Arweave store DVM)
 and settles on **public networks** — Base Sepolia, Solana devnet, and Mina
 devnet. The three self-hosted blockchain boxes (Anvil, solana-test-validator,
 Mina lightnet) were **deleted on 2026-07-19** as part of the public-chain
@@ -204,7 +204,7 @@ lives in [`docs/demo-day-runbook.md`](demo-day-runbook.md).
 
 ### Operating the devnet
 
-The two boxes are managed from the connector repo checkouts on the boxes
+The three boxes are managed from the connector repo checkouts on the boxes
 themselves (`/root/connector`, branches `feat/devnet-multi-node` /
 `feat/devnet-store-node`; compose files `infra/linode-node/docker-compose.node.yml`
 and `infra/linode-store/docker-compose.store.yml`). `infra/devnet-manage.sh`
