@@ -107,8 +107,11 @@ agent. This is enforced two ways:
 ## Label reconciliation (old loops → sandcastle)
 
 The new sandcastle triggers **replace** the old backlog-loop triggers; the triage vocabulary is
-kept. Because the old and new triggers are **disjoint labels**, a given issue fires exactly one
-engine — so old and new can coexist safely during the per-repo rollout with no double-execution.
+kept. Because the old and new triggers were **disjoint labels**, a given issue fired exactly one
+engine — so old and new coexisted safely during the per-repo rollout with no double-execution.
+That rollout is now complete (see [Old-loop retirement status](#old-loop-retirement-status)) —
+the disjoint-label design is recorded here as the historical reason coexistence was safe, not as
+a description of current state.
 
 | Old (retire *with* the loops)      | New (sandcastle)      | Notes                                                                                   |
 |------------------------------------|-----------------------|-----------------------------------------------------------------------------------------|
@@ -208,24 +211,26 @@ the relevant repo row above with the reason.
 ## Old-loop retirement status
 
 Per-repo retirement PRs (deleting `backlog-manager.yml` / `issue-executor.yml` /
-`pr-reviewer.yml` / `issue-decomposer.yml`) are gated on that repo first landing a **merged**
+`pr-reviewer.yml` / `issue-decomposer.yml`) were gated on that repo first landing a **merged**
 `agent:implement` PR — the same hard-checkpoint rule relay's retirement (relay#71) followed.
-Verified directly against each repo's `.github/workflows/` on its default branch:
+Verified directly against each repo's `.github/workflows/` on its default branch —
+**all 8 repos are now retired**:
 
 | Repo        | Old loops                       | Retirement PR |
 |-------------|----------------------------------|----------------|
 | relay       | **RETIRED**                      | [relay#71](https://github.com/toon-protocol/relay/pull/71) (merged), closes toon-meta#185 |
-| toon-client | Still present                    | Queued — pending this repo's retirement PR |
+| toon-client | **RETIRED**                      | [toon-client#430](https://github.com/toon-protocol/toon-client/pull/430) (merged) |
 | rig         | **N/A** — never had the old loops (standalone repo since the 2026-07-21 toon-client extraction; no `backlog-manager.yml` in its commit history) | None needed |
-| store       | Still present                    | Queued — pending this repo's retirement PR |
-| connector   | Still present                    | Queued — pending this repo's retirement PR |
-| toon        | Still present                    | Queued — pending this repo's retirement PR |
-| swap        | Still present                    | Queued — pending this repo's retirement PR |
-| toon-meta   | **RETIRED**                      | retired (this PR) |
+| store       | **RETIRED**                      | [store#55](https://github.com/toon-protocol/store/pull/55) (merged), closes toon-meta#190 |
+| connector   | **RETIRED**                      | [connector#396](https://github.com/toon-protocol/connector/pull/396) (merged), closes toon-meta#191 |
+| toon        | **RETIRED**                      | [toon#114](https://github.com/toon-protocol/toon/pull/114) (merged) |
+| swap        | **RETIRED**                      | [swap#73](https://github.com/toon-protocol/swap/pull/73) (merged) |
+| toon-meta   | **RETIRED**                      | [toon-meta#206](https://github.com/toon-protocol/toon-meta/pull/206) (merged), closes toon-meta#192 |
 
-Old and new triggers stay on disjoint labels (see [Label reconciliation](#label-reconciliation-old-loops--sandcastle)
-above) for exactly this reason: coexistence during rollout is safe, so retirement can be
-sequenced per-repo without risking double-execution in the interim.
+Old and new triggers stayed on disjoint labels (see [Label reconciliation](#label-reconciliation-old-loops--sandcastle)
+above) for exactly this reason: coexistence during rollout was safe, so retirement could be
+sequenced per-repo without risking double-execution in the interim. That rollout is now
+complete — the coexistence window is historical, not current state.
 
 **KEEP list** (per the epic, unaffected by any per-repo retirement): `ci.yml`, `release.yml`,
 `e2e.yml`, `journey.yml`, `deploy-*.yml`, image-publish workflows, and the `agent-image.yml` /
@@ -236,26 +241,37 @@ files are ever removed by a retirement PR.
 
 ## Straggler-sweep checklist
 
-Epic #178's end-of-epic audit (toon-meta#193). **Not run yet** — per-repo retirement PRs are
-still queued for 6 of the 8 repos (see the table above), and #193 stays open until this sweep
-actually happens. Recorded here so the final closeout has a fixed checklist instead of
-re-deriving scope from scratch:
+Epic #178's end-of-epic audit (toon-meta#193). Recorded here so the final closeout has a fixed
+checklist instead of re-deriving scope from scratch. Status as of the toon-meta#193
+straggler-sweep PR:
 
-- [ ] **Old-loop files gone from all 8 repos.** For the 6 repos still "Still present" above,
-  confirm their retirement PR merged and `backlog-manager.yml` / `issue-executor.yml` /
-  `pr-reviewer.yml` / `issue-decomposer.yml` are actually gone from `.github/workflows/` on the
-  default branch (not just closed-PR intent) — rig needs no check (never had them); relay is
-  already confirmed retired.
-- [ ] **Unused `REVIEWER_TOKEN`-style secrets.** The old loops used their own review-bot
-  token(s) distinct from `CLAUDE_CODE_OAUTH_TOKEN`; once a repo's old loops are gone, check
-  org- and repo-level secrets for any now-orphaned token and revoke/remove it.
-- [ ] **Stale coexistence comments.** The old/new disjoint-label coexistence note (this doc's
-  [Label reconciliation](#label-reconciliation-old-loops--sandcastle) section, plus any
-  per-repo README/runbook callouts) is only true *during* rollout — once a repo retires its old
-  loops, sweep for and remove that repo's now-stale "old and new coexist" language.
-- [ ] **`swarm` / `capability-market` archival** actually completed (`gh repo archive`), not
-  just intended — these are out-of-scope-not-factored, tracked separately from the 8-repo set
-  above.
+- [x] **Old-loop files gone from all 8 repos.** Confirmed directly against each repo's
+  `.github/workflows/` on its default branch (via `gh api .../contents/.github/workflows`):
+  relay, toon-client, store, connector, toon, swap, and toon-meta are all **RETIRED**; rig
+  never had them (N/A). See the retirement-status table above for the merged PR per repo.
+- [x] **toon-meta's shared old-loop assets removed.** With every consuming repo retired,
+  toon-meta's own hosted definitions (`skills/backlog-manager/`, `skills/issue-executor/`,
+  `skills/issue-decomposer/`, `templates/agent-loops/*`) had no remaining consumer and were
+  deleted in the toon-meta#193 straggler-sweep PR. `.claude-plugin/plugin.json`'s description
+  and keyword list were updated to drop the retired skills; `.claude-plugin/marketplace.json`
+  needed no change (it doesn't enumerate individual skills).
+- [x] **Stale coexistence comments.** The old/new disjoint-label coexistence language in this
+  doc's [Label reconciliation](#label-reconciliation-old-loops--sandcastle) section,
+  `docs/factory-engine-notes.md`, and the `agent-implement.yml` / `agent-review.yml` header
+  comments have been updated to past tense / "rollout complete" framing in the toon-meta#193
+  straggler-sweep PR, following the same wording pattern already used in the other 7 repos'
+  retirement PRs (e.g. swap#73, connector#396).
+- [ ] **Unused `REVIEWER_TOKEN`-style secrets.** *(Remaining — human/admin action.)* The old
+  loops used their own review-bot token(s) distinct from `CLAUDE_CODE_OAUTH_TOKEN`. Every
+  repo's retirement PR flagged this secret as now-orphaned but could not delete it (it's an
+  org/repo secret, not a file in the diff). A human with org/repo secret admin access must
+  check each of the 6 repos that had `pr-reviewer.yml` (relay, toon-client, store, connector,
+  toon, swap — toon-meta itself never configured `REVIEWER_TOKEN`) and revoke/remove any
+  orphaned token.
+- [ ] **`swarm` / `capability-market` archival.** *(Remaining — human/admin action, tracked in
+  [#194](https://github.com/toon-protocol/toon-meta/issues/194).)* `gh repo archive` has not yet
+  been run for either repo; both are out-of-scope-not-factored and tracked separately from the
+  8-repo set above.
 
 ---
 

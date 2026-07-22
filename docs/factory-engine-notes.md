@@ -190,12 +190,14 @@ Ordered checklist, proven on relay. Do it in this order:
 - **Auto-merge is disabled structurally**, not by policy — the
   `agent-implement-issue.ts` PR-mode entrypoint opens a PR for human review instead of
   merging. Re-enable only via `SANDCASTLE_AUTO_MERGE=true`.
-- **Old and new loops coexist on disjoint labels.** The old backlog loops fire on
-  `agent:ready` / `review-round:*` / `agent:split`; the new runners fire on
-  `agent:implement` / `agent:review`. A given issue therefore fires exactly one engine
-  — no double-execution — and the old loops report `completed skipped` on the new
-  labels during the rollout. Retire the old loops (relay#71) once the new path is
-  proven.
+- **Old and new loops coexisted on disjoint labels during the rollout.** The old
+  backlog loops fired on `agent:ready` / `review-round:*` / `agent:split`; the new
+  runners fire on `agent:implement` / `agent:review`. A given issue therefore fired
+  exactly one engine — no double-execution — and the old loops reported
+  `completed skipped` on the new labels while both were present. **Rollout complete:**
+  the old 4-loop backlog automation is now retired in all 8 repos (see
+  [FACTORY.md's Old-loop retirement status](../FACTORY.md#old-loop-retirement-status));
+  the coexistence window described above is historical.
 
 ---
 
