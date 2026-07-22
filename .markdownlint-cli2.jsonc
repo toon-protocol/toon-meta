@@ -1,0 +1,49 @@
+// markdownlint-cli2 config for the toon-meta docs factory gate (`npm run lint:md`).
+//
+// Baseline: the 252 committed `.md` had NEVER been linted. A default run reports
+// 8229 violations, 6884 of them MD013 (line-length) alone. Rather than mass-edit
+// hundreds of prose docs, this config is REAL-BUT-LENIENT: it disables the noisy
+// stylistic rules that fire on HEAD (so the gate is green today) while leaving
+// ~40 structural rules ENABLED as guards against future regressions (heading
+// increment, trailing spaces, hard tabs, reversed links, empty links, alt-text,
+// inline-HTML, etc. — all pass on HEAD).
+//
+// Disabled rules fall in two buckets — see the follow-up note at the bottom.
+{
+  // Running `markdownlint-cli2` with no args uses these globs.
+  "globs": ["**/*.md"],
+
+  // DOC-analogue of the eslint-ignore gotcha (factory-engine-notes.md §3a):
+  // the `.sandcastle/*-prompt.md` runner prompts ARE markdown and WOULD be
+  // linted (and fail) — exclude them, plus node_modules and vendored trees.
+  "ignores": [
+    "node_modules",
+    "**/node_modules/**",
+    ".sandcastle/**",
+    "scripts/demo-dashboard/**"
+  ],
+
+  "config": {
+    "default": true,
+
+    // --- Bucket 1: noisy stylistic rules, disabled by policy (prose docs) ----
+    "MD013": false, // line-length            (6884) — prose/tables, not wrapped
+    "MD040": false, // fenced-code-language    (293) — many bare ``` blocks
+    "MD024": false, // no-duplicate-heading    (278) — repeated section headings
+    "MD032": false, // blanks-around-lists     (353) — tight lists
+    "MD031": false, // blanks-around-fences    (196)
+    "MD022": false, // blanks-around-headings  (109)
+    "MD029": false, // ol-prefix                (76) — mixed 1./2. numbering
+    "MD034": false, // no-bare-urls             (16)
+    "MD036": false, // no-emphasis-as-heading   (15)
+    "MD004": false, // ul-style                  (3) — mixed -/* bullets
+
+    // --- Bucket 2: meaningful rules, disabled TEMPORARILY pending a one-time --
+    // cleanup (very low counts). Re-enable after the deferred cleanup slice.
+    "MD018": false, // no-missing-space-atx      (1)
+    "MD037": false, // no-space-in-emphasis      (2)
+    "MD038": false, // no-space-in-code-span     (1)
+    "MD041": false, // first-line-h1             (1)
+    "MD047": false  // single-trailing-newline   (1)
+  }
+}

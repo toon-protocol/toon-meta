@@ -1,1 +1,9 @@
 .DS_Store
+
+# Node — the docs factory adds a root package.json (doc-lint + sandcastle deps).
+node_modules/
+
+# Sandcastle runtime artifacts (the committed config lives in .sandcastle/).
+.sandcastle/.env
+.sandcastle/logs/
+.sandcastle/worktrees/
