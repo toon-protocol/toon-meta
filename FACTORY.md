@@ -221,7 +221,7 @@ Verified directly against each repo's `.github/workflows/` on its default branch
 | connector   | Still present                    | Queued — pending this repo's retirement PR |
 | toon        | Still present                    | Queued — pending this repo's retirement PR |
 | swap        | Still present                    | Queued — pending this repo's retirement PR |
-| toon-meta   | Still present                    | Queued — pending this repo's retirement PR |
+| toon-meta   | **RETIRED**                      | retired (this PR) |
 
 Old and new triggers stay on disjoint labels (see [Label reconciliation](#label-reconciliation-old-loops--sandcastle)
 above) for exactly this reason: coexistence during rollout is safe, so retirement can be
