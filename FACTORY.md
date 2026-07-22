@@ -161,11 +161,14 @@ Engine mechanics, the per-repo recipe, and known gotchas: [docs/factory-engine-n
 
 ## Per-repo factory table
 
-The **8 going-forward repos** — the org's live, actively-worked set. A row qualifies as
+The **8 going-forward repos** — the org's live, actively-worked set — **plus Forge, the 9th**
+(the factory manager, itself a factory consumer; see its note below). A row qualifies as
 **live** once its image builds, its dry-run `plan` resolves, and — for the repos named as
 variant proofs below — a real `agent:implement` PR has merged. The plain pnpm repetitions
 (rig/toon/swap/toon-client) qualify on image-build + plan alone; they don't each need a
-separate merged-PR proof once the pnpm recipe is proven once (relay).
+separate merged-PR proof once the pnpm recipe is proven once (relay). Forge is
+**Bootstrapping** until its self-host checkpoint ([#223](https://github.com/toon-protocol/toon-meta/issues/223))
+lands its merged `agent:implement` proof.
 
 | Repo        | Pkg mgr | Template | Gate (lint/typecheck/test/build) | Status | Merged-PR proof | Notes |
 |-------------|---------|----------|----------------------------------|--------|-----------------|-------|
@@ -177,8 +180,9 @@ separate merged-PR proof once the pnpm recipe is proven once (relay).
 | toon        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Lint budget tightened as part of scaffolding: gate line is `eslint . --max-warnings 940` (down from the pre-existing 941-warning baseline), so the gate isn't a rubber stamp. Pre-existing typecheck debt carries an explicit caveat in the implement/review/merge prompts. |
 | swap        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Applied the proven pnpm recipe verbatim; no repo-specific deviations surfaced. |
 | toon-meta   | npm (docs) | `parallel-planner-with-review` | markdownlint / link-check / JSON-validate (`npm run gate`) | Live — scaffolded, gate proven, **merged agent PR** | [toon-meta#201](https://github.com/toon-protocol/toon-meta/pull/201) (merged) | Docs factory, sequenced last; no `package.json` before scaffolding. Markdownlint baseline is real-but-lenient (`.markdownlint-cli2.jsonc`) — ~40 structural rules enforced, noisy stylistic rules disabled by policy pending a cleanup slice. |
+| Forge       | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Bootstrapping — stage-0 hand-rolled `.sandcastle/` + green gate baseline ([Forge#3](https://github.com/toon-protocol/Forge/pull/3)); the **only `forge-core`-driven row** (raw `@ai-hero/sandcastle` at stage-0, swaps to forge-core at self-host) | — (self-host checkpoint, [#223](https://github.com/toon-protocol/toon-meta/issues/223)) | **9th row, hand-added at bootstrap** per [#198](https://github.com/toon-protocol/toon-meta/issues/198). The factory *manager* is itself a factory *consumer*. Holds **zero org state** — a stateless client of this repo. Scaffold [Forge#1](https://github.com/toon-protocol/Forge/pull/1); `FACTORY_SPEC.md` [Forge#2](https://github.com/toon-protocol/Forge/pull/2); stage-0 [Forge#3](https://github.com/toon-protocol/Forge/pull/3). |
 
-**Forge (9th, planned — [#198](https://github.com/toon-protocol/toon-meta/issues/198)):** the
+**Forge (9th — [#198](https://github.com/toon-protocol/toon-meta/issues/198)):** the
 factory *manager* is itself a factory *consumer* — it runs its own `.sandcastle/` like every
 other repo. Its row is **hand-added to this table at bootstrap** (when its stage-0 factory is
 scaffolded), not withheld for self-registration — a running-but-unregistered factory would make
