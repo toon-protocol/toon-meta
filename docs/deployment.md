@@ -204,7 +204,7 @@ lives in [`docs/demo-day-runbook.md`](demo-day-runbook.md).
 
 ### Operating the devnet
 
-The two boxes are managed from the connector repo checkouts on the boxes
+The three boxes are managed from the connector repo checkouts on the boxes
 themselves (`/root/connector`, branches `feat/devnet-multi-node` /
 `feat/devnet-store-node`; compose files `infra/linode-node/docker-compose.node.yml`
 and `infra/linode-store/docker-compose.store.yml`). `infra/devnet-manage.sh`
