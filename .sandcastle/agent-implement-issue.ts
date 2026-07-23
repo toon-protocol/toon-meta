@@ -95,7 +95,21 @@ const hooks = {
       // time. Guarded on GH_TOKEN so local dev without a token no-ops instead
       // of aborting sandbox setup (onSandboxReady failures are fatal). PRESERVE
       // the npm install — toon-meta is a docs repo installed with `npm ci`.
-      { command: 'if [ -n "$GH_TOKEN" ]; then gh auth setup-git; fi' },
+      // Also DROP the http.extraheader that actions/checkout injected into the
+      // git config. It carries the default GITHUB_TOKEN (github-actions[bot],
+      // which this workflow scopes `contents: read`) as an Authorization header
+      // that OVERRIDES the credential helper — so an in-sandbox `git push` races
+      // between the App token (toon-backlog-bot, contents: write) and
+      // github-actions[bot], and lands `403 Permission denied` whenever the
+      // extraheader wins. That was the real cause of the "silent push" flake
+      // (see toon-meta#227 fail-loud output). Unsetting it forces the push
+      // through the gh credential helper (App token) every time. `|| true` so a
+      // missing key (local dev) doesn't abort the fatal onSandboxReady hook.
+      {
+        command:
+          'if [ -n "$GH_TOKEN" ]; then gh auth setup-git; ' +
+          "git config --unset-all 'http.https://github.com/.extraheader' 2>/dev/null || true; fi",
+      },
       { command: "npm ci" },
     ],
   },

@@ -66,7 +66,17 @@ const hooks = {
       // GH_TOKEN at push time, stores no token in any file). Guarded on
       // GH_TOKEN so token-less local dev no-ops rather than aborting setup.
       // See ./agent-implement-issue.ts for the full note.
-      { command: 'if [ -n "$GH_TOKEN" ]; then gh auth setup-git; fi' },
+      // Also DROP actions/checkout's http.extraheader (it carries the default
+      // github-actions[bot] GITHUB_TOKEN, `contents: read`, and overrides the
+      // credential helper → an in-sandbox `git push` races and 403s whenever it
+      // wins). Unsetting it forces the push through the gh credential helper
+      // (App token, contents: write). See agent-implement-issue.ts for the full
+      // note. `|| true` so a missing key (local dev) doesn't abort setup.
+      {
+        command:
+          'if [ -n "$GH_TOKEN" ]; then gh auth setup-git; ' +
+          "git config --unset-all 'http.https://github.com/.extraheader' 2>/dev/null || true; fi",
+      },
       { command: "npm ci" },
     ],
   },
