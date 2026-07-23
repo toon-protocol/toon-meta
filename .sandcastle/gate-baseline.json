@@ -1,0 +1,81 @@
+{
+  "$schema-note": "Per-repo gate baseline for toon-meta. Read-only source of truth for the toon-meta rollup (GATE.md / FACTORY.md). See docs/adr/0001-gate-priority-and-baseline-freeze.md and CONTEXT.md for the gate / gate-speed / gate-performance / gate-correctness definitions this file reports against.",
+  "repo": "toon-meta",
+  "capturedAt": "2026-07-23",
+  "capturedBy": "sandcastle/issue-227",
+  "gateShape": "markdownlint / link-check / JSON-validate (npm run gate)",
+  "method": "Numbers below come from a representative CI run of .github/workflows/agent-image.yml's 'Doc gate' job on a real pull_request event, cross-checked with a local `npm ci && time npm run gate` repro on the same day. Reproduce the CI numbers with: `gh run view <runId> --json jobs` (step timings) and `gh api repos/toon-protocol/toon-meta/actions/runs/<runId>/timing` (billable minutes). Reproduce the local numbers with `npm ci && time npm run gate` from repo root.",
+  "source": {
+    "ciRun": {
+      "url": "https://github.com/toon-protocol/toon-meta/actions/runs/30012943033",
+      "runId": 30012943033,
+      "jobId": 89225461580,
+      "jobName": "Doc gate",
+      "headSha": "e3de486e8d617b5be307bd4a83ea22b6d3bca6f1",
+      "event": "pull_request"
+    },
+    "localRepro": {
+      "headSha": "7dda12814dc6d44de3e4b0dacd4a83ded903384b",
+      "command": "npm ci && time npm run gate"
+    }
+  },
+  "speed": {
+    "description": "CI wall-clock time for the Doc gate job (gate speed).",
+    "docGateJobWallClockSeconds": 13,
+    "stepBreakdownSeconds": {
+      "setUpJob": 0,
+      "checkout": 1,
+      "setupNode": 1,
+      "installDependencies": 3,
+      "runDocGate": 5,
+      "postSteps": 2
+    },
+    "localReproWallClockSeconds": 4.4,
+    "localReproNote": "`time npm run gate` from a warm-node_modules checkout; excludes npm ci. Lower than the CI number because it skips job setup/checkout/runner-provisioning overhead."
+  },
+  "performance": {
+    "description": "Runner cost & resource efficiency (gate performance) — runner-minutes, cache-hit rate, Docker image size.",
+    "runnerMinutesBilled": 0,
+    "runnerMinutesNote": "toon-protocol/toon-meta is a public repo, so GitHub-hosted runner minutes are unbilled (confirmed via `gh api .../actions/runs/<runId>/timing` -> billable.UBUNTU.total_ms = 0). Doc-gate-job wall-clock (above) is used as the performance proxy per ADR-0001 instead of an invented cost number.",
+    "npmDependencyCacheHitRate": 0,
+    "npmDependencyCacheNote": "npm dependency caching (`actions/setup-node` cache: npm, added in #231) has a 0/3 hit rate across the runs checked so far (30012943033, 30010111979, 29957293329) — every run logs 'npm cache is not found' despite 'Cache saved' with the same key. Cause: each gate run to date has been on its own first-time feature branch, and GitHub Actions cache scoping only restores a hit from the same branch or the base branch's cache, not from sibling feature branches. Expect this to start hitting once PRs land on main and subsequent branches can restore from main's cache — re-measure after a few post-merge runs.",
+    "nodeToolCacheAlwaysWarm": true,
+    "nodeToolCacheNote": "Distinct from the npm dependency cache above: the Node.js 22 binary itself is always 'Found in cache @ /opt/hostedtoolcache/node/22.23.1/x64' on every run, because ubuntu-latest ships it preinstalled in the runner image tool-cache.",
+    "dockerImageSizeBytes": null,
+    "dockerImageSizeNote": "Not measured this capture — the capture session only has a read-only (contents:read/actions:read) GH_TOKEN and cannot push a branch or dispatch a workflow run to add a size-report step, and no local Docker daemon is available in this sandbox either. Reproducible method for a follow-up with actions:write/contents:write: temporarily add `docker image inspect sandcastle:toon-meta --format='{{.Size}}'` (bytes) as a step after 'Build agent image' in .github/workflows/agent-image.yml, run once via workflow_dispatch or a PR, record the value here, then remove the step (or keep it permanently for ongoing gate-performance tracking)."
+  },
+  "correctness": {
+    "description": "Trustworthiness of the gate's verdict (gate correctness) — current active violation counts plus the frozen allowlist size.",
+    "activeLintErrors": 0,
+    "activeBrokenLinks": 0,
+    "activeJsonSchemaErrors": 0,
+    "filesChecked": {
+      "markdown": 249,
+      "json": 40,
+      "evalSuites": 34
+    },
+    "typecheck": "not applicable — toon-meta has no tsc build step in the gate (the .sandcastle/*.ts runners execute via tsx at runtime; package.json has no typecheck script)",
+    "frozenMarkdownlintAllowlist": {
+      "totalViolations": 8229,
+      "source": ".markdownlint-cli2.jsonc (captured at scaffold time, toon-meta#201)",
+      "note": "These are pre-existing violations from 15 rules disabled by policy so the gate is green on HEAD (ADR-0001 baseline-freeze). They are gate holes (false-PASS risk), not currently-failing checks; a future no-false-PASS ratchet slice burns this down per rule, starting with the lowest-count 'meaningful, temporarily disabled' bucket.",
+      "byRule": {
+        "MD013": { "count": 6884, "name": "line-length", "bucket": "noisy-stylistic" },
+        "MD040": { "count": 293, "name": "fenced-code-language", "bucket": "noisy-stylistic" },
+        "MD024": { "count": 278, "name": "no-duplicate-heading", "bucket": "noisy-stylistic" },
+        "MD032": { "count": 353, "name": "blanks-around-lists", "bucket": "noisy-stylistic" },
+        "MD031": { "count": 196, "name": "blanks-around-fences", "bucket": "noisy-stylistic" },
+        "MD022": { "count": 109, "name": "blanks-around-headings", "bucket": "noisy-stylistic" },
+        "MD029": { "count": 76, "name": "ol-prefix", "bucket": "noisy-stylistic" },
+        "MD034": { "count": 16, "name": "no-bare-urls", "bucket": "noisy-stylistic" },
+        "MD036": { "count": 15, "name": "no-emphasis-as-heading", "bucket": "noisy-stylistic" },
+        "MD004": { "count": 3, "name": "ul-style", "bucket": "noisy-stylistic" },
+        "MD018": { "count": 1, "name": "no-missing-space-atx", "bucket": "meaningful-temporary" },
+        "MD037": { "count": 2, "name": "no-space-in-emphasis", "bucket": "meaningful-temporary" },
+        "MD038": { "count": 1, "name": "no-space-in-code-span", "bucket": "meaningful-temporary" },
+        "MD041": { "count": 1, "name": "first-line-h1", "bucket": "meaningful-temporary" },
+        "MD047": { "count": 1, "name": "single-trailing-newline", "bucket": "meaningful-temporary" }
+      }
+    }
+  }
+}
