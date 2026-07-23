@@ -1,0 +1,70 @@
+name: 'vanilla-pnpm-gate'
+description: >-
+  Shared eslint / typecheck / vitest / build gate for the vanilla-pnpm repos
+  (relay, rig, swap, toon-client, toon). Design-only artifact: no consuming
+  repo's ci.yml calls this yet (each repo's adoption is a separate follow-up
+  under #232). Does not include devbox-validate, changeset, canary, or
+  anvil-gated integration jobs — those stay as separate per-repo steps.
+
+inputs:
+  node-version:
+    description: 'Node.js version passed to actions/setup-node.'
+    default: '22'
+  pnpm-version:
+    description: 'pnpm version passed to pnpm/action-setup.'
+    default: '8.15.9'
+  frozen-lockfile:
+    description: >-
+      'true' runs `pnpm install --frozen-lockfile`; 'false' runs
+      `pnpm install --no-frozen-lockfile`.
+    default: 'false'
+  lint-command:
+    description: 'Shell command that runs lint.'
+    default: 'pnpm lint'
+  lint-continue-on-error:
+    description: >-
+      'true' lets the lint step fail without failing the job (soft gate);
+      'false' hard-fails the job on lint errors.
+    default: 'true'
+  build-command:
+    description: 'Shell command that runs the build.'
+    default: 'pnpm -r build'
+  test-command:
+    description: 'Shell command that runs tests.'
+    default: 'pnpm -r test --if-present'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v7
+
+    - uses: pnpm/action-setup@v6
+      with:
+        version: ${{ inputs.pnpm-version }}
+
+    - uses: actions/setup-node@v7
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        if [ "${{ inputs.frozen-lockfile }}" = "true" ]; then
+          pnpm install --frozen-lockfile
+        else
+          pnpm install --no-frozen-lockfile
+        fi
+
+    - name: Lint
+      shell: bash
+      continue-on-error: ${{ inputs.lint-continue-on-error == 'true' }}
+      run: ${{ inputs.lint-command }}
+
+    - name: Build
+      shell: bash
+      run: ${{ inputs.build-command }}
+
+    - name: Test
+      shell: bash
+      run: ${{ inputs.test-command }}
