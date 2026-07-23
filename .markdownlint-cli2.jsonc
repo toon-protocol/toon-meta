@@ -16,10 +16,17 @@
   // DOC-analogue of the eslint-ignore gotcha (factory-engine-notes.md §3a):
   // the `.sandcastle/*-prompt.md` runner prompts ARE markdown and WOULD be
   // linted (and fail) — exclude them, plus node_modules and vendored trees.
+  //
+  // `.claude/**` and `scratchpad*.md` are gitignored/untracked agent-local
+  // working files (worktrees, scratch notes) that only exist on some
+  // checkouts — without this ignore the same commit's gate verdict depends
+  // on whether the local sandbox happens to have those files (#229).
   "ignores": [
     "node_modules",
     "**/node_modules/**",
     ".sandcastle/**",
+    ".claude/**",
+    "scratchpad*.md",
     "scripts/demo-dashboard/**"
   ],
 
