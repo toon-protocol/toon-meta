@@ -106,20 +106,25 @@ try {
     console.log(
       `\nReviewer made ${review.commits.length} commit(s) — pushing to the PR branch.`,
     );
-    await sandbox.run({
-      name: "push-review",
-      maxIterations: 1,
-      agent: sandcastle.claudeCode("claude-sonnet-5"),
-      promptFile: "./.sandcastle/review-push-prompt.md",
-      promptArgs: { BRANCH: headRef },
+    // DETERMINISTIC (no agent). This was an agent run (review-push-prompt.md)
+    // whose only job was `git push origin <branch>` — the same pure-plumbing
+    // step that failed ~79% of the time in the implement runner's open-pr phase
+    // (2026-07-23). Run it directly. `gh auth setup-git` already wired git's
+    // credential helper in onSandboxReady; sandbox.exec() surfaces a non-zero
+    // exitCode (it does NOT throw), so we check it and fail loud.
+    const push = await sandbox.exec(`git push origin ${headRef}`, {
+      onLine: (line) => console.log(`  [push] ${line}`),
     });
+    if (push.exitCode !== 0) {
+      throw new Error(
+        `git push of '${headRef}' failed (exit ${push.exitCode}).\n${push.stderr}`,
+      );
+    }
 
-    // FAIL LOUD (analogous to agent-implement-issue.ts). The push-review phase
-    // logs COMPLETE from its prompt whether or not the in-sandbox `git push`
-    // actually landed. Without a wired credential helper that push can fail
-    // silently (store#190), leaving the PR unchanged while the job goes green.
-    // Verify from the HOST (authenticated via GH_TOKEN) that the PR branch head
-    // now points at the reviewer's last commit; if not, exit non-zero.
+    // FAIL LOUD (analogous to agent-implement-issue.ts). Even with the
+    // deterministic push above, verify from the HOST (authenticated via
+    // GH_TOKEN) that the PR branch head now points at the reviewer's last
+    // commit; if not, exit non-zero.
     const expectedSha = review.commits[review.commits.length - 1]!.sha;
     const nwo = execFileSync(
       "gh",
