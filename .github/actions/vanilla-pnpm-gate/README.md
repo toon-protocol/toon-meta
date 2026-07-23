@@ -33,7 +33,7 @@ These stay as separate per-repo jobs/steps and are never folded into this action
 
 ## Usage
 
-Default (relay / rig / swap style — soft-gated lint, non-frozen lockfile):
+Default (relay / rig / swap / toon-client style — soft-gated lint, non-frozen lockfile):
 
 ```yaml
 jobs:
