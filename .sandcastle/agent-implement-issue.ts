@@ -16,7 +16,7 @@
 // FIRST-RUN SAFETY / AUTO-MERGE TOGGLE
 // ------------------------------------
 //   SANDCASTLE_AUTO_MERGE unset | "false"  (DEFAULT, safe):
-//       implement -> review -> push branch + open a PR (open-pr-prompt.md).
+//       implement -> review -> push branch + open a PR (deterministic, no agent).
 //       Nothing is merged; the issue is NOT closed; a human merges the PR.
 //   SANDCASTLE_AUTO_MERGE = "true"  (re-enable once the pilot is trusted):
 //       implement -> review -> merge the branch into the checked-out base and
@@ -180,27 +180,62 @@ try {
     });
     console.log("\nMerge phase complete.");
   } else {
-    // DEFAULT path: push the branch and open a PR for a human to review+merge.
+    // DEFAULT path: publish the branch and open a PR for a human to review+merge.
     // Nothing is merged and the issue is NOT closed here.
+    //
+    // DETERMINISTIC (no agent). The former open-pr phase handed `git push` +
+    // `gh pr create` to a Sonnet-5 agent (open-pr-prompt.md) that reported
+    // COMPLETE without reliably running the push — only 4/19 PRs landed on the
+    // 2026-07-23 gate re-run wave, with success/failure MIXED within the same
+    // repo (so not a permissions gap). Both commands are pure plumbing with no
+    // judgement to make, so we run them directly: the push from INSIDE the
+    // sandbox (where the implementer's commits live and `gh auth setup-git`
+    // already wired git's credential helper in onSandboxReady), the PR from the
+    // authenticated HOST. sandbox.exec() surfaces a non-zero exitCode (it does
+    // NOT throw), so we check it and fail loud.
     console.log("\nPR mode — pushing branch and opening a PR for human review.");
-    await sandbox.run({
-      name: "open-pr",
-      maxIterations: 1,
-      agent: sandcastle.claudeCode("claude-sonnet-5"),
-      promptFile: "./.sandcastle/open-pr-prompt.md",
-      promptArgs: {
-        TASK_ID: issueNumber,
-        ISSUE_TITLE: issueTitle,
-        BRANCH: branch,
-      },
+
+    const push = await sandbox.exec(`git push -u origin ${branch}`, {
+      onLine: (line) => console.log(`  [push] ${line}`),
     });
-    // FAIL LOUD. The open-pr phase logs COMPLETE from the prompt regardless of
-    // whether the in-sandbox `git push` / `gh pr create` actually succeeded, so
-    // we must NOT trust it. Verify from the HOST (whose `gh` is authenticated
-    // via GH_TOKEN) that an OPEN PR now exists for this branch. If not, dump the
-    // push/PR state and exit non-zero so the Actions job FAILS instead of
-    // green-lying (store#190: implementer committed, but the push failed
-    // silently and no PR was ever created, yet the job went green).
+    if (push.exitCode !== 0) {
+      throw new Error(
+        `git push of '${branch}' failed (exit ${push.exitCode}).\n${push.stderr}`,
+      );
+    }
+
+    // Open the PR from the host. Idempotent: skip if one is already open, so a
+    // re-run just refreshes the existing PR via the push above.
+    const alreadyOpen = JSON.parse(
+      execFileSync(
+        "gh",
+        ["pr", "list", "--head", branch, "--state", "open", "--json", "number"],
+        { encoding: "utf8" },
+      ),
+    ) as Array<{ number: number }>;
+    if (alreadyOpen.length === 0) {
+      const body =
+        "Produced by the sandcastle `agent:implement` runner; awaiting human " +
+        `review.\n\nPart of #${issueNumber}\n\n` +
+        "🤖 Generated with [Claude Code](https://claude.com/claude-code)";
+      execFileSync(
+        "gh",
+        [
+          "pr", "create",
+          "--base", "main",
+          "--head", branch,
+          "--title", issueTitle,
+          "--body", body,
+        ],
+        { stdio: "inherit" },
+      );
+    }
+
+    // FAIL LOUD. Even with the deterministic push+create above, confirm from the
+    // HOST (whose `gh` is authenticated via GH_TOKEN) that an OPEN PR now exists
+    // for this branch. If not, dump the push/PR state and exit non-zero so the
+    // Actions job FAILS instead of green-lying (store#190: a silent push failure
+    // that left no PR while the job went green).
     const openPrs = JSON.parse(
       execFileSync(
         "gh",
@@ -238,13 +273,13 @@ try {
       ).trim();
 
       openPrVerificationError =
-        `\nERROR: the open-pr phase reported COMPLETE, but no OPEN PR exists ` +
-        `for branch '${branch}'.\n` +
+        `\nERROR: the deterministic push/PR-create completed but no OPEN PR ` +
+        `exists for branch '${branch}'.\n` +
         `  Remote branch pushed to origin: ${branchPushed}\n` +
         `  PRs for this branch (any state): ${anyStatePrs}\n` +
-        `  The in-sandbox \`git push\` and/or \`gh pr create\` failed ` +
-        `silently. Inspect the open-pr phase logs above. The Actions job is ` +
-        `failing deliberately so this is not mistaken for success.`;
+        `  Inspect the push output and \`gh pr create\` error above. The ` +
+        `Actions job is failing deliberately so this is not mistaken for ` +
+        `success.`;
     }
   }
 } finally {
