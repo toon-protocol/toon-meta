@@ -10,7 +10,7 @@ FACTORY.md per-repo table). "CI linters and tests" in day-to-day speech means th
 
 ## Going-forward repos
 
-The 8 live, actively-worked repos the factory targets: `relay`, `toon-client`, `rig`,
+The 9 live, actively-worked repos the factory targets: `relay`, `toon-client`, `rig`, `fractal`,
 `store`, `connector`, `toon`, `swap`, `toon-meta`. Canonical list lives in FACTORY.md.
 
 ## Gate speed
