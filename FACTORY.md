@@ -161,7 +161,9 @@ Engine mechanics, the per-repo recipe, and known gotchas: [docs/factory-engine-n
 
 ## Per-repo factory table
 
-The **8 going-forward repos** — the org's live, actively-worked set — **plus Forge, the 9th**
+The **9 going-forward repos** — the org's live, actively-worked set, including `fractal`
+(bootstrapped 2026-07-24 from founding spec
+[toon-meta#245](https://github.com/toon-protocol/toon-meta/issues/245)) — **plus Forge**
 (the factory manager, itself a factory consumer; see its note below). A row qualifies as
 **live** once its image builds, its dry-run `plan` resolves, and — for the repos named as
 variant proofs below — a real `agent:implement` PR has merged. The plain pnpm repetitions
@@ -185,6 +187,8 @@ factory* — that swap is still pending, so steady-state Forge does not yet run 
 | swap        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Applied the proven pnpm recipe verbatim; no repo-specific deviations surfaced. |
 | toon-meta   | npm (docs) | `parallel-planner-with-review` | markdownlint / link-check / JSON-validate (`npm run gate`) | Live — scaffolded, gate proven, **merged agent PR** | [toon-meta#201](https://github.com/toon-protocol/toon-meta/pull/201) (merged) | Docs factory, sequenced last; no `package.json` before scaffolding. Markdownlint baseline is real-but-lenient (`.markdownlint-cli2.jsonc`) — ~40 structural rules enforced, noisy stylistic rules disabled by policy pending a cleanup slice. |
 | Forge       | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live (stage-0) — image builds, dry-run plan proven, **2 merged agent PRs** on raw `@ai-hero/sandcastle`; self-host swap to `forge-core` still pending ([Forge#15](https://github.com/toon-protocol/Forge/issues/15)) | [Forge#20](https://github.com/toon-protocol/Forge/pull/20), [Forge#21](https://github.com/toon-protocol/Forge/pull/21) (merged) — under stage-0 raw sandcastle; the forge-core parity proof is [Forge#15](https://github.com/toon-protocol/Forge/issues/15) | **9th row, hand-added at bootstrap** per [#198](https://github.com/toon-protocol/toon-meta/issues/198). The factory *manager* is itself a factory *consumer*. The **only `forge-core`-driven row** at steady state (raw `@ai-hero/sandcastle` at stage-0, swaps to forge-core at self-host). Holds **zero org state** — a stateless client of this repo. Scaffold [Forge#1](https://github.com/toon-protocol/Forge/pull/1); `FACTORY_SPEC.md` [Forge#2](https://github.com/toon-protocol/Forge/pull/2); stage-0 [Forge#3](https://github.com/toon-protocol/Forge/pull/3). |
+
+| fractal     | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build (+ `format:check`) | Scaffolded — gate green (local); image-build + dry-run plan proofs pending; no merged-PR proof required (pnpm repetition) | — | **10th row, hand-added at bootstrap** from founding spec [toon-meta#245](https://github.com/toon-protocol/toon-meta/issues/245) (Fractal — agent-grown dimensions on TOON; seed → spec → ditto loop → NIP gate → relay → portal). `.sandcastle/` is the proven relay/Forge stage-0 recipe verbatim (deterministic push+PR, fail-loud verification, sandbox-secrets passthrough). Domain glossary lives in-repo (`CONTEXT.md`, migrated from toon-meta `docs/fractal/`). The factory **builds** fractal; it never **runs** dimensions — fractal's own ditto loop closes through the NIP gate, not a CI provider. |
 
 **Forge (9th — [#198](https://github.com/toon-protocol/toon-meta/issues/198)):** the
 factory *manager* is itself a factory *consumer* — it runs its own `.sandcastle/` like every
