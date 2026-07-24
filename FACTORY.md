@@ -166,9 +166,13 @@ The **8 going-forward repos** — the org's live, actively-worked set — **plus
 **live** once its image builds, its dry-run `plan` resolves, and — for the repos named as
 variant proofs below — a real `agent:implement` PR has merged. The plain pnpm repetitions
 (rig/toon/swap/toon-client) qualify on image-build + plan alone; they don't each need a
-separate merged-PR proof once the pnpm recipe is proven once (relay). Forge is
-**Bootstrapping** until its self-host checkpoint ([#223](https://github.com/toon-protocol/toon-meta/issues/223))
-lands its merged `agent:implement` proof.
+separate merged-PR proof once the pnpm recipe is proven once (relay). Forge's
+**stage-0** factory (raw `@ai-hero/sandcastle`) is now proven — two `agent:implement`
+issues built agent PRs that merged ([Forge#20](https://github.com/toon-protocol/Forge/pull/20),
+[Forge#21](https://github.com/toon-protocol/Forge/pull/21)). It is **not yet self-hosted**:
+the self-host checkpoint ([Forge#15](https://github.com/toon-protocol/Forge/issues/15)) swaps
+the engine to `forge-core` and requires ≥1 `agent:implement` PR to merge *under the forge-core
+factory* — that swap is still pending, so steady-state Forge does not yet run its own engine.
 
 | Repo        | Pkg mgr | Template | Gate (lint/typecheck/test/build) | Status | Merged-PR proof | Notes |
 |-------------|---------|----------|----------------------------------|--------|-----------------|-------|
@@ -180,7 +184,7 @@ lands its merged `agent:implement` proof.
 | toon        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Lint budget tightened as part of scaffolding: gate line is `eslint . --max-warnings 940` (down from the pre-existing 941-warning baseline), so the gate isn't a rubber stamp. Pre-existing typecheck debt carries an explicit caveat in the implement/review/merge prompts. |
 | swap        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Applied the proven pnpm recipe verbatim; no repo-specific deviations surfaced. |
 | toon-meta   | npm (docs) | `parallel-planner-with-review` | markdownlint / link-check / JSON-validate (`npm run gate`) | Live — scaffolded, gate proven, **merged agent PR** | [toon-meta#201](https://github.com/toon-protocol/toon-meta/pull/201) (merged) | Docs factory, sequenced last; no `package.json` before scaffolding. Markdownlint baseline is real-but-lenient (`.markdownlint-cli2.jsonc`) — ~40 structural rules enforced, noisy stylistic rules disabled by policy pending a cleanup slice. |
-| Forge       | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Bootstrapping — stage-0 hand-rolled `.sandcastle/` + green gate baseline ([Forge#3](https://github.com/toon-protocol/Forge/pull/3)); the **only `forge-core`-driven row** (raw `@ai-hero/sandcastle` at stage-0, swaps to forge-core at self-host) | — (self-host checkpoint, [#223](https://github.com/toon-protocol/toon-meta/issues/223)) | **9th row, hand-added at bootstrap** per [#198](https://github.com/toon-protocol/toon-meta/issues/198). The factory *manager* is itself a factory *consumer*. Holds **zero org state** — a stateless client of this repo. Scaffold [Forge#1](https://github.com/toon-protocol/Forge/pull/1); `FACTORY_SPEC.md` [Forge#2](https://github.com/toon-protocol/Forge/pull/2); stage-0 [Forge#3](https://github.com/toon-protocol/Forge/pull/3). |
+| Forge       | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live (stage-0) — image builds, dry-run plan proven, **2 merged agent PRs** on raw `@ai-hero/sandcastle`; self-host swap to `forge-core` still pending ([Forge#15](https://github.com/toon-protocol/Forge/issues/15)) | [Forge#20](https://github.com/toon-protocol/Forge/pull/20), [Forge#21](https://github.com/toon-protocol/Forge/pull/21) (merged) — under stage-0 raw sandcastle; the forge-core parity proof is [Forge#15](https://github.com/toon-protocol/Forge/issues/15) | **9th row, hand-added at bootstrap** per [#198](https://github.com/toon-protocol/toon-meta/issues/198). The factory *manager* is itself a factory *consumer*. The **only `forge-core`-driven row** at steady state (raw `@ai-hero/sandcastle` at stage-0, swaps to forge-core at self-host). Holds **zero org state** — a stateless client of this repo. Scaffold [Forge#1](https://github.com/toon-protocol/Forge/pull/1); `FACTORY_SPEC.md` [Forge#2](https://github.com/toon-protocol/Forge/pull/2); stage-0 [Forge#3](https://github.com/toon-protocol/Forge/pull/3). |
 
 **Forge (9th — [#198](https://github.com/toon-protocol/toon-meta/issues/198)):** the
 factory *manager* is itself a factory *consumer* — it runs its own `.sandcastle/` like every
