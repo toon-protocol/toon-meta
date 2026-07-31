@@ -84,8 +84,8 @@ Nodes advertise their settlement capabilities in kind:10032 events:
 {
   "supportedChains": ["evm:84532", "solana:devnet", "mina:devnet"],
   "settlementAddresses": {
-    "evm:84532": "0xC0E55cD2E967a4F625627DaE5d4946f54267C7ab",
-    "solana:devnet": "CVZRVzvRppQQ5n6UW4rNAG4sX4wPdDQoW6bZtVXfPnzY",
+    "evm:84532": "0xF29fD62C4848B9573C9b90adbF61b664F386d9CF",
+    "solana:devnet": "HgNmgJYrZFrx9DZgMopKa9971zGXW3hPL32Wsc6KzF6",
     "mina:devnet": "B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq"
   },
   "tokenNetworks": {
