@@ -11,21 +11,33 @@ export type Peer = { id:string; connected:boolean; ilpAddresses:string[]; routeC
 export type Channel = { channelId:string; peerId:string; chain:string; status:string; deposit:string; lastActivity:string }
 export type NostrEvent = { id:string; pubkey:string; kind:number; content:string; tags:string[][]; created_at:number; sig:string; _src?:string; _fresh?:boolean }
 
-export type NodeKey = 'sandbox' | 'toon' | 'ario'
+// The fleet is two boxes: the apex (client entry + relay + faucet) and the ario
+// store, which terminates the route. The former sandbox entry box was
+// decommissioned 2026-07-31 — it is no longer needed and no longer exists.
+export type NodeKey = 'toon' | 'ario'
 export type NodeDef = { key:NodeKey; name:string; nid:string; ip:string; role:string; base:string }
 export const ORIGIN = typeof location !== 'undefined' ? location.origin : ''
 export const NODES: NodeDef[] = [
-  { key:'sandbox', name:'Sandbox apex', nid:'g.toon (sandbox)', ip:'50.116.48.49', role:'client entry — accepts Mina USDC, settles Base with toon', base:'https://relay-ws.sandbox.devnet.toonprotocol.dev' },
-  { key:'toon', name:'TOON apex', nid:'g.toon', ip:'104.237.150.177', role:'settles Base with sandbox, Solana with ario; hosts relay + faucet', base:ORIGIN },
+  { key:'toon', name:'TOON apex', nid:'g.toon', ip:'104.237.150.177', role:'client entry — accepts Base / Solana USDC; settles Solana with ario; hosts relay + faucet', base:ORIGIN },
   { key:'ario', name:'Store · ario', nid:'g.toon.ario', ip:'45.79.173.113', role:'terminates the route — Arweave DVM, receives Sol USDC', base:'https://dvm.devnet.toonprotocol.dev' },
 ]
+// Chain vocabulary for a settlement leg. `mina` still names a live devnet chain
+// — the apex and ario both hold Mina settlement wallets, which the balance table
+// below still reads — but no leg in the fleet settles in Mina today, so no drawn
+// link currently carries the mina label. The Mina *entry* leg was only ever
+// exercised through the retired sandbox entry box.
 export const LINKS = {
   mina:{ label:'Mina USDC', color:C.mina, chain:'mina:devnet' },
   base:{ label:'Base USDC', color:C.base, chain:'evm:84532' },
   sol :{ label:'Sol USDC',  color:C.sol,  chain:'solana:devnet' },
 } as const
-export const INBOUND_LINK: Record<NodeKey,'mina'|'base'|'sol'> = { sandbox:'mina', toon:'base', ario:'sol' }
-export const NODE_RELAY: Record<NodeKey,string> = { sandbox:'sandbox', toon:'toon', ario:'toon' }
+export type LinkKey = keyof typeof LINKS
+// INBOUND_LINK[n] = the chain the leg *entering* n settles on. The head of the
+// chain (toon) has no upstream node card, so its inbound leg — the client entry,
+// chain-selectable via `rig chain set`, Base by default — is counted but not
+// drawn; only ario's link column appears in the flow strip.
+export const INBOUND_LINK: Record<NodeKey,Extract<LinkKey,'base'|'sol'>> = { toon:'base', ario:'sol' }
+export const NODE_RELAY: Record<NodeKey,string> = { toon:'toon', ario:'toon' }
 
 const ASSETS: Record<string,{sym:string;net:string;color:string}> = {
   '0x49bee1bca5d15fb0963117923403f9498119a9ce':{sym:'USDC',net:'Base',color:C.base},
@@ -68,7 +80,6 @@ export const SETTLE_THRESHOLD=5000, SETTLE_TIMEOUT=3600
 
 export type WalletRow = { role:string; chain:'base'|'sol'|'mina'; addr:string; ario?:boolean }
 const WALLETS: Record<NodeKey,{settle:Partial<Record<'base'|'sol'|'mina',string>>; extra?:WalletRow[]}> = {
-  sandbox:{ settle:{ base:'0xe92297B66Dc4e8D7CE366C7136307f596c935b34', mina:'B62qk3yPDFyerASmmmDgN4GF1eNTgo9YXXJ5gHkrDQx82vqfcePRjAY' } },
   toon:{ settle:{ base:'0xF29fD62C4848B9573C9b90adbF61b664F386d9CF', sol:'HgNmgJYrZFrx9DZgMopKa9971zGXW3hPL32Wsc6KzF6', mina:'B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq' } },
   ario:{ settle:{ base:'0x6B6c2DACf7Ac1F1273F72beF2E6084F9Ee6D3bff', sol:'W6yK72j365eK7t4Qj5An1AaYtUEJcJK7TBPvGeDk1LV', mina:'B62qkWSoKW4ewE2Wn7ibgtXz6TV72L22YVGoz2bL5x3yu4FsUipdQG8' },
     // Both rotated 2026-07-31: the gas-station key had been committed to the

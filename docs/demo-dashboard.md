@@ -1,10 +1,15 @@
 # Public demo dashboard — live packet flow
 
 A single public page that visualises the [cross-currency multihop demo](demo-day-runbook.md)
-(rig → **sandbox** → **toon** → **ario**) with live per-hop packet counts, a
+(rig → **toon** → **ario**) with live per-hop packet counts, a
 Nostr-event packet stream, and accumulated settlement — so packets can be shown
 hopping through each connector during a live `rig push`, without SSH + port
 forwarding to each box's admin dashboard.
+
+The fleet is **two boxes**: the `toon` apex (client entry, relay, faucet) and the
+`ario` store (Arweave DVM, route termination). A third box — the sandbox entry —
+was **decommissioned on 2026-07-31**; it is no longer needed, and the dashboard
+no longer models or polls it.
 
 **Live at:** `https://faucet.devnet.toonprotocol.dev/dash`
 
@@ -33,13 +38,16 @@ Tailwind + **shadcn/ui** app (built to a static bundle) · nginx snippet:
 
 ## What it shows
 
-- **Flow strip** — the three connectors as a chain (Mina → Base → Solana →
-  Arweave). Each node card shows live `packetsForwarded` / `packetsRejected`,
-  uptime, peers, recent claims, and **net settled · session**. The inter-node
-  links spark and their counters tick when `packetsForwarded` advances.
+- **Flow strip** — the two connectors as a chain (client USDC → Solana →
+  Arweave): the apex card, the Solana link column, the store card. Each node card
+  shows live `packetsForwarded` / `packetsRejected`, uptime, peers, recent claims,
+  and **net settled · session**. The inter-node link sparks and its counter ticks
+  when `packetsForwarded` advances. The client's entry leg into the apex has no
+  upstream card, so it is counted but not drawn — as the client-entry leg always
+  was.
 - **Network profit (session)** — header total + per-node breakdown (see the
   profit caveat below).
-- **Live packets** — a Nostr-event stream from the relays, each row labelled
+- **Live packets** — a Nostr-event stream from the apex relay, each row labelled
   with its `kind` (e.g. `kind:30617 · repo-announce`, `kind:10032 ·
   route-announce`, `kind:5094 · store-request`); click any row for the full
   event (pretty-printed `content` + raw JSON).
@@ -70,7 +78,6 @@ live data from two sources, both already public:
 1. **Connector admin telemetry** (per box) — read-only JSON from each
    connector's admin API (`:8081`, container-internal), surfaced through nginx:
    - `toon`   → `https://faucet.devnet.toonprotocol.dev/admin/*` (same origin)
-   - `sandbox`→ `https://relay-ws.sandbox.devnet.toonprotocol.dev/admin/*`
    - `ario`   → `https://dvm.devnet.toonprotocol.dev/admin/*`
 
    Only `/admin/{metrics.json,earnings.json,routes,peers,channels}` are proxied,
@@ -78,14 +85,13 @@ live data from two sources, both already public:
    (`POST /admin/peers`, `PUT /admin/desired-state`, …) are deliberately not
    proxied. See the nginx snippet.
 
-2. **Relay Nostr WS** — the browser opens WebSockets directly to
-   `wss://relay-ws.devnet.toonprotocol.dev` and
-   `wss://relay-ws.sandbox.devnet.toonprotocol.dev` (already public; no CORS /
-   nginx change needed) and `REQ`s recent events. This is the only real source
+2. **Relay Nostr WS** — the browser opens a WebSocket directly to
+   `wss://relay-ws.devnet.toonprotocol.dev` (already public; no CORS / nginx
+   change needed) and `REQ`s recent events. This is the only real source
    of packet **kind** and payload — the connector forwards opaque packets and
    cannot decode the Nostr event. The per-node packets list attributes events
-   by relay source (sandbox events → sandbox node; toon-relay events → toon and
-   ario, which publishes to the toon relay).
+   by relay source; with one relay in the fleet, both nodes read from the toon
+   relay (ario publishes to it).
 
 3. **Chain RPCs** — the browser reads wallet balances directly from public RPCs
    (Base Sepolia `base-sepolia-rpc.publicnode.com`, Solana `api.devnet.solana.com`,
@@ -103,10 +109,12 @@ the 2 GB boxes):
   expose all-time fees (`connectorFees` / `peers[].byAsset` are empty). The page
   sums net settled (inbound − outbound, USDC 6dp) per node from the claim stream
   as it observes it; a reload resets it.
-- **Sandbox Mina entry-leg amounts are untracked** — Mina claims report
-  `assetCode:"MINA"` with `amount:0`, so the sandbox's claim rows show
-  `settle ✓` (not a value) and its session profit reads ~0. Base and Solana legs
-  report exact USDC amounts.
+- **Mina claim amounts are untracked** — Mina claims report `assetCode:"MINA"`
+  with `amount:0`, so a Mina leg's claim rows show `settle ✓` (not a value) and
+  contribute ~0 to session profit. Base and Solana legs report exact USDC
+  amounts. No leg in the two-box fleet settles in Mina today (the Mina entry leg
+  ran through the retired sandbox entry), so this caveat is currently dormant —
+  the apex's and store's Mina **wallets** are still read and shown.
 
 ## Build
 
@@ -132,7 +140,7 @@ rm -rf $CD/dashsite && mkdir -p $CD/dashsite && tar -xzf /tmp/dash.tgz -C $CD/da
 # ...edit $CD/node.conf per the snippet (telemetry + /dash location)...
 docker exec linode-node-nginx-1 nginx -t && docker exec linode-node-nginx-1 nginx -s reload
 
-# sandbox (50.116.48.49) and ario (45.79.173.113): telemetry location only, then
+# ario (45.79.173.113): telemetry location only, then
 docker exec <box>-nginx-1 nginx -t && docker exec <box>-nginx-1 nginx -s reload
 ```
 
@@ -153,7 +161,6 @@ the #665 change left a `node.conf.bak-issue665-<ts>` beside it); restore it,
 remove `conf.d/dashsite` on the toon box, then
 `nginx -t && nginx -s reload`. That closes the rest.
 
-**The sandbox box (`50.116.48.49`) still serves all five endpoints** — it was
-not reachable with the fleet's keys when #665 was fixed, so its nginx still
-carries the original block. Apply the snippet above to it when access is
-available.
+The third box that also carried this block — the sandbox entry — was
+**decommissioned on 2026-07-31**. It no longer exists, so nothing is served from
+it and no follow-up is needed there.

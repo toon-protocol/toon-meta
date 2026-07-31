@@ -46,35 +46,39 @@ To stop the infrastructure:
 
 ## Linode Devnet — LIVE (public-chain settlement)
 
-The devnet runs on **three Linode boxes** (sandbox entry + relay/proxy/faucet + Arweave store DVM)
+The devnet runs on **two Linode boxes** (relay/proxy/faucet apex + Arweave store DVM)
 and settles on **public networks** — Base Sepolia, Solana devnet, and Mina
 devnet. The three self-hosted blockchain boxes (Anvil, solana-test-validator,
 Mina lightnet) were **deleted on 2026-07-19** as part of the public-chain
-cutover. DNS is Porkbun-managed; endpoints are under
+cutover, and the sandbox entry box (`toon-relay-test`, `50.116.48.49`,
+`*.sandbox.devnet.toonprotocol.dev`) was **decommissioned on 2026-07-31** — it is
+no longer needed. DNS is Porkbun-managed; endpoints are under
 `*.devnet.toonprotocol.dev` with trusted Let's Encrypt TLS.
 
 ### Node layout
 
-Three connector nodes form a **cross-currency multi-hop** path. A client pays the
-sandbox entry in **Mina USDC**; each connector hop settles with the next in a
-different chain (**Mina → Base → Solana**), terminating at the ario store DVM.
+Two connector nodes form a **cross-currency multi-hop** path. A client pays the
+`toon` apex in **Base** or **Solana** USDC (pinned with `rig chain set`); the apex
+settles **Solana** with the ario store DVM, which terminates the route.
 
 | Node | Linode label | IP | Plan | Role |
 |------|-------------|-----|------|------|
-| Sandbox apex (client entry: connector + relay) | `toon-relay-test` | `50.116.48.49` | g6-standard-2 (4 GB) | accepts **Mina USDC** from clients; settles **Base** with `toon` |
-| TOON apex (connector + relay + faucet) | `toon` | `104.237.150.177` | g6-standard-1 (2 GB) | settles **Base** with sandbox; settles **Solana** with `ario` |
+| TOON apex (client entry: connector + relay + faucet) | `toon` | `104.237.150.177` | g6-standard-1 (2 GB) | accepts client USDC; settles **Solana** with `ario` |
 | Store (connector + Arweave DVM + ARIO gas station) | `ario` | `45.79.173.113` | g6-standard-1 (2 GB) | terminates `g.toon.ario`; receives **Sol USDC** |
 
-Settlement links (per-peer `chain:` in each `connector.yaml`): sandbox↔toon on
-`evm:84532`; toon↔ario on `solana:devnet` (one shared bidirectional Solana channel
-`5z6znXjH…`). The sandbox forwards `g.toon.relay` / `g.toon.ario` / `g.toon.relay.ario`
-up to `toon`. Per-peer non-EVM channel settlement requires the connector fix on the
-`3.36.x` line (image `3.36.3-solchan.0`); see the `fix/channelmanager-open-3.36` branch.
-Clients pay the sandbox in Mina against a **dedicated** client-build PaymentChannel
-zkApp (one zkApp per participant pair — the apex's cannot be reused). rig ≥ 2.13.0
+Settlement links (per-peer `chain:` in each `connector.yaml`): toon↔ario on
+`solana:devnet` (one shared bidirectional Solana channel `5z6znXjH…`) — the only
+connector↔connector link in the fleet. Per-peer non-EVM channel settlement requires
+the connector fix on the `3.36.x` line (image `3.36.3-solchan.0`); see the
+`fix/channelmanager-open-3.36` branch.
+
+Clients paying in Mina need a **dedicated** client-build PaymentChannel zkApp
+(one zkApp per participant pair — the apex's cannot be reused). rig ≥ 2.13.0
 deploys this zkApp **automatically** on the first Mina channel open (or explicitly
 via `rig channel deploy-zkapp`); the zkApp key is recorded in
-`~/.toon-client/keys/rig-mina-zkapps.json`.
+`~/.toon-client/keys/rig-mina-zkapps.json`. Note that the Mina client-entry leg
+was only ever exercised through the retired sandbox entry, so it is **unproven
+against the apex** — the demoed paths are Base Sepolia and Solana.
 
 ### Endpoints
 
@@ -87,12 +91,11 @@ via `rig channel deploy-zkapp`); the zkApp key is recorded in
 | Faucet (+ frontend) | `https://faucet.<box>` | toon | Multi-chain faucet, 3-chain web UI at `/` |
 | Store ILP edge | `https://proxy.store.<box>/ilp` | store | route `g.toon.ario` |
 | Store DVM | `https://dvm.<box>` | store | `/health`; `/store` = payment-oblivious job route (kind:5094/5095/5096) |
-| Sandbox relay | `wss://relay-ws.sandbox.<box>` | sandbox | Mina-only multihop entry (demo path); switch with `rig entry sandbox` |
-| Sandbox payment proxy | `wss://proxy.sandbox.<box>:443` | sandbox | ILP ingress accepting **Mina USDC only**; forwards `g.toon.*` to `toon` |
 
-Retired endpoints (DNS records pending removal): `evm-rpc.*`, `solana-rpc.*`,
-`solana-ws.*`, `mina.*`, `mina-accounts.*`. `store.<box>` was never wired
-(parked at the registrar) — use `dvm.<box>` / `proxy.store.<box>`.
+Retired endpoints (DNS records pending removal): `relay-ws.sandbox.*`,
+`proxy.sandbox.*` (the decommissioned sandbox entry box), `evm-rpc.*`,
+`solana-rpc.*`, `solana-ws.*`, `mina.*`, `mina-accounts.*`. `store.<box>` was
+never wired (parked at the registrar) — use `dvm.<box>` / `proxy.store.<box>`.
 
 Public chain RPCs (no self-hosted chain infra):
 
@@ -191,11 +194,11 @@ Steering knobs (all free, local-config writes):
 - `rig chain set <evm|sol|mina>` — which chain/USDC settles paid writes
   (per-run override: `TOON_CLIENT_CHAIN=evm:84532|solana:devnet|mina:devnet`,
   announced spellings).
-- `rig entry <apex|sandbox|url>` — which entry node to pay through.
-  `rig entry sandbox` targets the Mina-only multihop entry and auto-clears the
+- `rig entry <apex|url>` — which entry node to pay through; auto-clears the
   topology cache. NOTE: a repo publishes to its git `origin` relay, which
-  overrides config — after switching, `rig remote add origin
-  wss://relay-ws.sandbox.devnet.toonprotocol.dev` (or use a fresh repo).
+  overrides config — after switching, `rig remote add origin <relay>` in the
+  repo (or use a fresh repo). rig's built-in `sandbox` alias pointed at the
+  decommissioned sandbox entry box and no longer resolves to a live node.
 - `rig channels` — the recorded payment channels (`rig balance` for wallets).
 
 Manual overrides remain available for self-hosted networks — the pre-2.13
@@ -213,7 +216,7 @@ lives in [`docs/demo-day-runbook.md`](demo-day-runbook.md).
 
 ### Operating the devnet
 
-The three boxes are managed from the connector repo checkouts on the boxes
+Both boxes are managed from the connector repo checkouts on the boxes
 themselves (`/root/connector`, branches `feat/devnet-multi-node` /
 `feat/devnet-store-node`; compose files `infra/linode-node/docker-compose.node.yml`
 and `infra/linode-store/docker-compose.store.yml`). `infra/devnet-manage.sh`

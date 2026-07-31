@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useDashboard, useNodeDetail, type Dashboard } from '@/lib/hooks'
+import { useDashboard, useNodeDetail, RELAY_COUNT, type Dashboard } from '@/lib/hooks'
 import {
   NODES, LINKS, INBOUND_LINK, NODE_RELAY, C, asset, chainColor, kindColor, kindLabel, packetDesc,
   trunc, fmtAmt, ago, upt, claimId, walletRows, gasWarn, NATIVE, EXPL, copy,
@@ -124,7 +124,7 @@ function LivePackets({ dash, onPacket }: { dash:Dashboard; onPacket:(ev:NostrEve
       <div className="mb-2 flex items-center gap-2.5">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Live packets</h3>
         <span className="text-[11.5px] text-muted-foreground">Nostr events carried through the connectors — kind-labelled, click for full data</span>
-        <span className="ml-auto flex items-center gap-1.5 text-[11.5px] text-muted-foreground"><i className={'inline-block h-2 w-2 rounded-full '+(dash.relaysUp>0?'bg-emerald-400':'bg-muted-foreground')} />{dash.relaysUp>0?`${dash.relaysUp}/2 relays live`:'connecting…'}</span>
+        <span className="ml-auto flex items-center gap-1.5 text-[11.5px] text-muted-foreground"><i className={'inline-block h-2 w-2 rounded-full '+(dash.relaysUp>0?'bg-emerald-400':'bg-muted-foreground')} />{dash.relaysUp>0?`${dash.relaysUp}/${RELAY_COUNT} relay${RELAY_COUNT>1?'s':''} live`:'connecting…'}</span>
       </div>
       <ScrollArea className="h-[340px]">
         {dash.packets.length ? dash.packets.slice(0,60).map(ev => <PacketRow key={ev.id} ev={ev} onClick={()=>onPacket(ev)} />)
@@ -265,7 +265,7 @@ export default function App() {
       <div className="mx-auto max-w-[1320px] px-5 pb-16 pt-6">
         <header className="mb-1 flex flex-wrap items-baseline gap-3.5">
           <h1 className="text-[19px] font-semibold tracking-tight">TOON devnet · live packet flow</h1>
-          <span className="text-[13px] text-muted-foreground">cross-currency multihop · Mina → Base → Solana → Arweave · click any node or packet for detail</span>
+          <span className="text-[13px] text-muted-foreground">cross-currency multihop · client USDC → Solana → Arweave · click any node or packet for detail</span>
           <span className="ml-auto flex items-center gap-2 text-[12.5px] text-muted-foreground"><span className={'h-2 w-2 rounded-full '+(dash.live?'bg-emerald-400 anim-beat':'bg-muted-foreground')} />{dash.live?`live · ${dash.lastPoll}`:'connecting…'}</span>
         </header>
 
@@ -276,9 +276,7 @@ export default function App() {
           <div className="ml-auto flex flex-wrap gap-3.5 text-xs text-muted-foreground">{NODES.map(n => <span key={n.key} className="tnum">{n.name.split(' ')[0]} <b className="text-foreground">{fmtAmt(dash.profit[n.key])}</b></span>)}</div>
         </Card>
 
-        <div className="mt-5 grid items-stretch gap-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)]">
-          <NodeCard dash={dash} nk="sandbox" onOpen={()=>setNodeKey('sandbox')} onClaim={openClaim} />
-          <LinkCol which={INBOUND_LINK.toon} count={dash.linkCount.base} />
+        <div className="mt-5 grid items-stretch gap-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
           <NodeCard dash={dash} nk="toon" onOpen={()=>setNodeKey('toon')} onClaim={openClaim} />
           <LinkCol which={INBOUND_LINK.ario} count={dash.linkCount.sol} />
           <NodeCard dash={dash} nk="ario" onOpen={()=>setNodeKey('ario')} onClaim={openClaim} />
@@ -288,8 +286,7 @@ export default function App() {
 
         <Card className="mt-4 gap-0 p-4 font-mono text-[12px] leading-relaxed text-muted-foreground">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Route &amp; settlement</div>
-          <div><span className="text-amber-400">client → sandbox</span> · <b className="text-foreground">Mina devnet USDC</b> · pays wss://proxy.sandbox.devnet.toonprotocol.dev</div>
-          <div><span className="text-amber-400">sandbox ↔ toon</span> · <b className="text-foreground">Base Sepolia USDC</b> · evm:84532</div>
+          <div><span className="text-amber-400">client → toon</span> · <b className="text-foreground">Base Sepolia USDC</b> by default (Solana via <code>rig chain set</code>) · pays wss://proxy.devnet.toonprotocol.dev</div>
           <div><span className="text-amber-400">toon ↔ ario</span> · <b className="text-foreground">Solana devnet USDC</b> · solana:devnet · shared channel 5z6znXjH…</div>
           <div><span className="text-amber-400">termination</span> · <b className="text-foreground">g.toon.ario</b> · Arweave DVM (kind:5094 pay-to-store)</div>
         </Card>

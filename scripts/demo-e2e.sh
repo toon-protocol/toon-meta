@@ -17,45 +17,29 @@
 #     one, delete ~/.toon-client/rig-topology-cache.json.)
 #   - A funded identity: FUND=1 runs `rig fund` for you (USDC on all three
 #     chains; https://faucet.devnet.toonprotocol.dev). GAS is assumed —
-#     hold a little ETH (Base Sepolia) / SOL / MINA (≥ ~1.5 MINA for the
-#     one-time zkApp auto-deploy on the Mina path).
+#     hold a little ETH (Base Sepolia) and SOL.
 #
 # Usage:
 #   ./demo-e2e.sh <repo-dir> [arns-name]
 #   CHAIN=solana:devnet ./demo-e2e.sh /tmp/rig-demo my-demo-name
-#   ENTRY=sandbox ./demo-e2e.sh /tmp/rig-mina-demo     # Mina multihop path
 #   FUND=1 ./demo-e2e.sh /tmp/rig-demo                 # faucet drip first
 # Chain pinning uses the ANNOUNCED spellings: evm:84532, solana:devnet,
 # mina:devnet. ArNS names: ~13+ chars keeps the lease under the DVM's float.
 #
-# ENTRY=sandbox — the 3-node cross-currency multihop demo: the client pays
-# the sandbox entry in Mina USDC; the hops settle Base then Solana
-# (sandbox → toon → ario). It pins chain=mina, points the entry (and this
-# repo's origin) at the sandbox, and restores the apex entry on exit.
+# The fleet is two boxes: the client pays the `toon` apex, which settles Solana
+# with the `ario` store DVM (toon → ario). The sandbox entry box that once
+# fronted a Mina entry leg was decommissioned 2026-07-31 and is no longer
+# needed, so ENTRY/sandbox handling is gone from this script.
 set -euo pipefail
 
 REPO_DIR=${1:?usage: demo-e2e.sh <repo-dir> [arns-name]}
 ARNS_NAME=${2:-}
 CHAIN=${CHAIN:-}            # pin a settlement chain, e.g. evm:84532
-ENTRY=${ENTRY:-apex}        # apex | sandbox (Mina-only multihop demo path)
 FUND=${FUND:-}              # non-empty: run `rig fund` before the demo
 DVM_URL=${DVM_URL:-}        # optional --via override (rig defaults it on devnet)
-SANDBOX_RELAY=wss://relay-ws.sandbox.devnet.toonprotocol.dev
-if [ "$ENTRY" = "sandbox" ]; then
-  RELAY=${RELAY:-$SANDBOX_RELAY}
-  CHAIN=${CHAIN:-mina:devnet}
-else
-  RELAY=${RELAY:-wss://relay-ws.devnet.toonprotocol.dev}
-fi
+RELAY=${RELAY:-wss://relay-ws.devnet.toonprotocol.dev}
 
 step() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
-
-if [ "$ENTRY" = "sandbox" ]; then
-  step "entry: sandbox (Mina multihop — restores apex on exit)"
-  rig entry sandbox
-  rig chain set mina
-  trap 'rig entry apex >/dev/null 2>&1 || true' EXIT
-fi
 
 if [ -n "$FUND" ]; then
   step "0a/6 faucet drip (USDC, all chains — gas is assumed)"
@@ -75,7 +59,7 @@ if [ ! -f README.md ]; then
 fi
 rig init
 # The repo's git origin is the relay it publishes through — it OVERRIDES the
-# config relayUrl, so the sandbox path needs the sandbox relay here.
+# config relayUrl, so pin it here (override with RELAY=<wss://…>).
 rig remote add origin "$RELAY" 2>/dev/null || true
 
 step "2/6 paid push (git objects -> Arweave, refs -> relay, Rig page)"

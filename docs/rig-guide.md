@@ -238,7 +238,7 @@ Every rig-owned command takes `--json` for machine consumers — the strict cont
 **Steering knobs** (all free — they only write local config):
 
 - `rig chain set <evm|sol|mina>` — pin which chain (and therefore which USDC) settles paid writes; `rig chain` shows the current pick, `rig chain unset` reverts to auto.
-- `rig entry <apex|sandbox|url>` — pick the network entry node (payment ingress + relay). `rig entry sandbox` targets the devnet's Mina-only multihop entry (pays Mina; the hops settle Base then Solana) and clears the topology cache for you.
+- `rig entry <apex|url>` — pick the network entry node (payment ingress + relay); clears the topology cache for you. rig also ships a `sandbox` alias, but the devnet entry node it targeted was decommissioned on 2026-07-31 and no longer resolves to a live node — use `apex` or an explicit URL.
 - `rig channels` — shorthand for `rig channel list`.
 
 **Mina note:** the Mina `PaymentChannel` zkApp is single-pair, so each identity needs its own deployment — rig ≥ 2.13.0 **auto-deploys** it on the first Mina channel open (needs ~1.5 MINA gas in the wallet; compile ≈1-3 min + block inclusion ≈3-6 min, one-time). Pre-deploy with `rig channel deploy-zkapp` so the first paid Mina write stays fast.

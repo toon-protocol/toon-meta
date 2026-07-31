@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { NODES, walletRows, readBal, fetchJSON, claimId, gasWarn,
+import { NODES, INBOUND_LINK, walletRows, readBal, fetchJSON, claimId, gasWarn,
   type NodeKey, type Metrics, type Earnings, type Route, type Peer, type Channel, type NostrEvent, type Bal } from './toon'
 
 type NodeState = { metrics?:Metrics; earnings?:Earnings; up:boolean; fwd:number }
-const RELAYS = [ { url:'wss://relay-ws.devnet.toonprotocol.dev', tag:'toon' }, { url:'wss://relay-ws.sandbox.devnet.toonprotocol.dev', tag:'sandbox' } ]
+const RELAYS = [ { url:'wss://relay-ws.devnet.toonprotocol.dev', tag:'toon' } ]
+export const RELAY_COUNT = RELAYS.length
+const NODE_KEYS = NODES.map(n => n.key)
 
 export type Dashboard = ReturnType<typeof useDashboard>
 
@@ -11,11 +13,11 @@ export function useDashboard(){
   const [, force] = useState(0); const render = () => force(x => x + 1)
   const r = useRef({
     node: {} as Record<NodeKey, NodeState>,
-    profit: { sandbox:0, toon:0, ario:0 } as Record<NodeKey, number>,
-    seen: { sandbox:new Set<string>(), toon:new Set<string>(), ario:new Set<string>() } as Record<NodeKey, Set<string>>,
+    profit: { toon:0, ario:0 } as Record<NodeKey, number>,
+    seen: { toon:new Set<string>(), ario:new Set<string>() } as Record<NodeKey, Set<string>>,
     prevFwd: {} as Record<string, number>,
-    linkCount: { mina:0, base:0, sol:0 } as Record<'mina'|'base'|'sol', number>,
-    pulse: { sandbox:0, toon:0, ario:0 } as Record<NodeKey, number>,
+    linkCount: { base:0, sol:0 } as Record<'base'|'sol', number>,
+    pulse: { toon:0, ario:0 } as Record<NodeKey, number>,
     packets: [] as NostrEvent[],
     pById: new Map<string, NostrEvent>(),
     firstBatch: true,
@@ -35,7 +37,7 @@ export function useDashboard(){
           const fwd = m.value.aggregate?.packetsForwarded || 0
           if (r.prevFwd[n.key] != null && fwd > r.prevFwd[n.key]) {
             r.pulse[n.key]++
-            r.linkCount[({ sandbox:'mina', toon:'base', ario:'sol' } as const)[n.key]]++
+            r.linkCount[INBOUND_LINK[n.key]]++
           }
           st.fwd = fwd; r.prevFwd[n.key] = fwd
         } else st.up = false
@@ -76,7 +78,7 @@ export function useDashboard(){
   useEffect(() => {
     let alive = true
     async function fetchBalances(){
-      await Promise.allSettled((['sandbox','toon','ario'] as NodeKey[]).map(async key => {
+      await Promise.allSettled(NODE_KEYS.map(async key => {
         await Promise.allSettled(walletRows(key).map(async row => { r.bal[row.addr] = await readBal(row.chain, row.addr, row.ario) }))
         if (alive) render()
       }))
@@ -85,8 +87,8 @@ export function useDashboard(){
     return () => { alive = false; clearInterval(id) }
   }, [])
 
-  const totals = { profit: r.profit.sandbox + r.profit.toon + r.profit.ario, packets: NODES.reduce((s,n)=> s + (r.node[n.key]?.fwd||0), 0) }
-  let low = 0; for (const key of ['sandbox','toon','ario'] as NodeKey[]) for (const row of walletRows(key)){ const b = r.bal[row.addr]; if (b && !b.err && gasWarn(row.chain, b.native)) low++ }
+  const totals = { profit: NODE_KEYS.reduce((s,k)=> s + (r.profit[k]||0), 0), packets: NODES.reduce((s,n)=> s + (r.node[n.key]?.fwd||0), 0) }
+  let low = 0; for (const key of NODE_KEYS) for (const row of walletRows(key)){ const b = r.bal[row.addr]; if (b && !b.err && gasWarn(row.chain, b.native)) low++ }
   return { node:r.node, profit:r.profit, linkCount:r.linkCount, pulse:r.pulse, packets:r.packets, relaysUp:r.relaysUp, bal:r.bal, totals, low, live:r.live, lastPoll:r.lastPoll }
 }
 
