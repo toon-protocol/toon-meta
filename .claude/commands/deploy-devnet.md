@@ -84,7 +84,7 @@ The demo TOON_MNEMONIC is:
 `giant goat guide develop boy wolf target embody leave sunny paddle neutral`
 
 This derives:
-- EVM settlement: `0xC0E55cD2E967a4F625627DaE5d4946f54267C7ab`
+- EVM settlement: `0xF29fD62C4848B9573C9b90adbF61b664F386d9CF`
 - Solana settlement: `A3FG5y6rfBNJQrsGYTNNR7UHAXCREPJgV362LdTQGNwK`
 - Mina settlement: `B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq`
 

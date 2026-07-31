@@ -69,7 +69,7 @@ export const SETTLE_THRESHOLD=5000, SETTLE_TIMEOUT=3600
 export type WalletRow = { role:string; chain:'base'|'sol'|'mina'; addr:string; ario?:boolean }
 const WALLETS: Record<NodeKey,{settle:Partial<Record<'base'|'sol'|'mina',string>>; extra?:WalletRow[]}> = {
   sandbox:{ settle:{ base:'0xe92297B66Dc4e8D7CE366C7136307f596c935b34', mina:'B62qk3yPDFyerASmmmDgN4GF1eNTgo9YXXJ5gHkrDQx82vqfcePRjAY' } },
-  toon:{ settle:{ base:'0xC0E55cD2E967a4F625627DaE5d4946f54267C7ab', sol:'CVZRVzvRppQQ5n6UW4rNAG4sX4wPdDQoW6bZtVXfPnzY', mina:'B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq' } },
+  toon:{ settle:{ base:'0xF29fD62C4848B9573C9b90adbF61b664F386d9CF', sol:'HgNmgJYrZFrx9DZgMopKa9971zGXW3hPL32Wsc6KzF6', mina:'B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq' } },
   ario:{ settle:{ base:'0x1f4E12A9357a3c46477F95F6f9813eeBF49f106e', sol:'4AhgNKLgXi9NygSL85xrA1hcm3beHtXTHiEWQMhUMBvt', mina:'B62qn3RVqmEqg8k27yND4692JVTdaTAKdebCspSKck23WoDudFEbWbt' },
     // Both rotated 2026-07-31: the gas-station key had been committed to the
     // public repo, and the ARNS DVM key was swept alongside it. Old addresses
