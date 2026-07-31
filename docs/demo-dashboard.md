@@ -12,6 +12,25 @@ Source: [`scripts/demo-dashboard/`](../scripts/demo-dashboard) — a Vite + Reac
 Tailwind + **shadcn/ui** app (built to a static bundle) · nginx snippet:
 [`scripts/demo-dashboard/nginx-telemetry.conf`](../scripts/demo-dashboard/nginx-telemetry.conf).
 
+> **The telemetry the boxes serve is now `/admin/metrics.json` only**
+> ([connector#665](https://github.com/toon-protocol/connector/issues/665)).
+> `earnings.json`, `routes`, `peers` and `channels` were reachable
+> unauthenticated from anywhere and each carried an identifier that is not
+> otherwise public — most sharply `earnings.json`, whose
+> `recentClaims[].peerId` is a counterparty's `http:0x…` EVM address joined to
+> that claim's amount and timestamp. connector ADR 0008 puts every operator
+> read behind a bearer token, so none of it was sanctioned.
+>
+> The dashboard still renders its flow strip, per-hop packet counters, peer
+> lists, balances and the packet stream. What degrades, gracefully: per-node
+> **recent claims** and **net settled · session** read zero, and the
+> **node-detail modal**'s routes / channels / peers / claims tables render
+> empty. The page footer still advertises the old five-endpoint list — it is
+> baked into the deployed bundle and corrects itself on the next rebuild.
+>
+> Restoring those panels wants an authenticated telemetry path, not a widened
+> `location`. Do not re-add the four endpoints to the snippet.
+
 ## What it shows
 
 - **Flow strip** — the three connectors as a chain (Mina → Base → Solana →
@@ -124,7 +143,17 @@ bundle both resolve. Box IPs / hostnames / connector layout:
 
 ## Teardown (after demo day)
 
-The exposure is temporary. Each box's original `node.conf` was backed up as
-`node.conf.pre-dash-bak`; restore it, remove `conf.d/dashsite` on the toon box,
-then `nginx -t && nginx -s reload`. That closes the public `/admin/*` telemetry
-and the `/dash` page.
+Demo day is long past and this teardown was never run — which is how four
+admin endpoints stayed open to the internet until
+[connector#665](https://github.com/toon-protocol/connector/issues/665). The
+remaining exposure is `/admin/metrics.json` plus the `/dash` page itself.
+
+Each box's original `node.conf` was backed up as `node.conf.pre-dash-bak` (and
+the #665 change left a `node.conf.bak-issue665-<ts>` beside it); restore it,
+remove `conf.d/dashsite` on the toon box, then
+`nginx -t && nginx -s reload`. That closes the rest.
+
+**The sandbox box (`50.116.48.49`) still serves all five endpoints** — it was
+not reachable with the fleet's keys when #665 was fixed, so its nginx still
+carries the original block. Apply the snippet above to it when access is
+available.
