@@ -114,6 +114,15 @@ FULFILL → relay read-back; Solana claims redeemed on-chain).
 > `capabilities` prices — clients derive settlement parameters from the
 > announce. This table is a human-readable snapshot.
 
+**2026-07-31 — apex settlement identity rotated.** The apex's EVM settlement
+address changed from `0xC0E55cD2…` to `0xF29fD62C4848B9573C9b90adbF61b664F386d9CF`
+(Solana and the Nostr announce identity rotated too). Eight Base Sepolia channels
+opened against the old address remain open and inactive; no funds are at risk and
+each counterparty can settle unilaterally. Channel ids and the exact
+`closeChannel` / `settleChannel` steps:
+[operator notice](./operators/2026-07-31-apex-settlement-identity-rotation.md).
+The contracts in the table below are unchanged.
+
 | Chain | What | Address |
 |-------|------|---------|
 | Base Sepolia | TokenNetworkRegistry | `0xcC9079adE929b168B54145f6d25262b64FAB9D5b` |

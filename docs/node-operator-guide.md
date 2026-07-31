@@ -8,6 +8,11 @@ It leans on two runnable bundles in the connector repo — [`deploy/node-quickst
 (run a relay node) and [`deploy/pay-edge/`](https://github.com/toon-protocol/connector/tree/main/deploy/pay-edge)
 (front your own HTTP app) — and links back to them at each step rather than duplicating commands.
 
+**Running against the live devnet?** Check [`docs/operators/`](./operators/) for notices —
+dated announcements about changes you may need to act on. Current:
+[apex settlement identity rotated](./operators/2026-07-31-apex-settlement-identity-rotation.md)
+(2026-07-31; affects anyone holding an open Base Sepolia channel with the apex).
+
 > **30-second model.** A *write* is an ILP packet carrying a TOON-encoded Nostr event plus a signed
 > payment-channel claim. A **connector** (apex nodeId `g.proxy`) validates the claim, takes a fee,
 > and free-forwards to a **child** node. **Reads are free** Nostr WS and never touch the connector.
