@@ -71,8 +71,11 @@ const WALLETS: Record<NodeKey,{settle:Partial<Record<'base'|'sol'|'mina',string>
   sandbox:{ settle:{ base:'0xe92297B66Dc4e8D7CE366C7136307f596c935b34', mina:'B62qk3yPDFyerASmmmDgN4GF1eNTgo9YXXJ5gHkrDQx82vqfcePRjAY' } },
   toon:{ settle:{ base:'0xC0E55cD2E967a4F625627DaE5d4946f54267C7ab', sol:'CVZRVzvRppQQ5n6UW4rNAG4sX4wPdDQoW6bZtVXfPnzY', mina:'B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq' } },
   ario:{ settle:{ base:'0x1f4E12A9357a3c46477F95F6f9813eeBF49f106e', sol:'4AhgNKLgXi9NygSL85xrA1hcm3beHtXTHiEWQMhUMBvt', mina:'B62qn3RVqmEqg8k27yND4692JVTdaTAKdebCspSKck23WoDudFEbWbt' },
-    extra:[ {role:'ArNS DVM · ARIO', chain:'sol', addr:'Eh2duioeJoVWxUYYXPi1ZV54o8vBVuhjnZpekJf2A35p', ario:true},
-            {role:'gas station', chain:'sol', addr:'7YsQ8b3B9CjgRPP43i7AL4ssSMv39LzqcRG3bNDmXdSa'} ] },
+    // Both rotated 2026-07-31: the gas-station key had been committed to the
+    // public repo, and the ARNS DVM key was swept alongside it. Old addresses
+    // are drained -- monitoring them would show a permanently empty wallet.
+    extra:[ {role:'ArNS DVM · ARIO', chain:'sol', addr:'BvX569bcuxh27uc14xcFEjYvf4RkN1dgYgrqX3YjVdYe', ario:true},
+            {role:'gas station', chain:'sol', addr:'66oMXXhCFT6EhqE7LeGhbMXvV1PZyxatFZ74zvHfKCfr'} ] },
 }
 export function walletRows(key:NodeKey):WalletRow[]{ const w=WALLETS[key]; const rows:WalletRow[]=[];
   for(const ch of ['base','sol','mina'] as const) if(w.settle[ch]) rows.push({role:'settlement',chain:ch,addr:w.settle[ch]!});
