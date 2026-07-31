@@ -14,9 +14,9 @@ relay for discovery.
   `https://proxy.store.devnet.toonprotocol.dev/ilp`. (connector **PR #256**, branch
   `feat/devnet-store-node`: `infra/linode-store/` + `devnet-manage.sh store`.)
 - **Distinct funded identity** — store connector runs `STORE_TOON_MNEMONIC`
-  (env-required, NOT committed): evm `0x1f4E12A9357a3c46477F95F6f9813eeBF49f106e`,
-  sol `4AhgNKLgXi9NygSL85xrA1hcm3beHtXTHiEWQMhUMBvt`,
-  mina `B62qn3RVqmEqg8k27yND4692JVTdaTAKdebCspSKck23WoDudFEbWbt`. Faucet-funded.
+  (env-required, NOT committed): evm `0x6B6c2DACf7Ac1F1273F72beF2E6084F9Ee6D3bff`,
+  sol `W6yK72j365eK7t4Qj5An1AaYtUEJcJK7TBPvGeDk1LV`,
+  mina `B62qkWSoKW4ewE2Wn7ibgtXz6TV72L22YVGoz2bL5x3yu4FsUipdQG8`. Faucet-funded.
 - **Peer + fee** — store connector is a `relation: peer` of the apex (BTP,
   `wss://…:443`). Bilateral channels open (store→apex `0x1bdfd98a…`, apex→store
   `0x952ade04…`). Apex routes `g.toon.ario` → store peer with
