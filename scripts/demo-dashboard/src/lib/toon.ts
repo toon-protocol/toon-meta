@@ -70,7 +70,7 @@ export type WalletRow = { role:string; chain:'base'|'sol'|'mina'; addr:string; a
 const WALLETS: Record<NodeKey,{settle:Partial<Record<'base'|'sol'|'mina',string>>; extra?:WalletRow[]}> = {
   sandbox:{ settle:{ base:'0xe92297B66Dc4e8D7CE366C7136307f596c935b34', mina:'B62qk3yPDFyerASmmmDgN4GF1eNTgo9YXXJ5gHkrDQx82vqfcePRjAY' } },
   toon:{ settle:{ base:'0xF29fD62C4848B9573C9b90adbF61b664F386d9CF', sol:'HgNmgJYrZFrx9DZgMopKa9971zGXW3hPL32Wsc6KzF6', mina:'B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq' } },
-  ario:{ settle:{ base:'0x1f4E12A9357a3c46477F95F6f9813eeBF49f106e', sol:'4AhgNKLgXi9NygSL85xrA1hcm3beHtXTHiEWQMhUMBvt', mina:'B62qn3RVqmEqg8k27yND4692JVTdaTAKdebCspSKck23WoDudFEbWbt' },
+  ario:{ settle:{ base:'0x6B6c2DACf7Ac1F1273F72beF2E6084F9Ee6D3bff', sol:'W6yK72j365eK7t4Qj5An1AaYtUEJcJK7TBPvGeDk1LV', mina:'B62qkWSoKW4ewE2Wn7ibgtXz6TV72L22YVGoz2bL5x3yu4FsUipdQG8' },
     // Both rotated 2026-07-31: the gas-station key had been committed to the
     // public repo, and the ARNS DVM key was swept alongside it. Old addresses
     // are drained -- monitoring them would show a permanently empty wallet.
