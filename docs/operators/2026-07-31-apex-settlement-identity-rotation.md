@@ -36,8 +36,9 @@ that has moved on.
   all eight read back `state == 1` (`Opened`), `closedAt == 0`
 
 "Returned at settlement" is your deposit minus what the apex already claimed
-from it during normal paid routing. Those claims were the packets you paid for;
-they are settled and are not reversed by closing the channel.
+from it during normal paid routing (`claimedAmounts[channelId][0xC0E55cD2…]`,
+readable on-chain). Those claims were the packets you paid for; `claimFromChannel`
+already transferred those tokens, and closing the channel does not reverse them.
 
 | Channel id | Your address | Your deposit | Already claimed by apex | Returned at settlement |
 |---|---|---|---|---|
