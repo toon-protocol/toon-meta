@@ -11,10 +11,12 @@ through the live devnet, and is it practical against a 150ms playout budget,
 relay → free subscriber WS); delivered frames arrive in ~72–86ms e2e median/p90,
 well inside the 150ms playout budget.
 
-**PRACTICAL: no** — the path sustains only ~16.5 accepted frames/sec under
-pipelining (vs 50 required), and at a paced 50fps offered load 35.6% of frames
-were refused upstream (7× over the 5% loss bar). Cost is also ~3 USDC (devnet
-units) per speaker-minute.
+**PRACTICAL: no over per-request HTTP — YES over BTP** (final, see Phase D
+rerun): ILP-over-HTTP sustained only ~16.5 accepted fps with 35.6% admission
+loss at 50fps offered (nginx 503s + F01 nonce races); the BTP client ingress
+delivered **100% of 50fps frames, 99.3% within the 150ms budget, zero
+failures, ~140fps headroom** on the untuned public edge. Cost at the devnet
+price is ~3 USDC/speaker-minute (operator-set; 0.003 USDC at dust pricing).
 
 ## Setup (as run)
 
@@ -201,6 +203,46 @@ a protocol constant. At a dust price of 1 unit (1 micro-USDC) per frame:
 0.003 USDC per speaker-minute, ~0.27 USDC for a 3-speaker 30-minute huddle —
 unit economics stop being the blocker; admission throughput remains the one.
 (The shared devnet edge's price was deliberately left untouched.)
+
+## Phase D rerun — BTP client ingress, measured (2026-08-01)
+
+The connector shipped a real client-facing BTP websocket ingress
+(`wss://proxy.devnet.toonprotocol.dev/rust/ilp/btp`, image rust-sha-bb8e12c,
+connector#680): binary BTP frames, empty-secret auth, `payment-channel-claim`
+protocolData into the same ClientClaimGate as HTTP, **strictly in-arrival-order
+processing per session**, and BTP frames bypass nginx `limit_req` (only the
+one upgrade request is rate-limited). Same harness, same identity, channel
+`BbNGg9EF…` resumed (57ms; topped up to 20 USDC deposit). Untuned public
+edge. Raw log: `run7-btp.log`.
+
+Three-way comparison (same methodology, same 160B ephemeral-20001 frames):
+
+| metric | HTTP baseline (B/C) | HTTP, nginx lifted (E) | **BTP, untuned edge (D)** |
+|---|---|---|---|
+| serial RTT p50/p90/p99 | 73.8 / 89.7 / 107.6 ms | 72.3 / 80.1 / — ms | **65.4 / 76.4 / 87.3 ms** |
+| paced 50fps×30s delivered | 966/1500 (64.4%) | 1458/1500 (97.2%) | **1500/1500 (100%)** |
+| paced within 150ms | 63.7% | 96.6% | **99.3%** |
+| paced e2e p50/p90/p99 | 72 / 86 / 151 ms | 66 / 73 / 133 ms | **66 / 80 / 129 ms** |
+| paced failures | 534 (502× 503, 32× F01) | 42 (all F01) | **0** |
+| flood sustained admitted fps | 16.5 | 36.1 | **139.8** |
+| flood failures | 1649 (1456× 503, 193× F01) | 1271 (all F01) | **0** (1454/1454) |
+| flood RTT p50/p90 | 312 / 566 ms | 324 / 372 ms | 429 / 471 ms (queue depth 64) |
+| stretch paced 100fps×10s | — | — | 1000/1000 delivered, 0 failures; e2e p50 394ms, 40.2% within 150ms (queueing, harness timer held only 67.7fps offered) |
+
+Failure breakdown over BTP: **zero 503 (by construction — no nginx on the
+frame path) and zero F01 across all 4156 delivered events** — the ordered
+session eliminates the nonce races exactly as hypothesized. The new limiter
+is benign queueing: at flood depth 64 the socket sustains ~140 admitted
+fps with RTT ~430ms; at 100fps offered the delay (not loss) blows the 150ms
+playout budget. 50fps voice cadence sits comfortably inside both budgets.
+
+**PRACTICAL-over-BTP: YES** — at 50fps offered load the untuned public edge
+delivered 100% of frames with 99.3% inside the 150ms playout budget and zero
+failures of any kind; throughput headroom is ~2.8× voice cadence per session.
+
+Economics unchanged: 1000 units/frame is the operator-set devnet price
+(3 USDC/speaker-minute as measured); at a 1 micro-USDC dust price:
+0.003 USDC per speaker-minute, ~0.27 USDC for a 3-speaker 30-minute huddle.
 
 ## What "practical" would need
 

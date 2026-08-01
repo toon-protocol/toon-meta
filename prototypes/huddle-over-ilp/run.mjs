@@ -37,7 +37,12 @@ import { encodeEventToToon, decodeEventFromToon } from '@toon-protocol/core';
 // ---------------------------------------------------------------------------
 const RELAY_WS = 'wss://relay-ws.devnet.toonprotocol.dev';
 const PROXY_URL = 'https://proxy.devnet.toonprotocol.dev/rust/ilp'; // ILP-over-HTTP uplink
-const APEX_BTP = 'wss://proxy.devnet.toonprotocol.dev:443'; // bootstrap metadata only
+// Client-facing BTP websocket ingress (rust-sha-bb8e12c, connector#680):
+// binary BTP frames, empty-secret auth MESSAGE, `payment-channel-claim`
+// protocolData JSON -> same ClientClaimGate as HTTP; strictly in-arrival-order
+// processing per session. Bypasses nginx limit_req (only the upgrade request
+// is rate-limited).
+const APEX_BTP = 'wss://proxy.devnet.toonprotocol.dev/rust/ilp/btp';
 // NOT the genesis-seed pubkey 2813187e… — that identity's announce is STALE
 // (also claims g.toon.relay); the LIVE Rust edge identity is 3f12da6d… (its
 // announce settlement addresses match the connector's live x402 challenge).
@@ -67,6 +72,8 @@ let PUBLISH_PRICE = 1000n; // announced os.publish price; re-quoted live at star
 // the nginx-503 admission ceiling and F01 out-of-order-claim races are
 // HTTP-ingress artifacts an ordered socket removes.
 const TRANSPORT = process.env.TRANSPORT === 'btp' ? 'btp' : 'http';
+const PROBE_ONLY = process.env.PROBE_ONLY === '1'; // exit after the kind probe
+const STRETCH = process.env.STRETCH === '1'; // extra paced 100fps x 10s phase
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -511,6 +518,13 @@ async function main() {
     if (!probe2.ok) throw new Error(`kind 1 probe also failed: ${probe2.error}`);
   }
 
+  if (PROBE_ONLY) {
+    console.log('\nPROBE_ONLY=1 — probe verified, exiting before phases.');
+    sub.stop();
+    if (client.isStarted?.() !== false) await client.stop();
+    process.exit(0);
+  }
+
   // ── budget-aware phase plan ──
   let serialCount = 200, pacedSeconds = 30;
   if (affordable < 2400) {
@@ -523,6 +537,8 @@ async function main() {
   const paced = await phasePaced(client, channelId, sub, kind, 50, pacedSeconds);
   const floodBudget = Math.max(0, affordable - seqCounter - 50);
   const flood = await phaseFlood(client, channelId, sub, kind, 10, floodBudget);
+  let stretch = null;
+  if (STRETCH) stretch = await phasePaced(client, channelId, sub, kind, 100, 10);
 
   // ── summary ──
   console.log('\n=== SUMMARY ===');
@@ -540,6 +556,9 @@ async function main() {
       e2e: { p50: pct(paced.e2es, 50), p90: pct(paced.e2es, 90), p99: pct(paced.e2es, 99) } },
     flood: { sent: flood.sent, completed: flood.completed, failures: flood.failures,
       sustainedFps: flood.completed / flood.wallDur },
+    ...(stretch ? { stretch100: { sent: stretch.sent, delivered: stretch.delivered,
+      in150: stretch.deliveredIn150, failures: stretch.failures,
+      e2e: { p50: pct(stretch.e2es, 50), p90: pct(stretch.e2es, 90), p99: pct(stretch.e2es, 99) } } } : {}),
   }, null, 1));
 
   sub.stop();
