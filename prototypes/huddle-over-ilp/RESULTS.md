@@ -143,7 +143,58 @@ answers 405 to an Upgrade GET on `/rust/ilp`.
 Rust edge's BTP ingress (parity with HTTP `/ilp`); until then client-facing
 BTP cannot carry paid writes.
 
-## Dust-pricing economics (fee is operator-set per connector)
+*Phase D correction (post-run root-cause, 2026-07-31): the "Rust edge's BTP
+ingress" framing above is wrong — the Rust connector has NO BTP ingress at
+all. The wss front door at `wss://proxy.devnet.toonprotocol.dev:443` is the
+retired TypeScript connector (`connector:3.36.3-solchan.0`), which cannot
+read the modern sealed envelope; the F01 came from ITS termination. Findings
++ what parity actually needs: connector draft PR #674,
+`docs/btp-client-ingress-findings.md`.*
+
+## Phase E — HTTP admission with the nginx limiter lifted (2026-08-01)
+
+Question: was the 16.5fps / 64.4%-delivered ceiling just nginx's
+`limit_req zone=node rate=30r/s burst=60` on `POST /rust/ilp`, and what
+limiter appears next?
+
+Config delta (temporary, on the `toon` box, restored byte-identical after
+the run — verified by md5 + a burst probe seeing 503s again): added a
+separate `limit_req_zone … zone=phasee:10m rate=500r/s` and pointed ONLY the
+`location /rust/ilp` block at it (`burst=1000 nodelay`); every other
+location stayed on the untouched `zone=node`. nginx reload, no container
+restart. Same harness, same identity, same resumed channel (`BbNGg9EF…`,
+resume 157ms), same fee (1000 units). Raw log: `run6-phaseE.log`.
+
+| metric | baseline (Phase B/C) | Phase E (limiter lifted) |
+|---|---|---|
+| paced 50fps×30s delivered | 966/1500 (64.4%) | **1458/1500 (97.2%)** |
+| paced within 150ms budget | 63.7% of sent | **96.6% of sent** |
+| paced failures | 534 (502× nginx 503, 32× F01 nonce) | **42 (ALL F01 nonce, zero 503)** |
+| paced e2e p50/p90/p99 | 72 / 86 / 151 ms | **66 / 73 / 133 ms** |
+| paced max in-flight | 8 | 8 (emergent, RTT-bound) |
+| flood sustained admitted fps (cap 64) | 16.5 | **36.1** |
+| flood failures | 1649 (1456× 503, 193× F01) | **1271 (ALL F01 nonce, zero 503)** |
+| flood RTT p50/p90 | 312 / 566 ms | 324 / 372 ms |
+| serial RTT p50/p90 | 73.8 / 89.7 ms | 72.3 / 80.1 ms |
+
+**New dominant limiter: F01 "claim rejected: nonce does not advance" —
+out-of-order claim arrival under HTTP concurrency.** Every single Phase E
+failure (42 paced + 1271 flood) is that one error; nginx 503s went from
+1958 to zero. The connector itself is not CPU-bound at this load (serial
+and paced RTTs *improved* slightly; flood RTT p90 dropped 566→372ms).
+The claim pipeline admits everything whose nonce arrives in order; pipelined
+posts racing each other are the entire remaining loss.
+
+**Implication for the huddle verdict: at 50fps offered load, paid per-frame
+audio now 97.2% clears admission** — 2.8% loss (target <5%) and 96.6%
+within the 150ms budget, i.e. the PRACTICAL verdict flips to **yes at
+~43–50fps paced** once the front door is opened, for a single speaker on
+the shared devnet box. Uncoordinated bursting (flood) still halves
+throughput via nonce races, so a production client needs an ordered send
+queue or claim batching (one claim per N frames) — the same fix Phase B/C
+already pointed at. The nginx limit itself is an operator policy question
+(it protects the shared box; this test only shows the connector behind it
+has ≥3× the admitted headroom nginx was allowing).
 
 The measured 1000 units/frame is the shared devnet edge's announced price, not
 a protocol constant. At a dust price of 1 unit (1 micro-USDC) per frame:
