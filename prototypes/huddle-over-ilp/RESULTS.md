@@ -101,6 +101,56 @@ implied by RTT: ~13.5 fps.
      with F01 "names a channel this connector has no record of" (4 USDC deposit
      stranded). The x402 challenge's settlement addresses identify the live one.
 
+## Phase D — BTP transport (2026-07-31, follow-up)
+
+Hypothesis: the nginx-503 admission ceiling and the F01 out-of-order-claim
+races are HTTP-ingress artifacts; one persistent ordered BTP WebSocket should
+remove both and clear the 50fps bar (latency was already fine).
+
+**Verdict: PRACTICAL-over-BTP: unmeasurable** — the BTP *session* to the live
+edge works, but its ingress cannot terminate client paid writes today, so no
+frame ever flowed and no throughput could be measured.
+
+What was established (run with `TRANSPORT=btp`, same identity, channel
+`BbNGg9EF…` auto-resumed from `state/channels.json` in 39–57ms — no second
+deposit):
+
+| step | result |
+|---|---|
+| wss session to `wss://proxy.devnet.toonprotocol.dev:443` | connects + authenticates (empty `btpAuthToken` accepted) |
+| ILP prepares over the socket | flow, and structured ILP rejects come back — the BTP conversation itself is healthy |
+| bootstrap self-announce | `F06 No payment channel claim attached` (expected: devnet edges charge for announces; HTTP mode 402s the same way — not transport evidence) |
+| paid publish (ephemeral 20001 AND kind-1 fallback) | **`F01 Invalid HTTP envelope: malformed request-line: "<ciphertext>"`** every time |
+
+Root cause: over HTTP, the edge unwraps the client's sealed (giftwrapped)
+request envelope and reads the claim from the request header before handing a
+plaintext HTTP envelope to the relay termination. The Rust edge's **BTP
+ingress has neither middleware** — it forwards `prepare.data` verbatim, so the
+relay's envelope parser receives raw ciphertext (the F01 above) and claims
+have no header to ride in (the F06). Same wire-drift family as the known
+TS-vs-Rust cutover blocker. Client-side wiring notes for whoever picks this
+up: `btpUrl` + empty `btpAuthToken` + **real** `connectorUrl`
+(`https://proxy.devnet.toonprotocol.dev/rust`) is required — rig's dummy
+`connectorUrl` convention breaks `publishEvent`'s `GET /ilp/identity`
+envelope-sealing step with "bad port".
+
+The HTTP→WS upgrade path is not an alternative today either: the client's
+`upgradeToBtp` is only wired into the h402/x402 flow, v1 explicitly still
+sends the actual write as one-shot HTTP POST after upgrading, and the edge
+answers 405 to an Upgrade GET on `/rust/ilp`.
+
+**Connector ticket material:** add giftwrap-unwrap + claim extraction to the
+Rust edge's BTP ingress (parity with HTTP `/ilp`); until then client-facing
+BTP cannot carry paid writes.
+
+## Dust-pricing economics (fee is operator-set per connector)
+
+The measured 1000 units/frame is the shared devnet edge's announced price, not
+a protocol constant. At a dust price of 1 unit (1 micro-USDC) per frame:
+0.003 USDC per speaker-minute, ~0.27 USDC for a 3-speaker 30-minute huddle —
+unit economics stop being the blocker; admission throughput remains the one.
+(The shared devnet edge's price was deliberately left untouched.)
+
 ## What "practical" would need
 
 - Connector front-end admitting ≥50 rps/client on POST /ilp (or a persistent

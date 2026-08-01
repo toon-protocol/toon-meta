@@ -62,6 +62,12 @@ const FRAME_BYTES = 160; // ~20ms Opus payload
 
 let PUBLISH_PRICE = 1000n; // announced os.publish price; re-quoted live at startup
 
+// Phase D: TRANSPORT=btp runs the same measurement over a persistent BTP
+// WebSocket to the apex instead of per-request ILP-over-HTTP. Hypothesis:
+// the nginx-503 admission ceiling and F01 out-of-order-claim races are
+// HTTP-ingress artifacts an ordered socket removes.
+const TRANSPORT = process.env.TRANSPORT === 'btp' ? 'btp' : 'http';
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 // ---------------------------------------------------------------------------
@@ -149,13 +155,23 @@ class Subscriber {
 function buildConfig(mnemonic, initialDeposit) {
   const keyed = (v) => Object.fromEntries(CHAIN_KEYS.map((k) => [k, v]));
   return {
-    proxyUrl: PROXY_URL,
+    // BTP mode: no proxyUrl (HTTP wins whenever an httpEndpoint exists).
+    // connectorUrl must still be the REAL edge base: publishEvent fetches
+    // GET <connectorUrl>/ilp/identity to seal the response envelope even
+    // when the ILP packets ride BTP (rig's dummy-URL convention breaks it).
+    ...(TRANSPORT === 'btp'
+      ? {
+          connectorUrl: 'https://proxy.devnet.toonprotocol.dev/rust',
+          btpUrl: APEX_BTP,
+          btpAuthToken: '',
+        }
+      : { proxyUrl: PROXY_URL }),
     mnemonic,
     mnemonicAccountIndex: 0,
     ilpInfo: {
       pubkey: '00'.repeat(32),
       ilpAddress: 'g.toon.client',
-      btpEndpoint: '',
+      btpEndpoint: TRANSPORT === 'btp' ? APEX_BTP : '',
       assetCode: 'USD',
       assetScale: 6,
     },
@@ -408,7 +424,8 @@ async function phaseFlood(client, channelId, sub, kind, seconds, budgetFrames, m
 // ---------------------------------------------------------------------------
 async function main() {
   console.log('=== huddle-over-ilp prototype ===');
-  console.log('relay:', RELAY_WS, '| uplink:', PROXY_URL, '| publish dest:', PUBLISH_DEST);
+  console.log('transport:', TRANSPORT, '| relay:', RELAY_WS, '| uplink:',
+    TRANSPORT === 'btp' ? APEX_BTP : PROXY_URL, '| publish dest:', PUBLISH_DEST);
   fs.mkdirSync(path.join(HERE, 'state'), { recursive: true });
 
   // ── fresh identity (persisted across reruns so faucet funds aren't stranded) ──
@@ -446,7 +463,7 @@ async function main() {
 
   // ── client ──
   const client = new ToonClient(buildConfig(mnemonic, deposit.toString()));
-  console.log('starting client (ILP-over-HTTP uplink)...');
+  console.log(`starting client (${TRANSPORT === 'btp' ? 'BTP websocket' : 'ILP-over-HTTP'} uplink)...`);
   await client.start();
   patchNegotiations(client);
 
