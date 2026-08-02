@@ -1,0 +1,125 @@
+=== video-over-ilp: local 720p-12.45Mbps-150fps@12.45Mbps frame x 30s (label lceil-150f) ===
+schedule: 4500 frames -> 4500 events, 150 ev/s, avg 10.1KB/ev, offered 12.4Mbps
+[Bootstrap] Querying ws://127.0.0.1:7100 for peer info...
+[Bootstrap] Query filter: {"kinds":[10032],"authors":["4cc650b3a249b9a0d1a93662498b54f8b85e0de1670f397835471d568a127de0"],"limit":1}
+[Bootstrap] Connecting to ws://127.0.0.1:7100...
+[Bootstrap] Connected to ws://127.0.0.1:7100, sending REQ
+[Bootstrap] Received message type: EOSE
+[Bootstrap] EOSE received, found 0 events
+[Bootstrap] Failed to bootstrap with 4cc650b3a249b9a0...: No kind:10032 event found for peer 4cc650b3a249b9a0...
+[Bootstrap] Querying wss://relay-ws.devnet.toonprotocol.dev for peer info...
+[Bootstrap] Query filter: {"kinds":[10032],"authors":["3f12da6d0cf10c91094894b88fc520757fc2860a1a5efb6664d3340ff97cfe40"],"limit":1}
+[Bootstrap] Connecting to wss://relay-ws.devnet.toonprotocol.dev...
+[Bootstrap] Connection closed
+[Bootstrap] Connected to wss://relay-ws.devnet.toonprotocol.dev, sending REQ
+[Bootstrap] Received message type: EVENT
+[Bootstrap] Received event: a5b079c56b62c640...
+[Bootstrap] Received message type: EOSE
+[Bootstrap] EOSE received, found 1 events
+[Bootstrap] Successfully bootstrapped with 3f12da6d0cf10c91...
+[Bootstrap] Announce rejected by nostr-3f12da6d0cf10c91: F01 prepare carries no execution condition
+channel 0xa51b7d9118b43854581ea56f9939d0ff90cfc02dd62550ccf0d974cce8e4ce70 (22ms) price=1000 payer=0x1aC9EA7229136DEB506E8DD5BF40962765771328
+[Bootstrap] Connection closed
+probe ok= true delivered= true 
+{
+ "label": "lceil-150f",
+ "target": "local",
+ "profile": "720p-12.45Mbps-150fps",
+ "mbps": 12.45,
+ "strategy": "frame",
+ "seconds": 30,
+ "price": "1000",
+ "schedule": {
+  "frames": 4500,
+  "events": 4500,
+  "evPerSec": 150,
+  "avgEventKB": 10.1,
+  "offeredMbps": 12.4
+ },
+ "eventsOut": {
+  "ok": 4500,
+  "failed": 0,
+  "delivered": 4500,
+  "errors": {},
+  "rtt": {
+   "p50": 973.8,
+   "p90": 2343.6,
+   "p99": 3175.3
+  },
+  "maxInFlight": 498,
+  "sendLagMaxMs": 839.666748046875,
+  "sendOverrunSec": 0,
+  "wireMB": 64.1,
+  "wireExpansion": 1.4
+ },
+ "framesOut": {
+  "delivered": 4500,
+  "of": 4500,
+  "deliveredPct": 100,
+  "inBudgetPct": 29.1,
+  "in1sPct": 42.7,
+  "e2e": {
+   "p50": 1173.7,
+   "p95": 4218.7,
+   "p99": 4520,
+   "max": 4662.3
+  },
+  "goodputMbps": 12.4
+ },
+ "e2eOverTime": [
+  {
+   "fromSec": 0,
+   "n": 750,
+   "p50": 165.3,
+   "p95": 477,
+   "inBudgetPct": 88.3
+  },
+  {
+   "fromSec": 5,
+   "n": 750,
+   "p50": 3824,
+   "p95": 4533.3,
+   "inBudgetPct": 27.3
+  },
+  {
+   "fromSec": 10,
+   "n": 750,
+   "p50": 3500.3,
+   "p95": 4292,
+   "inBudgetPct": 0
+  },
+  {
+   "fromSec": 15,
+   "n": 750,
+   "p50": 1787,
+   "p95": 2652.7,
+   "inBudgetPct": 0
+  },
+  {
+   "fromSec": 20,
+   "n": 750,
+   "p50": 1101.3,
+   "p95": 1378,
+   "inBudgetPct": 0
+  },
+  {
+   "fromSec": 25,
+   "n": 750,
+   "p50": 269.7,
+   "p95": 1052.3,
+   "inBudgetPct": 59.2
+  }
+ ],
+ "spend": {
+  "baseUnits": "4500000",
+  "usdc": 4.5,
+  "usdcPerMin": 9,
+  "dustUsdcPerMin": 0.009
+ },
+ "encodings": {
+  "single": 4502,
+  "double": 0
+ },
+ "subscriberWireMB": 64.2
+}
+wrote /home/jonathan/Documents/toon-meta-video/prototypes/video-over-ilp/results-local/lceil-150f.json

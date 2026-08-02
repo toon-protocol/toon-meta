@@ -1,0 +1,126 @@
+=== video-over-ilp: local 1080p@5Mbps chunk(16384B) x 30s (label l1080-chunk16) ===
+schedule: 900 frames -> 1799 events, 60 ev/s, avg 10.3KB/ev, offered 5.1Mbps
+[Bootstrap] Querying ws://127.0.0.1:7100 for peer info...
+[Bootstrap] Query filter: {"kinds":[10032],"authors":["4cc650b3a249b9a0d1a93662498b54f8b85e0de1670f397835471d568a127de0"],"limit":1}
+[Bootstrap] Connecting to ws://127.0.0.1:7100...
+[Bootstrap] Connected to ws://127.0.0.1:7100, sending REQ
+[Bootstrap] Received message type: EOSE
+[Bootstrap] EOSE received, found 0 events
+[Bootstrap] Failed to bootstrap with 4cc650b3a249b9a0...: No kind:10032 event found for peer 4cc650b3a249b9a0...
+[Bootstrap] Querying wss://relay-ws.devnet.toonprotocol.dev for peer info...
+[Bootstrap] Query filter: {"kinds":[10032],"authors":["3f12da6d0cf10c91094894b88fc520757fc2860a1a5efb6664d3340ff97cfe40"],"limit":1}
+[Bootstrap] Connecting to wss://relay-ws.devnet.toonprotocol.dev...
+[Bootstrap] Connection closed
+[Bootstrap] Connected to wss://relay-ws.devnet.toonprotocol.dev, sending REQ
+[Bootstrap] Received message type: EVENT
+[Bootstrap] Received event: a5b079c56b62c640...
+[Bootstrap] Received message type: EOSE
+[Bootstrap] EOSE received, found 1 events
+[Bootstrap] Successfully bootstrapped with 3f12da6d0cf10c91...
+[Bootstrap] Announce rejected by nostr-3f12da6d0cf10c91: F01 prepare carries no execution condition
+channel 0xfa8e22f10af2fb5c1e0af49a9e44b578e73b0dc97a0d75d40395b9e260675188 (23ms) price=1000 payer=0x1aC9EA7229136DEB506E8DD5BF40962765771328
+[Bootstrap] Connection closed
+probe ok= true delivered= true 
+{
+ "label": "l1080-chunk16",
+ "target": "local",
+ "profile": "1080p",
+ "mbps": 5,
+ "strategy": "chunk",
+ "chunkBytes": 16384,
+ "seconds": 30,
+ "price": "1000",
+ "schedule": {
+  "frames": 900,
+  "events": 1799,
+  "evPerSec": 60,
+  "avgEventKB": 10.3,
+  "offeredMbps": 5.1
+ },
+ "eventsOut": {
+  "ok": 1799,
+  "failed": 0,
+  "delivered": 1799,
+  "errors": {},
+  "rtt": {
+   "p50": 41.6,
+   "p90": 95.5,
+   "p99": 436.2
+  },
+  "maxInFlight": 76,
+  "sendLagMaxMs": 552.333251953125,
+  "sendOverrunSec": 0,
+  "wireMB": 26.1,
+  "wireExpansion": 1.4
+ },
+ "framesOut": {
+  "delivered": 900,
+  "of": 900,
+  "deliveredPct": 100,
+  "inBudgetPct": 96.3,
+  "in1sPct": 98.7,
+  "e2e": {
+   "p50": 18,
+   "p95": 145.7,
+   "p99": 1110.7,
+   "max": 1376.3
+  },
+  "goodputMbps": 5.1
+ },
+ "e2eOverTime": [
+  {
+   "fromSec": 0,
+   "n": 150,
+   "p50": 19.3,
+   "p95": 1144,
+   "inBudgetPct": 78
+  },
+  {
+   "fromSec": 5,
+   "n": 150,
+   "p50": 18,
+   "p95": 45,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 10,
+   "n": 150,
+   "p50": 18,
+   "p95": 62.3,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 15,
+   "n": 150,
+   "p50": 17.7,
+   "p95": 24,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 20,
+   "n": 150,
+   "p50": 18,
+   "p95": 72.3,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 25,
+   "n": 150,
+   "p50": 17.7,
+   "p95": 22,
+   "inBudgetPct": 100
+  }
+ ],
+ "spend": {
+  "baseUnits": "1799000",
+  "usdc": 1.799,
+  "usdcPerMin": 3.6,
+  "dustUsdcPerMin": 0.003598
+ },
+ "encodings": {
+  "single": 1801,
+  "double": 0
+ },
+ "subscriberWireMB": 26.1
+}
+wrote /home/jonathan/Documents/toon-meta-video/prototypes/video-over-ilp/results-local/l1080-chunk16.json

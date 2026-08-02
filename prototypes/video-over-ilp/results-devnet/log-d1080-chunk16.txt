@@ -1,0 +1,119 @@
+=== video-over-ilp: devnet 1080p@5Mbps chunk(16384B) x 30s (label d1080-chunk16) ===
+schedule: 900 frames -> 1799 events, 60 ev/s, avg 10.3KB/ev, offered 5.1Mbps
+[Bootstrap] Querying wss://relay-ws.devnet.toonprotocol.dev for peer info...
+[Bootstrap] Query filter: {"kinds":[10032],"authors":["3f12da6d0cf10c91094894b88fc520757fc2860a1a5efb6664d3340ff97cfe40"],"limit":1}
+[Bootstrap] Connecting to wss://relay-ws.devnet.toonprotocol.dev...
+[Bootstrap] Connected to wss://relay-ws.devnet.toonprotocol.dev, sending REQ
+[Bootstrap] Received message type: EVENT
+[Bootstrap] Received event: a5b079c56b62c640...
+[Bootstrap] Received message type: EOSE
+[Bootstrap] EOSE received, found 1 events
+[Bootstrap] Negotiated evm:84532 with nostr-3f12da6d0cf10c91 (lazy — channel deferred)
+[Bootstrap] Successfully bootstrapped with 3f12da6d0cf10c91...
+[Bootstrap] Connection closed
+[Bootstrap] Announce rejected by nostr-3f12da6d0cf10c91: F06 No payment channel claim attached
+channel 0xe2e86b44553da53d3f08bb479afce59f8a25424d62f3fad947de97bff1a0d7de (9127ms) price=1000 payer=0x187B9Ca15988dB93ccAb9e3D188b54Afb76963F8
+probe ok= true delivered= true 
+{
+ "label": "d1080-chunk16",
+ "target": "devnet",
+ "profile": "1080p",
+ "mbps": 5,
+ "strategy": "chunk",
+ "chunkBytes": 16384,
+ "seconds": 30,
+ "price": "1000",
+ "schedule": {
+  "frames": 900,
+  "events": 1799,
+  "evPerSec": 60,
+  "avgEventKB": 10.3,
+  "offeredMbps": 5.1
+ },
+ "eventsOut": {
+  "ok": 1799,
+  "failed": 0,
+  "delivered": 1799,
+  "errors": {},
+  "rtt": {
+   "p50": 648.6,
+   "p90": 1345.7,
+   "p99": 1650.2
+  },
+  "maxInFlight": 105,
+  "sendLagMaxMs": 540.666748046875,
+  "sendOverrunSec": 0,
+  "wireMB": 26.1,
+  "wireExpansion": 1.4
+ },
+ "framesOut": {
+  "delivered": 900,
+  "of": 900,
+  "deliveredPct": 100,
+  "inBudgetPct": 30.2,
+  "in1sPct": 45.8,
+  "e2e": {
+   "p50": 1324.3,
+   "p95": 4420.7,
+   "p99": 4640.7,
+   "max": 4764.7
+  },
+  "goodputMbps": 5.1
+ },
+ "e2eOverTime": [
+  {
+   "fromSec": 0,
+   "n": 150,
+   "p50": 88.3,
+   "p95": 412.7,
+   "inBudgetPct": 94.7
+  },
+  {
+   "fromSec": 5,
+   "n": 150,
+   "p50": 1107,
+   "p95": 1613.7,
+   "inBudgetPct": 20
+  },
+  {
+   "fromSec": 10,
+   "n": 150,
+   "p50": 3492.3,
+   "p95": 4645,
+   "inBudgetPct": 0
+  },
+  {
+   "fromSec": 15,
+   "n": 150,
+   "p50": 3313.7,
+   "p95": 4044.7,
+   "inBudgetPct": 0
+  },
+  {
+   "fromSec": 20,
+   "n": 150,
+   "p50": 1585,
+   "p95": 2519.7,
+   "inBudgetPct": 0
+  },
+  {
+   "fromSec": 25,
+   "n": 150,
+   "p50": 311,
+   "p95": 578.7,
+   "inBudgetPct": 66.7
+  }
+ ],
+ "spend": {
+  "baseUnits": "1799000",
+  "usdc": 1.799,
+  "usdcPerMin": 3.6,
+  "dustUsdcPerMin": 0.003598
+ },
+ "encodings": {
+  "single": 1801,
+  "double": 0
+ },
+ "subscriberWireMB": 26.1
+}
+wrote /home/jonathan/Documents/toon-meta-video/prototypes/video-over-ilp/results-devnet/d1080-chunk16.json

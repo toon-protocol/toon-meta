@@ -1,0 +1,127 @@
+=== video-over-ilp: local 1080p@5Mbps frame x 20s (label lfan-1080p-s10) ===
+schedule: 600 frames -> 600 events, 30 ev/s, avg 20.6KB/ev, offered 5.1Mbps
+[Bootstrap] Querying ws://127.0.0.1:7100 for peer info...
+[Bootstrap] Query filter: {"kinds":[10032],"authors":["4cc650b3a249b9a0d1a93662498b54f8b85e0de1670f397835471d568a127de0"],"limit":1}
+[Bootstrap] Connecting to ws://127.0.0.1:7100...
+[Bootstrap] Connected to ws://127.0.0.1:7100, sending REQ
+[Bootstrap] Received message type: EOSE
+[Bootstrap] EOSE received, found 0 events
+[Bootstrap] Failed to bootstrap with 4cc650b3a249b9a0...: No kind:10032 event found for peer 4cc650b3a249b9a0...
+[Bootstrap] Querying wss://relay-ws.devnet.toonprotocol.dev for peer info...
+[Bootstrap] Query filter: {"kinds":[10032],"authors":["3f12da6d0cf10c91094894b88fc520757fc2860a1a5efb6664d3340ff97cfe40"],"limit":1}
+[Bootstrap] Connecting to wss://relay-ws.devnet.toonprotocol.dev...
+[Bootstrap] Connection closed
+[Bootstrap] Connected to wss://relay-ws.devnet.toonprotocol.dev, sending REQ
+[Bootstrap] Received message type: EVENT
+[Bootstrap] Received event: a5b079c56b62c640...
+[Bootstrap] Received message type: EOSE
+[Bootstrap] EOSE received, found 1 events
+[Bootstrap] Successfully bootstrapped with 3f12da6d0cf10c91...
+[Bootstrap] Announce rejected by nostr-3f12da6d0cf10c91: F01 prepare carries no execution condition
+channel 0x512a5efd139199ab5d4dea52e466de4840381b06bc21392d3457212b58cfb6d3 (25ms) price=1000 payer=0x1aC9EA7229136DEB506E8DD5BF40962765771328
+[Bootstrap] Connection closed
+probe ok= true delivered= true 
+{
+ "label": "lfan-1080p-s10",
+ "target": "local",
+ "profile": "1080p",
+ "mbps": 5,
+ "strategy": "frame",
+ "seconds": 20,
+ "price": "1000",
+ "schedule": {
+  "frames": 600,
+  "events": 600,
+  "evPerSec": 30,
+  "avgEventKB": 20.6,
+  "offeredMbps": 5.1
+ },
+ "eventsOut": {
+  "ok": 600,
+  "failed": 0,
+  "delivered": 600,
+  "errors": {},
+  "rtt": {
+   "p50": 39.9,
+   "p90": 42,
+   "p99": 145.6
+  },
+  "maxInFlight": 21,
+  "sendLagMaxMs": 469.333251953125,
+  "sendOverrunSec": 0,
+  "wireMB": 17.1,
+  "wireExpansion": 1.4
+ },
+ "framesOut": {
+  "delivered": 600,
+  "of": 600,
+  "deliveredPct": 100,
+  "inBudgetPct": 96.2,
+  "in1sPct": 100,
+  "e2e": {
+   "p50": 10,
+   "p95": 240.3,
+   "p99": 718.7,
+   "max": 813
+  },
+  "goodputMbps": 5.1
+ },
+ "e2eOverTime": [
+  {
+   "fromSec": 0,
+   "n": 150,
+   "p50": 10.7,
+   "p95": 13.7,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 5,
+   "n": 150,
+   "p50": 10.3,
+   "p95": 685.3,
+   "inBudgetPct": 84.7
+  },
+  {
+   "fromSec": 10,
+   "n": 150,
+   "p50": 9.7,
+   "p95": 11,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 15,
+   "n": 150,
+   "p50": 9.7,
+   "p95": 11,
+   "inBudgetPct": 100
+  }
+ ],
+ "spend": {
+  "baseUnits": "600000",
+  "usdc": 0.6,
+  "usdcPerMin": 1.8,
+  "dustUsdcPerMin": 0.0018
+ },
+ "encodings": {
+  "single": 602,
+  "double": 0
+ },
+ "subscriberWireMB": 17.1,
+ "fanout": {
+  "listeners": 10,
+  "perSubDelivered": [
+   601,
+   601,
+   601,
+   601,
+   601,
+   601,
+   601,
+   601,
+   601,
+   601
+  ],
+  "totalRelayEgressMB": 171.2
+ }
+}
+wrote /home/jonathan/Documents/toon-meta-video/prototypes/video-over-ilp/results-local/lfan-1080p-s10.json

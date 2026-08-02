@@ -1,0 +1,132 @@
+{
+ "target": "devnet",
+ "price": "1000",
+ "rows": [
+  {
+   "sizeKB": 1,
+   "wireBytes": 1792,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 84.1,
+   "rttMax": 689,
+   "err": null
+  },
+  {
+   "sizeKB": 2,
+   "wireBytes": 3156,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 80,
+   "rttMax": 80.6,
+   "err": null
+  },
+  {
+   "sizeKB": 4,
+   "wireBytes": 5889,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 80.5,
+   "rttMax": 86,
+   "err": null
+  },
+  {
+   "sizeKB": 8,
+   "wireBytes": 11349,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 80.2,
+   "rttMax": 90.4,
+   "err": null
+  },
+  {
+   "sizeKB": 16,
+   "wireBytes": 22273,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 140.9,
+   "rttMax": 817.3,
+   "err": null
+  },
+  {
+   "sizeKB": 32,
+   "wireBytes": 44117,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 170.8,
+   "rttMax": 176.9,
+   "err": null
+  },
+  {
+   "sizeKB": 64,
+   "wireBytes": 87809,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 239.9,
+   "rttMax": 258.8,
+   "err": null
+  },
+  {
+   "sizeKB": 96,
+   "wireBytes": 131497,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 249.6,
+   "rttMax": 321.2,
+   "err": null
+  },
+  {
+   "sizeKB": 128,
+   "wireBytes": 175189,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 238.9,
+   "rttMax": 365.5,
+   "err": null
+  },
+  {
+   "sizeKB": 192,
+   "wireBytes": 262569,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 261.5,
+   "rttMax": 373,
+   "err": null
+  },
+  {
+   "sizeKB": 256,
+   "wireBytes": 349953,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 380.1,
+   "rttMax": 403.9,
+   "err": null
+  },
+  {
+   "sizeKB": 384,
+   "wireBytes": 524713,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 406,
+   "rttMax": 570.4,
+   "err": null
+  },
+  {
+   "sizeKB": 512,
+   "wireBytes": 699477,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 462.4,
+   "rttMax": 680.7,
+   "err": null
+  },
+  {
+   "sizeKB": 1024,
+   "wireBytes": 1398529,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 821.6,
+   "rttMax": 1020.8,
+   "err": null
+  }
+ ]
+}

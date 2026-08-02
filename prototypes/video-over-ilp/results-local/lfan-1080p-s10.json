@@ -1,0 +1,103 @@
+{
+ "label": "lfan-1080p-s10",
+ "target": "local",
+ "profile": "1080p",
+ "mbps": 5,
+ "strategy": "frame",
+ "seconds": 20,
+ "price": "1000",
+ "schedule": {
+  "frames": 600,
+  "events": 600,
+  "evPerSec": 30,
+  "avgEventKB": 20.6,
+  "offeredMbps": 5.1
+ },
+ "eventsOut": {
+  "ok": 600,
+  "failed": 0,
+  "delivered": 600,
+  "errors": {},
+  "rtt": {
+   "p50": 39.9,
+   "p90": 42,
+   "p99": 145.6
+  },
+  "maxInFlight": 21,
+  "sendLagMaxMs": 469.333251953125,
+  "sendOverrunSec": 0,
+  "wireMB": 17.1,
+  "wireExpansion": 1.4
+ },
+ "framesOut": {
+  "delivered": 600,
+  "of": 600,
+  "deliveredPct": 100,
+  "inBudgetPct": 96.2,
+  "in1sPct": 100,
+  "e2e": {
+   "p50": 10,
+   "p95": 240.3,
+   "p99": 718.7,
+   "max": 813
+  },
+  "goodputMbps": 5.1
+ },
+ "e2eOverTime": [
+  {
+   "fromSec": 0,
+   "n": 150,
+   "p50": 10.7,
+   "p95": 13.7,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 5,
+   "n": 150,
+   "p50": 10.3,
+   "p95": 685.3,
+   "inBudgetPct": 84.7
+  },
+  {
+   "fromSec": 10,
+   "n": 150,
+   "p50": 9.7,
+   "p95": 11,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 15,
+   "n": 150,
+   "p50": 9.7,
+   "p95": 11,
+   "inBudgetPct": 100
+  }
+ ],
+ "spend": {
+  "baseUnits": "600000",
+  "usdc": 0.6,
+  "usdcPerMin": 1.8,
+  "dustUsdcPerMin": 0.0018
+ },
+ "encodings": {
+  "single": 602,
+  "double": 0
+ },
+ "subscriberWireMB": 17.1,
+ "fanout": {
+  "listeners": 10,
+  "perSubDelivered": [
+   601,
+   601,
+   601,
+   601,
+   601,
+   601,
+   601,
+   601,
+   601,
+   601
+  ],
+  "totalRelayEgressMB": 171.2
+ }
+}

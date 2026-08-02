@@ -1,0 +1,78 @@
+{
+ "target": "local",
+ "price": "1000",
+ "rows": [
+  {
+   "sizeKB": 768,
+   "wireBytes": 1049000,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 121.1,
+   "rttMax": 189.8,
+   "err": null
+  },
+  {
+   "sizeKB": 1024,
+   "wireBytes": 1398528,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 119.1,
+   "rttMax": 136.6,
+   "err": null
+  },
+  {
+   "sizeKB": 1536,
+   "wireBytes": 2097577,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 181.7,
+   "rttMax": 238.6,
+   "err": null
+  },
+  {
+   "sizeKB": 2048,
+   "wireBytes": 2796629,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 274.3,
+   "rttMax": 301.1,
+   "err": null
+  },
+  {
+   "sizeKB": 3072,
+   "wireBytes": 4194729,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 432.2,
+   "rttMax": 526.7,
+   "err": null
+  },
+  {
+   "sizeKB": 4096,
+   "wireBytes": 5592833,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 581.2,
+   "rttMax": 597.5,
+   "err": null
+  },
+  {
+   "sizeKB": 6144,
+   "wireBytes": 8389033,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 927,
+   "rttMax": 985.5,
+   "err": null
+  },
+  {
+   "sizeKB": 8192,
+   "wireBytes": 11185237,
+   "ok": "5/5",
+   "delivered": "5/5",
+   "rttP50": 1220,
+   "rttMax": 1457.4,
+   "err": null
+  }
+ ]
+}

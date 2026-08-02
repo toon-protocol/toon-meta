@@ -1,0 +1,119 @@
+=== video-over-ilp: devnet 720p@2.5Mbps chunk(16384B) x 30s (label d720-chunk16) ===
+schedule: 900 frames -> 981 events, 32.7 ev/s, avg 9.4KB/ev, offered 2.5Mbps
+[Bootstrap] Querying wss://relay-ws.devnet.toonprotocol.dev for peer info...
+[Bootstrap] Query filter: {"kinds":[10032],"authors":["3f12da6d0cf10c91094894b88fc520757fc2860a1a5efb6664d3340ff97cfe40"],"limit":1}
+[Bootstrap] Connecting to wss://relay-ws.devnet.toonprotocol.dev...
+[Bootstrap] Connected to wss://relay-ws.devnet.toonprotocol.dev, sending REQ
+[Bootstrap] Received message type: EVENT
+[Bootstrap] Received event: a5b079c56b62c640...
+[Bootstrap] Received message type: EOSE
+[Bootstrap] EOSE received, found 1 events
+[Bootstrap] Negotiated evm:84532 with nostr-3f12da6d0cf10c91 (lazy — channel deferred)
+[Bootstrap] Successfully bootstrapped with 3f12da6d0cf10c91...
+[Bootstrap] Connection closed
+[Bootstrap] Announce rejected by nostr-3f12da6d0cf10c91: F06 No payment channel claim attached
+channel 0xbc49877ce5f07a64bf0b3bd8e4aab72308ed291c1776bc9a07e2717c5b3277eb (6949ms) price=1000 payer=0x187B9Ca15988dB93ccAb9e3D188b54Afb76963F8
+probe ok= true delivered= true 
+{
+ "label": "d720-chunk16",
+ "target": "devnet",
+ "profile": "720p",
+ "mbps": 2.5,
+ "strategy": "chunk",
+ "chunkBytes": 16384,
+ "seconds": 30,
+ "price": "1000",
+ "schedule": {
+  "frames": 900,
+  "events": 981,
+  "evPerSec": 32.7,
+  "avgEventKB": 9.4,
+  "offeredMbps": 2.5
+ },
+ "eventsOut": {
+  "ok": 981,
+  "failed": 0,
+  "delivered": 981,
+  "errors": {},
+  "rtt": {
+   "p50": 77.9,
+   "p90": 217.2,
+   "p99": 477.8
+  },
+  "maxInFlight": 40,
+  "sendLagMaxMs": 526,
+  "sendOverrunSec": 0,
+  "wireMB": 13.1,
+  "wireExpansion": 1.4
+ },
+ "framesOut": {
+  "delivered": 900,
+  "of": 900,
+  "deliveredPct": 100,
+  "inBudgetPct": 95.3,
+  "in1sPct": 98.4,
+  "e2e": {
+   "p50": 78,
+   "p95": 352.3,
+   "p99": 1091.3,
+   "max": 1211
+  },
+  "goodputMbps": 2.5
+ },
+ "e2eOverTime": [
+  {
+   "fromSec": 0,
+   "n": 150,
+   "p50": 83.3,
+   "p95": 274,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 5,
+   "n": 150,
+   "p50": 80.7,
+   "p95": 205.3,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 10,
+   "n": 150,
+   "p50": 78,
+   "p95": 177,
+   "inBudgetPct": 100
+  },
+  {
+   "fromSec": 15,
+   "n": 150,
+   "p50": 74.3,
+   "p95": 195,
+   "inBudgetPct": 98.7
+  },
+  {
+   "fromSec": 20,
+   "n": 150,
+   "p50": 143.7,
+   "p95": 1091.3,
+   "inBudgetPct": 73.3
+  },
+  {
+   "fromSec": 25,
+   "n": 150,
+   "p50": 72.7,
+   "p95": 205.7,
+   "inBudgetPct": 100
+  }
+ ],
+ "spend": {
+  "baseUnits": "981000",
+  "usdc": 0.981,
+  "usdcPerMin": 1.9600000000000002,
+  "dustUsdcPerMin": 0.001962
+ },
+ "encodings": {
+  "single": 983,
+  "double": 0
+ },
+ "subscriberWireMB": 13.1
+}
+wrote /home/jonathan/Documents/toon-meta-video/prototypes/video-over-ilp/results-devnet/d720-chunk16.json

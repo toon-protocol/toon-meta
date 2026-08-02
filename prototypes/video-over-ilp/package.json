@@ -1,0 +1,12 @@
+{
+  "name": "video-over-ilp",
+  "version": "1.0.0",
+  "description": "Throwaway prototype: can the TOON paid-ephemeral-write pipeline carry streaming HD video, and where does it break?",
+  "type": "module",
+  "dependencies": {
+    "@toon-protocol/client": "^0.25.1",
+    "@toon-protocol/core": "^3.1.4",
+    "nostr-tools": "^2.10.4",
+    "ws": "^8.21.1"
+  }
+}
