@@ -1,0 +1,27 @@
+== disk fsync floor ==
+{"mode":"fsync-probe","n":200,"p50_ms":5.608,"p99_ms":8.559}
+== counterfactual: CURRENT shape (per-claim fsync under global lock) ==
+{"mode":"current-throughput","sessions":1,"seconds":10.00,"claims":1810,"cps":181,"fsync_batches":0,"avg_batch_fill":0.0}
+{"mode":"current-throughput","sessions":16,"seconds":10.08,"claims":1792,"cps":178,"fsync_batches":0,"avg_batch_fill":0.0}
+{"mode":"current-throughput","sessions":64,"seconds":10.36,"claims":1879,"cps":181,"fsync_batches":0,"avg_batch_fill":0.0}
+== counterfactual: FIXED shape (group commit outside lock) ==
+{"mode":"fixed-throughput","sessions":1,"seconds":10.00,"claims":1799,"cps":180,"fsync_batches":1799,"avg_batch_fill":1.0}
+{"mode":"fixed-throughput","sessions":16,"seconds":10.01,"claims":25177,"cps":2516,"fsync_batches":1744,"avg_batch_fill":14.4}
+{"mode":"fixed-throughput","sessions":64,"seconds":10.01,"claims":99297,"cps":9917,"fsync_batches":1559,"avg_batch_fill":63.7}
+{"mode":"fixed-throughput","sessions":256,"seconds":10.04,"claims":260789,"cps":25988,"fsync_batches":1021,"avg_batch_fill":255.4}
+== counterfactual latency (paced) ==
+{"mode":"latency-current","sessions":10,"rate":50,"claims":7500,"p50_ms":46.827,"p95_ms":133.138,"p99_ms":263.826,"max_ms":1044.094}
+{"mode":"latency-fixed","sessions":1,"rate":50,"claims":750,"p50_ms":5.517,"p95_ms":7.360,"p99_ms":30.156,"max_ms":96.838}
+{"mode":"latency-fixed","sessions":10,"rate":50,"claims":7500,"p50_ms":10.277,"p95_ms":12.266,"p99_ms":17.062,"max_ms":79.103}
+{"mode":"latency-fixed","sessions":40,"rate":50,"claims":30000,"p50_ms":10.483,"p95_ms":12.879,"p99_ms":17.460,"max_ms":79.689}
+== tigerbeetle throughput ==
+{"mode":"throughput","sessions":1,"batchSize":1,"seconds":10.02,"transfers":1128,"rejected":0,"tps":113}
+{"mode":"throughput","sessions":16,"batchSize":1,"seconds":10.02,"transfers":9120,"rejected":0,"tps":910}
+{"mode":"throughput","sessions":1,"batchSize":64,"seconds":8.98,"transfers":39232,"rejected":0,"tps":4371}
+{"mode":"throughput","sessions":16,"batchSize":64,"seconds":10.05,"transfers":116288,"rejected":0,"tps":11567}
+{"mode":"throughput","sessions":1,"batchSize":253,"seconds":10.13,"transfers":134090,"rejected":0,"tps":13237}
+{"mode":"throughput","sessions":16,"batchSize":253,"seconds":10.09,"transfers":200882,"rejected":0,"tps":19911}
+{"mode":"throughput","sessions":64,"batchSize":253,"seconds":16.67,"transfers":167233,"rejected":0,"tps":10031}
+{"mode":"latency","sessions":1,"ratePerSession":50,"claims":1000,"rejected":0,"p50_ms":5.376,"p95_ms":7.397,"p99_ms":29.777,"max_ms":607.242}
+{"mode":"latency","sessions":10,"ratePerSession":50,"claims":10000,"rejected":0,"p50_ms":10.327,"p95_ms":14.157,"p99_ms":27.79,"max_ms":611.729}
+{"mode":"latency","sessions":40,"ratePerSession":50,"claims":40000,"rejected":0,"p50_ms":10.321,"p95_ms":16.144,"p99_ms":35.222,"max_ms":612.782}
