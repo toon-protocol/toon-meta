@@ -603,3 +603,119 @@ toon-client#489 remains open and remains the dominant devnet-USDC sink).
    against a ~250 fps ceiling (1.7× margin at N=3, none at N=5 speakers).
    Frame batching (Phase F recommendation #2) remains the lever that buys an
    order of magnitude.
+
+## Phase H — post-relay#87 re-measure (2026-08-02, buzz#23 / connector#685)
+
+relay PR #87 (merged 2026-08-02 as `dd881d9`, deployed the same hour) swapped
+the pure-JS noble schnorr verify for tiny-secp256k1's libsecp256k1 WASM build
+(~7× faster microbenchmark; noble kept as a fallback behind a load-time
+self-test, active impl logged once at startup) and gated the relay's per-write
+logging behind `TOON_LOG_WRITES` (default off). This phase re-runs the Phase G
+harness unchanged to re-test the ADR 0003 bar and locate the next ceiling.
+
+### Verdict
+
+> **The ADR 0003 bar at N=3 is MET, reliably.** Four independent N=3 runs
+> scored 98.9 / 99.2 / 97.7 / 99.2 % aggregate within-150ms, with per-session
+> minimums 98.8 / 99.0 / 97.5 / 98.9 % — **every session in every run clears
+> ≥95%**, vs 1-of-4 runs in Phase G.
+>
+> **The ~240–260 fps CPU ceiling is GONE.** N=10 (486 fps offered — 2×
+> Phase G's collapse point) now delivers **100% with zero failures** where
+> Phase G delivered 79.2% with 6,053 R00 expiries. Within-budget capacity
+> (≥95% ≤150 ms) now sits between 243 fps (N=5 passes at 96.8%) and 486 fps
+> (78% in budget — bounded tail excursions, not queue collapse).
+>
+> **The relay is no longer the bottleneck at any measurable load.** At
+> 486 fps the relay averages 34.5% CPU (max 59%) — Phase G pinned ~94% at the
+> same offered load. Bracketing the true delivery ceiling needs >10 sessions
+> (i.e. new funded identities), which this phase deliberately did not create.
+
+### Deploy under test
+
+- Relay image **`ghcr.io/toon-protocol/relay:sha-dd881d9`** (squash-merge of
+  relay#87), swapped in on the `toon` box at 16:31Z by editing only the relay
+  service pin in `docker-compose.node.yml` (timestamped backup kept on-box,
+  as in Phase G; bind-mounted connector configs untouched). Startup log
+  confirms the fast path active inside the deployed image:
+  `[relay] event signature verify: libsecp256k1-wasm` (not the noble
+  fallback). Connector unchanged: `connector:rust-sha-bb8e12c`.
+- kind:10032 announce situation verified post-deploy: apex announcer
+  (`30fdd01d…`) fresh + unexpired claiming `g.toon` + `g.toon.relay` at the
+  rust BTP endpoint; store (`49c5311d…`) fresh on `g.toon.ario`; stale
+  announces still NIP-40-expired. No new host ports.
+- Smoke (1×10 s): 498/498 delivered, 99.2% ≤150 ms, zero failures.
+
+### Setup deltas vs Phase G
+
+**None in the harness** (same commit's `multi.mjs`, same drop-late pacer,
+kind 20001 / 160 B frames, 1000-unit price, 60 s runs). The 10 Phase G
+identities and their state were reused from the saved
+`state-multi-phase-g` snapshot — no new identities, no faucet calls, no
+fleet-wallet gas. EVM `openChannel` still does not resume from
+`channelStorePath` (toon-client#489), so each run still opened fresh channels
+from the sessions' own remaining gas/USDC.
+
+### Runs — 60 s sustained, 50 fps offered per session
+
+| run | aggregate offered | delivered | within 150ms (agg) | per-session in150 | failures |
+|---|---|---|---|---|---|
+| smoke-h (N=1, 10 s) | 49.8 fps | 100% | 99.2% | 99.2 | 0 |
+| n3-h | 145.8 fps | 100% | 98.9% | 98.8 / 99.0 / 98.9 | 0 |
+| n3b-h | 146.0 fps | 100% | 99.2% | 99.0 / 99.4 / 99.3 | 0 |
+| n3c-h | 147.9 fps | 100% | 97.7% | 97.9 / 97.8 / 97.5 | 0 |
+| n3d-h | 145.8 fps | 100% | 99.2% | 98.9 / 99.2 / 99.4 | 0 |
+| **n5-h** | **243.2 fps** | **100%** | **96.8%** | 96.6 / 96.8 / 97.2 / 96.5 / 96.8 | 0 |
+| **n10-h** | **486.2 fps** | **100%** | 78.0% | 77.5–78.8 (all ten) | 0 |
+
+Phase G → Phase H at the same offered load: N=3 87–97% (median ~95%) →
+**97.7–99.2% (median 99.0%)**; N=5 95.6% → 96.8%; N=10 **79.2% delivered/
+0.1% in budget → 100% delivered / 78% in budget, zero failures**. The R00
+expiry failure mode did not occur at any N.
+
+### Where the ceiling went
+
+Edge CPU sampled during each run (`docker stats`, 100% = the box's one core):
+
+| run | offered aggregate | relay CPU avg/max | rust connector avg/max | outcome |
+|---|---|---|---|---|
+| n3-h..n3d-h | ~146 fps | 12–15% / 21–36% | 10% / 14–25% | healthy |
+| n5-h | 243 fps | 17% / 28% | 15% / 23% | healthy (96.8% in budget) |
+| n10-h | 486 fps | 35% / 59% | 29% / 55% | 100% delivered, 78% in budget |
+
+Per delivered frame the relay now costs ~0.071 %CPU·s/frame at N=5 vs ~0.227
+in Phase G — a **~3.2× reduction in total relay CPU** (verify was only part
+of the per-event loop; the 7× applied to the verify step alone, and the
+per-write log gating removed a second per-event cost #84 had left behind).
+Extrapolated alone, the relay would not pin the core until ~1,200+ fps — but
+relay max (59%) + connector max (55%) already exceed the single core at
+bursts, so **the next contention point is the 1-vCPU box itself, not the
+relay's verify path**. The N=10 tail (p50 holds ~75 ms; p90 excursions to
+500–1200 ms that drain within 1–2 buckets) and the milder N≤5 jitter are
+consistent with brief joint-CPU saturation, not a standing queue: unlike
+every prior phase, excess load no longer converts into a growing queue or
+expiries at any measured N.
+
+The relay#85 / connector#686 prediction (~250–700 fps after moving verify off
+the pure-JS path) is confirmed at its lower edge and the measurable range is
+exhausted above it: the delivery ceiling moved from ~240–260 fps to **>486 fps
+(unbracketed — beyond the harness's 10 funded identities)**.
+
+### Cost
+
+~79.4 devnet USDC in frame fees across 7 runs (~79k paid frames at the
+operator's 1000-unit price), 28 new channels × 20 USDC collateral
+(toon-client#489 remains the dominant devnet-USDC sink).
+
+### What this means for buzz#23 (ADR 0003)
+
+1. **The bar is met**: ≥95% of frames within 150 ms in every session, in all
+   four N=3 runs (worst session 97.5%). The re-measure gate from the
+   2026-08-02 re-plan decision is satisfied; buzz#23 is unblocked for the
+   relay-native design.
+2. Headroom now exists: N=3 offers ~146 fps against a >486 fps pipe (>3.3×
+   margin), and N=5 passes the same bar outright. Frame batching remains
+   worthwhile for economics, but is no longer load-bearing for N≤5.
+3. Remaining relay#85 items (worker-pool verify, batch verify, skip-verify
+   policy) are now optimization, not unblockers: the verify swap alone
+   removed the relay from the critical path at every measurable load.
