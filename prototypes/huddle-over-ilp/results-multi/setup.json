@@ -1,0 +1,198 @@
+{
+ "label": "setup",
+ "sessions": 5,
+ "fps": 50,
+ "seconds": 3,
+ "wallStart": "2026-08-02T03:42:30.211Z",
+ "wallEnd": "2026-08-02T03:43:02.878Z",
+ "aggregate": {
+  "sent": 750,
+  "delivered": 750,
+  "in150": 10,
+  "failures": 0,
+  "spend": "750000"
+ },
+ "errors": {},
+ "perSession": [
+  {
+   "type": "result",
+   "idx": 0,
+   "chain": "evm",
+   "channelId": "0xb352937b40ebc115c34a64fb90d879dc1373fa385bc7869b6d9d4a2cb2d994e0",
+   "price": "1000",
+   "sent": 150,
+   "offeredWall": 3,
+   "offeredFps": 50,
+   "delivered": 150,
+   "in150": 2,
+   "failures": 0,
+   "errors": {},
+   "maxInFlight": 35,
+   "encodings": {
+    "single": 152,
+    "double": 0
+   },
+   "e2e": {
+    "p50": 531,
+    "p90": 700,
+    "p99": 712,
+    "max": 714
+   },
+   "rtt": {
+    "p50": 534.467462,
+    "p90": 700.392315,
+    "p99": 713.68193
+   },
+   "deliveredPerSecond": [
+    50,
+    50,
+    50
+   ],
+   "spendBaseUnits": "150000"
+  },
+  {
+   "type": "result",
+   "idx": 1,
+   "chain": "evm",
+   "channelId": "0xf88bb4db764be20824476cb3ae4e04dd0541dfc2fbbe5a94704f476aa0415855",
+   "price": "1000",
+   "sent": 150,
+   "offeredWall": 3,
+   "offeredFps": 50,
+   "delivered": 150,
+   "in150": 5,
+   "failures": 0,
+   "errors": {},
+   "maxInFlight": 32,
+   "encodings": {
+    "single": 152,
+    "double": 0
+   },
+   "e2e": {
+    "p50": 478,
+    "p90": 647,
+    "p99": 687,
+    "max": 707
+   },
+   "rtt": {
+    "p50": 478.77661,
+    "p90": 647.397285,
+    "p99": 665.399973
+   },
+   "deliveredPerSecond": [
+    50,
+    50,
+    50
+   ],
+   "spendBaseUnits": "150000"
+  },
+  {
+   "type": "result",
+   "idx": 2,
+   "chain": "evm",
+   "channelId": "0xc74b59f88b00246b7b2e9fe5d4b6e09aeb77165e8304ecf7019c886b4b740339",
+   "price": "1000",
+   "sent": 150,
+   "offeredWall": 3,
+   "offeredFps": 50,
+   "delivered": 150,
+   "in150": 0,
+   "failures": 0,
+   "errors": {},
+   "maxInFlight": 93,
+   "encodings": {
+    "single": 152,
+    "double": 0
+   },
+   "e2e": {
+    "p50": 1795,
+    "p90": 2141,
+    "p99": 2200,
+    "max": 2205
+   },
+   "rtt": {
+    "p50": 1791.533016,
+    "p90": 2139.934141,
+    "p99": 2200.441479
+   },
+   "deliveredPerSecond": [
+    50,
+    50,
+    50
+   ],
+   "spendBaseUnits": "150000"
+  },
+  {
+   "type": "result",
+   "idx": 3,
+   "chain": "evm",
+   "channelId": "0xd0e7d03e2067a3b09267153154d2087bd278ff4c2e0792524b32851683de7265",
+   "price": "1000",
+   "sent": 150,
+   "offeredWall": 2.999,
+   "offeredFps": 50.01667222407469,
+   "delivered": 150,
+   "in150": 0,
+   "failures": 0,
+   "errors": {},
+   "maxInFlight": 93,
+   "encodings": {
+    "single": 152,
+    "double": 0
+   },
+   "e2e": {
+    "p50": 1800,
+    "p90": 2150,
+    "p99": 2212,
+    "max": 2216
+   },
+   "rtt": {
+    "p50": 1799.602033,
+    "p90": 2152.780376,
+    "p99": 2211.882468
+   },
+   "deliveredPerSecond": [
+    50,
+    50,
+    50
+   ],
+   "spendBaseUnits": "150000"
+  },
+  {
+   "type": "result",
+   "idx": 4,
+   "chain": "solana",
+   "channelId": "BbNGg9EFpqcVZjw4kUFthnmcrxab4Cgs7U32eSfU7JDF",
+   "price": "1000",
+   "sent": 150,
+   "offeredWall": 3,
+   "offeredFps": 50,
+   "delivered": 150,
+   "in150": 3,
+   "failures": 0,
+   "errors": {},
+   "maxInFlight": 34,
+   "encodings": {
+    "single": 152,
+    "double": 0
+   },
+   "e2e": {
+    "p50": 529,
+    "p90": 698,
+    "p99": 728,
+    "max": 749
+   },
+   "rtt": {
+    "p50": 529.740931,
+    "p90": 697.400693,
+    "p99": 708.546478
+   },
+   "deliveredPerSecond": [
+    51,
+    49,
+    50
+   ],
+   "spendBaseUnits": "150000"
+  }
+ ]
+}

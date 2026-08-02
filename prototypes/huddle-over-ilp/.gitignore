@@ -1,3 +1,6 @@
 node_modules/
 state/
 run*.log
+state-multi/
+logs-*.txt
+edge-cpu-*.txt

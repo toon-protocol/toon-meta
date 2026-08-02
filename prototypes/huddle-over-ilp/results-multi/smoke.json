@@ -1,0 +1,56 @@
+{
+ "label": "smoke",
+ "sessions": 1,
+ "fps": 50,
+ "seconds": 5,
+ "wallStart": "2026-08-02T03:41:50.877Z",
+ "wallEnd": "2026-08-02T03:42:16.839Z",
+ "aggregate": {
+  "sent": 250,
+  "delivered": 250,
+  "in150": 249,
+  "failures": 0,
+  "spend": "250000"
+ },
+ "errors": {},
+ "perSession": [
+  {
+   "type": "result",
+   "idx": 0,
+   "chain": "evm",
+   "channelId": "0xa80ead2539a7a169f8b05d935cd3da5e0b1eb49f612a0a91342d0f174df70ea4",
+   "price": "1000",
+   "sent": 250,
+   "offeredWall": 5,
+   "offeredFps": 50,
+   "delivered": 250,
+   "in150": 249,
+   "failures": 0,
+   "errors": {},
+   "maxInFlight": 11,
+   "encodings": {
+    "single": 252,
+    "double": 0
+   },
+   "e2e": {
+    "p50": 70,
+    "p90": 85,
+    "p99": 145,
+    "max": 152
+   },
+   "rtt": {
+    "p50": 85.367373,
+    "p90": 96.252904,
+    "p99": 186.922768
+   },
+   "deliveredPerSecond": [
+    50,
+    50,
+    50,
+    50,
+    50
+   ],
+   "spendBaseUnits": "250000"
+  }
+ ]
+}

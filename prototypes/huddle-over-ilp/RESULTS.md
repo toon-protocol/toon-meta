@@ -18,6 +18,12 @@ delivered **100% of 50fps frames, 99.3% within the 150ms budget, zero
 failures, ~140fps headroom** on the untuned public edge. Cost at the devnet
 price is ~3 USDC/speaker-minute (operator-set; 0.003 USDC at dust pricing).
 
+**…for ONE speaker. See Phase F (multi-speaker, buzz#10): the ~140fps
+headroom turns out to be a GLOBAL ceiling shared by all sessions, not a
+per-session one. At N=3 concurrent speakers only 73.6% of frames land inside
+the 150ms budget (bar: 95%) and at N=5 the pipeline queues to ~27s and starts
+expiring packets. Multi-speaker verdict: NO-GO.**
+
 ## Setup (as run)
 
 - Fresh NIP-06 identity from a generated mnemonic (never the daemon's key).
@@ -251,3 +257,227 @@ Economics unchanged: 1000 units/frame is the operator-set devnet price
   submission to kill the F01 races. Latency is already fine; unit economics
   (0.001 USDC × 3000/min) would also need a ~100× cheaper audio-frame price
   class or claim aggregation (one claim per N frames).
+
+## Phase F — multi-speaker aggregate (2026-08-02, buzz#10)
+
+Everything above measures **one** speaker. A huddle has several talking at
+once, so ADR 0003 (buzz fork) gates huddle implementation on a multi-speaker
+measurement: **≥95% of each speaker's frames delivered within 150ms, per
+session, at N=3 concurrent speakers**, with N=5 reported as headroom.
+
+### Verdict
+
+> **NO-GO.** At N=3 concurrent 50fps speakers the live devnet edge delivered
+> **100% of frames but only 73.6% of them within the 150ms playout budget**
+> (per-session 75.1% / 71.7% / 74.1%) — against a 95% bar. N=2 also misses
+> (90.6%). N=5 collapses to **0.1% within budget**, with e2e medians of
+> 5.7–27 seconds and 372 frames hard-failing on ILP `R00 prepare has expired`.
+>
+> Per ADR 0003 the fallback applies: **the admission + room design must be
+> re-planned before huddle code is written.** Per-frame paid publishes, one
+> ILP packet per 20ms of audio per speaker, do not survive contact with more
+> than one speaker on today's edge.
+
+The single-speaker Phase D result is **not** in question — it reproduced on
+the same day, on the same edge, to within 0.1pp (see control runs). What
+Phase F shows is that the ~140fps ceiling measured in Phase D is a **shared,
+global ceiling, not a per-session one**: concurrent sessions divide it rather
+than each getting their own.
+
+### Setup (as run)
+
+- Edge image (recorded from the box, read-only `docker ps`):
+  **`ghcr.io/toon-protocol/connector:rust-sha-bb8e12c`** — the same
+  deployed-not-merged Rust image as the Phase D rerun (connector#680; the
+  BTP client ingress is live on devnet but the PR is not merged).
+  Relay alongside it: `ghcr.io/toon-protocol/relay:sha-a8693a9`.
+  Edge identity `GET /rust/ilp/identity` → `connector-signer`
+  `0x040a2a82eaae34a8…` (unchanged from Phase D).
+- Uplink per session: `wss://proxy.devnet.toonprotocol.dev/rust/ilp/btp`.
+  Route `g.toon.relay`, live-quoted price **1000 base units/frame**
+  (unchanged, operator-set), ephemeral kind 20001, 160-byte payload.
+- **Each session is its own OS process** — own event loop, own BTP socket, own
+  NIP-06 identity, own payment channel, own free NIP-01 subscriber WS. A
+  single-process harness would have measured Node's event loop, not the edge.
+  The parent gates all children on a shared wall-clock start.
+- Sessions 0–3: fresh base-sepolia (`evm:84532`) identities, self-served from
+  the faucet (`POST /api/base-sepolia/request` → 1000 USDC + 0.001 ETH gas),
+  20 USDC channel collateral each. Session 4: the **Phase-D Solana identity**
+  reusing its already-open channel `BbNGg9EF…` — see the faucet note below.
+- Harness: `multi.mjs` (`SESSIONS=n SECONDS=60 LABEL=… node multi.mjs`);
+  raw per-run JSON in `results-multi/`, console logs in `logs-*.txt`,
+  edge CPU samples in `edge-cpu-*.txt`.
+
+### Control — single session, same day, same edge
+
+| run | pacer | delivered | within 150ms | e2e p50/p90/p99 | max in-flight |
+|---|---|---|---|---|---|
+| Phase D BTP baseline (2026-08-01) | catch-up | 1500/1500 (100%) | 99.3% | 66 / 80 / 129 ms | 9 |
+| `control-post` (2026-08-02) | drop-late | 1417/1417 (100%) | **99.4%** | 65 / 68 / 126 ms | 8 |
+| `control-pre` (2026-08-02) | catch-up | 1500/1500 (100%) | 91.9% | 75 / 105 / 1034 ms | 46 |
+
+**No baseline drift.** The single-speaker path is exactly where Phase D left
+it. The 91.9% outlier is a *harness* artifact, and fixing it matters for
+reading the N>1 numbers: the original pacer computed each frame's slot as
+`t0 + n·20ms` and, after a host stall, fired all missed slots back-to-back.
+That catch-up burst is not what a microphone does — a real capture drops the
+frames it missed. The pacer now **skips late slots** and reports them
+(`skipped`), which is why offered rate reads ~47.3fps rather than 50: the WSL2
+host loses ~5% of 20ms slots to its own scheduler. All N=2/3/5 headline
+numbers below use the drop-late pacer.
+
+### Runs — 60s sustained, 50fps offered per session, all sessions concurrent
+
+Per-session (drop-late pacer; `sent` excludes host-skipped slots):
+
+| run | session | chain | sent | delivered | within 150ms | e2e p50/p90/p99 | max in-flight | failures |
+|---|---|---|---|---|---|---|---|---|
+| N=2 | s0 | evm | 2837 | 100% | **90.5%** | 73 / 130 / 1241 ms | 65 | 0 |
+| N=2 | s1 | evm | 2837 | 100% | **90.7%** | 68 / 124 / 1231 ms | 64 | 0 |
+| **N=3** | s0 | evm | 2838 | 100% | **75.1%** | 79 / 1836 / 2766 ms | 139 | 0 |
+| **N=3** | s1 | evm | 2838 | 100% | **71.7%** | 76 / 2785 / 4884 ms | 166 | 0 |
+| **N=3** | s2 | evm | 2838 | 100% | **74.1%** | 77 / 505 / 1465 ms | 76 | 0 |
+| N=5 | s0 | evm | 2837 | 100% | 0.1% | 5686 / 18580 / 23813 ms | 576 | 0 |
+| N=5 | s1 | evm | 2837 | 92.8% | 0.0% | 26997 / 29319 / 29635 ms | 1407 | 203 R00 |
+| N=5 | s2 | evm | 2837 | 100% | 0.1% | 5655 / 18007 / 23271 ms | 561 | 0 |
+| N=5 | s3 | evm | 2837 | 100% | 0.1% | 5649 / 10797 / 11402 ms | 507 | 0 |
+| N=5 | s4 | solana | 2837 | 94.0% | 0.1% | 27052 / 29312 / 29554 ms | 1401 | 169 R00 |
+
+Aggregate, against the single-speaker control:
+
+| run | offered (aggregate) | delivered | within 150ms | failures | verdict vs 95% bar |
+|---|---|---|---|---|---|
+| N=1 control | 47.2 fps | 100% | **99.4%** | 0 | pass |
+| N=2 | 94.6 fps | 100% | **90.6%** | 0 | fail |
+| **N=3 (the bar)** | **141.9 fps** | **100%** | **73.6%** | **0** | **FAIL** |
+| N=5 | 236.4 fps | 97.4% | **0.1%** | 372 (all R00) | fail |
+
+Two earlier N=3 runs on the catch-up pacer (`n3`, `n3b`) scored 48.7% and
+53.0% within budget — same conclusion, worse artifact. The N=3 result is
+reproducible across three independent runs.
+
+### Cross-session interference
+
+Sessions do **not** get independent capacity — they contend for one:
+
+- N=1 → N=2 → N=3 costs each speaker 99.4% → 90.6% → 73.6% within budget.
+  Nobody is starved unfairly at N≤3 (the three N=3 sessions land within 3.4pp
+  of each other), but everybody degrades together.
+- At N=5 the contention turns unfair: two sessions (s1, s4) fell into a
+  ~27-second standing queue and started losing frames to the 30-second ILP
+  prepare expiry, while the other three sat at ~5.7s. Which sessions lose is
+  arbitrary — in the first N=5 run it was s0 and s4.
+- Delivery is essentially lossless until the queue exceeds the ILP expiry.
+  **The failure mode is delay, not loss** — the relay fan-out never dropped a
+  frame it accepted, at any N. Every one of the 921 + 372 failures across both
+  N=5 runs is `R00 prepare has expired`; there were **zero nginx 503s and zero
+  F01 nonce rejects at any N** (the BTP ingress's ordered per-session
+  processing continues to hold, as Phase D found).
+
+### Where the ceiling is — and what it is not
+
+Edge CPU sampled on the box during each run (`docker stats`, 100% = one core):
+
+| run | offered aggregate | relay CPU | rust connector CPU | admitted ≈ |
+|---|---|---|---|---|
+| N=1 | 47 fps | ~25% | ~4.9% | 47 fps |
+| N=2 | 95 fps | ~42% | ~8.8% | 95 fps |
+| N=3 | 142 fps | ~65% | ~12.5% | ~142 fps |
+| N=5 | 236 fps | **~69%** | ~13.3% | **~150 fps** |
+
+The tell is the last row: pushing offered load from 142 → 236 fps moved relay
+CPU by 4 points and connector CPU by 1. **Neither service is CPU-saturated;
+the pipeline simply refuses to admit more than ~140–150 frames/sec in
+aggregate** — the same number Phase D measured as a *single session's* flood
+ceiling (139.8 fps). That ceiling is global. Five speakers do not get 5×140fps,
+they get one 140fps pipe and a 236fps offered load, so the excess becomes an
+unbounded queue that grows until frames hit the 30s expiry.
+
+It is not the harness: the client box (16 cores) never exceeded 1.7 loadavg,
+and each session ran in its own process.
+
+N=3's 142fps offered sits right *at* the ceiling, which is why it looks
+bimodal rather than broken — long stretches at a healthy 66–79ms p50 and 100%
+in-budget, punctuated by multi-second excursions that take 10–20s to drain
+because there is no spare capacity to drain them with:
+
+```
+N=3 s1, e2e p50 / % within 150ms, in 5s buckets:
+  0s: 79ms/100%   5s: 79ms/100%   10s: 2746ms/8%   15s: 4788ms/0%
+ 20s: 1665ms/0%  25s: 164ms/46%   30s: 66ms/100%   35s: 66ms/100%
+ 40s: 68ms/100%  45s: 69ms/96%    50s: 67ms/97%    55s: 69ms/99%
+```
+
+N=5 shows no such recovery — p50 climbs monotonically from 0.5s to ~29s and
+stays pinned at the expiry ceiling.
+
+### Cost
+
+Frames are still priced at the operator-set 1000 base units (0.001 USDC).
+Phase F burned **~64 devnet USDC** in frame fees across 9 runs (~64k paid
+frames) and locked **~520 devnet USDC** of channel collateral in 26 abandoned
+devnet channels. That is faucet money (1000 USDC self-served per address) with
+no real value, but it is far above the ~1 USDC the brief anticipated, because
+**the shared edge's announced price was deliberately left untouched** (Phase E
+set the same precedent). At the dust price the huddle design actually assumes
+(1 micro-USDC/frame) the identical workload costs **0.064 USDC**, and a
+3-speaker 30-minute huddle costs ~0.27 USDC. Economics remain a non-blocker;
+admission remains the blocker.
+
+### What would have to change before this bar can be met
+
+Not a tuning problem — a design problem, which is what ADR 0003's fallback
+anticipates:
+
+1. **The ~150fps global admission ceiling has to be understood and lifted**,
+   or the design must live under it. At 50fps/speaker it budgets **one**
+   speaker with margin, three at the edge of collapse. The ceiling is not CPU,
+   so it is a serialization point (per-connection or per-relay-write ordering)
+   — a connector/relay profiling ticket, not a client fix.
+2. **Frames must stop being one paid ILP packet each.** Batching N frames per
+   packet/claim (e.g. 5 × 20ms = 100ms per packet) cuts offered packet rate
+   5× and fits 3 speakers under today's ceiling with the playout budget
+   intact. This is the same claim-aggregation fix Phases B/C/E already pointed
+   at, now load-bearing rather than economic.
+3. **Admission control / a room abstraction is required, not optional.** The
+   observed overload mode is an unbounded queue that silently converts a
+   150ms-budget medium into a 30-second one and then starts expiring packets.
+   A huddle needs a bounded send window with local frame-dropping (audio
+   should drop, never queue) and a per-room admitted-speaker cap.
+
+### Reproducing
+
+```
+cd prototypes/huddle-over-ilp && npm install
+node gen-identities.mjs state-multi 5     # NIP-06 identities (5 addresses)
+# fund each EVM address: POST https://faucet.devnet.toonprotocol.dev/api/base-sepolia/request
+SESSIONS=1 SECONDS=30 LABEL=control node multi.mjs
+SESSIONS=3 SECONDS=60 LABEL=n3      node multi.mjs
+SESSIONS=5 SECONDS=60 LABEL=n5      node multi.mjs
+```
+
+### Onboarding gotchas hit this round (for the next run)
+
+- **The faucet's base-sepolia ETH leg ran dry mid-setup.** Addresses 1–4 got
+  `eth.dripped: true` (0.001 ETH); the 5th got
+  `{"dripped":false,"skipped":true,"reason":"faucet ETH balance below
+  reserve+drip; mint still succeeded"}` — USDC still minted, gas did not.
+  Session 4 therefore reused the Phase-D Solana identity and its existing
+  channel instead of opening a fresh base-sepolia one (which is also why one
+  N=5 row reads `solana`; it behaved indistinguishably from its EVM peers).
+  **The faucet's ETH reserve needs topping up before the next multi-identity
+  run.** 0.001 ETH covers ~480 channel opens, so the drip size is fine — the
+  reserve is not.
+- **Do not use `https://sepolia.base.org` as the base-sepolia RPC.** It is a
+  stale-read load balancer: `openChannel` → `setTotalDeposit` reverts with
+  `InvalidChannelState()` (`0xf806e9d9`) because the follow-up read lands on a
+  lagging replica. Use `https://base-sepolia-rpc.publicnode.com` (what core's
+  `base-sepolia` preset already defaults to, with the gotcha documented in the
+  preset comment — worth reading before hand-wiring `chainRpcUrls`).
+- **EVM `openChannel` does not resume from `channelStorePath`; Solana does.**
+  Every EVM run opened a *new* on-chain channel and deposited fresh collateral
+  (26 channels over 9 runs), while session 4 resumed `BbNGg9EF…` every time in
+  <100ms. Harmless on devnet, expensive anywhere else — worth a client ticket.
+- EVM channel open costs ~2.1×10⁻⁶ ETH and ~6–14s wall-clock on base-sepolia.
+- All Phase F EVENT frames arrived **single**-JSON-encoded; the historic
+  double-encoding gotcha did not reproduce (handler still supports both).
