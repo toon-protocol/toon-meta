@@ -57,15 +57,19 @@ const CHAINS = {
   },
 };
 
-// Phase G (post-relay#84): 10 fresh base-sepolia identities, faucet-funded
-// (1000 USDC each; the faucet's ETH leg was dry again, gas hand-sent from the
-// fleet settlement wallet — 0.0003 ETH each). All-EVM this round; the Phase-F
-// solana legacy identity was not carried over (its state dir did not survive).
-const SPECS = Array.from({ length: 10 }, (_, i) => ({
-  chain: 'evm',
+// Phase I (post relay d80f279 / connector 0b39f3e3): SOLANA sessions — first
+// phase off the EVM chain. 20 identities (sessions 0-9 reuse the Phase G
+// mnemonics' solana keys, 10-19 fresh), each faucet-funded on PUBLIC Solana
+// devnet (0.03 SOL gas + 1000 USDC of the announced mint xyc5J8Mg…). The
+// self-hosted validator is gone (endpoints.json 2026-07-19 cutover); the live
+// kind:10032 announce advertises program 2aEVJ8ko… / mint xyc5J8Mg… on
+// solana:devnet, matching CHAINS.solana. Deposit is env-overridable for the
+// single-session high-rate run (frames cost 1000 units each).
+const SPECS = Array.from({ length: 20 }, (_, i) => ({
+  chain: 'solana',
   mnemonic: `session${i}.mnemonic.txt`,
-  store: `session${i}.channels.json`,
-  deposit: '20000000',
+  store: `session${i}.sol.channels.json`,
+  deposit: process.env.DEPOSIT ?? '10000000',
 }));
 
 const KIND = 20001;
@@ -194,6 +198,10 @@ async function child() {
     if (q !== null && q !== undefined) price = BigInt(q);
   } catch (err) { log('getRoutePrice failed, using 1000:', err.message); }
 
+  // Public-devnet RPC kindness: stagger the on-chain opens so N sessions
+  // don't burst api.devnet.solana.com simultaneously (rate-limit 429s would
+  // strand deposits). The GO gate below still aligns the measured window.
+  await sleep(idx * 1500);
   const tOpen = Date.now();
   const channelId = await client.openChannel(DEST_ANCHOR);
   log(`channel ${channelId} (${Date.now() - tOpen}ms) price=${price}`);

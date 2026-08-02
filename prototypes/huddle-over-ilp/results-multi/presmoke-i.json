@@ -1,0 +1,85 @@
+{
+ "label": "presmoke-i",
+ "sessions": 1,
+ "fps": 10,
+ "seconds": 10,
+ "wallStart": "2026-08-02T21:04:31.969Z",
+ "wallEnd": "2026-08-02T21:04:56.601Z",
+ "cores": 16,
+ "loadavg": [
+  0.2,
+  0.2,
+  0.2,
+  0.2
+ ],
+ "aggregate": {
+  "sent": 100,
+  "delivered": 100,
+  "in150": 100,
+  "failures": 0,
+  "spend": "100000"
+ },
+ "errors": {},
+ "perSession": [
+  {
+   "type": "result",
+   "idx": 0,
+   "chain": "solana",
+   "channelId": "EadiuYCvFbJa5cwE1cHGtNf4tYP1qcj1BnmgtdYLv17a",
+   "price": "1000",
+   "sent": 100,
+   "skipped": 0,
+   "offeredWall": 10,
+   "offeredFps": 10,
+   "delivered": 100,
+   "in150": 100,
+   "failures": 0,
+   "errors": {},
+   "maxInFlight": 2,
+   "encodings": {
+    "single": 102,
+    "double": 0
+   },
+   "e2e": {
+    "p50": 94,
+    "p90": 108,
+    "p99": 129,
+    "max": 129
+   },
+   "rtt": {
+    "p50": 92.518925,
+    "p90": 107.804252,
+    "p99": 128.664276
+   },
+   "deliveredPerSecond": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    11,
+    9,
+    10
+   ],
+   "e2eOverTime": [
+    {
+     "fromSec": 0,
+     "n": 50,
+     "p50": 96,
+     "p90": 109,
+     "in150Pct": 100
+    },
+    {
+     "fromSec": 5,
+     "n": 50,
+     "p50": 91,
+     "p90": 108,
+     "in150Pct": 100
+    }
+   ],
+   "spendBaseUnits": "100000"
+  }
+ ]
+}

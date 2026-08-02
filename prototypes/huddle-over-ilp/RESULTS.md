@@ -719,3 +719,145 @@ operator's 1000-unit price), 28 new channels × 20 USDC collateral
 3. Remaining relay#85 items (worker-pool verify, batch verify, skip-verify
    policy) are now optimization, not unblockers: the verify swap alone
    removed the relay from the critical path at every measurable load.
+
+## Phase I — skip-verify/group-commit/pipelining, SOLANA sessions (2026-08-02, buzz#23 / relay#85 / connector#686 / connector#688)
+
+First phase to deploy BOTH images at once, and the first measured over
+**Solana** payment channels (all prior phases were EVM). Deployed at 21:11Z
+on the `toon` box (now 2-vCPU):
+
+- **relay `sha-d80f279`** — skip schnorr for paid ephemeral kinds (default
+  on, id check kept) + write-port exposure guard (#88), worker-thread verify
+  pool (cores−1 = **1 worker** here) + `GET /metrics` (#93), serialize-once
+  broadcast + maxConnections 4096 (#92). Startup log verified:
+  `event signature verify: libsecp256k1-wasm`, `ephemeral-kind schnorr
+  verify: skipped -- payment-gated write path, id check kept (relay#85)`,
+  `verify pool: 1 worker thread(s)`; the #88 exposure warning fired as
+  designed (in-container 0.0.0.0 bind; port not host-published — verified).
+- **connector `rust-sha-0b39f3e`** — BTP client ingress on main (#680),
+  claim-journal group commit (#687), per-session pipelining window 16 (#689).
+  No connector config changes (both new knobs left at safe defaults).
+- Deploy compat fix: the #88 explicit `0.0.0.0` write bind broke the compose
+  healthcheck's `wget http://localhost:3100/health` — in-container
+  `localhost` resolves to `::1` only. Healthcheck repointed at `127.0.0.1`
+  on-box (same class of quirk as the existing wget-not-curl comment).
+
+### Solana session setup (the phase's second first)
+
+- 20 identities (sessions 0–9 reuse the Phase G mnemonics' Solana keys,
+  10–19 fresh), faucet-funded on **public Solana devnet**: the self-hosted
+  validator is deleted (endpoints.json 2026-07-19 cutover) — there is no
+  "sol box" to disk-check any more. The live kind:10032 announce's
+  program `2aEVJ8ko…` / mint `xyc5J8Mg…` / settlement `HgNmgJYr…` matched
+  the harness config exactly.
+- **Faucet gotcha:** `/api/solana/request` returns success with a SOL tx
+  signature even when its SOL treasury leg fails — sessions 12–19 arrived
+  with 1000 USDC and **0 lamports** (`CHANNEL_FUNDING` at open). Gas was
+  hand-sent from the buzz funding wallet (0.012 SOL each).
+- **Public-RPC gotcha:** >10 clients opening channels concurrently trip
+  api.devnet.solana.com's per-call 429 on `getSignatureStatuses`
+  (`waitForConfirmation` throws, child dies, parent hangs at
+  `ready k/N`). Opens are staggered `idx*1.5s` in this phase's multi.mjs;
+  that was still not enough at N=16 on first attempt — retries with
+  already-seeded stores got through.
+- **Solana channels RESUME from `channelStorePath`** — unlike EVM
+  (toon-client#489). One channel per (wallet, edge): deleting a store while
+  the on-chain channel exists re-derives the SAME channel with a reset
+  nonce → the connector's watermark rejects every claim (F01). (Learned the
+  hard way on s0; store restored from a recovered copy.) Resume also
+  tops the deposit up to `initialDeposit` if short, and
+  `client.depositToChannel` works on Solana (s0 topped up +40 USDC live,
+  after an `openChannel` call to register the channel in the manager).
+  Net effect: **the dominant devnet-USDC sink of Phases F–H (one fresh
+  20-USDC channel per session per run) is GONE on Solana** — 16 channels
+  total carried all 12 runs.
+
+### Runs — 60 s sustained (smoke 10 s), 50 fps/session unless noted
+
+| run | N | agg offered fps | delivered | in150 agg | per-session in150 | failures |
+|---|---|---|---|---|---|---|
+| smoke-i (10 s) | 1 | 49.7 | 100% | 99.8% | 99.8 | 0 |
+| n3-i | 3 | 149.1 | 100% | **99.6%** | 99.6–99.7 | 0 |
+| n3b-i | 3 | 146.9 | 100% | **99.0%** | 99.0–99.1 | 0 |
+| n3c-i | 3 | 146.7 | 100% | **98.4%** | 98.2–98.7 | 0 |
+| n5-i | 5 | 248.1 | 100% | 93.4% | 89.9–94.8 | 1 T01 |
+| n5b-i | 5 | 245.1 | 100% | 93.1% | 91.0–94.0 | 0 |
+| n10-i | 10 | 496.6 | 100% | **99.0%** | 98.7–99.3 | 0 |
+| n10b-i | 10 | 489.3 | 100% | 92.1% | 91.6–92.6 | 3 T01 |
+| n16-i | 16 | 783.5 | 100% | 82.9% | 82.0–83.5 | 5 T01 |
+| hr1-i (1 @ 290 fps) | 1 | 187.7¹ | 100% | **99.5%** | 99.5 | 0 |
+| hr2-i (2 @ 150 fps) | 2 | 293.1 | 100% | **99.5%** | 99.4 / 99.5 | 0 |
+
+¹ Client-capped: the harness child signs each frame (schnorr event +
+ed25519 claim) on one Node event loop, which saturates at ~190 sign/s —
+6,139 of 17,400 pacer slots were dropped locally. The edge took everything
+actually offered at 99.5% ≤150 ms. **The old ~150 fps per-session ceiling is
+gone** (187.7 fps single-session, and 2×146.5 fps concurrently, both
+≥99.4%); the #689 bench's ~290 ev/s single-session prediction cannot be
+falsified by this harness — the client is the bottleneck first.
+
+N=20 was not run: the strict bar had already broken at N=16 (stop rule).
+
+### Where the strict bar (every session ≥95% ≤150 ms) now sits
+
+- **N=3 passes 3/3 runs** (worst session 98.2%) — the ADR 0003 bar
+  remains reliably met, now on Solana sessions.
+- **N=5–10 is flappy**: n5 failed 2/2 (worst 89.9%), n10 passed once at
+  99.0% and failed once at 92.1%. Failures are NOT queue collapse: delivery
+  is 100% everywhere, zero R00 expiries anywhere, and the misses are
+  correlated ~0.5–1 s tail excursions that hit ALL sessions in the same
+  5 s buckets and drain immediately (p50 stays ~70–90 ms throughout).
+- **N=16 (783 fps) fails wide** (82–84% every session, p90 ~250 ms,
+  RTT p90 ~290 ms) — sustained write-path queuing, plus 5 T01
+  `relay:3100 connection error` resets surfaced by the connector.
+- **Aggregate rate is not the discriminator; session count is.** 293 fps
+  over 2 sessions scored 99.5% two minutes after 489 fps over 10 sessions
+  scored 92.1% — and 188 fps over 1 session scored 99.5% BETWEEN the failing
+  n16 and n5b runs. Something in the shared path degrades with concurrent
+  BTP session count (candidates: per-session connector scheduling around
+  the new pipelining/journal batching, connector→relay HTTP connection
+  behavior — the T01 resets only appear at N≥5 — or nginx/TLS fan-in).
+  Client-side caveat: the harness box (WSL2) shares one uplink; local
+  loadavg stayed ≤6/16 cores and the clean hr2 run at higher aggregate
+  argues against a pure client explanation, but it is not fully excluded.
+
+### Edge telemetry (first real-world data from relay#93's GET /metrics)
+
+Cumulative over the whole phase (~131k paid frames):
+
+- `verify.count = 21` — only persistent kinds (announces) ever reached the
+  verify pool; **every huddle frame skipped schnorr** (id check kept), as
+  designed. Verify cost when used: p50 2.0 ms, max 5.4 ms via the 1-worker
+  pool.
+- `eventLoopDelayMs`: p99 24.6 ms, max 282 ms over ~90 min under all loads
+  — the relay's loop never stalled anywhere near the ~1 s excursions seen
+  end-to-end, locating the tail problem OUTSIDE the relay process.
+- Edge CPU (docker stats, 2-vCPU box): relay avg 14–37% / max 90–116%,
+  rust connector avg 4–18% / max 25–71% across runs — the box is never
+  pinned; at N=16 relay+connector maxima sum to ~1.6 cores of 2.
+- The rust connector logs 3 INFO lines per packet through docker's
+  json-file driver (~45k lines / 85 s at N=16) — the same per-event disk
+  I/O pattern relay#84/#87 removed from the relay. Candidate contributor
+  to the correlated stalls; ungated as of `rust-sha-0b39f3e`.
+
+### Cost
+
+~192 devnet USDC in frame claims across 12 runs; **zero** new USDC locked
+per rerun (Solana channel resume) — 16 channels totalling ~515 USDC of
+deposits carried the whole phase, all from the 20 faucet-funded session
+wallets (1000 USDC each). Buzz funding wallet spent only 0.096 SOL of gas
+(faucet SOL-leg outage) + nothing in USDC.
+
+### What this means for buzz#23 (ADR 0003)
+
+1. The bar holds on **Solana** sessions — the huddle design is not
+   EVM-coupled, and per-session channel state survives reruns (resume),
+   which the huddle UX will rely on.
+2. Three speakers have ~5× headroom in per-session rate terms (188 ev/s
+   proven vs 50 needed) but the tail budget is now governed by a
+   session-count-correlated stall, not by throughput. Until that is found,
+   size huddles at **N≤3 guaranteed, N≤10 opportunistic**.
+3. The relay is done as a bottleneck: skip-verify + pool leave its loop at
+   p99 24.6 ms under every load tested. Next instrumentation belongs on the
+   connector write path (T01 resets at N≥5, per-packet log I/O) and a
+   non-WSL measurement client.

@@ -1,0 +1,85 @@
+{
+ "label": "smoke-i",
+ "sessions": 1,
+ "fps": 50,
+ "seconds": 10,
+ "wallStart": "2026-08-02T21:13:50.811Z",
+ "wallEnd": "2026-08-02T21:14:13.973Z",
+ "cores": 16,
+ "loadavg": [
+  0.1,
+  0.1,
+  0.1,
+  0.1
+ ],
+ "aggregate": {
+  "sent": 497,
+  "delivered": 497,
+  "in150": 496,
+  "failures": 0,
+  "spend": "497000"
+ },
+ "errors": {},
+ "perSession": [
+  {
+   "type": "result",
+   "idx": 0,
+   "chain": "solana",
+   "channelId": "EadiuYCvFbJa5cwE1cHGtNf4tYP1qcj1BnmgtdYLv17a",
+   "price": "1000",
+   "sent": 497,
+   "skipped": 3,
+   "offeredWall": 10,
+   "offeredFps": 49.7,
+   "delivered": 497,
+   "in150": 496,
+   "failures": 0,
+   "errors": {},
+   "maxInFlight": 7,
+   "encodings": {
+    "single": 499,
+    "double": 0
+   },
+   "e2e": {
+    "p50": 73,
+    "p90": 79,
+    "p99": 90,
+    "max": 191
+   },
+   "rtt": {
+    "p50": 79.543703,
+    "p90": 92.546433,
+    "p99": 101.538082
+   },
+   "deliveredPerSecond": [
+    47,
+    50,
+    50,
+    50,
+    50,
+    51,
+    49,
+    51,
+    49,
+    50
+   ],
+   "e2eOverTime": [
+    {
+     "fromSec": 0,
+     "n": 247,
+     "p50": 74,
+     "p90": 86,
+     "in150Pct": 99.59514170040485
+    },
+    {
+     "fromSec": 5,
+     "n": 250,
+     "p50": 70,
+     "p90": 78,
+     "in150Pct": 100
+    }
+   ],
+   "spendBaseUnits": "497000"
+  }
+ ]
+}
