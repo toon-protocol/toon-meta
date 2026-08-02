@@ -481,3 +481,125 @@ SESSIONS=5 SECONDS=60 LABEL=n5      node multi.mjs
 - EVM channel open costs ~2.1×10⁻⁶ ETH and ~6–14s wall-clock on base-sepolia.
 - All Phase F EVENT frames arrived **single**-JSON-encoded; the historic
   double-encoding gotcha did not reproduce (handler still supports both).
+
+## Phase G — post-relay#84 re-measure (2026-08-02, buzz#23 / connector#685)
+
+relay PR #84 (merged 2026-08-02, deployed the same hour) removed the per-event
+disk serialization from the paid-write path: ephemeral kinds (20000–29999) are
+now broadcast-only (no disk), SQLite moved to WAL + `synchronous=NORMAL`, and
+the insert is prepared once. This phase re-runs the Phase F harness against the
+new relay to re-test the ADR 0003 bar and locate the next ceiling
+(relay#85 / connector#686 predicted schnorr verify on the relay event loop,
+~250–700 fps).
+
+### Verdict
+
+> **The ~150 fps global admission ceiling is GONE** (connector#685 fixed):
+> N=5 (242 fps aggregate) now delivers 100% with **95.6% within 150 ms** —
+> the same load that collapsed to 0.1% in Phase F.
+>
+> **The ADR 0003 bar at N=3 is now AT the line but not reliably above it.**
+> Four independent N=3 runs scored 94.4 / 97.1 / 87.1 / 95.8 % aggregate
+> within-150ms (per-session minimums 94.0 / 96.7 / 82.4 / 94.7 %): one run
+> passes every session ≥95%, the median run sits within ~1pp of the bar, and
+> one run dipped on a multi-second tail excursion. The failure mode has
+> changed in kind: Phase F's structural queue collapse (10–20 s at zero
+> in-budget capacity, excess load converting into 30 s standing queues) is
+> gone; what remains is intermittent tail jitter — a few seconds per minute
+> where p50 stays ~70–90 ms but the p90+ tail spreads to 200–1200 ms and
+> drains within 1–2 buckets.
+>
+> **The next ceiling is ~240–260 fps aggregate and it is now CPU** — the
+> bottom of the relay#85 / connector#686 prediction band.
+
+### Deploy under test
+
+- Relay image **`ghcr.io/toon-protocol/relay:sha-6ed12ab`** (merge commit of
+  relay#84), swapped in on the `toon` box at 15:12Z by editing only the relay
+  service pin in `docker-compose.node.yml` (backup kept on-box;
+  bind-mounted connector configs untouched). Connector unchanged:
+  `ghcr.io/toon-protocol/connector:rust-sha-bb8e12c`; edge identity unchanged
+  (`connector-signer` `0x040a2a82eaae34a8…`).
+- kind:10032 announce situation verified post-deploy: apex announcer
+  (`30fdd01d…`) fresh + unexpired claiming `g.toon.relay` with the live edge
+  identity; store box (`49c5311d…`) fresh claiming `g.toon.ario`; the old
+  stale announces (`2813187e…`, `3f12da6d…`, `1e0fdc9d…`) remain visible but
+  NIP-40-expired. No dual-live-announce regression.
+- Smoke (1×10 s): 455/455 delivered, 98.2% ≤150 ms, zero failures — paid
+  write path green through the new relay before any measurement run.
+
+### Setup deltas vs Phase F
+
+- 10 fresh base-sepolia identities (`SPECS` is now generated, all-EVM).
+  The faucet's ETH leg was **still dry** (USDC minted, `eth` leg skipped on
+  all 10) — gas hand-sent from the fleet settlement wallet
+  (0.0003 ETH each), which remains the Phase F follow-up to fix.
+- Same drop-late pacer, same kind 20001 / 160 B frames, same 1000-unit price,
+  same per-session child processes, 60 s runs.
+
+### Runs — 60 s sustained, 50 fps offered per session
+
+| run | aggregate offered | delivered | within 150ms (agg) | per-session in150 | failures |
+|---|---|---|---|---|---|
+| smoke-g (N=1, 10 s) | 45.5 fps | 100% | 98.2% | 98.2 | 0 |
+| n3-g | 145.5 fps | 100% | 94.4% | 94.0 / 95.0 / 94.3 | 0 |
+| n3b-g | 145.5 fps | 100% | **97.1%** | 97.7 / 97.0 / 96.7 | 0 |
+| n3c-g | 145.6 fps | 100% | 87.1% | 91.3 / 82.4 / 87.5 | 0 |
+| n3d-g | 145.7 fps | 100% | 95.8% | 97.7 / 94.9 / 94.7 | 0 |
+| **n5-g** | **242.4 fps** | **100%** | **95.6%** | 96.7 / 94.9 / 96.7 / 94.3 / 95.5 | 0 |
+| n10-g | 484.9 fps | 79.2% | 0.1% | ~0 everywhere | 6053 (all R00) |
+
+Phase F → Phase G at the same offered load: N=3 73.6% → 87–97% (median ~95%);
+N=5 **0.1% → 95.6%**. Zero 503s and zero F01s at any N (ordered BTP still
+holds); every hard failure at N=10 is `R00 prepare has expired`, exactly as
+the old ceiling failed — just at ~3× the load.
+
+### Where the new ceiling is
+
+Edge CPU sampled on the box during each run (`docker stats`, 100% = one core;
+the `toon` box is a 1-vCPU g6-standard-1):
+
+| run | offered aggregate | relay CPU avg/max | rust connector avg/max | outcome |
+|---|---|---|---|---|
+| n3-g | 145 fps | 39% / 69% | 9% / 19% | healthy |
+| n5-g | 242 fps | 55% / 86% | 15% / 22% | healthy (95.6% in budget) |
+| n10-g | 485 fps | **71% / 94%** | 19% / 34% | collapse; admits ~240–260 fps |
+
+At N=10 the relay process pins ~94% of the core while admitting
+~240–260 fps (23,038 frames delivered over a ~95 s window) and the excess
+becomes the familiar unbounded queue → 30 s R00 expiry. Unlike Phase F —
+where the relay refused >150 fps at 65–69% CPU (a serialization limit, i.e.
+the per-event fsync #84 removed) — the pipeline is now **CPU-bound on the
+relay's single-threaded event loop**. Measured ceiling ~240–260 fps sits at
+the bottom of the relay#85 / connector#686 prediction (~250–700 fps, schnorr
+verify on the event loop). Candidate contributors on the same event loop:
+per-event schnorr verify (relay#85), plus the relay's multi-line per-message
+`console.log`ging through docker's json-file driver — which is itself
+per-event disk I/O that #84 did not remove.
+
+The N≤5 tail excursions are consistent with the same event loop stalling
+briefly (GC or log flush; Linode CPU steal was ruled out — sampled ≤5.2%
+during a run with excursions, ~0.2% typical). Load is not the trigger: N=5
+scored better than three of four N=3 runs.
+
+### Cost
+
+~73 devnet USDC in frame fees across 7 runs (~73k paid frames at the
+operator's 1000-unit price), ~560 USDC collateral locked across 28 abandoned
+channels (EVM `openChannel` still does not resume from `channelStorePath` —
+toon-client#489 remains open and remains the dominant devnet-USDC sink).
+
+### What this means for buzz#23 (ADR 0003)
+
+1. The **structural** blocker is fixed: three speakers no longer divide a
+   ~150 fps pipe; N=5 clears the bar outright and N=3's median run sits at it.
+2. Strictly, ≥95%-per-session at N=3 was met in **1 of 4 runs** — the bar is
+   not *reliably* cleared while the residual event-loop tail jitter exists.
+   The gap is ~1–3pp of tail, not a design-level ceiling; relay#85 (verify
+   off the event loop) and silencing the relay's per-message logging are the
+   obvious next moves, both relay-side and both measurable with this same
+   harness unchanged.
+3. Headroom math still budgets tightly: a 3-speaker huddle offers ~150 fps
+   against a ~250 fps ceiling (1.7× margin at N=3, none at N=5 speakers).
+   Frame batching (Phase F recommendation #2) remains the lever that buys an
+   order of magnitude.

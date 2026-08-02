@@ -57,17 +57,16 @@ const CHAINS = {
   },
 };
 
-// Sessions 0–3: fresh base-sepolia identities, faucet-funded (1000 USDC +
-// 0.001 ETH gas each). Session 4: the Phase-D identity on solana:devnet with
-// its already-open channel — the faucet's ETH reserve ran dry on the 5th
-// address, and reusing an already-funded identity beats improvising gas.
-const SPECS = [
-  { chain: 'evm', mnemonic: 'session0.mnemonic.txt', store: 'session0.channels.json', deposit: '20000000' },
-  { chain: 'evm', mnemonic: 'session1.mnemonic.txt', store: 'session1.channels.json', deposit: '20000000' },
-  { chain: 'evm', mnemonic: 'session2.mnemonic.txt', store: 'session2.channels.json', deposit: '20000000' },
-  { chain: 'evm', mnemonic: 'session3.mnemonic.txt', store: 'session3.channels.json', deposit: '20000000' },
-  { chain: 'solana', mnemonic: 'legacy.mnemonic.txt', store: 'legacy.channels.json', deposit: '4000000' },
-];
+// Phase G (post-relay#84): 10 fresh base-sepolia identities, faucet-funded
+// (1000 USDC each; the faucet's ETH leg was dry again, gas hand-sent from the
+// fleet settlement wallet — 0.0003 ETH each). All-EVM this round; the Phase-F
+// solana legacy identity was not carried over (its state dir did not survive).
+const SPECS = Array.from({ length: 10 }, (_, i) => ({
+  chain: 'evm',
+  mnemonic: `session${i}.mnemonic.txt`,
+  store: `session${i}.channels.json`,
+  deposit: '20000000',
+}));
 
 const KIND = 20001;
 const TAG = 'huddle-multi';
