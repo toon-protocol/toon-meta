@@ -1,0 +1,57 @@
+{
+  "scenario": "max-s100-160B",
+  "system": "relay",
+  "subs": 100,
+  "writer": {
+    "mode": "max",
+    "sent": 4907,
+    "acked": 4907,
+    "failed": 0,
+    "wallMs": 15186.442131,
+    "sentPerSec": 323.11715658425146,
+    "ackedPerSec": 323.11715658425146,
+    "ackP50": 192607,
+    "ackP99": 371203
+  },
+  "delivery": {
+    "totalReceived": 490700,
+    "expectedPerSub": 4907,
+    "stale": 0,
+    "errors": 0,
+    "p50us": 191749.75,
+    "p90us": 213533,
+    "p99us": 370492.75,
+    "maxus": 434228.25
+  },
+  "serverCpu": {
+    "samples": 31,
+    "avg": 95.2,
+    "max": 108.36
+  },
+  "perProc": [
+    {
+      "conns": 50,
+      "count": 245350,
+      "stale": 0,
+      "errors": 0,
+      "p50": 191749.75,
+      "p90": 213533,
+      "p99": 370492.75,
+      "max": 434228.25
+    },
+    {
+      "conns": 50,
+      "count": 245350,
+      "stale": 0,
+      "errors": 0,
+      "p50": 190419.75,
+      "p90": 212112.5,
+      "p99": 369495,
+      "max": 432274.75
+    }
+  ],
+  "dataDirBytesBefore": null,
+  "dataDirBytesAfter": null,
+  "dataDirGrowth": null,
+  "wallMs": 20065
+}

@@ -1,0 +1,56 @@
+{
+  "scenario": "video-s100",
+  "system": "stdb",
+  "subs": 100,
+  "writer": {
+    "mode": "paced",
+    "sent": 1002,
+    "acked": 0,
+    "wallMs": 20019.032901,
+    "sentPerSec": 50.05236791183593,
+    "ackedPerSec": 0,
+    "ackP50": null,
+    "ackP99": null
+  },
+  "delivery": {
+    "totalReceived": 91865,
+    "expectedPerSub": 1002,
+    "stale": 0,
+    "errors": 0,
+    "p50us": 2955117.25,
+    "p90us": 5728237.25,
+    "p99us": 7025094.5,
+    "maxus": 8677921.75
+  },
+  "serverCpu": {
+    "samples": 41,
+    "avg": 33.5,
+    "max": 41.39
+  },
+  "perProc": [
+    {
+      "conns": 50,
+      "count": 44867,
+      "stale": 0,
+      "errors": 0,
+      "p50": 2871838.25,
+      "p90": 5723745.5,
+      "p99": 7025094.5,
+      "max": 8677921.75
+    },
+    {
+      "conns": 50,
+      "count": 46998,
+      "stale": 0,
+      "errors": 0,
+      "p50": 2955117.25,
+      "p90": 5728237.25,
+      "p99": 6741609,
+      "max": 8540581.75
+    }
+  ],
+  "dataDirBytesBefore": 41985925,
+  "dataDirBytesAfter": 75143793,
+  "dataDirGrowth": 33157868,
+  "wallMs": 27977
+}

@@ -1,0 +1,46 @@
+{
+  "scenario": "max-s1-160B",
+  "system": "stdb",
+  "subs": 1,
+  "writer": {
+    "mode": "max",
+    "sent": 69566,
+    "acked": 69566,
+    "wallMs": 15010.090892999999,
+    "sentPerSec": 4634.615506055484,
+    "ackedPerSec": 4634.615506055484,
+    "ackP50": 11348.5,
+    "ackP99": 42995.75
+  },
+  "delivery": {
+    "totalReceived": 69566,
+    "expectedPerSub": 69566,
+    "stale": 0,
+    "errors": 0,
+    "p50us": 11336,
+    "p90us": 14272,
+    "p99us": 42992,
+    "maxus": 80575.25
+  },
+  "serverCpu": {
+    "samples": 32,
+    "avg": 22.6,
+    "max": 30.58
+  },
+  "perProc": [
+    {
+      "conns": 1,
+      "count": 69566,
+      "stale": 0,
+      "errors": 0,
+      "p50": 11336,
+      "p90": 14272,
+      "p99": 42992,
+      "max": 80575.25
+    }
+  ],
+  "dataDirBytesBefore": 89765131,
+  "dataDirBytesAfter": 122743173,
+  "dataDirGrowth": 32978042,
+  "wallMs": 20821
+}

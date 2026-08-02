@@ -1,0 +1,1 @@
+{"scenario":"fanout-s100-tmpfs","delivery":{"recv":150100,"p50us":2296.5,"p99us":3982.25},"serverCpu":{"samples":62,"avg":17.5,"max":22.12}}

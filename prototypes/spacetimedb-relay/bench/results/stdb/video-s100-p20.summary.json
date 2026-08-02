@@ -1,0 +1,1 @@
+{"scenario":"video-s100-p20","writer":{"sent":1001},"delivery":{"recv":100000,"p50us":14717.25,"p99us":468755.5},"serverCpu":{"samples":42,"avg":43.1,"max":72.75}}

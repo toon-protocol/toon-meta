@@ -1,0 +1,47 @@
+{
+  "scenario": "video-s10",
+  "system": "relay",
+  "subs": 10,
+  "writer": {
+    "mode": "paced",
+    "sent": 1002,
+    "acked": 1002,
+    "failed": 0,
+    "wallMs": 20024.324484,
+    "sentPerSec": 50.039141185542924,
+    "ackedPerSec": 50.039141185542924,
+    "ackP50": null,
+    "ackP99": null
+  },
+  "delivery": {
+    "totalReceived": 10020,
+    "expectedPerSub": 1002,
+    "stale": 0,
+    "errors": 0,
+    "p50us": 2236.75,
+    "p90us": 2924.75,
+    "p99us": 3587.5,
+    "maxus": 8129
+  },
+  "serverCpu": {
+    "samples": 41,
+    "avg": 13.5,
+    "max": 20.59
+  },
+  "perProc": [
+    {
+      "conns": 10,
+      "count": 10020,
+      "stale": 0,
+      "errors": 0,
+      "p50": 2236.75,
+      "p90": 2924.75,
+      "p99": 3587.5,
+      "max": 8129
+    }
+  ],
+  "dataDirBytesBefore": null,
+  "dataDirBytesAfter": null,
+  "dataDirGrowth": null,
+  "wallMs": 24773
+}

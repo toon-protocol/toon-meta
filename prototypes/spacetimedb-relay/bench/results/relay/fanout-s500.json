@@ -1,0 +1,117 @@
+{
+  "scenario": "fanout-s500",
+  "system": "relay",
+  "subs": 500,
+  "writer": {
+    "mode": "paced",
+    "sent": 1501,
+    "acked": 1501,
+    "failed": 0,
+    "wallMs": 30015.681697,
+    "sentPerSec": 50.007193411503344,
+    "ackedPerSec": 50.007193411503344,
+    "ackP50": null,
+    "ackP99": null
+  },
+  "delivery": {
+    "totalReceived": 750500,
+    "expectedPerSub": 1501,
+    "stale": 0,
+    "errors": 0,
+    "p50us": 9403.75,
+    "p90us": 15195,
+    "p99us": 64281,
+    "maxus": 204335.5
+  },
+  "serverCpu": {
+    "samples": 61,
+    "avg": 85.2,
+    "max": 97.88
+  },
+  "perProc": [
+    {
+      "conns": 62,
+      "count": 93062,
+      "stale": 0,
+      "errors": 0,
+      "p50": 9403.75,
+      "p90": 16505,
+      "p99": 63599.5,
+      "max": 204249.5
+    },
+    {
+      "conns": 63,
+      "count": 94563,
+      "stale": 0,
+      "errors": 0,
+      "p50": 10653.5,
+      "p90": 16420.25,
+      "p99": 64248,
+      "max": 204140
+    },
+    {
+      "conns": 63,
+      "count": 94563,
+      "stale": 0,
+      "errors": 0,
+      "p50": 10212.25,
+      "p90": 16649,
+      "p99": 64281,
+      "max": 204335.5
+    },
+    {
+      "conns": 63,
+      "count": 94563,
+      "stale": 0,
+      "errors": 0,
+      "p50": 2963,
+      "p90": 12938.25,
+      "p99": 58383.75,
+      "max": 201869.75
+    },
+    {
+      "conns": 62,
+      "count": 93062,
+      "stale": 0,
+      "errors": 0,
+      "p50": 6365,
+      "p90": 12894,
+      "p99": 60261,
+      "max": 201566
+    },
+    {
+      "conns": 62,
+      "count": 93062,
+      "stale": 0,
+      "errors": 0,
+      "p50": 5499.75,
+      "p90": 13196.75,
+      "p99": 59755.75,
+      "max": 201917.25
+    },
+    {
+      "conns": 62,
+      "count": 93062,
+      "stale": 0,
+      "errors": 0,
+      "p50": 10157,
+      "p90": 13948.5,
+      "p99": 63523,
+      "max": 201830.5
+    },
+    {
+      "conns": 63,
+      "count": 94563,
+      "stale": 0,
+      "errors": 0,
+      "p50": 5505.75,
+      "p90": 15195,
+      "p99": 60686,
+      "max": 203273.75
+    }
+  ],
+  "dataDirBytesBefore": 90112,
+  "dataDirBytesAfter": 90112,
+  "dataDirGrowth": 0,
+  "wallMs": 35442
+}

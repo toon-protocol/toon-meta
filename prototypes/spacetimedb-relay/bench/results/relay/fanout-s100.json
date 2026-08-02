@@ -1,0 +1,57 @@
+{
+  "scenario": "fanout-s100",
+  "system": "relay",
+  "subs": 100,
+  "writer": {
+    "mode": "paced",
+    "sent": 1502,
+    "acked": 1502,
+    "failed": 0,
+    "wallMs": 30025.469107,
+    "sentPerSec": 50.024197611947734,
+    "ackedPerSec": 50.024197611947734,
+    "ackP50": null,
+    "ackP99": null
+  },
+  "delivery": {
+    "totalReceived": 150200,
+    "expectedPerSub": 1502,
+    "stale": 0,
+    "errors": 0,
+    "p50us": 2669.5,
+    "p90us": 3945,
+    "p99us": 5006.25,
+    "maxus": 7245.5
+  },
+  "serverCpu": {
+    "samples": 61,
+    "avg": 19.4,
+    "max": 25.46
+  },
+  "perProc": [
+    {
+      "conns": 50,
+      "count": 75100,
+      "stale": 0,
+      "errors": 0,
+      "p50": 2669.5,
+      "p90": 3945,
+      "p99": 5006.25,
+      "max": 7175.25
+    },
+    {
+      "conns": 50,
+      "count": 75100,
+      "stale": 0,
+      "errors": 0,
+      "p50": 2592.25,
+      "p90": 3877,
+      "p99": 4938.25,
+      "max": 7245.5
+    }
+  ],
+  "dataDirBytesBefore": null,
+  "dataDirBytesAfter": null,
+  "dataDirGrowth": null,
+  "wallMs": 34928
+}

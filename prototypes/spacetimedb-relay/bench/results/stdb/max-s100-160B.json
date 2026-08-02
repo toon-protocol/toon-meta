@@ -1,0 +1,56 @@
+{
+  "scenario": "max-s100-160B",
+  "system": "stdb",
+  "subs": 100,
+  "writer": {
+    "mode": "max",
+    "sent": 48349,
+    "acked": 48349,
+    "wallMs": 15016.326893,
+    "sentPerSec": 3219.762085929172,
+    "ackedPerSec": 3219.762085929172,
+    "ackP50": 18414.25,
+    "ackP99": 35217.5
+  },
+  "delivery": {
+    "totalReceived": 3607850,
+    "expectedPerSub": 48349,
+    "stale": 0,
+    "errors": 0,
+    "p50us": 15212669.25,
+    "p90us": 20904163.75,
+    "p99us": 23877760.75,
+    "maxus": 25086392.25
+  },
+  "serverCpu": {
+    "samples": 32,
+    "avg": 125.4,
+    "max": 155.27
+  },
+  "perProc": [
+    {
+      "conns": 50,
+      "count": 1405080,
+      "stale": 0,
+      "errors": 0,
+      "p50": 12152184,
+      "p90": 17315828.25,
+      "p99": 19401500.75,
+      "max": 20328982.25
+    },
+    {
+      "conns": 50,
+      "count": 2202770,
+      "stale": 0,
+      "errors": 0,
+      "p50": 15212669.25,
+      "p90": 20904163.75,
+      "p99": 23877760.75,
+      "max": 25086392.25
+    }
+  ],
+  "dataDirBytesBefore": 932101379,
+  "dataDirBytesAfter": 955221988,
+  "dataDirGrowth": 23120609,
+  "wallMs": 37640
+}

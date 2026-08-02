@@ -1,0 +1,46 @@
+{
+  "scenario": "video-s10",
+  "system": "stdb",
+  "subs": 10,
+  "writer": {
+    "mode": "paced",
+    "sent": 1002,
+    "acked": 0,
+    "wallMs": 20019.434187000003,
+    "sentPerSec": 50.05136462101749,
+    "ackedPerSec": 0,
+    "ackP50": null,
+    "ackP99": null
+  },
+  "delivery": {
+    "totalReceived": 10010,
+    "expectedPerSub": 1002,
+    "stale": 0,
+    "errors": 0,
+    "p50us": 9329.5,
+    "p90us": 10797.25,
+    "p99us": 15228.5,
+    "maxus": 26831.75
+  },
+  "serverCpu": {
+    "samples": 41,
+    "avg": 8.2,
+    "max": 9.75
+  },
+  "perProc": [
+    {
+      "conns": 10,
+      "count": 10010,
+      "stale": 0,
+      "errors": 0,
+      "p50": 9329.5,
+      "p90": 10797.25,
+      "p99": 15228.5,
+      "max": 26831.75
+    }
+  ],
+  "dataDirBytesBefore": 9009137,
+  "dataDirBytesAfter": 41985925,
+  "dataDirGrowth": 32976788,
+  "wallMs": 25560
+}

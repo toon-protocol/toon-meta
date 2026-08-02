@@ -1,0 +1,46 @@
+{
+  "scenario": "burst1k-persistent",
+  "system": "stdb",
+  "subs": 1,
+  "writer": {
+    "mode": "burst",
+    "sent": 1000,
+    "acked": 1000,
+    "wallMs": 81.07534400000009,
+    "sentPerSec": 12334.206068863537,
+    "ackedPerSec": 12334.206068863537,
+    "ackP50": 70954.25,
+    "ackP99": 74168
+  },
+  "delivery": {
+    "totalReceived": 1000,
+    "expectedPerSub": 1000,
+    "stale": 76811,
+    "errors": 0,
+    "p50us": 72757,
+    "p90us": 78005.25,
+    "p99us": 78672.5,
+    "maxus": 78711.5
+  },
+  "serverCpu": {
+    "samples": 3,
+    "avg": 1.6,
+    "max": 1.63
+  },
+  "perProc": [
+    {
+      "conns": 1,
+      "count": 1000,
+      "stale": 76811,
+      "errors": 0,
+      "p50": 72757,
+      "p90": 78005.25,
+      "p99": 78672.5,
+      "max": 78711.5
+    }
+  ],
+  "dataDirBytesBefore": 1017446912,
+  "dataDirBytesAfter": 1018260670,
+  "dataDirGrowth": 813758,
+  "wallMs": 6066
+}

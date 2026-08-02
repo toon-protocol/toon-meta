@@ -1,0 +1,19 @@
+{
+  "name": "bench",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "dependencies": {
+    "spacetimedb": "^2.7.1",
+    "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.4",
+    "typescript": "^7.0.2"
+  }
+}
