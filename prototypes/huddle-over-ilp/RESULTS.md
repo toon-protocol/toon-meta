@@ -861,3 +861,84 @@ wallets (1000 USDC each). Buzz funding wallet spent only 0.096 SOL of gas
    p99 24.6 ms under every load tested. Next instrumentation belongs on the
    connector write path (T01 resets at N≥5, per-packet log I/O) and a
    non-WSL measurement client.
+
+## Phase J — post per-packet-logging demotion (2026-08-03, connector#690 / connector#692)
+
+Phase I ended with a session-count-correlated stall (N≥5 flapping, N=16
+failing wide) and one prime suspect: the Rust connector's **3 INFO lines per
+packet** through docker's json-file driver (~45k lines/85 s at N=16 — the
+same per-event disk I/O disease relay#84/#87 removed from the relay).
+connector#692 demoted the four per-packet lines (`packet received`,
+`routed to app`, `routed to peer`, `packet fulfilled`) to `debug`; per-error
+(`packet rejected`) and lifecycle INFO kept; default `info` EnvFilter means
+no box config change, `RUST_LOG=connector_runtime=debug` restores the trace.
+
+Deployed 2026-08-03 01:41Z on the `toon` box: connector re-pinned
+`rust-sha-0b39f3e` → **`rust-sha-59e167f`** (only change; relay stays
+`sha-d80f279`, bind-mounted configs untouched). Same harness, same funded
+Solana channels (resumed), same pacer as Phase I.
+
+**Log volume: the entire phase (~168k paid frames) produced 4 connector log
+lines** (a 4.0 KB json-file). Phase I's counterpart file had grown to
+301 MB; at N=16 alone the old build wrote ~45k lines/85 s.
+
+### Runs — 60 s sustained (smoke 10 s), 50 fps/session
+
+| run | N | agg offered fps | delivered | in150 agg | per-session in150 | failures |
+|---|---|---|---|---|---|---|
+| presmoke-j (10 s) | 1 | 50.0 | 100% | **100%** | 100 | 0 |
+| n3-j | 3 | 146.8 | 100% | **99.5%** | 99.5–99.5 | 0 |
+| n5-j | 5 | 239.9 | 100% | **99.1%** | 99.0–99.3 | 0 |
+| n5b-j | 5 | 240.2 | 100% | **99.5%** | 99.4–99.5 | 0 |
+| n10-j | 10 | 479.2 | 100% | **95.7%** | 95.3–96.2 | 0 |
+| n10b-j¹ | 10 | 484.8 | 90.9%¹ | (invalid)¹ | 99.1–99.5 (8 clean sessions) | 2657 F03¹ |
+| n10c-j | 10 | 479.6 | 100% | **98.6%** | 98.3–98.9 | 0 |
+| n16-j | 16 | 760.2 | 100% | **97.0%** | 96.6–97.6 | 0 |
+
+¹ n10b-j is a **funding artifact, not an edge result**: s3/s4 hit their
+25-USDC channel-deposit ceilings mid-run (`F03 claim rejected: claims a
+cumulative 25001000, more than the 2…`) — every failure is the connector
+correctly refusing claims past the deposit. The other 8 sessions scored
+99.1–99.5%. Channels s0–s9 were topped up +15 USDC (topup-j.mjs; two
+sessions may have received the top-up twice — the first attempt's 429 on
+`getSignatureStatuses` is a confirmation-poll failure, not a tx failure)
+and the run repeated clean as n10c-j. Lesson for reruns: resume does NOT
+restore claim headroom; budget ~3 USDC/session/run against the deposit and
+top up ahead.
+
+### Verdict on the #690 hypothesis: **CONFIRMED**
+
+- **The strict bar (every session ≥95% ≤150 ms) now passes at every rung
+  tested, including N=16** — Phase I's worst rung (82.0–83.5% every
+  session, 5 T01 resets) scored 96.6–97.6% with **zero** failures of any
+  kind. N=5 went 0/2 → 2/2; N=10 went 1/2 → 2/2 (excluding the funding
+  artifact, whose 8 unaffected sessions also passed).
+- The correlated ~0.5–1 s tail excursions are gone: worst per-session p99
+  across all valid Phase J runs is 294 ms (n10-j) vs Phase I's ~1 s
+  excursions hitting every session; delivery stayed 100% throughout.
+- Zero T01 `relay:3100` connection resets anywhere in the phase (Phase I:
+  5 at N=16, plus 1–3 in flapping N=5/N=10 runs).
+- Relay telemetry unmoved: event-loop p99 21.4 ms → 21.6 ms across the
+  phase (cumulative; max 282 ms predates it). Edge CPU: relay avg ≤18%,
+  max ~56%; connector avg ≤21%, max ~71% of 200% — never pinned, same
+  envelope as Phase I. The only deployed delta was the logging demotion.
+
+Residual: p99 still scales with N (n3 ~115–128 ms → n16 ~210–260 ms) —
+ordinary queuing growth, no longer stall-shaped. If a tighter bar than
+95%/150 ms is ever wanted at N>16, next knobs are the docker log driver
+(`max-size` rotation is still json-file), per-session task scheduling, and
+the shared 2-vCPU box.
+
+### Where the strict bar now sits
+
+**N=16 (760 fps aggregate) passes outright; no tested rung fails.** The
+Phase I guidance "N≤3 guaranteed, N≤10 opportunistic" is superseded:
+**N≤10 guaranteed (2/2 + 8/8 clean), N=16 proven once** — the next bar
+move needs an N=20+ probe, which Phase I's stop rule never reached.
+
+### Cost
+
+~168 USDC of devnet claims across 8 runs (still zero new channels — Solana
+resume); +165 USDC of deposit top-ups into s0–s9 (some possibly doubled by
+429-confirmation retries). All from the 20 faucet-funded session wallets;
+no buzz-funding-wallet SOL needed this phase.

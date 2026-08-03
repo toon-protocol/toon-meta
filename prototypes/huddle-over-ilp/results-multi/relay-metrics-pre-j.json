@@ -1,0 +1,1 @@
+{"timestamp":1785721468082,"eventLoopDelayMs":{"mean":20.216,"p50":20.12,"p99":21.414,"max":282.329},"verify":{"implementation":"libsecp256k1-wasm","workers":1,"count":108,"meanMs":1.648,"maxMs":5.387,"p50Ms":1.608,"p99Ms":5.18}}
