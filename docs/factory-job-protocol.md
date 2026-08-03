@@ -39,8 +39,9 @@ Checked 2026-08-03, per #262 decision 4 (NIP-90 kind space, not buzz's `43001–
   longer hosts a kind list and is not a usable source of truth.
 - **Our own allocations.** The store already ships `5094` (Arweave blob storage), `5095` (ArNS
   buy), `5096` (Solana gas station) — see `docs/deployment.md`, `docs/handoff-arweave-dvm-deploy.md`,
-  `context/glossary.md`. `5250` ("Dungeon" compute DVM) was removed from TOON entirely and is not
-  a collision to worry about (see `skills/dvm-protocol/references/nip-spec.md`).
+  `docs/rfc-peering-naming.md`, `context/glossary.md`. `5250` ("Dungeon" compute DVM) was removed
+  from TOON entirely and is not a collision to worry about (see
+  `skills/dvm-protocol/references/nip-spec.md`).
 
 ### 1.2 The allocation
 
@@ -160,7 +161,7 @@ provider has done that increment's work and uploaded the encrypted artifact.
 | `status` | Yes | `["status", "partial"]` | |
 | `increment` | Yes | `["increment", "<n>", "<of>"]` | Which increment this is, out of the quoted total. |
 | `i` | Yes | `["i", "<arweave-tx-id>", "url"]` | Where the **encrypted** artifact lives. Per decision 13, the artifact never rides in the event — buzz's relay caps event content at 256 KB and advertises 64 KB in NIP-11 (`skills/git-collaboration/references/kind-5094-blob-storage.md` documents the identical constraint for kind:5094). |
-| `i` | SHOULD | `["i", "<sha256-of-ciphertext>", "text", "", "hash"]` | Integrity hash of the ciphertext at that txid, so the buyer can detect a corrupted/wrong fetch before attempting decryption — same idiom as kind:6094 (§ dvm-protocol nip-spec). |
+| `i` | SHOULD | `["i", "<sha256-of-ciphertext>", "text", "", "hash"]` | Integrity hash of the ciphertext at that txid, so the buyer can detect a corrupted/wrong fetch before attempting decryption — same idiom as kind:6094 (`skills/dvm-protocol/references/nip-spec.md`). |
 | `amount` | Yes | `["amount", "<micro-USDC>", "usdc"]` | This increment's price — MUST match the quoted `priceUsdc` for increment `n` (§3.2). |
 | `condition` | Yes | `["condition", "<sha256-hex-of-key>"]` | `sha256(key)` where `key` decrypts the artifact. **The join, both directions — see §4.2.** |
 
