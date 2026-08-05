@@ -52,14 +52,17 @@ Load-bearing facts about the engine confirmed on the pilot:
 - **Pass `--create-label false`** to `init` so the engine's own `Sandcastle` label is
   never created — we trigger on `agent:implement` / `agent:review`, and the
   `Sandcastle` label would just be pollution.
-- **All agent roles default to `claude-opus-4-8`** in the generated `main.ts`
-  (0.12.0's claude-code default). Per the org-wide model-tiering policy
-  (see [FACTORY.md](../FACTORY.md) → Factory runtime policy), every repo's
-  runners split this: `implementer`, `reviewer`, and `open-pr` (plus the
-  review-runner's `push-review` role) are pinned down to `claude-sonnet-5`;
-  `planner` and `merger` stay on `claude-opus-4-8`. This is a deliberate
-  per-repo edit to `.sandcastle/*.ts`, matched by role `name`, not by line
-  number or file.
+- **All agent roles default to one model** in the generated `main.ts` (0.12.0's
+  claude-code default). Per the org-wide model-tiering policy (see
+  [FACTORY.md](../FACTORY.md) → Factory runtime policy), every repo's runners
+  split this: `planner` (and `planner-dry-run`), `merger`, and `reviewer` run on
+  `claude-opus-5`; only `implementer` is pinned down to `claude-sonnet-5`. This
+  is a deliberate per-repo edit to `.sandcastle/*.ts`, matched by role `name`,
+  not by line number or file. **Gotcha:** `reviewer` and `implementer` used to
+  share `claude-sonnet-5`, so a find-and-replace on the model string moves both —
+  change the reviewer's line specifically. The `open-pr` and `push-review` roles
+  named in earlier revisions no longer exist; push and PR-create are
+  deterministic `execFileSync` calls with no agent.
 - **Issues must be sliced to fit the ~200k context cap.** Before dispatching an
   `agent:implement` issue, size it so a single `implementer` run stays
   comfortably under ~200k tokens — the org-wide ceiling from `CLAUDE.md`, applied
