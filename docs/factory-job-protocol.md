@@ -54,6 +54,34 @@ Checked 2026-08-03, per #262 decision 4 (NIP-90 kind space, not buzz's `43001–
 If a future ticket needs a second factory job type, it takes `5098`/`6098`, in the same
 registry-checked manner — re-run §1.1's checks, don't assume the next integer is free by then.
 
+### 1.3 Discovery is pull, not push — and stays that way
+
+Factory job discovery is deliberately pull-based: a provider learns about a job by subscribing to
+`kind:5097` on the open market relay (decision 2) and reading the broadcast brief. There is **no
+`kind:31990` announcement** — no event through which a provider advertises its existence,
+capabilities, or price. This is not an oversight; #262's "Deliberately parked" section names
+`kind:31990` advertising explicitly, and it stays parked for factory jobs specifically. This
+section records why, so the divergence from mesh-compute (below) is a documented decision rather
+than an inconsistency someone "fixes" later.
+
+The reason is what's being discovered. A factory buyer already has a concrete brief — a repo, a
+ticket, a scope — and posting `kind:5097` to the shared relay reaches every candidate provider in
+one write (decision 2's open market). There is nothing a provider could pre-advertise that would
+let a buyer find them faster, because the buyer isn't searching a capability space; it is posting
+a job, the same way an order book doesn't need resting sellers to announce themselves before an
+order can be placed.
+
+**Mesh-compute (toon-meta#266) is the opposite shape, on purpose, not by drift.** A mesh-compute
+buyer wants "an idle GPU somewhere" — a request with no address until a seller announces "I'm up,
+this is my price and capacity" first. That search is over a capability space, not a job topic, so
+it structurally requires a push advertisement: [toon-meta#266](https://github.com/toon-protocol/toon-meta/issues/266)
+owns the `kind:31990` schema (and the liveness event backing it) for exactly that reason.
+
+**Do not harmonize these.** Nothing in the factory RFQ flow (§3) reads a `kind:31990` event —
+quotes exist only in response to a posted `kind:5097` — so adding one for factory providers would
+create a second, untied path to the same market. toon-meta#266 should reference this section
+rather than re-derive the pull-vs-push rationale.
+
 ---
 
 ## 2. kind:5097 — Job request (the brief)
@@ -87,7 +115,7 @@ exact rumor → seal → gift wrap chain with ChaCha20-Poly1305 and an ephemeral
 
 1. **Rumor** — the kind:5097 event above, fully formed but **unsigned** (no `id`/`sig`), exactly
    as NIP-17's kind:14 rumor is never signed (`skills/private-dms/references/nip-spec.md`).
-2. **Seal** (kind:1060) — the rumor NIP-44-encrypted from buyer to the targeted provider, signed
+2. **Seal** (kind:13) — the rumor NIP-44-encrypted from buyer to the targeted provider, signed
    by the buyer's real key, randomized `created_at`.
 3. **Gift wrap** (kind:1059) — the seal encrypted again under a fresh ephemeral key, signed by
    that ephemeral key, `["p", "<provider-pubkey>"]` tag, randomized `created_at`. **This is the
