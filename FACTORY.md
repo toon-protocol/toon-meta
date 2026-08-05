@@ -89,18 +89,37 @@ This mirrors the org's general model-routing guidance for operator work:
 - **Claude Haiku 4.5** — trivial, high-fan-out work only.
 - **Claude Fable 5** — reserved for the hardest, longest-horizon work only.
 
-### Context ceiling (~60%)
+### Context budget (~200k cap)
 
-No sandcastle agent should run its context window past ~60% before handing off to a fresh
-agent. This is enforced two ways:
+Every sandcastle agent operates as if its context is capped at **~200k tokens**, regardless of
+the model's actual window — the org-wide policy in [CLAUDE.md](CLAUDE.md) → *Context budget
+policy*. ~200k is a hard ceiling, not a target.
+
+The thresholds are stated in **absolute tokens, not as a percentage of the window**: a
+percentage means different things on a 200k model and a 1M model, and the point of the policy is
+that agents converge on the same working size whatever they run on.
+
+| Threshold       | Value  | Meaning                                              |
+|-----------------|--------|------------------------------------------------------|
+| Ceiling         | ~200k  | Never run past this. Plan no task that assumes more. |
+| Hand off by     | ~160k  | Terminal — the handoff must be written by here.      |
+| Start preparing | ~120k  | Begin writing the handoff while there is still room. |
+
+This is enforced two ways:
 
 1. **Slice tickets small.** Issues fed to the `implementer` role must be scoped so a single
-   run stays comfortably under the ceiling. Oversized work is split into follow-up issues
-   **before** dispatch — not discovered mid-run.
+   run — including reading, tool output, and iteration, not just the final diff — stays
+   comfortably under the ceiling. Oversized work is split into follow-up issues **before**
+   dispatch, not discovered mid-run.
 2. **Agents self-hand-off.** `implement-prompt.md` and `review-prompt.md` both instruct the
-   agent: on approaching ~60% context, write a structured handoff note (current state +
-   remaining steps) to `.sandcastle/logs/handoff-<task-id>.md` and end the turn, so a fresh
-   agent continues rather than degrading mid-task.
+   agent to write a structured handoff note (goal + remaining work as a task list; what was
+   done and where; key decisions and why; exact paths/line numbers) to
+   `.sandcastle/logs/handoff-<task-id>.md`, **commit it on the branch**, and end the turn, so a
+   fresh agent continues rather than degrading mid-task. Committing is load-bearing:
+   `.sandcastle/.gitignore` ignores `logs/`, and the sandbox is destroyed when the run ends, so
+   an uncommitted note is lost.
+
+Handoffs are recursive: a successor agent that approaches its own ceiling follows the same rule.
 
 ---
 

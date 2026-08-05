@@ -56,4 +56,11 @@ Once complete, output <promise>COMPLETE</promise>.
 
 ## Context budget
 
-If you approach ~60% of your context window, STOP: write a structured handoff note (current state + remaining steps) to `.sandcastle/logs/handoff-<task-id>.md` and end your turn so a fresh agent continues. Do not push past ~60% — small, resumable units beat one degraded run.
+Operate as if your context is capped at **~200k tokens**, whatever your model's actual window
+is (see `CLAUDE.md` → *Context budget policy*). Treat ~200k as a hard ceiling, not a target.
+
+Start preparing a handoff at roughly **120k** tokens of context, and hand off no later than
+roughly **160k** — never run to the ceiling. Handing off means: write a structured handoff note
+(what you reviewed, what you changed, what is left to check, and exact file/line pointers) to
+`.sandcastle/logs/handoff-<task-id>.md`, commit it on this branch so it survives the sandbox,
+and end your turn so a fresh agent continues.

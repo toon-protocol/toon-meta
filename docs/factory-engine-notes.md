@@ -60,14 +60,17 @@ Load-bearing facts about the engine confirmed on the pilot:
   `planner` and `merger` stay on `claude-opus-4-8`. This is a deliberate
   per-repo edit to `.sandcastle/*.ts`, matched by role `name`, not by line
   number or file.
-- **Issues must be sliced to fit the ~60% context ceiling.** Before dispatching
-  an `agent:implement` issue, size it so a single `implementer` run can stay
-  comfortably under ~60% of its context window; split oversized work into
-  follow-up issues before dispatch rather than letting an agent discover the
-  overrun mid-run. `implement-prompt.md` and `review-prompt.md` both carry a
-  matching instruction: on approaching ~60% context, the agent writes a
-  handoff note to `.sandcastle/logs/handoff-<task-id>.md` and ends its turn so
-  a fresh agent resumes.
+- **Issues must be sliced to fit the ~200k context cap.** Before dispatching an
+  `agent:implement` issue, size it so a single `implementer` run stays
+  comfortably under ~200k tokens — the org-wide ceiling from `CLAUDE.md`, applied
+  regardless of the model's actual window (see [FACTORY.md](../FACTORY.md) →
+  *Context budget*). Split oversized work into follow-up issues before dispatch
+  rather than letting an agent discover the overrun mid-run.
+  `implement-prompt.md` and `review-prompt.md` both carry the matching
+  instruction: start preparing a handoff at ~120k and hand off by ~160k, writing
+  the note to `.sandcastle/logs/handoff-<task-id>.md` **and committing it on the
+  branch** (the path is gitignored and the sandbox is destroyed at run end, so an
+  uncommitted note does not survive).
 - The generated `Dockerfile` is `node:22-bookworm` + `git`/`curl`/`jq`/`gh` + the
   native Claude Code CLI (`curl -fsSL https://claude.ai/install.sh | bash`), running
   as a non-root `agent` user with UID/GID aligned to the host. Claude Code refuses to
