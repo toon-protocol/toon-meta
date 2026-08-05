@@ -319,3 +319,57 @@ straggler-sweep PR:
 > **Proposed values pending first-repo lock-in:** the two trigger-label hex colors
 > (`agent:implement` = `#1D76DB`, `agent:review` = `#B392F0`) are proposals. The relay pilot is
 > the place to confirm them before they're copied across all 8 repos.
+
+---
+
+## Branch protection & required checks (enforcement)
+
+Configured 2026-08-05 by [#272](https://github.com/toon-protocol/toon-meta/issues/272)
+(epic [#270](https://github.com/toon-protocol/toon-meta/issues/270)). Every factory repo's
+`main` now has a required status check wired to the repo's real CI gate, with
+**strict mode on** (the PR branch must be up to date with `main` before merging).
+Auto-merge (#285) and any "is it green?" automation read these required checks — this
+section is the drift detector: if a gate job is renamed, the matching required-check
+context below MUST be updated in the same change, or merges brick.
+
+Required-check contexts are **check-run names as they appear on PRs** (a GitHub Actions
+job's `name:`, or the job id when no `name:` is set) — not workflow file names, and not
+job ids when a `name:` overrides them. A required context that never reports blocks every
+merge, so never require a check without first verifying it runs on all PRs.
+
+| Repo | Mechanism | Required checks | Strict | Reviews (pre-existing, untouched) |
+|------|-----------|-----------------|--------|-----------------------------------|
+| relay | classic branch protection | `build` | yes | PR required, 0 approvals |
+| toon-client | classic branch protection | `build` | yes | PR required, 0 approvals |
+| rig | classic branch protection (new) | `build` | yes | none |
+| store | classic branch protection | `build` | yes | PR required, 0 approvals |
+| toon | classic branch protection | `build` | yes | PR required, 0 approvals |
+| swap | classic branch protection | `build` | yes | PR required, 0 approvals |
+| connector | classic branch protection (new) | `CI Status Summary` | yes | none |
+| Forge | **ruleset** `Gate` (id 19595889, `active`) | `gate` | yes (strict policy) | none |
+| fractal | classic branch protection (new) | `gate` | yes | none |
+| buzz | classic branch protection (new) | `Detect Changed Paths`, `Dead Token Reference Guard` | yes | none |
+| toon-meta | classic branch protection | `Doc gate` | yes | PR required, 0 approvals |
+
+Deviations from the #272 ticket text, and open follow-ups:
+
+- **connector**: the ticket named the summary job by its job id `ci-status`; the check-run
+  context that actually reports on PRs is its display name **`CI Status Summary`**
+  (`if: always()` summary job in `ci.yml`) — that is what is required.
+- **buzz**: interim configuration. The two required checks are the only jobs in buzz's
+  `ci.yml` that run unconditionally on every PR (the other ~20 jobs are paths-filtered via
+  `Detect Changed Paths` outputs and report `skipped`, which satisfies branch protection).
+  When [#279](https://github.com/toon-protocol/toon-meta/issues/279) lands buzz's aggregate
+  required check, the required contexts here MUST be repointed at that aggregate.
+- **toon-meta**: `Doc gate` originally lived in `agent-image.yml` behind a paths filter
+  (factory-config paths only) — docs-only PRs produced **zero** check runs, so requiring it
+  as-was would have blocked every docs PR. The gate job now lives in
+  `.github/workflows/docs-gate.yml` with an unfiltered `pull_request` trigger, so `Doc gate`
+  reports on every PR. Any toon-meta PR opened before that workflow landed must be updated
+  against `main` (strict mode forces this anyway) for the check to report.
+- **Forge**: enforcement is the pre-existing `Gate` **ruleset**, flipped from
+  `enforcement: disabled` to `active`; its `ref_name.include` was `[]` (matched no branches)
+  and is now `~DEFAULT_BRANCH`, and `strict_required_status_checks_policy` is now `true`.
+  No duplicate classic protection was added.
+- Review requirements were deliberately not changed anywhere ([#282](https://github.com/toon-protocol/toon-meta/issues/282)
+  supplies the approver); `enforce_admins` remains off everywhere.
