@@ -36,6 +36,24 @@ jobs:
       - name: Run doc gate (markdownlint + link-check + JSON/template validation)
         run: npm run gate
 
+  # Separate job on purpose: the Doc gate job's wall-clock is a frozen
+  # gate-speed baseline (scripts/factory/check-gate-regression.mjs reads
+  # .sandcastle/gate-baseline.json, captured at ~13s). Running the factory
+  # unit tests here instead of inside `gate` keeps that baseline honest.
+  # No `npm ci`: the tests are node:test + zero dependencies.
+  factory-tests:
+    name: Factory unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run factory unit tests (node --test)
+        run: npm run test:factory
+
   build-image:
     name: Build sandcastle agent image
     runs-on: ubuntu-latest

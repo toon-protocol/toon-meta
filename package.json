@@ -10,6 +10,7 @@
     "validate:json": "node scripts/factory/validate-json.mjs",
     "gate:regression": "node scripts/factory/check-gate-regression.mjs",
     "triage:sweep": "node scripts/factory/triage-sweep.mjs",
+    "test:factory": "node --test \"scripts/factory/*.test.mjs\"",
     "gate": "npm run lint:md && npm run check:links && npm run validate:json && npm run gate:regression",
     "sandcastle": "npx tsx .sandcastle/main.ts",
     "sandcastle:plan": "npx tsx .sandcastle/plan-dry-run.ts",
