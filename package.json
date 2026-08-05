@@ -12,6 +12,7 @@
     "triage:sweep": "node scripts/factory/triage-sweep.mjs",
     "test:factory": "node --test \"scripts/factory/*.test.mjs\"",
     "housekeeping:prs": "node scripts/factory/pr-housekeeping.mjs",
+    "hygiene:tickets": "node scripts/factory/ticket-hygiene.mjs",
     "gate": "npm run lint:md && npm run check:links && npm run validate:json && npm run gate:regression",
     "sandcastle": "npx tsx .sandcastle/main.ts",
     "sandcastle:plan": "npx tsx .sandcastle/plan-dry-run.ts",
