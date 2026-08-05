@@ -10,8 +10,10 @@ FACTORY.md per-repo table). "CI linters and tests" in day-to-day speech means th
 
 ## Going-forward repos
 
-The 9 live, actively-worked repos the factory targets: `relay`, `toon-client`, `rig`, `fractal`,
-`store`, `connector`, `toon`, `swap`, `toon-meta`. Canonical list lives in FACTORY.md.
+The org's live, actively-worked repos — the set the factory targets. This glossary
+deliberately does not restate the list: the canonical, always-current enumeration is
+FACTORY.md's per-repo [registry](#registry) table, and two lists that must be kept in sync
+will not stay in sync.
 
 ## Gate speed
 
@@ -29,9 +31,13 @@ test — that is out of scope.
 
 The trustworthiness of the gate's verdict. Two distinct sub-goals:
 
-- **No false PASS** — the gate must not green-light real breakage. Today's holes: toon-client
-  soft-gates 82 typecheck errors, toon runs `eslint --max-warnings 940`, store has no lint,
-  toon-meta disables noisy markdownlint rules. Closing these is a no-false-PASS improvement.
+- **No false PASS** — the gate must not green-light real breakage. Three of the original four
+  holes are closed or mechanically frozen: toon-client's eslint/typecheck counts are enforced
+  by `.sandcastle/gate-guard.ts` against its frozen baseline; toon's typecheck debt is paid to
+  zero errors (blocking CI step) and its eslint ceiling is a hard `--max-warnings 940` freeze;
+  store lints against a frozen `eslint-suppressions.json` allowlist. The remaining hole:
+  toon-meta disables noisy markdownlint rules (a frozen allowlist) pending a ratchet slice.
+  Ratcheting frozen debt to zero is a no-false-PASS improvement.
 - **No false FAIL** — the same commit always earns the same verdict; no flaky, nondeterministic,
   or environment-dependent failures.
 

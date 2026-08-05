@@ -161,8 +161,8 @@ repo. The label→runner is a GitHub Action (`.github/workflows/agent-*.yml`), *
 
 Color rationale: `agent:implement` reuses the blue (`#1D76DB`) of the label it replaces
 (`agent:ready`), keeping the "agent trigger" identity. `agent:review` takes a distinct light
-purple (`#B392F0`) so the two triggers are visually separable at a glance. *(Both hexes are
-proposals for the first repo to lock in — see the note at the bottom.)*
+purple (`#B392F0`) so the two triggers are visually separable at a glance. *(No longer
+proposals — verified identical in every factory repo; see the note at the bottom.)*
 
 ---
 
@@ -208,11 +208,11 @@ factory* — that swap is still pending, so steady-state Forge does not yet run 
 | Repo        | Pkg mgr | Template | Gate (lint/typecheck/test/build) | Status | Merged-PR proof | Notes |
 |-------------|---------|----------|----------------------------------|--------|-----------------|-------|
 | relay       | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven, **merged agent PR** | [relay#70](https://github.com/toon-protocol/relay/pull/70) (merged) | Pilot / gold reference for the whole pnpm recipe; hard checkpoint — no other repo started until this went green. Old 4 loops now **RETIRED** ([relay#71](https://github.com/toon-protocol/relay/pull/71), closes toon-meta#185). |
-| toon-client | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Largest repo (6 packages); proves the pattern scales. `pnpm-lock.yaml` is `lockfileVersion 9` but `packageManager` pins `pnpm@8.15.9` (frozen install impossible) — tracked in [toon-client#425](https://github.com/toon-protocol/toon-client/issues/425); runners use `--no-frozen-lockfile` (matches existing `ci.yml`). Typecheck debt 82 errors (76 in `rig-web`, excluded from root `tsconfig.json`) is soft-gated pending follow-up. |
+| toon-client | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Largest repo (6 packages); proves the pattern scales. `pnpm-lock.yaml` is `lockfileVersion 9` but `packageManager` pins `pnpm@8.15.9` (frozen install impossible) — tracked in [toon-client#425](https://github.com/toon-protocol/toon-client/issues/425); runners use `--no-frozen-lockfile` (matches existing `ci.yml`). Lint/typecheck debt is no longer soft-gated: since [toon-client#433](https://github.com/toon-protocol/toon-client/issues/433), ci.yml runs eslint (JSON report) + recursive typecheck and `.sandcastle/gate-guard.ts` fails the job on any NEW violation beyond the frozen `.sandcastle/gate-baseline.json` (16 eslint errors / 718 warnings; 75 typecheck errors with per-package caps — 74 in `rig-web`, 1 in `rig`; debt tracked in [toon-client#423](https://github.com/toon-protocol/toon-client/issues/423)). |
 | rig         | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Standalone repo since the 2026-07-21 extraction from toon-client; **never had the old 4-loop backlog system** (no `backlog-manager.yml` in its history) — nothing to retire here. |
-| store       | pnpm | `parallel-planner-with-review` | typecheck / vitest / esbuild (**no lint** — no eslint config) | Live — scaffolded, image builds, dry-run plan proven, **merged agent PR** | [store#52](https://github.com/toon-protocol/store/pull/52) (merged) | Lint-less pnpm + esbuild variant — first "exotic" gate shape. Build is `node esbuild.config.mjs`, not `pnpm -r run build`. 0 pre-existing typecheck debt. |
+| store       | pnpm | `parallel-planner-with-review` | eslint (frozen `eslint-suppressions.json` allowlist) / typecheck / vitest / esbuild | Live — scaffolded, image builds, dry-run plan proven, **merged agent PR** | [store#52](https://github.com/toon-protocol/store/pull/52) (merged) | Formerly the lint-less pnpm + esbuild variant; [store#62](https://github.com/toon-protocol/store/pull/62) added `eslint.config.js` (org shared flat config) with the pre-existing violations frozen in `eslint-suppressions.json` via ESLint native bulk-suppressions, and ci.yml's `build` job now runs `pnpm lint` in its parallel gate — any NEW violation fails. Build is `node esbuild.config.mjs`, not `pnpm -r run build`. 0 pre-existing typecheck debt. |
 | connector   | npm workspaces | `parallel-planner-with-review` | `npm run lint/typecheck/test --workspaces --if-present` + hand-ordered `build` (`shared` → `mina-zkapp` → `--workspaces --if-present`) | Live — scaffolded, image builds, dry-run plan proven, **merged agent PR** | [connector#394](https://github.com/toon-protocol/connector/pull/394) (merged) | npm-workspaces + mina-zkapp variant, done last (most exotic). Sole repo with no root `"type": "module"` → tsx transpiles `.sandcastle/*.ts` to CJS, which broke on top-level `await` (fixed connector#392, `main()` wrapper) and then on `require()`-ing the ESM-only engine (fixed connector#393, nested `.sandcastle/package.json` = `{"type":"module"}` scopes just the runner dir). `npm ci` (no corepack); native deps (o1js/libsql/bigint-buffer) build clean in `node:22-bookworm` with zero apt additions. 0 typecheck debt. |
-| toon        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Lint budget tightened as part of scaffolding: gate line is `eslint . --max-warnings 940` (down from the pre-existing 941-warning baseline), so the gate isn't a rubber stamp. Pre-existing typecheck debt carries an explicit caveat in the implement/review/merge prompts. |
+| toon        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Lint budget tightened as part of scaffolding: gate line is `eslint . --max-warnings 940` (down from the pre-existing 941-warning baseline), so the gate isn't a rubber stamp. Typecheck debt is PAID: toon#126–#142 ratcheted 246 → 0 and [toon#144](https://github.com/toon-protocol/toon/pull/144) made typecheck a blocking zero-error step in ci.yml (build before typecheck — cross-package imports resolve through built `dist/`). Gate-speed baseline recaptured queue-immune in [toon#152](https://github.com/toon-protocol/toon/pull/152) — see *Gate baselines* below. |
 | swap        | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live — scaffolded, image builds, dry-run plan proven (pnpm repetition; no merged-PR proof required) | — | Applied the proven pnpm recipe verbatim; no repo-specific deviations surfaced. |
 | toon-meta   | npm (docs) | `parallel-planner-with-review` | markdownlint / link-check / JSON-validate (`npm run gate`) | Live — scaffolded, gate proven, **merged agent PR** | [toon-meta#201](https://github.com/toon-protocol/toon-meta/pull/201) (merged) | Docs factory, sequenced last; no `package.json` before scaffolding. Markdownlint baseline is real-but-lenient (`.markdownlint-cli2.jsonc`) — ~40 structural rules enforced, noisy stylistic rules disabled by policy pending a cleanup slice. |
 | Forge       | pnpm | `parallel-planner-with-review` | eslint / typecheck / vitest / build | Live (stage-0) — image builds, dry-run plan proven, **2 merged agent PRs** on raw `@ai-hero/sandcastle`; self-host swap to `forge-core` still pending ([Forge#15](https://github.com/toon-protocol/Forge/issues/15)) | [Forge#20](https://github.com/toon-protocol/Forge/pull/20), [Forge#21](https://github.com/toon-protocol/Forge/pull/21) (merged) — under stage-0 raw sandcastle; the forge-core parity proof is [Forge#15](https://github.com/toon-protocol/Forge/issues/15) | **9th row, hand-added at bootstrap** per [#198](https://github.com/toon-protocol/toon-meta/issues/198). The factory *manager* is itself a factory *consumer*. The **only `forge-core`-driven row** at steady state (raw `@ai-hero/sandcastle` at stage-0, swaps to forge-core at self-host). Holds **zero org state** — a stateless client of this repo. Scaffold [Forge#1](https://github.com/toon-protocol/Forge/pull/1); `FACTORY_SPEC.md` [Forge#2](https://github.com/toon-protocol/Forge/pull/2); stage-0 [Forge#3](https://github.com/toon-protocol/Forge/pull/3). |
@@ -235,6 +235,38 @@ additional to the external relay re-stamp. See `context/decisions.md` → *Softw
 but ~18 days cold and not part of the going-forward set; they are being archived (`gh repo
 archive`) rather than given a factory. Already-archived repos (`hub`, `town`, `Town-Frontend`)
 are ignored.
+
+### Gate baselines
+
+Per [ADR-0001](docs/adr/0001-gate-priority-and-baseline-freeze.md), each repo's
+`.sandcastle/gate-baseline.json` is the per-repo source of truth for its frozen gate numbers;
+this registry carries only a read-only account of them.
+
+**Lesson — binding on every future baseline capture: a gate-speed metric must measure work,
+not elapsed wall-clock.** toon's original gated speed figure,
+`averageTotalRunDurationSeconds` (112), measured the run's wall-clock *span* (max job
+`completed_at` − min job `started_at`) and so absorbed runner queue depth: under a saturated
+runner pool it false-FAILed the guard — [toon#150](https://github.com/toon-protocol/toon/issues/150)
+measured a 402.0s span for 147.0s of actual compute — failing on CI queue depth rather than on
+the change, a false FAIL by CONTEXT.md's own gate-correctness definition.
+[toon#152](https://github.com/toon-protocol/toon/pull/152) (fixing
+[toon#151](https://github.com/toon-protocol/toon/issues/151)) reshaped toon's baseline:
+
+- The gated metric is now `averageLongestJobDurationSeconds` (106.6): the gated jobs run in
+  parallel, so on a free runner pool the longest job IS the run's wall-clock — and unlike the
+  raw span it cannot be inflated by queueing.
+- `sampleRuns` entries renamed: `totalRunDurationSeconds` → `longestJobSeconds` +
+  `sumRunnerSeconds`, plus informational, ungated `totalRunSpanSeconds` and `queueSeconds`.
+
+**toon-meta's own baseline** gates `docGateJobWallClockSeconds` (13). Decision (2026-08-05,
+[#273](https://github.com/toon-protocol/toon-meta/issues/273)): it stays as-is. It measures a
+single job's execution window — queue time sits before a job's `started_at`, so a job
+wall-clock does not absorb queue depth the way toon's run *span* did — and with exactly one
+gated job, "longest job" and "job wall-clock" are the same number, so the toon#152 rename
+would change nothing today. It is still elapsed time rather than pure work (it inherits
+in-job variance: checkout, setup-node, `npm ci`), so if the doc gate ever splits into
+parallel jobs or starts false-FAILing under runner contention, recapture it the toon#152 way
+(gate on the longest job's measured work) rather than widening the guard's tolerance.
 
 ---
 
@@ -316,9 +348,10 @@ straggler-sweep PR:
 
 ---
 
-> **Proposed values pending first-repo lock-in:** the two trigger-label hex colors
-> (`agent:implement` = `#1D76DB`, `agent:review` = `#B392F0`) are proposals. The relay pilot is
-> the place to confirm them before they're copied across all 8 repos.
+> **Trigger-label hexes are locked in, not proposals:** verified 2026-08-05 against the GitHub
+> API — `agent:implement` = `#1D76DB` and `agent:review` = `#B392F0` are identical in all 11
+> factory repos (relay, toon-client, rig, store, connector, toon, swap, toon-meta, Forge,
+> fractal, buzz).
 
 ---
 
