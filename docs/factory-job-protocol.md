@@ -71,16 +71,17 @@ let a buyer find them faster, because the buyer isn't searching a capability spa
 a job, the same way an order book doesn't need resting sellers to announce themselves before an
 order can be placed.
 
-**Mesh-compute (toon-meta#266) is the opposite shape, on purpose, not by drift.** A mesh-compute
-buyer wants "an idle GPU somewhere" — a request with no address until a seller announces "I'm up,
-this is my price and capacity" first. That search is over a capability space, not a job topic, so
-it structurally requires a push advertisement: [toon-meta#266](https://github.com/toon-protocol/toon-meta/issues/266)
-owns the `kind:31990` schema (and the liveness event backing it) for exactly that reason.
+**Mesh-compute ([toon-meta#266](https://github.com/toon-protocol/toon-meta/issues/266)) is the
+opposite shape, on purpose, not by drift.** A mesh-compute buyer wants "an idle GPU somewhere" —
+a request with no address until a seller announces "I'm up, this is my price and capacity" first.
+That search is over a capability space, not a job topic, so it structurally requires a push
+advertisement: #266 owns the `kind:31990` schema (and the liveness event backing it) for exactly
+that reason.
 
 **Do not harmonize these.** Nothing in the factory RFQ flow (§3) reads a `kind:31990` event —
 quotes exist only in response to a posted `kind:5097` — so adding one for factory providers would
-create a second, untied path to the same market. toon-meta#266 should reference this section
-rather than re-derive the pull-vs-push rationale.
+create a second, untied path to the same market. #266 should reference this section rather than
+re-derive the pull-vs-push rationale.
 
 ---
 
@@ -344,6 +345,7 @@ Carried over from #262 so nobody looks for them here:
 
 - [toon-meta#262](https://github.com/toon-protocol/toon-meta/issues/262) — epic: agents earning (all fifteen decisions this spec implements)
 - [toon-meta#263](https://github.com/toon-protocol/toon-meta/issues/263) — this document's own ticket
+- [toon-meta#266](https://github.com/toon-protocol/toon-meta/issues/266) — mesh-compute's `kind:31990` schema; owns the push-discovery model §1.3 deliberately diverges from
 - `skills/dvm-protocol/references/nip-spec.md` — generic NIP-90 kind/tag reference this spec extends
 - `skills/rfc-0022-hashed-timelock-agreements` — why TOON's normal pay path uses placeholder conditions, and why this path deliberately does not
 - `skills/private-dms/references/nip-spec.md` — NIP-59 rumor → seal → gift wrap construction reused in §2.2
