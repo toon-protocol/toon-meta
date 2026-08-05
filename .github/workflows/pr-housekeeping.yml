@@ -1,0 +1,137 @@
+# PR housekeeping — event-driven stuck-PR remediation (toon-meta#276).
+#
+# Replaces triage-sweep Part B, which was a production NO-OP (it filtered PR
+# branches on `agent/` while every sandcastle PR is `sandcastle/issue-<n>`).
+# Part A of triage-sweep and its cron are left untouched; toon-meta#283 retires
+# them separately. Full logic + safety model: scripts/factory/pr-housekeeping.mjs.
+#
+# ── ARCHITECTURE: thin per-repo shim → this reusable workflow ────────────────
+# GitHub events are repo-local but the remediation logic is a manager function
+# that must live ONCE, in toon-meta (same reasoning as triage-sweep's header:
+# per-repo logic copies are the maintenance tax retired in #193). So:
+#
+#   * Each factory repo carries an identical ~20-line shim
+#     (.github/workflows/pr-housekeeping-shim.yml) that fires on
+#     pull_request:closed (merged) and check_suite:completed (factory branches)
+#     and `uses:` THIS workflow via workflow_call with `secrets: inherit`.
+#   * This file is also toon-meta's own shim (the pull_request / check_suite
+#     triggers below), so toon-meta needs no separate shim file.
+#
+# workflow_call was chosen over repository_dispatch deliberately: dispatching
+# into toon-meta would require FACTORY_OPS_TOKEN to gain Contents:write (the
+# /dispatches endpoint needs it), widening the monitored credential (#271) for
+# no benefit. workflow_call needs NOTHING beyond what is already provisioned:
+# the org secret is already shared with every factory repo (and monitored by
+# factory-ops-credential.yml), and same-org reusable workflows are allowed by
+# default. Logic updates land on toon-meta main and take effect fleet-wide
+# immediately (shims reference @main).
+#
+# ── WHY THESE TRIGGERS, NOT A CRON ───────────────────────────────────────────
+#   * pull_request closed-and-merged: a merge into main is what CREATES merge
+#     conflicts in everyone else's open PRs — re-check them all at that moment.
+#   * check_suite completed on a sandcastle/ or agent/ branch: the PR's own
+#     checks just finished; if red, file the fix ticket now, not up to an hour
+#     later. (No workflow-run loop: check suites created by workflow runs are
+#     authored with GITHUB_TOKEN, whose events never re-trigger workflows.)
+#
+# ── APPLY vs DRY-RUN ─────────────────────────────────────────────────────────
+# Writes happen ONLY when the org/repo Actions variable HOUSEKEEPING_APPLY is
+# 'true', or a workflow_dispatch run passes apply=true. Until an admin sets the
+# variable, every event-triggered run is a no-write dry-run report — the
+# rollout can watch real event-driven reports before any write fires:
+#   1. "Run workflow" with apply=false → eyeball the fleet-wide dry-run list.
+#   2. Merge something / let checks finish → eyeball event-triggered dry-runs.
+#   3. Set org variable HOUSEKEEPING_APPLY=true to go live.
+#
+# ── CREDENTIAL ───────────────────────────────────────────────────────────────
+# FACTORY_OPS_TOKEN (org secret, provisioned + monitored under #271) is the
+# write identity: it creates remediation issues and applies needs:human. The
+# script does NOT auto-apply agent:implement (see its header), so the
+# write-access Guard-1 constraint is not in play for now.
+
+name: pr-housekeeping
+
+on:
+  workflow_call:
+    inputs:
+      repos:
+        description: "Comma-separated repo list to sweep (owner/name or bare name). Shims pass their own repo."
+        type: string
+        required: false
+        default: ""
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "Optional comma-separated repo override. Blank = the whole factory fleet."
+        type: string
+        default: ""
+      apply:
+        description: "Write changes (file remediation issues / escalate). false = dry-run report only."
+        type: boolean
+        default: false
+  # toon-meta's own shim triggers — other repos carry pr-housekeeping-shim.yml.
+  pull_request:
+    types: [closed]
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    # Identical filter for direct triggers and shim-forwarded ones (the event
+    # payload is the caller's, so the same expressions resolve either way):
+    # only merged PRs matter (a plain close conflicts nobody), and only factory
+    # branches' check suites matter (anything else is noise).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      (github.event_name == 'check_suite' && (
+        startsWith(github.event.check_suite.head_branch, 'sandcastle/') ||
+        startsWith(github.event.check_suite.head_branch, 'agent/')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Coalesce event bursts (a merge fires check_suite completions across ~20
+    # jobs on buzz): at most one run active + one queued per swept repo; every
+    # run re-scans the whole repo, so dropped duplicates lose nothing.
+    concurrency:
+      group: pr-housekeeping-${{ inputs.repos || github.repository }}
+      cancel-in-progress: false
+    steps:
+      # Always check out toon-meta main — in a workflow_call run the default
+      # checkout would be the CALLER's repo, but the logic lives here, once.
+      - uses: actions/checkout@v4
+        with:
+          repository: toon-protocol/toon-meta
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No `npm ci`: the script is dependency-free (node builtins + gh CLI).
+      - name: Run PR housekeeping
+        env:
+          # Prefer the monitored factory-ops identity; fall back to the ambient
+          # token, which is dry-run/read safe on the public fleet.
+          GH_TOKEN: ${{ secrets.FACTORY_OPS_TOKEN || github.token }}
+          FACTORY_OPS_TOKEN_PRESENT: ${{ secrets.FACTORY_OPS_TOKEN != '' }}
+          # Event runs sweep exactly the repo the event came from (shims pass
+          # it via inputs.repos; toon-meta's own events fall through to
+          # github.repository). A blank-repos workflow_dispatch sweeps the
+          # whole fleet.
+          HOUSEKEEPING_REPOS: >-
+            ${{ inputs.repos ||
+                ((github.event_name == 'pull_request' || github.event_name == 'check_suite') && github.repository) ||
+                '' }}
+          # Manual runs obey the apply input EXACTLY (apply=false never falls
+          # through to the variable); event runs obey HOUSEKEEPING_APPLY, which
+          # as an ORG variable is one knob for the whole fleet.
+          APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.apply || (github.event_name != 'workflow_dispatch' && vars.HOUSEKEEPING_APPLY == 'true') }}
+          HOUSEKEEPING_STALE_DAYS: "3"
+          HOUSEKEEPING_RETRY_CAP: "2"
+          # HOUSEKEEPING_AUTOLABEL stays unset: fix tickets are filed WITHOUT
+          # agent:implement until the fix-ticket runner gap is closed (a fix
+          # ticket pushing to another PR's branch always fails the runner's
+          # final `gh pr create`). See the script header.
+        run: npm run housekeeping:prs

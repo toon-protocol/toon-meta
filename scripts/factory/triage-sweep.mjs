@@ -219,6 +219,11 @@ function sweepRepo(repo) {
   }
 
   // ── Part B: unstick agent PRs ─────────────────────────────────────────────
+  // SUPERSEDED by the event-driven pr-housekeeping.mjs (toon-meta#276): this
+  // pass filters on the `agent/` prefix only, which matches zero live factory
+  // PRs (they are all `sandcastle/issue-<n>`), so it is a production no-op.
+  // It is left in place untouched because #283 retires Part A + this cron as a
+  // separate ticket. Do not extend this pass — extend pr-housekeeping.mjs.
   for (const pr of agentPrs) {
     if (pr.isDraft) continue;
     const labels = new Set((pr.labels ?? []).map((l) => l.name));
