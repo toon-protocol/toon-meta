@@ -7,3 +7,11 @@ node_modules/
 .sandcastle/.env
 .sandcastle/logs/
 .sandcastle/worktrees/
+
+# Prototype build output and runtime state. prototypes/ is 4.1 GB on disk,
+# almost all of it node_modules and a Rust target dir, and its state/ holds a
+# real BIP-39 mnemonic — none of which may reach this PUBLIC repo.
+prototypes/**/node_modules/
+prototypes/**/target/
+prototypes/*/state/
+prototypes/**/*.log
