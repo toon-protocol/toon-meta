@@ -36,3 +36,5 @@ The live devnet settles on **public chains** (exact-match chain ids: `evm:84532`
 Each TOON code repo's `CLAUDE.md` links here for shared context.
 
 > Extracted from the TOON monorepo with git history preserved. The BMAD framework skills and the raw `_bmad-output/` planning dump were removed in favor of the curated `context/` above.
+
+Deliberately red for [](toon-meta#272): empty link violation.	

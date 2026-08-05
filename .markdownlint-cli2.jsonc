@@ -54,3 +54,5 @@
     "MD047": false  // single-trailing-newline   (1)
   }
 }
+
+// touch: toon-meta#272 enforcement proof (deliberately-red test PR)
