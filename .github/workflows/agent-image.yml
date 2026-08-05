@@ -2,10 +2,10 @@ name: Agent image
 
 # Minimal build-only check for the sandcastle agent container image.
 # Proves the `.sandcastle/Dockerfile` (node:22-bookworm + gh + Claude Code CLI,
-# plain npm — no corepack/pnpm) builds and has a working toolchain. Also runs
-# the doc gate so a PR touching the factory config is verified end-to-end. This
+# plain npm — no corepack/pnpm) builds and has a working toolchain. This
 # is NOT the label→runner: the agent:implement / agent:review triggered runners
-# are agent-implement.yml / agent-review.yml.
+# are agent-implement.yml / agent-review.yml. The doc gate (`Doc gate`, the
+# required status check) moved to docs-gate.yml so it runs on EVERY PR (#272).
 
 on:
   pull_request:
@@ -14,28 +14,10 @@ on:
       - '.github/workflows/agent-image.yml'
       - 'package.json'
       - 'package-lock.json'
-      - '.markdownlint-cli2.jsonc'
       - 'scripts/factory/**'
   workflow_dispatch:
 
 jobs:
-  gate:
-    name: Doc gate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm' # gate speed (#231): restores ~/.npm keyed on package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run doc gate (markdownlint + link-check + JSON/template validation)
-        run: npm run gate
-
   build-image:
     name: Build sandcastle agent image
     runs-on: ubuntu-latest

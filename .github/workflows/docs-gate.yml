@@ -1,0 +1,32 @@
+name: Docs gate
+
+# The repo's CI gate of record (markdownlint + link check + JSON/template
+# validation), run on EVERY pull request so the `Doc gate` required status
+# check (branch protection, #272) always reports. This job previously lived in
+# agent-image.yml behind a paths filter scoped to factory config, which meant
+# docs-only PRs produced no check runs at all — and a required check that never
+# reports blocks every merge. Do not add a paths filter here.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  gate:
+    name: Doc gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm' # gate speed (#231): restores ~/.npm keyed on package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run doc gate (markdownlint + link-check + JSON/template validation)
+        run: npm run gate
