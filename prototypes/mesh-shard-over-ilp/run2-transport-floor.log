@@ -1,0 +1,21 @@
+=== run2-transport-floor: loopback socket RTT with NO payment layer ===
+date: 2026-08-03T20:56:52Z
+
+=== loopback transport floor (no payment layer) ===
+TCP  RTT      64B  TCP_NODELAY=ON                    n=2000   p50=   48.561us p90=   69.271us p99=  115.361us max=   256.293us  (p50=0.0486ms)
+TCP  RTT    1024B  TCP_NODELAY=ON                    n=2000   p50=   49.147us p90=   68.655us p99=  100.613us max=   287.278us  (p50=0.0491ms)
+TCP  RTT   16384B  TCP_NODELAY=ON                    n=2000   p50=   53.178us p90=   71.928us p99=   93.745us max=   294.771us  (p50=0.0532ms)
+TCP  RTT   32768B  TCP_NODELAY=ON                    n=2000   p50=   57.089us p90=   77.133us p99=   96.641us max=   308.854us  (p50=0.0571ms)
+TCP  RTT   65536B  TCP_NODELAY=ON                    n=2000   p50=   69.245us p90=   94.715us p99=  130.472us max=   292.922us  (p50=0.0692ms)
+TCP  RTT  262144B  TCP_NODELAY=ON                    n=2000   p50=  214.275us p90=  276.356us p99=  403.467us max=   583.229us  (p50=0.2143ms)
+TCP  RTT      64B  TCP_NODELAY=OFF (Nagle on)        n=2000   p50=   49.240us p90=   69.077us p99=  108.588us max=   263.913us  (p50=0.0492ms)
+TCP  RTT    1024B  TCP_NODELAY=OFF (Nagle on)        n=2000   p50=   48.600us p90=   69.454us p99=   98.462us max=   265.682us  (p50=0.0486ms)
+TCP  RTT   16384B  TCP_NODELAY=OFF (Nagle on)        n=2000   p50=   53.408us p90=   71.339us p99=  100.425us max=   294.372us  (p50=0.0534ms)
+TCP  RTT   32768B  TCP_NODELAY=OFF (Nagle on)        n=2000   p50=   56.672us p90=   76.976us p99=   97.280us max=   152.651us  (p50=0.0567ms)
+TCP  RTT   65536B  TCP_NODELAY=OFF (Nagle on)        n=2000   p50=   69.820us p90=   91.950us p99=  116.799us max=   222.789us  (p50=0.0698ms)
+WS   RTT      64B  (tungstenite, default nodelay)    n=1000   p50=   58.587us p90=   84.607us p99=  114.555us max=   284.384us  (p50=0.0586ms)
+WS   RTT    1024B  (tungstenite, default nodelay)    n=1000   p50=   59.739us p90=   83.068us p99=  108.094us max=   224.148us  (p50=0.0597ms)
+WS   RTT   16384B  (tungstenite, default nodelay)    n=1000   p50=   94.371us p90=  124.419us p99=  155.569us max=   289.763us  (p50=0.0944ms)
+WS   RTT   32768B  (tungstenite, default nodelay)    n=1000   p50=  124.281us p90=  162.921us p99=  208.043us max=   417.624us  (p50=0.1243ms)
+WS   RTT   65536B  (tungstenite, default nodelay)    n=1000   p50=  221.331us p90=  280.206us p99=  338.238us max=   477.978us  (p50=0.2213ms)
+WS   RTT  262144B  (tungstenite, default nodelay)    n=1000   p50=  855.078us p90= 1037.041us p99= 1231.378us max=  1342.688us  (p50=0.8551ms)

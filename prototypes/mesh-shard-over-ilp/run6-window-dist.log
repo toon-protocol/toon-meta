@@ -1,0 +1,25 @@
+=== run6-window-dist: full latency distribution, in-window (claimless) vs paid-per-packet ===
+date: 2026-08-03T21:34:36Z
+host: WSL2 Linux 6.6.114.1 / 16 cores / ext4 on /dev/sdd (VHD)
+connector rev: 59e167f2
+
+=== DIST: full latency distribution, in-window vs paid, loopback ===
+connector: /home/jonathan/Documents/connector/target/release/connector
+n per case: 20000
+payload sizes are mesh-llm's own decode activation frame:
+  76 + n_embd*2 bytes, F16 -- n_embd 4096 -> 8268 B, n_embd 8192 -> 16460 B
+
+--- payload 8268 B ---
+IN-WINDOW proxy: price=0, claimless 8268B                  n=20000 fulfilled=20000/20000 p50=   0.351ms p90=   0.385ms p99=   0.471ms mean=   0.358ms max=    3.125ms
+  IN-WINDOW (free path) 8268B                n=20000   p50=  0.3507 p90=  0.3853 p99=  0.4707 p99.9=  0.5414 max=   3.1249 mean=  0.3581  (ms)
+PAID per packet: price=100, disk journal 8268B             n=3000  fulfilled=3000/3000 p50=   2.086ms p90=   2.437ms p99=  74.336ms mean=   6.361ms max=   75.951ms
+  PAID per packet 8268B                      n=3000    p50=  2.0859 p90=  2.4369 p99= 74.3361 p99.9= 75.4934 max=  75.9508 mean=  6.3614  (ms)
+  CONTROL raw WS echo 8268B                  n=20000   p50=  0.0707 p90=  0.0896 p99=  0.1189 p99.9=  0.1518 max=   0.2746 mean=  0.0752  (ms)
+
+--- payload 16460 B ---
+IN-WINDOW proxy: price=0, claimless 16460B                 n=20000 fulfilled=20000/20000 p50=   0.371ms p90=   0.410ms p99=   0.498ms mean=   0.379ms max=    1.121ms
+  IN-WINDOW (free path) 16460B               n=20000   p50=  0.3707 p90=  0.4102 p99=  0.4978 p99.9=  0.6097 max=   1.1211 mean=  0.3789  (ms)
+PAID per packet: price=100, disk journal 16460B            n=3000  fulfilled=3000/3000 p50=   2.029ms p90=   2.161ms p99=   2.592ms mean=   2.108ms max=   71.410ms
+  PAID per packet 16460B                     n=3000    p50=  2.0289 p90=  2.1611 p99=  2.5921 p99.9=  6.6865 max=  71.4098 mean=  2.1076  (ms)
+  CONTROL raw WS echo 16460B                 n=20000   p50=  0.0817 p90=  0.1019 p99=  0.1382 p99.9=  0.2170 max=   0.3251 mean=  0.0862  (ms)
+

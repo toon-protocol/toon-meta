@@ -1,0 +1,39 @@
+=== run4-payload-ceiling: how big can one paid ILP packet get through the connector? ===
+date: 2026-08-03T20:56:05Z
+
+=== e2e: paid BTP round trip through a REAL connector process (loopback) ===
+connector: /home/jonathan/Documents/connector/target/release/connector
+iters per case: 40
+
+--- payload 524288 B ---
+A  FREE  price=0  no journal      524288B                  n=40    fulfilled=40/40 p50=   2.897ms p90=   3.768ms p99=   9.123ms mean=   3.135ms max=    9.123ms
+B  FREE  price=0  state_dir=disk  524288B                  n=40    fulfilled=40/40 p50=   3.644ms p90=   4.057ms p99=  54.377ms mean=   4.839ms max=   54.377ms
+C  PAID  price=100 state_dir=disk 524288B                  n=40    fulfilled=40/40 p50=   5.231ms p90=   7.485ms p99= 114.717ms mean=  11.451ms max=  114.717ms
+D  PAID  price=100 state_dir=/dev/shm 524288B              n=40    fulfilled=40/40 p50=   2.939ms p90=   3.911ms p99=   8.544ms mean=   3.210ms max=    8.544ms
+
+--- payload 1048576 B ---
+A  FREE  price=0  no journal      1048576B                 n=40    fulfilled=40/40 p50=   6.221ms p90=   8.330ms p99=  58.721ms mean=   7.741ms max=   58.721ms
+B  FREE  price=0  state_dir=disk  1048576B                 n=40    fulfilled=40/40 p50=   6.395ms p90=   8.690ms p99=  15.205ms mean=   7.030ms max=   15.205ms
+C  PAID  price=100 state_dir=disk 1048576B                 n=40    fulfilled=40/40 p50=   8.917ms p90=  10.825ms p99=  76.897ms mean=  11.937ms max=   76.897ms
+D  PAID  price=100 state_dir=/dev/shm 1048576B             n=40    fulfilled=40/40 p50=   5.711ms p90=   7.649ms p99=  15.177ms mean=   6.204ms max=   15.177ms
+
+--- payload 4194304 B ---
+A  FREE  price=0  no journal      4194304B                 n=40    fulfilled=40/40 p50=   8.812ms p90=  14.398ms p99=  27.870ms mean=  10.205ms max=   27.870ms
+B  FREE  price=0  state_dir=disk  4194304B                 n=40    fulfilled=40/40 p50=   8.511ms p90=  12.930ms p99=  28.084ms mean=   9.764ms max=   28.084ms
+C  PAID  price=100 state_dir=disk 4194304B                 n=40    fulfilled=40/40 p50=  10.688ms p90=  19.576ms p99= 133.850ms mean=  17.866ms max=  133.850ms
+D  PAID  price=100 state_dir=/dev/shm 4194304B             n=40    fulfilled=40/40 p50=   9.938ms p90=  13.137ms p99=  27.769ms mean=  10.740ms max=   27.769ms
+
+--- payload 16777216 B ---
+
+thread 'main' (76763) panicked at src/bin/e2e.rs:271:49:
+called `Result::unwrap()` on an `Err` value: Io(Os { code: 104, kind: ConnectionReset, message: "Connection reset by peer" })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+--- try 8388608 ---
+A  FREE  price=0  no journal      8388608B                 n=5     fulfilled=5/5 p50=  28.888ms p90=  52.063ms p99=  52.063ms mean=  31.448ms max=   52.063ms
+C  PAID  price=100 state_dir=disk 8388608B                 n=5     fulfilled=5/5 p50=  19.141ms p90= 155.643ms p99= 155.643ms mean=  49.806ms max=  155.643ms
+--- try 12582912 ---
+A  FREE  price=0  no journal      12582912B                n=5     fulfilled=5/5 p50=  46.359ms p90=  83.767ms p99=  83.767ms mean=  52.063ms max=   83.767ms
+C  PAID  price=100 state_dir=disk 12582912B                n=5     fulfilled=5/5 p50=  47.332ms p90= 188.256ms p99= 188.256ms mean=  69.499ms max=  188.256ms
+--- try 15728640 ---
+A  FREE  price=0  no journal      15728640B                n=5     fulfilled=5/5 p50=  49.494ms p90=  99.032ms p99=  99.032ms mean=  58.141ms max=   99.032ms
+C  PAID  price=100 state_dir=disk 15728640B                n=5     fulfilled=5/5 p50=  55.742ms p90= 198.282ms p99= 198.282ms mean=  83.739ms max=  198.282ms

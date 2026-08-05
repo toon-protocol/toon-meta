@@ -1,0 +1,15 @@
+=== run7-iroh-dist: TIER 3 iroh QUIC full distribution at mesh-llm activation sizes ===
+date: 2026-08-03T21:36:17Z
+relay_mode=Disabled, direct loopback addr, one reused bi-stream; n=20000 for the two mesh-llm sizes
+
+=== iroh direct QUIC RTT, loopback (see Cargo.lock for resolved version) ===
+server node 7065b7333665ac11b0ea653e52c04e8463c348b9de07e9fdf43ccf2bbf2fe8d9 direct addrs [127.0.0.1:53230, 127.0.0.1:36557]
+connect (cold handshake): 1.159ms
+iroh QUIC RTT    8268B  n=20000   p50=  0.1661 p90=  0.1981 p99=  0.2517 p99.9=  0.3204 max=   0.5182 mean=  0.1704  (ms)
+iroh QUIC RTT   16460B  n=20000   p50=  0.2065 p90=  0.2437 p99=  0.3130 p99.9=  0.4148 max=   1.0667 mean=  0.2119  (ms)
+iroh QUIC RTT      64B  n=20000   p50=  0.1298 p90=  0.1618 p99=  0.2119 p99.9=  0.2879 max=   0.4544 mean=  0.1333  (ms)
+iroh QUIC RTT    1024B  n=20000   p50=  0.1352 p90=  0.1639 p99=  0.2123 p99.9=  0.2669 max=   3.3783 mean=  0.1378  (ms)
+iroh QUIC RTT   16384B  n=20000   p50=  0.2163 p90=  0.2542 p99=  0.3234 p99.9=  0.3944 max=   2.6057 mean=  0.2216  (ms)
+iroh QUIC RTT   32768B  n=20000   p50=  0.3193 p90=  0.3613 p99=  0.4373 p99.9=  0.5344 max=   0.8628 mean=  0.3239  (ms)
+iroh QUIC RTT   65536B  n=20000   p50=  0.4211 p90=  0.4966 p99=  0.6195 p99.9=  0.7738 max=   2.7561 mean=  0.4321  (ms)
+iroh QUIC RTT  262144B  n=20000   p50=  1.1205 p90=  1.2586 p99=  1.5057 p99.9=  1.7331 max=   2.5795 mean=  1.1385  (ms)

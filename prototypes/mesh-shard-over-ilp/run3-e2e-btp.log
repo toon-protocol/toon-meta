@@ -1,0 +1,45 @@
+=== run3-e2e-btp: paid BTP round trip vs a REAL connector process, loopback ===
+date: 2026-08-03T20:55:39Z
+host: WSL2 Linux 6.6.114.1 / 16 cores / ext4 on /dev/sdd (VHD) / /dev/shm tmpfs
+connector: release build of /home/jonathan/Documents/connector @ 59e167f2
+
+=== e2e: paid BTP round trip through a REAL connector process (loopback) ===
+connector: /home/jonathan/Documents/connector/target/release/connector
+iters per case: 300
+
+--- payload 1024 B ---
+A  FREE  price=0  no journal      1024B                    n=300   fulfilled=300/300 p50=   0.332ms p90=   0.376ms p99=   0.442ms mean=   0.340ms max=    0.776ms
+B  FREE  price=0  state_dir=disk  1024B                    n=300   fulfilled=300/300 p50=   0.341ms p90=   0.401ms p99=   0.521ms mean=   0.352ms max=    0.743ms
+C  PAID  price=100 state_dir=disk 1024B                    n=300   fulfilled=300/300 p50=   2.171ms p90=   2.579ms p99=  75.177ms mean=   5.525ms max=   75.367ms
+D  PAID  price=100 state_dir=/dev/shm 1024B                n=300   fulfilled=300/300 p50=   0.573ms p90=   0.644ms p99=   0.801ms mean=   0.584ms max=    0.939ms
+
+--- payload 16384 B ---
+A  FREE  price=0  no journal      16384B                   n=300   fulfilled=300/300 p50=   0.390ms p90=   0.446ms p99=   0.583ms mean=   0.401ms max=    1.001ms
+B  FREE  price=0  state_dir=disk  16384B                   n=300   fulfilled=300/300 p50=   0.399ms p90=   0.459ms p99=   0.544ms mean=   0.409ms max=    0.976ms
+C  PAID  price=100 state_dir=disk 16384B                   n=300   fulfilled=300/300 p50=   2.216ms p90=   2.624ms p99=  75.209ms mean=   5.199ms max=   75.612ms
+D  PAID  price=100 state_dir=/dev/shm 16384B               n=300   fulfilled=300/300 p50=   0.615ms p90=   0.700ms p99=   0.832ms mean=   0.629ms max=    1.281ms
+
+--- payload 32768 B ---
+A  FREE  price=0  no journal      32768B                   n=300   fulfilled=300/300 p50=   0.449ms p90=   0.518ms p99=   0.652ms mean=   0.463ms max=    1.391ms
+B  FREE  price=0  state_dir=disk  32768B                   n=300   fulfilled=300/300 p50=   0.437ms p90=   0.523ms p99=   0.726ms mean=   0.455ms max=    1.291ms
+C  PAID  price=100 state_dir=disk 32768B                   n=300   fulfilled=300/300 p50=   2.255ms p90=   2.637ms p99=  74.312ms mean=   5.055ms max=  111.041ms
+D  PAID  price=100 state_dir=/dev/shm 32768B               n=300   fulfilled=300/300 p50=   0.668ms p90=   0.802ms p99=   1.016ms mean=   0.699ms max=    1.658ms
+
+--- payload 65536 B ---
+A  FREE  price=0  no journal      65536B                   n=300   fulfilled=300/300 p50=   0.567ms p90=   0.688ms p99=   0.908ms mean=   0.593ms max=    1.652ms
+B  FREE  price=0  state_dir=disk  65536B                   n=300   fulfilled=300/300 p50=   0.547ms p90=   0.671ms p99=   0.933ms mean=   0.575ms max=    1.750ms
+C  PAID  price=100 state_dir=disk 65536B                   n=300   fulfilled=300/300 p50=   2.375ms p90=   2.860ms p99=  74.064ms mean=   5.901ms max=  111.249ms
+D  PAID  price=100 state_dir=/dev/shm 65536B               n=300   fulfilled=300/300 p50=   0.770ms p90=   0.897ms p99=   1.075ms mean=   0.796ms max=    1.952ms
+
+--- payload 131072 B ---
+A  FREE  price=0  no journal      131072B                  n=300   fulfilled=300/300 p50=   0.861ms p90=   1.056ms p99=   1.839ms mean=   0.899ms max=    3.831ms
+B  FREE  price=0  state_dir=disk  131072B                  n=300   fulfilled=300/300 p50=   0.805ms p90=   0.980ms p99=   1.351ms mean=   0.845ms max=    2.706ms
+C  PAID  price=100 state_dir=disk 131072B                  n=300   fulfilled=300/300 p50=   2.829ms p90=   3.167ms p99=  73.021ms mean=   4.056ms max=   78.483ms
+D  PAID  price=100 state_dir=/dev/shm 131072B              n=300   fulfilled=300/300 p50=   1.005ms p90=   1.265ms p99=   1.594ms mean=   1.043ms max=    3.179ms
+
+--- payload 262144 B ---
+A  FREE  price=0  no journal      262144B                  n=300   fulfilled=300/300 p50=   1.559ms p90=   2.024ms p99=   2.619ms mean=   1.626ms max=    4.831ms
+B  FREE  price=0  state_dir=disk  262144B                  n=300   fulfilled=300/300 p50=   1.657ms p90=   2.517ms p99=   3.122ms mean=   1.811ms max=    5.206ms
+C  PAID  price=100 state_dir=disk 262144B                  n=300   fulfilled=300/300 p50=   3.339ms p90=   4.012ms p99=  73.625ms mean=   6.834ms max=  112.887ms
+D  PAID  price=100 state_dir=/dev/shm 262144B              n=300   fulfilled=300/300 p50=   1.602ms p90=   1.955ms p99=   2.758ms mean=   1.672ms max=    6.310ms
+

@@ -1,0 +1,26 @@
+[package]
+name = "mesh-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Own workspace so it does not join the connector workspace (read-only rule).
+[workspace]
+
+[dependencies]
+connector-domain = { path = "../../../../connector/crates/connector-domain" }
+connector-runtime = { path = "../../../../connector/crates/connector-runtime" }
+connector-signer = { path = "../../../../connector/crates/connector-signer" }
+connector-client-edge = { path = "../../../../connector/crates/connector-client-edge" }
+libsecp256k1 = "0.7"
+chrono = "0.4"
+tokio = { version = "1", features = ["full"] }
+tempfile = "3"
+tokio-tungstenite = "0.20"
+futures-util = "0.3"
+iroh = "1.0.2"
+rand = "0.8"
+anyhow = "1.0.104"
+
+[profile.release]
+debug = true

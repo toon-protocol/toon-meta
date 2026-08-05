@@ -1,0 +1,7 @@
+=== run8-apphop: connector->app loopback HTTP leg, isolated (tail attribution) ===
+date: 2026-08-03T21:37:13Z
+
+=== connector -> app hop: raw HTTP/1.1 POST on loopback, keep-alive ===
+stub-app: 127.0.0.1:41091
+  APP HOP raw HTTP POST 8268B                n=20000   p50=  0.0713 p90=  0.0872 p99=  0.1155 p99.9=  0.1672 max=   0.2961 mean=  0.0728  (ms)
+  APP HOP raw HTTP POST 16460B               n=20000   p50=  0.0734 p90=  0.0890 p99=  0.1180 p99.9=  0.1827 max=   0.3360 mean=  0.0758  (ms)

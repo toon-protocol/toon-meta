@@ -1,0 +1,14 @@
+=== run5-iroh-quic: TIER 3 direct iroh QUIC loopback RTT baseline ===
+date: 2026-08-03T20:59:21Z
+iroh crate version resolved: version = "1.0.3"
+relay_mode = Disabled, direct loopback socket addr, one reused bi-stream
+
+=== iroh 1.0.2 direct QUIC RTT, loopback ===
+server node 0a171f2b6470b8e0510e417fb5fa5e8211994292ec9fd3b63cc2e6d15e0901b1 direct addrs [127.0.0.1:58690, 127.0.0.1:33013]
+connect (cold handshake): 1.958ms
+iroh QUIC bi-stream RTT      64B   n=2000  p50=  151.183us p90=  193.998us p99=  245.839us max=   336.843us  (p50=0.1512ms)
+iroh QUIC bi-stream RTT    1024B   n=2000  p50=  152.689us p90=  195.953us p99=  253.477us max=   388.595us  (p50=0.1527ms)
+iroh QUIC bi-stream RTT   16384B   n=2000  p50=  263.451us p90=  349.624us p99=  510.366us max=   875.292us  (p50=0.2635ms)
+iroh QUIC bi-stream RTT   32768B   n=2000  p50=  346.509us p90=  413.111us p99=  502.351us max=   822.469us  (p50=0.3465ms)
+iroh QUIC bi-stream RTT   65536B   n=2000  p50=  445.001us p90=  539.431us p99=  644.853us max=   806.753us  (p50=0.4450ms)
+iroh QUIC bi-stream RTT  262144B   n=500   p50= 1209.112us p90= 1532.493us p99= 1761.068us max=  2661.341us  (p50=1.2091ms)
