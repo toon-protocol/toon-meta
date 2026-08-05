@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useDashboard, useNodeDetail, RELAY_COUNT, type Dashboard } from '@/lib/hooks'
+import { useDashboard, RELAY_COUNT, type Dashboard } from '@/lib/hooks'
 import {
-  NODES, LINKS, INBOUND_LINK, NODE_RELAY, C, asset, chainColor, kindColor, kindLabel, packetDesc,
-  trunc, fmtAmt, ago, upt, claimId, walletRows, gasWarn, NATIVE, EXPL, copy,
-  SETTLE_THRESHOLD, SETTLE_TIMEOUT, type NodeKey, type Claim, type NostrEvent,
+  NODES, LINKS, INBOUND_LINK, C, chainColor, kindColor, kindLabel, packetDesc,
+  trunc, ago, walletRows, gasWarn, NATIVE, EXPL, copy, crossOrigin,
+  LIVE_LABEL, LIVE_DOT, RETIRED_TELEMETRY, type NodeKey, type NostrEvent,
 } from '@/lib/toon'
 
 type Detail = { badge?:string; badgeColor?:string; title:string; fields:[string,ReactNode][]; content?:string; raw:unknown }
@@ -25,19 +24,7 @@ function Addr({ chain, addr }: { chain:string; addr:string }) {
   return <span className="font-mono text-[11.5px]"><a href={EXPL[chain]?.(addr)} target="_blank" rel="noopener" className="text-amber-400 no-underline hover:underline">{trunc(addr,8,6)} ↗</a><Copy v={addr} /></span>
 }
 
-// ── recent-claim / packet rows ──
-function ClaimRow({ c, withPeer, onClick }: { c:Claim; withPeer?:boolean; onClick:()=>void }) {
-  const a = asset(c.assetCode); const amt = Number(c.amount)
-  return (
-    <div onClick={onClick} className="flex cursor-pointer items-center gap-1.5 rounded-md px-1 py-[3px] text-xs tnum hover:bg-accent">
-      <ColorBadge color={a.color}>{a.net} {a.sym}</ColorBadge>
-      {amt>0 ? <span className="font-semibold">{fmtAmt(c.amount)} {a.sym}</span> : <span className="text-muted-foreground text-[11px]">settle ✓</span>}
-      <span className="text-muted-foreground text-[11px]">{c.direction}</span>
-      {withPeer && <span className="font-mono text-[11px] text-muted-foreground" title={c.peerId}>{trunc(c.peerId,10,6)}</span>}
-      <span className="ml-auto text-[11px] text-muted-foreground">{ago(c.at)}</span>
-    </div>
-  )
-}
+// ── packet row ──
 function PacketRow({ ev, onClick }: { ev:NostrEvent; onClick:()=>void }) {
   const d = packetDesc(ev)
   return (
@@ -56,63 +43,61 @@ function GasChip({ chain, v, err }: { chain:string; v?:number; err?:string }) {
   const label = err ? '—' : v==null ? '…' : (v<1?v.toFixed(3):v.toFixed(2))
   return <span className={'tnum rounded-md border px-1.5 py-0.5 text-[11px] ' + (low ? 'border-rose-500 bg-rose-500 font-semibold text-[#04121a]' : 'border-border bg-muted/40 text-muted-foreground')}>{NATIVE[chain]} {label}{low?' ⚠':''}</span>
 }
-function NodeCard({ dash, nk, onOpen, onClaim }: { dash:Dashboard; nk:NodeKey; onOpen:()=>void; onClaim:(c:Claim)=>void }) {
-  const n = NODES.find(x=>x.key===nk)!; const st = dash.node[nk]
-  const agg = st?.metrics?.aggregate; const claims = (st?.earnings?.recentClaims||[]).slice(0,4)
-  const bumpRef = useRef<HTMLDivElement>(null); const hitRef = useRef<HTMLDivElement>(null)
-  const pulse = dash.pulse[nk]
-  useEffect(() => { if (pulse>0) {
-    bumpRef.current?.classList.remove('anim-bump'); void bumpRef.current?.offsetWidth; bumpRef.current?.classList.add('anim-bump')
-    hitRef.current?.classList.add('node-hit'); const t=setTimeout(()=>hitRef.current?.classList.remove('node-hit'),700); return ()=>clearTimeout(t)
-  } }, [pulse])
+// The liveness line is deliberately wordy. A coloured dot alone cannot say
+// whether it means "this connector is serving" or "this host answered but
+// would not let us read the answer", and those are the two different things
+// this page can actually establish.
+function LiveLine({ dash, nk }: { dash:Dashboard; nk:NodeKey }) {
+  const n = NODES.find(x=>x.key===nk)!; const l = dash.node[nk]
+  const state = l?.state ?? 'probing'
   return (
-    <Card ref={hitRef} onClick={onOpen} tabIndex={0} role="button"
+    <div>
+      <div className="flex items-center gap-2">
+        <span className={'h-2.5 w-2.5 shrink-0 rounded-full '+LIVE_DOT[state]} />
+        <h2 className="text-[15.5px] font-semibold">{n.name}</h2>
+        <span className="ml-auto text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{LIVE_LABEL[state]}</span>
+      </div>
+      <div className="mt-1 text-[11.5px] leading-snug text-muted-foreground">
+        <span className="font-mono text-[11px] text-foreground/70">GET /ilp/identity</span> — {l?.detail || 'no probe yet'}
+      </div>
+      {l?.publicKey && <div className="mt-1 font-mono text-[11px] text-muted-foreground">key {trunc(l.publicKey,10,6)}<Copy v={l.publicKey} /></div>}
+    </div>
+  )
+}
+
+function NodeCard({ dash, nk, onOpen }: { dash:Dashboard; nk:NodeKey; onOpen:()=>void }) {
+  const n = NODES.find(x=>x.key===nk)!
+  return (
+    <Card onClick={onOpen} tabIndex={0} role="button"
       className="group relative min-w-[210px] cursor-pointer gap-0 p-4 transition-colors hover:border-ring/60">
-      <div className="absolute right-4 top-4 text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">details →</div>
-      <div className="flex items-center gap-2"><span className={'h-2.5 w-2.5 rounded-full '+(st?.up?'bg-emerald-400':'bg-rose-500')} /><h2 className="text-[15.5px] font-semibold">{n.name}</h2></div>
-      <div className="mt-0.5 font-mono text-xs text-amber-400">{n.nid} · {n.ip}</div>
+      <div className="absolute right-4 top-9 text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">details →</div>
+      <LiveLine dash={dash} nk={nk} />
+      <div className="mt-2 font-mono text-xs text-amber-400">{n.nid} · {n.ip}</div>
+      <div className="mt-1 font-mono text-[11px] text-muted-foreground">{crossOrigin(n.base) ? n.base.replace(/^https:\/\//,'') : 'this origin'}</div>
       <div className="my-2 min-h-8 text-xs text-muted-foreground">{n.role}</div>
-      <div className="mb-2 flex items-end gap-4">
-        <div><div ref={bumpRef} className="tnum text-[32px] font-bold leading-none">{(agg?.packetsForwarded||0).toLocaleString()}</div><div className="text-[11px] uppercase tracking-wide text-muted-foreground">forwarded</div></div>
-        <div><div className={'text-base font-semibold '+((agg?.packetsRejected||0)>0?'text-rose-400':'text-muted-foreground')}>{(agg?.packetsRejected||0).toLocaleString()}</div><div className="text-[11px] uppercase tracking-wide text-muted-foreground">rejected</div></div>
-      </div>
-      <div className="mb-2 flex items-center gap-1.5 rounded-lg border border-amber-300/20 bg-amber-300/[0.06] px-2 py-1.5">
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">net settled · session</span>
-        <span className="tnum ml-auto font-bold text-amber-300">{fmtAmt(dash.profit[nk])} USDC</span>
-      </div>
-      <div className="mb-2 flex flex-wrap gap-1.5">{walletRows(nk).filter(w=>w.role==='settlement').map(w => <GasChip key={w.addr} chain={w.chain} v={dash.bal[w.addr]?.native} err={dash.bal[w.addr]?.err} />)}</div>
       <Separator />
-      <div className="mt-2 flex justify-between text-[11.5px] text-muted-foreground"><span>uptime {upt(st?.metrics?.uptimeSeconds)}</span><span>{((agg?.bytesSent||0)/1024).toFixed(1)} KB</span></div>
-      <div className="mt-2 border-t border-border pt-2">
-        <div className="mb-1 text-[10.5px] uppercase tracking-wide text-muted-foreground">peers</div>
-        {(st?.metrics?.peers||[]).map(p => (
-          <div key={p.peerId} className="flex items-center gap-1.5 py-0.5 text-xs">
-            <span className={'h-[7px] w-[7px] rounded-full '+(p.connected?'bg-emerald-400':'bg-rose-500')} />
-            <span className="truncate font-mono text-[11.5px]" title={p.peerId}>{p.peerId}</span>
-            <span className="tnum ml-auto text-muted-foreground">{(p.packetsForwarded||0).toLocaleString()} fwd</span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-2 min-h-[52px] border-t border-border pt-2" onClick={e=>e.stopPropagation()}>
-        <div className="mb-1 text-[10.5px] uppercase tracking-wide text-muted-foreground">recent claims</div>
-        {claims.length ? claims.map((c,i) => <ClaimRow key={claimId(c)+i} c={c} onClick={()=>onClaim(c)} />) : <div className="text-xs italic text-muted-foreground">no claims yet</div>}
+      <div className="mt-2.5">
+        <div className="mb-1.5 text-[10.5px] uppercase tracking-wide text-muted-foreground">settlement wallets · live on-chain</div>
+        <div className="flex flex-wrap gap-1.5">{walletRows(nk).filter(w=>w.role==='settlement').map(w => <GasChip key={w.addr} chain={w.chain} v={dash.bal[w.addr]?.native} err={dash.bal[w.addr]?.err} />)}</div>
       </div>
     </Card>
   )
 }
 
-function LinkCol({ which, count }: { which:'mina'|'base'|'sol'; count:number }) {
-  const L = LINKS[which]; const railRef = useRef<HTMLDivElement>(null); const first = useRef(true)
-  useEffect(() => { if (first.current){ first.current=false; return }
-    railRef.current?.classList.remove('go'); void railRef.current?.offsetWidth; railRef.current?.classList.add('go') }, [count])
+// Static topology, not a live feed. The travelling spark and the packet tally
+// were both driven by the delta in metrics.json's packetsForwarded; with no
+// counter to difference, an animated rail would be pure decoration implying
+// traffic nobody is measuring. The leg itself is still a true fact about how
+// these two nodes settle, so the label stays and the motion goes.
+function LinkCol({ which }: { which:'mina'|'base'|'sol' }) {
+  const L = LINKS[which]
   return (
     <div className="flex min-w-[120px] flex-col items-center justify-center px-1.5">
       <div className="mb-2.5 rounded-full px-2.5 py-[3px] text-[11px] font-semibold" style={{ background:L.color, color:'#04121a' }}>{L.label}</div>
       <div className="relative h-[3px] w-full rounded-[3px]" style={{ background:'var(--border)' }}>
         <div className="absolute inset-0 rounded-[3px]" style={{ background:L.color, opacity:.35 }} />
-        <div ref={railRef} className="link-spark absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full" style={{ background:L.color, boxShadow:`0 0 10px ${L.color}`, left:0, opacity:0 }} />
       </div>
-      <div className="mt-2 text-center text-[10.5px] leading-tight text-muted-foreground"><span className="tnum">{count}</span> pkts<br/>{L.chain}</div>
+      <div className="mt-2 text-center text-[10.5px] leading-tight text-muted-foreground">{L.chain}<br/><span className="opacity-70">throughput not measurable</span></div>
     </div>
   )
 }
@@ -138,46 +123,35 @@ function LivePackets({ dash, onPacket }: { dash:Dashboard; onPacket:(ev:NostrEve
 function Sec({ title, hint, children }: { title:string; hint?:string; children:ReactNode }) {
   return <div className="mt-5"><h3 className="mb-2 text-[11.5px] font-semibold uppercase tracking-wide text-muted-foreground">{title}{hint && <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/70">{hint}</span>}</h3>{children}</div>
 }
-function NodeDialog({ dash, nk, onClose, onPacket, onClaim }: { dash:Dashboard; nk:NodeKey|null; onClose:()=>void; onPacket:(ev:NostrEvent)=>void; onClaim:(c:Claim)=>void }) {
-  const d = useNodeDetail(!!nk, nk)
+function NodeDialog({ dash, nk, onClose }: { dash:Dashboard; nk:NodeKey|null; onClose:()=>void }) {
   const n = nk ? NODES.find(x=>x.key===nk)! : null
-  const st = nk ? dash.node[nk] : undefined; const agg = st?.metrics?.aggregate
-  const claims = (st?.earnings?.recentClaims||[]); const nodePackets = nk ? dash.packets.filter(e => e._src===NODE_RELAY[nk]).slice(0,25) : []
-  const byPeer:Record<string,number> = {}; for (const c of claims) if (Number(c.amount)>0) byPeer[c.peerId] = Math.max(byPeer[c.peerId]||0, Number(c.amount))
+  const l = nk ? dash.node[nk] : undefined
   return (
     <Dialog open={!!nk} onOpenChange={o=>{ if(!o) onClose() }}>
       <DialogContent className="max-w-[95vw] sm:max-w-[900px] max-h-[88vh] overflow-y-auto">
         {n && nk && <>
         <DialogHeader>
-          <DialogTitle className="flex flex-wrap items-center gap-2.5 text-[19px]"><span className={'h-2.5 w-2.5 rounded-full '+(st?.up?'bg-emerald-400':'bg-muted-foreground')} />{n.name}<span className="font-mono text-[12.5px] font-normal text-amber-400">{n.nid} · {n.ip}</span></DialogTitle>
+          <DialogTitle className="flex flex-wrap items-center gap-2.5 text-[19px]"><span className={'h-2.5 w-2.5 rounded-full '+LIVE_DOT[l?.state ?? 'probing']} />{n.name}<span className="font-mono text-[12.5px] font-normal text-amber-400">{n.nid} · {n.ip}</span></DialogTitle>
         </DialogHeader>
         <div className="text-[13px] text-muted-foreground">{n.role}</div>
-        <div className="flex flex-wrap gap-6">
-          {[['forwarded',(agg?.packetsForwarded||0).toLocaleString()],['rejected',(agg?.packetsRejected||0).toLocaleString()]].map(([l,v]) => <div key={l}><div className="tnum text-2xl font-bold">{v}</div><div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">{l}</div></div>)}
-          <div><div className="tnum text-2xl font-bold text-amber-300">{fmtAmt(dash.profit[nk])} <span className="text-[13px] text-muted-foreground">USDC</span></div><div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">net settled · session</div></div>
-          <div><div className="tnum text-2xl font-bold">{((agg?.bytesSent||0)/1024).toFixed(1)}<span className="text-[13px] text-muted-foreground"> KB</span></div><div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">bytes</div></div>
-          <div><div className="tnum text-2xl font-bold">{upt(st?.metrics?.uptimeSeconds)}</div><div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">uptime</div></div>
-        </div>
 
-        <Sec title="Routes resolved" hint={d.routeCount!=null?`· ${d.routeCount} routes`:''}>
-          <Table><TableHeader><TableRow><TableHead>prefix</TableHead><TableHead>next hop</TableHead><TableHead>termination / settlement</TableHead></TableRow></TableHeader>
-            <TableBody>{(d.routes||[]).map(rt => (
-              <TableRow key={rt.prefix}><TableCell className="font-mono text-amber-400">{rt.prefix}</TableCell><TableCell className="font-mono">{rt.nextHop}</TableCell>
-                <TableCell>{rt.termination ? <div className="text-[12px]">upstream <span className="font-mono">{rt.termination.upstream}</span> · price <b>{rt.termination.price}</b>
-                  <div className="mt-1 flex flex-wrap gap-1">{rt.termination.chains.map(c => <ColorBadge key={c} color={chainColor(c)}>{c}</ColorBadge>)}</div>
-                  <div className="mt-1">{Object.entries(rt.termination.settlementAddresses||{}).map(([c,a]) => <div key={c} className="font-mono text-[11.5px] text-muted-foreground">{c}: <button className="underline decoration-dotted" onClick={()=>copy(a)}>{trunc(a,8,6)}</button></div>)}</div>
-                </div> : <span className="text-muted-foreground">transit route</span>}</TableCell></TableRow>))}</TableBody></Table>
+        <Sec title="Liveness" hint="· the only health signal this page can still read">
+          <div className="rounded-lg border border-border bg-muted/20 p-3 text-[12.5px]">
+            <div className="flex items-center gap-2"><span className={'h-2.5 w-2.5 rounded-full '+LIVE_DOT[l?.state ?? 'probing']} /><b>{LIVE_LABEL[l?.state ?? 'probing']}</b>
+              <span className="text-muted-foreground">— {l?.detail}</span></div>
+            <div className="mt-2 text-muted-foreground">probe <span className="font-mono text-foreground/80">GET {n.base || '(this origin)'}/ilp/identity</span> · {crossOrigin(n.base)
+              ? 'cross-origin from this page, and that endpoint sends no Access-Control-Allow-Origin, so the browser may not read the response. The probe therefore only establishes that the host answered.'
+              : 'same origin as this page, so the response is fully readable — a 200 with a public key proves the connector is serving and has loaded its signer key.'}</div>
+            {l?.publicKey && <div className="mt-2 font-mono text-[11.5px]">publicKey <button className="underline decoration-dotted" onClick={()=>copy(l.publicKey!)}>{trunc(l.publicKey,14,10)}</button></div>}
+            {l?.checkedAt && <div className="mt-1 text-[11.5px] text-muted-foreground">checked {ago(l.checkedAt)} ago</div>}
+          </div>
         </Sec>
 
-        <Sec title="Settlement channels" hint={d.channels?`· ${d.channels.length} open`:''}>
-          <Table><TableHeader><TableRow><TableHead>chain</TableHead><TableHead>channel id</TableHead><TableHead>peer</TableHead><TableHead>status</TableHead><TableHead>deposit</TableHead><TableHead>last activity</TableHead></TableRow></TableHeader>
-            <TableBody>{(d.channels||[]).map(c => (
-              <TableRow key={c.channelId}><TableCell><ColorBadge color={chainColor(c.chain)}>{c.chain}</ColorBadge></TableCell>
-                <TableCell className="cursor-pointer font-mono" title={c.channelId} onClick={()=>copy(c.channelId)}>{trunc(c.channelId,10,6)}</TableCell>
-                <TableCell className="font-mono">{trunc(c.peerId,12,6)}</TableCell>
-                <TableCell className={c.status==='open'?'text-emerald-400':'text-rose-400'}>{c.status}</TableCell>
-                <TableCell>{c.deposit&&c.deposit!=='unknown'&&c.deposit!=='0'?fmtAmt(c.deposit)+' USDC':'—'}</TableCell>
-                <TableCell className="text-muted-foreground">{c.lastActivity?ago(c.lastActivity)+' ago':'—'}</TableCell></TableRow>))}</TableBody></Table>
+        <Sec title="Retired telemetry" hint="· why this dialog is shorter than it used to be">
+          <div className="rounded-lg border border-amber-300/20 bg-amber-300/[0.06] p-3 text-[12.5px] text-muted-foreground">
+            <div>{RETIRED_TELEMETRY}</div>
+            <div className="mt-2">Gone from this dialog: <span className="font-mono text-[11.5px]">routes</span>, <span className="font-mono text-[11.5px]">peers</span>, <span className="font-mono text-[11.5px]">channels</span> (404 since connector#665 narrowed the public nginx allowlist) and the packet/claim counters from <span className="font-mono text-[11.5px]">metrics.json</span>/<span className="font-mono text-[11.5px]">earnings.json</span> (502 since the TypeScript connectors were stopped; the Rust connector exposes no unauthenticated equivalent).</div>
+          </div>
         </Sec>
 
         <Sec title="Wallets & balances" hint="· top-up targets (live on-chain)">
@@ -188,29 +162,6 @@ function NodeDialog({ dash, nk, onClose, onPacket, onClaim }: { dash:Dashboard; 
                 <TableCell>{w.ario ? (b.ario==null?'…':<b className="text-amber-500">{(b.ario||0).toLocaleString(undefined,{maximumFractionDigits:2})} ARIO</b>) : (b.usdc!=null?`${b.usdc.toLocaleString(undefined,{maximumFractionDigits:2})} USDC`:'—')}</TableCell></TableRow> })}</TableBody></Table>
         </Sec>
 
-        <Sec title="Settlement policy">
-          <div className="text-[12.5px]">on-chain settle at <b>≥ {SETTLE_THRESHOLD/1e6} USDC</b> unsettled per channel <span className="text-muted-foreground">(threshold {SETTLE_THRESHOLD} base units)</span> — or every <b>{SETTLE_TIMEOUT/60} min</b> (settlementTimeoutSecs {SETTLE_TIMEOUT})</div>
-          <Table className="mt-2"><TableHeader><TableRow><TableHead>counterparty</TableHead><TableHead>largest recent claim</TableHead><TableHead className="w-[200px]">proximity</TableHead></TableRow></TableHeader>
-            <TableBody>{Object.entries(byPeer).slice(0,6).map(([p,a]) => { const frac=Math.min(1,a/SETTLE_THRESHOLD)
-              return <TableRow key={p}><TableCell className="font-mono">{trunc(p,12,6)}</TableCell><TableCell>{fmtAmt(a)} USDC</TableCell>
-                <TableCell><Progress value={frac*100} className="h-2" /><span className="text-[11px] text-muted-foreground">{frac>=1?'≥ threshold · settles promptly':`${(frac*100).toFixed(0)}% of threshold`}</span></TableCell></TableRow> })}</TableBody></Table>
-          <div className="mt-2 text-[11.5px] text-muted-foreground">The connector's <b>live unsettled balance</b> is not exposed by the 3.36.x admin API — the bar shows the largest recent claim vs the threshold as a proximity proxy, not the exact pending amount.</div>
-        </Sec>
-
-        <Sec title="Peers">
-          <Table><TableHeader><TableRow><TableHead>peer · connected</TableHead><TableHead>ILP addresses</TableHead><TableHead></TableHead></TableRow></TableHeader>
-            <TableBody>{(d.peers||[]).map(p => <TableRow key={p.id}><TableCell><span className={'mr-1 inline-block h-2 w-2 rounded-full '+(p.connected?'bg-emerald-400':'bg-rose-500')} /><span className="font-mono">{p.id}</span></TableCell><TableCell className="font-mono text-[11.5px]">{(p.ilpAddresses||[]).join('  ')}</TableCell><TableCell>{p.routeCount} routes</TableCell></TableRow>)}</TableBody></Table>
-        </Sec>
-
-        <Sec title="Packets · relay events" hint="· kind-labelled, click for full data">
-          <div className="max-h-[280px] overflow-y-auto rounded-md border border-border">
-            {nodePackets.length ? nodePackets.map(ev => <PacketRow key={ev.id} ev={ev} onClick={()=>onPacket(ev)} />) : <div className="p-2 text-xs italic text-muted-foreground">no packets seen yet on this node's relay</div>}
-          </div>
-        </Sec>
-
-        <Sec title="Settlement claims" hint="· money, click a row for full data">
-          {claims.length ? claims.slice(0,40).map((c,i) => <ClaimRow key={claimId(c)+i} c={c} withPeer onClick={()=>onClaim(c)} />) : <div className="text-xs italic text-muted-foreground">no claims yet</div>}
-        </Sec>
         </>}
       </DialogContent>
     </Dialog>
@@ -250,36 +201,27 @@ export default function App() {
       ['created', `${new Date(ev.created_at*1000).toISOString()} (${ago(ev.created_at*1000)} ago)`],
       ['tags', (ev.tags||[]).length ? <span className="font-mono text-[11.5px]">{(ev.tags||[]).slice(0,12).map(t=>JSON.stringify(t)).join('  ')}</span> : '—'],
     ] }) }
-  const openClaim = (c:Claim) => { const a = asset(c.assetCode)
-    setDetail({ badge:'settlement claim', badgeColor:a.color, title:`${a.net} ${a.sym} · ${c.direction}`, raw:c, fields:[
-      ['direction', c.direction],
-      ['amount', Number(c.amount)>0 ? <><b>{fmtAmt(c.amount)} {a.sym}</b> <span className="text-muted-foreground">({c.amount} base units, scale {c.assetScale})</span></> : 'settle ✓ (amount untracked on this leg)'],
-      ['asset', `${a.net} ${a.sym}`],
-      ['assetCode', <span className="cursor-pointer font-mono underline decoration-dotted" onClick={()=>copy(c.assetCode)}>{c.assetCode}</span>],
-      ['counterparty', <span className="cursor-pointer font-mono underline decoration-dotted" onClick={()=>copy(c.peerId)}>{c.peerId}</span>],
-      ['settled at', `${c.at} (${ago(c.at)} ago)`],
-    ] }) }
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1320px] px-5 pb-16 pt-6">
         <header className="mb-1 flex flex-wrap items-baseline gap-3.5">
-          <h1 className="text-[19px] font-semibold tracking-tight">TOON devnet · live packet flow</h1>
+          <h1 className="text-[19px] font-semibold tracking-tight">TOON devnet · node health &amp; relay stream</h1>
           <span className="text-[13px] text-muted-foreground">cross-currency multihop · client USDC → Solana → Arweave · click any node or packet for detail</span>
-          <span className="ml-auto flex items-center gap-2 text-[12.5px] text-muted-foreground"><span className={'h-2 w-2 rounded-full '+(dash.live?'bg-emerald-400 anim-beat':'bg-muted-foreground')} />{dash.live?`live · ${dash.lastPoll}`:'connecting…'}</span>
+          <span className="ml-auto flex items-center gap-2 text-[12.5px] text-muted-foreground"><span className={'h-2 w-2 rounded-full '+(dash.live?'bg-emerald-400 anim-beat':'bg-muted-foreground')} />{dash.live?`probed · ${dash.lastPoll}`:'connecting…'}</span>
         </header>
 
-        <Card className="mt-4 flex-row flex-wrap items-center gap-6 p-4">
-          <div><div className="tnum text-[26px] font-bold text-amber-300">{fmtAmt(dash.totals.profit)}<span className="ml-1 text-sm font-semibold text-muted-foreground">USDC</span></div><div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">network profit · session (net settled)</div></div>
-          <div><div className="tnum text-[26px] font-bold" style={{ color:C.pulse }}>{dash.totals.packets.toLocaleString()}</div><div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">packets forwarded · all nodes</div></div>
-          {dash.low>0 && <div className="text-[13px] font-semibold text-rose-400">⚠ {dash.low} wallet{dash.low>1?'s':''} low on gas</div>}
-          <div className="ml-auto flex flex-wrap gap-3.5 text-xs text-muted-foreground">{NODES.map(n => <span key={n.key} className="tnum">{n.name.split(' ')[0]} <b className="text-foreground">{fmtAmt(dash.profit[n.key])}</b></span>)}</div>
+        <Card className="mt-4 gap-0 border-amber-300/20 bg-amber-300/[0.05] p-3.5">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-300/90">What this page can still see</div>
+          <div className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
+            {RETIRED_TELEMETRY} Live now: a per-node <span className="font-mono text-[11.5px] text-foreground/80">GET /ilp/identity</span> liveness probe, the relay's Nostr event stream, and on-chain wallet balances.
+            {dash.low>0 && <span className="ml-1.5 font-semibold text-rose-400">⚠ {dash.low} wallet{dash.low>1?'s':''} low on gas.</span>}
+          </div>
         </Card>
 
         <div className="mt-5 grid items-stretch gap-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-          <NodeCard dash={dash} nk="toon" onOpen={()=>setNodeKey('toon')} onClaim={openClaim} />
-          <LinkCol which={INBOUND_LINK.ario} count={dash.linkCount.sol} />
-          <NodeCard dash={dash} nk="ario" onOpen={()=>setNodeKey('ario')} onClaim={openClaim} />
+          <NodeCard dash={dash} nk="toon" onOpen={()=>setNodeKey('toon')} />
+          <LinkCol which={INBOUND_LINK.ario} />
+          <NodeCard dash={dash} nk="ario" onOpen={()=>setNodeKey('ario')} />
         </div>
 
         <LivePackets dash={dash} onPacket={openPacket} />
@@ -287,14 +229,14 @@ export default function App() {
         <Card className="mt-4 gap-0 p-4 font-mono text-[12px] leading-relaxed text-muted-foreground">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Route &amp; settlement</div>
           <div><span className="text-amber-400">client → toon</span> · <b className="text-foreground">Base Sepolia USDC</b> by default (Solana via <code>rig chain set</code>) · pays wss://proxy.devnet.toonprotocol.dev</div>
-          <div><span className="text-amber-400">toon ↔ ario</span> · <b className="text-foreground">Solana devnet USDC</b> · solana:devnet · shared channel 5z6znXjH…</div>
-          <div><span className="text-amber-400">termination</span> · <b className="text-foreground">g.toon.ario</b> · Arweave DVM (kind:5094 pay-to-store)</div>
+          <div><span className="text-amber-400">toon ↔ ario</span> · <b className="text-foreground">Solana devnet USDC</b> · solana:devnet · peered over BTP</div>
+          <div><span className="text-amber-400">termination</span> · <b className="text-foreground">g.toon.ario</b> · Arweave store (kind:5094 pay-to-store) · proxy.ario.devnet.toonprotocol.dev</div>
         </Card>
 
-        <footer className="mt-6 text-center text-[11.5px] text-muted-foreground">read-only telemetry · /admin/{'{'}metrics,earnings,routes,peers,channels{'}'} @1.5s · packets via relay Nostr WS · balances via chain RPCs @45s · profit accumulates from claims since load</footer>
+        <footer className="mt-6 text-center text-[11.5px] text-muted-foreground">liveness via GET /ilp/identity @10s · packets via relay Nostr WS · balances via chain RPCs @45s · the connector admin API is no longer publicly readable, so no packet or settlement counters are shown</footer>
       </div>
 
-      <NodeDialog dash={dash} nk={nodeKey} onClose={()=>setNodeKey(null)} onPacket={openPacket} onClaim={openClaim} />
+      <NodeDialog dash={dash} nk={nodeKey} onClose={()=>setNodeKey(null)} />
       <DetailDialog detail={detail} onClose={()=>setDetail(null)} />
     </div>
   )

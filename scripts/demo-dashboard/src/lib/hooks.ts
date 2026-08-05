@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { NODES, INBOUND_LINK, walletRows, readBal, fetchJSON, claimId, gasWarn,
-  type NodeKey, type Metrics, type Earnings, type Route, type Peer, type Channel, type NostrEvent, type Bal } from './toon'
+import { NODES, walletRows, readBal, probeLiveness, gasWarn,
+  type NodeKey, type Liveness, type NostrEvent, type Bal } from './toon'
 
-type NodeState = { metrics?:Metrics; earnings?:Earnings; up:boolean; fwd:number }
 const RELAYS = [ { url:'wss://relay-ws.devnet.toonprotocol.dev', tag:'toon' } ]
 export const RELAY_COUNT = RELAYS.length
 const NODE_KEYS = NODES.map(n => n.key)
@@ -12,47 +11,25 @@ export type Dashboard = ReturnType<typeof useDashboard>
 export function useDashboard(){
   const [, force] = useState(0); const render = () => force(x => x + 1)
   const r = useRef({
-    node: {} as Record<NodeKey, NodeState>,
-    profit: { toon:0, ario:0 } as Record<NodeKey, number>,
-    seen: { toon:new Set<string>(), ario:new Set<string>() } as Record<NodeKey, Set<string>>,
-    prevFwd: {} as Record<string, number>,
-    linkCount: { base:0, sol:0 } as Record<'base'|'sol', number>,
-    pulse: { toon:0, ario:0 } as Record<NodeKey, number>,
+    node: Object.fromEntries(NODES.map(n => [n.key, { state:'probing', detail:'' } as Liveness])) as Record<NodeKey, Liveness>,
     packets: [] as NostrEvent[],
     pById: new Map<string, NostrEvent>(),
     firstBatch: true,
     relaysUp: 0,
     bal: {} as Record<string, Bal>,
-    live: false, lastPoll: '',
+    lastPoll: '',
   }).current
 
+  // Liveness. Polled at 10s rather than the old 1.5s: this is a health check,
+  // not a counter feed, so there is nothing to animate between ticks.
   useEffect(() => {
     let alive = true
     async function poll(){
-      await Promise.allSettled(NODES.map(async n => {
-        const [m, e] = await Promise.allSettled([ fetchJSON<Metrics>(n.base,'/admin/metrics.json'), fetchJSON<Earnings>(n.base,'/admin/earnings.json') ])
-        const st = r.node[n.key] || (r.node[n.key] = { up:false, fwd:0 })
-        if (m.status === 'fulfilled') {
-          st.metrics = m.value; st.up = true
-          const fwd = m.value.aggregate?.packetsForwarded || 0
-          if (r.prevFwd[n.key] != null && fwd > r.prevFwd[n.key]) {
-            r.pulse[n.key]++
-            r.linkCount[INBOUND_LINK[n.key]]++
-          }
-          st.fwd = fwd; r.prevFwd[n.key] = fwd
-        } else st.up = false
-        if (e.status === 'fulfilled') {
-          st.earnings = e.value
-          const seen = r.seen[n.key]
-          for (const c of (e.value.recentClaims || [])) { const id = claimId(c); if (seen.has(id)) continue; seen.add(id)
-            const amt = Number(c.amount) || 0; if (!amt) continue
-            r.profit[n.key] += (c.direction === 'outbound' ? -amt : amt) }
-        }
-      }))
-      r.live = NODES.some(n => r.node[n.key]?.up); r.lastPoll = new Date().toLocaleTimeString()
+      await Promise.all(NODES.map(async n => { const l = await probeLiveness(n.base); if (alive) r.node[n.key] = l }))
+      r.lastPoll = new Date().toLocaleTimeString()
       if (alive) render()
     }
-    poll(); const id = setInterval(poll, 1500)
+    poll(); const id = setInterval(poll, 10000)
     return () => { alive = false; clearInterval(id) }
   }, [])
 
@@ -87,24 +64,10 @@ export function useDashboard(){
     return () => { alive = false; clearInterval(id) }
   }, [])
 
-  const totals = { profit: NODE_KEYS.reduce((s,k)=> s + (r.profit[k]||0), 0), packets: NODES.reduce((s,n)=> s + (r.node[n.key]?.fwd||0), 0) }
   let low = 0; for (const key of NODE_KEYS) for (const row of walletRows(key)){ const b = r.bal[row.addr]; if (b && !b.err && gasWarn(row.chain, b.native)) low++ }
-  return { node:r.node, profit:r.profit, linkCount:r.linkCount, pulse:r.pulse, packets:r.packets, relaysUp:r.relaysUp, bal:r.bal, totals, low, live:r.live, lastPoll:r.lastPoll }
-}
-
-// per-node routes/peers/channels while the detail dialog is open
-export function useNodeDetail(open:boolean, key:NodeKey|null){
-  const [d, setD] = useState<{ routes?:Route[]; routeCount?:number; peers?:Peer[]; channels?:Channel[] }>({})
-  useEffect(() => {
-    if (!open || !key) return; let alive = true
-    const base = NODES.find(n => n.key === key)!.base
-    async function go(){ const [ro, pe, ch] = await Promise.allSettled([
-        fetchJSON(base,'/admin/routes'), fetchJSON(base,'/admin/peers'), fetchJSON<Channel[]>(base,'/admin/channels') ])
-      if (!alive) return
-      setD({ routes: ro.status==='fulfilled'?ro.value.routes:undefined, routeCount: ro.status==='fulfilled'?ro.value.routeCount:undefined,
-        peers: pe.status==='fulfilled'?pe.value.peers:undefined, channels: ch.status==='fulfilled'?ch.value:undefined }) }
-    go(); const id = setInterval(go, 1500)
-    return () => { alive = false; clearInterval(id) }
-  }, [open, key])
-  return d
+  // "live" is now the page's own honesty check: at least one node answered a
+  // probe at all. It is not a claim about traffic, because no traffic counter
+  // is observable any more.
+  const live = NODES.some(n => { const s = r.node[n.key]?.state; return s === 'up' || s === 'reachable' })
+  return { node:r.node, packets:r.packets, relaysUp:r.relaysUp, bal:r.bal, low, live, lastPoll:r.lastPoll }
 }
