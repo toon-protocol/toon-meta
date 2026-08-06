@@ -73,7 +73,7 @@ on Opus; the one high-iteration mechanical role runs on Sonnet:
 |-------------------------------------|-------------------|------------------------------------------------------------|
 | `planner` (incl. `planner-dry-run`) | `claude-opus-5`   | Dependency-graph reasoning over the open backlog; once per cycle. |
 | `merger`                            | `claude-opus-5`   | Conflict resolution across completed branches; once per cycle.    |
-| `reviewer`                          | `claude-opus-5`   | Single pass, one iteration — the last judgement before a human sees the PR. |
+| `reviewer`                          | `claude-opus-5`   | Single pass, one iteration — the last judgement before a human sees the PR. Reviews against the target issue's acceptance criteria and must emit a structured `<review>` verdict (`clean`/`blocking`); blocking findings land on the PR with `needs:human`, and a malformed verdict fails the run (#275). |
 | `implementer`                       | `claude-sonnet-5` | Mechanical, high-iteration (up to 100 iterations) — the bulk of factory spend. |
 
 Match by the role's `name` field in each `.sandcastle/*.ts` runner, not by line number or
