@@ -406,3 +406,54 @@ Deviations from the #272 ticket text, and open follow-ups:
   No duplicate classic protection was added.
 - Review requirements were deliberately not changed anywhere ([#282](https://github.com/toon-protocol/toon-meta/issues/282)
   supplies the approver); `enforce_admins` remains off everywhere.
+
+---
+
+## Dependency-driven dispatch (unblock dispatcher)
+
+Landed by [#280](https://github.com/toon-protocol/toon-meta/issues/280) (epic
+[#270](https://github.com/toon-protocol/toon-meta/issues/270)). When a ticket closes anywhere in
+the fleet, the dispatcher works out what it unblocked and applies `agent:implement` to exactly
+the released work — one ticket at a time per epic. Logic:
+`scripts/factory/unblock-dispatcher.mjs` (I/O shell) over the pure, unit-tested
+`scripts/factory/dispatch-evaluator.mjs` (membership + serialization) and
+`scripts/factory/unblock-evaluator.mjs` (#274 readiness — the single authority on
+`## Blocked by`). Workflow: `.github/workflows/unblock-dispatcher.yml`, invoked by each repo's
+`unblock-dispatcher-shim.yml` (canonical copy: `scripts/factory/unblock-dispatcher-shim.yml`,
+same shim → `workflow_call` convention as pr-housekeeping) plus a 6-hourly safety cron that
+recovers dropped events by re-running the identical full-fleet pass.
+
+**Epic membership — the mechanical rule.** An *epic* is any open issue labeled `epic`. A ticket
+is a *child* of an epic iff its body contains a line **starting** with `Part of <issue-ref>`
+(bare `#N` / `repo#N` resolve against the ticket's own repo; trailing prose after the ref is
+ignored; several `Part of` lines mean membership of all of them, and dispatch then requires ALL
+of those epics to be idle). GitHub-native sub-issues are not consulted — these epics have none.
+
+**Serialization.** Epics run in parallel; within an epic at most ONE agent PR
+(`sandcastle/*`/`agent/*`) is in flight. An epic is busy when an open agent PR maps to one of
+its children (close-keyword refs or the `sandcastle/issue-<n>` branch name) or a child already
+carries `agent:implement`. Ready children of a busy epic queue for the next pass. Among several
+ready children, the deterministic pick is the lowest canonical id — racing passes converge, and
+re-adding a present label fires no `issues.labeled` event, so a race cannot double-run.
+
+**Never dispatched:** anything labeled `epic`/`tracking`/`needs:human`, anything already in
+flight, dependency-cycle members, tickets outside the 11-repo fleet, and every #274
+"needs-human" verdict (unresolvable/prose blockers, blockers closed as *not planned*,
+unverifiable states) — those get a comment naming the offending bullet plus `needs:human`,
+idempotent via a hidden marker.
+
+**Ticket-authoring consequences** (what makes a ticket mechanically dispatchable):
+
+- Give every leaf ticket a `## Blocked by` section that is either `None` or clean single-ref
+  bullets — prose conditions route to a human by design.
+- Put the `Part of #N` trailer **after** a heading-closed section (e.g. after
+  `## Acceptance criteria`). A `Part of` line sitting inside the `## Blocked by` section reads
+  as a prose condition and fails closed.
+
+**Rollout knob.** Writes happen only when the org Actions variable `DISPATCH_APPLY` is `'true'`
+(or a manual run passes `apply=true`) — same pattern as `HOUSEKEEPING_APPLY`/`HYGIENE_APPLY`.
+The write identity must be `FACTORY_OPS_TOKEN` (#271): agent-implement.yml's Guard 1 refuses
+labelers without write access (#281 lets factory-ops through), so a dispatch under another bot
+identity is silently ignored. The dispatcher only ever labels EXISTING issues — the only form
+that fires `issues.labeled` and hence the runner (labels attached at creation emit only
+`opened`).
