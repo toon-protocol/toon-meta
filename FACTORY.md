@@ -73,7 +73,7 @@ on Opus; the one high-iteration mechanical role runs on Sonnet:
 |-------------------------------------|-------------------|------------------------------------------------------------|
 | `planner` (incl. `planner-dry-run`) | `claude-opus-5`   | Dependency-graph reasoning over the open backlog; once per cycle. |
 | `merger`                            | `claude-opus-5`   | Conflict resolution across completed branches; once per cycle.    |
-| `reviewer`                          | `claude-opus-5`   | Single pass, one iteration — the last judgement before a human sees the PR. Reviews against the target issue's acceptance criteria and must emit a structured `<review>` verdict (`clean`/`blocking`); blocking findings land on the PR with `needs:human`, and a malformed verdict fails the run (#275). |
+| `reviewer`                          | `claude-opus-5`   | Single pass, one iteration — the last judgement on the PR. Reviews against the target issue's acceptance criteria and must emit a structured `<review>` verdict (`clean`/`blocking`); a malformed verdict fails the run (#275). The verdict is then submitted formally as factory-ops: clean → `APPROVED`, blocking → `CHANGES_REQUESTED` + `needs:human` (#282 — see "What a factory-ops approval attests"). |
 | `implementer`                       | `claude-sonnet-5` | Mechanical, high-iteration (up to 100 iterations) — the bulk of factory spend. |
 
 Match by the role's `name` field in each `.sandcastle/*.ts` runner, not by line number or
@@ -406,6 +406,36 @@ Deviations from the #272 ticket text, and open follow-ups:
   No duplicate classic protection was added.
 - Review requirements were deliberately not changed anywhere ([#282](https://github.com/toon-protocol/toon-meta/issues/282)
   supplies the approver); `enforce_admins` remains off everywhere.
+
+### What a factory-ops approval attests
+
+Landed by [#282](https://github.com/toon-protocol/toon-meta/issues/282) (epic
+[#270](https://github.com/toon-protocol/toon-meta/issues/270)). On every agent PR, the review
+runner submits the reviewer's structured verdict (#275) as a **formal GitHub review** under the
+`factory-ops` identity (`FACTORY_OPS_TOKEN`, provisioned + monitored under
+[#271](https://github.com/toon-protocol/toon-meta/issues/271)):
+
+- **clean** → a real `APPROVED` review — this is what satisfies the repos whose branch
+  protection requires an approving review, since the factory App (which opens agent PRs)
+  cannot approve its own PR.
+- **blocking** → a `CHANGES_REQUESTED` review carrying the findings, plus `needs:human`.
+
+**A factory-ops `APPROVED` state is a machine verdict, not human judgement.** It attests
+exactly this: *the gate passed and the sandcastle reviewer found nothing blocking* (reviewed
+against the target issue's acceptance criteria where one was resolved). Nobody has read the
+diff. Do not read a green factory-ops tick as a person having vouched for the change — the
+human control points are `needs:human`, the risk labels, and anyone choosing to review before
+or after merge.
+
+Failure semantics (the anti-rot rule): the approver must never be the PR author, and the
+runner verifies both the identity (before the reviewer runs and again at submission) and the
+state of the review GitHub actually created. A missing/expired/wrong-identity
+`FACTORY_OPS_TOKEN` — or a review that comes back `COMMENTED` instead of
+`APPROVED`/`CHANGES_REQUESTED` — **fails the job loudly**. The retired loops' reviewer rotted
+precisely because an expired `REVIEWER_TOKEN` silently degraded reviews to `COMMENTED`;
+that degradation path deliberately does not exist here. The token is host-only and is never
+forwarded into the sandbox: the agent must not hold the credential that approves its own
+output (`.sandcastle/sandbox-secrets.ts`).
 
 ---
 

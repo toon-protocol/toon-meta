@@ -231,7 +231,8 @@ jobs:
           # secret that contains another is not partially replaced).
           exact = sorted(
               (v for v in (os.environ.get(k, "") for k in
-                           ("GH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "APP_PRIVATE_KEY"))
+                           ("GH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "APP_PRIVATE_KEY",
+                            "FACTORY_OPS_TOKEN"))
                if v and len(v.strip()) >= 8),
               key=len, reverse=True,
           )
