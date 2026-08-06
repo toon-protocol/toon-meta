@@ -38,22 +38,20 @@
 //      `gh pr create`; the work lands, the ticket stays open, and an empty
 //      branch is left behind.)
 //
-// ── CHECK-SET HONESTY (the buzz gotcha) ─────────────────────────────────────
-// A skipped check is not a passing check, and an EMPTY check set is not a green
-// one. buzz's CI is paths-filtered across ~20 jobs; buzz#141 has an entirely
-// empty check set. "No failing checks" is true of it and means nothing. The
-// verdict here is four-valued: failing / pending / passed / UNVERIFIED (empty,
-// or nothing ran to a real SUCCESS). Unverified PRs are reported loudly and are
-// never counted as passed; they are not auto-remediated either, because there
-// is no red check for a fix agent to act on.
+// ── CHECK-SET HONESTY + ASYNC MERGEABILITY (shared with #285) ───────────────
+// Both rules — the four-valued check verdict (failing / pending / passed /
+// UNVERIFIED, where an empty or all-skipped rollup is never a pass) and the
+// mergeable-out-of-UNKNOWN polling — now live ONCE in pr-signals.mjs and are
+// imported here. They were extracted by toon-meta#285 so the auto-merge pass
+// reads exactly the same signals: two copies could disagree about whether the
+// same PR is green, and remediate it as failing while merging it as passing.
+// See pr-signals.mjs for the full reasoning (the buzz#141 empty-check-set
+// gotcha, and why polling is both the read and the nudge).
 //
-// ── MERGEABILITY IS COMPUTED ASYNCHRONOUSLY (the silent-wrongness gotcha) ───
-// Immediately after a merge, GitHub reports `mergeable: UNKNOWN` for every
-// other open PR for several seconds while it recomputes. Judging at that moment
-// records conflicted PRs as clean. Any PR still UNKNOWN is therefore POLLED
-// (GETting the PR is what schedules the recomputation) until it settles to
-// MERGEABLE/CONFLICTING or the poll budget runs out — and a PR that never
-// settles is reported, not judged clean.
+// Unverified PRs are still reported loudly here and never counted as passed;
+// they are not auto-remediated either, because there is no red check for a fix
+// agent to act on. A PR whose mergeability never settles is reported, not
+// judged.
 //
 // ── SAFETY MODEL (inherited from triage-sweep) ──────────────────────────────
 // * DRY-RUN BY DEFAULT: writes happen only when APPLY=true. Every run prints
@@ -70,6 +68,8 @@
 
 import { execFileSync } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
+
+import { checksVerdict, settleMergeable } from "./pr-signals.mjs";
 
 // ── Config (env-overridable) ────────────────────────────────────────────────
 const ORG = process.env.HOUSEKEEPING_ORG ?? "toon-protocol";
@@ -143,56 +143,21 @@ function linkedIssues(text) {
 }
 
 // ── mergeable settling ──────────────────────────────────────────────────────
-// GETting the PR schedules GitHub's background mergeability computation, so
-// polling is both the read and the nudge. Returns the settled value, or
-// "UNKNOWN" if the budget ran out (callers must treat that as unjudgeable).
-async function settleMergeable(repo, prNumber, initial) {
-  let value = initial ?? "UNKNOWN";
-  for (let i = 0; i < MERGEABLE_POLL_TRIES && value === "UNKNOWN"; i++) {
-    await sleep(MERGEABLE_POLL_MS);
-    const fresh = gh(
-      ["pr", "view", String(prNumber), "--repo", repo, "--json", "mergeable"],
-      { json: true, allowFail: true },
-    );
-    value = fresh?.mergeable ?? "UNKNOWN";
-  }
-  return value;
-}
-
-// ── check-set verdict ───────────────────────────────────────────────────────
-// Four-valued on purpose. "passed" requires at least one check that actually
-// RAN and SUCCEEDED — an empty rollup, or one that is all SKIPPED/NEUTRAL,
-// verifies nothing (buzz's paths-filtered CI produces exactly that shape).
-const FAILING_STATES = new Set([
-  "FAILURE",
-  "ERROR",
-  "TIMED_OUT",
-  "CANCELLED",
-  "STARTUP_FAILURE",
-]);
-const PENDING_STATES = new Set([
-  "PENDING",
-  "QUEUED",
-  "IN_PROGRESS",
-  "WAITING",
-  "REQUESTED",
-  "EXPECTED",
-  "ACTION_REQUIRED",
-]);
-
-function checksVerdict(rollup) {
-  const states = (rollup ?? []).map((c) => ({
-    name: c.name || c.context || "?",
-    state: (c.conclusion || c.state || c.status || "").toUpperCase(),
-  }));
-  const failing = states.filter((s) => FAILING_STATES.has(s.state));
-  if (failing.length) return { verdict: "failing", failing };
-  if (states.some((s) => PENDING_STATES.has(s.state)))
-    return { verdict: "pending", failing: [] };
-  const ranGreen = states.filter((s) => s.state === "SUCCESS");
-  if (ranGreen.length === 0) return { verdict: "unverified", failing: [] };
-  return { verdict: "passed", failing: [] };
-}
+// Policy + poll loop live in pr-signals.mjs; this binds them to gh and the
+// real clock. Returns the settled value, or "UNKNOWN" if the budget ran out
+// (callers must treat that as unjudgeable).
+const settlePrMergeable = (repo, prNumber, initial) =>
+  settleMergeable({
+    initial,
+    refetch: () =>
+      gh(["pr", "view", String(prNumber), "--repo", repo, "--json", "mergeable"], {
+        json: true,
+        allowFail: true,
+      })?.mergeable,
+    sleep: (ms) => sleep(ms),
+    tries: MERGEABLE_POLL_TRIES,
+    intervalMs: MERGEABLE_POLL_MS,
+  });
 
 // ── Action log ──────────────────────────────────────────────────────────────
 const actions = []; // { repo, kind, detail }
@@ -232,7 +197,7 @@ async function sweepRepo(repo) {
 
     // Settle mergeability BEFORE judging — see header. A PR that never leaves
     // UNKNOWN is reported and skipped, never recorded as clean OR conflicted.
-    const mergeable = await settleMergeable(repo, pr.number, pr.mergeable);
+    const mergeable = await settlePrMergeable(repo, pr.number, pr.mergeable);
     if (mergeable === "UNKNOWN") {
       record(
         repo,

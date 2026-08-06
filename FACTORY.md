@@ -488,6 +488,74 @@ identity is silently ignored. The dispatcher only ever labels EXISTING issues �
 that fires `issues.labeled` and hence the runner (labels attached at creation emit only
 `opened`).
 
+## Auto-merge (#285)
+
+Landed by [#285](https://github.com/toon-protocol/toon-meta/issues/285) (epic
+[#270](https://github.com/toon-protocol/toon-meta/issues/270)). A green, approved,
+conflict-free agent PR merges itself — which closes its linked issue, which fires the
+unblock dispatcher (#280), which starts the next ticket. That is the loop closed:
+
+```text
+dispatch → PR → gate green → factory-ops approves (#282) → MERGE → issue closes → dispatch
+```
+
+Logic: `scripts/factory/auto-merge.mjs` (thin I/O shell) over the pure, unit-tested
+`scripts/factory/automerge-evaluator.mjs` (eligibility) and `scripts/factory/pr-signals.mjs`
+(the four-valued check verdict + mergeability settling, now **shared verbatim** with
+`pr-housekeeping.mjs` so the remediation pass and the merge pass can never disagree about
+whether the same PR is green). Workflow: `.github/workflows/auto-merge.yml`, invoked by each
+repo's `auto-merge-shim.yml` (canonical copy: `scripts/factory/auto-merge-shim.yml`) on
+check-suite completion, review submission and merged PRs, plus a 6-hourly safety cron.
+
+**Why not just `gh pr merge --auto` and let GitHub decide.** Native auto-merge merges as soon
+as *branch protection* is satisfied, and protection cannot express three of the five
+preconditions: it counts a `skipped` required check as a pass (the buzz#141 empty-check-set
+gotcha), it has no notion of `needs:human`, and it cannot require that the approval came from
+*factory-ops* rather than from anyone — six of the eleven repos require **zero** approvals, so
+protection alone would merge an unreviewed agent PR. The seam is therefore: **this pass is the
+stricter gate, GitHub is the final authoritative one.** We decide eligibility with the extra
+preconditions and then hand the merge to GitHub, which re-enforces protection at the moment of
+merging. Neither side can merge what the other rejects.
+
+**The five preconditions** (all must hold; the report names every one that failed):
+
+| Precondition | How it is decided |
+|--------------|-------------------|
+| The required check **ran** and passed | Required contexts are read LIVE from GitHub (classic protection, the branches endpoint, and rulesets — Forge's gate exists only as a ruleset), never from the table above, which has drifted. Every required context must be present in the PR's rollup **and** `SUCCESS`. Missing, `SKIPPED` or `NEUTRAL` blocks the merge even though protection would accept it. The whole rollup must also be `passed` (never "nothing failed"). |
+| `mergeable == MERGEABLE` | Read only after it settles out of `UNKNOWN` (GitHub computes it asynchronously; polling is both the read and the nudge). A PR that never settles is never judged. |
+| Reviewer verdict clean + factory-ops approved | One observable: the latest opinionated review from the factory-ops identity is `APPROVED`. #282 makes clean → `APPROVED` and blocking → `CHANGES_REQUESTED`, so a clean verdict *is* the approval. Any outstanding `CHANGES_REQUESTED`, a `REVIEW_REQUIRED` decision, or an approval left on an older commit blocks. |
+| No `needs:human` | On the PR **or** on any linked issue (`Closes #N` refs and the `sandcastle/issue-<n>` branch name, via `prIssueIds`). |
+| Branch up to date with base | Strict protection (#272). A PR that satisfies everything else and is only `BEHIND` gets `update-branch` — not a merge: CI re-runs on the new head and the next pass decides again. Nothing else in the factory updates branches, so without this, strict protection is a permanent stall. |
+
+**Who counts as the approver** is not hardcoded: the pass runs as `FACTORY_OPS_TOKEN` — the same
+credential that submits the #282 review — and resolves the login from `gh api user`. A rotation
+cannot desynchronize approver and merger. Without the secret the run falls back to the ambient
+App identity, which never approves, so every PR reports `approval-missing` and nothing merges.
+
+**Rollout knob.** Writes happen only when the org Actions variable `AUTOMERGE_APPLY` is `'true'`
+(or a manual run passes `apply=true`) — same pattern as `HOUSEKEEPING_APPLY` / `HYGIENE_APPLY` /
+`DISPATCH_APPLY`. `AUTOMERGE_LIMIT` (default 5) caps merges per run.
+
+**Rollout prerequisites**, as of 2026-08-06:
+
+- **`allow_auto_merge` is `false` on all 11 repos**, so `gh pr merge --auto` would be refused
+  today. The pass falls back to a direct `gh pr merge` for a PR that is verified green and
+  `CLEAN` *right now* — GitHub's merge endpoint still enforces branch protection, so the
+  fallback loses the *waiting*, not the *enforcing*. Turning the repo setting on (Settings →
+  Pull Requests → Allow auto-merge) upgrades every repo to the native path automatically.
+- **buzz is excluded** (`DEFAULT_EXCLUDED_REPOS`): its required contexts are still #272's interim
+  pair, which only proves the workflow started. Remove the exclusion when
+  [#279](https://github.com/toon-protocol/toon-meta/issues/279) repoints buzz at a real aggregate.
+- A repo whose protection **cannot be read** is reported `policy-unreadable` and merges nothing —
+  an unreadable policy is never treated as an absent one.
+
+**This is not `SANDCASTLE_AUTO_MERGE`.** That variable is the *other* mechanism: the agent
+merging its own branch from inside the sandbox, before CI and before review. It stays **off**
+— verified 2026-08-06 across all 11 repos (no `agent-implement.yml` sets it; the line is
+commented out in every copy, and no repo defines it as an Actions variable, which would have no
+effect anyway since no workflow references `vars.SANDCASTLE_AUTO_MERGE`). This pass merges
+through GitHub, after the gate, under an identity that is not the PR author.
+
 ## triage-sweep retirement (#283)
 
 `triage-sweep.yml` + `scripts/factory/triage-sweep.mjs` (the hourly cron janitor) were deleted
