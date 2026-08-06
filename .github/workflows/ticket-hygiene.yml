@@ -1,0 +1,94 @@
+# Ticket hygiene — weekly stale / obsolete / redundant sweep (toon-meta#277).
+#
+# The backlog pruner: triage-sweep only ever CREATES issues and
+# pr-housekeeping only files remediation; this is the pass that takes things
+# OUT. Full logic + safety model: scripts/factory/ticket-hygiene.mjs, with the
+# pure decision rules in scripts/factory/hygiene-evaluator.mjs (unit-tested by
+# the Factory unit tests job).
+#
+# ── WHY A CRON, AND WHY WEEKLY (contrast with pr-housekeeping) ───────────────
+# pr-housekeeping (#276) is event-driven because a merge/check event is
+# exactly the moment a PR gets stuck. Staleness has no such moment — it is a
+# property of TIME — so this one is correctly a cron, and weekly is the right
+# grain: the thresholds are 30d-to-mark / 14d-grace-to-close, so an hourly or
+# daily tick would re-scan ~11 repos to almost always do nothing.
+#
+# Central in toon-meta, no per-repo shims: nothing here reacts to repo-local
+# events, so one scheduled run sweeping the whole fleet is enough (same
+# manager-function reasoning as triage-sweep).
+#
+# ── APPLY vs DRY-RUN ─────────────────────────────────────────────────────────
+# Writes happen ONLY when the org/repo Actions variable HYGIENE_APPLY is
+# 'true', or a workflow_dispatch run passes apply=true. Until an admin sets
+# the variable, every weekly tick is a no-write dry-run report. Rollout:
+#   1. "Run workflow" with apply=false → a human reviews the fleet-wide
+#      dry-run report (REQUIRED before the first live run — acceptance
+#      criterion on #277).
+#   2. Optionally run once with apply=true to sanity-check real writes.
+#   3. Set org variable HYGIENE_APPLY=true to let the weekly cron go live.
+#
+# ── WHAT APPLY MODE WRITES ───────────────────────────────────────────────────
+#   * stale: `stale` label (created per-repo if missing) + warning comment;
+#     close as "not planned" after the grace period. Never touches
+#     epic/tracking/needs:human.
+#   * obsolete: auto-close ONLY the two mechanical cases (merged-PR close-link
+#     that never fired; housekeeping remediation whose target PR is done),
+#     evidence in the comment, reopen-guarded.
+#   * redundant: NEVER closes anything — proposals are upserted into one
+#     report issue in toon-meta for a human to confirm.
+#
+# ── CREDENTIAL ───────────────────────────────────────────────────────────────
+# FACTORY_OPS_TOKEN (org secret, provisioned + monitored under #271) is the
+# write identity. Hygiene never adds `agent:implement`, so the implement
+# runner's Guard-1 labeler constraint is not in play.
+
+name: ticket-hygiene
+
+on:
+  schedule:
+    - cron: "37 5 * * 1" # weekly, Mondays 05:37 UTC (off the top-of-hour congestion)
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "Optional comma-separated repo override (owner/name or bare name). Blank = the whole factory fleet."
+        type: string
+        default: ""
+      apply:
+        description: "Write changes (label/close/report). false = dry-run report only."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # One sweep at a time; a queued duplicate loses nothing (every run
+    # re-scans from scratch).
+    concurrency:
+      group: ticket-hygiene
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No `npm ci`: the script is dependency-free (node builtins + gh CLI).
+      - name: Run ticket hygiene
+        env:
+          # Prefer the monitored factory-ops identity; fall back to the
+          # ambient token, which is dry-run/read safe on the public fleet.
+          GH_TOKEN: ${{ secrets.FACTORY_OPS_TOKEN || github.token }}
+          FACTORY_OPS_TOKEN_PRESENT: ${{ secrets.FACTORY_OPS_TOKEN != '' }}
+          HYGIENE_REPOS: ${{ inputs.repos || '' }}
+          # Manual runs obey the apply input EXACTLY (apply=false never falls
+          # through to the variable); scheduled runs obey HYGIENE_APPLY, which
+          # as an ORG variable is one knob for the whole fleet.
+          APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.apply || (github.event_name != 'workflow_dispatch' && vars.HYGIENE_APPLY == 'true') }}
+          HYGIENE_STALE_DAYS: "30"
+          HYGIENE_GRACE_DAYS: "14"
+        run: npm run hygiene:tickets
