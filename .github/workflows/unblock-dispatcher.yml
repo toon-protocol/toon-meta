@@ -1,0 +1,129 @@
+# Unblock dispatcher — dependency-driven work dispatch (toon-meta#280).
+#
+# When a ticket closes, work out what it unblocked and start that work: the
+# piece that makes the factory AFK once tickets exist. Full logic + safety
+# model: scripts/factory/unblock-dispatcher.mjs, with the pure decision rules
+# in scripts/factory/dispatch-evaluator.mjs (epic membership, serialization)
+# and scripts/factory/unblock-evaluator.mjs (#274 readiness — the single
+# authority on `## Blocked by`), both unit-tested by the Factory unit tests job.
+#
+# ── ARCHITECTURE: thin per-repo shim → this reusable workflow ────────────────
+# Same fleet event-forwarding convention as pr-housekeeping (#276), for the
+# same reasons (one central manager function; workflow_call over
+# repository_dispatch so FACTORY_OPS_TOKEN never needs Contents:write):
+#
+#   * Each factory repo carries a tiny shim
+#     (.github/workflows/unblock-dispatcher-shim.yml, canonical copy at
+#     scripts/factory/unblock-dispatcher-shim.yml) that fires on
+#     issues:closed and `uses:` THIS workflow with `secrets: inherit`.
+#   * This file is also toon-meta's own shim (the issues trigger below), so
+#     toon-meta needs no separate shim file.
+#
+# The dependency graph is CROSS-REPO — a relay close must re-check toon-meta
+# dependents — so every pass is a full-fleet pass regardless of which repo's
+# event triggered it. The event is logged, never used to slice the graph.
+#
+# ── SAFETY CRON ──────────────────────────────────────────────────────────────
+# A dropped issues:closed event (repo not yet carrying the shim, GitHub event
+# loss, a shim run failing) must not wedge an epic permanently, so a
+# low-frequency cron re-runs the identical full-fleet pass. Because the pass
+# never depends on the trigger, the cron provably reaches the same
+# conclusions an event run would have — it IS the recovery path, not a
+# second code path. 6-hourly is deliberate: serialization means a wedged
+# epic loses at most a few hours, while the pass itself is cheap reads.
+#
+# ── CONCURRENCY (and the cross-repo race) ────────────────────────────────────
+# The concurrency group serializes runs per caller repo, but a workflow_call
+# run belongs to the CALLER's repo, so closes in two different repos can race
+# two passes. That race is safe by design (see dispatch-evaluator.mjs):
+# the plan is deterministic (same state → same pick, lowest canonical id) and
+# `gh issue edit --add-label` is idempotent — re-adding a present label
+# fires no `issues.labeled` event, so a double-dispatch cannot double-run.
+#
+# ── APPLY vs DRY-RUN ─────────────────────────────────────────────────────────
+# Writes (agent:implement dispatch, needs:human routing) happen ONLY when the
+# org Actions variable DISPATCH_APPLY is 'true', or a workflow_dispatch run
+# passes apply=true — the same rollout knob as HOUSEKEEPING_APPLY /
+# HYGIENE_APPLY. Until an admin sets the variable, every run is a no-write
+# dry-run report:
+#   1. "Run workflow" with apply=false → eyeball the fleet-wide plan
+#      (REQUIRED before the first live run — acceptance criterion on #280).
+#   2. Close something / wait for a cron tick → eyeball event/cron dry-runs.
+#   3. Set org variable DISPATCH_APPLY=true to go live.
+#
+# ── CREDENTIAL ───────────────────────────────────────────────────────────────
+# FACTORY_OPS_TOKEN (org secret, provisioned + monitored under #271) is the
+# write identity, and here it is LOAD-BEARING: agent-implement.yml's Guard 1
+# refuses labelers without write access (#281 lets factory-ops through), so a
+# dispatch applied by any other bot identity is silently ignored by the
+# runner. The script warns when applying without it.
+
+name: unblock-dispatcher
+
+on:
+  workflow_call:
+    inputs:
+      source:
+        description: "owner/repo#N of the closed issue that triggered this pass (informational only — every pass re-evaluates the full fleet)."
+        type: string
+        required: false
+        default: ""
+  # toon-meta's own shim trigger — other repos carry unblock-dispatcher-shim.yml.
+  issues:
+    types: [closed]
+  # Safety cron: recover dropped events. See header.
+  schedule:
+    - cron: "43 2,8,14,20 * * *" # 6-hourly, off the top-of-hour congestion
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "Optional comma-separated repo override (owner/name or bare name). Blank = the whole factory fleet."
+        type: string
+        default: ""
+      apply:
+        description: "Write changes (apply agent:implement / needs:human). false = dry-run report only."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Serialize passes (per caller repo — see the race note in the header);
+    # a queued duplicate loses nothing, every pass re-reads the whole fleet.
+    concurrency:
+      group: unblock-dispatcher
+      cancel-in-progress: false
+    steps:
+      # Always check out toon-meta main — in a workflow_call run the default
+      # checkout would be the CALLER's repo, but the logic lives here, once.
+      - uses: actions/checkout@v4
+        with:
+          repository: toon-protocol/toon-meta
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No `npm ci`: the script is dependency-free (node builtins + gh CLI).
+      - name: Run unblock dispatcher
+        env:
+          # The monitored factory-ops identity (#271) — load-bearing for
+          # APPLY (Guard 1); the ambient-token fallback is dry-run/read safe.
+          GH_TOKEN: ${{ secrets.FACTORY_OPS_TOKEN || github.token }}
+          FACTORY_OPS_TOKEN_PRESENT: ${{ secrets.FACTORY_OPS_TOKEN != '' }}
+          DISPATCH_REPOS: ${{ inputs.repos || '' }}
+          # Forensics only — the pass ignores these when planning.
+          DISPATCH_TRIGGER: ${{ github.event_name }}
+          DISPATCH_SOURCE: >-
+            ${{ inputs.source ||
+                (github.event_name == 'issues' && format('{0}#{1}', github.repository, github.event.issue.number)) ||
+                '' }}
+          # Manual runs obey the apply input EXACTLY (apply=false never falls
+          # through to the variable); event/cron runs obey DISPATCH_APPLY,
+          # which as an ORG variable is one knob for the whole fleet.
+          APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.apply || (github.event_name != 'workflow_dispatch' && vars.DISPATCH_APPLY == 'true') }}
+        run: npm run dispatch:unblocked
