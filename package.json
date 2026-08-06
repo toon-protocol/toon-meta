@@ -9,7 +9,6 @@
     "check:links": "node scripts/factory/check-links.mjs",
     "validate:json": "node scripts/factory/validate-json.mjs",
     "gate:regression": "node scripts/factory/check-gate-regression.mjs",
-    "triage:sweep": "node scripts/factory/triage-sweep.mjs",
     "test:factory": "node --test \"scripts/factory/*.test.mjs\"",
     "housekeeping:prs": "node scripts/factory/pr-housekeeping.mjs",
     "hygiene:tickets": "node scripts/factory/ticket-hygiene.mjs",
