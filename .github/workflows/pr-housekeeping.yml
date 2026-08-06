@@ -1,9 +1,10 @@
 # PR housekeeping — event-driven stuck-PR remediation (toon-meta#276).
 #
-# Replaces triage-sweep Part B, which was a production NO-OP (it filtered PR
+# Replaced triage-sweep Part B, which was a production NO-OP (it filtered PR
 # branches on `agent/` while every sandcastle PR is `sandcastle/issue-<n>`).
-# Part A of triage-sweep and its cron are left untouched; toon-meta#283 retires
-# them separately. Full logic + safety model: scripts/factory/pr-housekeeping.mjs.
+# Part A of triage-sweep and its hourly cron were retired by toon-meta#283
+# (superseded by unblock-dispatcher.yml, toon-meta#280). Full logic + safety
+# model: scripts/factory/pr-housekeeping.mjs.
 #
 # ── ARCHITECTURE: thin per-repo shim → this reusable workflow ────────────────
 # GitHub events are repo-local but the remediation logic is a manager function

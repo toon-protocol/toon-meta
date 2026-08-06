@@ -487,3 +487,22 @@ labelers without write access (#281 lets factory-ops through), so a dispatch und
 identity is silently ignored. The dispatcher only ever labels EXISTING issues — the only form
 that fires `issues.labeled` and hence the runner (labels attached at creation emit only
 `opened`).
+
+## triage-sweep retirement (#283)
+
+`triage-sweep.yml` + `scripts/factory/triage-sweep.mjs` (the hourly cron janitor) were deleted
+by [#283](https://github.com/toon-protocol/toon-meta/issues/283) (epic #270). It had run
+exactly once (a dry-run dispatch, 2026-07-24) and was `disabled_manually` since. **Do not
+resurrect it** — every job it bundled has a live, event-driven replacement:
+
+| Old job | Replacement |
+|---------|-------------|
+| Part A — silence-driven issue dispatch (`agent:implement` after a 60-min quiet window) | **Retired outright**, superseded by dependency-driven dispatch: `.github/workflows/unblock-dispatcher.yml` + `scripts/factory/unblock-dispatcher.mjs` ([#280](https://github.com/toon-protocol/toon-meta/issues/280)). Part A never parsed `## Blocked by`, so it would have dispatched dependency chains out of order; the dispatcher makes readiness, not silence, the trigger. |
+| Part B — stuck-PR remediation (conflict / failing checks / stale) | `.github/workflows/pr-housekeeping.yml` + `scripts/factory/pr-housekeeping.mjs` ([#276](https://github.com/toon-protocol/toon-meta/issues/276)), with the `agent/`-vs-`sandcastle/` prefix no-op fixed. Legacy `triage-sweep-stuck:*` markers still count toward the retry cap (`legacyMarker`, pr-housekeeping.mjs). |
+| Backlog pruning (never existed in triage-sweep — it only ever created) | `.github/workflows/ticket-hygiene.yml` + `scripts/factory/ticket-hygiene.mjs` ([#277](https://github.com/toon-protocol/toon-meta/issues/277)). |
+
+Credentials: the old `TRIAGE_APPLY` variable / `TRIAGE_PAT` secret were never provisioned at
+the repo level (verified empty via the Actions API at retirement); the replacements run on
+`FACTORY_OPS_TOKEN` + the `HOUSEKEEPING_APPLY` / `HYGIENE_APPLY` / `DISPATCH_APPLY` knobs. If
+an org-level `TRIAGE_PAT` or `TRIAGE_APPLY` exists, it is orphaned and should be revoked by an
+org admin (same loose end the old `REVIEWER_TOKEN` left).

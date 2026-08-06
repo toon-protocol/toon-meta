@@ -7,8 +7,9 @@
 // vs 71 agent/*, the latter all historical from the retired 4-loop system).
 // This script matches BOTH prefixes, so any straggler agent/ PR is also swept.
 //
-// NB: triage-sweep Part A (issue dispatch) and its cron are intentionally left
-// in place — their retirement is tracked separately by toon-meta#283.
+// NB: triage-sweep (both parts + its hourly cron) was retired by toon-meta#283.
+// Part A's dispatch role is superseded by the dependency-driven unblock
+// dispatcher (unblock-dispatcher.mjs, toon-meta#280); Part B's role lives here.
 //
 // ── TRIGGER MODEL (event-driven, not cron) ──────────────────────────────────
 // This script is repo-scoped and is invoked by .github/workflows/

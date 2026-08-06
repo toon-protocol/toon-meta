@@ -3,9 +3,14 @@
 # When a ticket closes, work out what it unblocked and start that work: the
 # piece that makes the factory AFK once tickets exist. Full logic + safety
 # model: scripts/factory/unblock-dispatcher.mjs, with the pure decision rules
-# in scripts/factory/dispatch-evaluator.mjs (epic membership, serialization)
-# and scripts/factory/unblock-evaluator.mjs (#274 readiness — the single
-# authority on `## Blocked by`), both unit-tested by the Factory unit tests job.
+# in scripts/factory/dispatch-evaluator.mjs (epic membership, serialization),
+# scripts/factory/unblock-evaluator.mjs (#274 readiness — the single
+# authority on `## Blocked by`) and scripts/factory/completion-evaluator.mjs
+# (#284 epic completion: after each dispatch pass, close an epic whose every
+# child closed as completed; escalate to needs:human when a child was closed
+# as not planned) — all unit-tested by the Factory unit tests job. Completion
+# writes obey the SAME apply knob as dispatch writes (DISPATCH_APPLY / the
+# apply input) — one rollout switch for the whole pass.
 #
 # ── ARCHITECTURE: thin per-repo shim → this reusable workflow ────────────────
 # Same fleet event-forwarding convention as pr-housekeeping (#276), for the

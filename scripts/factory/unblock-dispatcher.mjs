@@ -3,12 +3,15 @@
 // When a ticket closes, work out what it unblocked and start that work — the
 // piece that makes the factory AFK once tickets exist. This file is the thin
 // I/O shell: gh reads, gh writes (APPLY only), and the report. ALL decision
-// logic lives in two pure, unit-tested modules:
+// logic lives in three pure, unit-tested modules:
 //   * unblock-evaluator.mjs (#274) — `## Blocked by` readiness. Never
 //     re-implemented here.
 //   * dispatch-evaluator.mjs (#280) — epic membership (`Part of` lines),
 //     PR→issue attribution, one-in-flight-per-epic serialization, and the
 //     never-dispatch exclusions. See its header for the mechanical rules.
+//   * completion-evaluator.mjs (#284) — the epic completion pass that runs
+//     AFTER the dispatch pass, below: close an epic when every child closed
+//     as completed; escalate (comment + needs:human) when scope was dropped.
 //
 // ── EVERY PASS IS A FULL-FLEET PASS (why the cron is equivalent) ────────────
 // The dependency graph is cross-repo (a relay close can release a toon-meta
@@ -50,7 +53,14 @@ import {
   FACTORY_BRANCH_PREFIXES,
   IMPLEMENT_LABEL,
   HUMAN_LABEL,
+  EPIC_LABEL,
 } from "./dispatch-evaluator.mjs";
+import {
+  planCompletion,
+  buildCompletionComment,
+  buildEscalationComment,
+  escalationMarker,
+} from "./completion-evaluator.mjs";
 
 // ── Config (env-overridable) ────────────────────────────────────────────────
 const ORG = process.env.DISPATCH_ORG ?? "toon-protocol";
@@ -284,5 +294,181 @@ console.log(
     `${n("in-flight-pr") + n("in-flight-label")} already in flight, ` +
     `${n("excluded")} excluded by label, ${n("outside-fleet")} outside the fleet; ` +
     `${plan.epics.filter((e) => e.stalled).length} stalled epic(s).`,
+);
+
+// ═══ Epic completion pass (toon-meta#284) — runs AFTER each dispatch pass ═══
+//
+// Close an epic when its work is done; surface dropped scope instead of
+// burying it. Decision logic is pure (completion-evaluator.mjs — verdicts,
+// fail-closed rules, comment text); this shell only:
+//   * discovers CANDIDATE children via each epic's cross-reference timeline
+//     (the dispatch pass only sees OPEN issues; completion needs the CLOSED
+//     children, and any issue whose body says `Part of <epic>` left a
+//     cross-referenced event on the epic's timeline). Membership itself is
+//     still decided by parseEpicRefs on the candidate's body — a timeline
+//     mention without a `Part of` line never binds;
+//   * backfills unverifiable stateReasons via REST (fail closed otherwise);
+//   * fetches each completed child's closing PR(s) via GraphQL
+//     closedByPullRequestsReferences, for the summary comment;
+//   * writes (close / needs:human + comment) under the SAME APPLY knob
+//     (org var DISPATCH_APPLY); dry-run prints the identical plan.
+
+function fetchTimelineCandidates(repo, number) {
+  // One compact JSON object per line (NDJSON across --paginate pages).
+  const jq =
+    '.[] | select(.event=="cross-referenced" and .source.issue != null and (.source.issue.pull_request == null)) | ' +
+    "{repo: .source.issue.repository.full_name, number: .source.issue.number, " +
+    "title: .source.issue.title, url: .source.issue.html_url, state: .source.issue.state, " +
+    "stateReason: .source.issue.state_reason, body: .source.issue.body, " +
+    "labels: [.source.issue.labels[].name]}";
+  const out = gh(
+    ["api", `repos/${repo}/issues/${number}/timeline?per_page=100`, "--paginate", "--jq", jq],
+    { allowFail: true },
+  );
+  if (!out) return [];
+  const rows = [];
+  for (const line of out.split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      rows.push(JSON.parse(line));
+    } catch {
+      /* partial line on a failed page — skip, fail closed */
+    }
+  }
+  return rows;
+}
+
+function fetchClosingPrs(repo, number) {
+  const [owner, name] = repo.split("/");
+  const data = gh(
+    [
+      "api",
+      "graphql",
+      "-f",
+      "query=query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){issue(number:$number){closedByPullRequestsReferences(first:10,includeClosedPrs:true){nodes{url number}}}}}",
+      "-F",
+      `owner=${owner}`,
+      "-F",
+      `name=${name}`,
+      "-F",
+      `number=${number}`,
+    ],
+    { json: true, allowFail: true },
+  );
+  return data?.data?.repository?.issue?.closedByPullRequestsReferences?.nodes ?? [];
+}
+
+console.log(`\n━━━ Epic completion pass (toon-meta#284) — mode=${tag} ━━━`);
+
+const epicIssues = openIssues.filter((i) => (i.labels ?? []).includes(EPIC_LABEL));
+const candidateMap = new Map(); // canonical id → candidate
+// (a) Timeline cross-references — the only way to reach CLOSED children.
+for (const epic of epicIssues) {
+  for (const c of fetchTimelineCandidates(epic.repo, epic.number)) {
+    const id = `${String(c.repo).toLowerCase()}#${c.number}`;
+    if (!candidateMap.has(id)) candidateMap.set(id, c);
+  }
+}
+// (b) The open-issue scan (already in hand) — belt and braces if a timeline
+// read failed; an open child missing from the tally could wrongly close an
+// epic, so open issues always participate.
+for (const i of openIssues) {
+  const id = `${i.repo.toLowerCase()}#${i.number}`;
+  if (!candidateMap.has(id)) candidateMap.set(id, { ...i, state: "open", stateReason: null });
+}
+// (c) Backfill closed candidates whose stateReason the timeline omitted —
+// without a verifiable reason the evaluator fails closed to "unknown".
+let backfilled = 0;
+for (const c of candidateMap.values()) {
+  if (String(c.state).toLowerCase() === "closed" && c.stateReason == null) {
+    const iss = fetchIssueRest(`${String(c.repo).toLowerCase()}#${c.number}`);
+    if (iss) {
+      c.stateReason = iss.stateReason ?? null;
+      backfilled++;
+    }
+  }
+}
+console.log(
+  `Candidate scan: ${epicIssues.length} open epic(s), ${candidateMap.size} candidate ` +
+    `issue(s) (timeline + open scan), ${backfilled} stateReason backfill(s).`,
+);
+
+const completion = planCompletion({ epics: epicIssues, candidates: [...candidateMap.values()] });
+
+for (const e of completion.epics) {
+  const t = e.tally;
+  console.log(`\n━━ epic ${e.id} — "${e.title ?? ""}" — completion verdict: ${e.verdict}`);
+  console.log(
+    `   children: ${t.completed.length} completed, ${t.open.length} open, ` +
+      `${t.notPlanned.length} not planned, ${t.unknown.length} unverifiable`,
+  );
+  if (t.open.length) console.log(`   open: ${t.open.map((c) => c.id).join(", ")}`);
+  if (t.notPlanned.length)
+    console.log(`   not planned: ${t.notPlanned.map((c) => c.id).join(", ")}`);
+  if (t.unknown.length) console.log(`   unverifiable: ${t.unknown.map((c) => c.id).join(", ")}`);
+  for (const r of e.reasons) console.log(`   - ${r}`);
+}
+
+let epicsClosed = 0;
+let epicsEscalated = 0;
+let escalationsAlready = 0;
+for (const a of completion.actions) {
+  const { repo, number } = a.epic;
+  if (a.type === "close-epic") {
+    const childPrs = {};
+    for (const ch of a.completed) {
+      const [chRepo, chNumber] = ch.id.split("#");
+      childPrs[ch.id] = fetchClosingPrs(chRepo, Number(chNumber));
+    }
+    const comment = buildCompletionComment({ epic: a.epic, completed: a.completed, childPrs });
+    if (APPLY) {
+      gh([
+        "issue",
+        "close",
+        String(number),
+        "--repo",
+        repo,
+        "--reason",
+        "completed",
+        "--comment",
+        comment,
+      ]);
+      console.log(`\n[APPLY] closed epic ${a.epic.id} (completed) with summary comment`);
+    } else {
+      console.log(`\n[dry-run] would CLOSE epic ${a.epic.id} with comment:`);
+      for (const line of comment.split("\n")) console.log(`   | ${line}`);
+    }
+    epicsClosed++;
+  } else if (a.type === "escalate-epic") {
+    const marker = escalationMarker(repo, number);
+    const already = fetchComments(repo, number).some((c) => (c.body ?? "").includes(marker));
+    if (already) {
+      console.log(`\n[${tag}] epic ${a.epic.id} already escalated (marker found) — skipping`);
+      escalationsAlready++;
+      continue;
+    }
+    const comment = buildEscalationComment({ epic: a.epic, tally: a.tally, marker });
+    if (APPLY) {
+      gh(["issue", "edit", String(number), "--repo", repo, "--add-label", HUMAN_LABEL]);
+      gh(["issue", "comment", String(number), "--repo", repo, "--body", comment]);
+      console.log(`\n[APPLY] escalated epic ${a.epic.id}: added ${HUMAN_LABEL} + comment`);
+    } else {
+      console.log(`\n[dry-run] would ESCALATE epic ${a.epic.id} (${HUMAN_LABEL}) with comment:`);
+      for (const line of comment.split("\n")) console.log(`   | ${line}`);
+    }
+    epicsEscalated++;
+  }
+}
+
+const byVerdict = {};
+for (const e of completion.epics) byVerdict[e.verdict] = (byVerdict[e.verdict] ?? 0) + 1;
+console.log(
+  `\nCompletion pass complete (${APPLY ? "APPLIED" : "dry-run"}): ` +
+    `${completion.epics.length} epic(s) examined — ` +
+    `${byVerdict["complete"] ?? 0} completable (${epicsClosed} close action(s)), ` +
+    `${byVerdict["escalate"] ?? 0} escalatable (${epicsEscalated} new, ${escalationsAlready} already flagged), ` +
+    `${byVerdict["held"] ?? 0} held by ${HUMAN_LABEL}, ` +
+    `${byVerdict["incomplete"] ?? 0} incomplete, ` +
+    `${byVerdict["no-children"] ?? 0} with no children.`,
 );
 process.exit(0);
