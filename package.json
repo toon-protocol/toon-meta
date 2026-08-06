@@ -13,6 +13,7 @@
     "housekeeping:prs": "node scripts/factory/pr-housekeeping.mjs",
     "hygiene:tickets": "node scripts/factory/ticket-hygiene.mjs",
     "dispatch:unblocked": "node scripts/factory/unblock-dispatcher.mjs",
+    "digest:daily": "node scripts/factory/daily-digest.mjs",
     "gate": "npm run lint:md && npm run check:links && npm run validate:json && npm run gate:regression",
     "sandcastle": "npx tsx .sandcastle/main.ts",
     "sandcastle:plan": "npx tsx .sandcastle/plan-dry-run.ts",
