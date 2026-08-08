@@ -1,0 +1,91 @@
+# Daily digest — make an AFK day legible (toon-meta#286, epic #270).
+#
+# One comment a day on a standing tracking issue: what the factory dispatched,
+# merged, filed, escalated to `needs:human`, which epics quietly stalled, and
+# how many agent runs it all cost. Logic: scripts/factory/daily-digest.mjs (the
+# thin gh I/O shell) over the pure, unit-tested
+# scripts/factory/digest-evaluator.mjs (window filtering, event classification,
+# escalation dedupe, rendering) — covered by the Factory unit tests job.
+#
+# ── WHY A CRON AND NOT AN EVENT ─────────────────────────────────────────────
+# Every other factory component is event-driven, because it acts on a change.
+# The digest does the opposite: it reports a period, and its most important
+# section (Stalled) is about the ABSENCE of events. Nothing fires when an epic
+# stops moving, so only a clock can notice. 07:11 UTC is deliberate: it lands
+# before a European/US morning and after the 02:00/20:00 dispatch crons, so the
+# day it summarises is a settled one.
+#
+# ── WHERE IT POSTS ──────────────────────────────────────────────────────────
+# A standing `tracking`-labeled issue, one comment per UTC day (see the
+# rationale in scripts/factory/daily-digest.mjs). Its ref is configuration:
+#   * org (or repo) Actions variable DIGEST_ISSUE = `owner/repo#N`.
+# When DIGEST_ISSUE is unset the run is report-only whatever APPLY says — the
+# digest never creates its own tracking issue, and never touches the work it
+# reports. Repeat runs on the same day UPSERT the same comment via the hidden
+# `factory-digest:<UTC day>` marker, so a re-run cannot double-post.
+#
+# ── APPLY vs DRY-RUN ────────────────────────────────────────────────────────
+# Posting happens ONLY when the org Actions variable DIGEST_APPLY is 'true', or
+# a workflow_dispatch run passes apply=true — the same rollout knob as
+# HOUSEKEEPING_APPLY / HYGIENE_APPLY / DISPATCH_APPLY / AUTOMERGE_APPLY. Until
+# an admin sets it, every run prints the rendered digest to the run log and the
+# job summary and posts nothing.
+#
+# ── CREDENTIAL ──────────────────────────────────────────────────────────────
+# FACTORY_OPS_TOKEN (org secret, #271) is the write identity, and unlike the
+# dispatcher it is NOT load-bearing for correctness here: the only write is a
+# comment on one tracking issue. Reads fall back to the ambient token, which is
+# enough on this public fleet.
+
+name: daily-digest
+
+on:
+  schedule:
+    - cron: "11 7 * * *" # daily, 07:11 UTC — see header
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "Optional comma-separated repo override (owner/name or bare name). Blank = the whole factory fleet."
+        type: string
+        default: ""
+      window_hours:
+        description: "Window to summarise, in hours (default 24). Widen it to backfill a missed day."
+        type: string
+        default: "24"
+      apply:
+        description: "Post the digest comment. false = print it to the run log only."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # One digest run at a time: two concurrent runs would race the same-day
+    # upsert and could post twice before either sees the other's comment.
+    concurrency:
+      group: daily-digest
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No `npm ci`: the script is dependency-free (node builtins + gh CLI).
+      - name: Run daily digest
+        env:
+          GH_TOKEN: ${{ secrets.FACTORY_OPS_TOKEN || github.token }}
+          DIGEST_REPOS: ${{ inputs.repos || '' }}
+          DIGEST_WINDOW_HOURS: ${{ inputs.window_hours || '24' }}
+          # `owner/repo#N` of the standing tracking issue. Unset ⇒ report-only.
+          DIGEST_ISSUE: ${{ vars.DIGEST_ISSUE }}
+          # Manual runs obey the apply input EXACTLY (apply=false never falls
+          # through to the variable); scheduled runs obey DIGEST_APPLY, which as
+          # an ORG variable is one knob for the whole fleet.
+          APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.apply || (github.event_name != 'workflow_dispatch' && vars.DIGEST_APPLY == 'true') }}
+        run: npm run digest:daily

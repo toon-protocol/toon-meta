@@ -556,6 +556,52 @@ commented out in every copy, and no repo defines it as an Actions variable, whic
 effect anyway since no workflow references `vars.SANDCASTLE_AUTO_MERGE`). This pass merges
 through GitHub, after the gate, under an identity that is not the PR author.
 
+## Daily digest (#286)
+
+Landed by [#286](https://github.com/toon-protocol/toon-meta/issues/286) (epic
+[#270](https://github.com/toon-protocol/toon-meta/issues/270)). One comment a day covering the
+last 24h across all 11 repos: **Dispatched** (and the closing ticket that unblocked each),
+**Merged** (plus the issues that closed as a result), **Filed** (#276 fix tickets, #277 hygiene
+actions), **Escalated** (everything routed to `needs:human`, with the reason — the human's
+queue), **Stalled** (epics with no in-flight agent PR and no ready child) and **Spend**
+(agent-implement / agent-review runs started, per repo). Logic:
+`scripts/factory/daily-digest.mjs` (I/O shell) over the pure, unit-tested
+`scripts/factory/digest-evaluator.mjs`. Workflow: `.github/workflows/daily-digest.yml`
+(daily cron 07:11 UTC + `workflow_dispatch`).
+
+**Events, not state.** Every section reports transitions inside the window, never current
+state. A state-based digest re-lists the same `needs:human` item every morning until a human
+clears it — which is how a digest stops being read. The corollary: an unresolved escalation is
+*not* re-listed; the digest is a change log, and `needs:human` remains the queryable queue.
+
+**Where it posts: a standing tracking issue, one comment per UTC day** — not a fresh dated
+issue. The fleet's issue list is the work queue (365 digest issues a year would pollute
+hygiene's redundancy clustering and every epic/child scan); one URL is subscribable and
+scrollable on a phone; and dedupe needs memory, which previous comments on a known issue
+provide for the price of one read. The standing issue must carry `tracking` so the dispatcher
+and hygiene never touch it. Its ref is configuration, not code: org variable
+`DIGEST_ISSUE = owner/repo#N`. **Unset ⇒ report-only**, whatever `APPLY` says — the digest never
+creates its own tracking issue.
+
+**Escalations appear exactly once** (the #286 acceptance criterion) via three layers: (1) within
+a run, repeat `labeled needs:human` events for one item collapse to the latest; (2) across runs,
+each escalation has a stable key `repo#number@<label-event ISO>` and every posted digest embeds
+its key list in a hidden marker line — the next run reads the last 7 digests back and suppresses
+anything already reported, so overlapping windows cannot double-report while a genuine
+re-escalation (new timestamp → new key) is reported again; (3) same-day re-runs upsert on the
+hidden `factory-digest:<UTC day>` marker instead of posting a twin.
+
+**Stalled is not re-derived**: `planDispatch` (#280) already computes `epics[].stalled` (nothing
+in flight, nothing dispatched, no ready child) and the digest only adds the per-child verdict
+breakdown that says *why* — under per-epic serialization one wedged ticket halts a whole epic,
+so the wedged child is the diagnosis. Epics stalled with **zero** open children are collapsed to
+one line: that is the completion pass's job (#284), not a wedge.
+
+**Rollout knob.** Posting happens only when the org Actions variable `DIGEST_APPLY` is `'true'`
+(or a manual run passes `apply=true`) — same pattern as
+`HOUSEKEEPING_APPLY`/`HYGIENE_APPLY`/`DISPATCH_APPLY`. The single write is one comment on the
+standing issue; the digest never labels, closes or comments on the work it reports.
+
 ## triage-sweep retirement (#283)
 
 `triage-sweep.yml` + `scripts/factory/triage-sweep.mjs` (the hourly cron janitor) were deleted
