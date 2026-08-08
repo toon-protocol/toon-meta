@@ -370,18 +370,21 @@ job's `name:`, or the job id when no `name:` is set) — not workflow file names
 job ids when a `name:` overrides them. A required context that never reports blocks every
 merge, so never require a check without first verifying it runs on all PRs.
 
+Verified against live protection on 2026-08-06 (after the
+[#279](https://github.com/toon-protocol/toon-meta/issues/279) repoints):
+
 | Repo | Mechanism | Required checks | Strict | Reviews (pre-existing, untouched) |
 |------|-----------|-----------------|--------|-----------------------------------|
-| relay | classic branch protection | `build` | yes | PR required, 0 approvals |
-| toon-client | classic branch protection | `build` | yes | PR required, 0 approvals |
-| rig | classic branch protection (new) | `build` | yes | none |
-| store | classic branch protection | `build` | yes | PR required, 0 approvals |
-| toon | classic branch protection | `build` | yes | PR required, 0 approvals |
-| swap | classic branch protection | `build` | yes | PR required, 0 approvals |
+| relay | classic branch protection | `CI OK` | yes | PR required, 0 approvals |
+| toon-client | classic branch protection | `CI OK` | yes | PR required, 0 approvals |
+| rig | classic branch protection (new) | `CI OK` | yes | none |
+| store | classic branch protection | `CI OK` | yes | PR required, 0 approvals |
+| toon | classic branch protection | `CI OK` | yes | PR required, 0 approvals |
+| swap | classic branch protection | `CI OK` | yes | PR required, 0 approvals |
 | connector | classic branch protection (new) | `CI Status Summary` | yes | none |
 | Forge | **ruleset** `Gate` (id 19595889, `active`) | `gate` | yes (strict policy) | none |
 | fractal | classic branch protection (new) | `gate` | yes | none |
-| buzz | classic branch protection (new) | `Detect Changed Paths`, `Dead Token Reference Guard` | yes | none |
+| buzz | classic branch protection (new) | `Detect Changed Paths`, `Dead Token Reference Guard` — **repoint to `CI OK` pending**, see below | yes | none |
 | toon-meta | classic branch protection | `Doc gate` | yes | PR required, 0 approvals |
 
 Deviations from the #272 ticket text, and open follow-ups:
@@ -389,11 +392,12 @@ Deviations from the #272 ticket text, and open follow-ups:
 - **connector**: the ticket named the summary job by its job id `ci-status`; the check-run
   context that actually reports on PRs is its display name **`CI Status Summary`**
   (`if: always()` summary job in `ci.yml`) — that is what is required.
-- **buzz**: interim configuration. The two required checks are the only jobs in buzz's
-  `ci.yml` that run unconditionally on every PR (the other ~20 jobs are paths-filtered via
-  `Detect Changed Paths` outputs and report `skipped`, which satisfies branch protection).
-  When [#279](https://github.com/toon-protocol/toon-meta/issues/279) lands buzz's aggregate
-  required check, the required contexts here MUST be repointed at that aggregate.
+- **buzz**: still on the #272 interim pair (`Detect Changed Paths` +
+  `Dead Token Reference Guard`). buzz's `CI OK` aggregate is merged
+  ([buzz#154](https://github.com/toon-protocol/buzz/pull/154)) and both interim contexts
+  are now *inside* it as its must-run jobs, so the repoint to `CI OK` is a one-line
+  protection change — but it is deliberately **not applied yet**; see the outstanding item
+  in [Aggregate required checks](#aggregate-required-checks-279) below.
 - **toon-meta**: `Doc gate` originally lived in `agent-image.yml` behind a paths filter
   (factory-config paths only) — docs-only PRs produced **zero** check runs, so requiring it
   as-was would have blocked every docs PR. The gate job now lives in
@@ -406,6 +410,138 @@ Deviations from the #272 ticket text, and open follow-ups:
   No duplicate classic protection was added.
 - Review requirements were deliberately not changed anywhere ([#282](https://github.com/toon-protocol/toon-meta/issues/282)
   supplies the approver); `enforce_admins` remains off everywhere.
+
+### Aggregate required checks (#279)
+
+A required status check only means something if the job actually ran. GitHub treats a
+skipped check as satisfying branch protection, so on a paths-filtered CI a PR that nothing
+verified could merge green — buzz was the extreme case, with ~20 filtered jobs and PRs
+carrying an effectively empty check set.
+[#279](https://github.com/toon-protocol/toon-meta/issues/279) gave every repo **one**
+aggregate `if: always()` job as its single required check. The rule the aggregate enforces:
+
+- any gating dependency that finished as anything other than `success` fails it —
+  `failure`, `cancelled`, **and `skipped`** alike; and
+- where jobs are paths-filtered, the aggregate re-evaluates each job's own trigger
+  condition and distinguishes *legitimately skipped by design* from *expected but silently
+  did not run*.
+
+Every aggregate lives in an **unfiltered** `pull_request` workflow, so no PR can end with
+an empty check set, and matrix jobs are gated through their collapsed
+`needs.<job>.result` — never as individual `${{ matrix.* }}` contexts. That last point is
+not theoretical: on buzz's docs-only proof PR the skipped matrix legs reported under the
+literal, unexpanded names `Desktop Smoke E2E (${{ matrix.shard }})` and
+`Desktop E2E Integration (${{ matrix.shard }}/2)`, so requiring a matrix leg by name would
+require a context that never reports on the runs that matter. Each context in the table
+above was seen reporting on a live PR before it was required.
+
+Per-repo aggregates and skippable-by-design jobs:
+
+- **relay** (`CI OK`, job `ci-ok` in `ci.yml`, needs `build` + `devbox-validate`): nothing
+  in `ci.yml` is skippable — both jobs must succeed. `agent-image.yml` is PR-triggered but
+  paths-filtered to `.sandcastle/**` (factory-config validation) — skippable by design,
+  outside the gate. Publish/release workflows are not PR-triggered.
+  ([relay#101](https://github.com/toon-protocol/relay/pull/101))
+- **toon-client** (`CI OK`, needs `changeset` + `build` + `devbox-validate`): `changeset`
+  is skipped by design on `push` events only; on PRs all three must succeed. Caveat:
+  toon-client's `devbox-validate` carries job-level `continue-on-error: true`, so its
+  result reads `success` even when its steps fail — it is effectively advisory until that
+  flag is removed (pre-existing, deliberately left untouched by #279). Skippable/outside
+  the gate: `wire-vectors-drift.yml` (PR-triggered but paths-filtered to
+  `packages/client/src/wire/**` — a separate workflow cannot feed a `needs:` aggregate;
+  residual gap, does not gate), `e2e.yml` / `journey.yml` (`workflow_dispatch` only),
+  `agent-image.yml` (`.sandcastle/**`), release/deploy (not PR-triggered).
+  ([toon-client#519](https://github.com/toon-protocol/toon-client/pull/519))
+- **rig** (`CI OK`, needs `changeset` + `build`): `changeset` skipped by design on `push`
+  only. `agent-image.yml` (`.sandcastle/**`) skippable by design;
+  `deploy-rig-web.yml` / `release.yml` / `smoke-published.yml` are not PR CI.
+  ([rig#65](https://github.com/toon-protocol/rig/pull/65))
+- **store** (`CI OK`, needs `build` + `devbox-validate`): nothing in `ci.yml` skippable.
+  `agent-image.yml` (`.sandcastle/**`) skippable by design; publish workflows not
+  PR-triggered. ([store#78](https://github.com/toon-protocol/store/pull/78))
+- **toon** (`CI OK`, needs `build` + `devbox-validate` + `gate-regression-guard`): all
+  three must succeed — `gate-regression-guard` only skips when a dependency failed, which
+  fails the aggregate anyway. `agent-image.yml` skippable by design; `release.yml` not
+  PR-triggered. ([toon#160](https://github.com/toon-protocol/toon/pull/160))
+- **swap** (`CI OK`, needs `build` + `devbox-validate`): nothing in `ci.yml` skippable.
+  `agent-image.yml` skippable by design; `release.yml` not PR-triggered.
+  ([swap#87](https://github.com/toon-protocol/swap/pull/87))
+- **connector** (`CI Status Summary`, job `ci-status` — pre-existing, hardened by #279;
+  context name deliberately unchanged, so no repoint was needed): now needs
+  `lint-and-format` + `rust-gate` + `solana-program` + `devbox-validate`, each of which
+  must be exactly `success`. Previously only `failure` failed it, so a skipped or cancelled
+  gating job read as a pass, and `devbox-validate` was not gated at all. `security`
+  (Security Audit) stays deliberately advisory — its npm-audit/Snyk steps run with
+  `continue-on-error` over known transitive vulnerabilities and must not brick agent PRs.
+  `contracts.yml` is PR-triggered but paths-filtered to `packages/contracts/**` (separate
+  workflow; residual gap, does not gate). Deploy/publish/treasury workflows are not PR CI.
+  ([connector#802](https://github.com/toon-protocol/connector/pull/802))
+- **Forge** (`gate` — unchanged, no new job): `ci.yml` is a single unconditional job with
+  no paths filters, so it already *is* the aggregate; adding a second job would be pure
+  ceremony. `agent-image.yml` (`.sandcastle/**`) skippable by design.
+- **fractal** (`gate` — unchanged, no new job): identical shape to Forge — single
+  unconditional job, already the aggregate. `agent-image.yml` skippable by design.
+- **buzz** (`CI OK`, job `ci-ok` in `ci.yml` — the fleet's reference skip-detection
+  implementation): needs all 18 ci.yml jobs and computes a three-way verdict per job —
+  `must-run` (anything but success fails), *expected* (its mirrored trigger condition is
+  true: success required, `skipped` = "expected but did not run" = FAIL), or
+  *skip-legitimate* (condition false: `skipped` passes). The mirrored conditions reproduce
+  each job's own `if:` over the same `Detect Changed Paths` outputs the jobs themselves
+  consume.
+  - Must-run: `changes` (Detect Changed Paths), `dead-token-guard` (Dead Token Reference
+    Guard) — the two #272 interim contexts, now enforced inside the aggregate.
+  - Conditionally expected, skippable **only** when their paths were untouched:
+    `rust-lint` / `windows-rust` (rust ∨ desktop-rust); `unit-tests` /
+    `backend-integration` / `relay-e2e` / `security` / `server-cross-compile` (rust); the
+    desktop family `desktop-core` / `desktop-smoke-e2e` / `desktop` / `desktop-e2e-relay` /
+    `desktop-e2e-integration-shard` / `desktop-e2e-integration` / `desktop-build-macos`
+    (desktop ∨ desktop-rust ∨ rust); `web` (web); `mobile` (mobile). On `push` events every
+    job is expected.
+  - Outside `ci.yml`, skippable by design (PR-triggered but paths-filtered, do not gate):
+    `docker.yml`, `helm-chart.yml`, `push-gateway-helm-chart.yml`, `benchmark-harbor.yml`,
+    `agent-image.yml`.
+  - Not PR CI at all — the canary, signing and release pipelines that genuinely must not
+    gate an agent PR: `linux-canary.yml`, `windows-canary.yml`, `signed-macos-canary.yml`,
+    `mobile-release-candidate.yml`, `prepare-desktop-release.yml` (all `workflow_dispatch`
+    only), `release.yml` (desktop tags), `sprig.yml` (push/tags/dispatch),
+    `auto-tag-on-release-pr-merge.yml` (post-merge housekeeping).
+
+  Aggregate merged in [buzz#154](https://github.com/toon-protocol/buzz/pull/154), where
+  `CI OK` reported green on a full-matrix run; the required-check repoint is the one
+  outstanding item below.
+- **toon-meta** (`Doc gate` — unchanged, no new job): `docs-gate.yml` is a single
+  unconditional, unfiltered job; it already *is* the aggregate. `agent-image.yml`
+  (paths-filtered to factory config: `.sandcastle/**`, `scripts/factory/**`,
+  `package*.json`, itself) is skippable by design; `factory-ops-credential.yml` and
+  `triage-sweep.yml` are cron, not PR CI.
+
+**Proof (acceptance case).** [buzz#164](https://github.com/toon-protocol/buzz/pull/164) is
+a docs-only PR — it touches `CONTRIBUTING.md`, which matches none of the five detect
+filters — exactly the change that used to sail through unverified. Its runs so far show
+the aggregate's **fail-closed** direction working: all 16 filtered jobs reported `skipped`
+and were tolerated as legitimate (`expected-to-run=false`), while the two must-run jobs
+ended `cancelled` and `CI OK` failed with
+`Unconditional job 'changes' did not run — the required baseline is missing`
+([run 31118643026](https://github.com/toon-protocol/buzz/actions/runs/31118643026)). That
+is the exact hole #279 closes — under the old rule those same 16 skips plus no failures
+would have read as a pass. The cancellations were platform-side: GitHub Actions was in a
+major outage from 2026-08-06 15:22 UTC (queued jobs timing out; `changes` has
+`timeout-minutes: 2` yet sat ~19 minutes without starting a step), so the clean
+all-green PASS run on this PR is still **outstanding**.
+
+**Outstanding (buzz tail).** Two steps remain, both blocked only on Actions recovering:
+
+1. Re-run buzz#164 and confirm `CI OK` reports a definitive **pass** with the 16 filtered
+   jobs skipped and both must-run jobs green.
+2. Only then repoint buzz's protection off the interim pair:
+
+   ```bash
+   gh api -X PATCH repos/toon-protocol/buzz/branches/main/protection/required_status_checks \
+     -F strict=true -f 'checks[][context]=CI OK'
+   ```
+
+Repointing before a live green `CI OK` is seen would block every buzz merge, which is the
+one failure mode this whole section exists to prevent.
 
 ### What a factory-ops approval attests
 
