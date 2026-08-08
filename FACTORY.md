@@ -624,17 +624,19 @@ identity is silently ignored. The dispatcher only ever labels EXISTING issues �
 that fires `issues.labeled` and hence the runner (labels attached at creation emit only
 `opened`).
 
-**Write failure isolation (#320).** The first live run aborted the entire fleet pass on ONE
-failed `gh issue edit` — buzz had no `needs:human` label yet at the time, `gh` exited 1, and the
-uncaught exception killed the process before any other repo's actions ran. Every write in both
-the dispatch pass and the completion pass now goes through `scripts/factory/write-report.mjs`'s
-`runWrite`, which catches the error, records it (target + error text) into a run-scoped report,
-and lets the loop continue to the next action — one bad write degrades to "this one thing didn't
-happen" rather than "nothing after this happened". A preflight up front (`planLabelPreflight`)
-checks that both trigger labels (`agent:implement`, `needs:human`) exist in every fleet repo and
-reports the gap explicitly, since a missing label is config drift, not a per-issue error. The run
-still prints a `Failed writes` section and exits non-zero at the end iff at least one write
-failed — failures stay visible without being fatal to the rest of the fleet.
+**Write failure isolation (#320).** The first live run
+([run 31271865392](https://github.com/toon-protocol/toon-meta/actions/runs/31271865392),
+2026-08-08) aborted the entire fleet pass on ONE failed `gh issue edit` — buzz had no
+`needs:human` label yet at the time, `gh` exited 1, and the uncaught exception killed the process
+before any other repo's actions ran. Every write in both the dispatch pass and the completion
+pass now goes through `scripts/factory/write-report.mjs`'s `runWrite`, which catches the error,
+records it in a run-scoped report, and lets the loop continue to the next action — one bad write
+degrades to "this one thing didn't happen" rather than "nothing after this happened". A preflight
+up front (`planLabelPreflight`) checks that both trigger labels (`agent:implement`,
+`needs:human`) exist in every fleet repo and reports the gap explicitly, since a missing label is
+config drift, not a per-issue error. The run then prints a `Failed writes` section — each failed
+write's type, target and error text — and exits non-zero at the end iff at least one write
+failed, so failures stay visible without being fatal to the rest of the fleet.
 
 ## Auto-merge (#285)
 
