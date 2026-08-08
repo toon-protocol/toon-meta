@@ -1,0 +1,169 @@
+# Auto-merge — green, approved, conflict-free agent PRs merge themselves
+# (toon-meta#285, epic #270).
+#
+# The last manual step in the factory. The agent opens a PR and stops; if
+# nobody merges it, the child issue never closes, the unblock dispatcher (#280)
+# never fires, and the epic stalls at step one no matter how good the
+# dispatcher is. This pass closes the loop:
+#
+#   dispatch → PR → gate green → factory-ops approves (#282) → MERGE →
+#   issue closes → unblock-dispatcher fires → next ticket dispatched
+#
+# Logic + safety model: scripts/factory/auto-merge.mjs (thin I/O shell) over
+# the pure, unit-tested scripts/factory/automerge-evaluator.mjs (eligibility,
+# and the seam with GitHub's native auto-merge) and scripts/factory/
+# pr-signals.mjs (the check-set verdict + mergeability settling, shared
+# verbatim with pr-housekeeping.mjs so the two passes cannot disagree about
+# whether a PR is green). Both are covered by the `Factory unit tests` job.
+#
+# ── ARCHITECTURE: thin per-repo shim → this reusable workflow ────────────────
+# Same convention as pr-housekeeping (#276) and unblock-dispatcher (#280), for
+# the same reasons (one central manager function; workflow_call rather than
+# repository_dispatch so FACTORY_OPS_TOKEN never needs Contents:write on
+# toon-meta just to trigger a run):
+#
+#   * Each factory repo carries a tiny shim
+#     (.github/workflows/auto-merge-shim.yml, canonical copy at
+#     scripts/factory/auto-merge-shim.yml) that `uses:` THIS workflow with
+#     `secrets: inherit`.
+#   * This file is also toon-meta's own shim (the triggers below), so toon-meta
+#     needs no separate shim file.
+#
+# ── WHY THESE TRIGGERS ───────────────────────────────────────────────────────
+# The same event surface as pr-housekeeping, plus the one event that is
+# specific to merging — an approval arriving:
+#   * check_suite completed on a sandcastle/ or agent/ branch — the PR's own
+#     gate just finished. This is the usual moment a PR becomes eligible.
+#   * pull_request_review submitted — the factory-ops APPROVE (#282) is the
+#     other precondition that flips last; without this trigger a PR that went
+#     green before it was reviewed would wait for the cron.
+#   * pull_request closed-and-merged — a merge is what puts every other open PR
+#     BEHIND `main` under strict protection (#272), and updating those branches
+#     is this pass's job (see the evaluator header: behind-base is an action,
+#     not a verdict).
+#   * a 6-hourly safety cron, offset from the dispatcher's, so a dropped event
+#     never wedges the loop permanently. Every pass re-evaluates from scratch,
+#     so the cron is a true recovery path, not a second code path.
+#
+# The merge itself is performed with FACTORY_OPS_TOKEN (a PAT), so the merge
+# DOES fire downstream events — that is the point: the closed issue triggers
+# the unblock dispatcher, and the merge triggers this pass again for the PRs it
+# just put behind. AUTOMERGE_LIMIT (default 5 merges per run) bounds each hop.
+#
+# ── APPLY vs DRY-RUN ─────────────────────────────────────────────────────────
+# Writes (merge / arm native auto-merge / update-branch) happen ONLY when the
+# org Actions variable AUTOMERGE_APPLY is 'true', or a workflow_dispatch run
+# passes apply=true — the same rollout knob as HOUSEKEEPING_APPLY /
+# HYGIENE_APPLY / DISPATCH_APPLY. Until an admin sets the variable, every run
+# is a no-write report that names, per open agent PR, the verdict and every
+# precondition that failed:
+#   1. "Run workflow" with apply=false → eyeball the fleet-wide report.
+#   2. Watch a few event-triggered dry-runs.
+#   3. Set org variable AUTOMERGE_APPLY=true to go live.
+#
+# ── NOT `SANDCASTLE_AUTO_MERGE` ──────────────────────────────────────────────
+# That is a different, unsafe mechanism: the agent merging its own branch from
+# INSIDE the sandbox, before CI and before review. It stays off everywhere
+# (verified 2026-08-06: no factory repo's agent-implement.yml sets it, and no
+# repo defines it as an Actions variable). This workflow merges through GitHub,
+# after the gate, as a separate identity from the PR author.
+#
+# ── CREDENTIAL ───────────────────────────────────────────────────────────────
+# FACTORY_OPS_TOKEN (org secret, provisioned + monitored under #271) is both
+# the write identity AND the definition of "approved": the pass resolves the
+# approver login from the token it runs as, so the identity that approves
+# (#282) and the identity that merges are the same by construction and cannot
+# drift apart across a rotation. Without the secret the run falls back to the
+# ambient token, whose identity never approves — so every PR reports
+# `approval-missing` and nothing merges.
+
+name: auto-merge
+
+on:
+  workflow_call:
+    inputs:
+      repos:
+        description: "Comma-separated repo list to evaluate (owner/name or bare name). Shims pass their own repo."
+        type: string
+        required: false
+        default: ""
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "Optional comma-separated repo override. Blank = the whole factory fleet."
+        type: string
+        default: ""
+      apply:
+        description: "Perform merges / branch updates. false = dry-run report only."
+        type: boolean
+        default: false
+  # Safety net: recover dropped events (and pick up PRs that went behind).
+  schedule:
+    - cron: "17 1,7,13,19 * * *" # 6-hourly, offset from the dispatcher's 43 2,8,14,20
+  # toon-meta's own shim triggers — other repos carry auto-merge-shim.yml.
+  check_suite:
+    types: [completed]
+  pull_request_review:
+    types: [submitted]
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  automerge:
+    # Identical filter for direct triggers and shim-forwarded ones (the event
+    # payload is the caller's, so the same expressions resolve either way).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      (github.event_name == 'pull_request_review' && (
+        startsWith(github.event.pull_request.head.ref, 'sandcastle/') ||
+        startsWith(github.event.pull_request.head.ref, 'agent/'))) ||
+      (github.event_name == 'check_suite' && (
+        startsWith(github.event.check_suite.head_branch, 'sandcastle/') ||
+        startsWith(github.event.check_suite.head_branch, 'agent/')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Coalesce event bursts (a gate finishing fires check_suite completions
+    # across many jobs) and never run two merge passes over the same repo at
+    # once: at most one active + one queued. Every pass re-reads everything, so
+    # a dropped duplicate loses nothing.
+    concurrency:
+      group: auto-merge-${{ inputs.repos || github.repository }}
+      cancel-in-progress: false
+    steps:
+      # Always check out toon-meta main — in a workflow_call run the default
+      # checkout would be the CALLER's repo, but the logic lives here, once.
+      - uses: actions/checkout@v4
+        with:
+          repository: toon-protocol/toon-meta
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No `npm ci`: the script is dependency-free (node builtins + gh CLI).
+      - name: Run the auto-merge pass
+        env:
+          # The monitored factory-ops identity (#271) — load-bearing twice
+          # over: it is the merge credential AND the approver identity the pass
+          # matches reviews against.
+          GH_TOKEN: ${{ secrets.FACTORY_OPS_TOKEN || github.token }}
+          FACTORY_OPS_TOKEN_PRESENT: ${{ secrets.FACTORY_OPS_TOKEN != '' }}
+          # Event runs evaluate exactly the repo the event came from (shims
+          # pass it via inputs.repos; toon-meta's own events fall through to
+          # github.repository). Cron and blank-repos dispatch = whole fleet.
+          AUTOMERGE_REPOS: >-
+            ${{ inputs.repos ||
+                ((github.event_name == 'pull_request' || github.event_name == 'check_suite' || github.event_name == 'pull_request_review') && github.repository) ||
+                '' }}
+          # Manual runs obey the apply input EXACTLY (apply=false never falls
+          # through to the variable); event/cron runs obey AUTOMERGE_APPLY,
+          # which as an ORG variable is one knob for the whole fleet.
+          APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.apply || (github.event_name != 'workflow_dispatch' && vars.AUTOMERGE_APPLY == 'true') }}
+          # Bound the blast radius of any one pass.
+          AUTOMERGE_LIMIT: "5"
+        run: npm run automerge:prs
