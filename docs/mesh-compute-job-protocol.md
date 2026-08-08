@@ -45,7 +45,7 @@ delta from that date is recorded here.
   Nothing has been registered in `5090-5099` in the interim.
 - **`data-vending-machine.org`** — still domain-parked as of #263's check; no change, not
   re-verified independently (same source, same finding, nothing to re-derive).
-- **Our own allocations**, now three deep in `5090-5099`: `5094`/`5095`/`5096` (store, see
+- **Our own allocations**, now four deep in `5090-5099`: `5094`/`5095`/`5096` (store, see
   `docs/deployment.md`, `docs/handoff-arweave-dvm-deploy.md`) and `5097`/`6097` (factory job
   request/result, #263). This document takes the next slot.
 - **NIP-89** ([`nostr-protocol/nips/blob/master/89.md`](https://github.com/nostr-protocol/nips/blob/master/89.md))
@@ -57,7 +57,7 @@ delta from that date is recorded here.
   defines the ephemeral range generically: `20000 <= kind < 30000` are not expected to be stored by
   relays. This is a protocol-wide mechanic, not a per-vendor registry the way `5xxx`/`6xxx`/`31990`
   are — there is no external kind list to check, only this repo's own prior allocations in the
-  range. Two are in use: `20032`–`20034` (rolling-swap RFQ/fill rumors, `docs/rolling-swap.md`).
+  range. Three are in use: `20032`–`20034` (rolling-swap fill/RFQ rumors, `docs/rolling-swap.md`).
   §4 allocates a kind clear of those.
 
 ### 1.2 The allocation
@@ -225,7 +225,7 @@ relay after it has already dropped off the connector, and a buyer pays for a job
 
 Published to **`g.toon.relay`** — the open market relay of
 [toon-meta#262](https://github.com/toon-protocol/toon-meta/issues/262) decision 2, the same relay
-factory jobs use (`docs/factory-job-protocol.md` §2) and the same relay the seller's `kind:31990`
+factory jobs use (`docs/factory-job-protocol.md` §1.3) and the same relay the seller's `kind:31990`
 and `kind:21090` events are published to. There is one open market, not a second relay for compute;
 every implementer targets this one address (`docs/two-node-architecture.md` confirms
 `g.toon.relay` as the live terminating address for the relay box).
@@ -326,10 +326,10 @@ against.
    `paidCondition` taken from its own PREPARE's `executionCondition`.
 
 Nothing about the connector's internal representation of the client session or the claim ledger is
-specified here — that is connector-plane implementation, owned by #697/#698/#699 and the tickets
-above. This document pins only the two fields that must agree byte-for-byte across the two planes:
-`condition`/`executionCondition`, and the `kind:7000` event id carried in the PREPARE's sealed
-`data` (§6.2).
+specified here — that is connector-plane implementation, owned by connector#697/#698/#699 and the
+tickets above. This document pins only the two fields that must agree byte-for-byte across the two
+planes: `condition`/`executionCondition`, and the `kind:7000` event id carried in the PREPARE's
+sealed `data` (§6.2).
 
 ---
 
@@ -338,9 +338,9 @@ above. This document pins only the two fields that must agree byte-for-byte acro
 Epic decision 9 makes reputation the only judge of quality; #262 decision 8 defines reputation as
 *ambient job history* — a byproduct of the protocol, never something anyone is asked for. That only
 works if enough of the job's shape is readable on the relay to compute it from. At the same time,
-the product pitch (`VISION_MESH.md`) is that *"an agent on your relay isn't reaching out to a
-vendor with your prompts"* — which argues for hiding the prompt. These pull in opposite
-directions, and this is the one place in the document where they must both be answered.
+the product pitch (buzz's `VISION_MESH.md`) is that *"an agent on your relay isn't reaching out to
+a vendor with your prompts and your credit card"* — which argues for hiding the prompt. These pull
+in opposite directions, and this is the one place in the document where they must both be answered.
 
 ### 8.1 Open question — pending owner sign-off ([toon-meta#317](https://github.com/toon-protocol/toon-meta/issues/317))
 
@@ -472,8 +472,8 @@ format — nothing above changes to accommodate it, and no client is required to
 - **Re-deriving why the wire is shaped this way.** #265 records eleven decisions with rationale;
   this document only specifies the resulting bytes.
 - **Claim, watermark, or settlement behaviour.** Owned by the connector-plane tickets §7
-  references (#697/#698/#699 and the prepaid-window work, connector#709) — none of it is specified
-  here.
+  references (connector#697/#698/#699 and the prepaid-window work, connector#709) — none of it is
+  specified here.
 - **Sharded/multi-node sellers, mesh admission internals, iroh transport.** Epic decisions 2–4
   keep the seller as one node running one whole model with mesh admission locked to itself; nothing
   above assumes otherwise.
@@ -490,7 +490,7 @@ format — nothing above changes to accommodate it, and no client is required to
 - [toon-meta#266](https://github.com/toon-protocol/toon-meta/issues/266) — this document's own
   ticket
 - [toon-meta#262](https://github.com/toon-protocol/toon-meta/issues/262) — the sibling epic (agents
-  earning) whose decisions 2 (`g.toon.relay`), 8 (reputation) and 9 (kind space) this document
+  earning) whose decisions 2 (`g.toon.relay`), 4 (kind space) and 8 (reputation) this document
   reuses rather than re-deriving
 - [`docs/factory-job-protocol.md`](factory-job-protocol.md) — the format precedent and the source
   of §1.1's checks, §1.3's/§2's pull/push rationale, and the hashlock pattern §6–§7 adapt
