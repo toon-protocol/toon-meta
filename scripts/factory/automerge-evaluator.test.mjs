@@ -10,7 +10,7 @@
 //                  reported (protection was repointed under it)  (classic)
 //   * connector#826 — red required check                          (classic)
 //   * connector#825 — red + `needs:human`                         (classic)
-//   * buzz       — required contexts are #272's interim pair (excluded)
+//   * buzz       — repointed to the `CI OK` aggregate by #279 (no longer excluded)
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -55,7 +55,7 @@ const POLICIES = {
     autoMergeAllowed: false,
   },
   "toon-protocol/buzz": {
-    requiredContexts: ["Detect Changed Paths", "Dead Token Reference Guard"],
+    requiredContexts: ["CI OK"],
     strict: true,
     source: "classic",
     autoMergeAllowed: false,
@@ -448,7 +448,23 @@ describe("per-repo enablement", () => {
     assert.match(d.blockers[0].detail, /unreadable policy is not an absent one/);
   });
 
-  it("excludes buzz while its required contexts are #272's interim pair", () => {
+  it("no longer excludes buzz now that it's repointed to the CI OK aggregate (#279)", () => {
+    const d = plan(
+      eligiblePr({
+        repo: "toon-protocol/buzz",
+        statusCheckRollup: [{ name: "CI OK", conclusion: "SUCCESS" }],
+      }),
+    );
+    assert.deepEqual(d.blockers, []);
+    assert.equal(d.verdict, "merge");
+    assert.ok(!("toon-protocol/buzz" in DEFAULT_EXCLUDED_REPOS));
+    assert.deepEqual(DEFAULT_EXCLUDED_REPOS, {});
+  });
+
+  it("still refuses buzz on the retired interim pair — CI OK never reported", () => {
+    // Guards against a stale repoPolicies cache: if something still hands us
+    // buzz's old #272 requiredContexts, this must fail on required-check
+    // shape, not silently pass because the exclusion is gone.
     const d = plan(
       eligiblePr({
         repo: "toon-protocol/buzz",
@@ -459,9 +475,7 @@ describe("per-repo enablement", () => {
       }),
     );
     assert.equal(d.verdict, "blocked");
-    assert.deepEqual(codes(d), ["repo-not-enabled"]);
-    assert.match(d.blockers[0].detail, /interim pair/);
-    assert.ok("toon-protocol/buzz" in DEFAULT_EXCLUDED_REPOS);
+    assert.ok(codes(d).includes("required-check-missing"));
   });
 });
 

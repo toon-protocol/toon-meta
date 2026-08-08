@@ -55,10 +55,9 @@
 //                         An unreadable policy (a credential that lost its
 //                         access) is not an absent one and is not a pass.
 //   repo-enabled          the repo has an enforced required status check, and
-//                         is not on the excluded list (buzz — its required
-//                         contexts are still #272's interim pair, pending
-//                         #279's aggregate; an interim pair of always-run
-//                         jobs is not a gate).
+//                         is not on the excluded list (empty as of #279:
+//                         buzz's repoint to the `CI OK` aggregate landed and
+//                         it was the last repo still on an interim pair).
 //   required-checks       EVERY required context is present in the PR's check
 //                         rollup AND concluded SUCCESS. Missing → blocked
 //                         (a required context that never reported is the
@@ -110,17 +109,14 @@ import { checksVerdict, normalizeCheck, VERIFIED_STATE } from "./pr-signals.mjs"
 export const HUMAN_LABEL = "needs:human";
 export const FACTORY_BRANCH_PREFIXES = ["sandcastle/", "agent/"];
 
-// Repos where an enforced required check EXISTS but is not yet a real gate.
-// buzz's required contexts are #272's interim pair (`Detect Changed Paths`,
-// `Dead Token Reference Guard`) — the only two jobs in buzz's ci.yml that run
-// unconditionally, while the other ~20 are paths-filtered and report `skipped`.
-// Requiring them proves the workflow started, not that buzz's code is good.
-// #279 repoints buzz at a real aggregate; remove buzz from this list then.
-export const DEFAULT_EXCLUDED_REPOS = {
-  "toon-protocol/buzz":
-    "required contexts are #272's interim pair (Detect Changed Paths, Dead " +
-    "Token Reference Guard), not an aggregate gate — pending toon-meta#279",
-};
+// Repos where an enforced required check EXISTS but is not yet a real gate —
+// e.g. an interim pair of always-run jobs (#272) rather than an aggregate
+// that actually reflects the paths-filtered matrix. buzz was the last repo
+// on that interim pair; #279 repointed its branch protection to the real
+// `CI OK` aggregate (buzz#154 built it, buzz#164 proved it, the repoint is
+// live), so the fleet has no exclusions left. Kept as a live map, not
+// deleted outright, so the next repo caught mid-repoint has somewhere to go.
+export const DEFAULT_EXCLUDED_REPOS = {};
 
 // States that are NOT a pass for a REQUIRED context, listed separately from
 // pr-signals' failing set because the interesting ones here are the states
