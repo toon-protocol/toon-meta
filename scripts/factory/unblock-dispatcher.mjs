@@ -42,6 +42,18 @@
 // `gh issue view --json` exposes no stateReason field, and only
 // closed-as-COMPLETED satisfies a dependency (#274). An unfetchable blocker
 // stays unknown and fails closed to needs-human in the evaluator.
+//
+// ── WRITE FAILURE ISOLATION (toon-meta#320) ─────────────────────────────────
+// The first live run aborted the whole pass on ONE failed `gh issue edit`
+// (buzz had no `needs:human` label yet) — every remaining action, in every
+// other repo, silently never ran. Every write in this file (dispatch pass and
+// completion pass alike) now goes through write-report.mjs's `runWrite`,
+// which catches the error, records it, and lets the loop continue to the next
+// action. A preflight up front checks that both trigger labels
+// (agent:implement, needs:human) exist in every fleet repo and reports the
+// gap explicitly — that class of failure is config drift, not a per-issue
+// error. The run still exits non-zero at the end iff any write failed, so
+// failures stay visible without being fatal to the rest of the fleet.
 
 import { execFileSync } from "node:child_process";
 import {
@@ -61,6 +73,13 @@ import {
   buildEscalationComment,
   escalationMarker,
 } from "./completion-evaluator.mjs";
+import {
+  createWriteReport,
+  runWrite,
+  hasFailures,
+  formatFailedSection,
+  planLabelPreflight,
+} from "./write-report.mjs";
 
 // ── Config (env-overridable) ────────────────────────────────────────────────
 const ORG = process.env.DISPATCH_ORG ?? "toon-protocol";
@@ -188,6 +207,39 @@ if (!process.env.FACTORY_OPS_TOKEN_PRESENT && APPLY) {
   );
 }
 
+// ── Preflight: trigger labels must exist in every fleet repo ────────────────
+// A missing label is config drift, not a per-issue error (buzz and Forge had
+// no `needs:human` label on the first live run, which is what crashed the
+// whole pass — toon-meta#320): report it explicitly, up front, instead of
+// letting it surface as N identically-shaped failed writes deep in the run.
+function fetchRepoLabels(repo) {
+  const data = gh(["label", "list", "--repo", repo, "--json", "name", "--limit", "200"], {
+    json: true,
+    allowFail: true,
+  });
+  return (data ?? []).map((l) => l.name);
+}
+
+const labelsByRepo = {};
+for (const repo of REPOS) labelsByRepo[repo] = fetchRepoLabels(repo);
+const missingLabels = planLabelPreflight({
+  repos: REPOS,
+  requiredLabels: [IMPLEMENT_LABEL, HUMAN_LABEL],
+  labelsByRepo,
+});
+if (Object.keys(missingLabels).length) {
+  console.log(`\n::warning::Preflight — trigger label(s) missing (config drift, not a per-issue failure):`);
+  for (const [repo, labels] of Object.entries(missingLabels)) {
+    console.log(`   ${repo}: missing ${labels.join(", ")}`);
+  }
+} else {
+  console.log(
+    `Preflight: trigger labels (${IMPLEMENT_LABEL}, ${HUMAN_LABEL}) present in all ${REPOS.length} repo(s).`,
+  );
+}
+
+const report = createWriteReport();
+
 const { openIssues, agentPrs } = readFleet();
 const openIds = new Set(openIssues.map((i) => `${i.repo.toLowerCase()}#${i.number}`));
 console.log(`Fleet scan: ${openIssues.length} open issue(s), ${agentPrs.length} open agent PR(s).`);
@@ -251,8 +303,14 @@ for (const a of plan.actions) {
     if (APPLY) {
       // Labeling an EXISTING issue is what fires `issues.labeled` → the
       // agent-implement runner. See header (create-then-label rule).
-      gh(["issue", "edit", number, "--repo", repo, "--add-label", IMPLEMENT_LABEL]);
-      console.log(`\n[APPLY] dispatched ${a.child.id}: added ${IMPLEMENT_LABEL}`);
+      const ok = runWrite(report, { type: "dispatch", target: a.child.id }, () => {
+        gh(["issue", "edit", number, "--repo", repo, "--add-label", IMPLEMENT_LABEL]);
+      });
+      if (ok) {
+        console.log(`\n[APPLY] dispatched ${a.child.id}: added ${IMPLEMENT_LABEL}`);
+      } else {
+        console.log(`\n[APPLY] FAILED to dispatch ${a.child.id} — continuing (see failed writes below)`);
+      }
     }
   } else if (a.type === "needs-human") {
     const marker = needsHumanMarker(repo, a.child.number);
@@ -276,9 +334,15 @@ for (const a of plan.actions) {
       `<!-- ${marker} -->`,
     ].join("\n");
     if (APPLY) {
-      gh(["issue", "edit", number, "--repo", repo, "--add-label", HUMAN_LABEL]);
-      gh(["issue", "comment", number, "--repo", repo, "--body", comment]);
-      console.log(`\n[APPLY] flagged ${a.child.id}: added ${HUMAN_LABEL} + comment`);
+      const ok = runWrite(report, { type: "needs-human", target: a.child.id }, () => {
+        gh(["issue", "edit", number, "--repo", repo, "--add-label", HUMAN_LABEL]);
+        gh(["issue", "comment", number, "--repo", repo, "--body", comment]);
+      });
+      if (ok) {
+        console.log(`\n[APPLY] flagged ${a.child.id}: added ${HUMAN_LABEL} + comment`);
+      } else {
+        console.log(`\n[APPLY] FAILED to flag ${a.child.id} — continuing (see failed writes below)`);
+      }
     }
   }
 }
@@ -422,18 +486,24 @@ for (const a of completion.actions) {
     }
     const comment = buildCompletionComment({ epic: a.epic, completed: a.completed, childPrs });
     if (APPLY) {
-      gh([
-        "issue",
-        "close",
-        String(number),
-        "--repo",
-        repo,
-        "--reason",
-        "completed",
-        "--comment",
-        comment,
-      ]);
-      console.log(`\n[APPLY] closed epic ${a.epic.id} (completed) with summary comment`);
+      const ok = runWrite(report, { type: "close-epic", target: a.epic.id }, () => {
+        gh([
+          "issue",
+          "close",
+          String(number),
+          "--repo",
+          repo,
+          "--reason",
+          "completed",
+          "--comment",
+          comment,
+        ]);
+      });
+      if (ok) {
+        console.log(`\n[APPLY] closed epic ${a.epic.id} (completed) with summary comment`);
+      } else {
+        console.log(`\n[APPLY] FAILED to close epic ${a.epic.id} — continuing (see failed writes below)`);
+      }
     } else {
       console.log(`\n[dry-run] would CLOSE epic ${a.epic.id} with comment:`);
       for (const line of comment.split("\n")) console.log(`   | ${line}`);
@@ -449,9 +519,15 @@ for (const a of completion.actions) {
     }
     const comment = buildEscalationComment({ epic: a.epic, tally: a.tally, marker });
     if (APPLY) {
-      gh(["issue", "edit", String(number), "--repo", repo, "--add-label", HUMAN_LABEL]);
-      gh(["issue", "comment", String(number), "--repo", repo, "--body", comment]);
-      console.log(`\n[APPLY] escalated epic ${a.epic.id}: added ${HUMAN_LABEL} + comment`);
+      const ok = runWrite(report, { type: "escalate-epic", target: a.epic.id }, () => {
+        gh(["issue", "edit", String(number), "--repo", repo, "--add-label", HUMAN_LABEL]);
+        gh(["issue", "comment", String(number), "--repo", repo, "--body", comment]);
+      });
+      if (ok) {
+        console.log(`\n[APPLY] escalated epic ${a.epic.id}: added ${HUMAN_LABEL} + comment`);
+      } else {
+        console.log(`\n[APPLY] FAILED to escalate epic ${a.epic.id} — continuing (see failed writes below)`);
+      }
     } else {
       console.log(`\n[dry-run] would ESCALATE epic ${a.epic.id} (${HUMAN_LABEL}) with comment:`);
       for (const line of comment.split("\n")) console.log(`   | ${line}`);
@@ -471,4 +547,20 @@ console.log(
     `${byVerdict["incomplete"] ?? 0} incomplete, ` +
     `${byVerdict["no-children"] ?? 0} with no children.`,
 );
-process.exit(0);
+
+// ── Failed writes (toon-meta#320) ───────────────────────────────────────────
+// A failed write is recorded and the pass continues (see write-report.mjs);
+// it must still make the run visibly red at the end, so the exit code is
+// non-zero iff at least one write failed this pass — never on a read failure
+// or an empty plan.
+if (hasFailures(report)) {
+  console.log(`\n${formatFailedSection(report)}`);
+}
+const exitCode = hasFailures(report) ? 1 : 0;
+if (exitCode) {
+  console.log(
+    `\nExiting ${exitCode}: ${report.failed.length} write(s) failed this pass ` +
+      `(${report.succeeded.length} succeeded) — see "Failed writes" above.`,
+  );
+}
+process.exit(exitCode);
