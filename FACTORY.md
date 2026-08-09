@@ -653,9 +653,32 @@ Logic: `scripts/factory/auto-merge.mjs` (thin I/O shell) over the pure, unit-tes
 `scripts/factory/automerge-evaluator.mjs` (eligibility) and `scripts/factory/pr-signals.mjs`
 (the four-valued check verdict + mergeability settling, now **shared verbatim** with
 `pr-housekeeping.mjs` so the remediation pass and the merge pass can never disagree about
-whether the same PR is green). Workflow: `.github/workflows/auto-merge.yml`, invoked by each
-repo's `auto-merge-shim.yml` (canonical copy: `scripts/factory/auto-merge-shim.yml`) on
-check-suite completion, review submission and merged PRs, plus a 6-hourly safety cron.
+whether the same PR is green). Workflow: `.github/workflows/auto-merge.yml`, which carries
+toon-meta's own check-suite/review/merged-PR triggers directly (so toon-meta needs no shim). Every
+other factory repo is meant to reach it on those same three events through its own
+`.github/workflows/auto-merge-shim.yml`, fanned out verbatim from the canonical copy at
+`scripts/factory/auto-merge-shim.yml` — but none of them carry it yet (see below). A 6-hourly
+safety cron backs the whole fleet.
+
+**Per-repo shim install status ([#329](https://github.com/toon-protocol/toon-meta/issues/329)).**
+The canonical copy exists (it shipped with this pass, #305) but was never fanned out: verified
+live 2026-08-09, none of the ten non-toon-meta factory repos carry
+`.github/workflows/auto-merge-shim.yml` yet. Installing it per-repo is cross-repo work a
+toon-meta agent run cannot do (each repo dispatches in its own repo) — open as a follow-up.
+Until a repo has the shim, the 6-hourly cron is not that repo's safety net but its *only* trigger:
+every PR there waits up to 6h after going green, and one that is `BEHIND` gets its `update-branch`
+on one pass and can only be merged on the next — another ≥6h.
+
+**The shim-forwarded `if:` guard was verified, not assumed.** The job-level `if:` in
+`auto-merge.yml` filters the three forwarded events (`check_suite`, `pull_request_review`,
+`pull_request`) by reading `github.event.*` fields, which only works if a workflow invoked via
+`workflow_call` from a repo's shim sees that shim's own triggering payload rather than a synthetic
+`workflow_call` event. GitHub's docs say so outright, so this no longer rests on the workflow's
+own comment: "When a reusable workflow is triggered by a caller workflow, the `github` context is
+always associated with the caller workflow"
+([Reusing workflow configurations → `github` context](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations#github-context)).
+`github.event.check_suite.head_branch` and friends therefore resolve identically whether the
+workflow runs from toon-meta's own trigger or a shim's `uses:` forward.
 
 **Why not just `gh pr merge --auto` and let GitHub decide.** Native auto-merge merges as soon
 as *branch protection* is satisfied, and protection cannot express three of the five
