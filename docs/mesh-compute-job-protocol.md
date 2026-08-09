@@ -143,7 +143,9 @@ for it. **No downstream ticket may build UI implying the `model` tag was verifie
 check available to a buyer is reputation (§8) and, informally, canary prompts (§10 — non-normative,
 buyer practice, not protocol).
 
-### 3.5 Open question — pending owner sign-off ([toon-meta#317](https://github.com/toon-protocol/toon-meta/issues/317))
+### 3.5 Ratified — owner decision 2026-08-09 ([toon-meta#317](https://github.com/toon-protocol/toon-meta/issues/317))
+
+> **Confirmed as written.** The owner ratified the recommendation below on 2026-08-09, explicitly over #317's own framing, which had called per-job-with-a-ceiling the likely answer and warned that a per-token unit "reintroduces metering, which decision 1 deliberately made moot". The argument that the unit must scale across the `max_tokens` range a single advertisement spans carried the decision. This section is now settled; it is no longer an open question.
 
 Epic decision 10 settles *posted price, no RFQ*; it does not settle the unit. This is a genuine
 judgment call, not a lookup — the recommendation below is written into the document and this
@@ -342,7 +344,9 @@ the product pitch (buzz's `VISION_MESH.md`) is that *"an agent on your relay isn
 a vendor with your prompts and your credit card"* — which argues for hiding the prompt. These pull
 in opposite directions, and this is the one place in the document where they must both be answered.
 
-### 8.1 Open question — pending owner sign-off ([toon-meta#317](https://github.com/toon-protocol/toon-meta/issues/317))
+### 8.1 Ratified — owner decision 2026-08-09 ([toon-meta#317](https://github.com/toon-protocol/toon-meta/issues/317))
+
+> **Confirmed as written.** The owner ratified the split below on 2026-08-09, accepting the stated cost: the public envelope leaks who bought from whom, when, how often, and against which advertised model. That is the price of ambient reputation (#265 decision 9 — reputation is the only judge of quality), and it was paid knowingly. This section is now settled; it is no longer an open question.
 
 **Recommendation: public envelope, sealed content — never a full NIP-59 gift wrap.** A full gift
 wrap (as `docs/factory-job-protocol.md` §2.2 uses for a targeted private brief) hides the entire
