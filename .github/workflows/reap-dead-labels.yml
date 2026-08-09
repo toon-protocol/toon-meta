@@ -1,4 +1,4 @@
-# Dead-label reaper (toon-meta#330, epic #270).
+# Dead-label reaper (toon-meta#330).
 #
 # Nothing else notices when an `agent:implement` run dies without opening a
 # PR: the label stays on the ticket forever, and the unblock dispatcher's own
@@ -49,11 +49,16 @@
 #   3. Set org variable REAP_APPLY=true to go live.
 #
 # ── CREDENTIAL ───────────────────────────────────────────────────────────────
-# FACTORY_OPS_TOKEN (org secret, #271) is preferred but not load-bearing here
-# the way it is for the dispatcher: removing a label and posting a comment
-# need only write access, not the write-access-gated add-label path
-# (agent-implement.yml's Guard 1), so the ambient token still works — degraded
-# identity, not silently ignored.
+# FACTORY_OPS_TOKEN (org secret, #271) is not IDENTITY-load-bearing here the
+# way it is for the dispatcher: removing a label and posting a comment need
+# only write access, not the write-access-gated add-label path
+# (agent-implement.yml's Guard 1), so no reap is ever silently ignored by the
+# runner for having come from the wrong identity. It is still the only usable
+# write credential for an APPLY run: the ambient `github.token` is scoped to
+# the calling repo alone (a fleet pass writes to all 11) and this workflow
+# grants it `contents: read` only. Without the secret the pass is read/dry-run
+# safe, and any attempted write fails loudly in the `Failed writes` section
+# rather than quietly doing nothing.
 
 name: reap-dead-labels
 

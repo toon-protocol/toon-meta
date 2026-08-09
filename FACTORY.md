@@ -806,8 +806,11 @@ activity, and as a belt-and-braces guard against two overlapping passes racing t
 **Rollout knob.** Writes happen only when the org Actions variable `REAP_APPLY` is `'true'` (or a
 manual run passes `apply=true`) — same pattern as `DISPATCH_APPLY`/`HOUSEKEEPING_APPLY`. Removing
 a label and commenting need only write access, not the write-access-gated add-label path
-(agent-implement.yml's Guard 1), so this pass runs correctly even without `FACTORY_OPS_TOKEN` —
-degraded identity, not silently ignored.
+(agent-implement.yml's Guard 1), so `FACTORY_OPS_TOKEN` (#271) is not *identity*-load-bearing here
+the way it is for dispatch — no reap is ever silently ignored for coming from the wrong identity.
+It is still the write credential an APPLY run needs: the ambient `github.token` reaches only the
+calling repo and this workflow grants it `contents: read`, so without the secret the pass stays
+read/dry-run safe and any attempted write fails loudly in the run's `Failed writes` section.
 
 ## triage-sweep retirement (#283)
 

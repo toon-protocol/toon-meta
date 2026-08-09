@@ -42,14 +42,14 @@
 //
 // ── OUTCOMES (named in the comment; the follow-up differs per #330) ─────────
 //   succeeded-with-no-changes — conclusion success, no PR (rig#23 shape).
-//   timed-out                 — conclusion timed_out, or duration ≥ the job
-//                                timeout (a step-level timeout can surface as
-//                                a plain `failure` conclusion).
-//   pushed-nothing             — failed/timed out AND the issue's own
-//                                comments claim a branch that does not exist
-//                                (buzz#43 shape — toon-meta#331 is the cause).
-//   failed / cancelled         — anything else.
-//   no-run-found               — no correlated run, label past grace.
+//   timed-out                 — conclusion timed_out, or duration ≥ the STEP
+//                               timeout (a step-level timeout can surface as
+//                               a plain `failure` conclusion).
+//   pushed-nothing            — failed/timed out AND the issue's own comments
+//                               claim a branch that does not exist (buzz#43
+//                               shape — toon-meta#331 is the cause).
+//   failed / cancelled        — anything else.
+//   no-run-found              — no correlated run, label past grace.
 //
 // ── IDEMPOTENCY ──────────────────────────────────────────────────────────────
 // Reaping REMOVES the label, so re-running the pass is idempotent by
@@ -286,7 +286,7 @@ const OUTCOME_TEXT = {
   "succeeded-with-no-changes":
     "the run **succeeded** but opened no PR — it made no changes (e.g. it verified the " +
     "underlying issue no longer reproduces)",
-  "timed-out": "the run **timed out** (hit the job wall-clock) without opening a PR",
+  "timed-out": "the run **timed out** (hit the runner's wall-clock cap) without opening a PR",
   "pushed-nothing":
     "the run **failed**, and although it commented that work was pushed to a branch, that " +
     "branch does not exist — the push was lost",

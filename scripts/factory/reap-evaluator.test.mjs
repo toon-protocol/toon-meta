@@ -93,7 +93,7 @@ describe("classifyOutcome", () => {
     assert.equal(classifyOutcome({ run }), "succeeded-with-no-changes");
   });
 
-  it("failure long enough to span the job timeout is timed-out even without a timed_out conclusion", () => {
+  it("failure long enough to span the step timeout is timed-out even without a timed_out conclusion", () => {
     // Step-level timeout surfaces as a plain `failure` conclusion — duration is the tell.
     const run = {
       conclusion: "failure",

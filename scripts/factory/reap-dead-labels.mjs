@@ -278,8 +278,10 @@ console.log(
 if (!process.env.FACTORY_OPS_TOKEN_PRESENT && APPLY) {
   console.log(
     "::warning::FACTORY_OPS_TOKEN not detected — falling back to the ambient token. Removing a " +
-      "label and commenting need only write access, not the guarded add-label path, so this is " +
-      "degraded-but-functional rather than silently ignored.",
+      "label and commenting need only write access, not the guarded add-label path, so nothing " +
+      "here is silently ignored for coming from the wrong identity — but the ambient token is " +
+      "scoped to one repo and carries contents:read only, so reaps will FAIL loudly (see " +
+      "\"Failed writes\") rather than apply.",
   );
 }
 
