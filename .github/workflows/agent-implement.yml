@@ -36,6 +36,14 @@
 
 name: agent:implement
 
+# Names the run by issue number so the dead-label reaper (toon-meta#330) can
+# correlate a labeling to its run exactly, instead of falling back to its
+# time-window heuristic. Without this, GitHub's run list carries no
+# issue-number field for an `issues.labeled`-triggered run at all — see
+# reap-evaluator.mjs's header. The other ten fleet repos do not carry this
+# line yet (flagged in FACTORY.md, not assumed installed — the #329 lesson).
+run-name: "agent:implement — issue #${{ github.event.issue.number }}"
+
 on:
   issues:
     types: [labeled]

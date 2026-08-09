@@ -1,0 +1,119 @@
+# Dead-label reaper (toon-meta#330, epic #270).
+#
+# Nothing else notices when an `agent:implement` run dies without opening a
+# PR: the label stays on the ticket forever, and the unblock dispatcher's own
+# serialization rule ("a child already carries agent:implement" counts an
+# epic as busy — dispatch-evaluator.mjs) means the epic's slot is wedged
+# behind a runner that stopped running. Full logic + safety model:
+# scripts/factory/reap-dead-labels.mjs, with ALL decision rules (run
+# correlation, outcome classification, the no-run grace period, comment text)
+# in the pure, unit-tested scripts/factory/reap-evaluator.mjs.
+#
+# ── ARCHITECTURE: thin per-repo shim → this reusable workflow ────────────────
+# Same fleet event-forwarding convention as unblock-dispatcher.yml / #280 (one
+# manager function; workflow_call over repository_dispatch so FACTORY_OPS_TOKEN
+# never needs Contents:write):
+#
+#   * Each factory repo carries a tiny shim
+#     (.github/workflows/reap-dead-labels-shim.yml, canonical copy at
+#     scripts/factory/reap-dead-labels-shim.yml) that fires on `workflow_run`
+#     completed for the `agent:implement` workflow and `uses:` THIS workflow
+#     with `secrets: inherit`.
+#   * This file is also toon-meta's own shim (the workflow_run trigger below),
+#     so toon-meta needs no separate shim file.
+#
+# Every pass re-scans the WHOLE fleet regardless of which repo's run
+# completed — same reasoning as unblock-dispatcher.yml: the reads are cheap,
+# and a full pass can never under-cover what a sliced one would.
+#
+# ── WHY ALSO A CRON (not just workflow_run) ──────────────────────────────────
+# `workflow_run: completed` only fires when a run actually happened. The
+# other dead shape this ticket names — a label applied but the runner never
+# fired at all (no `issues.labeled` webhook reached it) — produces NO
+# workflow_run event, ever, for this pass to wake up on. Only a clock can
+# notice that one, so a cron is not just a recovery path here, it is the ONLY
+# path for that shape. Hourly, because the grace period
+# (reap-evaluator.mjs's NO_RUN_GRACE_MINUTES = 75m) is short enough that a
+# 6-hourly cadence (unblock-dispatcher's choice) would leave a dead-with-no-run
+# ticket wedged for hours after it was already safe to reap.
+#
+# ── APPLY vs DRY-RUN ─────────────────────────────────────────────────────────
+# Writes (remove agent:implement + comment) happen ONLY when the org Actions
+# variable REAP_APPLY is 'true', or a workflow_dispatch run passes
+# apply=true — same rollout knob convention as DISPATCH_APPLY /
+# HOUSEKEEPING_APPLY / HYGIENE_APPLY / AUTOMERGE_APPLY / DIGEST_APPLY. Until
+# an admin sets the variable, every run is a no-write dry-run report:
+#   1. "Run workflow" with apply=false → eyeball the fleet-wide plan.
+#   2. Let an agent-implement run finish, or wait for the hourly cron → eyeball
+#      event/cron dry-runs.
+#   3. Set org variable REAP_APPLY=true to go live.
+#
+# ── CREDENTIAL ───────────────────────────────────────────────────────────────
+# FACTORY_OPS_TOKEN (org secret, #271) is preferred but not load-bearing here
+# the way it is for the dispatcher: removing a label and posting a comment
+# need only write access, not the write-access-gated add-label path
+# (agent-implement.yml's Guard 1), so the ambient token still works — degraded
+# identity, not silently ignored.
+
+name: reap-dead-labels
+
+on:
+  workflow_call:
+    inputs:
+      source:
+        description: "owner/repo of the completed agent:implement run that triggered this pass (informational only — every pass re-scans the whole fleet)."
+        type: string
+        required: false
+        default: ""
+  # toon-meta's own shim trigger — other repos carry reap-dead-labels-shim.yml.
+  workflow_run:
+    workflows: ["agent:implement"]
+    types: [completed]
+  # Safety net for the shape workflow_run can never see — see header.
+  schedule:
+    - cron: "17 * * * *" # hourly, off the top-of-hour congestion
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "Optional comma-separated repo override (owner/name or bare name). Blank = the whole factory fleet."
+        type: string
+        default: ""
+      apply:
+        description: "Write changes (remove agent:implement + comment). false = dry-run report only."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  reap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Serialize passes; a queued duplicate loses nothing, every pass re-reads
+    # the whole fleet (same convention as unblock-dispatcher.yml).
+    concurrency:
+      group: reap-dead-labels
+      cancel-in-progress: false
+    steps:
+      # Always check out toon-meta main — in a workflow_call run the default
+      # checkout would be the CALLER's repo, but the logic lives here, once.
+      - uses: actions/checkout@v4
+        with:
+          repository: toon-protocol/toon-meta
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No `npm ci`: the script is dependency-free (node builtins + gh CLI).
+      - name: Run dead-label reaper
+        env:
+          GH_TOKEN: ${{ secrets.FACTORY_OPS_TOKEN || github.token }}
+          FACTORY_OPS_TOKEN_PRESENT: ${{ secrets.FACTORY_OPS_TOKEN != '' }}
+          REAP_REPOS: ${{ inputs.repos || '' }}
+          # Manual runs obey the apply input EXACTLY (apply=false never falls
+          # through to the variable); event/cron runs obey REAP_APPLY, which
+          # as an ORG variable is one knob for the whole fleet.
+          APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.apply || (github.event_name != 'workflow_dispatch' && vars.REAP_APPLY == 'true') }}
+        run: npm run reap:dead-labels

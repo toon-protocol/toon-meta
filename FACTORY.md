@@ -752,6 +752,63 @@ one line: that is the completion pass's job (#284), not a wedge.
 `HOUSEKEEPING_APPLY`/`HYGIENE_APPLY`/`DISPATCH_APPLY`. The single write is one comment on the
 standing issue; the digest never labels, closes or comments on the work it reports.
 
+## Dead-label reaper (#330)
+
+Landed by [#330](https://github.com/toon-protocol/toon-meta/issues/330). Nothing else in the
+factory notices when an `agent:implement` run dies without opening a PR — the label stays on the
+ticket forever, and the dispatcher's own serialization rule ("a child already carries
+`agent:implement`" counts an epic as busy, see above) wedges the epic's slot behind a runner that
+is no longer running. Logic: `scripts/factory/reap-dead-labels.mjs` (I/O shell) over the pure,
+unit-tested `scripts/factory/reap-evaluator.mjs` (run correlation, outcome classification, the
+grace period, comment text). Workflow: `.github/workflows/reap-dead-labels.yml`, invoked by each
+repo's `reap-dead-labels-shim.yml` (canonical copy: `scripts/factory/reap-dead-labels-shim.yml`,
+same shim → `workflow_call` convention as the dispatcher) plus an hourly safety cron.
+
+**The condition is "no open PR", not "the run failed".** A successful run can legitimately open
+no PR — it verified the underlying bug no longer reproduces and made no changes. A reaper that
+only watched `conclusion == failure` would leave that ticket wedged forever, so the rule is
+mechanical: the run that owns this labeling has finished (or is provably dead) **and** no open PR
+exists for `sandcastle/issue-<n>` / `agent/issue-<n>`.
+
+**Correlating a label to its run.** GitHub's workflow-run list carries no issue-number field for
+an `issues.labeled`-triggered run unless the workflow sets `run-name:`. The evaluator matches in
+two tiers: (1) EXACT, a run whose `displayTitle` names the issue — toon-meta's own
+`agent-implement.yml` now sets `run-name: "agent:implement — issue #${{ github.event.issue.number }}"`
+for this; (2) TIME-WINDOW fallback, the run created nearest-after the ticket's `labeled` timeline
+event, for the other ten fleet repos, which do not carry the `run-name:` line yet (flagged here
+rather than assumed installed — the #329 lesson: verify a fan-out landed, never assume it did).
+When no run correlates at all — the label was applied but the `issues.labeled` webhook never
+reached the runner — the ticket is left alone until the label is older than
+`NO_RUN_GRACE_MINUTES` (75m, deliberately past the runner's own 60m job timeout), at which point
+no genuinely in-progress run could still exist and it is safe to reap as `no-run-found`. This is
+also why the reaper needs an **hourly** cron rather than the dispatcher's 6-hourly one: a run that
+never happened produces no `workflow_run` event for anything to wake up on, so the cron is the
+only path for that shape, and the grace period is short enough that a 6-hourly cadence would leave
+it wedged for hours after it was already safe to reap.
+
+**Outcomes** (named in the comment; the follow-up guidance differs per outcome): a `success`
+conclusion with no PR is `succeeded-with-no-changes`; a run whose duration reaches the runner's
+50m step timeout is `timed-out` (a step-level timeout can surface as a plain `failure`
+conclusion, so duration is the tell, not just the conclusion field); a failed/timed-out run whose
+own issue comments claim a branch that does not actually exist on the repo is `pushed-nothing`
+(the lost-push shape, root-caused by #331); anything else is `failed` or `cancelled`.
+
+**Never re-applies the label.** Removing `agent:implement` frees the epic's serialization slot;
+deciding whether the ticket should run again is a judgement call the reaper deliberately leaves
+to a human — auto-re-adding the label would re-run a ticket that already burned a run into the
+same wall it just hit.
+
+**Idempotency.** Reaping removes the label, which is self-idempotent — an already-reaped ticket no
+longer matches the `agent:implement` scan on the next pass. The hidden marker embedded in every
+reap comment is not load-bearing for that reason; it exists so a human can search for reaper
+activity, and as a belt-and-braces guard against two overlapping passes racing the same ticket.
+
+**Rollout knob.** Writes happen only when the org Actions variable `REAP_APPLY` is `'true'` (or a
+manual run passes `apply=true`) — same pattern as `DISPATCH_APPLY`/`HOUSEKEEPING_APPLY`. Removing
+a label and commenting need only write access, not the write-access-gated add-label path
+(agent-implement.yml's Guard 1), so this pass runs correctly even without `FACTORY_OPS_TOKEN` —
+degraded identity, not silently ignored.
+
 ## triage-sweep retirement (#283)
 
 `triage-sweep.yml` + `scripts/factory/triage-sweep.mjs` (the hourly cron janitor) were deleted
