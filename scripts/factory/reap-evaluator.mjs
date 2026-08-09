@@ -116,27 +116,65 @@ export function findRunForLabel({
   windowMinutes = 10,
   toleranceSeconds = 30,
 } = {}) {
-  const titleRe = new RegExp(`\\bissue\\s*#${issueNumber}\\b`, "i");
-  const exact = runs.filter((r) => titleRe.test(r.displayTitle ?? ""));
-  if (exact.length > 0) {
-    return exact.reduce((latest, r) =>
-      new Date(r.createdAt) > new Date(latest.createdAt) ? r : latest,
-    );
-  }
-
   const labeledMs = new Date(labeledAt).getTime();
   const windowStart = labeledMs - toleranceSeconds * 1000;
+
+  // A DECOY: `agent-implement.yml` triggers on EVERY `issues.labeled` event and
+  // skips its jobs unless the label is `agent:implement`, so any other label
+  // applied to this ticket mints a completed/`skipped` run carrying the SAME
+  // run-name — `agent:implement — issue #N` — as the real one. 68 of
+  // toon-meta's last 91 runs are such decoys. Observed live on buzz#90: adding
+  // `tracking` while its implement run was in flight minted exactly this.
+  //
+  // Left unfiltered, the exact tier's "most recent title match" returns the
+  // decoy instead of the real in-progress run, classifies it as finished, and
+  // reaps the label out from under a job that is still working — defeating
+  // #330 criterion 2 and naming the wrong run in the comment.
+  const isDecoy = (r) => r.status === "completed" && r.conclusion === "skipped";
+  const newest = (list) =>
+    list.reduce((a, r) => (new Date(r.createdAt) > new Date(a.createdAt) ? r : a));
+  const earliest = (list) =>
+    list.reduce((a, r) => (new Date(r.createdAt) < new Date(a.createdAt) ? r : a));
+
+  /**
+   * Reduce correlated candidates to the one that decides this ticket's fate,
+   * in strict precedence. Both tiers go through here so neither can regress
+   * the in-progress guarantee independently. `order` keeps each tier's own
+   * tie-break: EXACT wants the latest matching run, the TIME-WINDOW fallback
+   * wants the one nearest-after the label.
+   */
+  const pick = (candidates, order) => {
+    if (candidates.length === 0) return null;
+    // 1. FAIL CLOSED. Any candidate that is not finished wins outright: the
+    //    caller reaps nothing while a run is live, whatever else correlates.
+    const live = candidates.filter((r) => r.status !== "completed");
+    if (live.length > 0) return order(live);
+    // 2. A real run beats a decoy. Decoys are only consulted when nothing
+    //    else correlates — a guard that legitimately refused an
+    //    `agent:implement` label also lands as `skipped`, and that ticket has
+    //    nothing in flight and SHOULD be reaped.
+    const real = candidates.filter((r) => !isDecoy(r));
+    return order(real.length > 0 ? real : candidates);
+  };
+
+  // Tier 1 — EXACT. Bounded below by the labeling: a run from an EARLIER
+  // label/reap cycle carries the same title and must not be mistaken for this
+  // one's.
+  const titleRe = new RegExp(`\\bissue\\s*#${issueNumber}\\b`, "i");
+  const exact = runs.filter(
+    (r) =>
+      titleRe.test(r.displayTitle ?? "") && new Date(r.createdAt).getTime() >= windowStart,
+  );
+  if (exact.length > 0) return pick(exact, newest);
+
+  // Tier 2 — TIME-WINDOW fallback, for the ten repos whose `agent-implement.yml`
+  // carries no `run-name` yet.
   const windowEnd = labeledMs + windowMinutes * 60000;
   const windowed = runs.filter((r) => {
     const t = new Date(r.createdAt).getTime();
     return t >= windowStart && t <= windowEnd;
   });
-  if (windowed.length > 0) {
-    // Nearest-after: the first run GitHub created once the webhook landed.
-    return windowed.reduce((nearest, r) =>
-      new Date(r.createdAt) < new Date(nearest.createdAt) ? r : nearest,
-    );
-  }
+  if (windowed.length > 0) return pick(windowed, earliest);
 
   return null;
 }

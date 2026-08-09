@@ -83,6 +83,93 @@ describe("findRunForLabel", () => {
       null,
     );
   });
+
+  // ── DECOY RUNS ──────────────────────────────────────────────────────────
+  // agent-implement.yml fires on EVERY issues.labeled event and skips unless
+  // the label is agent:implement, so an unrelated label mints a completed/
+  // `skipped` run under the SAME run-name. Observed live on buzz#90: adding
+  // `tracking` mid-run minted exactly this decoy.
+
+  it("never prefers a completed decoy over the still-running real run", () => {
+    const runs = [
+      {
+        url: "real",
+        status: "in_progress",
+        conclusion: null,
+        createdAt: "2026-08-09T14:00:05Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+      {
+        url: "decoy",
+        status: "completed",
+        conclusion: "skipped",
+        createdAt: "2026-08-09T14:03:00Z", // LATER — would win on recency alone
+        displayTitle: "agent:implement — issue #90",
+      },
+    ];
+    const run = findRunForLabel({ runs, issueNumber: 90, labeledAt: "2026-08-09T14:00:00Z" });
+    assert.equal(run.url, "real", "a live run must win outright — #330 criterion 2");
+    assert.notEqual(run.status, "completed");
+  });
+
+  it("prefers a real finished run over a decoy minted after it", () => {
+    const runs = [
+      {
+        url: "real",
+        status: "completed",
+        conclusion: "failure",
+        createdAt: "2026-08-09T14:00:05Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+      {
+        url: "decoy",
+        status: "completed",
+        conclusion: "skipped",
+        createdAt: "2026-08-09T14:50:00Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+    ];
+    const run = findRunForLabel({ runs, issueNumber: 90, labeledAt: "2026-08-09T14:00:00Z" });
+    assert.equal(run.url, "real");
+    assert.equal(run.conclusion, "failure", "the comment must name the real outcome");
+  });
+
+  it("still returns a lone skipped run — a guard-refused label has nothing in flight", () => {
+    const runs = [
+      {
+        url: "refused",
+        status: "completed",
+        conclusion: "skipped",
+        createdAt: "2026-08-09T14:00:05Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+    ];
+    const run = findRunForLabel({ runs, issueNumber: 90, labeledAt: "2026-08-09T14:00:00Z" });
+    assert.equal(run.url, "refused", "that ticket IS reapable — nothing is running");
+  });
+
+  it("ignores an exact-title run created before the current labeling", () => {
+    const runs = [
+      {
+        url: "previous-cycle",
+        status: "completed",
+        conclusion: "failure",
+        createdAt: "2026-08-01T00:00:00Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+    ];
+    const run = findRunForLabel({ runs, issueNumber: 90, labeledAt: "2026-08-09T14:00:00Z" });
+    assert.equal(run, null, "an earlier cycle's run must not decide this labeling");
+  });
+
+  it("fails closed in the time-window tier too when a live run is present", () => {
+    const runs = [
+      { url: "decoy", status: "completed", conclusion: "skipped", createdAt: "2026-08-09T14:00:02Z" },
+      { url: "real", status: "in_progress", conclusion: null, createdAt: "2026-08-09T14:00:10Z" },
+    ];
+    const run = findRunForLabel({ runs, issueNumber: 90, labeledAt: "2026-08-09T14:00:00Z" });
+    assert.equal(run.url, "real", "nearest-after must not override the live-run guarantee");
+  });
 });
 
 // ── classifyOutcome ───────────────────────────────────────────────────────
