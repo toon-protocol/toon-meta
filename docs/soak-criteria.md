@@ -32,7 +32,7 @@ network, with real (if valueless, on testnets) transactions.
 | Channel close | `closeChannel` (either participant), 24h challenge period | channel closed on the program | zkApp `settle()` path invoked |
 | Claim redeemed / recipient credited | on `claimFromChannel`, net balance settles on `TokenNetwork` | at channel close, `SETTLE_CHANNEL` (vault → recipient ATA) | at channel close, Story 34.4 fund-custody zkApp `settle()` (vault → participants) |
 | Coop-close | both-signed close digest (`coopCloseHashEvm` et al. in `@toon-protocol/settlement-digest`) accepted | equivalent cooperative-close message accepted | equivalent cooperative-close message accepted |
-| Rescue (unilateral exit, no counterparty cooperation) | `closeChannel` + `settleChannel` callable by a single participant with no signature from the other side — exercised live in the [2026-07-31 apex identity rotation](./operators/2026-07-31-apex-settlement-identity-rotation.md), where eight channels were closed/settled by counterparties alone | equivalent unilateral close/settle instruction on the program | equivalent unilateral path on the zkApp |
+| Rescue (unilateral exit, no counterparty cooperation) | `closeChannel` + `settleChannel` callable by a single participant with no signature from the other side — **not yet observed**. The [2026-07-31 apex identity rotation notice](./operators/2026-07-31-apex-settlement-identity-rotation.md) records that the eight channels left open against the retired apex identity *can* be exited this way (apex-side deposit is zero on all eight, so only the counterparty's own funds are at stake) — that is a capability, not an observation. A fresh on-chain read confirms none have been: at block `45280864` (2026-08-10T02:46:56Z), all eight still read `state == 1` (`Opened`), `closedAt == 0`, unchanged from the notice's own block-`44877814` baseline. What would prove this row: any one of those eight (or a new channel) taken through `closeChannel` then `settleChannel` by a single participant, cited by block height and the resulting `state == 3` (`Settled`). | equivalent unilateral close/settle instruction on the program | equivalent unilateral path on the zkApp |
 
 Every path in the table needs at least one live, on-chain observation before
 a family's soak clock can be said to have started at all. Repetition against
@@ -73,12 +73,16 @@ it fixes the unit the rest of this section builds on):
 
 That fixes the unit; the numeric values are this document's job to propose.
 All three families use the same shape of bar — a family is not exempt from
-soaking just because its instrument is newer — but the Mina row carries a
-prerequisite the other two have already cleared.
+soaking just because its instrument is newer. §1's rule binds here too: a
+family's clock cannot be said to be running until every path in its §1 row
+has at least one live observation — as of this writing that is true of
+**two** families, not one. Mina is missing a full cycle; EVM is missing
+just the rescue path (§1), which changes the arithmetic below but not the
+gating rule.
 
 | Family | N (distinct channels) | M (distinct identities) | D (days) | Notes |
 |--------|------------------------|---------------------------|----------|-------|
-| EVM (Base Sepolia) | ≥ 20 | ≥ 10 | ≥ 14 consecutive | Baseline plausibility: the fleet has already put 27 channels through open/claim/close in the ordinary course of devnet operation (19 closed+settled by the apex on 2026-07-30, 8 more closed unilaterally by counterparties per the [2026-07-31 notice](./operators/2026-07-31-apex-settlement-identity-rotation.md)) — this bar asks for that breadth again, deliberately, as a forward-looking rolling window rather than incidental history. |
+| EVM (Base Sepolia) | ≥ 20 | ≥ 10 | ≥ 14 consecutive, **starting only after §1's rescue gap closes** | Baseline plausibility: the fleet has already put **19** channels through a complete open/claim/close/settle lifecycle in the ordinary course of devnet operation, closed and settled by the apex on 2026-07-30 — well inside this bar's N and D (19 + 8 = 27 channels total exist against the retired apex identity, but only those 19 completed a full lifecycle; the other eight are §1's Rescue row, addressed there). The 19 give the volume/duration bar real baseline plausibility, but per §1's own rule the EVM clock cannot be said to have started until at least one live rescue is observed. |
 | Solana (devnet) | ≥ 20 | ≥ 10 | ≥ 14 consecutive | The Solana-settling client is new as of this week (2026-08-09) — see [#307](https://github.com/toon-protocol/toon-meta/issues/307)'s own thread: one independent node with six consecutive paid writes on one channel, one third-party-funded `g.toon.ario` job, one `g.toon.relay` channel resolved purely from chain. That is real evidence against §1's per-path checklist but nowhere near this bar's N/M; the clock on this family starts now, not retroactively. |
 | Mina (devnet) | ≥ 20 | ≥ 10 | ≥ 14 consecutive, **starting only after the prerequisite below is met** | **Prerequisite:** at least one full live open → close/settle cycle against the apex. `deployment.md` notes the Mina client-entry leg "was only ever exercised through the retired sandbox entry, so it is unproven against the apex — the demoed paths are Base Sepolia and Solana." Until that single cycle is observed, §1's Mina row is not yet checked off, and no soak window can be running. |
 
@@ -167,4 +171,8 @@ rule:
   connector#834 (Solana mainnet), connector#835 (Solana rent costs), and
   this ticket.
 - Whether any family has *met* the bar in §3 is not decided here and stays
-  a human call, per this ticket's explicit scope.
+  a human call, per this ticket's explicit scope. As of this writing, two
+  of the three families have a §1 gap that means their clock has not
+  started at all: EVM's rescue path (§1, §3) and Mina's full open→close
+  cycle (§3). Neither is a reason to lower the bar — they are the bar
+  doing its job.
