@@ -12,11 +12,16 @@ import {
   canonicalBranches,
   findRunForLabel,
   classifyOutcome,
+  choosePairing,
   evaluateTicket,
+  appendBlockerRef,
   buildReapComment,
   reapMarker,
+  reapMarkerPrefix,
   JOB_TIMEOUT_MINUTES,
   NO_RUN_GRACE_MINUTES,
+  PUSHED_NOTHING_BLOCKER_REF,
+  REPEAT_WINDOW_HOURS,
 } from "./reap-evaluator.mjs";
 
 const RUN_URL = "https://github.com/toon-protocol/buzz/actions/runs/1";
@@ -223,6 +228,71 @@ describe("classifyOutcome", () => {
     const run = { conclusion: "failure", createdAt: "2026-08-09T03:27:00Z", updatedAt: "2026-08-09T03:30:00Z" };
     assert.equal(classifyOutcome({ run }), "failed");
   });
+
+  it("success with the implement job skipped is guard-skipped, not succeeded-with-no-changes (buzz#6 shape)", () => {
+    const run = { conclusion: "success", createdAt: "2026-08-10T00:00:00Z", updatedAt: "2026-08-10T00:02:00Z" };
+    assert.equal(classifyOutcome({ run, implementJobSkipped: true }), "guard-skipped");
+  });
+});
+
+// ── choosePairing ─────────────────────────────────────────────────────────
+
+describe("choosePairing", () => {
+  it("guard-skipped pairs with tracking — a parent-shaped ticket is never re-dispatchable", () => {
+    assert.deepEqual(choosePairing("guard-skipped"), { kind: "tracking" });
+  });
+
+  it("pushed-nothing pairs with a blocker ref naming the known root cause", () => {
+    assert.deepEqual(choosePairing("pushed-nothing"), {
+      kind: "blocker",
+      ref: PUSHED_NOTHING_BLOCKER_REF,
+    });
+  });
+
+  for (const outcome of ["succeeded-with-no-changes", "timed-out", "failed", "cancelled", "no-run-found"]) {
+    it(`${outcome} pairs with needs-human (no known ticket to point at)`, () => {
+      assert.deepEqual(choosePairing(outcome), { kind: "needs-human" });
+    });
+  }
+});
+
+// ── appendBlockerRef ──────────────────────────────────────────────────────
+
+describe("appendBlockerRef", () => {
+  const REF = "toon-protocol/toon-meta#331";
+  const SELF = "toon-protocol/buzz";
+
+  it("replaces a bare None declaration with the bullet", () => {
+    const body = "Some text.\n\n## Blocked by\n\nNone — start immediately.\n\n## Other\nstuff";
+    const out = appendBlockerRef(body, REF, SELF);
+    assert.match(out, /- toon-protocol\/toon-meta#331/);
+    assert.doesNotMatch(out, /None/);
+  });
+
+  it("appends after existing bullets without disturbing them", () => {
+    const body = "## Blocked by\n\n- #10 (baseline)\n- toon-protocol/relay#5\n\n## Acceptance\nfoo";
+    const out = appendBlockerRef(body, REF, SELF);
+    assert.match(out, /- #10 \(baseline\)/);
+    assert.match(out, /- toon-protocol\/relay#5/);
+    assert.match(out, /- toon-protocol\/toon-meta#331/);
+    assert.match(out, /## Acceptance\nfoo/);
+  });
+
+  it("adds a new section when none exists", () => {
+    const out = appendBlockerRef("Just a body, no section.", REF, SELF);
+    assert.match(out, /## Blocked by/);
+    assert.match(out, /- toon-protocol\/toon-meta#331/);
+  });
+
+  it("is idempotent — never duplicates the bullet across repeated reaps", () => {
+    const body = "## Blocked by\n\n- toon-protocol/toon-meta#331\n";
+    assert.equal(appendBlockerRef(body, REF, SELF), body);
+  });
+
+  it("recognizes a bare #331 bullet (same repo) as already present", () => {
+    const body = "## Blocked by\n\n- #331\n";
+    assert.equal(appendBlockerRef(body, "toon-protocol/toon-meta#331", "toon-protocol/toon-meta"), body);
+  });
 });
 
 // ── evaluateTicket ────────────────────────────────────────────────────────
@@ -276,6 +346,8 @@ describe("evaluateTicket", () => {
     assert.equal(out.verdict, "reap");
     assert.equal(out.outcome, "timed-out");
     assert.equal(out.run.url, RUN_URL);
+    assert.deepEqual(out.pairing, { kind: "needs-human" }, "no known ticket to point at");
+    assert.equal(out.repeated, false);
   });
 
   it("buzz#43 shape: failure + claimed branch that does not exist → pushed-nothing", () => {
@@ -299,6 +371,7 @@ describe("evaluateTicket", () => {
     });
     assert.equal(out.verdict, "reap");
     assert.equal(out.outcome, "pushed-nothing");
+    assert.deepEqual(out.pairing, { kind: "blocker", ref: PUSHED_NOTHING_BLOCKER_REF });
   });
 
   it("rig#23 shape: success, no PR → reap as succeeded-with-no-changes, not skipped", () => {
@@ -320,6 +393,102 @@ describe("evaluateTicket", () => {
     });
     assert.equal(out.verdict, "reap");
     assert.equal(out.outcome, "succeeded-with-no-changes");
+    assert.deepEqual(out.pairing, { kind: "needs-human" });
+  });
+
+  it("buzz#6 shape: success + implement job skipped → guard-skipped, paired with tracking", () => {
+    const runs = [
+      {
+        url: "https://github.com/toon-protocol/buzz/actions/runs/6",
+        status: "completed",
+        conclusion: "success",
+        createdAt: "2026-08-10T00:00:00Z",
+        updatedAt: "2026-08-10T00:02:00Z",
+      },
+    ];
+    const out = evaluateTicket({
+      issue: { repo: "toon-protocol/buzz", number: 6, title: "…", url: "https://x/6" },
+      runs,
+      hasOpenPr: false,
+      labeledAt: "2026-08-10T00:00:00Z",
+      now: "2026-08-10T00:05:00Z",
+      implementJobSkipped: true,
+    });
+    assert.equal(out.verdict, "reap");
+    assert.equal(out.outcome, "guard-skipped");
+    assert.deepEqual(out.pairing, { kind: "tracking" });
+  });
+
+  it("a ticket reaped once already within the repeat window escalates to needs:human, overriding the usual pairing", () => {
+    const runs = [
+      {
+        url: "https://github.com/toon-protocol/buzz/actions/runs/6",
+        status: "completed",
+        conclusion: "success",
+        createdAt: "2026-08-10T00:00:00Z",
+        updatedAt: "2026-08-10T00:02:00Z",
+      },
+    ];
+    const out = evaluateTicket({
+      issue: { repo: "toon-protocol/buzz", number: 6, title: "…", url: "https://x/6" },
+      runs,
+      hasOpenPr: false,
+      labeledAt: "2026-08-10T00:00:00Z",
+      now: "2026-08-10T00:05:00Z",
+      implementJobSkipped: true, // would normally pair with tracking
+      priorReapTimestamps: ["2026-08-09T22:00:00Z"], // 2h05m before `now`, inside the 6h window
+    });
+    assert.equal(out.verdict, "reap");
+    assert.equal(out.repeated, true);
+    assert.deepEqual(out.pairing, { kind: "needs-human" });
+    assert.match(out.reasons.at(-1), /repeat-death/);
+  });
+
+  it("a prior reap outside the repeat window does not escalate", () => {
+    const runs = [
+      {
+        url: RUN_URL,
+        status: "completed",
+        conclusion: "failure",
+        createdAt: "2026-08-09T14:07:00Z",
+        updatedAt: "2026-08-09T14:57:00Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+    ];
+    const out = evaluateTicket({
+      issue: ISSUE_90,
+      runs,
+      hasOpenPr: false,
+      labeledAt: "2026-08-09T14:07:00Z",
+      now: "2026-08-09T15:10:00Z",
+      // REPEAT_WINDOW_HOURS is 6 — 08:00Z is >6h before 15:10Z, so outside the window.
+      priorReapTimestamps: ["2026-08-09T08:00:00Z"],
+    });
+    assert.equal(REPEAT_WINDOW_HOURS, 6, "test fixture assumes the default 6h window");
+    assert.equal(out.repeated, false);
+    assert.deepEqual(out.pairing, { kind: "needs-human" });
+  });
+
+  it("a prior reap timestamp AFTER now is not counted as recent (fail closed on clock skew)", () => {
+    const runs = [
+      {
+        url: RUN_URL,
+        status: "completed",
+        conclusion: "failure",
+        createdAt: "2026-08-09T14:07:00Z",
+        updatedAt: "2026-08-09T14:57:00Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+    ];
+    const out = evaluateTicket({
+      issue: ISSUE_90,
+      runs,
+      hasOpenPr: false,
+      labeledAt: "2026-08-09T14:07:00Z",
+      now: "2026-08-09T15:10:00Z",
+      priorReapTimestamps: ["2026-08-09T16:00:00Z"], // in the future relative to `now`
+    });
+    assert.equal(out.repeated, false);
   });
 
   it("no correlated run and the label is young → too-recent, never reaped", () => {
@@ -352,14 +521,17 @@ describe("evaluateTicket", () => {
 
 // ── buildReapComment / reapMarker ────────────────────────────────────────
 
+const CYCLE = "2026-08-09T14:07:00Z";
+
 describe("buildReapComment", () => {
-  it("names the run URL, both branch conventions, and embeds the marker", () => {
-    const marker = reapMarker("toon-protocol/buzz", 90);
+  it("names the run URL, both branch conventions, the pairing, and embeds the marker", () => {
+    const marker = reapMarker("toon-protocol/buzz", 90, CYCLE);
     const comment = buildReapComment({
       issue: { number: 90 },
       outcome: "timed-out",
       run: { url: RUN_URL },
       marker,
+      pairing: { kind: "needs-human" },
     });
     assert.match(comment, /timed out/);
     assert.match(comment, new RegExp(RUN_URL.replace(/\//g, "\\/")));
@@ -367,6 +539,7 @@ describe("buildReapComment", () => {
     assert.match(comment, /agent\/issue-90/);
     assert.match(comment, new RegExp(`<!-- ${marker} -->`));
     assert.match(comment, /never re-applies/);
+    assert.match(comment, /Added `needs:human`/);
   });
 
   it("no-run-found omits the run URL line but still names the follow-up", () => {
@@ -374,13 +547,75 @@ describe("buildReapComment", () => {
       issue: { number: 90 },
       outcome: "no-run-found",
       run: undefined,
-      marker: reapMarker("toon-protocol/buzz", 90),
+      marker: reapMarker("toon-protocol/buzz", 90, CYCLE),
+      pairing: { kind: "needs-human" },
     });
     assert.doesNotMatch(comment, /^Run: /m);
     assert.match(comment, /Actions tab/);
   });
 
-  it("reapMarker is stable and sanitizes the repo slug", () => {
-    assert.equal(reapMarker("toon-protocol/buzz", 90), "label-reaper-dead-run:toon-protocol-buzz-issue-90");
+  it("guard-skipped pairs with tracking in the comment text", () => {
+    const comment = buildReapComment({
+      issue: { number: 6 },
+      outcome: "guard-skipped",
+      run: { url: "https://x/6" },
+      marker: reapMarker("toon-protocol/buzz", 6, CYCLE),
+      pairing: { kind: "tracking" },
+    });
+    assert.match(comment, /implement.*job was \*\*skipped\*\*/);
+    assert.match(comment, /Added `tracking`/);
+  });
+
+  it("pushed-nothing names the blocker ref added to `## Blocked by`", () => {
+    const comment = buildReapComment({
+      issue: { number: 43 },
+      outcome: "pushed-nothing",
+      run: { url: "https://x/43" },
+      marker: reapMarker("toon-protocol/buzz", 43, CYCLE),
+      pairing: { kind: "blocker", ref: PUSHED_NOTHING_BLOCKER_REF },
+    });
+    assert.match(comment, new RegExp(`- ${PUSHED_NOTHING_BLOCKER_REF.replace(/\//g, "\\/")}`));
+    assert.match(comment, /dispatch resumes automatically/);
+  });
+
+  it("a repeated reap names the repeat-death escalation", () => {
+    const comment = buildReapComment({
+      issue: { number: 90 },
+      outcome: "failed",
+      run: { url: RUN_URL },
+      marker: reapMarker("toon-protocol/buzz", 90, CYCLE),
+      pairing: { kind: "needs-human" },
+      repeated: true,
+    });
+    assert.match(comment, /Repeat death/);
+  });
+});
+
+describe("reapMarker / reapMarkerPrefix", () => {
+  it("reapMarker sanitizes the repo slug and the cycle key", () => {
+    assert.equal(
+      reapMarker("toon-protocol/buzz", 90, "2026-08-09T14:07:00Z"),
+      "label-reaper-dead-run:toon-protocol-buzz-issue-90-2026-08-09T14-07-00Z",
+    );
+  });
+
+  it("two different labeling cycles for the same ticket get different markers", () => {
+    const a = reapMarker("toon-protocol/buzz", 90, "2026-08-09T14:07:00Z");
+    const b = reapMarker("toon-protocol/buzz", 90, "2026-08-10T09:00:00Z");
+    assert.notEqual(a, b);
+  });
+
+  it("reapMarkerPrefix matches any cycle's marker for the same ticket", () => {
+    const prefix = reapMarkerPrefix("toon-protocol/buzz", 90);
+    const a = reapMarker("toon-protocol/buzz", 90, "2026-08-09T14:07:00Z");
+    const b = reapMarker("toon-protocol/buzz", 90, "2026-08-10T09:00:00Z");
+    assert.ok(a.startsWith(prefix));
+    assert.ok(b.startsWith(prefix));
+  });
+
+  it("reapMarkerPrefix does not collide across issue numbers with a shared digit prefix", () => {
+    const prefix9 = reapMarkerPrefix("toon-protocol/buzz", 9);
+    const marker90 = reapMarker("toon-protocol/buzz", 90, "2026-08-09T14:07:00Z");
+    assert.ok(!marker90.startsWith(prefix9));
   });
 });

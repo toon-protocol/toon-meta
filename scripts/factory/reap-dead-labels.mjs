@@ -13,10 +13,23 @@
 //   2. Correlate the current labeling to its workflow run (reap-evaluator's
 //      two-tier match: exact via `run-name`, else nearest-after in time).
 //   3. Still running (or not correlated but too young) → leave alone.
-//   4. Finished (or correlated-nothing past the grace period) → REMOVE
-//      `agent:implement`, comment naming the run + outcome. Never re-applies
-//      the label — that is a human judgement call (#330's "do not
-//      auto-re-dispatch").
+//   4. Finished (or correlated-nothing past the grace period) → apply the
+//      PAIRING (see below), THEN remove `agent:implement`, THEN comment.
+//      Never re-applies the label — that is a human judgement call (#330's
+//      "do not auto-re-dispatch").
+//
+// ── NEVER REAP BARE (toon-meta#330 comment, 2026-08-10) ──────────────────────
+// Removing `agent:implement` alone does not free the epic's slot — it makes
+// the dispatcher re-label the ticket on its very next pass (26s, observed
+// live on buzz#90), spinning reap → dispatch → die → reap forever. Every reap
+// therefore pairs the removal with something dispatch-evaluator.mjs's own
+// readiness rule declines: `needs:human` / `tracking` labels, or a new
+// `## Blocked by` bullet (reap-evaluator.mjs's `choosePairing` — see its
+// header for the full decision table). The pairing write happens BEFORE the
+// label removal in the write closure below, specifically so that if the
+// pairing write fails, `agent:implement` is untouched (safe — retried next
+// pass) rather than removed-and-unpaired (the exact bare-reap bug this
+// exists to prevent).
 //
 // ── WRITE FAILURE ISOLATION (toon-meta#320 convention) ───────────────────────
 // Every write goes through write-report.mjs's `runWrite` so one failed `gh`
@@ -26,17 +39,26 @@
 // ── IDEMPOTENCY ──────────────────────────────────────────────────────────────
 // Reaping removes the label, which is self-idempotent (an already-reaped
 // ticket no longer matches the `agent:implement` scan). The hidden marker is
-// still checked before posting, belt-and-braces against a race between two
-// overlapping passes acting on the same ticket.
+// keyed on THIS labeling cycle (reapMarker's `labeledAt` argument) — a
+// per-issue-only marker would make every future death of the same ticket
+// look already-reaped forever, per reap-evaluator.mjs's header.
 
 import { execFileSync } from "node:child_process";
-import { prIssueIds, FACTORY_BRANCH_PREFIXES, IMPLEMENT_LABEL } from "./dispatch-evaluator.mjs";
+import {
+  prIssueIds,
+  FACTORY_BRANCH_PREFIXES,
+  IMPLEMENT_LABEL,
+  HUMAN_LABEL,
+  TRACKING_LABEL,
+} from "./dispatch-evaluator.mjs";
 import {
   canonicalBranches,
   findRunForLabel,
   evaluateTicket,
+  appendBlockerRef,
   buildReapComment,
   reapMarker,
+  reapMarkerPrefix,
 } from "./reap-evaluator.mjs";
 import { createWriteReport, runWrite, hasFailures, formatFailedSection } from "./write-report.mjs";
 
@@ -70,11 +92,12 @@ const RUN_LIMIT = Number(process.env.REAP_RUN_LIMIT ?? 100);
 const NOW = new Date().toISOString();
 
 // ── gh helpers ──────────────────────────────────────────────────────────────
-function gh(args, { json = false, allowFail = false } = {}) {
+function gh(args, { json = false, allowFail = false, input } = {}) {
   try {
     const out = execFileSync("gh", args, {
       encoding: "utf8",
       maxBuffer: 32 * 1024 * 1024,
+      ...(input !== undefined ? { input } : {}),
     });
     return json ? JSON.parse(out || "null") : out;
   } catch (err) {
@@ -89,6 +112,15 @@ const fetchComments = (repo, number) =>
     allowFail: true,
   })?.comments ?? [];
 
+// NOT allowFail: a swallowed failure here would return "" indistinguishable
+// from a genuinely empty body, and appendBlockerRef("", ref, repo) would
+// then produce a body that's JUST the new `## Blocked by` section — writing
+// that back would silently truncate the real issue body. Letting this throw
+// inside the write closure (below) instead fails the whole write, which
+// runWrite records and skips — same as any other failed pairing write.
+const fetchBody = (repo, number) =>
+  gh(["issue", "view", String(number), "--repo", repo, "--json", "body", "--jq", ".body"]);
+
 function branchExistsOnRepo(repo, branch) {
   const data = gh(["api", `repos/${repo}/branches/${encodeURIComponent(branch)}`], {
     json: true,
@@ -101,8 +133,8 @@ function branchExistsOnRepo(repo, branch) {
 // same convention as daily-digest.mjs's fetchRunCount.
 function fetchRuns(repo) {
   const jq =
-    ".workflow_runs[] | {status: .status, conclusion: .conclusion, createdAt: .created_at, " +
-    "updatedAt: .updated_at, url: .html_url, displayTitle: .display_title}";
+    ".workflow_runs[] | {id: .id, status: .status, conclusion: .conclusion, " +
+    "createdAt: .created_at, updatedAt: .updated_at, url: .html_url, displayTitle: .display_title}";
   const out = gh(
     [
       "api",
@@ -123,6 +155,31 @@ function fetchRuns(repo) {
     }
   }
   return rows;
+}
+
+// Guard-skip detection (buzz#6 shape): a run can conclude `success` while its
+// `implement` job specifically was `skipped` — one of agent-implement.yml's
+// guard checks refused the target (e.g. a PRD-shaped parent) before any work
+// began. Only ever called for a correlated, finished, `success` run — a
+// failed/timed-out run never reaches this (branch-claim checking covers it
+// instead), so one extra `gh api` call per candidate is the whole cost.
+function isImplementJobSkipped(repo, run) {
+  if (!run?.id) return false;
+  const jq = ".jobs[] | {name: .name, conclusion: .conclusion}";
+  const out = gh(["api", `repos/${repo}/actions/runs/${run.id}/jobs`, "--jq", jq], {
+    allowFail: true,
+  });
+  if (!out) return false;
+  for (const line of out.split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const job = JSON.parse(line);
+      if ((job.name ?? "").toLowerCase() === "implement") return job.conclusion === "skipped";
+    } catch {
+      /* partial/unparseable line — skip, fail closed */
+    }
+  }
+  return false;
 }
 
 // The current labeling's start time: the MOST RECENT `labeled` timeline event
@@ -213,18 +270,28 @@ function sweepRepo(repo) {
 
     let branchClaimed = false;
     let branchExists = false;
+    let implementJobSkipped = false;
     if (!hasOpenPr) {
       const peek = findRunForLabel({ runs, issueNumber: issue.number, labeledAt });
-      if (peek && peek.status === "completed" && peek.conclusion !== "success") {
-        const text = getComments()
-          .map((c) => c.body ?? "")
-          .join("\n");
-        branchClaimed = canonicalBranches(issue.number).some((b) => text.includes(b));
-        if (branchClaimed) {
-          branchExists = canonicalBranches(issue.number).some((b) => branchExistsOnRepo(repo, b));
+      if (peek && peek.status === "completed") {
+        if (peek.conclusion !== "success") {
+          const text = getComments()
+            .map((c) => c.body ?? "")
+            .join("\n");
+          branchClaimed = canonicalBranches(issue.number).some((b) => text.includes(b));
+          if (branchClaimed) {
+            branchExists = canonicalBranches(issue.number).some((b) => branchExistsOnRepo(repo, b));
+          }
+        } else {
+          implementJobSkipped = isImplementJobSkipped(repo, peek);
         }
       }
     }
+
+    const priorReapTimestamps = getComments()
+      .filter((c) => (c.body ?? "").includes(reapMarkerPrefix(repo, issue.number)))
+      .map((c) => c.createdAt)
+      .filter(Boolean);
 
     const verdict = evaluateTicket({
       issue: { repo, number: issue.number, title: issue.title, url: issue.url },
@@ -234,6 +301,8 @@ function sweepRepo(repo) {
       now: NOW,
       branchClaimed,
       branchExists,
+      implementJobSkipped,
+      priorReapTimestamps,
     });
 
     for (const r of verdict.reasons) console.log(`   ${id} — ${r}`);
@@ -243,9 +312,9 @@ function sweepRepo(repo) {
       continue;
     }
 
-    const marker = reapMarker(repo, issue.number);
+    const marker = reapMarker(repo, issue.number, labeledAt);
     if (getComments().some((c) => (c.body ?? "").includes(marker))) {
-      console.log(`   ${id} — already reaped (marker found) — skipping`);
+      console.log(`   ${id} — already reaped this cycle (marker found) — skipping`);
       bump("reap-already");
       continue;
     }
@@ -255,18 +324,45 @@ function sweepRepo(repo) {
       outcome: verdict.outcome,
       run: verdict.run,
       marker,
+      pairing: verdict.pairing,
+      repeated: verdict.repeated,
     });
     const tag = APPLY ? "APPLY" : "dry-run";
-    console.log(`   [${tag}] ${id} — REAP (${verdict.outcome}): remove ${IMPLEMENT_LABEL} + comment`);
+    console.log(
+      `   [${tag}] ${id} — REAP (${verdict.outcome} → ${verdict.pairing.kind}` +
+        `${verdict.repeated ? ", repeat-death" : ""}): pair, then remove ${IMPLEMENT_LABEL} + comment`,
+    );
     if (APPLY) {
-      const ok = runWrite(report, { type: "reap", target: id, detail: verdict.outcome }, () => {
-        gh(["issue", "edit", String(issue.number), "--repo", repo, "--remove-label", IMPLEMENT_LABEL]);
-        gh(["issue", "comment", String(issue.number), "--repo", repo, "--body", comment]);
-      });
+      // Pairing FIRST — see header. If this write fails, agent:implement is
+      // left untouched (safe, retried next pass) rather than removed with no
+      // pairing applied (a bare reap, the exact bug #330's follow-up flagged).
+      const ok = runWrite(
+        report,
+        { type: "reap", target: id, detail: `${verdict.outcome}/${verdict.pairing.kind}` },
+        () => {
+          if (verdict.pairing.kind === "needs-human") {
+            gh(["issue", "edit", String(issue.number), "--repo", repo, "--add-label", HUMAN_LABEL]);
+          } else if (verdict.pairing.kind === "tracking") {
+            gh(["issue", "edit", String(issue.number), "--repo", repo, "--add-label", TRACKING_LABEL]);
+          } else if (verdict.pairing.kind === "blocker") {
+            const body = fetchBody(repo, issue.number);
+            const newBody = appendBlockerRef(body, verdict.pairing.ref, repo);
+            if (newBody !== body) {
+              gh(["issue", "edit", String(issue.number), "--repo", repo, "--body-file", "-"], {
+                input: newBody,
+              });
+            }
+          }
+          gh(["issue", "edit", String(issue.number), "--repo", repo, "--remove-label", IMPLEMENT_LABEL]);
+          gh(["issue", "comment", String(issue.number), "--repo", repo, "--body", comment]);
+        },
+      );
       if (!ok) console.log(`   [APPLY] FAILED to reap ${id} — continuing (see failed writes below)`);
     }
     bump("reap");
     bump(`reap-${verdict.outcome}`);
+    bump(`pairing-${verdict.pairing.kind}`);
+    if (verdict.repeated) bump("reap-repeat-death");
   }
 }
 
@@ -300,8 +396,11 @@ console.log(
     `${n("reap")} dead label(s) reaped ` +
     `(${n("reap-timed-out")} timed-out, ${n("reap-failed")} failed, ` +
     `${n("reap-succeeded-with-no-changes")} succeeded-with-no-changes, ` +
+    `${n("reap-guard-skipped")} guard-skipped, ` +
     `${n("reap-pushed-nothing")} pushed-nothing, ${n("reap-cancelled")} cancelled, ` +
-    `${n("reap-no-run-found")} no-run-found), ` +
+    `${n("reap-no-run-found")} no-run-found) — ` +
+    `paired ${n("pairing-needs-human")} needs:human, ${n("pairing-tracking")} tracking, ` +
+    `${n("pairing-blocker")} blocker-ref (${n("reap-repeat-death")} escalated as repeat-deaths), ` +
     `${n("reap-already")} already reaped, ` +
     `${n("in-progress")} in progress, ${n("too-recent")} too recent to judge, ` +
     `${n("open-pr")} with an open PR, ${n("unjudgeable")} unjudgeable (no labeled-event found).`,

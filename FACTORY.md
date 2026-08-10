@@ -800,30 +800,62 @@ consulted — a guard that legitimately refused the label leaves nothing in flig
 should be reaped.
 
 **Outcomes** (named in the comment; the follow-up guidance differs per outcome): a `success`
-conclusion with no PR is `succeeded-with-no-changes`; a run whose duration reaches the runner's
-50m step timeout is `timed-out` (a step-level timeout can surface as a plain `failure`
-conclusion, so duration is the tell, not just the conclusion field); a failed/timed-out run whose
-own issue comments claim a branch that does not actually exist on the repo is `pushed-nothing`
-(the lost-push shape, root-caused by #331); anything else is `failed` or `cancelled`.
+conclusion with no PR is `succeeded-with-no-changes`; a `success` conclusion whose `implement` job
+was itself `skipped` is `guard-skipped` (one of `agent-implement.yml`'s guard checks refused the
+target before any work began — the buzz#6 shape, a PRD-shaped parent carrying sub-issues); a run
+whose duration reaches the runner's 50m step timeout is `timed-out` (a step-level timeout can
+surface as a plain `failure` conclusion, so duration is the tell, not just the conclusion field);
+a failed/timed-out run whose own issue comments claim a branch that does not actually exist on the
+repo is `pushed-nothing` (the lost-push shape, root-caused by #331); anything else is `failed` or
+`cancelled`.
 
-**Never re-applies the label.** Removing `agent:implement` frees the epic's serialization slot;
-deciding whether the ticket should run again is a judgement call the reaper deliberately leaves
-to a human — auto-re-adding the label would re-run a ticket that already burned a run into the
-same wall it just hit.
+**Never reaps bare.** An earlier version of this pass removed `agent:implement` and stopped there,
+on the theory that this "frees the epic's serialization slot". Disproven live on buzz#90
+(2026-08-09 18:29Z, [#330 comment](https://github.com/toon-protocol/toon-meta/issues/330#issuecomment-5233187221)):
+the unblock dispatcher's very next pass saw the now-unlabeled, still-otherwise-ready ticket and
+re-labeled it 26 **seconds** later — nothing about the ticket itself had changed. That is
+reap → dispatch → die → reap, a full burned agent run every cycle, strictly worse than the stall
+it replaces (a stall is at least free). Every reap now pairs the removal with something
+`dispatch-evaluator.mjs`'s own readiness rule declines, chosen by outcome
+(`reap-evaluator.mjs`'s `choosePairing`):
+
+| Outcome | Pairing | Why |
+|---|---|---|
+| `guard-skipped` | `tracking` | A structurally undispatchable target (a parent with sub-issues) will be refused every time — decompose it, don't queue a human for it. |
+| `pushed-nothing` | a new `## Blocked by` bullet naming `toon-protocol/toon-meta#331` | The known, always-applicable root cause. `unblock-evaluator.mjs`'s readiness check then declines the ticket while #331 is open, **and** dispatch resumes automatically the moment #331 closes — no human step needed. Mirrors the by-hand fix applied to buzz#43 that was confirmed to hold. |
+| everything else | `needs:human` | No known ticket to point at; genuinely a human judgement call (retry budget, split, or drop). |
+
+A ticket reaped twice within 6h (`REPEAT_WINDOW_HOURS`) is a repeat-death pattern, not a one-off —
+`evaluateTicket` escalates it straight to `needs:human` regardless of what the table above would
+otherwise pick, and says so in the comment. The pairing write happens **before** the label removal
+in the shell's write closure, specifically so a failed pairing write leaves `agent:implement`
+untouched (safe, retried next pass) rather than removed-and-unpaired.
 
 **Idempotency.** Reaping removes the label, which is self-idempotent — an already-reaped ticket no
-longer matches the `agent:implement` scan on the next pass. The hidden marker embedded in every
-reap comment is not load-bearing for that reason; it exists so a human can search for reaper
-activity, and as a belt-and-braces guard against two overlapping passes racing the same ticket.
+longer matches the `agent:implement` scan on the next pass. The hidden marker is keyed on the
+*current labeling cycle* (`reapMarker(repo, number, labeledAt)`), not just the issue number — a
+marker keyed only on the issue number would make every future death of the same ticket look
+"already reaped" forever, since the first reap's comment never goes away, silently disabling the
+reaper for any ticket that had ever been reaped once. `reapMarkerPrefix` (no cycle key) matches
+every reap comment ever posted for a ticket across all cycles, which is how the repeat-detector
+above finds prior reaps.
 
 **Rollout knob.** Writes happen only when the org Actions variable `REAP_APPLY` is `'true'` (or a
-manual run passes `apply=true`) — same pattern as `DISPATCH_APPLY`/`HOUSEKEEPING_APPLY`. Removing
-a label and commenting need only write access, not the write-access-gated add-label path
-(agent-implement.yml's Guard 1), so `FACTORY_OPS_TOKEN` (#271) is not *identity*-load-bearing here
-the way it is for dispatch — no reap is ever silently ignored for coming from the wrong identity.
-It is still the write credential an APPLY run needs: the ambient `github.token` reaches only the
-calling repo and this workflow grants it `contents: read`, so without the secret the pass stays
-read/dry-run safe and any attempted write fails loudly in the run's `Failed writes` section.
+manual run passes `apply=true`) — same pattern as `DISPATCH_APPLY`/`HOUSEKEEPING_APPLY`. Removing a
+label, adding a pairing label, editing a body, and commenting need only write access, not the
+write-access-gated add-label path (agent-implement.yml's Guard 1 — that guard runs only when the
+added label is `agent:implement` itself), so `FACTORY_OPS_TOKEN` (#271) is not *identity*-load-bearing
+here the way it is for dispatch — no reap is ever silently ignored for coming from the wrong
+identity. It is still the write credential an APPLY run needs: the ambient `github.token` reaches
+only the calling repo and this workflow grants it `contents: read`, so without the secret the pass
+stays read/dry-run safe and any attempted write fails loudly in the run's `Failed writes` section.
+
+**Does `planDispatch` also need a prior-run guard?** Considered per the #330 follow-up comment and
+decided no, for now: the spin loop was caused by a bare reap leaving the ticket looking fully
+ready, and every reap now mandatorily pairs the removal with `needs:human` / `tracking` / an open
+`## Blocked by` bullet — all three are things `EXCLUDED_LABELS` / `isReady` already make
+`planDispatch` decline on its own, with no new guard required. Revisit only if a reap path is ever
+found that removes the label without a pairing landing first.
 
 ## triage-sweep retirement (#283)
 
