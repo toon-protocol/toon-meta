@@ -169,7 +169,8 @@ export function findRunForLabel({
   // skips its jobs unless the label is `agent:implement`, so any other label
   // applied to this ticket mints a completed/`skipped` run carrying the SAME
   // run-name — `agent:implement — issue #N` — as the real one. 68 of
-  // toon-meta's last 91 runs are such decoys. Observed live on buzz#90: adding
+  // toon-meta's last 91 `issues`-triggered runs are such decoys. Observed live
+  // on buzz#90: adding
   // `tracking` while its implement run was in flight minted exactly this.
   //
   // Left unfiltered, the exact tier's "most recent title match" returns the

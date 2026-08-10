@@ -18,7 +18,11 @@
 #     (.github/workflows/reap-dead-labels-shim.yml, canonical copy at
 #     scripts/factory/reap-dead-labels-shim.yml) that fires on `workflow_run`
 #     completed for the `agent:implement` workflow and `uses:` THIS workflow
-#     with `secrets: inherit`.
+#     with `secrets: inherit`. NOT YET FANNED OUT — only the canonical copy
+#     exists today, so the event path currently covers toon-meta alone and
+#     the cron below is what reaches the other ten. Verify per repo that it
+#     landed rather than assuming it did (the #329 lesson); FACTORY.md's
+#     "Dead-label reaper (#330)" section tracks the state.
 #   * This file is also toon-meta's own shim (the workflow_run trigger below),
 #     so toon-meta needs no separate shim file.
 #
@@ -38,8 +42,9 @@
 # ticket wedged for hours after it was already safe to reap.
 #
 # ── APPLY vs DRY-RUN ─────────────────────────────────────────────────────────
-# Writes (remove agent:implement + comment) happen ONLY when the org Actions
-# variable REAP_APPLY is 'true', or a workflow_dispatch run passes
+# Writes (apply the pairing — needs:human / tracking / a `## Blocked by`
+# bullet — then remove agent:implement, then comment) happen ONLY when the org
+# Actions variable REAP_APPLY is 'true', or a workflow_dispatch run passes
 # apply=true — same rollout knob convention as DISPATCH_APPLY /
 # HOUSEKEEPING_APPLY / HYGIENE_APPLY / AUTOMERGE_APPLY / DIGEST_APPLY. Until
 # an admin sets the variable, every run is a no-write dry-run report:
@@ -50,9 +55,11 @@
 #
 # ── CREDENTIAL ───────────────────────────────────────────────────────────────
 # FACTORY_OPS_TOKEN (org secret, #271) is not IDENTITY-load-bearing here the
-# way it is for the dispatcher: removing a label and posting a comment need
-# only write access, not the write-access-gated add-label path
-# (agent-implement.yml's Guard 1), so no reap is ever silently ignored by the
+# way it is for the dispatcher: adding the pairing label, editing a body,
+# removing a label and posting a comment need only write access, not the
+# write-access-gated add-label path (agent-implement.yml's Guard 1 — which
+# runs only when the added label is `agent:implement` itself, and this pass
+# never adds that one), so no reap is ever silently ignored by the
 # runner for having come from the wrong identity. It is still the only usable
 # write credential for an APPLY run: the ambient `github.token` is scoped to
 # the calling repo alone (a fleet pass writes to all 11) and this workflow
@@ -84,7 +91,7 @@ on:
         type: string
         default: ""
       apply:
-        description: "Write changes (remove agent:implement + comment). false = dry-run report only."
+        description: "Write changes (apply the pairing, remove agent:implement, comment). false = dry-run report only."
         type: boolean
         default: false
 
