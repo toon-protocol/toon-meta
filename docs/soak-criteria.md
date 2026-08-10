@@ -61,6 +61,15 @@ rows: a live Solana channel taken through close (cooperative or
 unilateral) and `SETTLE_CHANNEL`, cited by transaction signature or an
 equivalent on-chain read.
 
+**Mina — no full cycle observed.** No live open → close/settle cycle against
+the apex has been observed on Mina devnet: [deployment.md](./deployment.md)
+records that the Mina client-entry leg "was only ever exercised through the
+retired sandbox entry, so it is **unproven against the apex** — the demoed
+paths are Base Sepolia and Solana." The cells in this column therefore
+describe the shape of each path, not an observation of one. What would prove
+them: a single full cycle against the apex, cited by zkApp account address
+and the transaction hashes for the open, a claim, and the `settle()`.
+
 Every path in the table needs at least one live, on-chain observation before
 a family's soak clock can be said to have started at all. Repetition against
 the volume/duration bar (§3) only counts paths that have already been proven
@@ -102,11 +111,11 @@ That fixes the unit; the numeric values are this document's job to propose.
 All three families use the same shape of bar — a family is not exempt from
 soaking just because its instrument is newer. §1's rule binds here too: a
 family's clock cannot be said to be running until every path in its §1 row
-has at least one live observation — as of this writing that is true of
-**all three** families. EVM is missing just the rescue path (§1); Solana
-is missing close, coop-close, and rescue (§1) — the cited evidence covers
-open and per-claim update only; Mina is missing a full cycle. This changes
-the arithmetic below but not the gating rule.
+has at least one live observation — and as of this writing **no family
+clears that test**. EVM is missing just the rescue path (§1); Solana is
+missing close, coop-close, and rescue (§1) — the cited evidence covers open
+and per-claim update only; Mina is missing a full cycle. This changes the
+arithmetic below but not the gating rule.
 
 | Family | N (distinct channels) | M (distinct identities) | D (days) | Notes |
 |--------|------------------------|---------------------------|----------|-------|
