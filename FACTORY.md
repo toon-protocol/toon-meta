@@ -762,7 +762,10 @@ is no longer running. Logic: `scripts/factory/reap-dead-labels.mjs` (I/O shell) 
 unit-tested `scripts/factory/reap-evaluator.mjs` (run correlation, outcome classification, the
 grace period, comment text). Workflow: `.github/workflows/reap-dead-labels.yml`, invoked by each
 repo's `reap-dead-labels-shim.yml` (canonical copy: `scripts/factory/reap-dead-labels-shim.yml`,
-same shim → `workflow_call` convention as the dispatcher) plus an hourly safety cron.
+same shim → `workflow_call` convention as the dispatcher) plus an hourly safety cron. The shim is
+**not yet fanned out** — only the canonical copy exists today, so until it lands in each repo the
+event path covers toon-meta alone (its own `workflow_run` trigger) and the cron is what reaches
+the other ten. Verify per repo that it landed rather than assuming it did — the #329 lesson.
 
 **The condition is "no open PR", not "the run failed".** A successful run can legitimately open
 no PR — it verified the underlying bug no longer reproduces and made no changes. A reaper that
@@ -775,8 +778,9 @@ an `issues.labeled`-triggered run unless the workflow sets `run-name:`. The eval
 two tiers: (1) EXACT, a run whose `displayTitle` names the issue — toon-meta's own
 `agent-implement.yml` now sets `run-name: "agent:implement — issue #${{ github.event.issue.number }}"`
 for this; (2) TIME-WINDOW fallback, the run created nearest-after the ticket's `labeled` timeline
-event, for the other ten fleet repos, which do not carry the `run-name:` line yet (flagged here
-rather than assumed installed — the #329 lesson: verify a fan-out landed, never assume it did).
+event (within 10 minutes of it), for the other ten fleet repos, which do not carry the `run-name:`
+line yet (flagged here rather than assumed installed — the #329 lesson: verify a fan-out landed,
+never assume it did).
 When no run correlates at all — the label was applied but the `issues.labeled` webhook never
 reached the runner — the ticket is left alone until the label is older than
 `NO_RUN_GRACE_MINUTES` (75m, deliberately past the runner's own 60m job timeout), at which point
@@ -785,6 +789,15 @@ also why the reaper needs an **hourly** cron rather than the dispatcher's 6-hour
 never happened produces no `workflow_run` event for anything to wake up on, so the cron is the
 only path for that shape, and the grace period is short enough that a 6-hourly cadence would leave
 it wedged for hours after it was already safe to reap.
+
+**Decoy runs.** `agent-implement.yml` fires on *every* `issues.labeled` event and skips its jobs
+unless the label is `agent:implement`, so labeling a ticket anything else mints a
+completed/`skipped` run carrying the same run-name as the real one (68 of toon-meta's last 91
+`issues`-triggered runs are such decoys). Both tiers therefore reduce their candidates in strict
+precedence: any candidate that has not finished wins outright, so nothing is reaped while a run is
+live; among finished candidates a real run beats a decoy. A *lone* `skipped` run is still
+consulted — a guard that legitimately refused the label leaves nothing in flight, and that ticket
+should be reaped.
 
 **Outcomes** (named in the comment; the follow-up guidance differs per outcome): a `success`
 conclusion with no PR is `succeeded-with-no-changes`; a run whose duration reaches the runner's
