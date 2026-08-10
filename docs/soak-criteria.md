@@ -27,7 +27,7 @@ network, with real (if valueless, on testnets) transactions.
 
 | Path | EVM (Base Sepolia) | Solana (devnet) | Mina (devnet) |
 |------|---------------------|------------------|-----------------|
-| Channel open | `openChannel` on `TokenNetwork` | channel PDA created on the payment-channel program | client-build `PaymentChannel` zkApp deployed (one per participant pair — `deploy-app-guide.md`) |
+| Channel open | `openChannel` on `TokenNetwork` | channel PDA created on the payment-channel program | client-build `PaymentChannel` zkApp deployed (one per participant pair — [deploy-app-guide.md](./deploy-app-guide.md)) |
 | Per-claim update | signed EIP-712 balance proof accepted, `claimFromChannel` advances `claimedAmounts` | Ed25519 balance proof, `CLAIM_FROM_CHANNEL` advances the on-chain watermark | Pallas-Schnorr claim, apex co-signs, `claimFromChannel` advances nonce + balance commitment |
 | Channel close | `closeChannel` (either participant), 24h challenge period | channel closed on the program | zkApp `settle()` path invoked |
 | Claim redeemed / recipient credited | on `claimFromChannel`, net balance settles on `TokenNetwork` | at channel close, `SETTLE_CHANNEL` (vault → recipient ATA) | at channel close, Story 34.4 fund-custody zkApp `settle()` (vault → participants) |
@@ -60,8 +60,8 @@ for the current snapshot.
 
 ## 3. Volume and duration bar
 
-**Settled 2026-08-09** (owner decision, quoted in full since it fixes the
-unit the rest of this section builds on):
+**Settled 2026-08-09** (owner decision, condensed from the ticket thread —
+it fixes the unit the rest of this section builds on):
 
 > The bar measures BREADTH, not throughput. **N distinct channels opened and
 > settled by M distinct identities over D days, with zero unexplained
@@ -79,13 +79,14 @@ prerequisite the other two have already cleared.
 | Family | N (distinct channels) | M (distinct identities) | D (days) | Notes |
 |--------|------------------------|---------------------------|----------|-------|
 | EVM (Base Sepolia) | ≥ 20 | ≥ 10 | ≥ 14 consecutive | Baseline plausibility: the fleet has already put 27 channels through open/claim/close in the ordinary course of devnet operation (19 closed+settled by the apex on 2026-07-30, 8 more closed unilaterally by counterparties per the [2026-07-31 notice](./operators/2026-07-31-apex-settlement-identity-rotation.md)) — this bar asks for that breadth again, deliberately, as a forward-looking rolling window rather than incidental history. |
-| Solana (devnet) | ≥ 20 | ≥ 10 | ≥ 14 consecutive | The Solana-settling client is new as of this week (2026-08-09) — see #307's own thread: one independent node with six consecutive paid writes on one channel, one third-party-funded `g.toon.ario` job, one `g.toon.relay` channel resolved purely from chain. That is real evidence against §1's per-path checklist but nowhere near this bar's N/M; the clock on this family starts now, not retroactively. |
+| Solana (devnet) | ≥ 20 | ≥ 10 | ≥ 14 consecutive | The Solana-settling client is new as of this week (2026-08-09) — see [#307](https://github.com/toon-protocol/toon-meta/issues/307)'s own thread: one independent node with six consecutive paid writes on one channel, one third-party-funded `g.toon.ario` job, one `g.toon.relay` channel resolved purely from chain. That is real evidence against §1's per-path checklist but nowhere near this bar's N/M; the clock on this family starts now, not retroactively. |
 | Mina (devnet) | ≥ 20 | ≥ 10 | ≥ 14 consecutive, **starting only after the prerequisite below is met** | **Prerequisite:** at least one full live open → close/settle cycle against the apex. `deployment.md` notes the Mina client-entry leg "was only ever exercised through the retired sandbox entry, so it is unproven against the apex — the demoed paths are Base Sepolia and Solana." Until that single cycle is observed, §1's Mina row is not yet checked off, and no soak window can be running. |
 
 "Unexplained" F-class reject, precisely: a REJECT whose error code
 (`F01`/`F03`/`F04`/`F06`/`F08`/`F99` — see
-[protocol.md](./protocol.md#validation-pipeline) and
-[two-node-architecture.md](./two-node-architecture.md)) does not map to a
+[protocol.md](./protocol.md#validation-pipeline),
+[two-node-architecture.md](./two-node-architecture.md) for `F03`, and
+[rolling-swap.md](./rolling-swap.md) for `F99`) does not map to a
 documented, expected cause (insufficient payment on a genuinely underpriced
 packet, a stale nonce that a client retry resolves, a deliberately malformed
 test-vector packet, etc.). connector#869 — a packet rejected for envelope
@@ -157,9 +158,9 @@ rule:
 ## Status
 
 - §1, §2, §4: answerable from the repo, filled in above.
-- §3, §5: owner decisions, settled 2026-08-09 and reproduced above verbatim
-  where they fix the unit/rule, with numeric values proposed here per
-  family.
+- §3, §5: owner decisions, settled 2026-08-09 and reproduced above (§5's
+  reset rule verbatim, §3's unit condensed), with numeric values proposed
+  here per family.
 - #179's "Define soak criteria explicitly" checklist item can be checked
   with a link to this document. #179 itself is closed (retired
   2026-08-08); the live successor tickets are connector#388 (Base mainnet),
