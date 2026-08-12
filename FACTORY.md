@@ -891,6 +891,126 @@ one line: that is the completion pass's job (#284), not a wedge.
 `HOUSEKEEPING_APPLY`/`HYGIENE_APPLY`/`DISPATCH_APPLY`. The single write is one comment on the
 standing issue; the digest never labels, closes or comments on the work it reports.
 
+## Dead-label reaper (#330)
+
+Landed by [#330](https://github.com/toon-protocol/toon-meta/issues/330). Nothing else in the
+factory notices when an `agent:implement` run dies without opening a PR — the label stays on the
+ticket forever, and the dispatcher's own serialization rule ("a child already carries
+`agent:implement`" counts an epic as busy, see above) wedges the epic's slot behind a runner that
+is no longer running. Logic: `scripts/factory/reap-dead-labels.mjs` (I/O shell) over the pure,
+unit-tested `scripts/factory/reap-evaluator.mjs` (run correlation, outcome classification, the
+grace period, comment text). Workflow: `.github/workflows/reap-dead-labels.yml`, invoked by each
+repo's `reap-dead-labels-shim.yml` (canonical copy: `scripts/factory/reap-dead-labels-shim.yml`,
+same shim → `workflow_call` convention as the dispatcher) plus an hourly safety cron. The shim is
+**not yet fanned out** — only the canonical copy exists today, so until it lands in each repo the
+event path covers toon-meta alone (its own `workflow_run` trigger) and the cron is what reaches
+the other ten. Verify per repo that it landed rather than assuming it did — the #329 lesson.
+
+**The condition is "no open PR", not "the run failed".** A successful run can legitimately open
+no PR — it verified the underlying bug no longer reproduces and made no changes. A reaper that
+only watched `conclusion == failure` would leave that ticket wedged forever, so the rule is
+mechanical: the run that owns this labeling has finished (or is provably dead) **and** no open PR
+exists for `sandcastle/issue-<n>` / `agent/issue-<n>`.
+
+**Correlating a label to its run.** GitHub's workflow-run list carries no issue-number field for
+an `issues.labeled`-triggered run unless the workflow sets `run-name:`. The evaluator matches in
+two tiers: (1) EXACT, a run whose `displayTitle` names the issue — toon-meta's own
+`agent-implement.yml` now sets `run-name: "agent:implement — issue #${{ github.event.issue.number }}"`
+for this; (2) TIME-WINDOW fallback, the run created nearest-after the ticket's `labeled` timeline
+event (within 10 minutes of it), for the other ten fleet repos, which do not carry the `run-name:`
+line yet (flagged here rather than assumed installed — the #329 lesson again).
+When no run correlates at all — the label was applied but the `issues.labeled` webhook never
+reached the runner — the ticket is left alone until the label is older than
+`NO_RUN_GRACE_MINUTES` (75m, deliberately past the runner's own 60m job timeout), at which point
+no genuinely in-progress run could still exist and it is safe to reap as `no-run-found`. This is
+also why the reaper needs an **hourly** cron rather than the dispatcher's 6-hourly one: a run that
+never happened produces no `workflow_run` event for anything to wake up on, so the cron is the
+only path for that shape, and the grace period is short enough that a 6-hourly cadence would leave
+it wedged for hours after it was already safe to reap.
+
+**Decoy runs never decide anything.** `agent-implement.yml` fires on *every* `issues.labeled`
+event, and its `guard` job carries `if: github.event.label.name == 'agent:implement'`. Labeling a
+ticket anything else therefore mints a whole run in which *nothing ran*, so the run concludes
+`skipped` — and, where `run-name:` is installed, it carries the same title as the real one (74 of
+toon-meta's last 100 `issues`-triggered runs are these decoys). A run-level `skipped` conclusion
+means the guard job itself never ran, i.e. some other label minted it; it is **always** a decoy and
+never evidence about an `agent:implement` labeling.
+
+Do not confuse this with a guard **refusal**, which is a different shape: the guard runs, decides
+against the target, and the run concludes `success` with the `implement` *job* skipped (verified:
+buzz run `31330244708`, the buzz#6 refusal — `guard=success`, `implement=skipped`). That is the
+`guard-skipped` outcome below, read from the job conclusions, never from the run conclusion.
+
+Both tiers therefore reduce candidates in strict precedence: any candidate that has not finished
+wins outright, so nothing is reaped while a run is live; and decoys are then *dropped*, not used as
+a last resort. When a ticket's only visible run is a decoy — its real run aged out of the fetched
+history, or never fired while an unrelated label minted a decoy in the window — the correlation is
+`null` and the ticket takes the grace-gated `no-run-found` path. The earlier "a lone `skipped` run
+is still consulted" rule was wrong on the facts and produced a comment naming a run that did no
+work while asserting `failed`; it is gone. The EXACT tier is also authoritative once it matches
+anything at all, decoys included: it never falls through to the coarser time-window tier — otherwise
+a different ticket labeled in the same minute could decide this one's fate. Runs are fetched in
+100-run pages (`REAP_RUN_LIMIT`, 300 by default) precisely because decoys crowd real runs out of a
+single page.
+
+**Outcomes** (named in the comment; the follow-up guidance differs per outcome): a `success`
+conclusion with no PR is `succeeded-with-no-changes`; a `success` conclusion whose `implement` job
+was itself `skipped` is `guard-skipped` (one of `agent-implement.yml`'s guard checks refused the
+target before any work began — the buzz#6 shape, a PRD-shaped parent carrying sub-issues); a run
+whose duration reaches the runner's 50m step timeout is `timed-out` (a step-level timeout can
+surface as a plain `failure` conclusion, so duration is the tell, not just the conclusion field);
+a failed/timed-out run whose own issue comments claim a branch that does not actually exist on the
+repo is `pushed-nothing` (the lost-push shape, root-caused by #331); anything else is `failed` or
+`cancelled`.
+
+**Never reaps bare.** An earlier version of this pass removed `agent:implement` and stopped there,
+on the theory that this "frees the epic's serialization slot". Disproven live on buzz#90
+(2026-08-09 18:29Z, [#330 comment](https://github.com/toon-protocol/toon-meta/issues/330#issuecomment-5233187221)):
+the unblock dispatcher's very next pass saw the now-unlabeled, still-otherwise-ready ticket and
+re-labeled it 26 **seconds** later — nothing about the ticket itself had changed. That is
+reap → dispatch → die → reap, a full burned agent run every cycle, strictly worse than the stall
+it replaces (a stall is at least free). Every reap now pairs the removal with something
+`dispatch-evaluator.mjs`'s own readiness rule declines, chosen by outcome
+(`reap-evaluator.mjs`'s `choosePairing`):
+
+| Outcome | Pairing | Why |
+|---|---|---|
+| `guard-skipped` | `tracking` | A structurally undispatchable target (a parent with sub-issues) will be refused every time — decompose it, don't queue a human for it. |
+| `pushed-nothing` | a new `## Blocked by` bullet naming `toon-protocol/toon-meta#331` | The known, always-applicable root cause. `unblock-evaluator.mjs`'s readiness check then declines the ticket while #331 is open, **and** dispatch resumes automatically the moment #331 closes — no human step needed. Mirrors the by-hand fix applied to buzz#43 that was confirmed to hold. |
+| everything else | `needs:human` | No known ticket to point at; genuinely a human judgement call (retry budget, split, or drop). |
+
+A ticket reaped twice within 6h (`REPEAT_WINDOW_HOURS`) is a repeat-death pattern, not a one-off —
+`evaluateTicket` escalates it straight to `needs:human` regardless of what the table above would
+otherwise pick, and says so in the comment. The pairing write happens **before** the label removal
+in the shell's write closure, specifically so a failed pairing write leaves `agent:implement`
+untouched (safe, retried next pass) rather than removed-and-unpaired.
+
+**Idempotency.** Reaping removes the label, which is self-idempotent — an already-reaped ticket no
+longer matches the `agent:implement` scan on the next pass. The hidden marker is keyed on the
+*current labeling cycle* (`reapMarker(repo, number, labeledAt)`), not just the issue number — a
+marker keyed only on the issue number would make every future death of the same ticket look
+"already reaped" forever, since the first reap's comment never goes away, silently disabling the
+reaper for any ticket that had ever been reaped once. `reapMarkerPrefix` (no cycle key) matches
+every reap comment ever posted for a ticket across all cycles, which is how the repeat-detector
+above finds prior reaps.
+
+**Rollout knob.** Writes happen only when the org Actions variable `REAP_APPLY` is `'true'` (or a
+manual run passes `apply=true`) — same pattern as `DISPATCH_APPLY`/`HOUSEKEEPING_APPLY`. Removing a
+label, adding a pairing label, editing a body, and commenting need only write access, not the
+write-access-gated add-label path (agent-implement.yml's Guard 1 — that guard runs only when the
+added label is `agent:implement` itself), so `FACTORY_OPS_TOKEN` (#271) is not *identity*-load-bearing
+here the way it is for dispatch — no reap is ever silently ignored for coming from the wrong
+identity. It is still the write credential an APPLY run needs: the ambient `github.token` reaches
+only the calling repo and this workflow grants it `contents: read`, so without the secret the pass
+stays read/dry-run safe and any attempted write fails loudly in the run's `Failed writes` section.
+
+**Does `planDispatch` also need a prior-run guard?** Considered per the #330 follow-up comment and
+decided no, for now: the spin loop was caused by a bare reap leaving the ticket looking fully
+ready, and every reap now mandatorily pairs the removal with `needs:human` / `tracking` / an open
+`## Blocked by` bullet — all three are things `EXCLUDED_LABELS` / `isReady` already make
+`planDispatch` decline on its own, with no new guard required. Revisit only if a reap path is ever
+found that removes the label without a pairing landing first.
+
 ## triage-sweep retirement (#283)
 
 `triage-sweep.yml` + `scripts/factory/triage-sweep.mjs` (the hourly cron janitor) were deleted

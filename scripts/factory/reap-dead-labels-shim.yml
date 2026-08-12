@@ -1,0 +1,50 @@
+# reap-dead-labels shim — forwards this repo's completed agent:implement runs
+# to the central dead-label reaper in toon-meta (toon-meta#330).
+#
+# CANONICAL COPY. This file is fanned out VERBATIM to every factory repo as
+# .github/workflows/reap-dead-labels-shim.yml (toon-meta itself needs no
+# shim — its reap-dead-labels.yml carries the same trigger directly). When
+# onboarding a new factory repo, copy this file unchanged; when changing it,
+# change it here first and re-fan-out. Verify it actually landed in every
+# repo before relying on it — a shim that only exists as a canonical copy and
+# was never installed is exactly the toon-meta#329 gap this ticket's sibling
+# problem was named after.
+#
+# Same fleet event-forwarding convention as unblock-dispatcher-shim.yml (thin
+# per-repo shim → toon-meta reusable workflow via workflow_call with
+# `secrets: inherit`), kept as a SIBLING file on purpose: the event sets are
+# disjoint and a problem in one forwarder can never take down another.
+#
+# Every completed `agent:implement` run forwards (no local filter): the
+# central pass is a full-fleet re-scan regardless of which repo's run
+# completed, cheap, and coalesced by its own concurrency group, so
+# forwarding everything is correct and affordable. A dropped event — or a run
+# that never happened at all, which produces no event to forward — is
+# recovered by the reaper's hourly safety cron (see reap-dead-labels.yml).
+#
+# Writes are gated centrally: until the org Actions variable REAP_APPLY is
+# 'true', every forwarded run is a no-write dry-run report.
+#
+# Precision note: exact run↔ticket correlation additionally needs this repo's
+# own agent-implement.yml to carry
+#   run-name: "agent:implement — issue #${{ github.event.issue.number }}"
+# (toon-meta's own copy has it as of #330). Without it the reaper still works
+# via its time-window fallback (see reap-evaluator.mjs's header) — this line
+# only sharpens the match, it is not required for this shim.
+
+name: reap-dead-labels-shim
+
+on:
+  workflow_run:
+    workflows: ["agent:implement"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  forward:
+    uses: toon-protocol/toon-meta/.github/workflows/reap-dead-labels.yml@main
+    with:
+      source: ${{ github.repository }}
+    secrets: inherit

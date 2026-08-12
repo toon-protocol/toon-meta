@@ -62,8 +62,9 @@ import { parseBlockedBy, resolveRef, isReady, detectCycles } from "./unblock-eva
 export const IMPLEMENT_LABEL = "agent:implement";
 export const HUMAN_LABEL = "needs:human";
 export const EPIC_LABEL = "epic";
+export const TRACKING_LABEL = "tracking";
 // Labels that make an issue ineligible for dispatch, ever.
-export const EXCLUDED_LABELS = new Set([EPIC_LABEL, "tracking", HUMAN_LABEL]);
+export const EXCLUDED_LABELS = new Set([EPIC_LABEL, TRACKING_LABEL, HUMAN_LABEL]);
 // Agent PR head-branch prefixes — same set as pr-housekeeping.mjs.
 export const FACTORY_BRANCH_PREFIXES = ["sandcastle/", "agent/"];
 

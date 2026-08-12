@@ -13,6 +13,7 @@
     "housekeeping:prs": "node scripts/factory/pr-housekeeping.mjs",
     "hygiene:tickets": "node scripts/factory/ticket-hygiene.mjs",
     "dispatch:unblocked": "node scripts/factory/unblock-dispatcher.mjs",
+    "reap:dead-labels": "node scripts/factory/reap-dead-labels.mjs",
     "digest:daily": "node scripts/factory/daily-digest.mjs",
     "automerge:prs": "node scripts/factory/auto-merge.mjs",
     "gate": "npm run lint:md && npm run check:links && npm run validate:json && npm run gate:regression",
