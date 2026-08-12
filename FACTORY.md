@@ -767,11 +767,20 @@ other factory repo is meant to reach it on those same three events through its o
 `scripts/factory/auto-merge-shim.yml` — but none of them carry it yet (see below). A 6-hourly
 safety cron backs the whole fleet.
 
-**Per-repo shim install status ([#329](https://github.com/toon-protocol/toon-meta/issues/329)).**
-The canonical copy exists (it shipped with this pass, #305) but was never fanned out: verified
-live 2026-08-09, none of the ten non-toon-meta factory repos carry
-`.github/workflows/auto-merge-shim.yml` yet. Installing it per-repo is cross-repo work a
-toon-meta agent run cannot do (each repo dispatches in its own repo) — open as a follow-up.
+**Per-repo shim install status ([#322](https://github.com/toon-protocol/toon-meta/issues/322)).**
+The canonical copy shipped with this pass (#305) but was never fanned out — verified live
+2026-08-09, none of the ten non-toon-meta factory repos carried
+`.github/workflows/auto-merge-shim.yml`. It has now been **fanned out by hand** (toon-meta#322):
+each repo received a byte-for-byte copy of `scripts/factory/auto-merge-shim.yml`, diffed against
+the canonical file before its PR was opened. toon-meta itself needs no shim — its `auto-merge.yml`
+carries the same triggers directly.
+
+Installing it per-repo is cross-repo work a toon-meta agent run cannot do (each repo dispatches in
+its own repo), which is why it was ten hand-opened PRs rather than ten sandcastle runs — the same
+way the `pr-housekeeping` and `unblock-dispatcher` shims were installed (relay#100, relay#103,
+buzz#153). For a 48-line verbatim copy with nothing to decide, a full implement → gate → review →
+approve → merge cycle buys nothing.
+
 Until a repo has the shim, the 6-hourly cron is not that repo's safety net but its *only* trigger:
 every PR there waits up to 6h after going green, and one that is `BEHIND` gets its `update-branch`
 on one pass and can only be merged on the next — another ≥6h.
