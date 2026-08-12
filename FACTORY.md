@@ -270,6 +270,113 @@ parallel jobs or starts false-FAILing under runner contention, recapture it the 
 
 ---
 
+## Archetype catalog
+
+Landed by [#207](https://github.com/toon-protocol/toon-meta/issues/207) (epic
+[#198](https://github.com/toon-protocol/toon-meta/issues/198)). This section is not decoration —
+`forge new` and `forge validate` **parse it**:
+[`packages/forge-cli/src/new.ts`](https://github.com/toon-protocol/Forge/blob/main/packages/forge-cli/src/new.ts)
+→ `parseArchetypeCatalog()` reads the first markdown pipe table in this file whose header row
+has one cell reading exactly *archetype* and another reading exactly *status* (compared
+lower-cased, after trimming), and treats cells 1/2/3 as `name` / `environment` / `status`. A
+status of exactly `minted` (case-insensitive) marks the row minted; anything else is unminted,
+and naming an unminted archetype in a `factory.toml` fails validation
+([FACTORY_SPEC.md §2.1](https://github.com/toon-protocol/Forge/blob/main/FACTORY_SPEC.md#21-archetype-provenance),
+§8 rule 4). Getting the table shape wrong silently breaks `forge new` — so keep those two header
+cells verbatim (renaming one to, say, *Archetype name* stops the table being found at all), and
+keep this the **only** table anywhere in this document whose header carries both.
+
+Per [ADR-0002](docs/adr/0002-registry-is-sole-mint-authority.md), **this registry is the sole
+authority on whether an archetype exists.** Archetype bundles under
+[Forge's `templates/archetypes/`](https://github.com/toon-protocol/Forge/tree/main/templates/archetypes)
+describe the *opinion* (environment × doctrine × oracle-skeleton); they never record mint status
+— `status`/`minted`/`proving_repo` were dropped from `archetype.toml` by ADR-0002 specifically so
+this table is the only place existence is decided.
+
+Cells below are the literal strings `parseArchetypeCatalog()` reads — plain, no backticks or
+other markup, so `forge new <archetype>` matches its argument against the name cell exactly, and
+a future promotion is read as the exact status `minted`:
+
+| Archetype | Environment    | Status           | Minted by | Notes |
+|-----------|----------------|------------------|-----------|-------|
+| game      | bevy-spacetime | mint-after-pilot | —         | No game repo exists — nothing has run the bundle's `factory.toml.example`, so there is no pilot to point at. |
+| service   | node-pnpm      | mint-after-pilot | —         | relay's merged agent PRs (relay#70/#77/#81) predate the bundle and ran a hand-rolled `.sandcastle/` — they justify the pin, they are not the pilot. |
+| spa       | node-pnpm      | mint-after-pilot | —         | No bundle exists yet, and the proving repo is undecided between toon-client and rig — see below. |
+
+**The mint-after-pilot law.** An archetype exists only after **≥1 merged `agent:implement` PR
+has run its own `factory.toml.example` end to end**
+([FACTORY_SPEC.md §2.1](https://github.com/toon-protocol/Forge/blob/main/FACTORY_SPEC.md#21-archetype-provenance)).
+No row above is minted: Forge itself is not yet self-hosted
+([Forge#15](https://github.com/toon-protocol/Forge/issues/15)), so no repo anywhere has been
+stamped by `forge new`, and relay's pre-bundle PRs prove the `service` pin, not a `service`
+pilot. Promoting a row to `minted` is a later **one-cell edit**, gated on that pilot merging — not
+part of this section landing.
+
+**Bundle before mint.** Per ADR-0002, a stampable bundle under `templates/archetypes/<name>/`
+lands in Forge *before* its row here flips to `minted` — the registry must never claim an
+archetype exists that `forge new` cannot actually stamp.
+
+**Alternate opinions are new archetypes, not flags.** There is no `[factory.options]` table for
+swapping a pinned choice inside an archetype; a divergent opinion mints as a **different**
+archetype (e.g. a proven Rapier-both-sides game variant becomes `game-dynamics`, never a
+`--rapier` flag on `game`).
+
+### `game` — `bevy-spacetime`
+
+Bevy client + SpacetimeDB module on the pinned game stack (Bevy 0.19.x, `bevy_stdb`, Avian hybrid
+physics with the ball-rule escalation path). Doctrine and oracle ladder are pinned in
+[Forge's `game` bundle](https://github.com/toon-protocol/Forge/tree/main/templates/archetypes/game)
+(`DOCTRINE.md`, `factory.toml.example`): reducer/replay determinism, GPU-tolerance-not-hash for
+rendering, ECS architecture guidance. Oracle ladder: `t0-fmt-lint` / `t1-build` /
+`t2-unit-test` / `t3-sim-replay-golden` / `t4-visual-parity`. No game repo exists yet, so `game`
+has no pilot.
+
+### `service` — `node-pnpm`
+
+Payment-fronted node service on the pinned `node-pnpm` stack, pinned by
+[Forge's `service` bundle](https://github.com/toon-protocol/Forge/tree/main/templates/archetypes/service)
+from **relay's real tree** — not from this ticket's original aspiration. Doctrine covers
+devbox-as-load-bearing and deterministic, post-merge image publish. Oracle ladder: `t0-lint` /
+`t1-typecheck` / `t2-test` / `t3-build` / `t4-devbox-validate`. relay carries **no** `e2e.yml`,
+**no** `journey.yml` and **no** `deploy-*.yml` — what relay *does* carry beyond the base ladder
+(changesets `release.yml`, GHCR image-publish workflows, a `deploy/` bundle) is pinned as
+doctrine, not stamped as workflow files. relay is the repo the opinion was pinned **from**; no
+repo has yet been stamped **from** the bundle, so `service` has no pilot either.
+
+### `spa` — `node-pnpm`
+
+Browser build published to GitHub Pages: the base `node-pnpm` oracle ladder plus a Pages-deploy
+oracle and a visual/e2e gate on top. **No bundle has been authored for `spa`**; this row records
+the definition only, not a stampable opinion.
+
+`spa`'s pilot repo is genuinely unsettled. The Pages/e2e oracle that motivates `spa` lives in
+**toon-client** (`.github/workflows/deploy-rig-web.yml`, plus `e2e.yml` / `journey.yml`), but
+`rig-web` was extracted to the **rig** repo (`packages/rig-web`) on 2026-07-21, and rig's
+`ci.yml` has neither a Pages deploy nor a Playwright/visual job. The shape is real; which repo
+proves it is not yet decided. Authoring the `spa` bundle is separate follow-up work, gated on
+that decision.
+
+### The library / one-off path (`--blank`)
+
+Pure libraries and one-offs — `toon` (core + sdk), Forge itself — use `forge new --blank` with
+the `node-pnpm` environment and mint **no** archetype. `--blank` is the escape hatch: no
+archetype opinions apply, and `factory.archetype = "blank"` is always valid regardless of what is
+or isn't minted above.
+
+**Why no `node-lib` archetype.** A bare-library archetype would be the `node-pnpm` environment
+plus nothing — no doctrine beyond "it's a library" and no oracle ladder beyond
+eslint/typecheck/vitest/build/changesets, which every plain node repo already runs without an
+archetype's help. There is no opinion left to pin once the environment is named, so minting one
+would add a registry row with no content. `--blank` + `node-pnpm` is the accurate, permanent
+description of this shape, not a placeholder for a future archetype.
+
+**`connector` stays `--blank` for a different reason: it is `npm-workspaces`, not `node-pnpm`.**
+That is an alternate environment, not a missing flag — per the rule above, a divergent opinion
+mints as a **different** archetype, never a `[factory.options]` toggle on `service`. No such
+archetype has been proposed or pinned, so connector runs `--blank` today.
+
+---
+
 ## Kept workflows (not retired)
 
 As each repo's old 4-loop backlog system (`backlog-manager.yml`, `issue-executor.yml`,
