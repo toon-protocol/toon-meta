@@ -14,9 +14,10 @@ meant when it was published.
 
 ## The announce
 
-toon-meta#252 adds an optional `notice` object to the apex's kind:10032
-announce — the one event every client already fetches on startup, and
-currently the only reliable way to reach a devnet counterparty at all.
+[toon-meta#252](https://github.com/toon-protocol/toon-meta/issues/252) adds an
+optional `notice` object to the apex's kind:10032 announce — the one event
+every client already fetches on startup, and currently the only reliable way
+to reach a devnet counterparty at all.
 
 **The rule: durable text stays in git, in this directory; the announce
 carries only a pointer.** A notice must be readable and useful entirely on
@@ -30,10 +31,10 @@ The announced object has four fields:
   `.md` extension (e.g. `2026-07-31-apex-settlement-identity-rotation`).
   Consumers de-duplicate on `id`: a client shows a given `id` once and never
   again, so an `id` must never be reused for different content. Because it is
-  derived from the filename, and filenames are immutable under the
-  conventions below (one file per notice, never renamed, corrections are
-  addenda, not edits), the `id` is stable for the life of the notice —
-  correcting a notice in place does not change it.
+  derived from the filename, and a published notice is never renamed or
+  replaced by a second file — a correction is a dated addendum appended to the
+  same file, or an inline fix to it, per the conventions below — the `id` is
+  stable for the life of the notice.
 - **`severity`** — `info` or `action-required`. The test: *if the reader can
   safely do nothing, it is `info`; if there is something the reader must do,
   it is `action-required`.* Apply the test to the reader's obligation, not to
@@ -69,8 +70,8 @@ nothing.
 }
 ```
 
-The field types and wire schema live in `@toon-protocol/core`, shipped by a
-separate child of toon-meta#252. If the two ever disagree, the shipped schema
+The field types and wire schema will live in `@toon-protocol/core`, shipped by
+a separate child of toon-meta#252. If the two ever disagree, the shipped schema
 wins and this section gets corrected.
 
 ## Conventions
