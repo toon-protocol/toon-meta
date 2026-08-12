@@ -918,8 +918,7 @@ two tiers: (1) EXACT, a run whose `displayTitle` names the issue — toon-meta's
 `agent-implement.yml` now sets `run-name: "agent:implement — issue #${{ github.event.issue.number }}"`
 for this; (2) TIME-WINDOW fallback, the run created nearest-after the ticket's `labeled` timeline
 event (within 10 minutes of it), for the other ten fleet repos, which do not carry the `run-name:`
-line yet (flagged here rather than assumed installed — the #329 lesson: verify a fan-out landed,
-never assume it did).
+line yet (flagged here rather than assumed installed — the #329 lesson again).
 When no run correlates at all — the label was applied but the `issues.labeled` webhook never
 reached the runner — the ticket is left alone until the label is older than
 `NO_RUN_GRACE_MINUTES` (75m, deliberately past the runner's own 60m job timeout), at which point
@@ -932,10 +931,10 @@ it wedged for hours after it was already safe to reap.
 **Decoy runs never decide anything.** `agent-implement.yml` fires on *every* `issues.labeled`
 event, and its `guard` job carries `if: github.event.label.name == 'agent:implement'`. Labeling a
 ticket anything else therefore mints a whole run in which *nothing ran*, so the run concludes
-`skipped` — carrying the same run-name as the real one (74 of toon-meta's last 100
-`issues`-triggered runs are these decoys). A run-level `skipped` conclusion means the guard job
-itself never ran, i.e. some other label minted it; it is **always** a decoy and never evidence
-about an `agent:implement` labeling.
+`skipped` — and, where `run-name:` is installed, it carries the same title as the real one (74 of
+toon-meta's last 100 `issues`-triggered runs are these decoys). A run-level `skipped` conclusion
+means the guard job itself never ran, i.e. some other label minted it; it is **always** a decoy and
+never evidence about an `agent:implement` labeling.
 
 Do not confuse this with a guard **refusal**, which is a different shape: the guard runs, decides
 against the target, and the run concludes `success` with the `implement` *job* skipped (verified:
@@ -949,8 +948,8 @@ history, or never fired while an unrelated label minted a decoy in the window �
 `null` and the ticket takes the grace-gated `no-run-found` path. The earlier "a lone `skipped` run
 is still consulted" rule was wrong on the facts and produced a comment naming a run that did no
 work while asserting `failed`; it is gone. The EXACT tier is also authoritative once it matches
-anything at all, decoys included: it never falls through to the coarser time-window tier, or a
-different ticket labeled in the same minute could decide this one's fate. Runs are fetched in
+anything at all, decoys included: it never falls through to the coarser time-window tier — otherwise
+a different ticket labeled in the same minute could decide this one's fate. Runs are fetched in
 100-run pages (`REAP_RUN_LIMIT`, 300 by default) precisely because decoys crowd real runs out of a
 single page.
 

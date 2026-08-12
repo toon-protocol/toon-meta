@@ -59,8 +59,8 @@
 # removing a label and posting a comment need only write access, not the
 # write-access-gated add-label path (agent-implement.yml's Guard 1 — which
 # runs only when the added label is `agent:implement` itself, and this pass
-# never adds that one), so no reap is ever silently ignored by the
-# runner for having come from the wrong identity. It is still the only usable
+# never adds that one), so no reap is ever silently ignored by the runner for
+# having come from the wrong identity. It is still the only usable
 # write credential for an APPLY run: the ambient `github.token` is scoped to
 # the calling repo alone (a fleet pass writes to all 11) and this workflow
 # grants it `contents: read` only. Without the secret the pass is read/dry-run

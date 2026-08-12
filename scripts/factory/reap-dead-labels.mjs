@@ -187,9 +187,9 @@ function fetchRuns(repo) {
 // NOT the same thing as a run whose conclusion is `skipped` — that means the
 // guard job itself never ran, i.e. a decoy (reap-evaluator's `isDecoyRun`),
 // which never reaches here. Only ever called for a correlated, finished,
-// `success` run — a
-// failed/timed-out run never reaches this (branch-claim checking covers it
-// instead), so one extra `gh api` call per candidate is the whole cost.
+// `success` run — a failed/timed-out run never reaches this (branch-claim
+// checking covers it instead), so one extra `gh api` call per candidate is
+// the whole cost.
 function isImplementJobSkipped(repo, run) {
   if (!run?.id) return false;
   const jq = ".jobs[] | {name: .name, conclusion: .conclusion}";
