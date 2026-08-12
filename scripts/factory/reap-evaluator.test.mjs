@@ -10,6 +10,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   canonicalBranches,
+  isDecoyRun,
   findRunForLabel,
   classifyOutcome,
   choosePairing,
@@ -31,6 +32,30 @@ const RUN_URL = "https://github.com/toon-protocol/buzz/actions/runs/1";
 describe("canonicalBranches", () => {
   it("returns both factory branch conventions", () => {
     assert.deepEqual(canonicalBranches(90), ["sandcastle/issue-90", "agent/issue-90"]);
+  });
+});
+
+// ── isDecoyRun ────────────────────────────────────────────────────────────
+
+describe("isDecoyRun", () => {
+  it("a run-level skipped conclusion is a decoy — the guard job itself never ran", () => {
+    assert.equal(isDecoyRun({ status: "completed", conclusion: "skipped" }), true);
+  });
+
+  it("a guard REFUSAL is not a decoy — it concludes success (buzz run 31330244708)", () => {
+    // guard=success, implement=skipped → the run concludes `success`. This is
+    // the buzz#6 shape and is classified as `guard-skipped` from the job
+    // conclusions, never from the run conclusion.
+    assert.equal(isDecoyRun({ status: "completed", conclusion: "success" }), false);
+  });
+
+  it("an in-progress run is never a decoy", () => {
+    assert.equal(isDecoyRun({ status: "in_progress", conclusion: null }), false);
+  });
+
+  it("tolerates missing fields", () => {
+    assert.equal(isDecoyRun(undefined), false);
+    assert.equal(isDecoyRun({}), false);
   });
 });
 
@@ -90,10 +115,15 @@ describe("findRunForLabel", () => {
   });
 
   // ── DECOY RUNS ──────────────────────────────────────────────────────────
-  // agent-implement.yml fires on EVERY issues.labeled event and skips unless
-  // the label is agent:implement, so an unrelated label mints a completed/
-  // `skipped` run under the SAME run-name. Observed live on buzz#90: adding
-  // `tracking` mid-run minted exactly this decoy.
+  // agent-implement.yml fires on EVERY issues.labeled event and its `guard`
+  // job is gated on `github.event.label.name == 'agent:implement'`, so an
+  // unrelated label mints a run in which NOTHING ran — the run concludes
+  // `skipped` — under the SAME run-name. Observed live on buzz#90: adding
+  // `tracking` mid-run minted exactly this decoy. A run-level `skipped`
+  // conclusion is therefore always a decoy and never evidence about an
+  // agent:implement labeling. (A guard REFUSAL concludes `success` with the
+  // `implement` job skipped — verified on buzz run 31330244708 — and is
+  // classified separately as `guard-skipped`.)
 
   it("never prefers a completed decoy over the still-running real run", () => {
     const runs = [
@@ -139,10 +169,14 @@ describe("findRunForLabel", () => {
     assert.equal(run.conclusion, "failure", "the comment must name the real outcome");
   });
 
-  it("still returns a lone skipped run — a guard-refused label has nothing in flight", () => {
+  it("correlates NOTHING to a lone decoy — a skipped run is never evidence", () => {
+    // The real run aged out of the fetched page (or never fired at all while an
+    // unrelated label minted a decoy inside the window). Returning the decoy
+    // would classify it `failed` and post a comment naming a run that did no
+    // work, asserting a failure that never happened — #330 criterion 4.
     const runs = [
       {
-        url: "refused",
+        url: "decoy",
         status: "completed",
         conclusion: "skipped",
         createdAt: "2026-08-09T14:00:05Z",
@@ -150,7 +184,48 @@ describe("findRunForLabel", () => {
       },
     ];
     const run = findRunForLabel({ runs, issueNumber: 90, labeledAt: "2026-08-09T14:00:00Z" });
-    assert.equal(run.url, "refused", "that ticket IS reapable — nothing is running");
+    assert.equal(run, null, "no run correlates — the grace-gated no-run-found path owns this");
+  });
+
+  it("a decoy-only exact match never falls through to the time-window tier", () => {
+    // A title match names THIS issue outright. If its only matches are decoys,
+    // the answer is "nothing correlates" — not some other ticket's run that
+    // happened to start in the same minute.
+    const runs = [
+      {
+        url: "decoy-for-90",
+        status: "completed",
+        conclusion: "skipped",
+        createdAt: "2026-08-09T14:00:05Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+      {
+        url: "real-run-for-a-different-ticket",
+        status: "completed",
+        conclusion: "failure",
+        createdAt: "2026-08-09T14:00:08Z",
+        displayTitle: "agent:implement — issue #91",
+      },
+    ];
+    const run = findRunForLabel({ runs, issueNumber: 90, labeledAt: "2026-08-09T14:00:00Z" });
+    assert.equal(run, null, "a foreign run must never decide this ticket's fate");
+  });
+
+  it("correlates nothing when the time-window tier holds only decoys", () => {
+    const runs = [
+      { url: "decoy", status: "completed", conclusion: "skipped", createdAt: "2026-08-09T14:00:02Z" },
+    ];
+    const run = findRunForLabel({ runs, issueNumber: 90, labeledAt: "2026-08-09T14:00:00Z" });
+    assert.equal(run, null);
+  });
+
+  it("still finds the real run when a decoy sits in front of it in the window", () => {
+    const runs = [
+      { url: "decoy", status: "completed", conclusion: "skipped", createdAt: "2026-08-09T14:00:02Z" },
+      { url: "real", status: "completed", conclusion: "failure", createdAt: "2026-08-09T14:00:10Z" },
+    ];
+    const run = findRunForLabel({ runs, issueNumber: 90, labeledAt: "2026-08-09T14:00:00Z" });
+    assert.equal(run.url, "real", "nearest-after applies among REAL runs only");
   });
 
   it("ignores an exact-title run created before the current labeling", () => {
@@ -232,6 +307,16 @@ describe("classifyOutcome", () => {
   it("success with the implement job skipped is guard-skipped, not succeeded-with-no-changes (buzz#6 shape)", () => {
     const run = { conclusion: "success", createdAt: "2026-08-10T00:00:00Z", updatedAt: "2026-08-10T00:02:00Z" };
     assert.equal(classifyOutcome({ run, implementJobSkipped: true }), "guard-skipped");
+  });
+
+  it("a decoy never classifies as failed (defence in depth — findRunForLabel filters them)", () => {
+    const run = {
+      status: "completed",
+      conclusion: "skipped",
+      createdAt: "2026-08-10T00:00:00Z",
+      updatedAt: "2026-08-10T00:00:20Z",
+    };
+    assert.equal(classifyOutcome({ run }), "no-run-found");
   });
 });
 
@@ -516,6 +601,97 @@ describe("evaluateTicket", () => {
 
   it("grace period is exactly JOB_TIMEOUT_MINUTES + 15", () => {
     assert.equal(NO_RUN_GRACE_MINUTES, JOB_TIMEOUT_MINUTES + 15);
+  });
+
+  // ── DECOY-ONLY TICKETS ──────────────────────────────────────────────────
+  // The real run aged out of the fetched history (74 of toon-meta's last 100
+  // issues-triggered runs are decoys) or never fired, while an unrelated label
+  // minted a decoy inside the window. The decoy must not become the verdict.
+
+  it("a decoy-only ticket inside the grace period is left alone, not reaped as failed", () => {
+    const runs = [
+      {
+        url: "decoy",
+        status: "completed",
+        conclusion: "skipped",
+        createdAt: "2026-08-09T14:07:04Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+    ];
+    const out = evaluateTicket({
+      issue: ISSUE_90,
+      runs,
+      hasOpenPr: false,
+      labeledAt: "2026-08-09T14:07:00Z",
+      now: "2026-08-09T14:20:00Z", // 13m old — a real run could still be running
+    });
+    assert.equal(out.verdict, "too-recent", "a decoy proves nothing about a live run");
+  });
+
+  it("a decoy-only ticket past the grace period reaps as no-run-found, never as failed", () => {
+    const runs = [
+      {
+        url: "https://github.com/toon-protocol/buzz/actions/runs/decoy",
+        status: "completed",
+        conclusion: "skipped",
+        createdAt: "2026-08-09T14:07:04Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+    ];
+    const out = evaluateTicket({
+      issue: ISSUE_90,
+      runs,
+      hasOpenPr: false,
+      labeledAt: "2026-08-09T14:07:00Z",
+      now: "2026-08-09T15:25:00Z", // 78m old > 75m grace
+    });
+    assert.equal(out.verdict, "reap");
+    assert.equal(out.outcome, "no-run-found", "#330 criterion 4 — report the truth, not `failed`");
+    assert.equal(out.run, undefined, "no run URL is named, because none was correlated");
+    assert.deepEqual(out.pairing, { kind: "needs-human" }, "never reaped bare");
+
+    // AC4 end-to-end: the posted comment must not assert a failure that never
+    // happened, and must not point a human at a run that did no work.
+    const comment = buildReapComment({
+      issue: { number: 90 },
+      outcome: out.outcome,
+      run: out.run,
+      marker: reapMarker(ISSUE_90.repo, 90, "2026-08-09T14:07:00Z"),
+      pairing: out.pairing,
+    });
+    assert.doesNotMatch(comment, /run \*\*failed\*\*/);
+    assert.doesNotMatch(comment, /^Run: /m);
+    assert.match(comment, /no workflow run could be correlated/);
+  });
+
+  it("a real run still wins over a decoy minted alongside it (unchanged)", () => {
+    const runs = [
+      {
+        url: "decoy",
+        status: "completed",
+        conclusion: "skipped",
+        createdAt: "2026-08-09T14:50:00Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+      {
+        url: RUN_URL,
+        status: "completed",
+        conclusion: "success",
+        createdAt: "2026-08-09T14:07:02Z",
+        updatedAt: "2026-08-09T14:12:00Z",
+        displayTitle: "agent:implement — issue #90",
+      },
+    ];
+    const out = evaluateTicket({
+      issue: ISSUE_90,
+      runs,
+      hasOpenPr: false,
+      labeledAt: "2026-08-09T14:07:00Z",
+      now: "2026-08-09T15:25:00Z",
+    });
+    assert.equal(out.verdict, "reap");
+    assert.equal(out.outcome, "succeeded-with-no-changes");
+    assert.equal(out.run.url, RUN_URL);
   });
 });
 

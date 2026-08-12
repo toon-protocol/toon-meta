@@ -11,7 +11,10 @@
 // ── PER TICKET, PER PASS ─────────────────────────────────────────────────────
 //   1. Skip if an open PR already maps to this ticket (in review, not dead).
 //   2. Correlate the current labeling to its workflow run (reap-evaluator's
-//      two-tier match: exact via `run-name`, else nearest-after in time).
+//      two-tier match: exact via `run-name`, else nearest-after in time;
+//      DECOY runs — skipped whole because some other label minted them — are
+//      never a correlation, so "only decoys visible" reads as no-run-found
+//      rather than as a failure that never happened).
 //   3. Still running (or not correlated but too young) → leave alone.
 //   4. Finished (or correlated-nothing past the grace period) → apply the
 //      PAIRING (see below), THEN remove `agent:implement`, THEN comment.
@@ -88,7 +91,9 @@ const REPOS = (process.env.REAP_REPOS
 const APPLY = process.env.APPLY === "true";
 const ISSUE_LIMIT = Number(process.env.REAP_ISSUE_LIMIT ?? 100);
 const PR_LIMIT = Number(process.env.REAP_PR_LIMIT ?? 200);
-const RUN_LIMIT = Number(process.env.REAP_RUN_LIMIT ?? 100);
+// Fetched in 100-run pages (see fetchRuns) — most of an active repo's
+// `issues`-triggered runs are decoys, so one page is rarely enough history.
+const RUN_LIMIT = Number(process.env.REAP_RUN_LIMIT ?? 300);
 const NOW = new Date().toISOString();
 
 // ── gh helpers ──────────────────────────────────────────────────────────────
@@ -131,28 +136,45 @@ function branchExistsOnRepo(repo, branch) {
 
 // A repo without agent-implement.yml (404) has no runs — that IS the truth,
 // same convention as daily-digest.mjs's fetchRunCount.
+//
+// Paged deliberately: ~74% of the `issues`-triggered runs on an active repo are
+// DECOYS (runs minted by a non-`agent:implement` label, skipped whole — see
+// reap-evaluator.mjs's `isDecoyRun`), so a single 100-run page can be almost
+// entirely noise and age a still-relevant real run out of view. The evaluator
+// degrades safely when that happens (it reports `no-run-found` rather than
+// guessing), but the comment is far more useful when the real run is in hand,
+// and pages are cheap — fetched once per repo, only when that repo actually has
+// ticketed issues.
 function fetchRuns(repo) {
   const jq =
     ".workflow_runs[] | {id: .id, status: .status, conclusion: .conclusion, " +
     "createdAt: .created_at, updatedAt: .updated_at, url: .html_url, displayTitle: .display_title}";
-  const out = gh(
-    [
-      "api",
-      `repos/${repo}/actions/workflows/agent-implement.yml/runs?event=issues&per_page=${RUN_LIMIT}`,
-      "--jq",
-      jq,
-    ],
-    { allowFail: true },
-  );
-  if (!out) return [];
   const rows = [];
-  for (const line of out.split("\n")) {
-    if (!line.trim()) continue;
-    try {
-      rows.push(JSON.parse(line));
-    } catch {
-      /* partial/unparseable line — skip, fail closed */
+  const perPage = Math.min(RUN_LIMIT, 100);
+  const pages = Math.max(1, Math.ceil(RUN_LIMIT / perPage));
+  for (let page = 1; page <= pages; page++) {
+    const out = gh(
+      [
+        "api",
+        `repos/${repo}/actions/workflows/agent-implement.yml/runs` +
+          `?event=issues&per_page=${perPage}&page=${page}`,
+        "--jq",
+        jq,
+      ],
+      { allowFail: true },
+    );
+    if (!out) break; // 404 (no such workflow) or an empty page — nothing further to read
+    let added = 0;
+    for (const line of out.split("\n")) {
+      if (!line.trim()) continue;
+      try {
+        rows.push(JSON.parse(line));
+        added++;
+      } catch {
+        /* partial/unparseable line — skip, fail closed */
+      }
     }
+    if (added < perPage) break; // short page — end of history
   }
   return rows;
 }
@@ -160,7 +182,12 @@ function fetchRuns(repo) {
 // Guard-skip detection (buzz#6 shape): a run can conclude `success` while its
 // `implement` job specifically was `skipped` — one of agent-implement.yml's
 // guard checks refused the target (e.g. a PRD-shaped parent) before any work
-// began. Only ever called for a correlated, finished, `success` run — a
+// began. Verified live on buzz run 31330244708 (the buzz#6 refusal):
+// run conclusion=success, `guard`=success, `implement`=skipped. Note this is
+// NOT the same thing as a run whose conclusion is `skipped` — that means the
+// guard job itself never ran, i.e. a decoy (reap-evaluator's `isDecoyRun`),
+// which never reaches here. Only ever called for a correlated, finished,
+// `success` run — a
 // failed/timed-out run never reaches this (branch-claim checking covers it
 // instead), so one extra `gh api` call per candidate is the whole cost.
 function isImplementJobSkipped(repo, run) {

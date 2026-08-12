@@ -31,6 +31,35 @@
 //      accepted, because a wrong correlation still fails closed downstream
 //      (an in-progress match under either tier is never reaped).
 //
+// ── DECOY RUNS NEVER DECIDE ANYTHING ─────────────────────────────────────────
+// `agent-implement.yml` triggers on EVERY `issues.labeled` event, and its
+// `guard` job carries `if: github.event.label.name == 'agent:implement'`. Any
+// OTHER label applied to any ticket therefore mints a whole workflow run whose
+// every job is skipped, so the RUN concludes `skipped` — and, where run-name is
+// installed, it carries the same `agent:implement — issue #N` title as the real
+// one. 74 of toon-meta's last 100 `issues`-triggered runs are these decoys.
+//
+// A run-level `skipped` conclusion means the guard job ITSELF never ran, i.e.
+// the label was not `agent:implement`. It is therefore ALWAYS a decoy and never
+// evidence about this labeling — verified against every `skipped`-conclusion run
+// sampled in toon-meta and buzz (all have `guard=skipped`).
+//
+// A guard REFUSAL is a different, unrelated shape: the guard runs, decides
+// against the target, and the run concludes `success` with `implement` skipped
+// (verified: buzz run 31330244708, the buzz#6 refusal — `guard=success`,
+// `implement=skipped`). That shape is classified as `guard-skipped` from the
+// job conclusions, never from the run conclusion.
+//
+// So `isDecoyRun` candidates are dropped from BOTH tiers rather than used as a
+// last resort. When a ticket's only visible run is a decoy the honest answer is
+// "no run correlates" — the grace-gated `no-run-found` path — not "the run
+// failed", which is what the previous fallback produced: a comment naming a run
+// that did no work, asserting a failure that never happened (#330 criterion 4).
+// The exact tier is authoritative once it matches anything AT ALL, decoys
+// included: it must not fall through to the time-window tier just because this
+// ticket's own runs were all decoys, or a DIFFERENT ticket labeled in the same
+// minute would decide this one's fate.
+//
 // ── WHEN NO RUN CORRELATES AT ALL ────────────────────────────────────────────
 // The label may have been applied by a path that never fired
 // `issues.labeled` (see unblock-dispatcher.mjs's create-then-label note), or
@@ -100,6 +129,9 @@
 // ── EXPORTED API ─────────────────────────────────────────────────────────────
 //   canonicalBranches(number)          → the two branch names a run for this
 //                                         ticket could have pushed
+//   isDecoyRun(run)                    → true for a run that was skipped whole
+//                                         (a non-`agent:implement` label minted
+//                                         it — never evidence about this one)
 //   findRunForLabel(input)             → the correlated run, or null
 //   classifyOutcome(input)             → outcome string (see above)
 //   choosePairing(outcome)             → { kind, ref? } — see above
@@ -142,8 +174,29 @@ export function canonicalBranches(number) {
 }
 
 /**
+ * A DECOY: `agent-implement.yml` fires on every `issues.labeled` event and its
+ * `guard` job is gated on `github.event.label.name == 'agent:implement'`, so
+ * any other label mints a run in which nothing ran at all and the run as a
+ * whole concludes `skipped`. A run-level `skipped` conclusion therefore means
+ * "this run was minted by a label that is not `agent:implement`" — it is never
+ * evidence about an `agent:implement` labeling. (A guard that legitimately
+ * REFUSES a target is a different shape entirely: the run concludes `success`
+ * with the `implement` JOB skipped, which `classifyOutcome` reports as
+ * `guard-skipped`. See the header.)
+ *
+ * @param {{status?:string, conclusion?:string|null}} run
+ * @returns {boolean}
+ */
+export const isDecoyRun = (run) =>
+  run?.status === "completed" && run?.conclusion === "skipped";
+
+/**
  * Correlate a ticket's current `agent:implement` labeling to the workflow run
  * it fired. See the header for the two-tier match.
+ *
+ * Never returns a decoy run: when a tier's only candidates are decoys the
+ * result is `null` (i.e. "no run correlates"), which routes the caller to the
+ * grace-gated `no-run-found` path instead of reporting a run that did no work.
  *
  * @param {{
  *   runs: Array<{status:string, conclusion:string|null, createdAt:string,
@@ -165,19 +218,6 @@ export function findRunForLabel({
   const labeledMs = new Date(labeledAt).getTime();
   const windowStart = labeledMs - toleranceSeconds * 1000;
 
-  // A DECOY: `agent-implement.yml` triggers on EVERY `issues.labeled` event and
-  // skips its jobs unless the label is `agent:implement`, so any other label
-  // applied to this ticket mints a completed/`skipped` run carrying the SAME
-  // run-name — `agent:implement — issue #N` — as the real one. 68 of
-  // toon-meta's last 91 `issues`-triggered runs are such decoys. Observed live
-  // on buzz#90: adding
-  // `tracking` while its implement run was in flight minted exactly this.
-  //
-  // Left unfiltered, the exact tier's "most recent title match" returns the
-  // decoy instead of the real in-progress run, classifies it as finished, and
-  // reaps the label out from under a job that is still working — defeating
-  // #330 criterion 2 and naming the wrong run in the comment.
-  const isDecoy = (r) => r.status === "completed" && r.conclusion === "skipped";
   const newest = (list) =>
     list.reduce((a, r) => (new Date(r.createdAt) > new Date(a.createdAt) ? r : a));
   const earliest = (list) =>
@@ -186,22 +226,22 @@ export function findRunForLabel({
   /**
    * Reduce correlated candidates to the one that decides this ticket's fate,
    * in strict precedence. Both tiers go through here so neither can regress
-   * the in-progress guarantee independently. `order` keeps each tier's own
-   * tie-break: EXACT wants the latest matching run, the TIME-WINDOW fallback
-   * wants the one nearest-after the label.
+   * either guarantee independently. `order` keeps each tier's own tie-break:
+   * EXACT wants the latest matching run, the TIME-WINDOW fallback wants the one
+   * nearest-after the label. Returns null when nothing survives.
    */
   const pick = (candidates, order) => {
-    if (candidates.length === 0) return null;
     // 1. FAIL CLOSED. Any candidate that is not finished wins outright: the
     //    caller reaps nothing while a run is live, whatever else correlates.
+    //    (A decoy is always `completed`, so it can never mask a live run.)
     const live = candidates.filter((r) => r.status !== "completed");
     if (live.length > 0) return order(live);
-    // 2. A real run beats a decoy. Decoys are only consulted when nothing
-    //    else correlates — a guard that legitimately refused an
-    //    `agent:implement` label also lands as `skipped`, and that ticket has
-    //    nothing in flight and SHOULD be reaped.
-    const real = candidates.filter((r) => !isDecoy(r));
-    return order(real.length > 0 ? real : candidates);
+    // 2. DECOYS ARE NOT EVIDENCE. A run-level `skipped` conclusion means the
+    //    guard job never ran, i.e. some OTHER label minted this run. Dropping
+    //    it (rather than falling back to it) is what makes "no run correlates"
+    //    the answer when nothing real is visible — see the header.
+    const real = candidates.filter((r) => !isDecoyRun(r));
+    return real.length > 0 ? order(real) : null;
   };
 
   // Tier 1 — EXACT. Bounded below by the labeling: a run from an EARLIER
@@ -212,6 +252,11 @@ export function findRunForLabel({
     (r) =>
       titleRe.test(r.displayTitle ?? "") && new Date(r.createdAt).getTime() >= windowStart,
   );
+  // Authoritative once it matches ANYTHING, decoys included: a title match names
+  // this issue outright, so falling through to the coarser time-window tier
+  // because those matches were all decoys would let a different ticket's run —
+  // labeled in the same minute — decide this ticket's fate. `pick` may return
+  // null here; that is the intended "no run correlates" answer.
   if (exact.length > 0) return pick(exact, newest);
 
   // Tier 2 — TIME-WINDOW fallback, for the ten repos whose `agent-implement.yml`
@@ -239,7 +284,7 @@ export function findRunForLabel({
  *                                  // target — buzz#6 shape)
  *   stepTimeoutMinutes?: number,
  * }} input
- * @returns {"succeeded-with-no-changes"|"guard-skipped"|"timed-out"|"pushed-nothing"|"failed"|"cancelled"}
+ * @returns {"succeeded-with-no-changes"|"guard-skipped"|"timed-out"|"pushed-nothing"|"failed"|"cancelled"|"no-run-found"}
  */
 export function classifyOutcome({
   run,
@@ -248,6 +293,11 @@ export function classifyOutcome({
   implementJobSkipped = false,
   stepTimeoutMinutes = STEP_TIMEOUT_MINUTES,
 } = {}) {
+  // Defence in depth: `findRunForLabel` never hands a decoy back, so
+  // `evaluateTicket` cannot reach this — but a decoy carries no information
+  // about the labeling, and the one thing it must NEVER do is fall through to
+  // `failed` and have the reap comment assert a failure that never happened.
+  if (isDecoyRun(run)) return "no-run-found";
   if (run.conclusion === "success") {
     return implementJobSkipped ? "guard-skipped" : "succeeded-with-no-changes";
   }
