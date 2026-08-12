@@ -277,12 +277,14 @@ Landed by [#207](https://github.com/toon-protocol/toon-meta/issues/207) (epic
 `forge new` and `forge validate` **parse it**:
 [`packages/forge-cli/src/new.ts`](https://github.com/toon-protocol/Forge/blob/main/packages/forge-cli/src/new.ts)
 → `parseArchetypeCatalog()` reads the first markdown pipe table in this file whose header row
-contains both the words *archetype* and *status*, and treats cells 1/2/3 as `name` /
-`environment` / `status`. A status of exactly `minted` (case-insensitive) marks the row minted;
-anything else is unminted, and naming an unminted archetype in a `factory.toml` fails validation
+has one cell reading exactly *archetype* and another reading exactly *status* (compared
+lower-cased, after trimming), and treats cells 1/2/3 as `name` / `environment` / `status`. A
+status of exactly `minted` (case-insensitive) marks the row minted; anything else is unminted,
+and naming an unminted archetype in a `factory.toml` fails validation
 ([FACTORY_SPEC.md §2.1](https://github.com/toon-protocol/Forge/blob/main/FACTORY_SPEC.md#21-archetype-provenance),
-§8 rule 4). Getting the table shape wrong silently breaks `forge new` — so there must be
-**exactly one** table anywhere in this document whose header contains both those words.
+§8 rule 4). Getting the table shape wrong silently breaks `forge new` — so keep those two header
+cells verbatim (renaming one to, say, *Archetype name* stops the table being found at all), and
+keep this the **only** table anywhere in this document whose header carries both.
 
 Per [ADR-0002](docs/adr/0002-registry-is-sole-mint-authority.md), **this registry is the sole
 authority on whether an archetype exists.** Archetype bundles under
@@ -292,8 +294,8 @@ describe the *opinion* (environment × doctrine × oracle-skeleton); they never 
 this table is the only place existence is decided.
 
 Cells below are the literal strings `parseArchetypeCatalog()` reads — plain, no backticks or
-other markup, so a future promotion to `minted` resolves by exact string match against
-`forge new <archetype>`'s argument:
+other markup, so `forge new <archetype>` matches its argument against the name cell exactly, and
+a future promotion is read as the exact status `minted`:
 
 | Archetype | Environment    | Status           | Minted by | Notes |
 |-----------|----------------|------------------|-----------|-------|
@@ -343,9 +345,9 @@ repo has yet been stamped **from** the bundle, so `service` has no pilot either.
 
 ### `spa` — `node-pnpm`
 
-Browser build published to GitHub Pages, with a visual/e2e gate layered on top of the base node
-ladder — the base `node-pnpm` ladder plus a Pages-deploy oracle. **No bundle has been authored
-for `spa`**; this row records the definition only, not a stampable opinion.
+Browser build published to GitHub Pages: the base `node-pnpm` oracle ladder plus a Pages-deploy
+oracle and a visual/e2e gate on top. **No bundle has been authored for `spa`**; this row records
+the definition only, not a stampable opinion.
 
 `spa`'s pilot repo is genuinely unsettled. The Pages/e2e oracle that motivates `spa` lives in
 **toon-client** (`.github/workflows/deploy-rig-web.yml`, plus `e2e.yml` / `journey.yml`), but
