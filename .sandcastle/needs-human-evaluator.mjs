@@ -22,6 +22,18 @@
 // `labeled`/`unlabeled` events carry the actor, and are returned oldest-first,
 // so the LAST event for this label is the live state: `labeled` means applied
 // (by that actor), `unlabeled` means currently absent.
+//
+// ── WHY THIS LIVES IN .sandcastle/ AND NOT scripts/factory/ ─────────────────
+// It is imported by `review-verdict.ts`, which EVERY factory repo carries its
+// own copy of. `scripts/factory/` exists only in toon-meta, so an evaluator
+// living there could never be propagated — the import would not resolve in the
+// other nine repos, which is exactly the trap this file was moved out of.
+// Keeping it beside its only caller means the pair travels as a unit.
+//
+// Its test still lives at `scripts/factory/needs-human-evaluator.test.mjs`,
+// because that is the glob `npm run test:factory` runs, and imports across the
+// boundary. When propagating to another repo, copy THIS file and
+// `review-verdict.ts` together; the test comes only if that repo runs one.
 
 /** The label this module reasons about. */
 export const NEEDS_HUMAN_LABEL = "needs:human";
