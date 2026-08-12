@@ -29,7 +29,7 @@
 import { execFileSync } from "node:child_process";
 import * as sandcastle from "@ai-hero/sandcastle";
 import { z } from "zod";
-import { shouldClearNeedsHuman } from "../scripts/factory/needs-human-evaluator.mjs";
+import { shouldClearNeedsHuman } from "./needs-human-evaluator.mjs";
 
 // ---------------------------------------------------------------------------
 // Schema + Output declaration
@@ -481,7 +481,7 @@ function factoryOpsApprovalBody(issue: TargetIssue | null): string {
  * (toon-meta#352).
  *
  * The decision itself is pure and lives in
- * `scripts/factory/needs-human-evaluator.mjs`, unit-tested by
+ * `.sandcastle/needs-human-evaluator.mjs`, unit-tested by
  * `npm run test:factory` — this is only the I/O that feeds it. That split is
  * this repo's convention (see the reap/unblock/dispatch evaluators), and it is
  * the reason the ownership rule is testable at all.

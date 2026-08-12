@@ -4,7 +4,7 @@ import {
   NEEDS_HUMAN_LABEL,
   lastNeedsHumanApplier,
   shouldClearNeedsHuman,
-} from "./needs-human-evaluator.mjs";
+} from "../../.sandcastle/needs-human-evaluator.mjs";
 
 const BOT = "ALLiDoizCode";
 const HUMAN = "some-maintainer";
