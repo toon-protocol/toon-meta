@@ -663,6 +663,20 @@ runner submits the reviewer's structured verdict (#275) as a **formal GitHub rev
   cannot approve its own PR.
 - **blocking** → a `CHANGES_REQUESTED` review carrying the findings, plus `needs:human`.
 
+**A later clean verdict clears the `needs:human` it applied — and only that one**
+([#352](https://github.com/toon-protocol/toon-meta/issues/352)). The blocking branch applies
+the label as a side effect; nothing used to remove it, so a PR that went blocking → fixed →
+clean ended `APPROVED` *and* labelled, which `auto-merge.yml` refuses on. Once blocked, gated
+forever — on 2026-08-12 that held three approved PRs at once, one of them the fix for the
+sibling dead-`agent:implement` wedge ([#330](https://github.com/toon-protocol/toon-meta/issues/330)).
+
+The clear is **ownership-gated, not presence-gated**: it happens only when the timeline shows
+the most recent application was by the approver identity itself. `needs:human` is a human
+control point, so a label a person applied — including one re-applied after a clean verdict —
+is never touched by the machine. The rule is pure and unit-tested in
+`scripts/factory/needs-human-evaluator.mjs`; it fails closed, because a label that should have
+been cleared costs a manual edit while one cleared wrongly overrules a person.
+
 **A factory-ops `APPROVED` state is a machine verdict, not human judgement.** It attests
 exactly this: *the gate passed and the sandcastle reviewer found nothing blocking* (reviewed
 against the target issue's acceptance criteria where one was resolved). Nobody has read the
