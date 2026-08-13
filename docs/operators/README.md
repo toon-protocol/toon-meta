@@ -10,6 +10,7 @@ meant when it was published.
 
 | Date | Notice |
 |------|--------|
+| 2026-08-13 | [Devnet apex retirement — two-box cutover](./2026-08-13-two-box-cutover.md) |
 | 2026-07-31 | [Apex settlement identity rotated — open Base Sepolia channels](./2026-07-31-apex-settlement-identity-rotation.md) |
 
 ## The announce
