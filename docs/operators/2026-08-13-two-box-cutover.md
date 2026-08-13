@@ -21,13 +21,13 @@ ahead of time per the design in
 
 ## What dies and what survives
 
-The devnet today runs three boxes: an apex, a relay box, and a store box. The
-apex is the one being destroyed.
+The devnet today runs four boxes: an apex, a relay box, a store box, and a
+faucet box. The apex is the one being destroyed.
 
 | Hostname | Fate | Why |
 |---|---|---|
 | `proxy.devnet.toonprotocol.dev` | **Dies with the apex.** | It is the apex's own ILP/BTP door — nothing else answers at it. |
-| `relay-ws.devnet.toonprotocol.dev` | **Survives, unchanged.** | Already served by the relay box; the apex was never authoritative for it. |
+| `relay-ws.devnet.toonprotocol.dev` | **Survives, unchanged.** | Already resolves to the relay box, not to the apex — it moved before this cutover, so nothing moves here. |
 | `faucet.devnet.toonprotocol.dev` | **Survives, unchanged.** | Already moved to its own dedicated box, off the apex. |
 
 If anything you run has `proxy.devnet.toonprotocol.dev` hardcoded — a script,
@@ -39,7 +39,7 @@ discover it the normal way, from its bootstrap seed and the live announce.
 
 Your client bootstrapped by querying a known relay endpoint for a known
 announce identity, then trusting what that identity's most recent
-kind:10032 announce says. The relay box is adopting the **same** announce
+kind:10032 announce says. The relay box has adopted the **same** announce
 identity the apex used, and keeps the **same** `relay-ws` hostname. So the
 query your client already knows how to make — same endpoint, same author —
 still resolves, and the announce it gets back describes the new topology.
@@ -56,6 +56,21 @@ still resolves, and the announce it gets back describes the new topology.
 
 A fresh install after the cutover needs no special handling: it bootstraps
 against both surviving boxes from the start.
+
+## Announce record
+
+This notice is announced, so it records its `id` here per
+[the conventions](./README.md#the-announce) — the announce carries only the
+pointer below, and this file is the durable text it points at.
+
+```json
+{
+  "id": "2026-08-13-two-box-cutover",
+  "severity": "action-required",
+  "summary": "The devnet apex is being retired; reads and relay publishing repair themselves, but store uploads need a client released after the cutover.",
+  "url": "https://github.com/toon-protocol/toon-meta/blob/main/docs/operators/2026-08-13-two-box-cutover.md"
+}
+```
 
 ## Questions
 
