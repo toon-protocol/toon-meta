@@ -57,11 +57,46 @@
 //   pass merges through GitHub, after the gate.
 // * AUTOMERGE_LIMIT caps how many merges one pass performs (default 5), so a
 //   mistake cannot cascade across the fleet in one run.
+//
+// ── PR REPAIR (toon-meta#357) ────────────────────────────────────────────
+// Same pass, three more verdicts (retry / repair / escalate) over the pure
+// `planRepair` in repair-evaluator.mjs — see automerge-evaluator.mjs's
+// header for the decision shape. This shell adds: main's own check rollup
+// (readMainRollup, once per repo), prior retry/repair attempt counts
+// (countRetryAttempts / countRepairAttempts, per PR), and a best-effort
+// error-text snippet per failing check (fetchFailingCheckErrorText, via
+// `gh run view --log-failed`) so classification has more than a bare state
+// to go on. Gated behind its OWN knob, REPAIR_APPLY — separate from
+// AUTOMERGE_APPLY, so the merge pass can run live while repair stays
+// dry-run, or vice versa.
+//
+// READS dry-run verified live (2026-08-14, toon-backlog-bot[bot] installation
+// token, all 11 repos, 7 open agent PRs): readMainRollup, countRepairAttempts
+// (paginated timeline parse), countRetryAttempts, and
+// fetchFailingCheckErrorText (run-id extraction from a real `detailsUrl` +
+// `gh run view --log-failed`, exercised against connector#960's one failing
+// check — a real forge-test assertion failure, correctly carrying no
+// transient-error text) all ran clean, no crashes, no ::warning::s. None of
+// the 7 live PRs happened to be a pure repair candidate (each also carried
+// needs:human, an outstanding CHANGES_REQUESTED, or nothing but
+// approver-unknown — none of them repair-relevant), so the retry/repair/
+// escalate VERDICT branch itself has not yet been exercised against a real
+// PR, and the WRITE paths below (apply-label, `gh run rerun`, the marker
+// comments) have not run at all — this session never set REPAIR_APPLY=true.
+// Re-dry-run once a genuinely repair-eligible PR exists in the fleet, and
+// watch a real APPLY run before trusting this beyond dry-run, same rollout
+// discipline as every other *_APPLY knob here.
+//
+// STILL MISSING: nothing yet consumes `agent:fix` once applied — the
+// PR-scoped repair runner (`.sandcastle/agent-fix-pr.ts` + a
+// `pull_request:[labeled]` workflow, the same pattern `agent-review.yml`
+// uses for `agent:review`) is follow-up work. Until it exists, a `repair`
+// verdict under REPAIR_APPLY=true labels the PR and nothing acts on it.
 
 import { execFileSync } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 
-import { settleMergeable } from "./pr-signals.mjs";
+import { settleMergeable, normalizeCheck, FAILING_STATES } from "./pr-signals.mjs";
 import { prIssueIds } from "./dispatch-evaluator.mjs";
 import {
   planAutoMerge,
@@ -69,6 +104,7 @@ import {
   DEFAULT_EXCLUDED_REPOS,
   FACTORY_BRANCH_PREFIXES,
 } from "./automerge-evaluator.mjs";
+import { AGENT_FIX_LABEL } from "./repair-evaluator.mjs";
 
 // ── Config (env-overridable) ────────────────────────────────────────────────
 const ORG = process.env.AUTOMERGE_ORG ?? "toon-protocol";
@@ -103,6 +139,23 @@ const EXTRA_APPROVERS = (process.env.AUTOMERGE_APPROVERS ?? "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+
+// PR repair (toon-meta#357) — a SEPARATE rollout knob from AUTOMERGE_APPLY:
+// the merge pass can go live while repair stays dry-run, or vice versa.
+const REPAIR_APPLY = process.env.REPAIR_APPLY === "true";
+// How many failing checks per PR to fetch job logs for, to classify
+// transient vs genuine (#357 rule 1). Bounded: a PR with a wide matrix of
+// failing checks does not turn one pass into dozens of log fetches — the
+// checks left unfetched simply have no errorText and fail closed to
+// "genuine" (see repair-evaluator.classifyCheckFailure).
+const REPAIR_LOG_FETCH_LIMIT = Number(process.env.REPAIR_LOG_FETCH_LIMIT ?? 4);
+// How many characters of `gh run view --log-failed` to keep per check —
+// enough for a curl/HTTP error line, not a whole log.
+const REPAIR_LOG_EXCERPT_CHARS = 4000;
+// Hidden marker identifying a comment this pass posted for a `retry`
+// verdict — counted back next pass as this PR's retryAttempts (mirrors the
+// dead-label reaper's marker-comment convention, reap-evaluator.mjs).
+const retryMarker = (repo, number) => `<!-- toon-meta#357:retry:${repo}#${number} -->`;
 
 // ── gh helpers ──────────────────────────────────────────────────────────────
 function gh(args, { json = false, allowFail = false } = {}) {
@@ -265,10 +318,107 @@ const issueLabels = (id) => {
   return { id, labels: (data.labels ?? []).map((l) => l.name), state: data.state };
 };
 
+// ── PR repair reads (toon-meta#357) ─────────────────────────────────────────
+
+// Main's own check rollup, read the same way pr-signals.mjs reads a PR's —
+// so `redOnMain` compares like against like. `/commits/{ref}/check-runs` is
+// the REST equivalent of a PR's statusCheckRollup for a bare branch ref.
+function readMainRollup(repo, branch) {
+  // First page only (no --paginate): the endpoint returns one JSON OBJECT
+  // with a nested `check_runs` array, and gh does not deep-merge object
+  // pages the way it does top-level arrays — a second page would silently
+  // overwrite rather than combine. A single commit's check-run count is
+  // small enough in this fleet that the first page is the whole rollup.
+  const data = gh(["api", `repos/${repo}/commits/${branch}/check-runs`], {
+    json: true,
+    allowFail: true,
+  });
+  return data?.check_runs ?? [];
+}
+
+// Prior `agent:fix` dispatches on this PR — read from the TIMELINE (not the
+// current label list, which says only THAT the label is present, never how
+// many times it has cycled), same reasoning as needs-human-evaluator.mjs's
+// ownership read. Every `labeled agent:fix` event counts, regardless of who
+// applied it: unlike `needs:human`, `agent:fix` is a pure machine trigger.
+function countRepairAttempts(repo, number) {
+  const raw = gh(["api", "--paginate", `repos/${repo}/issues/${number}/timeline`], {
+    json: false,
+    allowFail: true,
+  });
+  if (!raw) return 0;
+  try {
+    const events = raw
+      .split("\n")
+      .filter((line) => line.trim().startsWith("["))
+      .flatMap((line) => JSON.parse(line));
+    return events.filter(
+      (e) => e.event === "labeled" && e.label?.name === AGENT_FIX_LABEL,
+    ).length;
+  } catch {
+    return 0;
+  }
+}
+
+// Prior free retries on this PR — `retry` never applies a label, so it is
+// counted from the hidden marker this pass posts on every retry (mirrors the
+// dead-label reaper's marker-comment convention).
+function countRetryAttempts(repo, number) {
+  const comments = gh(["api", `repos/${repo}/issues/${number}/comments?per_page=100`, "--paginate"], {
+    json: true,
+    allowFail: true,
+  });
+  const marker = retryMarker(repo, number);
+  return (comments ?? []).filter((c) => (c.body ?? "").includes(marker)).length;
+}
+
+// Best-effort error-text snippet for a failing check, keyed by check name, so
+// `classifyCheckFailure` (repair-evaluator.mjs) has more than a bare state to
+// go on. Fails closed by design: any read error, or no run correlated, leaves
+// the check with no errorText — classification then falls to "genuine"
+// rather than guessing "transient" from a check NAME alone.
+//
+// Live-verified 2026-08-14 against connector#960's one real failing check:
+// `detailsUrl` → run id → `gh run view --log-failed` all resolved and
+// returned the actual forge-test failure text. See the module header for
+// what is and is not yet exercised.
+function fetchFailingCheckErrorText(repo, failingChecks, rollup) {
+  const byName = new Map((rollup ?? []).map((c) => [normalizeCheck(c).name, c]));
+  const errorTextByName = {};
+  for (const check of failingChecks.slice(0, REPAIR_LOG_FETCH_LIMIT)) {
+    const raw = byName.get(check.name);
+    const runId = String(raw?.detailsUrl ?? "").match(/\/actions\/runs\/(\d+)/)?.[1];
+    if (!runId) continue;
+    const log = ghTry(["run", "view", runId, "--repo", repo, "--log-failed"]);
+    if (log.ok && log.value) errorTextByName[check.name] = log.value.slice(0, REPAIR_LOG_EXCERPT_CHARS);
+  }
+  return errorTextByName;
+}
+
+// Ensure a label exists (idempotent — "already exists" is swallowed) then
+// apply it. Plain REST, matching review-verdict.ts's convention: porcelain
+// `gh pr edit` is broken in repos with a classic Project attached.
+function applyLabel(repo, number, label, color, description) {
+  try {
+    execFileSync(
+      "gh",
+      ["api", `repos/${repo}/labels`, "-f", `name=${label}`, "-f", `color=${color}`, "-f", `description=${description}`],
+      { stdio: "pipe" },
+    );
+  } catch {
+    // Label already exists — the normal case.
+  }
+  execFileSync("gh", ["api", `repos/${repo}/issues/${number}/labels`, "-f", `labels[]=${label}`], {
+    stdio: ["ignore", "ignore", "inherit"],
+  });
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 const tag = APPLY ? "APPLY" : "dry-run";
 console.log(
-  `Auto-merge pass (toon-meta#285) — mode=${APPLY ? "APPLY (merging)" : "DRY-RUN (no writes)"}, ` +
+  `Auto-merge pass (toon-meta#285, repair #357) — ` +
+    `merge mode=${APPLY ? "APPLY (merging)" : "DRY-RUN (no writes)"}, ` +
+    `repair mode=${REPAIR_APPLY ? "APPLY (labeling/re-running)" : "DRY-RUN (no writes)"}, ` +
     `repos=${REPOS.length} [${REPOS.map((r) => r.split("/")[1]).join(", ")}], ` +
     `merge cap=${MERGE_LIMIT}/run`,
 );
@@ -291,11 +441,15 @@ console.log(
     ` — only an APPROVED review from this identity satisfies the #275/#282 verdict.`,
 );
 
-// Repo policies (live protection + merge settings).
+// Repo policies (live protection + merge settings) + main's own check
+// rollup, read once per repo (toon-meta#357 rule 2: compare a failing check
+// against main's latest run of the same check name).
 const repoPolicies = {};
+const mainRollups = {};
 for (const repo of REPOS) {
   const p = readRepoPolicy(repo);
   repoPolicies[repo.toLowerCase()] = p;
+  mainRollups[repo.toLowerCase()] = readMainRollup(repo, p.branch);
   const excluded = DEFAULT_EXCLUDED_REPOS[repo.toLowerCase()];
   console.log(
     `  ${repo}: required=[${p.requiredContexts.join(", ") || "∅"}] ` +
@@ -308,6 +462,8 @@ for (const repo of REPOS) {
 
 // PRs + their per-PR reads.
 const prs = [];
+const repairAttempts = {};
+const retryAttempts = {};
 for (const repo of REPOS) {
   for (const pr of readAgentPrs(repo)) {
     // Settle mergeability BEFORE judging: GitHub computes it asynchronously
@@ -327,6 +483,28 @@ for (const repo of REPOS) {
     const linkedIssues = prIssueIds({ ...pr, repo })
       .map(issueLabels)
       .filter(Boolean);
+
+    // Repair reads (toon-meta#357) — only for PRs a repair verdict could
+    // possibly apply to (conflicting, or an actual failing check), so a
+    // fleet-wide pass does not spend a timeline/comments/log fetch on every
+    // green PR.
+    const id = `${repo.toLowerCase()}#${pr.number}`;
+    const failingChecks = (pr.statusCheckRollup ?? [])
+      .map(normalizeCheck)
+      .filter((c) => FAILING_STATES.has(c.state));
+    let statusCheckRollup = pr.statusCheckRollup;
+    if (mergeable === "CONFLICTING" || failingChecks.length > 0) {
+      repairAttempts[id] = countRepairAttempts(repo, pr.number);
+      retryAttempts[id] = countRetryAttempts(repo, pr.number);
+    }
+    if (failingChecks.length > 0) {
+      const errorTextByName = fetchFailingCheckErrorText(repo, failingChecks, pr.statusCheckRollup);
+      statusCheckRollup = (pr.statusCheckRollup ?? []).map((c) => {
+        const n = normalizeCheck(c);
+        return errorTextByName[n.name] ? { ...c, errorText: errorTextByName[n.name] } : c;
+      });
+    }
+
     prs.push({
       repo,
       number: pr.number,
@@ -340,7 +518,7 @@ for (const repo of REPOS) {
       mergeStateStatus: pr.mergeStateStatus,
       reviewDecision: pr.reviewDecision,
       reviews: readReviews(repo, pr.number),
-      statusCheckRollup: pr.statusCheckRollup,
+      statusCheckRollup,
       autoMergeEnabled: pr.autoMergeRequest != null,
       author: pr.author?.login,
       linkedIssues,
@@ -349,7 +527,7 @@ for (const repo of REPOS) {
 }
 console.log(`\nFleet scan: ${prs.length} open agent PR(s).`);
 
-const plan = planAutoMerge({ prs, repoPolicies, approvers });
+const plan = planAutoMerge({ prs, repoPolicies, approvers, mainRollups, repairAttempts, retryAttempts });
 
 // ── Report ──────────────────────────────────────────────────────────────────
 for (const d of plan.decisions) {
@@ -377,9 +555,79 @@ let merged = 0;
 let armed = 0;
 let updated = 0;
 let failed = 0;
+let retried = 0;
+let repaired = 0;
+let escalated = 0;
 for (const a of plan.actions) {
   const repo = a.repo;
   const n = String(a.number);
+
+  // ── PR repair actions (toon-meta#357) — gated on REPAIR_APPLY, a SEPARATE
+  //    knob from AUTOMERGE_APPLY (see the config header). ────────────────────
+  if (a.type === "rerun-failed-jobs") {
+    if (REPAIR_APPLY) {
+      // Re-read fresh: some time has passed since the report was built, and
+      // a run id is only recoverable from the LIVE rollup's detailsUrl.
+      const fresh = gh(["pr", "view", n, "--repo", repo, "--json", "statusCheckRollup"], {
+        json: true,
+        allowFail: true,
+      });
+      const runIds = new Set();
+      for (const check of fresh?.statusCheckRollup ?? []) {
+        if (!a.checks.includes(normalizeCheck(check).name)) continue;
+        const runId = String(check.detailsUrl ?? "").match(/\/actions\/runs\/(\d+)/)?.[1];
+        if (runId) runIds.add(runId);
+      }
+      let ok = runIds.size > 0;
+      for (const runId of runIds) {
+        const r = ghTry(["run", "rerun", runId, "--repo", repo, "--failed"]);
+        if (!r.ok) {
+          console.log(`::warning::${repo}#${n} rerun of run ${runId} failed: ${r.error}`);
+          ok = false;
+        }
+      }
+      if (ok) {
+        console.log(`[APPLY] ${repo}#${n}: re-ran ${runIds.size} failed run(s) — ${a.reason}`);
+        // Marker so the NEXT pass's countRetryAttempts sees this one — a
+        // retry never applies a label, so a comment is the only record.
+        ghTry([
+          "api",
+          `repos/${repo}/issues/${n}/comments`,
+          "-f",
+          `body=PR repair pass (toon-meta#357): re-ran failed check(s) ${a.checks.join(", ")} — ${a.reason}\n\n${retryMarker(repo, n)}`,
+        ]);
+      } else if (runIds.size === 0) {
+        console.log(`::warning::${repo}#${n} retry: could not resolve a run id for [${a.checks.join(", ")}]`);
+      }
+    }
+    retried++;
+    continue;
+  }
+  if (a.type === "apply-label") {
+    if (REPAIR_APPLY) {
+      const isFix = a.label === AGENT_FIX_LABEL;
+      applyLabel(
+        repo,
+        n,
+        a.label,
+        isFix ? "1D76DB" : "B60205",
+        isFix
+          ? "Sandcastle: repair this PR (PR-mode runner, toon-meta#357)"
+          : "A human must decide",
+      );
+      ghTry([
+        "api",
+        `repos/${repo}/issues/${n}/comments`,
+        "-f",
+        `body=PR repair pass (toon-meta#357): ${isFix ? "dispatched agent:fix" : "escalated to needs:human"} — ${a.reason}`,
+      ]);
+      console.log(`[APPLY] ${repo}#${n}: applied ${a.label} — ${a.reason}`);
+    }
+    if (a.label === AGENT_FIX_LABEL) repaired++;
+    else escalated++;
+    continue;
+  }
+
   if (a.type === "update-branch") {
     if (APPLY) {
       // REST, not `gh pr update-branch`: that subcommand only exists in gh
@@ -444,10 +692,13 @@ for (const d of plan.decisions) {
 
 const s = plan.summary;
 console.log(
-  `\nAuto-merge pass complete (${APPLY ? "APPLIED" : "dry-run"}): ` +
+  `\nAuto-merge pass complete (merge ${APPLY ? "APPLIED" : "dry-run"}, ` +
+    `repair ${REPAIR_APPLY ? "APPLIED" : "dry-run"}): ` +
     `${s.merge ?? 0} eligible to merge (${merged} merged, ${armed} armed), ` +
     `${s["update-branch"] ?? 0} behind base (${updated} updated), ` +
     `${s["already-armed"] ?? 0} already armed, ${s.blocked ?? 0} blocked, ` +
-    `${failed} action(s) refused by GitHub.`,
+    `${s.retry ?? 0} retried (${retried} re-run), ${s.repair ?? 0} repaired ` +
+    `(${repaired} agent:fix applied), ${s.escalate ?? 0} escalated ` +
+    `(${escalated} needs:human applied), ${failed} action(s) refused by GitHub.`,
 );
 process.exit(0);

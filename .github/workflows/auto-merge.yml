@@ -30,8 +30,8 @@
 #     needs no separate shim file.
 #
 # ── WHY THESE TRIGGERS ───────────────────────────────────────────────────────
-# The same event surface as pr-housekeeping, plus the one event that is
-# specific to merging — an approval arriving:
+# The same event surface as pr-housekeeping, plus the events specific to
+# merging and repairing (#357):
 #   * check_suite completed on a sandcastle/ or agent/ branch — the PR's own
 #     gate just finished. This is the usual moment a PR becomes eligible.
 #   * pull_request_review submitted — the factory-ops APPROVE (#282) is the
@@ -41,6 +41,14 @@
 #     BEHIND `main` under strict protection (#272), and updating those branches
 #     is this pass's job (see the evaluator header: behind-base is an action,
 #     not a verdict).
+#   * pull_request labeled (#357) — a label change is the one state change
+#     that can make a PR mergeable, or repair-eligible, with no other event.
+#     Clearing `needs:human` is the concrete case that bit this fleet:
+#     connector#923/#935 sat mergeable for 5.5h after the label was cleared
+#     because nothing else fired before the next cron.
+#   * pull_request synchronize (#357) — so a repair attempt's own push (a
+#     `repair` verdict dispatches `agent:fix`, whose runner pushes commits
+#     back to the PR) is re-evaluated as soon as it lands, not up to 6h later.
 #   * a 6-hourly safety cron, offset from the dispatcher's, so a dropped event
 #     never wedges the loop permanently. Every pass re-evaluates from scratch,
 #     so the cron is a true recovery path, not a second code path.
@@ -97,6 +105,10 @@ on:
         description: "Perform merges / branch updates. false = dry-run report only."
         type: boolean
         default: false
+      repairApply:
+        description: "Perform PR repair actions (re-run / agent:fix / needs:human, #357). false = dry-run report only."
+        type: boolean
+        default: false
   # Safety net: recover dropped events (and pick up PRs that went behind).
   schedule:
     - cron: "17 1,7,13,19 * * *" # 6-hourly, offset from the dispatcher's 43 2,8,14,20
@@ -106,7 +118,7 @@ on:
   pull_request_review:
     types: [submitted]
   pull_request:
-    types: [closed]
+    types: [closed, labeled, synchronize]
 
 permissions:
   contents: read
@@ -118,7 +130,11 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'schedule' ||
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      (github.event_name == 'pull_request' && (
+        github.event.pull_request.merged == true ||
+        ((github.event.action == 'labeled' || github.event.action == 'synchronize') && (
+          startsWith(github.event.pull_request.head.ref, 'sandcastle/') ||
+          startsWith(github.event.pull_request.head.ref, 'agent/'))))) ||
       (github.event_name == 'pull_request_review' && (
         startsWith(github.event.pull_request.head.ref, 'sandcastle/') ||
         startsWith(github.event.pull_request.head.ref, 'agent/'))) ||
@@ -164,6 +180,9 @@ jobs:
           # through to the variable); event/cron runs obey AUTOMERGE_APPLY,
           # which as an ORG variable is one knob for the whole fleet.
           APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.apply || (github.event_name != 'workflow_dispatch' && vars.AUTOMERGE_APPLY == 'true') }}
+          # PR repair (#357) — a SEPARATE knob from AUTOMERGE_APPLY, same
+          # apply/dry-run resolution shape.
+          REPAIR_APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.repairApply || (github.event_name != 'workflow_dispatch' && vars.REPAIR_APPLY == 'true') }}
           # Bound the blast radius of any one pass.
           AUTOMERGE_LIMIT: "5"
         run: npm run automerge:prs

@@ -366,10 +366,22 @@ describe("approval — the #275 verdict as submitted by #282", () => {
 
 // ── Mergeability + merge state ──────────────────────────────────────────────
 describe("mergeability and merge state", () => {
-  it("refuses a conflicting PR", () => {
+  it("repairs a conflicting PR that is otherwise eligible (toon-meta#357)", () => {
+    // #357: "mergeable: CONFLICTING is never transient and never repo-level,
+    // so it dispatches immediately with no classification" — a PR blocked on
+    // nothing but the conflict is a repair candidate, not a permanent stall.
     const d = plan(eligiblePr({ mergeable: "CONFLICTING", mergeStateStatus: "DIRTY" }));
+    assert.equal(d.verdict, "repair");
+    assert.ok(codes(d).includes("conflict"));
+    assert.equal(d.action.type, "apply-label");
+    assert.equal(d.action.label, "agent:fix");
+  });
+
+  it("blocks (does not repair) a conflicting PR that also carries needs:human", () => {
+    const d = plan(eligiblePr({ mergeable: "CONFLICTING", mergeStateStatus: "DIRTY", labels: ["needs:human"] }));
     assert.equal(d.verdict, "blocked");
     assert.ok(codes(d).includes("conflict"));
+    assert.ok(codes(d).includes("needs-human"));
   });
 
   it("refuses a PR whose mergeability never settled — never judged clean", () => {
@@ -555,5 +567,92 @@ describe("the pass as a whole", () => {
         { context: "c", state: "∅", status: "missing" },
       ],
     );
+  });
+});
+
+describe("PR repair: retry / repair / escalate (toon-meta#357)", () => {
+  const FAILING_ROLLUP = [
+    { name: "gate", status: "COMPLETED", conclusion: "FAILURE" },
+  ];
+  const TRANSIENT_ROLLUP = [
+    {
+      name: "setup-toolchain",
+      status: "COMPLETED",
+      conclusion: "FAILURE",
+      errorText: "curl: (22) The requested URL returned error: 503 from artifacts.nixos.org",
+    },
+  ];
+
+  it("repairs a genuinely failing PR that is otherwise eligible", () => {
+    const d = plan(eligiblePr({ statusCheckRollup: FAILING_ROLLUP }));
+    assert.equal(d.verdict, "repair");
+    assert.ok(codes(d).includes("checks-failing"));
+    assert.equal(d.action.type, "apply-label");
+    assert.equal(d.action.label, "agent:fix");
+    assert.equal(d.signals.repair.classification, "genuine");
+  });
+
+  it("retries a transient-looking failure for free — no agent action", () => {
+    const d = plan(eligiblePr({ statusCheckRollup: TRANSIENT_ROLLUP }), {
+      repoPolicies: {
+        ...POLICIES,
+        "toon-protocol/forge": { ...POLICIES["toon-protocol/forge"], requiredContexts: ["setup-toolchain"] },
+      },
+    });
+    assert.equal(d.verdict, "retry");
+    assert.equal(d.action.type, "rerun-failed-jobs");
+    assert.deepEqual(d.action.checks, ["setup-toolchain"]);
+  });
+
+  it("escalates when the same check is also red on main", () => {
+    const d = plan(
+      eligiblePr({ repo: "toon-protocol/toon", statusCheckRollup: [{ name: "CI OK", status: "COMPLETED", conclusion: "FAILURE" }] }),
+      { mainRollups: { "toon-protocol/toon": [{ name: "CI OK", conclusion: "FAILURE" }] } },
+    );
+    assert.equal(d.verdict, "escalate");
+    assert.equal(d.action.type, "apply-label");
+    assert.equal(d.action.label, "needs:human");
+    assert.match(d.signals.repair.reason, /also failing on main/);
+  });
+
+  it("escalates once the repair-attempt budget is spent", () => {
+    const d = plan(eligiblePr({ statusCheckRollup: FAILING_ROLLUP }), {
+      repairAttempts: { "toon-protocol/forge#50": 2 },
+    });
+    assert.equal(d.verdict, "escalate");
+  });
+
+  it("never dispatches a second repair while agent:fix is already in flight", () => {
+    const d = plan(eligiblePr({ statusCheckRollup: FAILING_ROLLUP, labels: ["agent:fix"] }));
+    assert.equal(d.verdict, "blocked");
+    assert.equal(d.action, null);
+  });
+
+  it("stays blocked (never repaired) when CHANGES_REQUESTED is also outstanding", () => {
+    const d = plan(
+      eligiblePr({
+        statusCheckRollup: FAILING_ROLLUP,
+        reviews: [{ author: "someone", state: "CHANGES_REQUESTED", commitId: HEAD }],
+      }),
+    );
+    assert.equal(d.verdict, "blocked");
+    assert.ok(codes(d).includes("review-changes-requested"));
+    assert.ok(codes(d).includes("checks-failing"));
+  });
+
+  it("stays blocked (never repaired) when needs:human is also present", () => {
+    const d = plan(eligiblePr({ statusCheckRollup: FAILING_ROLLUP, labels: ["needs:human"] }));
+    assert.equal(d.verdict, "blocked");
+    assert.ok(codes(d).includes("needs-human"));
+  });
+
+  it("does not repair a PR whose required check is merely still pending", () => {
+    const d = plan(
+      eligiblePr({
+        statusCheckRollup: [{ name: "gate", status: "IN_PROGRESS", conclusion: "" }],
+      }),
+    );
+    assert.equal(d.verdict, "blocked");
+    assert.equal(d.signals.repair, null);
   });
 });

@@ -94,17 +94,43 @@
 // is gated behind all the other preconditions, it never churns a PR that was
 // not about to merge anyway.
 //
+// ── PR REPAIR: retry / repair / escalate (toon-meta#357) ────────────────────
+// A PR whose ONLY blocker(s) are red required checks, a failing overall
+// check-set, and/or a merge conflict — every other precondition above already
+// holds — is not simply "blocked": it is a repair candidate. Rather than a
+// new loop, this pass gains three more verdicts alongside merge /
+// update-branch / blocked, decided by the pure `planRepair` in the sibling
+// `repair-evaluator.mjs` (transient-vs-genuine classification, red-on-main
+// comparison, retry/repair attempt budgets — see that file's header for the
+// four rules and why each exists):
+//   retry    → re-run the failed jobs, no agent (transient/infrastructure)
+//   repair   → apply `agent:fix` to the PR (a genuine defect, or a conflict)
+//   escalate → apply `needs:human` (red on main, or a budget spent)
+// A PR with ANY other blocker (needs:human, CHANGES_REQUESTED, an unreadable
+// policy, draft, ...) never reaches `planRepair` at all — it stays simply
+// `blocked`, which is how "do not race the reviewer" (#357 rule 4) is
+// enforced: by construction, not a special case.
+//
 // ── EXPORTED API ────────────────────────────────────────────────────────────
 //   planAutoMerge(input)          → { decisions, actions, summary }
 //   latestOpinionatedReviews(rs)  → Map<normalized login, review>
 //   normalizeLogin(login)         → comparable identity string
 //   requiredCheckStates(...)      → per-required-context state report
 //   DEFAULT_EXCLUDED_REPOS
+//   AGENT_FIX_LABEL               → re-exported from repair-evaluator.mjs
 //
 // Plain Node ESM, zero dependencies. Tests: automerge-evaluator.test.mjs
 // (node --test).
 
 import { checksVerdict, normalizeCheck, VERIFIED_STATE } from "./pr-signals.mjs";
+import {
+  AGENT_FIX_LABEL,
+  DEFAULT_REPAIR_BUDGET,
+  DEFAULT_RETRY_BUDGET,
+  planRepair,
+} from "./repair-evaluator.mjs";
+
+export { AGENT_FIX_LABEL };
 
 export const HUMAN_LABEL = "needs:human";
 export const FACTORY_BRANCH_PREFIXES = ["sandcastle/", "agent/"];
@@ -206,12 +232,19 @@ export function requiredCheckStates(requiredContexts = [], rollup = []) {
  *     autoMergeAllowed?: boolean, mergeMethod?: string }>,  // keys lowercased
  *   approvers: string[],            // logins that count as the machine approver
  *   excludedRepos?: Object<string,string>,  // repo → why not eligible
+ *   mainRollups?: Object<string, Array<object>>,  // repo(lowercased) → main's statusCheckRollup (#357)
+ *   repairAttempts?: Object<string, number>,      // "repo#n"(lowercased repo) → prior agent:fix dispatches
+ *   retryAttempts?: Object<string, number>,       // "repo#n"(lowercased repo) → prior free re-runs
+ *   repairBudget?: number,          // default repair-evaluator.DEFAULT_REPAIR_BUDGET
+ *   retryBudget?: number,           // default repair-evaluator.DEFAULT_RETRY_BUDGET
  * }} input
  * @returns {{
  *   decisions: Array<{ id, repo, number, title, url,
- *     verdict: "merge"|"update-branch"|"already-armed"|"blocked",
- *     action: null | { type:"enable-auto-merge"|"merge"|"update-branch",
- *                      repo, number, method?:string, reason:string },
+ *     verdict: "merge"|"update-branch"|"already-armed"|"blocked"|"retry"|"repair"|"escalate",
+ *     action: null | { type:"enable-auto-merge"|"merge"|"update-branch"|
+ *                      "rerun-failed-jobs"|"apply-label",
+ *                      repo, number, method?:string, label?:string,
+ *                      checks?:string[], reason:string },
  *     blockers: Array<{code:string, detail:string}>,
  *     signals: object }>,
  *   actions: Array<object>,
@@ -223,6 +256,11 @@ export function planAutoMerge({
   repoPolicies = {},
   approvers = [],
   excludedRepos = DEFAULT_EXCLUDED_REPOS,
+  mainRollups = {},
+  repairAttempts = {},
+  retryAttempts = {},
+  repairBudget = DEFAULT_REPAIR_BUDGET,
+  retryBudget = DEFAULT_RETRY_BUDGET,
 } = {}) {
   const approverSet = new Set(approvers.map(normalizeLogin).filter(Boolean));
   const decisions = [];
@@ -391,6 +429,54 @@ export function planAutoMerge({
       add("merge-state", detail ?? `unrecognized merge state '${state}' — failing closed`);
     }
 
+    // ── repair candidacy (toon-meta#357) ─────────────────────────────────────
+    // A PR is a repair CANDIDATE only when every blocker present is one that
+    // red-checks-or-conflict would itself produce — any other blocker (e.g.
+    // needs:human, an outstanding CHANGES_REQUESTED, an unreadable policy)
+    // means the PR stays simply `blocked`, never handed to `planRepair`. This
+    // is how #357's "do not race the reviewer" rule is enforced: by
+    // construction, not a special case. `required-check-not-green` alone
+    // (e.g. a required check still PENDING, nothing actually FAILED yet) is
+    // NOT sufficient — the `overall.verdict === "failing"` guard below
+    // requires an actual failing state to exist before repair is considered.
+    const conflicting = mergeable === "CONFLICTING";
+    const genuinelyFailing = overall.verdict === "failing";
+    const REPAIR_RELEVANT_CODES = new Set([
+      "required-check-not-green",
+      "checks-failing",
+      "conflict",
+    ]);
+    const repairCandidate =
+      (conflicting || genuinelyFailing) &&
+      blockers.length > 0 &&
+      blockers.every(
+        (b) => REPAIR_RELEVANT_CODES.has(b.code) || (b.code === "merge-state" && state === "DIRTY"),
+      );
+    // Carry an error-text snippet alongside each failing check when the
+    // shell attached one (e.g. from a job-log fetch) — normalizeCheck() only
+    // reduces a rollup entry to {name, state}, so classification needs its
+    // own lookup back into the raw rollup entries.
+    const errorTextByCheck = new Map(
+      (pr.statusCheckRollup ?? []).map((c) => [normalizeCheck(c).name, c.errorText ?? ""]),
+    );
+    const failingChecksForRepair = overall.failing.map((f) => ({
+      name: f.name,
+      state: f.state,
+      errorText: errorTextByCheck.get(f.name) ?? "",
+    }));
+    const repairPlan = repairCandidate
+      ? planRepair({
+          mergeable,
+          failingChecks: failingChecksForRepair,
+          mainRollup: mainRollups[repoKey] ?? [],
+          repairAttempts: repairAttempts[id] ?? 0,
+          retryAttempts: retryAttempts[id] ?? 0,
+          hasAgentFixInFlight: labelNames(pr.labels).includes(AGENT_FIX_LABEL),
+          repairBudget,
+          retryBudget,
+        })
+      : null;
+
     const signals = {
       checks: overall.verdict,
       requiredChecks: requiredStates,
@@ -400,11 +486,30 @@ export function planAutoMerge({
       approvedBy: approvals.map((a) => a.author),
       autoMergeAllowed: policy.autoMergeAllowed === true,
       autoMergeEnabled: pr.autoMergeEnabled === true,
+      repair: repairPlan,
     };
 
     let verdict = "blocked";
     let action = null;
-    if (blockers.length === 0) {
+    if (repairPlan?.verdict) {
+      verdict = repairPlan.verdict;
+      action =
+        repairPlan.verdict === "retry"
+          ? {
+              type: "rerun-failed-jobs",
+              repo: pr.repo,
+              number: pr.number,
+              checks: overall.failing.map((f) => f.name),
+              reason: repairPlan.reason,
+            }
+          : {
+              type: "apply-label",
+              repo: pr.repo,
+              number: pr.number,
+              label: repairPlan.verdict === "repair" ? AGENT_FIX_LABEL : HUMAN_LABEL,
+              reason: repairPlan.reason,
+            };
+    } else if (blockers.length === 0) {
       if (behind) {
         verdict = "update-branch";
         action = {
