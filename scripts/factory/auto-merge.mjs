@@ -185,12 +185,15 @@ function gh(args, { json = false, allowFail = false } = {}) {
   }
 }
 
-function ghTry(args, { json = false } = {}) {
+function ghTry(args, { json = false, env } = {}) {
   try {
     const out = execFileSync("gh", args, {
       encoding: "utf8",
       maxBuffer: 32 * 1024 * 1024,
       stdio: ["ignore", "pipe", "pipe"],
+      // Caller-supplied env (e.g. the github.token fallback for same-repo
+      // workflow dispatches) — defaults to the process env untouched.
+      ...(env ? { env } : {}),
     });
     return { ok: true, value: json ? JSON.parse(out || "null") : out };
   } catch (err) {
@@ -657,7 +660,7 @@ for (const a of plan.actions) {
         // dispatch cannot aim the fixer at an arbitrary PR. Failure to
         // dispatch is loud but non-fatal — the label is already on, and a
         // later pass (or a human) can re-dispatch.
-        const d = ghTry([
+        const dispatchArgs = [
           "workflow",
           "run",
           "agent-fix.yml",
@@ -665,7 +668,23 @@ for (const a of plan.actions) {
           repo,
           "-f",
           `pr=${n}`,
-        ]);
+        ];
+        let d = ghTry(dispatchArgs);
+        // FACTORY_OPS_TOKEN currently lacks Actions write (403 observed live
+        // 2026-08-14; PAT rotation is a web-UI human step, #347 queue). For
+        // the pass's OWN repo, github.token can dispatch instead — the
+        // workflow grants actions:write for exactly this. Cross-repo
+        // dispatches have no fallback until the rotation, so those stay a
+        // loud warning; the red-check repair class still starts via the
+        // labeled trigger there (conflicting PRs deliver no PR events, so
+        // cross-repo CONFLICT repairs wait on the PAT rotation or a human).
+        const ownRepo = (process.env.GITHUB_REPOSITORY ?? "").toLowerCase();
+        if (!d.ok && process.env.GH_TOKEN_FALLBACK && repo.toLowerCase() === ownRepo) {
+          d = ghTry(dispatchArgs, {
+            env: { ...process.env, GH_TOKEN: process.env.GH_TOKEN_FALLBACK },
+          });
+          if (d.ok) console.log(`[APPLY] ${repo}#${n}: dispatch fell back to github.token`);
+        }
         if (d.ok) {
           console.log(`[APPLY] ${repo}#${n}: agent-fix runner dispatched`);
         } else {
