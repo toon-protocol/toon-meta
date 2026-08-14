@@ -16,7 +16,16 @@
 #     is the precondition that often flips last;
 #   * a PR merged into this repo — under strict protection (#272) that merge
 #     just put every other open PR behind `main`, and updating those branches
-#     is part of the pass.
+#     is part of the pass;
+#   * a label was added to or removed from a factory PR (#358) — a label
+#     change is the one state change that most often makes a PR mergeable or
+#     repair-eligible with no other event. Clearing `needs:human` is the
+#     concrete case that bit this fleet: connector#923/#935 sat mergeable for
+#     5.5h after the label was cleared because nothing else fired before the
+#     next cron — that clear is `unlabeled`, not `labeled`;
+#   * a factory PR's branch was pushed to (`synchronize`, #357) — so a repair
+#     attempt's own push is re-evaluated as soon as it lands, not up to 6h
+#     later.
 #
 # `secrets: inherit` hands the called workflow this repo's FACTORY_OPS_TOKEN
 # (org secret, monitored by toon-meta's factory-ops-credential workflow) —
@@ -32,17 +41,24 @@ on:
   pull_request_review:
     types: [submitted]
   pull_request:
-    types: [closed]
+    types: [closed, labeled, unlabeled, synchronize]
 
 permissions:
   contents: read
 
 jobs:
   forward:
-    # Only factory branches matter, and only merged PRs (a plain close changes
-    # nobody's mergeability).
+    # Only factory branches matter. A plain close (not merged) changes
+    # nobody's mergeability; labeled/unlabeled/synchronize are scoped to
+    # factory branches the same way check_suite and pull_request_review are.
     if: >-
       (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      (github.event_name == 'pull_request' && (
+        github.event.action == 'labeled' ||
+        github.event.action == 'unlabeled' ||
+        github.event.action == 'synchronize') && (
+        startsWith(github.event.pull_request.head.ref, 'sandcastle/') ||
+        startsWith(github.event.pull_request.head.ref, 'agent/'))) ||
       (github.event_name == 'pull_request_review' && (
         startsWith(github.event.pull_request.head.ref, 'sandcastle/') ||
         startsWith(github.event.pull_request.head.ref, 'agent/'))) ||

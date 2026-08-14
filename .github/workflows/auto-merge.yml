@@ -41,11 +41,13 @@
 #     BEHIND `main` under strict protection (#272), and updating those branches
 #     is this pass's job (see the evaluator header: behind-base is an action,
 #     not a verdict).
-#   * pull_request labeled (#357) — a label change is the one state change
-#     that can make a PR mergeable, or repair-eligible, with no other event.
-#     Clearing `needs:human` is the concrete case that bit this fleet:
-#     connector#923/#935 sat mergeable for 5.5h after the label was cleared
-#     because nothing else fired before the next cron.
+#   * pull_request labeled/unlabeled (#357, #358) — a label change is the one
+#     state change that can make a PR mergeable, or repair-eligible, with no
+#     other event. Clearing `needs:human` is the concrete case that bit this
+#     fleet: connector#923/#935 sat mergeable for 5.5h after the label was
+#     cleared because nothing else fired before the next cron — that clear is
+#     an `unlabeled` event, not `labeled` (#357 wired only the latter, which
+#     is why #935's own scenario still could not have re-triggered itself).
 #   * pull_request synchronize (#357) — so a repair attempt's own push (a
 #     `repair` verdict dispatches `agent:fix`, whose runner pushes commits
 #     back to the PR) is re-evaluated as soon as it lands, not up to 6h later.
@@ -125,7 +127,7 @@ on:
   pull_request_review:
     types: [submitted]
   pull_request:
-    types: [closed, labeled, synchronize]
+    types: [closed, labeled, unlabeled, synchronize]
 
 permissions:
   contents: read
@@ -139,7 +141,7 @@ jobs:
       github.event_name == 'schedule' ||
       (github.event_name == 'pull_request' && (
         github.event.pull_request.merged == true ||
-        ((github.event.action == 'labeled' || github.event.action == 'synchronize') && (
+        ((github.event.action == 'labeled' || github.event.action == 'unlabeled' || github.event.action == 'synchronize') && (
           startsWith(github.event.pull_request.head.ref, 'sandcastle/') ||
           startsWith(github.event.pull_request.head.ref, 'agent/'))))) ||
       (github.event_name == 'pull_request_review' && (
