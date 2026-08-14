@@ -665,18 +665,24 @@ runner submits the reviewer's structured verdict (#275) as a **formal GitHub rev
 
 **Either way, the verdict submitter clears `agent:review` if the PR carries it — so after any
 verdict, the label means only "a review is pending or in flight"**
-([#355](https://github.com/toon-protocol/toon-meta/issues/355)). The label is only actually
-present on the review runner's path (`agent-review.yml`, which the label itself triggered); the
-implement runner submits its verdict on a PR that was never labelled, so there the clear is a
-tolerated no-op — GitHub's 404 for removing an absent label is expected and never fails the
-run, while any other removal failure still does. Before this, nothing ever cleared the label:
-`connector#923` and `connector#935` both sat labelled long after their reviews finished and
-returned `APPROVED`, making a done review indistinguishable from a pending one, and because
-`agent-review.yml` fires on the `labeled` event, re-review needed an undocumented
-remove-then-re-add of the label instead of a plain re-apply. Unlike `needs:human`, this clear
-carries **no ownership check** — `agent:review` is unambiguously a machine trigger, never a
-human control point, so whoever applied it, a submitted verdict means the review it asked for is
-done. It also does not gate merge (`auto-merge.yml` does not check it).
+([#355](https://github.com/toon-protocol/toon-meta/issues/355)). Before this, nothing ever
+cleared it: `connector#923` and `connector#935` both sat labelled long after their reviews
+finished and returned `APPROVED`, making a done review indistinguishable from a pending one;
+and because `agent-review.yml` fires on the `labeled` event, re-review needed an undocumented
+remove-then-re-add of the label instead of a plain re-apply. Unlike the `needs:human` clear
+described below, this one carries **no ownership check** — `agent:review` is unambiguously a
+machine trigger, never a human control point, so whoever applied it, a submitted verdict means
+the review it asked for is done. It also does not gate merge (`auto-merge.yml` does not check
+it): this is an observability fix, not a wedge.
+
+The label is only actually present on the review runner's path (`agent-review.yml`, which the
+label itself triggered); the implement runner submits its verdict on a PR that was never
+labelled, so there the clear is a tolerated no-op — GitHub's 404 for removing an absent label is
+expected and never fails the run, while any other removal failure still does. A run that never
+reaches a verdict still leaves the label on — it died, or its clean verdict was withheld because
+the review-push verification failed. That errs the safe way (an unfinished review is not a
+finished one), but nothing reaps such a label the way the
+[dead-label reaper](#dead-label-reaper-330) reaps a dead `agent:implement`.
 
 **A later clean verdict clears the `needs:human` it applied — and only that one**
 ([#352](https://github.com/toon-protocol/toon-meta/issues/352)). The blocking branch applies
@@ -690,7 +696,7 @@ the most recent application was by the approver identity itself. `needs:human` i
 control point, so a label a person applied — including one re-applied after a clean verdict —
 is never touched by the machine. The rule is pure and unit-tested in
 `.sandcastle/needs-human-evaluator.mjs` (moved there by
-[#354](https://github.com/toon-protocol/toon-meta/issues/354) so it propagates with the runner);
+[#354](https://github.com/toon-protocol/toon-meta/pull/354) so it propagates with the runner);
 it fails closed, because a label that should have been cleared costs a manual edit while one
 cleared wrongly overrules a person.
 
