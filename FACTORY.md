@@ -157,7 +157,7 @@ repo. The label→runner is a GitHub Action (`.github/workflows/agent-*.yml`), *
 | Label             | Color     | Meaning                                                                                              |
 |-------------------|-----------|------------------------------------------------------------------------------------------------------|
 | `agent:implement` | `#1D76DB` | An agent should build this. Fires the sandcastle **implement** runner (`agent-implement.yml`).        |
-| `agent:review`    | `#B392F0` | One labeled review action over a PR — the single-pass replacement for the old 4-round `review-round:*` loop. Fires the **review** runner (`agent-review.yml`). |
+| `agent:review`    | `#B392F0` | One labeled review action over a PR — the single-pass replacement for the old 4-round `review-round:*` loop. Fires the **review** runner (`agent-review.yml`); removed once the verdict is submitted (see [What a factory-ops approval attests](#what-a-factory-ops-approval-attests)) — a PR carrying it means a review is genuinely pending or in flight. |
 
 Color rationale: `agent:implement` reuses the blue (`#1D76DB`) of the label it replaces
 (`agent:ready`), keeping the "agent trigger" identity. `agent:review` takes a distinct light
@@ -663,6 +663,27 @@ runner submits the reviewer's structured verdict (#275) as a **formal GitHub rev
   cannot approve its own PR.
 - **blocking** → a `CHANGES_REQUESTED` review carrying the findings, plus `needs:human`.
 
+**Either way, the verdict submitter clears `agent:review` if the PR carries it — so after any
+verdict, the label means only "a review is pending or in flight"**
+([#355](https://github.com/toon-protocol/toon-meta/issues/355)). Before this, nothing ever
+cleared it: `connector#923` and `connector#935` both sat labelled long after their reviews
+finished and returned `APPROVED`, making a done review indistinguishable from a pending one;
+and because `agent-review.yml` fires on the `labeled` event, re-review needed an undocumented
+remove-then-re-add of the label instead of a plain re-apply. Unlike the `needs:human` clear
+described below, this one carries **no ownership check** — `agent:review` is unambiguously a
+machine trigger, never a human control point, so whoever applied it, a submitted verdict means
+the review it asked for is done. It also does not gate merge (`auto-merge.yml` does not check
+it): this is an observability fix, not a wedge.
+
+The label is only actually present on the review runner's path (`agent-review.yml`, which the
+label itself triggered); the implement runner submits its verdict on a PR that was never
+labelled, so there the clear is a tolerated no-op — GitHub's 404 for removing an absent label is
+expected and never fails the run, while any other removal failure still does. A run that never
+reaches a verdict still leaves the label on — it died, or its clean verdict was withheld because
+the review-push verification failed. That errs the safe way (an unfinished review is not a
+finished one), but nothing reaps such a label the way the
+[dead-label reaper](#dead-label-reaper-330) reaps a dead `agent:implement`.
+
 **A later clean verdict clears the `needs:human` it applied — and only that one**
 ([#352](https://github.com/toon-protocol/toon-meta/issues/352)). The blocking branch applies
 the label as a side effect; nothing used to remove it, so a PR that went blocking → fixed →
@@ -674,8 +695,10 @@ The clear is **ownership-gated, not presence-gated**: it happens only when the t
 the most recent application was by the approver identity itself. `needs:human` is a human
 control point, so a label a person applied — including one re-applied after a clean verdict —
 is never touched by the machine. The rule is pure and unit-tested in
-`scripts/factory/needs-human-evaluator.mjs`; it fails closed, because a label that should have
-been cleared costs a manual edit while one cleared wrongly overrules a person.
+`.sandcastle/needs-human-evaluator.mjs` (moved there by
+[#354](https://github.com/toon-protocol/toon-meta/pull/354) so it propagates with the runner);
+it fails closed, because a label that should have been cleared costs a manual edit while one
+cleared wrongly overrules a person.
 
 **A factory-ops `APPROVED` state is a machine verdict, not human judgement.** It attests
 exactly this: *the gate passed and the sandcastle reviewer found nothing blocking* (reviewed
