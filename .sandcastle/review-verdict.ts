@@ -293,6 +293,7 @@ export function resolveIssueFromPrBody(prNumber: string): TargetIssue | null {
 }
 
 const NEEDS_HUMAN_LABEL = "needs:human";
+const AGENT_REVIEW_LABEL = "agent:review";
 
 // ---------------------------------------------------------------------------
 // factory-ops formal verdict (toon-meta#282)
@@ -464,6 +465,14 @@ function factoryOpsApprovalBody(issue: TargetIssue | null): string {
  * Submit the formal review verdict on a PR AS FACTORY-OPS:
  *   clean    → APPROVE
  *   blocking → REQUEST_CHANGES with the findings, plus the `needs:human` label
+ *
+ * Either way, `agent:review` — the label that triggered this run — is removed
+ * once the verdict lands (toon-meta#355). Unlike `needs:human`, `agent:review`
+ * is unambiguously a machine trigger, never a human control point, so no
+ * ownership check applies: whoever applied it, a submitted verdict means the
+ * review it asked for is done. That also makes re-review symmetrical with the
+ * first review — apply the label again — instead of the undocumented
+ * remove-then-re-add dance the `labeled`-event trigger otherwise demands.
  *
  * Resolves the approver identity and re-asserts the self-approval guard
  * itself, so no caller can reach the submission without the guard. After
@@ -639,4 +648,28 @@ export function submitFactoryOpsVerdict(
         `${approver.login} on a previous blocking verdict, and this verdict is clean.`,
     );
   }
+
+  // Clear the trigger label now that the verdict it requested has been
+  // submitted — see the function doc comment (toon-meta#355). Unconditional
+  // (no ownership check, unlike needs:human above): agent:review is a pure
+  // trigger, so whoever applied it, "a verdict was just submitted" is reason
+  // enough to remove it.
+  execFileSync(
+    "gh",
+    [
+      "api",
+      "-X",
+      "DELETE",
+      // Same encoding gotcha as NEEDS_HUMAN_LABEL above: the colon MUST stay
+      // percent-encoded or this silently no-ops (200, label untouched).
+      `repos/${nwo}/issues/${prNumber}/labels/${encodeURIComponent(AGENT_REVIEW_LABEL)}`,
+    ],
+    {
+      stdio: ["ignore", "ignore", "inherit"],
+      env: { ...process.env, GH_TOKEN: approver.token },
+    },
+  );
+  console.log(
+    `Cleared '${AGENT_REVIEW_LABEL}' on PR #${prNumber} — the review verdict is submitted.`,
+  );
 }
