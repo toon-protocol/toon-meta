@@ -192,17 +192,19 @@ Ordered checklist, proven on relay. Do it in this order:
   completed`) never fires — not flaky, never, in any repo.
 - **Cause:** check suites for GitHub Actions workflow runs are created with
   `GITHUB_TOKEN`, and GitHub never delivers workflow-triggering events for
-  `GITHUB_TOKEN`-created activity — confirmed live 2026-08-14, zero
+  `GITHUB_TOKEN`-created activity — confirmed live 2026-08-14: zero
   `check_suite`-triggered runs across all eleven factory repos, ever.
 - **Fix:** trigger on `workflow_run: completed` instead — it **is** delivered for
   `GITHUB_TOKEN`-created runs (proven live by toon-meta's own reap-dead-labels pass,
-  which fires via `workflow_run`). Name the PR-triggered CI workflows explicitly and
-  add a job-level guard on `workflow_run.head_branch` so the job only proceeds for a
-  factory branch.
-- **Propagated org-wide:** `auto-merge.yml`, `pr-housekeeping.yml`, and both canonical
-  shims switched from the dead `check_suite` trigger to `workflow_run`
-  ([toon-meta#369](https://github.com/toon-protocol/toon-meta/issues/369)); see
-  [FACTORY.md](../FACTORY.md) for the per-repo shim install status.
+  which fires via `workflow_run`). Name the repo's PR-triggered CI workflows explicitly
+  and add a job-level guard on `workflow_run.head_branch` so the job only proceeds for
+  a factory branch.
+- **Rollout status:** `auto-merge.yml`, `pr-housekeeping.yml`, and both canonical shims
+  switched from the dead `check_suite` trigger to `workflow_run`
+  ([toon-meta#369](https://github.com/toon-protocol/toon-meta/issues/369)). The deployed
+  per-repo shim copies are re-installed by hand, so a repo keeps the dead trigger until
+  its copy is refreshed — see [FACTORY.md](../FACTORY.md) for the per-repo shim install
+  status.
 
 ---
 
