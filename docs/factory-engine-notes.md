@@ -270,10 +270,8 @@ passing.
 **Toolchain variants that still need their own ≥1-merged-agent-PR proof** (the recipe
 above is proven on pnpm-with-lint; these differ):
 
-- **npm-workspaces** — connector (hand-ordered build).
-- **docs** — toon-meta (markdownlint + link-check + JSON/template validation; no
-  `package.json` yet).
-- **lint-less pnpm** — store (pnpm but no `lint`, esbuild build).
+- ~~npm-workspaces / docs / lint-less pnpm~~ — all three proven since (see
+  FACTORY.md's registry table for the merged-PR citations).
 
 ## The pass must not see itself: plumbing check runs are not CI (2026-08-14)
 
