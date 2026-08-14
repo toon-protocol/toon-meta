@@ -817,12 +817,14 @@ non-toon-meta factory repos carried `.github/workflows/auto-merge-shim.yml`. It 
 `scripts/factory/auto-merge-shim.yml`, diffed against the canonical file before its PR was opened.
 toon-meta itself needs no shim — its `auto-merge.yml` carries the same triggers directly.
 
-Since that fan-out, the canonical shim has gained `labeled`/`synchronize` (#357) and `unlabeled`
-(#358) triggers — added here, in the canonical copy, only. The ten deployed copies still carry
-just `check_suite`/`pull_request_review`/`pull_request:closed`, so until each is re-diffed against
-the canonical file and re-installed, those repos still wait up to 6h for a label change to
-re-evaluate a PR (this ticket's own connector#923/#935 scenario), exactly as toon-meta itself did
-before this ticket. Verify per repo before assuming it landed — the #329 lesson.
+Since that fan-out, the canonical shim has gained `labeled`, `unlabeled` and `synchronize`
+triggers — all three added to the shim here, in the canonical copy only (`labeled`/`synchronize`
+reached `auto-merge.yml` earlier, with #357; #358 adds `unlabeled` and brings the shim up to the
+same trigger set). The ten deployed copies still carry just
+`check_suite`/`pull_request_review`/`pull_request:closed`, so until each is re-diffed against the
+canonical file and re-installed, those repos still wait up to 6h for a label change to re-evaluate
+a PR (this ticket's own connector#923/#935 scenario), exactly as toon-meta itself did before this
+ticket. Verify per repo before assuming it landed — the #329 lesson.
 
 Installing it per-repo is cross-repo work a toon-meta agent run cannot do (each repo dispatches in
 its own repo), which is why it was ten hand-opened PRs rather than ten sandcastle runs — the same
@@ -954,15 +956,14 @@ and the action's reason (which names the attempt count and the budget whenever a
 decided it), plus `d.signals.repair`, which carries the full `planRepair` output for every PR that
 reached the repair decision and `null` for every PR that never became a candidate.
 
-**Triggers.** `.github/workflows/auto-merge.yml`'s `pull_request` trigger gained `labeled` and
-`synchronize` here, and `unlabeled`
-([#358](https://github.com/toon-protocol/toon-meta/issues/358), previously only `closed`): a
-label change is the one state change that can make a PR mergeable or repair-eligible with no
-other event, and `synchronize` re-evaluates a repair attempt's own push as soon as it lands
-rather than up to 6h later. `connector#923`/`#935` sat mergeable for 5.5h after `needs:human` was
-*cleared* — an `unlabeled` event — because nothing else fired before the next cron; this pass's
-own `labeled` trigger, added first, could not have caught that exact case, which is why #358
-added `unlabeled` alongside it.
+**Triggers.** `.github/workflows/auto-merge.yml`'s `pull_request` trigger (previously `closed`
+only) gained `labeled` and `synchronize` here, plus `unlabeled`
+([#358](https://github.com/toon-protocol/toon-meta/issues/358)): a label change is the one state
+change that can make a PR mergeable or repair-eligible with no other event, and `synchronize`
+re-evaluates a repair attempt's own push as soon as it lands rather than up to 6h later.
+`connector#923`/`#935` sat mergeable for 5.5h after `needs:human` was *cleared* — an `unlabeled`
+event — because nothing else fired before the next cron; this pass's own `labeled` trigger, added
+first, could not have caught that exact case, which is why #358 added `unlabeled` alongside it.
 
 **What the shell adds** (`scripts/factory/auto-merge.mjs`), over and above the merge pass's
 existing reads: `readMainRollup` (main's own check rollup, once per repo, via

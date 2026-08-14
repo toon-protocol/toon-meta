@@ -18,8 +18,8 @@
 #     just put every other open PR behind `main`, and updating those branches
 #     is part of the pass;
 #   * a label was added to or removed from a factory PR (#358) — a label
-#     change is the one state change that most often makes a PR mergeable or
-#     repair-eligible with no other event. Clearing `needs:human` is the
+#     change is the one state change that can make a PR mergeable, or
+#     repair-eligible, with no other event. Clearing `needs:human` is the
 #     concrete case that bit this fleet: connector#923/#935 sat mergeable for
 #     5.5h after the label was cleared because nothing else fired before the
 #     next cron — that clear is `unlabeled`, not `labeled`;
