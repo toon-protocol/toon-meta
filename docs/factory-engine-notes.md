@@ -268,11 +268,11 @@ strict cross-package program), so `build` passing never implied `tsc --noEmit`
 passing.
 
 **Toolchain variants, each now with its own ≥1-merged-agent-PR proof** (the recipe
-above is proven on pnpm-with-lint; these differed and are proven too):
+above was first proven on pnpm-with-lint; these three differ from it):
 
 - **npm-workspaces** — connector (hand-ordered build). (Proof: PR connector#394.)
-- **docs** — toon-meta (markdownlint + link-check + JSON/template validation). (Proof:
-  PR toon-meta#201.)
+- **docs** — toon-meta (markdownlint + link-check + JSON/template validation).
+  (Proof: PR toon-meta#201.)
 - **lint-less pnpm** — store (pnpm but no `lint`, esbuild build). (Proof: PR store#52.)
 
 ## The pass must not see itself: plumbing check runs are not CI (2026-08-14)
