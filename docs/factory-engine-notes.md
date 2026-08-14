@@ -233,6 +233,44 @@ Ordered checklist, proven on relay. Do it in this order:
   should confirm their `foundry-toolchain` installs are pinned to a stable version, not
   `nightly`.
 
+### CI gotcha (from connector#462, fixed by connector#463): App installation tokens expire before a long `agent:implement` run finishes
+
+- **Symptom:** the implementer and reviewer both complete cleanly, and the run still
+  dies at the final `git push` with `remote: Invalid username or token. Password
+  authentication is not supported for Git operations.` — after every expensive agent
+  step has already run. Observed on connector#430 (push at 77 min) and twice on
+  connector#422 (61 min, 73 min); each loss was a COMPLETED implementation.
+- **Cause:** the workflow mints the GitHub App installation token ONCE, in an early
+  `Generate GitHub App token` step, but pushes only after implement + review (and, in
+  toon-meta, the formal-verdict approver) have all finished. Installation tokens
+  expire **one hour** after issue, so any run that crosses the hour loses the push no
+  matter how much useful work it did. Raising `timeout-minutes` on its own makes this
+  *worse*: a longer clock just lets a run do more work before losing the same push.
+- **Fix (three parts, in this order — the wall clock moves LAST):**
+  1. Mint a fresh installation token ON DEMAND, immediately before EVERY push
+     (`.sandcastle/mint-app-token.ts`), from `APP_ID`/`APP_PRIVATE_KEY` kept
+     HOST-ONLY — the same seam `sandbox-secrets.ts` already uses to keep
+     `FACTORY_OPS_TOKEN` out of the container. Deliver the token to the in-sandbox
+     `git push` via **stdin** into a mode-600 file, read back by a one-shot
+     credential helper, deleted right after.
+  2. The empty `credential.helper=` that precedes the one-shot helper on the command
+     line is load-bearing: `credential.helper` is git-multi-valued and an empty value
+     *resets the list* — without it, `gh auth setup-git`'s container-global helper
+     (holding the stale token from container start) is consulted first and silently
+     wins. A port that drops it looks correct and still fails after an hour.
+  3. Publish the branch early, right after the implementer phase, best-effort — a run
+     killed during review (or, here, the approver) still leaves recoverable work on
+     the remote instead of losing it with the container.
+
+  Only once 1-3 land is it safe to raise `timeout-minutes` — that is the actual fix;
+  the longer clock is just headroom the credential no longer expires under.
+- **Rollout status:** fixed in connector by
+  [connector#463](https://github.com/toon-protocol/connector/pull/463), proven live on
+  a >1h run (connector#459); ported to toon-meta by
+  [toon-meta#334](https://github.com/toon-protocol/toon-meta/issues/334) (part of the
+  fan-out tracked in toon-meta#248). Other factory repos still pushing with a
+  job-start App token remain exposed to the same one-hour ceiling until ported.
+
 ---
 
 ## 4. First-run safety & coexistence
