@@ -186,6 +186,24 @@ Ordered checklist, proven on relay. Do it in this order:
 - **Propagated org-wide:** store#51, then the relay / rig / toon / swap / toon-client /
   connector / toon-meta sweep. Validated by store#52.
 
+### CI gotcha (from #369): `check_suite` never fires for `GITHUB_TOKEN`-created runs — use `workflow_run`
+
+- **Symptom:** a workflow wired to wake up on "CI just finished" (`check_suite:
+  completed`) never fires — not flaky, never, in any repo.
+- **Cause:** check suites for GitHub Actions workflow runs are created with
+  `GITHUB_TOKEN`, and GitHub never delivers workflow-triggering events for
+  `GITHUB_TOKEN`-created activity — confirmed live 2026-08-14, zero
+  `check_suite`-triggered runs across all eleven factory repos, ever.
+- **Fix:** trigger on `workflow_run: completed` instead — it **is** delivered for
+  `GITHUB_TOKEN`-created runs (proven live by toon-meta's own reap-dead-labels pass,
+  which fires via `workflow_run`). Name the PR-triggered CI workflows explicitly and
+  add a job-level guard on `workflow_run.head_branch` so the job only proceeds for a
+  factory branch.
+- **Propagated org-wide:** `auto-merge.yml`, `pr-housekeeping.yml`, and both canonical
+  shims switched from the dead `check_suite` trigger to `workflow_run`
+  ([toon-meta#369](https://github.com/toon-protocol/toon-meta/issues/369)); see
+  [FACTORY.md](../FACTORY.md) for the per-repo shim install status.
+
 ---
 
 ## 4. First-run safety & coexistence
