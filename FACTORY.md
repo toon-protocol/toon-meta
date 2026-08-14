@@ -803,11 +803,25 @@ Logic: `scripts/factory/auto-merge.mjs` (thin I/O shell) over the pure, unit-tes
 (the four-valued check verdict + mergeability settling, now **shared verbatim** with
 `pr-housekeeping.mjs` so the remediation pass and the merge pass can never disagree about
 whether the same PR is green). Workflow: `.github/workflows/auto-merge.yml`, which carries
-toon-meta's own check-suite/review/merged-PR/labeled/unlabeled/synchronize triggers directly (so
-toon-meta needs no shim). Every other factory repo is meant to reach it on those same events
-through its own `.github/workflows/auto-merge-shim.yml`, fanned out verbatim from the canonical
-copy at `scripts/factory/auto-merge-shim.yml` — but the deployed copies are stale (see below). A
-6-hourly safety cron backs the whole fleet.
+toon-meta's own CI-completion (`workflow_run`)/review/merged-PR/labeled/unlabeled/synchronize
+triggers directly (so toon-meta needs no shim). Every other factory repo is meant to reach it on
+those same events through its own `.github/workflows/auto-merge-shim.yml`, fanned out verbatim
+from the canonical copy at `scripts/factory/auto-merge-shim.yml` — but the deployed copies are
+stale (see below). A 6-hourly safety cron backs the whole fleet.
+
+**The `check_suite` trigger was dead on arrival — `workflow_run` replaces it.** The "CI just
+finished" moment was originally wired as `check_suite: completed`, and that trigger never fired
+once, anywhere in the fleet: check suites for Actions runs are created with `GITHUB_TOKEN`, and
+GitHub never delivers workflow-triggering events for `GITHUB_TOKEN`-created activity (verified
+2026-08-14 — zero `check_suite`-triggered runs across all eleven repos, ever). So the one event
+that was supposed to make a PR merge the moment it went green was silently absent, and every
+green PR waited for a review/label/merge event or the 6-hourly cron. `workflow_run: completed`
+**is** delivered for `GITHUB_TOKEN`-created runs (proven live: toon-meta's own reap-dead-labels
+fires via `workflow_run`), so `auto-merge.yml`, `pr-housekeeping.yml` and both canonical shims
+now use `workflow_run` naming the PR-triggered CI workflows, with a cheap job-level guard that
+only proceeds when `workflow_run.head_branch` is a factory branch (`sandcastle/` or `agent/`).
+The canonical shims carry the fleet-wide **union** of CI workflow names — `workflow_run`
+silently ignores names a repo does not have, so the one canonical copy stays stampable verbatim.
 
 **Per-repo shim install status ([#322](https://github.com/toon-protocol/toon-meta/issues/322),
 [#358](https://github.com/toon-protocol/toon-meta/issues/358)).** The canonical copy shipped with
@@ -820,11 +834,13 @@ toon-meta itself needs no shim — its `auto-merge.yml` carries the same trigger
 Since that fan-out, the canonical shim has gained `labeled`, `unlabeled` and `synchronize`
 triggers — all three added to the shim here, in the canonical copy only (`labeled`/`synchronize`
 reached `auto-merge.yml` earlier, with #357; #358 adds `unlabeled` and brings the shim up to the
-same trigger set). The ten deployed copies still carry just
+same trigger set) — and has since swapped its dead `check_suite` trigger for the working
+`workflow_run` one (see above). The ten deployed copies still carry just
 `check_suite`/`pull_request_review`/`pull_request:closed`, so until each is re-diffed against the
-canonical file and re-installed, those repos still wait up to 6h for a label change to re-evaluate
-a PR (this ticket's own connector#923/#935 scenario), exactly as toon-meta itself did before this
-ticket. Verify per repo before assuming it landed — the #329 lesson.
+canonical file and re-installed, those repos have **no** working "CI finished" trigger at all —
+they still wait up to 6h for a label change to re-evaluate a PR (this ticket's own
+connector#923/#935 scenario), exactly as toon-meta itself did before this ticket. Verify per repo
+before assuming it landed — the #329 lesson.
 
 Installing it per-repo is cross-repo work a toon-meta agent run cannot do (each repo dispatches in
 its own repo), which is why it was ten hand-opened PRs rather than ten sandcastle runs — the same
@@ -837,14 +853,14 @@ every PR there waits up to 6h after going green, and one that is `BEHIND` gets i
 on one pass and can only be merged on the next — another ≥6h.
 
 **The shim-forwarded `if:` guard was verified, not assumed.** The job-level `if:` in
-`auto-merge.yml` filters the three forwarded events (`check_suite`, `pull_request_review`,
+`auto-merge.yml` filters the three forwarded events (`workflow_run`, `pull_request_review`,
 `pull_request`) by reading `github.event.*` fields, which only works if a workflow invoked via
 `workflow_call` from a repo's shim sees that shim's own triggering payload rather than a synthetic
 `workflow_call` event. GitHub's docs say so outright, so this no longer rests on the workflow's
 own comment: "When a reusable workflow is triggered by a caller workflow, the `github` context is
 always associated with the caller workflow"
 ([Reusing workflow configurations → `github` context](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations#github-context)).
-`github.event.check_suite.head_branch` and friends therefore resolve identically whether the
+`github.event.workflow_run.head_branch` and friends therefore resolve identically whether the
 workflow runs from toon-meta's own trigger or a shim's `uses:` forward.
 
 **Why not just `gh pr merge --auto` and let GitHub decide.** Native auto-merge merges as soon
@@ -856,6 +872,22 @@ protection alone would merge an unreviewed agent PR. The seam is therefore: **th
 stricter gate, GitHub is the final authoritative one.** We decide eligibility with the extra
 preconditions and then hand the merge to GitHub, which re-enforces protection at the moment of
 merging. Neither side can merge what the other rejects.
+
+**`arm-pending` / `disarm` — the pass arms, GitHub merges.** The seam above still left a race:
+a PR whose factory-ops verdict landed while its checks were still running was `blocked
+(checks-pending)`, and nothing re-fired the pass at the exact moment the checks finished. Two
+verdicts close it. `arm-pending` fires when the pass has already enforced everything protection
+*cannot* express — the approving verdict is present and not stale, no blocking label, every
+required context present and none `SKIPPED`/`NEUTRAL`, `mergeable` settled — and every remaining
+blocker is pending-shaped (checks still running, or a merge state merely mirroring them): native
+auto-merge is armed **now** (`gh pr merge --auto`), and GitHub does the waiting and the final
+enforcement, merging the moment protection is satisfied. `disarm` is the inverse safety valve:
+a PR that *is* armed but has grown a non-pending blocker (a blocking label appeared, the
+approval was withdrawn or went stale, the PR now conflicts) is un-armed (`--disable-auto`)
+before anything else — protection cannot see those blockers, so GitHub must not be left holding
+the trigger. The division of labour is unchanged: the pass is the stricter gate and does the
+arming; GitHub is the final gate and does the merging. Both actions obey `AUTOMERGE_APPLY`
+exactly like merges, and `arm-pending` requires the repo's `allow_auto_merge` to be on.
 
 **The five preconditions** (all must hold; the report names every one that failed):
 
@@ -878,11 +910,13 @@ App identity, which never approves, so every PR reports `approval-missing` and n
 
 **Rollout prerequisites**, as of 2026-08-06:
 
-- **`allow_auto_merge` is `false` on all 11 repos**, so `gh pr merge --auto` would be refused
-  today. The pass falls back to a direct `gh pr merge` for a PR that is verified green and
-  `CLEAN` *right now* — GitHub's merge endpoint still enforces branch protection, so the
-  fallback loses the *waiting*, not the *enforcing*. Turning the repo setting on (Settings →
-  Pull Requests → Allow auto-merge) upgrades every repo to the native path automatically.
+- **`allow_auto_merge` is now `true` on all 11 repos** — flipped fleet-wide as the arm-pending
+  rollout step (verified live 2026-08-14; it was `false` everywhere when this pass shipped), so
+  every repo takes the native `gh pr merge --auto` path. The direct-merge fallback remains in
+  the code for any repo whose setting regresses: on a `false` repo, `gh pr merge --auto` is
+  refused and the pass merges a verified-green, `CLEAN`-*right-now* PR directly — GitHub's
+  merge endpoint still enforces branch protection, so the fallback loses the *waiting*, not the
+  *enforcing* (and `arm-pending` never fires there).
 - **buzz is excluded** (`DEFAULT_EXCLUDED_REPOS`): its required contexts are still #272's interim
   pair, which only proves the workflow started. Remove the exclusion when
   [#279](https://github.com/toon-protocol/toon-meta/issues/279) repoints buzz at a real aggregate.

@@ -10,8 +10,14 @@
 # All logic (the five merge preconditions, the check-set honesty rule, the
 # native-auto-merge seam, the merge cap) lives ONCE in toon-meta — this shim
 # only decides WHEN to invoke it:
-#   * a check suite completed on a factory branch (sandcastle/ or agent/) —
-#     the PR's gate just finished, the usual moment a PR becomes eligible;
+#   * a PR-triggered CI workflow run completed on a factory branch (sandcastle/
+#     or agent/) — the PR's gate just finished, the usual moment a PR becomes
+#     eligible. This is a workflow_run trigger, NOT check_suite: check suites
+#     for Actions runs are created with GITHUB_TOKEN, and GITHUB_TOKEN-created
+#     events never trigger workflows — the shim's original check_suite trigger
+#     never fired once, anywhere in the fleet. workflow_run:completed IS
+#     delivered for GITHUB_TOKEN-created runs (proven live by toon-meta's
+#     reap-dead-labels);
 #   * a review was submitted on a factory PR — the factory-ops APPROVE (#282)
 #     is the precondition that often flips last;
 #   * a PR merged into this repo — under strict protection (#272) that merge
@@ -36,7 +42,21 @@
 name: auto-merge-shim
 
 on:
-  check_suite:
+  # The fleet-wide UNION of every factory repo's pull_request-triggered CI
+  # workflow names (enumerated live 2026-08-14 via `gh api repos/toon-protocol/
+  # <repo>/actions/workflows`). workflow_run silently ignores names that do not
+  # exist in a given repo, so this one canonical copy stays stampable VERBATIM
+  # into every repo — do not trim it per repo. The agent runner workflows
+  # (agent:review / agent:fix) are deliberately absent: the moments they end
+  # are already covered by pull_request_review / pull_request:synchronize.
+  workflow_run:
+    workflows:
+      - "CI" # all ten repos
+      - "Agent image" # all ten repos
+      - "Contracts" # connector
+      - "Wire vectors drift" # toon-client
+      - "Docker image" # buzz
+      - "helm chart" # buzz
     types: [completed]
   pull_request_review:
     types: [submitted]
@@ -50,7 +70,7 @@ jobs:
   forward:
     # Only factory branches matter. A plain close (not merged) changes
     # nobody's mergeability; labeled/unlabeled/synchronize are scoped to
-    # factory branches the same way check_suite and pull_request_review are.
+    # factory branches the same way workflow_run and pull_request_review are.
     if: >-
       (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
       (github.event_name == 'pull_request' && (
@@ -62,9 +82,9 @@ jobs:
       (github.event_name == 'pull_request_review' && (
         startsWith(github.event.pull_request.head.ref, 'sandcastle/') ||
         startsWith(github.event.pull_request.head.ref, 'agent/'))) ||
-      (github.event_name == 'check_suite' && (
-        startsWith(github.event.check_suite.head_branch, 'sandcastle/') ||
-        startsWith(github.event.check_suite.head_branch, 'agent/')))
+      (github.event_name == 'workflow_run' && (
+        startsWith(github.event.workflow_run.head_branch, 'sandcastle/') ||
+        startsWith(github.event.workflow_run.head_branch, 'agent/')))
     uses: toon-protocol/toon-meta/.github/workflows/auto-merge.yml@main
     with:
       repos: ${{ github.repository }}

@@ -13,9 +13,10 @@
 #
 #   * Each factory repo carries an identical ~20-line shim
 #     (.github/workflows/pr-housekeeping-shim.yml) that fires on
-#     pull_request:closed (merged) and check_suite:completed (factory branches)
-#     and `uses:` THIS workflow via workflow_call with `secrets: inherit`.
-#   * This file is also toon-meta's own shim (the pull_request / check_suite
+#     pull_request:closed (merged) and workflow_run:completed (the repo's CI
+#     workflows, guarded to factory branches) and `uses:` THIS workflow via
+#     workflow_call with `secrets: inherit`.
+#   * This file is also toon-meta's own shim (the pull_request / workflow_run
 #     triggers below), so toon-meta needs no separate shim file.
 #
 # workflow_call was chosen over repository_dispatch deliberately: dispatching
@@ -30,10 +31,14 @@
 # ── WHY THESE TRIGGERS, NOT A CRON ───────────────────────────────────────────
 #   * pull_request closed-and-merged: a merge into main is what CREATES merge
 #     conflicts in everyone else's open PRs — re-check them all at that moment.
-#   * check_suite completed on a sandcastle/ or agent/ branch: the PR's own
-#     checks just finished; if red, file the fix ticket now, not up to an hour
-#     later. (No workflow-run loop: check suites created by workflow runs are
-#     authored with GITHUB_TOKEN, whose events never re-trigger workflows.)
+#   * workflow_run completed for the repo's PR-triggered CI workflows, guarded
+#     to sandcastle/ or agent/ head branches: the PR's own checks just
+#     finished; if red, file the fix ticket now, not up to an hour later. This
+#     REPLACES a `check_suite: completed` trigger that was dead on arrival:
+#     check suites for Actions runs are created with GITHUB_TOKEN, and
+#     GITHUB_TOKEN-created events never trigger workflows — zero check_suite
+#     runs ever fired here. workflow_run:completed IS delivered for
+#     GITHUB_TOKEN-created runs (proven live by toon-meta's reap-dead-labels).
 #
 # ── APPLY vs DRY-RUN ─────────────────────────────────────────────────────────
 # Writes happen ONLY when the org/repo Actions variable HOUSEKEEPING_APPLY is
@@ -71,9 +76,12 @@ on:
         type: boolean
         default: false
   # toon-meta's own shim triggers — other repos carry pr-housekeeping-shim.yml.
+  # workflow_run names toon-meta's own PR-triggered workflows; the canonical
+  # shim carries the fleet-wide union instead (unknown names never fire).
   pull_request:
     types: [closed]
-  check_suite:
+  workflow_run:
+    workflows: ["Docs gate", "Agent image"]
     types: [completed]
 
 permissions:
@@ -84,17 +92,17 @@ jobs:
     # Identical filter for direct triggers and shim-forwarded ones (the event
     # payload is the caller's, so the same expressions resolve either way):
     # only merged PRs matter (a plain close conflicts nobody), and only factory
-    # branches' check suites matter (anything else is noise).
+    # branches' CI runs matter (anything else is noise).
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
-      (github.event_name == 'check_suite' && (
-        startsWith(github.event.check_suite.head_branch, 'sandcastle/') ||
-        startsWith(github.event.check_suite.head_branch, 'agent/')))
+      (github.event_name == 'workflow_run' && (
+        startsWith(github.event.workflow_run.head_branch, 'sandcastle/') ||
+        startsWith(github.event.workflow_run.head_branch, 'agent/')))
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Coalesce event bursts (a merge fires check_suite completions across ~20
-    # jobs on buzz): at most one run active + one queued per swept repo; every
+    # Coalesce event bursts (several CI workflows can complete near-together
+    # on one PR): at most one run active + one queued per swept repo; every
     # run re-scans the whole repo, so dropped duplicates lose nothing.
     concurrency:
       group: pr-housekeeping-${{ inputs.repos || github.repository }}
@@ -123,7 +131,7 @@ jobs:
           # whole fleet.
           HOUSEKEEPING_REPOS: >-
             ${{ inputs.repos ||
-                ((github.event_name == 'pull_request' || github.event_name == 'check_suite') && github.repository) ||
+                ((github.event_name == 'pull_request' || github.event_name == 'workflow_run') && github.repository) ||
                 '' }}
           # Manual runs obey the apply input EXACTLY (apply=false never falls
           # through to the variable); event runs obey HOUSEKEEPING_APPLY, which
