@@ -665,9 +665,9 @@ runner submits the reviewer's structured verdict (#275) as a **formal GitHub rev
 
 **Either way, `agent:review` — the label that triggered the run — is removed once the verdict
 lands** ([#355](https://github.com/toon-protocol/toon-meta/issues/355)). Before this, nothing
-ever cleared it: `connector#923` and `#935` both sat labelled long after their reviews finished
-and returned `APPROVED`, making a done review indistinguishable from a pending one, and because
-`agent-review.yml` fires on the `labeled` event, re-review needed an undocumented
+ever cleared it: `connector#923` and `connector#935` both sat labelled long after their reviews
+finished and returned `APPROVED`, making a done review indistinguishable from a pending one, and
+because `agent-review.yml` fires on the `labeled` event, re-review needed an undocumented
 remove-then-re-add of the label instead of a plain re-apply. Unlike `needs:human`, this clear
 carries **no ownership check** — `agent:review` is unambiguously a machine trigger, never a
 human control point, so whoever applied it, a submitted verdict means the review it asked for is
@@ -686,8 +686,10 @@ The clear is **ownership-gated, not presence-gated**: it happens only when the t
 the most recent application was by the approver identity itself. `needs:human` is a human
 control point, so a label a person applied — including one re-applied after a clean verdict —
 is never touched by the machine. The rule is pure and unit-tested in
-`scripts/factory/needs-human-evaluator.mjs`; it fails closed, because a label that should have
-been cleared costs a manual edit while one cleared wrongly overrules a person.
+`.sandcastle/needs-human-evaluator.mjs` (moved there by
+[#354](https://github.com/toon-protocol/toon-meta/issues/354) so it propagates with the runner);
+it fails closed, because a label that should have been cleared costs a manual edit while one
+cleared wrongly overrules a person.
 
 **A factory-ops `APPROVED` state is a machine verdict, not human judgement.** It attests
 exactly this: *the gate passed and the sandcastle reviewer found nothing blocking* (reviewed
