@@ -274,3 +274,16 @@ above is proven on pnpm-with-lint; these differ):
 - **docs** — toon-meta (markdownlint + link-check + JSON/template validation; no
   `package.json` yet).
 - **lint-less pnpm** — store (pnpm but no `lint`, esbuild build).
+
+## The pass must not see itself: plumbing check runs are not CI (2026-08-14)
+
+Every `pull_request`-event workflow attaches its own job to the PR's check
+rollup. When the fleet auto-merge pass gained `pull_request` triggers, each
+evaluation saw its own in-progress `automerge` job, classified the PR
+`checks-pending`, and — because the pass's workflow is deliberately absent
+from every `workflow_run` trigger list — nothing re-fired on its completion.
+A self-inflicted deadlock on exactly the events that were added to kill
+deadlocks. Fixed by `PLUMBING_CHECKS` in `scripts/factory/pr-signals.mjs`
+(toon-meta#373): factory plumbing jobs are invisible to the verdict in both
+directions — their pending never blocks, and their SUCCESS never counts as
+"a check actually ran and passed".
