@@ -1,7 +1,7 @@
 // Fork-PR-approval watch (`npm run forkapproval:prs`). toon-meta#360, epic #342.
 //
 // Nothing in the factory previously watched for a fork PR whose workflow run
-// is sitting unapproved: `auto-merge.yml` scans agent PRs only (`sandcastle/`,
+// is sitting unapproved: `auto-merge.mjs` scans agent PRs only (`sandcastle/`,
 // `agent/`), the dispatcher works on issues, and `pr-housekeeping.mjs` scans
 // factory-branch PRs only — none of the three ever look at an external
 // contributor's fork PR. An unapproved run's `action_required` conclusion is

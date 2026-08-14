@@ -4,8 +4,8 @@
 # GitHub creates no CheckRun for an unapproved run (no job ever started), so
 # `gh pr checks` prints nothing and no `check_suite` event fires for anything
 # event-driven to notice. connector#925 sat this way for two days before a
-# human found it by hand; #927 landed the same change under a different
-# filename in the meantime. Full logic + safety model:
+# human found it by hand; connector#927 landed the same change under a
+# different filename in the meantime. Full logic + safety model:
 # scripts/factory/fork-approval-watch.mjs (I/O shell) over the pure,
 # unit-tested scripts/factory/fork-approval-evaluator.mjs (surface / no-op /
 # clear / skip decision, comment text).

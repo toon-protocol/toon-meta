@@ -8,16 +8,17 @@
 // event for anything event-driven to wake up on. connector#925 (fork PR,
 // opened 2026-08-10) sat this way for two days — invisible, not merely red —
 // until a human found it by hand on 2026-08-12 while triaging. In the
-// meantime #927 landed the same decision under a different filename, which
-// would have produced two ADR 0035s.
+// meantime connector#927 landed the same decision under a different filename,
+// which would have produced two ADR 0035s.
 //
 // ── WHY `head_sha`, NOT THE RUN'S `pull_requests` FIELD, CORRELATES A RUN
 //    TO A PR ────────────────────────────────────────────────────────────
 // A workflow run's `pull_requests` array is meant to name the PR(s) it
 // belongs to, but for a run triggered by a FORK's `pull_request` event that
 // array is always empty (a documented GitHub privacy limit, verified live
-// against connector's actual action_required runs from RawNuke/connector —
-// both `pull_requests: []`). The only reliable correlation is the run's
+// against the two action_required runs connector#925 — a PR from the
+// RawNuke/connector fork — left in toon-protocol/connector, both with
+// `pull_requests: []`). The only reliable correlation is the run's
 // `head_sha` against the PR's own `headRefOid`, which also naturally excludes
 // stale runs left over from a since-superseded commit.
 //

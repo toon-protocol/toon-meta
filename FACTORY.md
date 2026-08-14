@@ -1232,12 +1232,12 @@ Landed by [#360](https://github.com/toon-protocol/toon-meta/issues/360) (epic
 PRs behind a maintainer-approval setting. An unapproved run concludes `action_required` with no
 job ever scheduled — so it creates **no CheckRun** at all (`gh pr checks` prints nothing,
 `statusCheckRollup` is empty) and fires **no `check_suite` event**, which is exactly why nothing
-else in the factory ever noticed one: `auto-merge.yml` and `pr-housekeeping.mjs` scan factory
+else in the factory ever noticed one: `auto-merge.mjs` and `pr-housekeeping.mjs` scan factory
 branches only (`sandcastle/`, `agent/`), and neither would have seen this PR's branch anyway.
-`connector#925` (fork PR, opened 2026-08-10) sat this way for **two days**, silent rather than
-merely red, until a human found it by hand on 2026-08-12 while triaging — and in the meantime
-`#927` landed the same ADR decision under a different filename, which would have produced two ADR
-0035s had the duplicate not been caught.
+`connector#925` (fork PR from `RawNuke/connector`, opened 2026-08-10) sat this way for **two
+days**, silent rather than merely red, until a human found it by hand on 2026-08-12 while
+triaging — and in the meantime `connector#927` landed the same ADR decision under a different
+filename, which would have produced two ADR 0035s had the duplicate not been caught.
 
 Logic: `scripts/factory/fork-approval-watch.mjs` (I/O shell) over the pure, unit-tested
 `scripts/factory/fork-approval-evaluator.mjs` (`planForkApproval`: surface / no-op / clear / skip).
@@ -1251,11 +1251,12 @@ repo that it landed rather than assuming it did — the #329 lesson.
 **Correlating a run to a PR: `head_sha`, not the run's `pull_requests` field.** A workflow run's
 `pull_requests` array is meant to name the PR(s) it belongs to, but for a run triggered by a
 FORK's `pull_request` event that array is always empty — a documented GitHub privacy limit,
-verified live against connector's actual `action_required` runs from `RawNuke/connector` (both
-carried `pull_requests: []`). The only reliable correlation is the run's `head_sha` against the
-PR's own `headRefOid`, fetched via `GET /repos/{repo}/actions/runs?head_sha=…&event=pull_request` —
-which also naturally excludes stale runs left over from a since-superseded commit, so a PR that
-gained a new, unblocked commit is never flagged on an old blocker.
+verified live against the two `action_required` runs that `connector#925` (a PR from the
+`RawNuke/connector` fork) left in `toon-protocol/connector` — both carried `pull_requests: []`.
+The only reliable correlation is the run's `head_sha` against the PR's own `headRefOid`, fetched
+via `GET /repos/{repo}/actions/runs?head_sha=…&event=pull_request` — which also naturally excludes
+stale runs left over from a since-superseded commit, so a PR that gained a new, unblocked commit
+is never flagged on an old blocker.
 
 **Why `pull_request_target`, not `pull_request` — the load-bearing decision.** A workflow
 triggered by `pull_request` from a fork is itself subject to the exact same approval gate this
@@ -1277,8 +1278,9 @@ maintainer's approval would never *clear* the label without a clock to notice. T
 `pull_request_target` trigger only speeds up the initial surface (and covers a PR opened before
 the shim existed anywhere but toon-meta); the hourly cron is what actually closes the loop for
 both surfacing and clearing, and satisfies the issue's "surfaced within one housekeeping cycle"
-acceptance criterion. Same cadence as the dead-label reaper, for the same reason: the failure mode
-a cron alone can see (an event that never fires) has no other detector.
+acceptance criterion. Same hourly cadence as the dead-label reaper, for the same reason: the
+failure mode only a cron can see — here, an approval that fires no event at all — has no other
+detector.
 
 **Label: `needs:approval`, set and cleared unconditionally.** Unlike `needs:human` (#353), this
 label is never applied by a human — it is a pure machine signal ("some run at this PR's current
@@ -1287,9 +1289,10 @@ no ownership check is needed, so the pass may set it and clear it freely. A PR s
 later pass is left alone (label-present already means "surfaced", so no duplicate comment); a PR
 no longer blocked has the label removed so it never lies about current state — the same
 "every applied label needs a clearer" discipline this repo applies everywhere else (`needs:human`
-#353, `agent:review` #355, `agent:implement` #330, `agent:fix` #357). Not yet created in the
-other ten repos — see the shim fan-out note above; an APPLY run there will fail loudly on the
-missing label rather than silently no-op.
+#353, `agent:review` #355, `agent:implement` #330, `agent:fix` #357). The label itself does **not
+exist in any factory repo yet** — toon-meta included — so creating it is a rollout step alongside
+the shim fan-out above; until it exists, an APPLY run fails loudly on the missing label rather
+than silently no-opping.
 
 **No path to repo secrets.** The pass never checks out the fork's code and never executes anything
 the fork PR authored — only `gh api`/`gh pr` reads plus a label-and-comment write, on the same
