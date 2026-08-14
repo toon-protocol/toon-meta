@@ -267,13 +267,13 @@ Why the debt was invisible: `tsup` builds emit fine (`skipLibCheck` never runs a
 strict cross-package program), so `build` passing never implied `tsc --noEmit`
 passing.
 
-**Toolchain variants that still need their own ≥1-merged-agent-PR proof** (the recipe
-above is proven on pnpm-with-lint; these differ):
+**Toolchain variants, each now with its own ≥1-merged-agent-PR proof** (the recipe
+above is proven on pnpm-with-lint; these differed and are proven too):
 
-- **npm-workspaces** — connector (hand-ordered build).
-- **docs** — toon-meta (markdownlint + link-check + JSON/template validation; no
-  `package.json` yet).
-- **lint-less pnpm** — store (pnpm but no `lint`, esbuild build).
+- **npm-workspaces** — connector (hand-ordered build). (Proof: PR connector#394.)
+- **docs** — toon-meta (markdownlint + link-check + JSON/template validation). (Proof:
+  PR toon-meta#201.)
+- **lint-less pnpm** — store (pnpm but no `lint`, esbuild build). (Proof: PR store#52.)
 
 ## The pass must not see itself: plumbing check runs are not CI (2026-08-14)
 
