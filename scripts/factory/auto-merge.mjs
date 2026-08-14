@@ -87,11 +87,22 @@
 // watch a real APPLY run before trusting this beyond dry-run, same rollout
 // discipline as every other *_APPLY knob here.
 //
-// STILL MISSING: nothing yet consumes `agent:fix` once applied — the
-// PR-scoped repair runner (`.sandcastle/agent-fix-pr.ts` + a
-// `pull_request:[labeled]` workflow, the same pattern `agent-review.yml`
-// uses for `agent:review`) is follow-up work. Until it exists, a `repair`
-// verdict under REPAIR_APPLY=true labels the PR and nothing acts on it.
+// WHAT CONSUMES `agent:fix`: the PR-scoped repair runner
+// `.sandcastle/agent-fix-pr.ts`, fired by `.github/workflows/agent-fix.yml`
+// on `pull_request:[labeled]` — the same pattern `agent-review.yml` uses for
+// `agent:review`. It pushes fix commits back onto the same PR and removes
+// `agent:fix` again whatever the outcome, which re-arms the
+// `hasAgentFixInFlight` gate so the next pass re-evaluates the PR against
+// the repair budget.
+//
+// STILL MISSING: that runner exists in toon-meta ONLY. This pass is central
+// (one run evaluates all eleven repos) and REPAIR_APPLY is an org variable,
+// so enabling repair writes before `agent-fix.yml` is fanned out would apply
+// `agent:fix` on repos where nothing consumes it and nothing clears it —
+// stranding those PRs behind `hasAgentFixInFlight`. Fan the runner out
+// first, or keep the first live runs scoped with AUTOMERGE_REPOS /
+// the workflow's `repos` dispatch input. See FACTORY.md, "PR repair pass
+// (#357)" → "Rollout order matters here".
 
 import { execFileSync } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -338,7 +349,7 @@ function readMainRollup(repo, branch) {
 
 // Prior `agent:fix` dispatches on this PR — read from the TIMELINE (not the
 // current label list, which says only THAT the label is present, never how
-// many times it has cycled), same reasoning as needs-human-evaluator.mjs's
+// many times it has cycled), same reasoning as .sandcastle/needs-human-evaluator.mjs's
 // ownership read. Every `labeled agent:fix` event counts, regardless of who
 // applied it: unlike `needs:human`, `agent:fix` is a pure machine trigger.
 function countRepairAttempts(repo, number) {
@@ -415,6 +426,12 @@ function applyLabel(repo, number, label, color, description) {
 
 // ── Main ────────────────────────────────────────────────────────────────────
 const tag = APPLY ? "APPLY" : "dry-run";
+// Repair actions obey REPAIR_APPLY, not APPLY, so the report must label them
+// from their OWN knob — otherwise a run with AUTOMERGE_APPLY=true and repair
+// still dry-run prints "[APPLY] → apply-label" for a write it will not make.
+const REPAIR_ACTION_TYPES = new Set(["rerun-failed-jobs", "apply-label"]);
+const actionTag = (type) =>
+  REPAIR_ACTION_TYPES.has(type) ? (REPAIR_APPLY ? "APPLY" : "dry-run") : tag;
 console.log(
   `Auto-merge pass (toon-meta#285, repair #357) — ` +
     `merge mode=${APPLY ? "APPLY (merging)" : "DRY-RUN (no writes)"}, ` +
@@ -547,7 +564,10 @@ for (const d of plan.decisions) {
         : "∅"),
   );
   for (const b of d.blockers) console.log(`   ✗ ${b.code}: ${b.detail}`);
-  if (d.action) console.log(`   [${tag}] → ${d.action.type}: ${d.action.reason}`);
+  if (d.action)
+    console.log(
+      `   [${actionTag(d.action.type)}] → ${d.action.type}: ${d.action.reason}`,
+    );
 }
 
 // ── Writes (APPLY only) ─────────────────────────────────────────────────────
@@ -677,7 +697,10 @@ for (const a of plan.actions) {
 }
 
 // ── Markdown summary (paste-able into a PR body / job summary) ──────────────
-console.log(`\n## Auto-merge dry-run report (${APPLY ? "APPLIED" : "no writes"})\n`);
+console.log(
+  `\n## Auto-merge dry-run report (merge ${APPLY ? "APPLIED" : "no writes"}, ` +
+    `repair ${REPAIR_APPLY ? "APPLIED" : "no writes"})\n`,
+);
 console.log("| PR | verdict | required checks | mergeable / state | blocked on |");
 console.log("|----|---------|-----------------|-------------------|------------|");
 for (const d of plan.decisions) {

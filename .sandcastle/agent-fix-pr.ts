@@ -24,6 +24,16 @@
 // `escalate` once the budget is spent — never silently stuck "in flight"
 // forever).
 //
+// RESIDUAL GAP, stated rather than hidden: "whatever the outcome" covers every
+// outcome of THIS PROCESS — the outermost `finally` runs whether the fixer
+// pushed, changed nothing, or threw. It cannot cover the process never getting
+// that far: a throw in the setup above it (the `gh pr view` / `git fetch`
+// before the try), or a job-level kill (the 25-minute step timeout, a cancel).
+// Those leave `agent:fix` on the PR, and nothing else clears it — the same
+// exposure `agent-review-pr.ts` has for `agent:review`. If it bites, the fix
+// is an `if: always()` label-clearing step in agent-fix.yml, which survives a
+// runner kill in a way an in-process `finally` cannot.
+//
 // STANDALONE MECHANICS: same worktree conflict agent-review-pr.ts documents
 // (sandcastle checks the PR head out in its own worktree, so the workflow
 // checks out `main` and this runner materialises the PR head as a local

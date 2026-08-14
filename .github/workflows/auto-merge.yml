@@ -69,6 +69,13 @@
 #   2. Watch a few event-triggered dry-runs.
 #   3. Set org variable AUTOMERGE_APPLY=true to go live.
 #
+# PR repair (#357) has its OWN knob on the same shape — org variable
+# REPAIR_APPLY, or repairApply=true on a manual run — so the merge pass can go
+# live while repair stays dry-run, or vice versa. Roll it out the same way, and
+# note the ordering constraint: only toon-meta carries agent-fix.yml today, so
+# fan that runner out to a repo before enabling repair writes fleet-wide (see
+# FACTORY.md, "PR repair pass (#357)" → "Rollout order matters here").
+#
 # ── NOT `SANDCASTLE_AUTO_MERGE` ──────────────────────────────────────────────
 # That is a different, unsafe mechanism: the agent merging its own branch from
 # INSIDE the sandbox, before CI and before review. It stays off everywhere

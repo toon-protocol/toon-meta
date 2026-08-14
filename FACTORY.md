@@ -150,8 +150,8 @@ a description of current state.
 
 ## Trigger-label spec (every repo copies these)
 
-These two labels drive the sandcastle runners and must be created identically in every factory
-repo. The label→runner is a GitHub Action (`.github/workflows/agent-*.yml`), **not** part of
+These labels drive the sandcastle runners and must be created identically in every factory
+repo (`agent:fix` excepted for now — see the color-rationale note below). The label→runner is a GitHub Action (`.github/workflows/agent-*.yml`), **not** part of
 `.sandcastle/`, and its guards refuse sub-issues and PRD-shaped parents.
 
 | Label             | Color     | Meaning                                                                                              |
@@ -942,8 +942,10 @@ red-checks-or-conflict would itself produce.
 **Rollout knob.** Repair writes (re-run / `agent:fix` / `needs:human`) happen only when the org
 Actions variable `REPAIR_APPLY` is `'true'` (or a manual run passes `repairApply=true`) — a
 **separate** knob from `AUTOMERGE_APPLY`, so the merge pass can run live while repair stays
-dry-run, or vice versa. Every run prints the same decision report either way (`d.signals.repair`
-carries the full `planRepair` output for every PR evaluated).
+dry-run, or vice versa. Every run prints the same decision report either way — the verdict line
+and the action's reason (which names the attempt count and the budget whenever a budget is what
+decided it), plus `d.signals.repair`, which carries the full `planRepair` output for every PR that
+reached the repair decision and `null` for every PR that never became a candidate.
 
 **Triggers.** `.github/workflows/auto-merge.yml`'s `pull_request` trigger gained `labeled` and
 `synchronize` (previously only `closed`): a label change is the one state change that can make a
@@ -955,7 +957,7 @@ later.
 **What the shell adds** (`scripts/factory/auto-merge.mjs`), over and above the merge pass's
 existing reads: `readMainRollup` (main's own check rollup, once per repo, via
 `/commits/{branch}/check-runs`), `countRepairAttempts` (prior `agent:fix` timeline events —
-counted the same way `needs-human-evaluator.mjs` reads ownership: the label list says only THAT a
+counted the same way `.sandcastle/needs-human-evaluator.mjs` reads ownership: the label list says only THAT a
 label is present, never how many times it cycled), `countRetryAttempts` (a hidden marker comment
 this pass posts on every `retry`, since a retry never applies a label to count from — the same
 marker-comment convention as the dead-label reaper below), and `fetchFailingCheckErrorText`
@@ -1008,6 +1010,17 @@ same as every other pass in this file); and propagating `.sandcastle/agent-fix-p
 `.sandcastle/fix-prompt.md` and `.github/workflows/agent-fix.yml` themselves to the other ten
 repos' own `.sandcastle/`/`.github/workflows/` copies, the same way `agent-review-pr.ts` and
 `agent-review.yml` already had to be.
+
+**Rollout order matters here, and the runner fan-out comes first.** The auto-merge pass is
+central — one run evaluates the whole fleet — while `REPAIR_APPLY` is an *org* variable, so
+setting it to `'true'` turns repair writes on for all eleven repos at once. Only toon-meta carries
+`agent-fix.yml` today, so a `repair` verdict on another repo's PR would apply `agent:fix` there
+with nothing to consume it and nothing to clear it — and because `hasAgentFixInFlight` treats the
+label as "a repair run is in flight", that PR would then be skipped by every later pass: exactly
+the stuck-label failure mode #357 exists to avoid. Fan `agent-fix.yml` (plus `agent-fix-pr.ts` and
+`fix-prompt.md`) out to a repo before enabling repair writes for it, and keep the first live runs
+scoped to toon-meta by dispatching `auto-merge.yml` manually with `repos: toon-protocol/toon-meta`
+and `repairApply: true` (a manual run obeys its own inputs, never the org variable).
 
 ## Daily digest (#286)
 
