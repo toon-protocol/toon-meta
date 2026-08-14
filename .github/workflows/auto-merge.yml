@@ -32,8 +32,16 @@
 # ── WHY THESE TRIGGERS ───────────────────────────────────────────────────────
 # The same event surface as pr-housekeeping, plus the events specific to
 # merging and repairing (#357):
-#   * check_suite completed on a sandcastle/ or agent/ branch — the PR's own
-#     gate just finished. This is the usual moment a PR becomes eligible.
+#   * workflow_run completed for the repo's PR-triggered CI workflows — the
+#     PR's own gate just finished. This is the usual moment a PR becomes
+#     eligible. This trigger REPLACES a `check_suite: completed` trigger that
+#     was dead on arrival: check suites for Actions runs are created with
+#     GITHUB_TOKEN, and GITHUB_TOKEN-created events never trigger workflows —
+#     zero check_suite runs ever fired here (verified 2026-08-14 across the
+#     fleet). `workflow_run: completed` IS delivered for GITHUB_TOKEN-created
+#     runs (proven live: toon-meta's reap-dead-labels fires via workflow_run),
+#     so it is the working way to hear "CI finished on this PR". The job-level
+#     guard below keeps it scoped to factory branches, cheaply.
 #   * pull_request_review submitted — the factory-ops APPROVE (#282) is the
 #     other precondition that flips last; without this trigger a PR that went
 #     green before it was reviewed would wait for the cron.
@@ -62,8 +70,8 @@
 # just put behind. AUTOMERGE_LIMIT (default 5 merges per run) bounds each hop.
 #
 # ── APPLY vs DRY-RUN ─────────────────────────────────────────────────────────
-# Writes (merge / arm native auto-merge / update-branch) happen ONLY when the
-# org Actions variable AUTOMERGE_APPLY is 'true', or a workflow_dispatch run
+# Writes (merge / arm or disarm native auto-merge / update-branch) happen ONLY
+# when the org Actions variable AUTOMERGE_APPLY is 'true', or a workflow_dispatch run
 # passes apply=true — the same rollout knob as HOUSEKEEPING_APPLY /
 # HYGIENE_APPLY / DISPATCH_APPLY. Until an admin sets the variable, every run
 # is a no-write report that names, per open agent PR, the verdict and every
@@ -123,7 +131,10 @@ on:
   schedule:
     - cron: "17 1,7,13,19 * * *" # 6-hourly, offset from the dispatcher's 43 2,8,14,20
   # toon-meta's own shim triggers — other repos carry auto-merge-shim.yml.
-  check_suite:
+  # workflow_run names toon-meta's own PR-triggered workflows; the canonical
+  # shim carries the fleet-wide union instead (unknown names never fire).
+  workflow_run:
+    workflows: ["Docs gate", "Agent image"]
     types: [completed]
   pull_request_review:
     types: [submitted]
@@ -148,15 +159,15 @@ jobs:
       (github.event_name == 'pull_request_review' && (
         startsWith(github.event.pull_request.head.ref, 'sandcastle/') ||
         startsWith(github.event.pull_request.head.ref, 'agent/'))) ||
-      (github.event_name == 'check_suite' && (
-        startsWith(github.event.check_suite.head_branch, 'sandcastle/') ||
-        startsWith(github.event.check_suite.head_branch, 'agent/')))
+      (github.event_name == 'workflow_run' && (
+        startsWith(github.event.workflow_run.head_branch, 'sandcastle/') ||
+        startsWith(github.event.workflow_run.head_branch, 'agent/')))
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Coalesce event bursts (a gate finishing fires check_suite completions
-    # across many jobs) and never run two merge passes over the same repo at
-    # once: at most one active + one queued. Every pass re-reads everything, so
-    # a dropped duplicate loses nothing.
+    # Coalesce event bursts (several CI workflows can complete near-together
+    # on one PR) and never run two merge passes over the same repo at once:
+    # at most one active + one queued. Every pass re-reads everything, so a
+    # dropped duplicate loses nothing.
     concurrency:
       group: auto-merge-${{ inputs.repos || github.repository }}
       cancel-in-progress: false
@@ -184,7 +195,7 @@ jobs:
           # github.repository). Cron and blank-repos dispatch = whole fleet.
           AUTOMERGE_REPOS: >-
             ${{ inputs.repos ||
-                ((github.event_name == 'pull_request' || github.event_name == 'check_suite' || github.event_name == 'pull_request_review') && github.repository) ||
+                ((github.event_name == 'pull_request' || github.event_name == 'workflow_run' || github.event_name == 'pull_request_review') && github.repository) ||
                 '' }}
           # Manual runs obey the apply input EXACTLY (apply=false never falls
           # through to the variable); event/cron runs obey AUTOMERGE_APPLY,
