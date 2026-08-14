@@ -1,0 +1,148 @@
+# Fork-PR-approval watch (toon-meta#360, epic #342).
+#
+# A fork PR whose Actions runs are pending maintainer approval is invisible:
+# GitHub creates no CheckRun for an unapproved run (no job ever started), so
+# `gh pr checks` prints nothing and no `check_suite` event fires for anything
+# event-driven to notice. connector#925 sat this way for two days before a
+# human found it by hand; #927 landed the same change under a different
+# filename in the meantime. Full logic + safety model:
+# scripts/factory/fork-approval-watch.mjs (I/O shell) over the pure,
+# unit-tested scripts/factory/fork-approval-evaluator.mjs (surface / no-op /
+# clear / skip decision, comment text).
+#
+# ── WHY `pull_request_target`, NOT `pull_request` ────────────────────────────
+# This is the load-bearing decision in this file. A workflow triggered by
+# `pull_request` from a FORK is itself subject to the exact same maintainer-
+# approval gate this pass exists to detect — verified live: connector#925's
+# own `pr-housekeeping-shim` and `auto-merge-shim` runs (both `pull_request`-
+# triggered) sat `action_required` right alongside its CI run. A watcher that
+# used `pull_request` would need to be approved before it could report that
+# something needs approving — useless by construction.
+#
+# `pull_request_target` runs in the BASE repo's context, using the workflow
+# file from the base branch (not the fork's), and is never subject to the
+# approval gate. That is exactly why it demands care elsewhere (checking out
+# a fork's HEAD under `pull_request_target` and running it is the classic
+# "pwn request" vector) — this workflow avoids that entirely: it never checks
+# out the fork's code at all. Both the reusable workflow below and its
+# per-repo shim check out toon-meta's own `main` (the logic lives here, once,
+# same convention as every other reusable pass), then only call `gh api`/
+# `gh pr` to read metadata and write a label + comment. It cannot reach
+# anything the fork PR authored, so it cannot widen what an unapproved fork
+# PR can touch (#360's fourth acceptance criterion).
+#
+# ── ARCHITECTURE: thin per-repo shim → this reusable workflow ────────────────
+# Same fleet event-forwarding convention as reap-dead-labels.yml / #330 (one
+# manager function; workflow_call over repository_dispatch so
+# FACTORY_OPS_TOKEN never needs Contents:write):
+#
+#   * Each factory repo carries a tiny shim
+#     (.github/workflows/fork-approval-watch-shim.yml, canonical copy at
+#     scripts/factory/fork-approval-watch-shim.yml) that fires on
+#     `pull_request_target: [opened, reopened, synchronize]` and `uses:` THIS
+#     workflow via workflow_call with `secrets: inherit`. NOT YET FANNED OUT —
+#     only the canonical copy exists today (see FACTORY.md's "Fork-PR
+#     approval watch (#360)" section), so until it lands in each repo the
+#     event path covers toon-meta alone and the cron below is what reaches
+#     the other ten.
+#   * This file is also toon-meta's own shim (the pull_request_target trigger
+#     below), so toon-meta needs no separate shim file.
+#
+# Every pass re-scans the WHOLE fleet regardless of which repo's event fired —
+# same reasoning as reap-dead-labels.yml: the reads are cheap, and a full pass
+# can never under-cover what a sliced one would.
+#
+# ── WHY ALSO A CRON ───────────────────────────────────────────────────────────
+# Approving a pending run happens on GitHub's Actions UI (or the runs/approve
+# API) — neither fires any repo event this pass could listen for, so a
+# maintainer's approval would never CLEAR the label without a clock to notice
+# it. The event trigger only speeds up the initial surface; the hourly cron is
+# what actually closes the loop for both surfacing (a PR opened before the
+# shim was installed, or before this workflow existed) and clearing (an
+# approval that never fires a webhook). Hourly matches reap-dead-labels.yml's
+# own cadence and satisfies #360's "surfaced within one housekeeping cycle"
+# acceptance criterion.
+#
+# ── APPLY vs DRY-RUN ─────────────────────────────────────────────────────────
+# Writes (label + comment, or clearing the label) happen ONLY when the org
+# Actions variable FORKAPPROVAL_APPLY is 'true', or a workflow_dispatch run
+# passes apply=true — same rollout knob convention as HOUSEKEEPING_APPLY /
+# REAP_APPLY / DISPATCH_APPLY. Until an admin sets the variable, every run is
+# a no-write dry-run report:
+#   1. "Run workflow" with apply=false → eyeball the fleet-wide dry-run list.
+#   2. Open (or wait for) a real fork PR → eyeball an event-triggered dry-run.
+#   3. Set org variable FORKAPPROVAL_APPLY=true to go live.
+#
+# ── CREDENTIAL ─────────────────────────────────────────────────────────────
+# FACTORY_OPS_TOKEN (org secret, #271) is not identity-load-bearing here —
+# labeling and commenting need only write access, not the guarded add-label
+# path (agent-implement.yml's Guard 1, which gates `agent:implement`
+# specifically, and this pass never adds that label) — but it is still the
+# only usable write credential for a fleet-wide APPLY run: the ambient
+# `github.token` is scoped to the calling repo alone and this workflow grants
+# it `contents: read` only, so without the secret the pass stays read/dry-run
+# safe and any attempted write fails loudly in "Failed writes".
+
+name: fork-approval-watch
+
+on:
+  workflow_call:
+    inputs:
+      source:
+        description: "owner/repo whose pull_request_target event triggered this pass (informational only — every pass re-scans the whole fleet)."
+        type: string
+        required: false
+        default: ""
+  # toon-meta's own shim trigger — other repos carry fork-approval-watch-shim.yml.
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+  # Safety net + the ONLY path that ever notices a manual approval — see header.
+  schedule:
+    - cron: "29 * * * *" # hourly, off the top-of-hour congestion
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "Optional comma-separated repo override (owner/name or bare name). Blank = the whole factory fleet."
+        type: string
+        default: ""
+      apply:
+        description: "Write changes (label + comment, or clear). false = dry-run report only."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Serialize passes; a queued duplicate loses nothing, every pass re-reads
+    # the whole fleet (same convention as reap-dead-labels.yml).
+    concurrency:
+      group: fork-approval-watch
+      cancel-in-progress: false
+    steps:
+      # Always check out toon-meta main — in a workflow_call run the default
+      # checkout would be the CALLER's repo, but the logic lives here, once.
+      # Deliberately NOT the fork PR's own head — see the header's
+      # `pull_request_target` note.
+      - uses: actions/checkout@v4
+        with:
+          repository: toon-protocol/toon-meta
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No `npm ci`: the script is dependency-free (node builtins + gh CLI).
+      - name: Run fork-PR-approval watch
+        env:
+          GH_TOKEN: ${{ secrets.FACTORY_OPS_TOKEN || github.token }}
+          FACTORY_OPS_TOKEN_PRESENT: ${{ secrets.FACTORY_OPS_TOKEN != '' }}
+          FORKAPPROVAL_REPOS: ${{ inputs.repos || '' }}
+          # Manual runs obey the apply input EXACTLY (apply=false never falls
+          # through to the variable); event/cron runs obey FORKAPPROVAL_APPLY,
+          # which as an ORG variable is one knob for the whole fleet.
+          APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.apply || (github.event_name != 'workflow_dispatch' && vars.FORKAPPROVAL_APPLY == 'true') }}
+        run: npm run forkapproval:prs
