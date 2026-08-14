@@ -645,6 +645,35 @@ for (const a of plan.actions) {
         `body=PR repair pass (toon-meta#357): ${isFix ? "dispatched agent:fix" : "escalated to needs:human"} — ${a.reason}`,
       ]);
       console.log(`[APPLY] ${repo}#${n}: applied ${a.label} — ${a.reason}`);
+      if (isFix) {
+        // Dispatch the fix runner DIRECTLY — do not rely on the `labeled`
+        // event. A CONFLICTING PR has no merge ref, and GitHub does not
+        // fire `pull_request`-event workflows on a PR it cannot build a
+        // test merge for, so the label alone never starts the runner on
+        // exactly the class (#357's "easy case") repair exists for. Found
+        // live by the 2026-08-14 drill: agent:fix applied on a conflicting
+        // PR, runner never fired. agent-fix.yml re-verifies the label and
+        // the factory branch prefix on the dispatch path, so a stray
+        // dispatch cannot aim the fixer at an arbitrary PR. Failure to
+        // dispatch is loud but non-fatal — the label is already on, and a
+        // later pass (or a human) can re-dispatch.
+        const d = ghTry([
+          "workflow",
+          "run",
+          "agent-fix.yml",
+          "--repo",
+          repo,
+          "-f",
+          `pr=${n}`,
+        ]);
+        if (d.ok) {
+          console.log(`[APPLY] ${repo}#${n}: agent-fix runner dispatched`);
+        } else {
+          console.log(
+            `::warning::${repo}#${n}: agent:fix applied but runner dispatch failed: ${d.error}`,
+          );
+        }
+      }
     }
     if (a.label === AGENT_FIX_LABEL) repaired++;
     else escalated++;
