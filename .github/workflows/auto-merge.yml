@@ -143,6 +143,13 @@ on:
 
 permissions:
   contents: read
+  # actions:write so the pass's github.token can dispatch agent-fix.yml in
+  # THIS repo as the fallback when FACTORY_OPS_TOKEN cannot (the PAT
+  # currently lacks Actions write — 403 observed live 2026-08-14; rotating
+  # it is a web-UI human step tracked on the #347 queue). github.token is
+  # repo-scoped, so cross-repo dispatches still need the PAT and stay a
+  # loud warning until the rotation.
+  actions: write
 
 jobs:
   automerge:
@@ -189,6 +196,9 @@ jobs:
           # over: it is the merge credential AND the approver identity the pass
           # matches reviews against.
           GH_TOKEN: ${{ secrets.FACTORY_OPS_TOKEN || github.token }}
+          # Fallback for same-repo workflow dispatches only — see the
+          # permissions block above.
+          GH_TOKEN_FALLBACK: ${{ github.token }}
           FACTORY_OPS_TOKEN_PRESENT: ${{ secrets.FACTORY_OPS_TOKEN != '' }}
           # Event runs evaluate exactly the repo the event came from (shims
           # pass it via inputs.repos; toon-meta's own events fall through to
