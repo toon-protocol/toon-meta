@@ -6,11 +6,13 @@
 // shell — gh reads, gh writes (APPLY only), and the report. ALL decision logic
 // is pure and unit-tested:
 //   * automerge-evaluator.mjs — eligibility: the five merge preconditions, the
-//     native-auto-merge seam, and the "behind base is an action" rule. Read
-//     its header for WHY we do not simply hand every PR to `gh pr merge
-//     --auto` (protection cannot express `needs:human`, cannot tell a
-//     factory-ops approval from anyone's, and counts a SKIPPED required check
-//     as a pass).
+//     native-auto-merge seam (including the `arm-pending` / `disarm` verdicts
+//     that hand a pending-but-otherwise-eligible PR to GitHub's native
+//     auto-merge, and take it back when a non-pending blocker appears), and
+//     the "behind base is an action" rule. Read its header for WHY we do not
+//     simply hand every PR to `gh pr merge --auto` (protection cannot express
+//     `needs:human`, cannot tell a factory-ops approval from anyone's, and
+//     counts a SKIPPED required check as a pass).
 //   * pr-signals.mjs — the four-valued check-set verdict and the
 //     mergeable-out-of-UNKNOWN settling policy, shared verbatim with
 //     pr-housekeeping.mjs (#276) so the two passes can never disagree about
@@ -573,6 +575,7 @@ for (const d of plan.decisions) {
 // ── Writes (APPLY only) ─────────────────────────────────────────────────────
 let merged = 0;
 let armed = 0;
+let disarmed = 0;
 let updated = 0;
 let failed = 0;
 let retried = 0;
@@ -648,6 +651,23 @@ for (const a of plan.actions) {
     continue;
   }
 
+  // Disarm is a SAFETY action (an armed PR GitHub could merge past a blocker
+  // protection cannot see) — gated on APPLY like every merge-side write, but
+  // never subject to the merge cap: deferring a disarm is deferring a hazard.
+  if (a.type === "disarm-auto-merge") {
+    if (APPLY) {
+      const r = ghTry(["pr", "merge", n, "--repo", repo, "--disable-auto"]);
+      if (!r.ok) {
+        console.log(`::warning::${repo}#${n} disarm refused by GitHub: ${r.error}`);
+        failed++;
+        continue;
+      }
+      console.log(`[APPLY] ${repo}#${n}: native auto-merge disarmed — ${a.reason}`);
+    }
+    disarmed++;
+    continue;
+  }
+
   if (a.type === "update-branch") {
     if (APPLY) {
       // REST, not `gh pr update-branch`: that subcommand only exists in gh
@@ -717,9 +737,11 @@ const s = plan.summary;
 console.log(
   `\nAuto-merge pass complete (merge ${APPLY ? "APPLIED" : "dry-run"}, ` +
     `repair ${REPAIR_APPLY ? "APPLIED" : "dry-run"}): ` +
-    `${s.merge ?? 0} eligible to merge (${merged} merged, ${armed} armed), ` +
-    `${s["update-branch"] ?? 0} behind base (${updated} updated), ` +
-    `${s["already-armed"] ?? 0} already armed, ${s.blocked ?? 0} blocked, ` +
+    `${s.merge ?? 0} eligible to merge, ${s["arm-pending"] ?? 0} arm-pending ` +
+    `(${merged} merged, ${armed} armed), ` +
+    `${s["update-branch"] ?? 0} to update-branch (${updated} updated), ` +
+    `${s["already-armed"] ?? 0} already armed, ${s.disarm ?? 0} to disarm ` +
+    `(${disarmed} disarmed), ${s.blocked ?? 0} blocked, ` +
     `${s.retry ?? 0} retried (${retried} re-run), ${s.repair ?? 0} repaired ` +
     `(${repaired} agent:fix applied), ${s.escalate ?? 0} escalated ` +
     `(${escalated} needs:human applied), ${failed} action(s) refused by GitHub.`,

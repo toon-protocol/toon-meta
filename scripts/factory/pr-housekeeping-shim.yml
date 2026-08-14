@@ -12,9 +12,14 @@
 # it:
 #   * a PR merged into this repo — merges are what create conflicts in the
 #     other open PRs, so re-check them all at that moment;
-#   * a check suite completed on a factory branch (sandcastle/ or agent/) —
-#     the PR's own checks just finished; if red, remediation fires now, not on
-#     the next cron tick.
+#   * a PR-triggered CI workflow run completed on a factory branch (sandcastle/
+#     or agent/) — the PR's own checks just finished; if red, remediation fires
+#     now, not on the next cron tick. This is a workflow_run trigger, NOT
+#     check_suite: check suites for Actions runs are created with GITHUB_TOKEN,
+#     and GITHUB_TOKEN-created events never trigger workflows — the shim's
+#     original check_suite trigger never fired once, anywhere in the fleet.
+#     workflow_run:completed IS delivered for GITHUB_TOKEN-created runs
+#     (proven live by toon-meta's reap-dead-labels).
 #
 # `secrets: inherit` hands the called workflow this repo's FACTORY_OPS_TOKEN
 # (org secret, monitored by toon-meta's factory-ops-credential workflow).
@@ -26,7 +31,18 @@ name: pr-housekeeping-shim
 on:
   pull_request:
     types: [closed]
-  check_suite:
+  # The fleet-wide UNION of every factory repo's pull_request-triggered CI
+  # workflow names (enumerated live 2026-08-14). workflow_run silently ignores
+  # names that do not exist in a given repo, so this one canonical copy stays
+  # stampable VERBATIM into every repo — do not trim it per repo.
+  workflow_run:
+    workflows:
+      - "CI" # all ten repos
+      - "Agent image" # all ten repos
+      - "Contracts" # connector
+      - "Wire vectors drift" # toon-client
+      - "Docker image" # buzz
+      - "helm chart" # buzz
     types: [completed]
 
 permissions:
@@ -35,12 +51,12 @@ permissions:
 jobs:
   forward:
     # Only merged PRs matter (a plain close conflicts nobody), and only
-    # factory branches' check suites matter (anything else is noise).
+    # factory branches' CI runs matter (anything else is noise).
     if: >-
       (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
-      (github.event_name == 'check_suite' && (
-        startsWith(github.event.check_suite.head_branch, 'sandcastle/') ||
-        startsWith(github.event.check_suite.head_branch, 'agent/')))
+      (github.event_name == 'workflow_run' && (
+        startsWith(github.event.workflow_run.head_branch, 'sandcastle/') ||
+        startsWith(github.event.workflow_run.head_branch, 'agent/')))
     uses: toon-protocol/toon-meta/.github/workflows/pr-housekeeping.yml@main
     with:
       repos: ${{ github.repository }}

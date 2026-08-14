@@ -39,15 +39,39 @@
 //     only ever arm PRs that already satisfy the strict preconditions; the
 //     native mechanism then adds re-verification, not a weaker gate.
 //   * `merge` — a direct `gh pr merge` — when the repo does NOT have the
-//     auto-merge feature enabled (all 11 factory repos, as of 2026-08-06:
-//     `allow_auto_merge: false`). A direct merge is still refused by GitHub
+//     auto-merge feature enabled. A direct merge is still refused by GitHub
 //     if protection is unsatisfied — the REST merge endpoint enforces branch
 //     protection — so this fallback loses the *waiting*, not the *enforcing*.
 //     It is therefore only ever produced for a PR that is verified green and
 //     `CLEAN` right now, never for one that is pending.
-//   Flipping `allow_auto_merge` on is a one-line repo setting and is the
-//   recommended rollout step (see FACTORY.md); until then the fallback keeps
-//   the loop closed.
+//   Flipping `allow_auto_merge` on is a one-line repo setting and was the
+//   blessed rollout step (see FACTORY.md) — verified live 2026-08-14: true on
+//   all 11 factory repos. The fallback stays as the safety net for any repo
+//   whose setting regresses.
+//
+// ── ARM-PENDING / DISARM: LET GITHUB DO THE WAITING ─────────────────────────
+// The seam above still had a race: a PR whose factory-ops verdict lands while
+// its checks are still running is `blocked (checks-pending)`, and nothing
+// re-fires this pass at the exact moment the checks finish unless the right
+// event happens to arrive — the verdict-vs-checks race. Two more verdicts
+// close it:
+//   * `arm-pending` — this pass has already enforced everything branch
+//     protection CANNOT express (the approving factory-ops verdict is present
+//     and not stale, no blocking label, every required context is present and
+//     none is SKIPPED/NEUTRAL, mergeable settled MERGEABLE) and every
+//     REMAINING blocker is pending-shaped: checks still running, or a merge
+//     state (UNSTABLE/BLOCKED) that is only mirroring them. Arming native
+//     auto-merge NOW is safe: GitHub does the waiting and the final
+//     enforcement, and merges the moment protection is satisfied. Produced
+//     only when the repo's policy allows native auto-merge and the PR is not
+//     already armed.
+//   * `disarm` — the inverse safety valve: a PR that IS armed but has grown a
+//     non-pending blocker (a blocking label appeared, the approval was
+//     withdrawn or went stale, the PR now conflicts) must be un-armed —
+//     protection cannot see any of those blockers, so GitHub would otherwise
+//     merge it the moment protection is satisfied. Disarm outranks every
+//     other verdict, repair included: first take the trigger out of GitHub's
+//     hand, then let the next pass decide what to do with the PR.
 //
 // ── PRECONDITIONS (all must hold; every failure is reported, not just the
 //    first, so one dry-run report explains every stuck PR) ─────────────────
@@ -122,7 +146,12 @@
 // Plain Node ESM, zero dependencies. Tests: automerge-evaluator.test.mjs
 // (node --test).
 
-import { checksVerdict, normalizeCheck, VERIFIED_STATE } from "./pr-signals.mjs";
+import {
+  checksVerdict,
+  normalizeCheck,
+  PENDING_STATES,
+  VERIFIED_STATE,
+} from "./pr-signals.mjs";
 import {
   AGENT_FIX_LABEL,
   DEFAULT_REPAIR_BUDGET,
@@ -240,9 +269,10 @@ export function requiredCheckStates(requiredContexts = [], rollup = []) {
  * }} input
  * @returns {{
  *   decisions: Array<{ id, repo, number, title, url,
- *     verdict: "merge"|"update-branch"|"already-armed"|"blocked"|"retry"|"repair"|"escalate",
- *     action: null | { type:"enable-auto-merge"|"merge"|"update-branch"|
- *                      "rerun-failed-jobs"|"apply-label",
+ *     verdict: "merge"|"update-branch"|"arm-pending"|"disarm"|"already-armed"|
+ *              "blocked"|"retry"|"repair"|"escalate",
+ *     action: null | { type:"enable-auto-merge"|"disarm-auto-merge"|"merge"|
+ *                      "update-branch"|"rerun-failed-jobs"|"apply-label",
  *                      repo, number, method?:string, label?:string,
  *                      checks?:string[], reason:string },
  *     blockers: Array<{code:string, detail:string}>,
@@ -446,12 +476,22 @@ export function planAutoMerge({
       "checks-failing",
       "conflict",
     ]);
-    const repairCandidate =
-      (conflicting || genuinelyFailing) &&
+    const repairRelevantOnly =
       blockers.length > 0 &&
       blockers.every(
         (b) => REPAIR_RELEVANT_CODES.has(b.code) || (b.code === "merge-state" && state === "DIRTY"),
       );
+    // BEHIND outranks repair: red checks on a branch that is behind base are
+    // STALE red — they ran against an old merge base, so they prove nothing
+    // about the code that would actually merge. Fresh CI on the new head is
+    // the correct probe, not an agent, so such a PR gets `update-branch` (the
+    // existing verdict) instead of ever reaching `planRepair`. The loop is
+    // naturally bounded: the update re-fires only when base moves again. A
+    // CONFLICTING PR is excluded — merging base into a conflicting head
+    // cannot succeed, so a conflict repairs regardless of BEHIND.
+    const staleRedBehind = behind && !conflicting && genuinelyFailing && repairRelevantOnly;
+    const repairCandidate =
+      (conflicting || (genuinelyFailing && !behind)) && repairRelevantOnly;
     // Carry an error-text snippet alongside each failing check when the
     // shell attached one (e.g. from a job-log fetch) — normalizeCheck() only
     // reduces a rollup entry to {name, state}, so classification needs its
@@ -489,9 +529,56 @@ export function planAutoMerge({
       repair: repairPlan,
     };
 
+    // ── pending-shaped blockers (arm-pending / disarm, see header) ──────────
+    // A blocker is "pending-shaped" when it clears BY ITSELF the moment the
+    // running checks finish green — it expresses "wait", not "no". Everything
+    // else (labels, a missing/stale approval, a SKIPPED or missing required
+    // context, a conflict, an unreadable policy, ...) is a real "no" that
+    // branch protection cannot see, so native auto-merge must never be left
+    // armed across it.
+    const requiredPendingOnly = requiredStates.every(
+      (rc) =>
+        rc.status === "passed" ||
+        (rc.status === "failing-or-pending" && PENDING_STATES.has(rc.state)),
+    );
+    const isPendingShaped = (b) => {
+      if (b.code === "checks-pending") return true;
+      // A required context that is merely still running. Never one that
+      // FAILED (requiredPendingOnly is false then), and never one that is
+      // SKIPPED/NEUTRAL or missing — those carry their own codes, which are
+      // not pending-shaped.
+      if (b.code === "required-check-not-green") return requiredPendingOnly;
+      // UNSTABLE/BLOCKED count only while the rollup itself says "pending":
+      // the merge state is then just mirroring the running checks. UNSTABLE
+      // over a FAILING check co-occurs with `checks-failing`, which is not
+      // pending-shaped, so it can never sneak through here.
+      if (b.code === "merge-state" && ["UNSTABLE", "BLOCKED"].includes(state))
+        return overall.verdict === "pending";
+      return false;
+    };
+    const nonPendingBlockers = blockers.filter((b) => !isPendingShaped(b));
+    const armed = pr.autoMergeEnabled === true;
+
     let verdict = "blocked";
     let action = null;
-    if (repairPlan?.verdict) {
+    if (armed && nonPendingBlockers.length > 0) {
+      // Disarm FIRST — before repair, before everything: an armed PR with a
+      // non-pending blocker is one GitHub might merge on its own (protection
+      // cannot see the blocker — that is the whole point of the seam). Take
+      // the trigger out of GitHub's hand now; the next pass, seeing the PR
+      // un-armed, decides what to do about the blocker itself.
+      verdict = "disarm";
+      action = {
+        type: "disarm-auto-merge",
+        repo: pr.repo,
+        number: pr.number,
+        reason:
+          "native auto-merge is armed but non-pending blocker(s) now exist " +
+          `(${[...new Set(nonPendingBlockers.map((b) => b.code))].join(", ")}) — ` +
+          "branch protection cannot see them, so GitHub must not be left " +
+          "holding the trigger",
+      };
+    } else if (repairPlan?.verdict) {
       verdict = repairPlan.verdict;
       action =
         repairPlan.verdict === "retry"
@@ -509,6 +596,18 @@ export function planAutoMerge({
               label: repairPlan.verdict === "repair" ? AGENT_FIX_LABEL : HUMAN_LABEL,
               reason: repairPlan.reason,
             };
+    } else if (staleRedBehind) {
+      verdict = "update-branch";
+      action = {
+        type: "update-branch",
+        repo: pr.repo,
+        number: pr.number,
+        headSha: pr.headSha,
+        reason:
+          "red checks on a branch that is BEHIND base are stale red — they " +
+          "ran against an old merge base; update the branch and let fresh CI " +
+          "on the new head be the probe (re-fires only when base moves again)",
+      };
     } else if (blockers.length === 0) {
       if (behind) {
         verdict = "update-branch";
@@ -550,6 +649,27 @@ export function planAutoMerge({
             "branch protection",
         };
       }
+    } else if (nonPendingBlockers.length === 0 && armed) {
+      // Armed, and the only blockers are pending-shaped: GitHub is already
+      // holding the trigger and will merge (or refuse) when the checks land.
+      verdict = "already-armed";
+    } else if (nonPendingBlockers.length === 0 && policy.autoMergeAllowed === true) {
+      // The verdict-vs-checks race, closed (see header): everything branch
+      // protection cannot express already holds, and the only blockers are
+      // pending checks — arm native auto-merge NOW and let GitHub do the
+      // waiting and the final enforcement. Without this, a PR whose approval
+      // lands mid-CI waits for the next event or cron to merge.
+      verdict = "arm-pending";
+      action = {
+        type: "enable-auto-merge",
+        repo: pr.repo,
+        number: pr.number,
+        method: policy.mergeMethod ?? "squash",
+        reason:
+          "every precondition branch protection cannot express already holds " +
+          "and the only blocker(s) are pending checks — arm GitHub's native " +
+          "auto-merge now; GitHub does the waiting and the final enforcement",
+      };
     }
 
     decisions.push({

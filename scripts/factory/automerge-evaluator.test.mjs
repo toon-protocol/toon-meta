@@ -656,3 +656,162 @@ describe("PR repair: retry / repair / escalate (toon-meta#357)", () => {
     assert.equal(d.signals.repair, null);
   });
 });
+
+// ── arm-pending / disarm — the verdict-vs-checks race (AFK merge loop) ──────
+// A PR whose approval lands while its checks still run used to sit `blocked
+// (checks-pending)` until the next event or cron. When every precondition
+// branch protection CANNOT express already holds, the pass arms GitHub's
+// native auto-merge and lets GitHub do the waiting and the final enforcement
+// — and disarms it again the moment a non-pending blocker appears, because
+// protection cannot see labels, stale approvals, or the approver's identity.
+describe("arm-pending / disarm — the verdict-vs-checks race", () => {
+  const ARMABLE_POLICIES = {
+    ...POLICIES,
+    "toon-protocol/forge": { ...POLICIES["toon-protocol/forge"], autoMergeAllowed: true },
+  };
+  const armPlan = (pr, extra = {}) =>
+    planAutoMerge({
+      prs: [pr],
+      repoPolicies: ARMABLE_POLICIES,
+      approvers: [APPROVER],
+      ...extra,
+    }).decisions[0];
+  // Required `gate` still running; GitHub mirrors that as BLOCKED.
+  const PENDING_ROLLUP = [
+    { name: "gate", status: "IN_PROGRESS" },
+    { name: "extra", conclusion: "SUCCESS" },
+  ];
+
+  it("arms a pending PR whose every other precondition already holds", () => {
+    const d = armPlan(
+      eligiblePr({ statusCheckRollup: PENDING_ROLLUP, mergeStateStatus: "BLOCKED" }),
+    );
+    assert.equal(d.verdict, "arm-pending");
+    assert.equal(d.action.type, "enable-auto-merge");
+    assert.equal(d.action.method, "squash");
+  });
+
+  it("does not arm when a blocking label is present", () => {
+    const d = armPlan(
+      eligiblePr({ statusCheckRollup: PENDING_ROLLUP, labels: ["needs:human"] }),
+    );
+    assert.equal(d.verdict, "blocked");
+    assert.equal(d.action, null);
+    assert.ok(codes(d).includes("needs-human"));
+  });
+
+  it("does not arm without the factory-ops approval", () => {
+    const d = armPlan(eligiblePr({ statusCheckRollup: PENDING_ROLLUP, reviews: [] }));
+    assert.equal(d.verdict, "blocked");
+    assert.equal(d.action, null);
+    assert.ok(codes(d).includes("approval-missing"));
+  });
+
+  it("does not arm when a required context is SKIPPED, though protection accepts it", () => {
+    const d = armPlan(
+      eligiblePr({
+        statusCheckRollup: [
+          { name: "gate", status: "COMPLETED", conclusion: "SKIPPED" },
+          { name: "extra", status: "IN_PROGRESS" },
+        ],
+      }),
+    );
+    assert.equal(d.verdict, "blocked");
+    assert.equal(d.action, null);
+    assert.ok(codes(d).includes("required-check-unverified"));
+  });
+
+  it("does not arm when the repo's policy disallows native auto-merge", () => {
+    // Same pending shape, default policy (autoMergeAllowed: false) — the PR
+    // waits for green and merges directly, exactly as before.
+    const d = plan(eligiblePr({ statusCheckRollup: PENDING_ROLLUP }));
+    assert.equal(d.verdict, "blocked");
+    assert.equal(d.action, null);
+  });
+
+  it("disarms an armed PR when a blocking label appears", () => {
+    const d = armPlan(eligiblePr({ autoMergeEnabled: true, labels: ["needs:human"] }));
+    assert.equal(d.verdict, "disarm");
+    assert.equal(d.action.type, "disarm-auto-merge");
+    assert.match(d.action.reason, /needs-human/);
+  });
+
+  it("disarms an armed PR whose approval went stale", () => {
+    const d = armPlan(
+      eligiblePr({
+        autoMergeEnabled: true,
+        reviews: [approval({ commitId: "deadbeefdeadbeef" })],
+      }),
+    );
+    assert.equal(d.verdict, "disarm");
+    assert.match(d.action.reason, /approval-stale/);
+  });
+
+  it("disarm outranks repair: an armed, conflicting PR is disarmed first", () => {
+    const d = armPlan(
+      eligiblePr({ autoMergeEnabled: true, mergeable: "CONFLICTING", mergeStateStatus: "DIRTY" }),
+    );
+    assert.equal(d.verdict, "disarm");
+    assert.equal(d.action.type, "disarm-auto-merge");
+  });
+
+  it("leaves an armed, merely-pending PR armed — GitHub is doing the waiting", () => {
+    const d = armPlan(
+      eligiblePr({
+        autoMergeEnabled: true,
+        statusCheckRollup: PENDING_ROLLUP,
+        mergeStateStatus: "BLOCKED",
+      }),
+    );
+    assert.equal(d.verdict, "already-armed");
+    assert.equal(d.action, null);
+  });
+});
+
+// ── BEHIND outranks repair — stale red (AFK merge loop) ─────────────────────
+// Red checks on a branch that is behind base ran against an old merge base;
+// fresh CI on the new head is the correct probe, not an agent. The loop is
+// naturally bounded: update-branch re-fires only when base moves again.
+describe("BEHIND outranks repair — stale red", () => {
+  const RED_ROLLUP = [{ name: "gate", status: "COMPLETED", conclusion: "FAILURE" }];
+
+  it("updates the branch of a BEHIND PR whose only blockers are red checks", () => {
+    const d = plan(eligiblePr({ mergeStateStatus: "BEHIND", statusCheckRollup: RED_ROLLUP }));
+    assert.equal(d.verdict, "update-branch");
+    assert.equal(d.action.type, "update-branch");
+    assert.equal(d.action.headSha, HEAD);
+    assert.match(d.action.reason, /stale red/);
+    assert.equal(d.signals.repair, null); // never handed to planRepair
+  });
+
+  it("still updates (never merges) a BEHIND PR that is green and approved", () => {
+    const d = plan(eligiblePr({ mergeStateStatus: "BEHIND" }));
+    assert.equal(d.verdict, "update-branch");
+    assert.equal(d.action.type, "update-branch");
+  });
+
+  it("still repairs fresh red on a branch that is NOT behind", () => {
+    const d = plan(eligiblePr({ statusCheckRollup: RED_ROLLUP }));
+    assert.equal(d.verdict, "repair");
+    assert.equal(d.action.label, "agent:fix");
+  });
+
+  it("repairs (never updates) a conflicting PR even when reported BEHIND", () => {
+    // Merging base into a conflicting head cannot succeed, so a conflict
+    // repairs regardless of BEHIND.
+    const d = plan(eligiblePr({ mergeable: "CONFLICTING", mergeStateStatus: "BEHIND" }));
+    assert.equal(d.verdict, "repair");
+  });
+
+  it("does not update a BEHIND red PR that also carries a non-repair blocker", () => {
+    const d = plan(
+      eligiblePr({
+        mergeStateStatus: "BEHIND",
+        statusCheckRollup: RED_ROLLUP,
+        labels: ["needs:human"],
+      }),
+    );
+    assert.equal(d.verdict, "blocked");
+    assert.equal(d.action, null);
+  });
+});

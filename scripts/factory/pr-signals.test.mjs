@@ -95,6 +95,42 @@ describe("checksVerdict — four-valued, never 'nothing failed'", () => {
       state: "SUCCESS",
     });
   });
+
+  // ── factory plumbing is invisible (found live by the 2026-08-14 AFK drill:
+  // a pull_request-event pass saw its own in-progress `automerge` job and
+  // self-blocked checks-pending, with nothing to re-fire on its completion) ──
+  it("ignores an in-progress plumbing run — the pass must not block on itself", () => {
+    const rollup = [
+      { name: "Doc gate", conclusion: "SUCCESS" },
+      { name: "automerge", status: "IN_PROGRESS" },
+      { name: "guard", conclusion: "SKIPPED" },
+      { name: "fix", conclusion: "SKIPPED" },
+    ];
+    assert.equal(checksVerdict(rollup).verdict, "passed");
+  });
+
+  it("a plumbing SUCCESS alone never counts as verification", () => {
+    const rollup = [{ name: "automerge", conclusion: "SUCCESS" }];
+    assert.equal(checksVerdict(rollup).verdict, "unverified");
+  });
+
+  it("a failing plumbing run does not fail the PR (forward/sweep flakes are not CI)", () => {
+    const rollup = [
+      { name: "CI", conclusion: "SUCCESS" },
+      { name: "forward", conclusion: "FAILURE" },
+    ];
+    const v = checksVerdict(rollup);
+    assert.equal(v.verdict, "passed");
+    assert.deepEqual(v.failing, []);
+  });
+
+  it("real CI named nothing like plumbing still blocks as before", () => {
+    const rollup = [
+      { name: "CI", status: "IN_PROGRESS" },
+      { name: "automerge", conclusion: "SUCCESS" },
+    ];
+    assert.equal(checksVerdict(rollup).verdict, "pending");
+  });
 });
 
 describe("settleMergeable — mergeability is computed asynchronously", () => {
