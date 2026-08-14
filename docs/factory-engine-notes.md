@@ -233,7 +233,7 @@ Ordered checklist, proven on relay. Do it in this order:
   should confirm their `foundry-toolchain` installs are pinned to a stable version, not
   `nightly`.
 
-### CI gotcha (from connector#462): App installation tokens expire before a long `agent:implement` run finishes
+### CI gotcha (from connector#462, fixed by connector#463): App installation tokens expire before a long `agent:implement` run finishes
 
 - **Symptom:** the implementer and reviewer both complete cleanly, and the run still
   dies at the final `git push` with `remote: Invalid username or token. Password
@@ -261,6 +261,7 @@ Ordered checklist, proven on relay. Do it in this order:
   3. Publish the branch early, right after the implementer phase, best-effort — a run
      killed during review (or, here, the approver) still leaves recoverable work on
      the remote instead of losing it with the container.
+
   Only once 1-3 land is it safe to raise `timeout-minutes` — that is the actual fix;
   the longer clock is just headroom the credential no longer expires under.
 - **Rollout status:** fixed in connector by

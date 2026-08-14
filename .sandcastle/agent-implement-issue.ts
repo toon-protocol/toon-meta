@@ -37,17 +37,18 @@
 //   CLAUDE_CODE_OAUTH_TOKEN   Claude Max-plan credential (org secret)
 //   GH_TOKEN                  token with contents:write + pull-requests:write +
 //                             issues:write (the App token in CI)
-//   APP_ID, APP_PRIVATE_KEY   the same GitHub App GH_TOKEN is minted from. Used
-//                             to mint a FRESH token immediately before each
-//                             push, because installation tokens expire after
-//                             one hour and long runs pushed with a dead
-//                             credential (connector#462; ported here as
-//                             toon-meta#248/#334) — see ./mint-app-token.ts.
-//                             HOST ONLY: the private key is deliberately absent
-//                             from PASSTHROUGH_KEYS in ./sandbox-secrets.ts, so
-//                             it never enters the sandbox container. Optional —
-//                             without it the runner falls back to the ambient
-//                             GH_TOKEN and the old expiry behaviour.
+//   APP_ID, APP_PRIVATE_KEY   OPTIONAL (set in CI; absent locally). The same
+//                             GitHub App GH_TOKEN is minted from. Used to mint a
+//                             FRESH token immediately before each push, because
+//                             installation tokens expire after one hour and long
+//                             runs pushed with a dead credential (connector#462;
+//                             ported here as toon-meta#248/#334) — see
+//                             ./mint-app-token.ts. Without them the runner falls
+//                             back to the ambient GH_TOKEN and the old expiry
+//                             behaviour. HOST ONLY: the private key is
+//                             deliberately absent from PASSTHROUGH_KEYS in
+//                             ./sandbox-secrets.ts, so it never enters the
+//                             sandbox container.
 //
 // Usage:
 //   SANDCASTLE_ISSUE_NUMBER=123 npx tsx .sandcastle/agent-implement-issue.ts
@@ -193,7 +194,11 @@ async function pushBranch(
     token = minted.token;
     // Keep the host in step with the container.
     process.env.GH_TOKEN = token;
-    console.log(`  [${label}] credential: freshly minted (source=${minted.source})`);
+    console.log(
+      minted.source === "app"
+        ? `  [${label}] credential: freshly minted (source=app)`
+        : `  [${label}] credential: ambient GH_TOKEN, NOT re-minted (source=ambient)`,
+    );
   } catch (err) {
     const msg = `[${label}] could not obtain a push credential: ${(err as Error).message}`;
     if (bestEffort) {
@@ -349,8 +354,7 @@ try {
     // 2026-07-23 gate re-run wave, with success/failure MIXED within the same
     // repo (so not a permissions gap). Both commands are pure plumbing with no
     // judgement to make, so we run them directly: the push from INSIDE the
-    // sandbox (where the implementer's commits live and `gh auth setup-git`
-    // already wired git's credential helper in onSandboxReady), the PR from the
+    // sandbox (where the implementer's commits live), the PR from the
     // authenticated HOST. sandbox.exec() surfaces a non-zero exitCode (it does
     // NOT throw), so we check it and fail loud.
     //
