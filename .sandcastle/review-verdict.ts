@@ -650,26 +650,52 @@ export function submitFactoryOpsVerdict(
   }
 
   // Clear the trigger label now that the verdict it requested has been
-  // submitted — see the function doc comment (toon-meta#355). Unconditional
-  // (no ownership check, unlike needs:human above): agent:review is a pure
-  // trigger, so whoever applied it, "a verdict was just submitted" is reason
-  // enough to remove it.
-  execFileSync(
-    "gh",
-    [
-      "api",
-      "-X",
-      "DELETE",
-      // Same encoding gotcha as NEEDS_HUMAN_LABEL above: the colon MUST stay
-      // percent-encoded or this silently no-ops (200, label untouched).
-      `repos/${nwo}/issues/${prNumber}/labels/${encodeURIComponent(AGENT_REVIEW_LABEL)}`,
-    ],
-    {
-      stdio: ["ignore", "ignore", "inherit"],
-      env: { ...process.env, GH_TOKEN: approver.token },
-    },
-  );
-  console.log(
-    `Cleared '${AGENT_REVIEW_LABEL}' on PR #${prNumber} — the review verdict is submitted.`,
-  );
+  // submitted — see the function doc comment (toon-meta#355). No ownership
+  // check (unlike needs:human above): agent:review is a pure trigger, so
+  // whoever applied it, "a verdict was just submitted" is reason enough to
+  // remove it.
+  //
+  // The label is legitimately ABSENT on two paths: the implement runner's
+  // verdict (agent-implement-issue.ts submits a verdict on a PR that was
+  // never labelled agent:review) and a re-run of an already-cleared review.
+  // GitHub answers a DELETE of an absent label with 404, which `gh api`
+  // surfaces as a non-zero exit — so a 404 here is the expected no-op and
+  // must not fail the run. Any OTHER error still throws: silently losing
+  // the removal on the review-runner path would re-create the exact
+  // stale-label unreadability this function exists to fix.
+  try {
+    execFileSync(
+      "gh",
+      [
+        "api",
+        "-X",
+        "DELETE",
+        // Same encoding gotcha as NEEDS_HUMAN_LABEL above: the colon MUST stay
+        // percent-encoded or this silently no-ops (200, label untouched).
+        `repos/${nwo}/issues/${prNumber}/labels/${encodeURIComponent(AGENT_REVIEW_LABEL)}`,
+      ],
+      {
+        // "pipe" (not inherit) so the catch below can read gh's stderr to
+        // tell the benign 404 apart from a real failure.
+        stdio: "pipe",
+        env: { ...process.env, GH_TOKEN: approver.token },
+      },
+    );
+    console.log(
+      `Cleared '${AGENT_REVIEW_LABEL}' on PR #${prNumber} — the review verdict is submitted.`,
+    );
+  } catch (error) {
+    const stderr =
+      error instanceof Error && "stderr" in error
+        ? String((error as { stderr?: unknown }).stderr ?? "")
+        : "";
+    if (!/\b404\b|Not Found/i.test(stderr)) {
+      if (stderr) process.stderr.write(stderr);
+      throw error;
+    }
+    console.log(
+      `'${AGENT_REVIEW_LABEL}' was not on PR #${prNumber} — nothing to clear. ` +
+        `Expected on the implement runner's verdict path and on re-runs.`,
+    );
+  }
 }

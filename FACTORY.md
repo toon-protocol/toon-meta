@@ -663,17 +663,20 @@ runner submits the reviewer's structured verdict (#275) as a **formal GitHub rev
   cannot approve its own PR.
 - **blocking** → a `CHANGES_REQUESTED` review carrying the findings, plus `needs:human`.
 
-**Either way, `agent:review` — the label that triggered the run — is removed once the verdict
-lands** ([#355](https://github.com/toon-protocol/toon-meta/issues/355)). Before this, nothing
-ever cleared it: `connector#923` and `connector#935` both sat labelled long after their reviews
-finished and returned `APPROVED`, making a done review indistinguishable from a pending one, and
-because `agent-review.yml` fires on the `labeled` event, re-review needed an undocumented
+**Either way, the verdict submitter clears `agent:review` if the PR carries it — so after any
+verdict, the label means only "a review is pending or in flight"**
+([#355](https://github.com/toon-protocol/toon-meta/issues/355)). The label is only actually
+present on the review runner's path (`agent-review.yml`, which the label itself triggered); the
+implement runner submits its verdict on a PR that was never labelled, so there the clear is a
+tolerated no-op — GitHub's 404 for removing an absent label is expected and never fails the
+run, while any other removal failure still does. Before this, nothing ever cleared the label:
+`connector#923` and `connector#935` both sat labelled long after their reviews finished and
+returned `APPROVED`, making a done review indistinguishable from a pending one, and because
+`agent-review.yml` fires on the `labeled` event, re-review needed an undocumented
 remove-then-re-add of the label instead of a plain re-apply. Unlike `needs:human`, this clear
 carries **no ownership check** — `agent:review` is unambiguously a machine trigger, never a
 human control point, so whoever applied it, a submitted verdict means the review it asked for is
-done. It also does not gate merge (`auto-merge.yml` does not check it), so a PR that still
-carries it after this change means a review is genuinely pending or in flight, not that removal
-failed silently past a guard.
+done. It also does not gate merge (`auto-merge.yml` does not check it).
 
 **A later clean verdict clears the `needs:human` it applied — and only that one**
 ([#352](https://github.com/toon-protocol/toon-meta/issues/352)). The blocking branch applies
