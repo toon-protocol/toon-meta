@@ -1107,7 +1107,33 @@ two tiers: (1) EXACT, a run whose `displayTitle` names the issue — toon-meta's
 `agent-implement.yml` now sets `run-name: "agent:implement — issue #${{ github.event.issue.number }}"`
 for this; (2) TIME-WINDOW fallback, the run created nearest-after the ticket's `labeled` timeline
 event (within 10 minutes of it), for the other ten fleet repos, which do not carry the `run-name:`
-line yet (flagged here rather than assumed installed — the #329 lesson again).
+line yet — see *Per-repo `run-name` install status* immediately below.
+
+**Per-repo `run-name` install status ([#359](https://github.com/toon-protocol/toon-meta/issues/359)).**
+Verified live 2026-08-14 via the GitHub contents API against `main` (not just the nine repos
+#359's own table names — checked all eleven): only toon-meta carries the line. `connector`,
+`toon`, `toon-client`, `rig`, `buzz`, `fractal`, `Forge`, `store`, `relay` **and `swap`** (missing
+from #359's table, confirmed absent the same way) all run every labeling through the TIME-WINDOW
+fallback, never the EXACT tier — ten of eleven repos, not nine of ten. Unlike
+`auto-merge-shim.yml` / `reap-dead-labels-shim.yml`,
+`agent-implement.yml` is **not** a canonical file fanned out verbatim from this repo — each fleet
+repo's build/test recipe is bespoke (see *Per-repo factory table* above) — so there is no single
+file here to edit and re-fan-out. The fix is the one line the issue names, added directly in each
+repo's own `agent-implement.yml`:
+
+```yaml
+run-name: "agent:implement — issue #${{ github.event.issue.number }}"
+```
+
+Installing it is cross-repo work a toon-meta agent run cannot do — same constraint that made the
+auto-merge shim fan-out (#322) and the `needs-human-evaluator.mjs` move (#354) orchestrator/human
+tasks rather than `agent:implement` dispatches: a sandcastle run in this repo cannot open a PR in
+another. It needs ten hand-opened one-line PRs. This is not a cosmetic gap: the dispatcher labels
+in batches (four tickets across four repos within three seconds on 2026-08-12, per #359), which is
+exactly the shape the evaluator's own header warns the TIME-WINDOW tier can misattribute — a
+missed reap (the wedge stays) or a reap comment naming the wrong run, in nine of ten repos, on
+every batch.
+
 When no run correlates at all — the label was applied but the `issues.labeled` webhook never
 reached the runner — the ticket is left alone until the label is older than
 `NO_RUN_GRACE_MINUTES` (75m, deliberately past the runner's own 60m job timeout), at which point
