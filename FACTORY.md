@@ -1259,6 +1259,97 @@ ready, and every reap now mandatorily pairs the removal with `needs:human` / `tr
 `planDispatch` decline on its own, with no new guard required. Revisit only if a reap path is ever
 found that removes the label without a pairing landing first.
 
+## Fork-PR approval watch (#360)
+
+Landed by [#360](https://github.com/toon-protocol/toon-meta/issues/360) (epic
+[#342](https://github.com/toon-protocol/toon-meta/issues/342)). GitHub gates Actions runs on fork
+PRs behind a maintainer-approval setting. An unapproved run concludes `action_required` with no
+job ever scheduled — so it creates **no CheckRun** at all (`gh pr checks` prints nothing,
+`statusCheckRollup` is empty) and fires **no `check_suite` event**, which is exactly why nothing
+else in the factory ever noticed one: `auto-merge.mjs` and `pr-housekeeping.mjs` scan factory
+branches only (`sandcastle/`, `agent/`), and neither would have seen this PR's branch anyway.
+`connector#925` (fork PR from `RawNuke/connector`, opened 2026-08-10) sat this way for **two
+days**, silent rather than merely red, until a human found it by hand on 2026-08-12 while
+triaging — and in the meantime `connector#927` landed the same ADR decision under a different
+filename, which would have produced two ADR 0035s had the duplicate not been caught.
+
+Logic: `scripts/factory/fork-approval-watch.mjs` (I/O shell) over the pure, unit-tested
+`scripts/factory/fork-approval-evaluator.mjs` (`planForkApproval`: surface / no-op / clear / skip).
+Workflow: `.github/workflows/fork-approval-watch.yml`, invoked by each repo's
+`fork-approval-watch-shim.yml` (canonical copy: `scripts/factory/fork-approval-watch-shim.yml`,
+same shim → `workflow_call` convention as the dead-label reaper) plus an hourly safety cron. The
+shim is **not yet fanned out** — only the canonical copy exists today, so until it lands in each
+repo the event path covers toon-meta alone and the cron is what reaches the other ten. Verify per
+repo that it landed rather than assuming it did — the #329 lesson.
+
+**Correlating a run to a PR: `head_sha`, not the run's `pull_requests` field.** A workflow run's
+`pull_requests` array is meant to name the PR(s) it belongs to, but for a run triggered by a
+FORK's `pull_request` event that array is always empty — a documented GitHub privacy limit,
+verified live against the two `action_required` runs that `connector#925` (a PR from the
+`RawNuke/connector` fork) left in `toon-protocol/connector` — both carried `pull_requests: []`.
+The only reliable correlation is the run's `head_sha` against the PR's own `headRefOid`, fetched
+via `GET /repos/{repo}/actions/runs?head_sha=…&event=pull_request` — which also naturally excludes
+stale runs left over from a since-superseded commit, so a PR that gained a new, unblocked commit
+is never flagged on an old blocker.
+
+**Why `pull_request_target`, not `pull_request` — the load-bearing decision.** A workflow
+triggered by `pull_request` from a fork is itself subject to the exact same approval gate this
+pass exists to detect: verified live, `connector#925`'s own `pr-housekeeping-shim` and
+`auto-merge-shim` runs (both `pull_request`-triggered reusable-workflow calls) sat
+`action_required` right alongside its CI run. A watcher built on `pull_request` would need to be
+approved before it could report that something needs approving. `pull_request_target` runs in the
+base repo's context, using the workflow file from the base branch, and is never subject to the
+gate — which is exactly why it demands care elsewhere (checking out a fork's HEAD under
+`pull_request_target` and running it is the classic "pwn request" vector). This pass avoids that
+entirely: neither the reusable workflow nor its shim ever checks out the fork's code — both check
+out toon-meta's own `main` (the logic lives here, once), then only call `gh api`/`gh pr` to read
+metadata and write a label + comment. It cannot reach anything the fork PR authored, so it cannot
+widen what an unapproved fork PR can touch — #360's fourth acceptance criterion.
+
+**Why also an hourly cron, not just the event.** Approving a pending run happens on the Actions UI
+(or the `runs/approve` API), and neither fires any repo event this pass could listen for — so a
+maintainer's approval would never *clear* the label without a clock to notice. The
+`pull_request_target` trigger only speeds up the initial surface (and covers a PR opened before
+the shim existed anywhere but toon-meta); the hourly cron is what actually closes the loop for
+both surfacing and clearing, and satisfies the issue's "surfaced within one housekeeping cycle"
+acceptance criterion. Same hourly cadence as the dead-label reaper, for the same reason: the
+failure mode only a cron can see — here, an approval that fires no event at all — has no other
+detector.
+
+**Label: `needs:approval`, set and cleared unconditionally.** Unlike `needs:human` (#353), this
+label is never applied by a human — it is a pure machine signal ("some run at this PR's current
+head needs a maintainer's Actions approval"). Same reasoning as the `agent:review` clear (#355):
+no ownership check is needed, so the pass may set it and clear it freely. A PR still blocked on a
+later pass is left alone (label-present already means "surfaced", so no duplicate comment); a PR
+no longer blocked has the label removed so it never lies about current state — the same
+"every applied label needs a clearer" discipline this repo applies everywhere else (`needs:human`
+#353, `agent:review` #355, `agent:implement` #330, `agent:fix` #357). The label itself does **not
+exist in any factory repo yet** — toon-meta included — so creating it is a rollout step alongside
+the shim fan-out above; until it exists, an APPLY run fails loudly on the missing label rather
+than silently no-opping.
+
+**No path to repo secrets.** The pass never checks out the fork's code and never executes anything
+the fork PR authored — only `gh api`/`gh pr` reads plus a label-and-comment write, on the same
+`FACTORY_OPS_TOKEN` every other housekeeping pass already uses. It cannot widen what an unapproved
+fork PR can reach.
+
+**Rollout knob.** Writes happen only when the org Actions variable `FORKAPPROVAL_APPLY` is
+`'true'` (or a manual run passes `apply=true`) — same pattern as `HOUSEKEEPING_APPLY`/
+`REAP_APPLY`. Labeling and commenting need only write access, not the guarded add-label path
+(`agent-implement.yml`'s Guard 1, which gates `agent:implement` specifically), so
+`FACTORY_OPS_TOKEN` is not *identity*-load-bearing here — no surface/clear is ever silently
+ignored for coming from the wrong identity. It is still the write credential a fleet-wide APPLY
+run needs: the ambient `github.token` reaches only the calling repo and this workflow grants it
+`contents: read`, so without the secret the pass stays read/dry-run safe and any attempted write
+fails loudly in the run's `Failed writes` section.
+
+**Deliberately out of scope.** Option 2 from the issue — loosening the repo setting from "all
+outside collaborators" to "first-time contributors" — is a settings change a human makes
+deliberately (it widens who can trigger a run that touches repo secrets), not something this pass
+does. Detection is the safety net regardless of that choice, per the issue's own "Option 1
+generalises" reasoning: even with looser settings, some PR will still stall in a state nothing
+watches.
+
 ## triage-sweep retirement (#283)
 
 `triage-sweep.yml` + `scripts/factory/triage-sweep.mjs` (the hourly cron janitor) were deleted

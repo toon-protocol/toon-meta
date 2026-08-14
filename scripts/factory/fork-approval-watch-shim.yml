@@ -1,0 +1,52 @@
+# fork-approval-watch shim — forwards this repo's fork-PR pull request events
+# to the central fork-approval watch in toon-meta (toon-meta#360, epic #342).
+#
+# CANONICAL COPY. This file is fanned out VERBATIM to every factory repo as
+# .github/workflows/fork-approval-watch-shim.yml (toon-meta itself needs no
+# shim — its fork-approval-watch.yml carries the same trigger directly). When
+# onboarding a new factory repo, copy this file unchanged; when changing it,
+# change it here first and re-fan-out. Verify it actually landed in every
+# repo before relying on it — the #329 lesson (a shim that only exists as a
+# canonical copy was never installed).
+#
+# Same fleet event-forwarding convention as reap-dead-labels-shim.yml (thin
+# per-repo shim → toon-meta reusable workflow via workflow_call with
+# `secrets: inherit`), kept as a SIBLING file on purpose: the event sets are
+# disjoint and a problem in one forwarder can never take down another.
+#
+# `pull_request_target`, deliberately NOT `pull_request`: a `pull_request`-
+# triggered workflow is itself gated by the exact same fork-PR approval this
+# pass exists to detect (verified live — see fork-approval-watch.yml's
+# header), so it could never fire in the case that matters. `pull_request_
+# target` runs in this repo's base context and is never subject to that gate.
+# This shim never checks out the fork's code (the called workflow checks out
+# toon-meta main, not this repo, let alone the fork's head), so it cannot
+# reach anything the fork PR authored — no path to this repo's secrets opens
+# up by adding it.
+#
+# Every open/reopen/sync forwards (no local filter): the central pass re-scans
+# the whole fleet's open fork PRs regardless of which repo's event fired,
+# cheap, and coalesced by its own concurrency group. A dropped event, a PR
+# opened before this shim was installed, or an approval granted from the
+# Actions UI (which fires no event at all) is recovered by the watch's hourly
+# safety cron (see fork-approval-watch.yml).
+#
+# Writes are gated centrally: until the org Actions variable
+# FORKAPPROVAL_APPLY is 'true', every forwarded run is a no-write dry-run
+# report.
+
+name: fork-approval-watch-shim
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  forward:
+    uses: toon-protocol/toon-meta/.github/workflows/fork-approval-watch.yml@main
+    with:
+      source: ${{ github.repository }}
+    secrets: inherit
