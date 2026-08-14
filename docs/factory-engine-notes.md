@@ -206,6 +206,33 @@ Ordered checklist, proven on relay. Do it in this order:
   its copy is refreshed — see [FACTORY.md](../FACTORY.md) for the per-repo shim install
   status.
 
+### CI gotcha (from connector#961): a floating `nightly` toolchain turns a CI gate red fleet-wide with zero code cause
+
+- **Symptom:** a contracts CI gate goes red on a PR with no product cause —
+  `testFork_Cutover_GaslessChannelLifecycleOnRealForkedUsdc` failed 3/3 with a bare
+  `EvmError: Revert` (gas 9163906), blocking connector#960 even though its verdict was
+  already APPROVED. The failure message does not name the toolchain, so nothing in the
+  failure output hints that the runner had just picked up a new nightly build.
+- **Cause:** `contracts.yml`'s `foundry-toolchain` install floated `nightly`, and on
+  2026-08-14 that channel served forge `1.8.0-nightly`, which regressed the ERC-2771
+  fork test — reproduced identically in `ghcr.io/foundry-rs/foundry:nightly` — while
+  stable **v1.7.1** passed on the identical branch against the identical public RPC
+  (`https://sepolia.base.org`), with the live distributor still holding ~100M USDC.
+  No chain-state or PR cause; the
+  toolchain channel itself was the regression. `ci.yml`'s own anvil gate had already
+  been pinned to v1.7.1 with the same exposure flagged as "separate change" for
+  `contracts.yml` — that flagged exposure is what fired here.
+- **Fix:** pin every `foundry-toolchain` install in the workflow to a specific stable
+  version (not `nightly`, not `latest`), with a dated comment recording the regression
+  that motivated the pin. The general lesson: any CI gate that exists to prove
+  chain/deploy code works must pin its toolchain to a stable version — the alternative
+  is a red gate with no code change to bisect and no hint in the error.
+- **Rollout status:** fixed in `contracts.yml` by
+  [connector#961](https://github.com/toon-protocol/connector/pull/961); `ci.yml`'s
+  anvil gate was already pinned. Other factory repos running a foundry-based CI gate
+  should confirm their `foundry-toolchain` installs are pinned to a stable version, not
+  `nightly`.
+
 ---
 
 ## 4. First-run safety & coexistence
