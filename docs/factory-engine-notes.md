@@ -275,7 +275,7 @@ above was first proven on pnpm-with-lint; these three differ from it):
   (Proof: PR toon-meta#201.)
 - **lint-less pnpm** — store (pnpm but no `lint`, esbuild build). (Proof: PR store#52.)
 
-## The pass must not see itself: plumbing check runs are not CI (pr-signals.mjs, 2026-08-14)
+## The pass must not see itself: plumbing check runs are not CI (pr-signals.mjs, #373, 2026-08-14)
 
 Every `pull_request`-event workflow attaches its own job to the PR's check
 rollup. When the fleet auto-merge pass gained `pull_request` triggers, each
