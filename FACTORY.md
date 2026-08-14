@@ -150,19 +150,24 @@ a description of current state.
 
 ## Trigger-label spec (every repo copies these)
 
-These two labels drive the sandcastle runners and must be created identically in every factory
-repo. The label→runner is a GitHub Action (`.github/workflows/agent-*.yml`), **not** part of
+These labels drive the sandcastle runners and must be created identically in every factory
+repo (`agent:fix` excepted for now — see the color-rationale note below). The label→runner is a GitHub Action (`.github/workflows/agent-*.yml`), **not** part of
 `.sandcastle/`, and its guards refuse sub-issues and PRD-shaped parents.
 
 | Label             | Color     | Meaning                                                                                              |
 |-------------------|-----------|------------------------------------------------------------------------------------------------------|
 | `agent:implement` | `#1D76DB` | An agent should build this. Fires the sandcastle **implement** runner (`agent-implement.yml`).        |
 | `agent:review`    | `#B392F0` | One labeled review action over a PR — the single-pass replacement for the old 4-round `review-round:*` loop. Fires the **review** runner (`agent-review.yml`); removed once the verdict is submitted (see [What a factory-ops approval attests](#what-a-factory-ops-approval-attests)) — a PR carrying it means a review is genuinely pending or in flight. |
+| `agent:fix`       | `#1D76DB` | A red PR whose only blocker(s) are failing checks and/or a merge conflict should be repaired ([#357](https://github.com/toon-protocol/toon-meta/issues/357)). Decided by `automerge-evaluator.mjs`'s `repair` verdict, applied by `auto-merge.mjs` under `REPAIR_APPLY`. Fires the **fix** runner (`agent-fix.yml`); removed unconditionally when the run finishes (see [PR repair pass (#357)](#pr-repair-pass-357)) — a PR carrying it means a repair is genuinely in flight. |
 
 Color rationale: `agent:implement` reuses the blue (`#1D76DB`) of the label it replaces
-(`agent:ready`), keeping the "agent trigger" identity. `agent:review` takes a distinct light
-purple (`#B392F0`) so the two triggers are visually separable at a glance. *(No longer
-proposals — verified identical in every factory repo; see the note at the bottom.)*
+(`agent:ready`), keeping the "agent trigger" identity; `agent:fix` shares the same blue — it is
+the same "an agent should push commits here" trigger shape as `agent:implement`, just scoped to an
+existing PR instead of a fresh issue. `agent:review` takes a distinct light purple (`#B392F0`) so
+the review trigger is visually separable from the two dispatch-shaped triggers. *(No longer
+proposals — verified identical in every factory repo; see the note at the bottom. `agent:fix` is
+new in toon-meta only as of [#357](https://github.com/toon-protocol/toon-meta/issues/357) — not
+yet fanned out to the other ten repos, see that section's "Not yet done".)*
 
 ---
 
@@ -881,6 +886,141 @@ merging its own branch from inside the sandbox, before CI and before review. It 
 commented out in every copy, and no repo defines it as an Actions variable, which would have no
 effect anyway since no workflow references `vars.SANDCASTLE_AUTO_MERGE`). This pass merges
 through GitHub, after the gate, under an identity that is not the PR author.
+
+## PR repair pass (#357)
+
+The factory covers **issue → agent → PR → review → merge**. Nothing covered **PR went red →
+fix it** until [#357](https://github.com/toon-protocol/toon-meta/issues/357): every red PR on
+2026-08-12 was repaired because a human noticed and dispatched an agent by hand. This is not a
+rare edge — a red PR holds its epic's dispatch slot (`agent:implement` stays on the ticket until
+the PR merges), so one stuck PR costs a lane indefinitely, and the dead-label reaper (below)
+explicitly does not help: its condition is "the run finished AND no open PR exists", and once a
+PR exists, red or not, the reaper leaves it alone.
+
+**Not a new loop — the auto-merge pass gains three more verdicts.** A PR whose auto-merge
+evaluation blocks on nothing but red checks and/or a merge conflict — every other precondition
+(approval, `needs:human`, review state, branch eligibility) already holds — is not simply
+`blocked`; alongside `merge` / `update-branch` / `blocked`, `planAutoMerge`
+(`scripts/factory/automerge-evaluator.mjs`) now also produces:
+
+| Verdict | Meaning | Action |
+|---|---|---|
+| `retry` | The failing check(s) look transient (infrastructure) | Re-run the failed jobs — no agent, free |
+| `repair` | A genuine defect, or a merge conflict | Apply `agent:fix` to the PR |
+| `escalate` | Also red on `main`, or a budget is spent | Apply `needs:human` |
+
+A PR with ANY other blocker — `needs:human`, an outstanding `CHANGES_REQUESTED`, an unreadable
+policy, a draft, `approver-unknown`, ... — never reaches this decision at all and stays simply
+`blocked`. That is how "do not race the reviewer" is enforced: **by construction**, not a special
+case — the repair-candidacy gate in `planAutoMerge` requires every present blocker to be one that
+red-checks-or-conflict would itself produce.
+
+**The four rules**, decided by the pure, unit-tested `scripts/factory/repair-evaluator.mjs`
+(`planRepair`, consumed by `automerge-evaluator.mjs` — no GitHub reads/writes in either):
+
+1. **Classify before dispatching — most red is infrastructure.** `classifyCheckFailure` requires
+   TWO signals before calling a failure transient: a download/setup/toolchain-shaped step NAME
+   (`setup`, `install`, `toolchain`, `cache`, `download`, `provision`, `fetch`) AND a
+   transport-shaped error TEXT (a curl exit code, an HTTP 5xx/429, a known-flaky host such as
+   `hermit`/`artifacts.nixos.org`/`release.anza.xyz`/`get.nexte.st` — the exact hosts #357's own
+   2026-08-12 incident named). A failing check with **no captured error text is always
+   "genuine"**, even with an infra-shaped name — a step name is not evidence of what failed
+   inside it, and a naive loop guessing from names alone would have burned ~8 agent runs on CDN
+   weather that day.
+2. **Red on `main` too ⇒ escalate, never dispatch.** `redOnMain` compares each failing check
+   against main's own latest check rollup by name; a match means a repo-level defect no feature
+   branch can fix, so `planRepair` escalates directly regardless of classification.
+3. **A budget, then stop.** Repair attempts (`agent:fix` dispatches) and free retries are capped
+   **separately** — `DEFAULT_REPAIR_BUDGET = 2`, `DEFAULT_RETRY_BUDGET = 2`. A transient-looking
+   failure gets its own free-retry budget before it is treated as no-longer-transient and
+   escalated, so a permanently-broken external host cannot loop forever without ever touching the
+   costlier repair budget.
+4. **Merge conflicts are the easy case.** `mergeable: CONFLICTING` is never transient and never
+   repo-level, so it dispatches immediately with no classification (still subject to the repair
+   budget, so an agent that cannot actually resolve the conflict does not loop forever).
+
+**Rollout knob.** Repair writes (re-run / `agent:fix` / `needs:human`) happen only when the org
+Actions variable `REPAIR_APPLY` is `'true'` (or a manual run passes `repairApply=true`) — a
+**separate** knob from `AUTOMERGE_APPLY`, so the merge pass can run live while repair stays
+dry-run, or vice versa. Every run prints the same decision report either way — the verdict line
+and the action's reason (which names the attempt count and the budget whenever a budget is what
+decided it), plus `d.signals.repair`, which carries the full `planRepair` output for every PR that
+reached the repair decision and `null` for every PR that never became a candidate.
+
+**Triggers.** `.github/workflows/auto-merge.yml`'s `pull_request` trigger gained `labeled` and
+`synchronize` (previously only `closed`): a label change is the one state change that can make a
+PR mergeable or repair-eligible with no other event — `connector#923`/`#935` sat mergeable for
+5.5h after `needs:human` was cleared because nothing else fired before the next cron — and
+`synchronize` re-evaluates a repair attempt's own push as soon as it lands rather than up to 6h
+later.
+
+**What the shell adds** (`scripts/factory/auto-merge.mjs`), over and above the merge pass's
+existing reads: `readMainRollup` (main's own check rollup, once per repo, via
+`/commits/{branch}/check-runs`), `countRepairAttempts` (prior `agent:fix` timeline events —
+counted the same way `.sandcastle/needs-human-evaluator.mjs` reads ownership: the label list says only THAT a
+label is present, never how many times it cycled), `countRetryAttempts` (a hidden marker comment
+this pass posts on every `retry`, since a retry never applies a label to count from — the same
+marker-comment convention as the dead-label reaper below), and `fetchFailingCheckErrorText`
+(best-effort: extracts a run id from the failing check's live `detailsUrl` and pulls a `gh run
+view --log-failed` excerpt, capped at `REPAIR_LOG_FETCH_LIMIT` checks per PR so a wide failing
+matrix does not turn one pass into dozens of log fetches — checks left unfetched simply have no
+`errorText` and fail closed to "genuine").
+
+**Live-verified, dry-run, 2026-08-14** (`toon-backlog-bot[bot]` installation token, all 11 repos,
+7 open agent PRs): `readMainRollup`, `countRepairAttempts`, `countRetryAttempts`, and
+`fetchFailingCheckErrorText` all ran clean end-to-end with no crashes — including a real run-id
+extraction and log fetch against `connector#960`'s one failing check (a genuine `forge test`
+assertion failure, correctly classified as carrying no transient-error text). **Not yet exercised
+live:** none of the 7 PRs that day happened to be a pure repair candidate (each also carried
+`needs:human`, an outstanding `CHANGES_REQUESTED`, or nothing but `approver-unknown`), so the
+retry/repair/escalate verdict itself has not fired against a real PR, and the WRITE paths
+(`apply-label`, `gh run rerun`, the marker/escalation comments) have not run at all — this session
+never set `REPAIR_APPLY=true`. Re-dry-run once a genuinely repair-eligible PR exists, and watch a
+real `APPLY` run before trusting this beyond dry-run — the same rollout discipline as every other
+`*_APPLY` knob in this file.
+
+**The PR-scoped repair runner that consumes `agent:fix`.** `.sandcastle/agent-fix-pr.ts` +
+`.github/workflows/agent-fix.yml`, `pull_request:[labeled]` on `agent:fix`, mirroring
+`agent-review.yml`'s single-PR pattern: checks out `main`, materialises the PR head as a local
+branch (same worktree-conflict workaround as the review runner), runs a bounded fixer pass
+(sonnet, up to 60 iterations) against `.sandcastle/fix-prompt.md` — diagnose the failing check(s)
+or conflict from `gh pr view`/`gh run view --log-failed`, make the smallest fix, confirm with
+`npm run gate` (and `npm run test:factory` if `.sandcastle/**`/`scripts/factory/**` changed) —
+and pushes any commits straight back onto the SAME PR (never a new one, never a merge, never a
+review verdict). **The load-bearing part: it removes its own `agent:fix` label when it finishes,
+whatever the outcome** (fix pushed, no changes made, or the run itself threw — the removal lives
+in the runner's outermost `finally`), so it does not become a fourth label an automated step
+applies and nothing automated clears, after `agent:implement` (#330), `needs:human` (#352) and
+`agent:review` (#355). Removing it unconditionally also re-arms `repair-evaluator.mjs`'s
+`hasAgentFixInFlight` gate, so the next auto-merge pass evaluates the PR fresh against the repair
+budget rather than treating a finished run as still "in flight" forever. `AGENT_FIX_LABEL` is
+**not** imported from `scripts/factory/repair-evaluator.mjs` — that directory is toon-meta-only
+tooling (the #354 lesson), while `.sandcastle/` is what gets copied into every fleet repo, so the
+runner defines the label string locally, the same way `review-verdict.ts` defines
+`AGENT_REVIEW_LABEL` locally rather than importing it.
+
+**Not yet done**, matching this fleet's established rollout order (build in toon-meta, prove it,
+then fan out — see the dead-label reaper's and auto-merge's own shim histories below): a real
+`REPAIR_APPLY=true` dry-run→apply cycle and a live `agent:fix` run have not happened yet (no PR in
+the fleet has been a pure repair candidate so far — see the live-verified paragraph above); fanning
+the two new `auto-merge.yml` triggers out to the other ten repos' `auto-merge-shim.yml` copies;
+propagating this whole pass to the other ten repos' own copies of `automerge-evaluator.mjs` /
+`repair-evaluator.mjs` / `auto-merge.mjs` (each repo's factory scripts are self-contained copies,
+same as every other pass in this file); and propagating `.sandcastle/agent-fix-pr.ts`,
+`.sandcastle/fix-prompt.md` and `.github/workflows/agent-fix.yml` themselves to the other ten
+repos' own `.sandcastle/`/`.github/workflows/` copies, the same way `agent-review-pr.ts` and
+`agent-review.yml` already had to be.
+
+**Rollout order matters here, and the runner fan-out comes first.** The auto-merge pass is
+central — one run evaluates the whole fleet — while `REPAIR_APPLY` is an *org* variable, so
+setting it to `'true'` turns repair writes on for all eleven repos at once. Only toon-meta carries
+`agent-fix.yml` today, so a `repair` verdict on another repo's PR would apply `agent:fix` there
+with nothing to consume it and nothing to clear it — and because `hasAgentFixInFlight` treats the
+label as "a repair run is in flight", that PR would then be skipped by every later pass: exactly
+the stuck-label failure mode #357 exists to avoid. Fan `agent-fix.yml` (plus `agent-fix-pr.ts` and
+`fix-prompt.md`) out to a repo before enabling repair writes for it, and keep the first live runs
+scoped to toon-meta by dispatching `auto-merge.yml` manually with `repos: toon-protocol/toon-meta`
+and `repairApply: true` (a manual run obeys its own inputs, never the org variable).
 
 ## Daily digest (#286)
 
