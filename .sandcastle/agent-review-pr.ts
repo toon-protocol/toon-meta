@@ -288,8 +288,8 @@ if (reviewerRunError) {
   process.exit(1);
 }
 
-// reviewerRunError is checked (and exits) above whenever the try block threw
-// before `verdict` was assigned, so it is always set by this point.
+// Any throw before `verdict` was assigned lands in `reviewerRunError`, which
+// is checked (and exits) above — so `verdict` is always set by this point.
 const finalVerdict = verdict!;
 
 // The verdict's side effects run AFTER the sandbox is closed, from the

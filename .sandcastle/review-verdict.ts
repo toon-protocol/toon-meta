@@ -462,6 +462,47 @@ function factoryOpsApprovalBody(issue: TargetIssue | null): string {
 }
 
 /**
+ * Ensure `needs:human` exists (ignoring "already exists") and add it to
+ * `prNumber`. Both calls are plain REST, and GitHub no-ops re-adding a label
+ * the PR already carries — so a pre-existing label or a re-run stays
+ * idempotent by construction, with no hidden marker of the kind
+ * `reportReviewRunFailure()` needs for its comment.
+ */
+function applyNeedsHumanLabel(nwo: string, prNumber: string, token: string): void {
+  try {
+    execFileSync(
+      "gh",
+      [
+        "api",
+        `repos/${nwo}/labels`,
+        "-f",
+        `name=${NEEDS_HUMAN_LABEL}`,
+        "-f",
+        "color=B60205",
+        "-f",
+        "description=Factory reviewer found blocking defects - a human must decide",
+      ],
+      { stdio: "pipe", env: { ...process.env, GH_TOKEN: token } },
+    );
+  } catch {
+    // Label already exists — the normal case.
+  }
+  execFileSync(
+    "gh",
+    [
+      "api",
+      `repos/${nwo}/issues/${prNumber}/labels`,
+      "-f",
+      `labels[]=${NEEDS_HUMAN_LABEL}`,
+    ],
+    {
+      stdio: ["ignore", "ignore", "inherit"],
+      env: { ...process.env, GH_TOKEN: token },
+    },
+  );
+}
+
+/**
  * Submit the formal review verdict on a PR AS FACTORY-OPS:
  *   clean    → APPROVE
  *   blocking → REQUEST_CHANGES with the findings, plus the `needs:human` label
@@ -503,47 +544,6 @@ function factoryOpsApprovalBody(issue: TargetIssue | null): string {
  * Fails closed on any read error: leaving the label costs a manual edit,
  * clearing it wrongly overrules a person.
  */
-/**
- * Ensure `needs:human` exists (ignore "already exists") and add it to `prNumber`.
- * Both calls are plain REST, so a pre-existing label or a re-run stays
- * idempotent — no marker needed here, unlike the comment in
- * `reportReviewRunFailure()` below (GitHub itself no-ops re-adding a label a
- * PR already carries).
- */
-function applyNeedsHumanLabel(nwo: string, prNumber: string, token: string): void {
-  try {
-    execFileSync(
-      "gh",
-      [
-        "api",
-        `repos/${nwo}/labels`,
-        "-f",
-        `name=${NEEDS_HUMAN_LABEL}`,
-        "-f",
-        "color=B60205",
-        "-f",
-        "description=Factory reviewer found blocking defects - a human must decide",
-      ],
-      { stdio: "pipe", env: { ...process.env, GH_TOKEN: token } },
-    );
-  } catch {
-    // Label already exists — the normal case.
-  }
-  execFileSync(
-    "gh",
-    [
-      "api",
-      `repos/${nwo}/issues/${prNumber}/labels`,
-      "-f",
-      `labels[]=${NEEDS_HUMAN_LABEL}`,
-    ],
-    {
-      stdio: ["ignore", "ignore", "inherit"],
-      env: { ...process.env, GH_TOKEN: token },
-    },
-  );
-}
-
 function clearsNeedsHuman(prNumber: string, approverLogin: string, token: string): boolean {
   try {
     const raw = execFileSync(
@@ -772,9 +772,9 @@ function reviewRunFailureBody(
     `complete — the failed check stays pinned to the superseded, pre-push ` +
     `commit. This comment is the visible signal that the run failed.\n\n` +
     (runUrl ? `Run: ${runUrl}\n\n` : ``) +
-    `Applied \`${NEEDS_HUMAN_LABEL}\` — no factory-ops verdict was submitted ` +
-    `on this run; a human should review this PR directly. ` +
-    `(toon-protocol/toon-meta#399)\n\n` +
+    `Applied \`${NEEDS_HUMAN_LABEL}\` — the review did not complete, so a ` +
+    `human should review this PR directly rather than read the check rollup ` +
+    `as a verdict. (toon-protocol/toon-meta#399)\n\n` +
     `<!-- ${marker} -->`
   );
 }
