@@ -70,18 +70,43 @@ describe the shape of each path, not an observation of one. What would prove
 them: a single full cycle against the apex, cited by zkApp account address
 and the transaction hashes for the open, a claim, and the `settle()`.
 
-Every path in the table needs at least one live, on-chain observation before
-a family's soak clock can be said to have started at all. Repetition against
-the volume/duration bar (§3) only counts paths that have already been proven
-to work at least once.
+Every path in the table needs at least one live, on-chain observation — on a
+network §2 admits for gap-closing — before a family's soak clock can be said
+to have started at all. Repetition against the volume/duration bar (§3) only
+counts paths that have already been proven to work at least once.
 
 ## 2. Network
 
-Public devnet/testnet only, named explicitly — never a local validator. The
+Public networks only, named explicitly. Never a local validator. The
 fleet has run no self-hosted blockchain infrastructure since 2026-07-19,
 when the Anvil / `solana-test-validator` / Mina lightnet boxes were deleted
 as part of the public-chain cutover
 ([deployment.md → Linode Devnet](./deployment.md#linode-devnet--live-public-chain-settlement)).
+
+Which public network counts depends on which question is being asked, and the
+two questions this document asks take different answers.
+
+**§1 gap-closing (does this path work at all, once, live): public
+devnet/testnet or public mainnet.** The devnet/testnet table below remains
+the default and expected source of these observations. A mainnet
+observation is admitted *a fortiori*: same program, same instruction, same
+wire format, with real funds rather than valueless ones. A path
+demonstrated on mainnet is demonstrated, and nothing about §1's question is
+made easier by the chain being worthless. A mainnet observation carries the
+same evidentiary burden §1 already places on a devnet one: name the
+network, cite a transaction signature or an equivalent on-chain read, and
+verify it against the chain rather than against a tool's own report of
+success.
+
+**§3 breadth (N channels, M identities, D days): public devnet/testnet
+only.** Mainnet cannot honestly produce breadth. Manufacturing twenty
+channels across ten identities on a network the fleet has barely deployed to
+would be a purchase of evidence rather than a soak. Devnet is where the fleet
+generates lifecycle volume incidentally, which is precisely what makes that
+bar meaningful, and it is also where §3's "zero unexplained F-class rejects"
+has a denominator large enough to mean anything.
+
+The devnet/testnet networks themselves, per family:
 
 | Family | Network | Chain id (announced) | RPC |
 |--------|---------|-----------------------|-----|
@@ -108,6 +133,7 @@ it fixes the unit the rest of this section builds on):
 > owners (connector#685, relay#85) and is deliberately kept out of this bar.
 
 That fixes the unit; the numeric values are this document's job to propose.
+The bar runs on public devnet/testnet only, per §2.
 All three families use the same shape of bar — a family is not exempt from
 soaking just because its instrument is newer. §1's rule binds here too: a
 family's clock cannot be said to be running until every path in its §1 row
