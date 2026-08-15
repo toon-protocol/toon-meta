@@ -736,17 +736,31 @@ const REVIEW_FAILURE_MARKER_TAG = "agent-review-runner-failure";
 const sanitizeMarkerPart = (s: string) => s.replace(/[^a-zA-Z0-9]+/g, "-");
 
 /**
- * Hidden idempotency marker for a run's failure comment, keyed on the
- * Actions run id (GITHUB_RUN_ID, set automatically for every job) — same
- * technique as `reap-evaluator.mjs`'s `reapMarker`, keyed on a "cycle" so a
- * genuinely NEW failure (a re-labeled PR that fails again, a new run id)
- * still gets its own visible comment, while a defensive double-call for the
- * SAME run's failure does not double-post.
+ * Hidden idempotency marker for a run's failure comment, keyed on the Actions
+ * run id AND attempt (GITHUB_RUN_ID / GITHUB_RUN_ATTEMPT, both set for every
+ * job) — same technique as `reap-evaluator.mjs`'s `reapMarker`, keyed on a
+ * "cycle" rather than on the PR.
+ *
+ * The unit of dedup is one failure EVENT, not one PR (#399's criterion was
+ * amended to say so). A defensive double-call inside a single attempt must not
+ * double-post; a re-labeled PR that fails again, or a "Re-run failed jobs" that
+ * fails differently, is a distinct event and gets its own comment with its own
+ * run link. Collapsing those onto one PR-level comment would make the second
+ * failure invisible — the exact thing #399 exists to prevent.
+ *
+ * The attempt is load-bearing: "Re-run failed jobs" REUSES GITHUB_RUN_ID and
+ * only increments GITHUB_RUN_ATTEMPT, so a run-id-only key would suppress the
+ * re-run's report.
  */
-function reviewFailureMarker(repo: string, prNumber: string, runId: string): string {
+function reviewFailureMarker(
+  repo: string,
+  prNumber: string,
+  runId: string,
+  runAttempt: string,
+): string {
   return (
     `${REVIEW_FAILURE_MARKER_TAG}:${sanitizeMarkerPart(repo)}-pr-${prNumber}` +
-    `-run-${sanitizeMarkerPart(runId)}`
+    `-run-${sanitizeMarkerPart(runId)}-attempt-${sanitizeMarkerPart(runAttempt)}`
   );
 }
 
@@ -787,9 +801,11 @@ function reviewRunFailureBody(
  * reporting the problem is logged, not thrown — it must never mask the
  * original failure's exit code.
  *
- * Idempotent via `reviewFailureMarker()`: skips posting (but still applies
- * the label, which is idempotent by construction — see `applyNeedsHumanLabel`)
- * when a comment carrying this run's marker already exists.
+ * Idempotent per failure event via `reviewFailureMarker()`: skips posting (but
+ * still applies the label, which is idempotent by construction — see
+ * `applyNeedsHumanLabel`) when a comment carrying THIS run attempt's marker
+ * already exists. A later attempt, or a later run on a re-labeled PR, is a
+ * distinct event and reports again.
  */
 export async function reportReviewRunFailure(
   prNumber: string,
@@ -798,7 +814,8 @@ export async function reportReviewRunFailure(
   const { factoryOps, reason } = options;
   const nwo = repoNwo();
   const runId = process.env.GITHUB_RUN_ID?.trim() || "local";
-  const marker = reviewFailureMarker(nwo, prNumber, runId);
+  const runAttempt = process.env.GITHUB_RUN_ATTEMPT?.trim() || "1";
+  const marker = reviewFailureMarker(nwo, prNumber, runId, runAttempt);
   const runUrl = actionsRunUrl();
 
   let alreadyPosted = false;
