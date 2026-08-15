@@ -142,6 +142,52 @@ console.log(
 // try) so the `finally` still closes the sandbox before we fail the job.
 let reviewPushVerificationError: string | null = null;
 
+/**
+ * Read a branch's tip from origin, or null if the branch does not exist.
+ *
+ * Deliberately `git ls-remote` and NOT `gh api .../git/ref/heads/<branch>`:
+ * the REST ref endpoint is served from a read replica and returns the PRE-push
+ * SHA for seconds after a push lands. That cost toon-meta#396 a real review —
+ * verdict CLEAN, commit pushed and live on the branch, but the single REST read
+ * ~8s later still reported the old head, so the runner declared the push failed
+ * and withheld the factory-ops approval. `ls-remote` talks to the same git
+ * backend the push just wrote to, so it does not lag it.
+ */
+function readRemoteHead(ref: string): string | null {
+  const out = execFileSync(
+    "git",
+    ["ls-remote", "origin", `refs/heads/${ref}`],
+    { encoding: "utf8" },
+  ).trim();
+  return out ? (out.split(/\s+/)[0] ?? null) : null;
+}
+
+/**
+ * Poll origin until `ref` points at `expectedSha`, up to ~60s. Returns the last
+ * SHA observed (=== expectedSha on success). Replication lag is normally under
+ * a second; the long ceiling costs nothing on the happy path (first read wins)
+ * and only spends wall clock on the run that would otherwise fail wrongly.
+ */
+async function awaitRemoteHead(
+  ref: string,
+  expectedSha: string,
+  { attempts = 12, delayMs = 5_000 } = {},
+): Promise<string | null> {
+  let observed: string | null = null;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    observed = readRemoteHead(ref);
+    if (observed === expectedSha) return observed;
+    if (attempt < attempts) {
+      console.log(
+        `  [verify] origin/${ref} is ${observed ?? "<missing>"}, waiting for ` +
+          `${expectedSha} (attempt ${attempt}/${attempts})`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  return observed;
+}
+
 const sandbox = await sandcastle.createSandbox({
   branch: headRef,
   // Forward CLAUDE_CODE_OAUTH_TOKEN + GH_TOKEN into the container (the engine's
@@ -182,20 +228,12 @@ try {
     }
 
     // FAIL LOUD (analogous to agent-implement-issue.ts). Even with the
-    // deterministic push above, verify from the HOST (authenticated via
-    // GH_TOKEN) that the PR branch head now points at the reviewer's last
-    // commit; if not, exit non-zero.
+    // deterministic push above, verify from the HOST that the PR branch head
+    // now points at the reviewer's last commit; if not, exit non-zero.
+    // Polled, not read once — see readRemoteHead()/awaitRemoteHead() above for
+    // why a single read here fails on pushes that actually landed.
     const expectedSha = review.commits[review.commits.length - 1]!.sha;
-    const nwo = execFileSync(
-      "gh",
-      ["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"],
-      { encoding: "utf8" },
-    ).trim();
-    const remoteSha = JSON.parse(
-      execFileSync("gh", ["api", `repos/${nwo}/git/ref/heads/${headRef}`], {
-        encoding: "utf8",
-      }),
-    ).object?.sha as string | undefined;
+    const remoteSha = await awaitRemoteHead(headRef, expectedSha);
 
     if (remoteSha === expectedSha) {
       console.log(
@@ -204,9 +242,9 @@ try {
     } else {
       reviewPushVerificationError =
         `\nERROR: the push-review phase reported COMPLETE, but the PR branch ` +
-        `'${headRef}' did NOT advance to the reviewer's commits.\n` +
+        `'${headRef}' did NOT advance to the reviewer's commits within 60s.\n` +
         `  Expected head SHA (last review commit): ${expectedSha}\n` +
-        `  Actual remote head SHA:                 ${remoteSha ?? "<branch not found>"}\n` +
+        `  Last observed remote head SHA:          ${remoteSha ?? "<branch not found>"}\n` +
         `  The in-sandbox \`git push\` failed silently. Inspect the push-review ` +
         `phase logs above. The Actions job is failing deliberately so this is ` +
         `not mistaken for success.`;
