@@ -25,10 +25,10 @@
 // POST-PUSH FAILURE VISIBILITY (toon-meta#399): the workflow trigger is
 // `labeled` only, and the reviewer's own push moves the PR head — so any
 // runner failure AFTER the reviewer has run (a malformed verdict, a failed
-// push-verification, a thrown sandbox error, a failed verdict submission)
-// pins the red check to the now-superseded pre-push commit while the new
-// head reads fully green. Every such failure is caught below and reported
-// via `reportReviewRunFailure()` (a SHA-independent PR comment +
+// push-verification, an error thrown inside the reviewer pass, a failed
+// verdict submission) pins the red check to the now-superseded pre-push
+// commit while the new head reads fully green. Each of those is caught below
+// and reported via `reportReviewRunFailure()` (a SHA-independent PR comment +
 // `needs:human`) before the job exits non-zero. A failure BEFORE the
 // reviewer runs (e.g. the approver preflight) is not hidden by any push and
 // keeps its plain fail-fast crash.

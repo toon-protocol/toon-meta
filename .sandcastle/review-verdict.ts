@@ -724,11 +724,12 @@ export function submitFactoryOpsVerdict(
 // A PR comment is SHA-independent and cannot be hidden by a later push — the
 // blocking-verdict path above already establishes exactly this pattern
 // (findings land as a review, plus `needs:human`). This is the same pattern
-// for the runner's OWN failure, covering every post-reviewer-run non-zero
-// exit: the push-verification failure, a malformed/missing verdict, a thrown
-// sandbox error, or a failed verdict submission. A failure BEFORE the
-// reviewer runs (e.g. the approver preflight) is unaffected — it is not
-// hidden by any push and keeps its existing fail-fast crash.
+// for the runner's OWN failure, covering the failures raised from the
+// reviewer run onwards: the push-verification failure, a malformed/missing
+// verdict, an error thrown inside the reviewer pass, or a failed verdict
+// submission. A failure BEFORE the reviewer runs (e.g. the approver
+// preflight) is unaffected — it is not hidden by any push and keeps its
+// existing fail-fast crash.
 // ---------------------------------------------------------------------------
 
 const REVIEW_FAILURE_MARKER_TAG = "agent-review-runner-failure";
