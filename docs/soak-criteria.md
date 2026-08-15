@@ -87,15 +87,16 @@ Which public network counts depends on which question is being asked, and the
 two questions this document asks take different answers.
 
 **§1 gap-closing (does this path work at all, once, live): public
-devnet/testnet or public mainnet.** The devnet table below remains the default
-and expected source of these observations. A mainnet observation is admitted
-*a fortiori*: same program, same instruction, same wire packers, with real
-funds rather than valueless ones. A path demonstrated on mainnet is
-demonstrated, and nothing about §1's question is made easier by the chain
-being worthless. A mainnet observation carries the same evidentiary burden
-§1 already places on a devnet one: name the network, cite a transaction
-signature or an equivalent on-chain read, and verify it against the chain
-rather than against a tool's own report of success.
+devnet/testnet or public mainnet.** The devnet/testnet table below remains
+the default and expected source of these observations. A mainnet
+observation is admitted *a fortiori*: same program, same instruction, same
+wire format, with real funds rather than valueless ones. A path
+demonstrated on mainnet is demonstrated, and nothing about §1's question is
+made easier by the chain being worthless. A mainnet observation carries the
+same evidentiary burden §1 already places on a devnet one: name the
+network, cite a transaction signature or an equivalent on-chain read, and
+verify it against the chain rather than against a tool's own report of
+success.
 
 **§3 breadth (N channels, M identities, D days): public devnet/testnet
 only.** Mainnet cannot honestly produce breadth. Manufacturing twenty
@@ -104,6 +105,8 @@ would be a purchase of evidence rather than a soak. Devnet is where the fleet
 generates lifecycle volume incidentally, which is precisely what makes that
 bar meaningful, and it is also where §3's "zero unexplained F-class rejects"
 has a denominator large enough to mean anything.
+
+The devnet/testnet networks themselves, per family:
 
 | Family | Network | Chain id (announced) | RPC |
 |--------|---------|-----------------------|-----|
