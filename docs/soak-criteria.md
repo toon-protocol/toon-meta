@@ -70,8 +70,8 @@ describe the shape of each path, not an observation of one. What would prove
 them: a single full cycle against the apex, cited by zkApp account address
 and the transaction hashes for the open, a claim, and the `settle()`.
 
-Every path in the table needs at least one live, on-chain observation, on a
-network §2 admits for gap-closing, before a family's soak clock can be said
+Every path in the table needs at least one live, on-chain observation — on a
+network §2 admits for gap-closing — before a family's soak clock can be said
 to have started at all. Repetition against the volume/duration bar (§3) only
 counts paths that have already been proven to work at least once.
 
@@ -87,9 +87,9 @@ Which public network counts depends on which question is being asked, and the
 two questions this document asks take different answers.
 
 **§1 gap-closing (does this path work at all, once, live): public
-devnet/testnet or public mainnet.** The devnet table below is the default and
-the expected source of these observations. A mainnet observation is admitted
-a fortiori: same program, same instruction, same `wire` packers, with real
+devnet/testnet or public mainnet.** The devnet table below remains the default
+and expected source of these observations. A mainnet observation is admitted
+*a fortiori*: same program, same instruction, same wire packers, with real
 funds rather than valueless ones. A path demonstrated on mainnet is
 demonstrated, and nothing about §1's question is made easier by the chain
 being worthless. A mainnet observation carries the same evidentiary burden
