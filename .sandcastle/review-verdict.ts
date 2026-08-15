@@ -462,6 +462,47 @@ function factoryOpsApprovalBody(issue: TargetIssue | null): string {
 }
 
 /**
+ * Ensure `needs:human` exists (ignoring "already exists") and add it to
+ * `prNumber`. Both calls are plain REST, and GitHub no-ops re-adding a label
+ * the PR already carries — so a pre-existing label or a re-run stays
+ * idempotent by construction, with no hidden marker of the kind
+ * `reportReviewRunFailure()` needs for its comment.
+ */
+function applyNeedsHumanLabel(nwo: string, prNumber: string, token: string): void {
+  try {
+    execFileSync(
+      "gh",
+      [
+        "api",
+        `repos/${nwo}/labels`,
+        "-f",
+        `name=${NEEDS_HUMAN_LABEL}`,
+        "-f",
+        "color=B60205",
+        "-f",
+        "description=Factory reviewer found blocking defects - a human must decide",
+      ],
+      { stdio: "pipe", env: { ...process.env, GH_TOKEN: token } },
+    );
+  } catch {
+    // Label already exists — the normal case.
+  }
+  execFileSync(
+    "gh",
+    [
+      "api",
+      `repos/${nwo}/issues/${prNumber}/labels`,
+      "-f",
+      `labels[]=${NEEDS_HUMAN_LABEL}`,
+    ],
+    {
+      stdio: ["ignore", "ignore", "inherit"],
+      env: { ...process.env, GH_TOKEN: token },
+    },
+  );
+}
+
+/**
  * Submit the formal review verdict on a PR AS FACTORY-OPS:
  *   clean    → APPROVE
  *   blocking → REQUEST_CHANGES with the findings, plus the `needs:human` label
@@ -575,39 +616,7 @@ export function submitFactoryOpsVerdict(
   );
 
   if (blocking) {
-    // Ensure the label exists (ignore "already exists"), then add it. Both are
-    // plain REST so a pre-existing label or a re-run stays idempotent.
-    try {
-      execFileSync(
-        "gh",
-        [
-          "api",
-          `repos/${nwo}/labels`,
-          "-f",
-          `name=${NEEDS_HUMAN_LABEL}`,
-          "-f",
-          "color=B60205",
-          "-f",
-          "description=Factory reviewer found blocking defects - a human must decide",
-        ],
-        { stdio: "pipe", env: { ...process.env, GH_TOKEN: approver.token } },
-      );
-    } catch {
-      // Label already exists — the normal case.
-    }
-    execFileSync(
-      "gh",
-      [
-        "api",
-        `repos/${nwo}/issues/${prNumber}/labels`,
-        "-f",
-        `labels[]=${NEEDS_HUMAN_LABEL}`,
-      ],
-      {
-        stdio: ["ignore", "ignore", "inherit"],
-        env: { ...process.env, GH_TOKEN: approver.token },
-      },
-    );
+    applyNeedsHumanLabel(nwo, prNumber, approver.token);
     console.log(
       `Requested changes with the findings and applied '${NEEDS_HUMAN_LABEL}' on PR #${prNumber}.`,
     );
@@ -696,6 +705,177 @@ export function submitFactoryOpsVerdict(
     console.log(
       `'${AGENT_REVIEW_LABEL}' was not on PR #${prNumber} — nothing to clear. ` +
         `Expected on the implement runner's verdict path and on re-runs.`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Post-push failure visibility (toon-meta#399)
+//
+// .github/workflows/agent-review.yml fires on `pull_request: [labeled]` only,
+// never `synchronize` — the run is anchored to the head SHA at label time.
+// The reviewer then pushes its own refinement commits, which moves the head.
+// GitHub's check rollup is per-SHA: a runner failure AFTER that push stays
+// pinned to the now-superseded pre-push commit, and the new head shows only
+// whatever re-triggered on the push (Doc gate, watch, automerge) — all green.
+// A human has to notice the red run by hand (live case: toon-meta#396's run
+// 31903872490 — clean-looking PR, zero reviews, zero comments).
+//
+// A PR comment is SHA-independent and cannot be hidden by a later push — the
+// blocking-verdict path above already establishes exactly this pattern
+// (findings land as a review, plus `needs:human`). This is the same pattern
+// for the runner's OWN failure, covering the failures raised from the
+// reviewer run onwards: the push-verification failure, a malformed/missing
+// verdict, an error thrown inside the reviewer pass, or a failed verdict
+// submission. A failure BEFORE the reviewer runs (e.g. the approver
+// preflight) is unaffected — it is not hidden by any push and keeps its
+// existing fail-fast crash.
+// ---------------------------------------------------------------------------
+
+const REVIEW_FAILURE_MARKER_TAG = "agent-review-runner-failure";
+
+const sanitizeMarkerPart = (s: string) => s.replace(/[^a-zA-Z0-9]+/g, "-");
+
+/**
+ * Hidden idempotency marker for a run's failure comment, keyed on the Actions
+ * run id AND attempt (GITHUB_RUN_ID / GITHUB_RUN_ATTEMPT, both set for every
+ * job) — same technique as `reap-evaluator.mjs`'s `reapMarker`, keyed on a
+ * "cycle" rather than on the PR.
+ *
+ * The unit of dedup is one failure EVENT, not one PR (#399's criterion was
+ * amended to say so). A defensive double-call inside a single attempt must not
+ * double-post; a re-labeled PR that fails again, or a "Re-run failed jobs" that
+ * fails differently, is a distinct event and gets its own comment with its own
+ * run link. Collapsing those onto one PR-level comment would make the second
+ * failure invisible — the exact thing #399 exists to prevent.
+ *
+ * The attempt is load-bearing: "Re-run failed jobs" REUSES GITHUB_RUN_ID and
+ * only increments GITHUB_RUN_ATTEMPT, so a run-id-only key would suppress the
+ * re-run's report.
+ */
+function reviewFailureMarker(
+  repo: string,
+  prNumber: string,
+  runId: string,
+  runAttempt: string,
+): string {
+  return (
+    `${REVIEW_FAILURE_MARKER_TAG}:${sanitizeMarkerPart(repo)}-pr-${prNumber}` +
+    `-run-${sanitizeMarkerPart(runId)}-attempt-${sanitizeMarkerPart(runAttempt)}`
+  );
+}
+
+/** Link to the Actions run that is reporting the failure, or null off-CI. */
+function actionsRunUrl(): string | null {
+  const server = process.env.GITHUB_SERVER_URL;
+  const repo = process.env.GITHUB_REPOSITORY;
+  const runId = process.env.GITHUB_RUN_ID;
+  return server && repo && runId ? `${server}/${repo}/actions/runs/${runId}` : null;
+}
+
+function reviewRunFailureBody(
+  reason: string,
+  runUrl: string | null,
+  marker: string,
+): string {
+  return (
+    `## agent:review runner failed\n\n` +
+    `The reviewer ran on this PR (and may have already pushed commits to the ` +
+    `branch), then the run failed: ${reason}\n\n` +
+    `A reviewer push re-triggers this PR's other checks, so the check rollup ` +
+    `on the current head can read fully green even though the review did not ` +
+    `complete — the failed check stays pinned to the superseded, pre-push ` +
+    `commit. This comment is the visible signal that the run failed.\n\n` +
+    (runUrl ? `Run: ${runUrl}\n\n` : ``) +
+    `Applied \`${NEEDS_HUMAN_LABEL}\` — the review did not complete, so a ` +
+    `human should review this PR directly rather than read the check rollup ` +
+    `as a verdict. (toon-protocol/toon-meta#399)\n\n` +
+    `<!-- ${marker} -->`
+  );
+}
+
+/**
+ * Make a post-push (or post-reviewer-run) runner failure VISIBLE on the PR:
+ * a comment naming what failed + linking the Actions run, plus `needs:human`
+ * so the PR does not read as in-flight-and-fine. Best-effort: the run is
+ * already failing and about to exit non-zero regardless, so a problem
+ * reporting the problem is logged, not thrown — it must never mask the
+ * original failure's exit code.
+ *
+ * Idempotent per failure event via `reviewFailureMarker()`: skips posting (but
+ * still applies the label, which is idempotent by construction — see
+ * `applyNeedsHumanLabel`) when a comment carrying THIS run attempt's marker
+ * already exists. A later attempt, or a later run on a re-labeled PR, is a
+ * distinct event and reports again.
+ */
+export async function reportReviewRunFailure(
+  prNumber: string,
+  options: { factoryOps: FactoryOpsIdentity; reason: string },
+): Promise<void> {
+  const { factoryOps, reason } = options;
+  const nwo = repoNwo();
+  const runId = process.env.GITHUB_RUN_ID?.trim() || "local";
+  const runAttempt = process.env.GITHUB_RUN_ATTEMPT?.trim() || "1";
+  const marker = reviewFailureMarker(nwo, prNumber, runId, runAttempt);
+  const runUrl = actionsRunUrl();
+
+  let alreadyPosted = false;
+  try {
+    const raw = execFileSync(
+      "gh",
+      [
+        "api",
+        "--paginate",
+        `repos/${nwo}/issues/${prNumber}/comments`,
+        "--jq",
+        ".[].body",
+      ],
+      { encoding: "utf8", env: { ...process.env, GH_TOKEN: factoryOps.token } },
+    );
+    alreadyPosted = raw.split("\n").some((body) => body.includes(marker));
+  } catch (error) {
+    console.warn(
+      `Could not list existing comments on PR #${prNumber} to check the ` +
+        `failure-report marker — posting anyway. ` +
+        `(${error instanceof Error ? error.message : String(error)})`,
+    );
+  }
+
+  if (alreadyPosted) {
+    console.log(
+      `Failure already reported for this run (marker found) — not posting a ` +
+        `duplicate comment on PR #${prNumber}.`,
+    );
+  } else {
+    try {
+      execFileSync(
+        "gh",
+        [
+          "api",
+          `repos/${nwo}/issues/${prNumber}/comments`,
+          "-f",
+          `body=${reviewRunFailureBody(reason, runUrl, marker)}`,
+        ],
+        { stdio: "pipe", env: { ...process.env, GH_TOKEN: factoryOps.token } },
+      );
+      console.log(`Posted a failure-visibility comment on PR #${prNumber}.`);
+    } catch (error) {
+      console.error(
+        `Failed to post the failure-visibility comment on PR #${prNumber}: ` +
+          `${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  try {
+    applyNeedsHumanLabel(nwo, prNumber, factoryOps.token);
+    console.log(
+      `Applied '${NEEDS_HUMAN_LABEL}' on PR #${prNumber} — the review run failed.`,
+    );
+  } catch (error) {
+    console.error(
+      `Failed to apply '${NEEDS_HUMAN_LABEL}' on PR #${prNumber}: ` +
+        `${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }

@@ -705,6 +705,30 @@ is never touched by the machine. The rule is pure and unit-tested in
 it fails closed, because a label that should have been cleared costs a manual edit while one
 cleared wrongly overrules a person.
 
+**A runner failure after the reviewer has run is reported onto the PR**
+([#399](https://github.com/toon-protocol/toon-meta/issues/399)). `agent-review.yml` fires on
+`labeled` only, so the run is anchored to the head SHA at label time — and the reviewer's own
+refinement push moves the head. GitHub's check rollup is per-SHA, so a failure *after* that push
+stays pinned to the superseded pre-push commit while the new head shows only the checks the push
+re-triggered (Doc gate, watch, automerge), all green. On
+[#396](https://github.com/toon-protocol/toon-meta/pull/396) that produced a clean-looking PR with
+zero reviews and zero comments over a red run; a human noticed it by hand.
+
+So the failures raised from the reviewer run onwards — the push verification, a malformed or
+missing verdict, an error thrown inside the reviewer pass, a failed verdict submission — are
+caught, and each posts a factory-ops comment naming what failed and linking the Actions run, plus
+`needs:human`, before the job exits non-zero. A comment is SHA-independent and cannot be hidden by
+a later push; `needs:human` also stops `auto-merge.yml` merging a PR whose review never finished.
+The comment carries a hidden marker keyed on `GITHUB_RUN_ID` **and** `GITHUB_RUN_ATTEMPT`, so a
+defensive double-call inside one attempt cannot double-post, while a genuinely distinct failure
+event — a re-labelled PR that fails again, or a `Re-run failed jobs` that fails differently — still
+gets its own comment with its own run link (collapsing those onto one PR-level comment would hide
+the second failure, the very thing this exists to prevent). Because the label is applied by the
+approver identity, the ownership-gated clear above removes it once a later run returns a clean
+verdict. Reporting is best-effort and never masks the original exit code, and a failure *before*
+the reviewer runs (the approver preflight) is unchanged — it is not hidden by any push, so it keeps
+its plain fail-fast crash.
+
 **A factory-ops `APPROVED` state is a machine verdict, not human judgement.** It attests
 exactly this: *the gate passed and the sandcastle reviewer found nothing blocking* (reviewed
 against the target issue's acceptance criteria where one was resolved). Nobody has read the

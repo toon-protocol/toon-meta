@@ -22,6 +22,17 @@
 // rather than degrading to a COMMENTED review.
 // It NEVER merges the PR and NEVER closes anything.
 //
+// POST-PUSH FAILURE VISIBILITY (toon-meta#399): the workflow trigger is
+// `labeled` only, and the reviewer's own push moves the PR head — so any
+// runner failure AFTER the reviewer has run (a malformed verdict, a failed
+// push-verification, an error thrown inside the reviewer pass, a failed
+// verdict submission) pins the red check to the now-superseded pre-push
+// commit while the new head reads fully green. Each of those is caught below
+// and reported via `reportReviewRunFailure()` (a SHA-independent PR comment +
+// `needs:human`) before the job exits non-zero. A failure BEFORE the
+// reviewer runs (e.g. the approver preflight) is not hidden by any push and
+// keeps its plain fail-fast crash.
+//
 // STANDALONE-REVIEW MECHANICS (proven live on connector#634's first run):
 //   Sandcastle checks the PR head branch out in its OWN worktree under
 //   .sandcastle/worktrees/, and git refuses one branch in two worktrees — so
@@ -53,6 +64,7 @@ import { sandboxSecrets } from "./sandbox-secrets.ts";
 import {
   assertApproverIsNotAuthor,
   getPrAuthorLogin,
+  reportReviewRunFailure,
   resolveFactoryOpsIdentity,
   resolveIssueFromPrBody,
   runReviewerWithVerdict,
@@ -198,7 +210,12 @@ const sandbox = await sandcastle.createSandbox({
   hooks,
 });
 
-let verdict: ReviewVerdict;
+let verdict: ReviewVerdict | undefined;
+// Caught (not left to crash the process) so a failure anywhere from here on
+// — the reviewer has now run, and may already have pushed — can still be
+// reported onto the PR (toon-meta#399) before the job goes red. A failure
+// above this line (preflight) is unaffected and keeps its plain crash.
+let reviewerRunError: unknown;
 try {
   const review = await runReviewerWithVerdict(sandbox, {
     branch: headRef,
@@ -252,31 +269,68 @@ try {
   } else {
     console.log("\nReviewer made no changes — nothing to push.");
   }
+} catch (error) {
+  reviewerRunError = error;
 } finally {
   await sandbox.close();
 }
+
+if (reviewerRunError) {
+  const message =
+    reviewerRunError instanceof Error
+      ? reviewerRunError.message
+      : String(reviewerRunError);
+  console.error(reviewerRunError);
+  await reportReviewRunFailure(prNumber, {
+    factoryOps,
+    reason: `the reviewer run failed: ${message}`,
+  });
+  process.exit(1);
+}
+
+// Any throw before `verdict` was assigned lands in `reviewerRunError`, which
+// is checked (and exits) above — so `verdict` is always set by this point.
+const finalVerdict = verdict!;
 
 // The verdict's side effects run AFTER the sandbox is closed, from the
 // authenticated host. Blocking findings must land on the PR even if the push
 // verification below is about to fail the job; a clean APPROVAL must NOT be
 // submitted on a failing run — an approval green-lights a merge, and
 // approving from a red job would let auto-merge proceed past the failure.
-if (verdict.verdict === "blocking") {
-  submitFactoryOpsVerdict(prNumber, verdict, targetIssue);
-} else if (reviewPushVerificationError) {
-  console.error(
-    "\nVerdict clean, but the review-push verification failed — NOT " +
-      "submitting the factory-ops approval on a failing run.",
-  );
-} else {
-  console.log("\nVerdict clean — submitting the factory-ops approval.");
-  submitFactoryOpsVerdict(prNumber, verdict, targetIssue);
+try {
+  if (finalVerdict.verdict === "blocking") {
+    submitFactoryOpsVerdict(prNumber, finalVerdict, targetIssue);
+  } else if (reviewPushVerificationError) {
+    console.error(
+      "\nVerdict clean, but the review-push verification failed — NOT " +
+        "submitting the factory-ops approval on a failing run.",
+    );
+  } else {
+    console.log("\nVerdict clean — submitting the factory-ops approval.");
+    submitFactoryOpsVerdict(prNumber, finalVerdict, targetIssue);
+  }
+} catch (error) {
+  console.error(error);
+  await reportReviewRunFailure(prNumber, {
+    factoryOps,
+    reason:
+      "submitting the factory-ops verdict failed: " +
+      (error instanceof Error ? error.message : String(error)),
+  });
+  process.exit(1);
 }
 
 // Fail loud AFTER the sandbox is closed: a silently-failed push must turn the
-// Actions job red, never green.
+// Actions job red, never green — reported onto the PR first (toon-meta#399)
+// so that red is not hidden behind the reviewer's own push moving the head.
 if (reviewPushVerificationError) {
   console.error(reviewPushVerificationError);
+  await reportReviewRunFailure(prNumber, {
+    factoryOps,
+    reason:
+      "the review-push verification failed — the reviewer's commits may " +
+      "not have landed on the PR branch (see the run log for detail)",
+  });
   process.exit(1);
 }
 
