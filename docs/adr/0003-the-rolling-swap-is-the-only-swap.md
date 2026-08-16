@@ -188,6 +188,10 @@ live day (swap#148). A single-commit removal has no reversible step and no obser
 
 ## Related
 
+- [`docs/legacy-swap-removal.md`](../legacy-swap-removal.md) — the plan of record that
+  implements this decision: the full touchpoint inventory with `file:line`, the stages, and the
+  exit criterion for each. Epic
+  [#411](https://github.com/toon-protocol/toon-meta/issues/411) tracks the work.
 - [`docs/rolling-swap.md`](../rolling-swap.md) — the rolling protocol spec; §1 is the legacy
   critique this record rests on, §10 is the migration it supersedes.
 - connector ADR
