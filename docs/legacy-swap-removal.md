@@ -8,6 +8,11 @@ ADR 0003 decides *that* the legacy claim-in-FULFILL swap path is removed. This d
 *how*: what exists, in what order it goes, and how each step is observed before the next one
 starts.
 
+The work is tracked by epic
+[toon-meta#411](https://github.com/toon-protocol/toon-meta/issues/411) and its twelve children;
+the stage headings below carry their ticket numbers. Dependencies are encoded in each child's
+`## Blocked by` section, which is what the dispatcher actually reads.
+
 **The hard constraint: there is no window in which swapping is broken.** Every stage is
 independently shippable and independently revertible, and the two removal stages are ordered so
 that the sender stops emitting legacy strictly before the maker stops accepting it.
@@ -177,7 +182,7 @@ why Stage 0 exists and why it is first.
 Each stage names what it removes, what it is blocked by, how it is reverted, and the
 **observable** condition that must hold before the next stage starts.
 
-### Stage 0 — Make legacy traffic countable (`swap`, removes nothing)
+### Stage 0 — Make legacy traffic countable (`swap`, removes nothing) — swap#152
 
 Emit a structured intake event at the dispatch seam classifying every arrival:
 `legacy` (inner kind 20032) · `rolling-rfq` (20033) · `rolling-fill` · `refused`, with the
@@ -188,7 +193,7 @@ peer and pair. Ship it on `swap:release`.
   readable from the box's logs for a full day.
 - **Revert:** delete a log line.
 
-### Stage 1 — Make the client's fallback loud (`toon-client`, removes nothing)
+### Stage 1 — Make the client's fallback loud (`toon-client`, removes nothing) — toon-client#595
 
 Flip `swapDefaults.rolling` from `'auto'` to `'require'`. Every fallback reason becomes an
 actionable error naming the maker pubkey, its ILP address and the reason. `'auto'` remains
@@ -203,7 +208,7 @@ maker's intake is removed.
   `g.toon.swap.maker` still completes and settles.
 - **Revert:** change one default back.
 
-### Stage 2 — Close the parity gaps (removes nothing)
+### Stage 2 — Close the parity gaps (removes nothing) — toon-client#596, toon-client#597, swap#153
 
 - **2a `toon-client`** — port `timeoutMs`, `errors[]` / `abortReason` / `LOCAL_SEND_FAILED`,
   and per-packet `packets[]` telemetry onto the rolling path.
@@ -220,7 +225,7 @@ maker's intake is removed.
   legacy one; the ported Docker E2E matrix is green in CI.
 - **Revert:** additive; revert the PR.
 
-### Stage 3 — Relocate the shared symbols (`toon`, minor, removes nothing)
+### Stage 3 — Relocate the shared symbols (`toon`, minor, removes nothing) — toon#210
 
 Move `applyRate` / `ApplyRateParams` out of `swap-handler.ts` and `AccumulatedClaim` out of
 `stream-swap.ts` into their own modules, re-exporting from the same barrel paths so nothing
@@ -235,7 +240,7 @@ non-legacy importers**, which is the precondition that makes Stage 7 a mechanica
   `toon-client` build unchanged against 3.3.0.
 - **Revert:** pure move; revert the PR.
 
-### Stage 4 — The client stops sending legacy (`toon-client`, **removal #1**)
+### Stage 4 — The client stops sending legacy (`toon-client`, **removal #1**) — toon-client#598
 
 Delete the legacy body of `ClientRunner.swap`, the `streamSwap` import, `createSwapController`
 if 2b dropped it, and `swap-wire-compat.test.ts`. The `rolling` enum collapses.
@@ -248,7 +253,7 @@ if 2b dropped it, and `swap-wire-compat.test.ts`. The `rolling` enum collapses.
 - **Revert:** revert the PR — makers still accept legacy, so a reverted client works
   immediately. This is why the client goes first.
 
-### Stage 5 — The maker stops accepting legacy (`swap`, **removal #2**)
+### Stage 5 — The maker stops accepting legacy (`swap`, **removal #2**) — swap#154
 
 Delete `swap-node.ts:1921-1992` and the `createSwapHandler` / `withMaxRateAge` wiring; make
 `rfqIntake.handle()` terminal, so a zero-condition gift wrap whose inner rumor is not kind:20033
@@ -267,7 +272,7 @@ integration suites and `fixture-topology.ts`. Rebaseline `.sandcastle/gate-basel
 - **Revert:** revert the PR and re-move the tag. Because Stage 4 already shipped, no client in
   our fleet is emitting legacy while this is in flight.
 
-### Stage 6 — `@toon-protocol/swap` drops the legacy API (major)
+### Stage 6 — `@toon-protocol/swap` drops the legacy API (major) — swap#155
 
 Delete `issueClaim`, `SwapInventory.debit` / `credit` / `refundDebit`, `withMaxRateAge`,
 `createClaimRefusalDiagnostics` and the `createSwapHandler` re-export at `index.ts:215`.
@@ -276,7 +281,7 @@ Delete `issueClaim`, `SwapInventory.debit` / `credit` / `refundDebit`, `withMaxR
 - **Blocked by:** Stage 5.
 - **Exit criterion:** 3.0.0 published with a migration note; the fleet image builds from it.
 
-### Stage 7 — The SDK withdraws `createSwapHandler` (major)
+### Stage 7 — The SDK withdraws `createSwapHandler` (major) — toon#211
 
 Delete `swap-handler.ts` (minus the already-relocated `applyRate`), `stream-swap.ts` (minus the
 already-relocated `AccumulatedClaim`), the barrel re-exports, `scripts/swap*.mjs`, and amend the
@@ -287,7 +292,7 @@ as the supported way to run a maker.
 - **Exit criterion:** 4.0.0 published; `swap` and `toon-client` build and their gates pass
   against it.
 
-### Stage 8 — Docs and vocabulary (`connector`, `toon-client`, `swap`, `toon-meta`)
+### Stage 8 — Docs and vocabulary — connector#1024, toon-client#599
 
 Retire the connector's legacy local-delivery class and peer-wire carve-out, clean the residual
 `mill` vocabulary, amend the client's SKILL/tool docs, and mark `docs/rolling-swap.md` §10 as
