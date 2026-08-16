@@ -1374,6 +1374,76 @@ does. Detection is the safety net regardless of that choice, per the issue's own
 generalises" reasoning: even with looser settings, some PR will still stall in a state nothing
 watches.
 
+## Empty-PR guard (no-op merges)
+
+A PR that merges green, closes its ticket, and changes **nothing** is the worst-shaped failure a
+factory can produce: every signal says done, and the work is not done. It happened on
+`connector#1008` ("EXPECTED_CONNECTOR_TAG: record that the promotion-vs-auto-on-green question
+closed"), merged 2026-08-16 as `610c6860` — `git show 610c6860 --numstat` returns **zero files**.
+It was a second PR opened from the same branch 17 minutes after `connector#1000` had already
+merged that branch's content, so its squash landed an empty commit. The stale text it claimed to
+fix survived it untouched; `connector#1009` did the job three hours later. Nothing in the fleet
+noticed — it was caught by a human diffing the file rather than trusting two agents' agreeing
+reports.
+
+**Why nothing caught it.** GitHub's Files-changed tab is the THREE-dot diff
+(`git diff merge-base(base, head)...head`), and #1008's was not empty — the branch really did
+contain those commits. What was empty was the **merge result**, because `main` had already
+acquired that content. So the PR read as a normal change to every human and every agent looking
+at the PR page, and CI has no opinion about whether a change is a change.
+
+**The guard.** `.github/workflows/empty-pr-guard.yml`, invoked by each repo's
+`empty-pr-guard-shim.yml` (canonical copy: `scripts/factory/empty-pr-guard-shim.yml`, same
+shim → `workflow_call` convention as the dead-label reaper and the fork-approval watch). It asks
+the only honest question — *what would merging this actually change?* — and GitHub already
+computes the answer: `refs/pull/N/merge` is the merge of the head branch into the base tip, and
+is what a `pull_request` run checks out. Its parents are the base tip and the PR head, so
+`git diff <base-parent> HEAD` **is** the diff the squash commit would carry. Empty diff, empty
+merge. No heuristic, no API call, no credential — hence no `secrets: inherit` on the shim.
+
+| Case | Verdict |
+|------|---------|
+| merge diff non-empty | pass (reports the file count) |
+| merge diff empty, three-dot diff non-empty | **fail** — the #1008 shape: content already on base, probably a duplicate PR, close it |
+| merge diff empty, three-dot diff empty | **fail** — the branch's own commits cancel out; it never had anything to merge |
+| no merge ref / HEAD is not a merge commit | warn + pass — a conflicted PR has no merge ref and cannot merge anyway |
+| neither parent is the PR head | warn + pass — stale merge ref; push to refresh |
+
+The two failure messages name the shape, say the content is probably already on the base branch,
+and give the recovery (find the PR that landed it, close this one, re-point the ticket). A guard
+that only says "empty" would leave the reader where #1008 left everyone.
+
+**Empty merges are never legitimate in this fleet** — checked before building this, across all
+eleven repos. The only `git commit --allow-empty` anywhere is buzz's Windows CI smoke test, which
+commits into a `mktemp -d` throwaway and never touches a PR. No release, tag or deploy flow here
+rides an empty commit: moving tags are moved by `docker buildx imagetools create`, not by commits.
+So the guard hard-fails rather than warns, and costs a legitimate PR nothing.
+
+**How it blocks a merge.** Two paths, one decision:
+
+1. **The factory path, free.** `checksVerdict` ([`scripts/factory/pr-signals.mjs`](scripts/factory/pr-signals.mjs))
+   returns `failing` if ANY non-plumbing check in the rollup is red, required-context or not. So
+   the moment a repo has the shim, a red guard makes the PR ineligible for the auto-merge pass
+   (#285) and no branch-protection change is needed anywhere.
+2. **The human path.** A red non-required check is a warning on the merge button, not a block —
+   and #1008 was merged by a human. Adding the guard to a repo's **aggregate required check**
+   (`CI OK` / `CI Status Summary` / `Doc gate`, see "Aggregate required checks (#279)") is what
+   makes it hard-blocking there. That is a per-repo decision and deliberately not done from
+   toon-meta: this workflow does not reach into any repo's protection settings.
+
+**Job naming constraint.** The job is `no-op-merge` / "No-op merge guard" because `PLUMBING_CHECKS`
+in `pr-signals.mjs` strips the names `automerge`, `sweep`, `forward`, `guard`, `review`, `fix` and
+`implement` from the check-set verdict **in both directions** — a job named `guard` would be a
+check that can never fail a PR. Do not rename it to any of those.
+
+**One known interaction.** A red guard is a red check, so `pr-housekeeping` (#276) will file a fix
+ticket for it like any other failure. The right remediation for an empty PR is to *close* it, not
+to fix it; the failure message says so, and the pass's retry cap bounds the noise.
+
+**Per-repo shim install status.** Fanned out to all eleven factory repos as part of the guard's
+rollout; toon-meta itself needs no shim (its `empty-pr-guard.yml` carries the `pull_request`
+trigger directly). Verify per repo that it landed rather than assuming it did — the #329 lesson.
+
 ## triage-sweep retirement (#283)
 
 `triage-sweep.yml` + `scripts/factory/triage-sweep.mjs` (the hourly cron janitor) were deleted
