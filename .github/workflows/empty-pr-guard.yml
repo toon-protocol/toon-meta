@@ -1,0 +1,196 @@
+# Empty-PR guard — a PR that would change nothing must not merge green.
+#
+# ── THE FAILURE THIS EXISTS FOR ─────────────────────────────────────────────
+# connector#1008, "EXPECTED_CONNECTOR_TAG: record that the promotion-vs-auto-
+# on-green question closed", merged as 610c6860 — and `git show 610c6860
+# --numstat` returns ZERO files. It was a second PR opened from the same branch
+# 17 minutes after connector#1000 had already merged that branch's content, so
+# its squash landed an EMPTY COMMIT while its title, body and ticket history
+# all claimed the work was done. The stale text it was supposed to fix survived
+# it untouched; a later PR (#1009) actually did the job.
+#
+# That is the worst shape a factory failure can take: green checks, a closed
+# ticket, a merge commit in the history, and no change. Nothing in the fleet
+# noticed. It was caught only because a human diffed the file instead of
+# trusting two agents' agreeing reports.
+#
+# ── WHY THE THREE-DOT DIFF DOES NOT CATCH IT ────────────────────────────────
+# GitHub's "Files changed" tab is the THREE-dot diff — `git diff
+# merge-base(base, head)...head` — the branch's own commits. #1008's was NOT
+# empty: the branch really did contain those commits. What was empty was the
+# MERGE RESULT, because `main` had already acquired that exact content from
+# #1000. So the PR looked, to every human and every agent reading the PR page,
+# like a normal change.
+#
+# The only honest question is therefore "what would merging this actually
+# change?", and GitHub already computes the answer: `refs/pull/N/merge`, the
+# merge of the head branch into the base tip, is what a `pull_request` run
+# checks out. Its first parent is the base tip and its second is the PR head,
+# so `git diff HEAD^base HEAD` IS the diff the squash commit would carry.
+# Empty diff, empty merge. No heuristic, no API, no guessing.
+#
+# ── WHAT IT REPORTS ─────────────────────────────────────────────────────────
+#   * empty merge, NON-empty three-dot diff → the #1008 shape: the content is
+#     already on the base branch. Almost always a duplicate PR; the fix is to
+#     CLOSE it and point the ticket at the PR that actually landed the change.
+#   * empty merge, empty three-dot diff → the same defect one step earlier: the
+#     branch has commits that cancel out (a change and its revert), so the PR
+#     never had anything to merge.
+#   * merge ref unavailable or not a merge commit (a conflicted PR has no merge
+#     ref) → WARNS and passes. A conflicted PR cannot merge anyway, and a guard
+#     that fails on "I could not tell" trains people to ignore it.
+#
+# ── ARE EMPTY MERGES EVER LEGITIMATE HERE? ──────────────────────────────────
+# Checked before building this, across all eleven factory repos: nothing in
+# this org merges an empty PR on purpose. The only `git commit --allow-empty`
+# anywhere is buzz's Windows CI smoke test, which commits into a `mktemp -d`
+# throwaway repo and never touches a PR. There is no release, tag or deploy
+# flow here that rides an empty commit — moving tags are moved by
+# `docker buildx imagetools create`, not by commits. So "empty merge" has no
+# legitimate meaning in this fleet and a hard failure costs nobody anything.
+#
+# ── ARCHITECTURE: thin per-repo shim → this reusable workflow ───────────────
+# Same convention as pr-housekeeping (#276), unblock-dispatcher (#280) and
+# auto-merge (#285): the logic lives ONCE here and each factory repo carries an
+# identical shim (.github/workflows/empty-pr-guard-shim.yml, canonical copy at
+# scripts/factory/empty-pr-guard-shim.yml) that `uses:` this workflow. Fixing
+# or tuning the guard is then one commit on toon-meta main, fleet-wide.
+#
+# This file is also toon-meta's OWN guard (the `pull_request` trigger below),
+# so toon-meta needs no shim file.
+#
+# ── HOW IT BLOCKS A MERGE ───────────────────────────────────────────────────
+# Two ways, and only one of them needed a decision:
+#   1. Every factory pass reads `checksVerdict` (scripts/factory/
+#      pr-signals.mjs), which returns `failing` if ANY non-plumbing check in
+#      the rollup is red — required-context or not. So a red guard makes the
+#      PR ineligible for the fleet auto-merge pass (#285) the moment the shim
+#      is installed, with no branch-protection change in any repo.
+#   2. For a HUMAN merge (which is how #1008 got in), the red check is a
+#      warning on the merge button, not a block, unless a repo adds this job to
+#      its required contexts. Deliberately NOT done from here: required
+#      contexts are per-repo branch protection, and every factory repo funnels
+#      protection through a single aggregate context (`CI OK`, `CI Status
+#      Summary`, `Doc gate`). A repo that wants this hard-blocking should add
+#      the guard to that aggregate rather than have this workflow reach into
+#      its protection settings.
+#
+# NOTE ON THE JOB NAME: it must not be exactly one of PLUMBING_CHECKS
+# ("automerge", "sweep", "forward", "guard", "review", "fix", "implement") —
+# those names are stripped from the check-set verdict in BOTH directions, so a
+# job called `guard` would be a check that can never fail a PR. Hence
+# `no-op-merge` / "No-op merge guard".
+
+name: empty-pr-guard
+
+on:
+  workflow_call: {}
+  # toon-meta's own trigger (no shim needed here). `synchronize` matters as
+  # much as `opened`: a PR can BECOME empty when its branch is updated onto a
+  # base that has since acquired the same content.
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  no-op-merge:
+    name: No-op merge guard
+    runs-on: ubuntu-latest
+    steps:
+      # Depth 3 is enough for the merge commit and both parents; nothing here
+      # walks history. A shallow clone keeps this job at a few seconds so it
+      # can sit on every PR in every repo.
+      - name: Check out the merge result
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 3
+
+      - name: A merge that changes nothing must not merge green
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          # The count GitHub's Files-changed tab shows — its three-dot diff,
+          # straight from the event payload. Deliberately NOT recomputed with
+          # `git diff base...head`: that needs the merge BASE commit, which a
+          # shallow clone does not have, and running it against the merge
+          # commit (whose merge-base with the base tip is the base tip itself)
+          # silently returns 0 for every PR. Caught in a local simulation of
+          # the #1008 shape before this shipped.
+          PR_CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+        run: |
+          set -uo pipefail
+
+          # `pull_request` runs check out refs/pull/N/merge. If HEAD is not a
+          # merge commit, GitHub could not compute a merge result — a
+          # conflicted PR is the usual reason, and a conflicted PR cannot merge
+          # at all. Warn, do not fail: see the header.
+          if ! git rev-parse --verify -q HEAD^2 >/dev/null; then
+            echo "::warning::no merge ref for this PR (HEAD is not a merge commit) — the merge result could not be evaluated. A conflicted PR is the usual cause; resolve the conflict and this guard re-runs."
+            exit 0
+          fi
+
+          P1=$(git rev-parse HEAD^1)
+          P2=$(git rev-parse HEAD^2)
+
+          # Parent order on refs/pull/N/merge is base-first, head-second. Assert
+          # it against the event payload rather than trusting it, so a change in
+          # that convention degrades to a warning instead of silently comparing
+          # the wrong two trees.
+          if [ "$P2" = "$PR_HEAD_SHA" ]; then
+            BASE="$P1"
+          elif [ "$P1" = "$PR_HEAD_SHA" ]; then
+            BASE="$P2"
+          else
+            echo "::warning::neither parent of the merge ref is the PR head ($PR_HEAD_SHA) — the merge ref is probably stale. Not evaluated; push to the branch to refresh it."
+            exit 0
+          fi
+
+          if ! git diff --quiet "$BASE" HEAD; then
+            CHANGED=$(git diff --name-only "$BASE" HEAD | wc -l)
+            echo "✓ merging this PR changes $CHANGED file(s) against $PR_BASE_REF"
+            exit 0
+          fi
+
+          # Empty merge. Which of the two shapes is it? Whether the PR page
+          # still shows files is what decides how confusing this PR is.
+          BRANCH_FILES="${PR_CHANGED_FILES:-0}"
+
+          {
+            echo "## ❌ Merging this PR would change nothing"
+            echo ""
+            echo "The merge result is byte-identical to \`$PR_BASE_REF\`, so squashing this PR"
+            echo "would land an **empty commit** — a green check, a closed ticket, and no change."
+            echo ""
+            if [ "$BRANCH_FILES" -gt 0 ]; then
+              echo "**The content is already on \`$PR_BASE_REF\`.** The Files-changed tab still shows"
+              echo "$BRANCH_FILES file(s) because that is the three-dot diff against this branch's fork"
+              echo "point, not against the branch tip — another PR has landed this same content since."
+              echo ""
+              echo "Almost certainly a duplicate PR. What to do:"
+              echo ""
+              echo "1. Find the PR that actually landed it: \`git log --oneline $PR_BASE_REF -- <a file this PR touches>\`."
+              echo "2. **Close this PR** and point its ticket at that one."
+              echo "3. If the change you meant to make is still missing from \`$PR_BASE_REF\`, it was"
+              echo "   never merged by that PR either — diff the file on \`$PR_BASE_REF\` and open a"
+              echo "   PR from a branch cut fresh off \`$PR_BASE_REF\`."
+            else
+              echo "**This branch's own commits cancel out.** Its three-dot diff against"
+              echo "\`$PR_BASE_REF\` is empty too, so there was never anything to merge — usually a"
+              echo "change and its revert on the same branch, or a branch cut after the work landed."
+              echo ""
+              echo "Close this PR, or push the change it was supposed to carry."
+            fi
+            echo ""
+            echo "This guard exists because connector#1008 did exactly this and nobody noticed:"
+            echo "it merged green, closed its ticket, and \`git show\` returned zero files."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$BRANCH_FILES" -gt 0 ]; then
+            echo "::error::merging PR #$PR_NUMBER would produce an EMPTY commit — its content is already on $PR_BASE_REF (the Files-changed tab shows $BRANCH_FILES file(s) only because that is the three-dot diff). This is probably a duplicate PR; close it. See the job summary."
+          else
+            echo "::error::merging PR #$PR_NUMBER would produce an EMPTY commit — this branch's commits cancel out, so it has nothing to merge. See the job summary."
+          fi
+          exit 1
