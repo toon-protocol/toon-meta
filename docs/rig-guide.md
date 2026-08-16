@@ -65,7 +65,7 @@ The **standing deployment** is GitHub Pages: <https://toon-protocol.github.io/to
 For a fully decentralized deployment, upload the built files to Arweave (e.g. via ArDrive Turbo) and create a path manifest; the manifest's transaction ID then serves the entire app from any gateway:
 
 ```
-https://ar-io.dev/<manifest-txId>/#relay=wss://relay.example
+https://permagate.io/<manifest-txId>/#relay=wss://relay.example
 ```
 
 > Note: the old dedicated deploy script (`scripts/deploy-forge-ui.mjs`) no longer ships in `toon-client` — deployment is just "build, then publish `dist/`" via whatever static/Arweave tooling you prefer.
