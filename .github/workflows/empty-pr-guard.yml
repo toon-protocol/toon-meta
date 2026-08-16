@@ -49,31 +49,49 @@
 # `docker buildx imagetools create`, not by commits. So "empty merge" has no
 # legitimate meaning in this fleet and a hard failure costs nobody anything.
 #
-# ── ARCHITECTURE: thin per-repo shim → this reusable workflow ───────────────
-# Same convention as pr-housekeeping (#276), unblock-dispatcher (#280) and
-# auto-merge (#285): the logic lives ONCE here and each factory repo carries an
-# identical shim (.github/workflows/empty-pr-guard-shim.yml, canonical copy at
-# scripts/factory/empty-pr-guard-shim.yml) that `uses:` this workflow. Fixing
-# or tuning the guard is then one commit on toon-meta main, fleet-wide.
+# ── ARCHITECTURE: called from each repo's GATE workflow ─────────────────────
+# The logic lives ONCE here and every factory repo reaches it with a job in the
+# workflow that computes its single aggregate required check — `ci.yml` in most
+# repos, `docs-gate.yml` in toon-meta. Fixing or tuning the guard is then one
+# commit on toon-meta main, fleet-wide.
 #
-# This file is also toon-meta's OWN guard (the `pull_request` trigger below),
-# so toon-meta needs no shim file.
+# The canonical caller snippet, and the two wiring shapes it comes in, are in
+# scripts/factory/empty-pr-guard-gate-job.yml. This replaced the original
+# stand-alone `empty-pr-guard-shim.yml` (#405), which produced an advisory
+# check in a workflow of its own — see below for why that could not block.
 #
 # ── HOW IT BLOCKS A MERGE ───────────────────────────────────────────────────
-# Two ways, and only one of them needed a decision:
-#   1. Every factory pass reads `checksVerdict` (scripts/factory/
-#      pr-signals.mjs), which returns `failing` if ANY non-plumbing check in
-#      the rollup is red — required-context or not. So a red guard makes the
-#      PR ineligible for the fleet auto-merge pass (#285) the moment the shim
-#      is installed, with no branch-protection change in any repo.
-#   2. For a HUMAN merge (which is how #1008 got in), the red check is a
-#      warning on the merge button, not a block, unless a repo adds this job to
-#      its required contexts. Deliberately NOT done from here: required
-#      contexts are per-repo branch protection, and every factory repo funnels
-#      protection through a single aggregate context (`CI OK`, `CI Status
-#      Summary`, `Doc gate`). A repo that wants this hard-blocking should add
-#      the guard to that aggregate rather than have this workflow reach into
-#      its protection settings.
+# Two ways, and the second one is why this is a gate job rather than a shim:
+#   1. The factory path. Every factory pass reads `checksVerdict` (scripts/
+#      factory/pr-signals.mjs), which returns `failing` if ANY non-plumbing
+#      check in the rollup is red — required-context or not. So a red guard
+#      makes the PR ineligible for the fleet auto-merge pass (#285) wherever
+#      the guard runs at all, with no branch-protection change anywhere.
+#   2. The human path. A red NON-required check is a warning on the merge
+#      button, not a block — and #1008 was merged by a human, so a guard that
+#      only stops robots misses the case that actually happened. The fix is to
+#      make this job a dependency of the repo's ONE aggregate required context
+#      (`CI OK` / `CI Status Summary` / `gate` / `Doc gate`, #279) so a red
+#      guard turns that context red. Note it must be a dependency the
+#      aggregate ASSERTS on, not merely `needs:` — GitHub reports a job
+#      skipped by a failed `needs:` as conclusion `skipped`, which branch
+#      protection treats as a PASS.
+#
+# Doing it through the aggregate — rather than adding `No-op merge guard` as a
+# second required context — is deliberate. A required context that can never
+# appear wedges a repo permanently (swap#147: a changesets Release PR whose
+# runs were `action_required`, so its rollup was empty and `CI OK` never
+# reported). Wiring through the aggregate keeps every repo at exactly ONE
+# required context, so this guard adds no new way for that to happen.
+#
+# ── WHAT MAKES IT SAFE TO REQUIRE ───────────────────────────────────────────
+# The guard warns and passes wherever it cannot tell (no merge ref, stale merge
+# ref, not a PR event) — a required check that fails on "I could not tell" is
+# how guards get disabled. Verified 2026-08-16 on a deliberately conflicted
+# throwaway PR (toon-meta#407): GitHub does not dispatch `pull_request`
+# workflows AT ALL for a conflicted PR, so neither this guard nor the repo's
+# own gate even runs. A conflicted PR is blocked by the conflict, exactly as
+# before; this guard cannot wedge it further.
 #
 # NOTE ON THE JOB NAME: it must not be exactly one of PLUMBING_CHECKS
 # ("automerge", "sweep", "forward", "guard", "review", "fix", "implement") —
@@ -83,13 +101,12 @@
 
 name: empty-pr-guard
 
+# `workflow_call` ONLY. toon-meta used to carry a `pull_request` trigger here
+# too, so its own PRs were guarded without a shim; that is now the `no-op-merge`
+# job in docs-gate.yml, which is what makes the guard blocking on this repo as
+# well. Two triggers would mean two identical check runs on every toon-meta PR.
 on:
   workflow_call: {}
-  # toon-meta's own trigger (no shim needed here). `synchronize` matters as
-  # much as `opened`: a PR can BECOME empty when its branch is updated onto a
-  # base that has since acquired the same content.
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -122,6 +139,16 @@ jobs:
           PR_CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
         run: |
           set -uo pipefail
+
+          # The caller is a job in the repo's gate workflow, which also runs on
+          # `push`. There is no PR to evaluate there. Pass plainly — NOT with a
+          # `::warning::`, which would annotate every push to main, and NOT
+          # with a job-level `if:`, because a skipped job is a non-success
+          # result to the aggregate that now asserts on this job.
+          if [ "${GITHUB_EVENT_NAME}" != "pull_request" ]; then
+            echo "event is '${GITHUB_EVENT_NAME}', not 'pull_request' — no merge result to evaluate"
+            exit 0
+          fi
 
           # `pull_request` runs check out refs/pull/N/merge. If HEAD is not a
           # merge commit, GitHub could not compute a merge result — a

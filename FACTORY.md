@@ -1392,9 +1392,10 @@ contain those commits. What was empty was the **merge result**, because `main` h
 acquired that content. So the PR read as a normal change to every human and every agent looking
 at the PR page, and CI has no opinion about whether a change is a change.
 
-**The guard.** `.github/workflows/empty-pr-guard.yml`, invoked by each repo's
-`empty-pr-guard-shim.yml` (canonical copy: `scripts/factory/empty-pr-guard-shim.yml`, same
-shim → `workflow_call` convention as the dead-label reaper and the fork-approval watch). It asks
+**The guard.** `.github/workflows/empty-pr-guard.yml`, invoked by a `no-op-merge` job **inside**
+the workflow that computes each repo's aggregate required check (canonical caller snippet:
+`scripts/factory/empty-pr-guard-gate-job.yml`; see "How it blocks a merge" below for why it is
+there rather than in a shim of its own). It asks
 the only honest question — *what would merging this actually change?* — and GitHub already
 computes the answer: `refs/pull/N/merge` is the merge of the head branch into the base tip, and
 is what a `pull_request` run checks out. Its parents are the base tip and the PR head, so
@@ -1419,17 +1420,59 @@ commits into a `mktemp -d` throwaway and never touches a PR. No release, tag or 
 rides an empty commit: moving tags are moved by `docker buildx imagetools create`, not by commits.
 So the guard hard-fails rather than warns, and costs a legitimate PR nothing.
 
-**How it blocks a merge.** Two paths, one decision:
+**How it blocks a merge (#406).** Two paths:
 
 1. **The factory path, free.** `checksVerdict` ([`scripts/factory/pr-signals.mjs`](scripts/factory/pr-signals.mjs))
    returns `failing` if ANY non-plumbing check in the rollup is red, required-context or not. So
-   the moment a repo has the shim, a red guard makes the PR ineligible for the auto-merge pass
-   (#285) and no branch-protection change is needed anywhere.
-2. **The human path.** A red non-required check is a warning on the merge button, not a block —
-   and #1008 was merged by a human. Adding the guard to a repo's **aggregate required check**
-   (`CI OK` / `CI Status Summary` / `Doc gate`, see "Aggregate required checks (#279)") is what
-   makes it hard-blocking there. That is a per-repo decision and deliberately not done from
-   toon-meta: this workflow does not reach into any repo's protection settings.
+   a red guard makes the PR ineligible for the auto-merge pass (#285) wherever the guard runs at
+   all, with no branch-protection change anywhere.
+2. **The human path.** A red *non-required* check is a warning on the merge button, not a block —
+   and #1008 was merged by a **human**, so a guard that only stops robots misses the case that
+   actually happened. Hard-blocking means the repo's required context must go red when the guard
+   goes red, so the guard now runs as a `no-op-merge` job **inside** the workflow that computes
+   that aggregate (`ci.yml` in ten repos, `docs-gate.yml` here). The stand-alone
+   `empty-pr-guard-shim.yml` was deleted in the same change — keeping both would put two
+   identical `No-op merge guard` check runs on every PR.
+
+**Why through the aggregate and not as a second required context.** A required context that can
+never appear wedges a repo *permanently*, and this fleet has already been bitten: a changesets
+"Version Packages" PR whose commits are attributed to `github-actions[bot]` has its
+`pull_request` runs held at `action_required` by the org approval policy, which creates **no
+check runs at all** — the rollup is empty, `CI OK` never reports, and the PR is BLOCKED forever
+(`swap#147`, 2026-08-16; `toon#207` was the same shape, fixed by committing the Release PR as the
+App bot — `relay` and `swap` still lack that fix). Wiring through the aggregate keeps every repo
+at **exactly one** required context, so the guard adds no new instance of that failure mode.
+
+**Two wiring shapes**, both in `scripts/factory/empty-pr-guard-gate-job.yml`:
+
+| Repo | Aggregate | Wiring |
+|------|-----------|--------|
+| connector | `CI Status Summary` (`ci-status`) | add `no-op-merge` to `needs:` **and** to the job's explicit result assertions |
+| swap, relay, store, rig, buzz, toon-client, toon | `CI OK` (`ci-ok`) | same |
+| fractal, Forge | `gate` (the job that does the work; Forge's is a *ruleset*, not legacy protection) | `needs: [no-op-merge]` + `if: always()` + a first step asserting the result |
+| toon-meta | `Doc gate` (`docs-gate.yml`) | same as fractal/Forge |
+
+A bare `needs:` is never enough: when a `needs:` dependency fails, GitHub reports the dependent
+job with conclusion `skipped`, and **branch protection treats a skipped required check as a
+pass**. The aggregate must run anyway (`if: always()`) and assert on the result.
+
+**Why the guard is safe to make required.** It warns and passes wherever it cannot tell — a
+required check that fails on "I could not tell" is how guards get disabled. Verified 2026-08-16
+on a deliberately conflicted throwaway PR (#407): GitHub does **not dispatch `pull_request`
+workflows at all** for a conflicted PR — neither the guard nor `docs-gate` ran, so the required
+context was simply absent and the PR was blocked by the conflict itself. The guard cannot wedge a
+conflicted PR any further than the existing required check already does. On `push` events (the
+gate workflows trigger on both) the guard passes with a plain "no merge result to evaluate", not
+a `skipped` — deliberately not a job-level `if:`, because every aggregate here correctly fails on
+a skipped gating job.
+
+**The one new coupling, and its interlock.** Ten repos now call
+`toon-protocol/toon-meta/.github/workflows/empty-pr-guard.yml@main` from *inside* their required
+check, so a toon-meta commit that made that workflow uncallable would startup-fail `ci.yml`
+fleet-wide and no required context would report. That is why `Doc gate` calls it too: same-repo
+reusable calls on a `pull_request` run resolve against the PR's own merge ref, so a PR that
+breaks the guard cannot merge into toon-meta in the first place. Do not remove the `no-op-merge`
+job from `docs-gate.yml` without removing it from the other ten first.
 
 **Job naming constraint.** The job is `no-op-merge` / "No-op merge guard" because `PLUMBING_CHECKS`
 in `pr-signals.mjs` strips the names `automerge`, `sweep`, `forward`, `guard`, `review`, `fix` and
@@ -1440,9 +1483,10 @@ check that can never fail a PR. Do not rename it to any of those.
 ticket for it like any other failure. The right remediation for an empty PR is to *close* it, not
 to fix it; the failure message says so, and the pass's retry cap bounds the noise.
 
-**Per-repo shim install status.** Fanned out to all eleven factory repos as part of the guard's
-rollout; toon-meta itself needs no shim (its `empty-pr-guard.yml` carries the `pull_request`
-trigger directly). Verify per repo that it landed rather than assuming it did — the #329 lesson.
+**Per-repo install status.** Live and blocking in all eleven factory repos: the `no-op-merge` job
+is wired into each repo's aggregate required check and the old `empty-pr-guard-shim.yml` is gone.
+Verify per repo that it landed rather than assuming it did — the #329 lesson. The check to look
+for on a PR is `no-op-merge / No-op merge guard`, and the aggregate must go red when it does.
 
 ## triage-sweep retirement (#283)
 

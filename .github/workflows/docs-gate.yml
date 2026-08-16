@@ -14,10 +14,42 @@ on:
   workflow_dispatch:
 
 jobs:
+  # The fleet no-op merge guard (#405), wired here rather than as a stand-alone
+  # workflow so that it BLOCKS: `Doc gate` is this repo's only required
+  # context, so the guard has to be inside it to turn the merge button red.
+  # Canonical caller snippet + rationale: scripts/factory/empty-pr-guard-gate-job.yml.
+  #
+  # This is also the keystone of the fleet wiring, and the reason toon-meta
+  # goes first. Every other repo's `ci.yml` now calls
+  # `toon-meta/.github/workflows/empty-pr-guard.yml@main` from inside its own
+  # aggregate, so a commit here that made that workflow uncallable — bad YAML,
+  # a rename, a deletion — would startup-fail `ci.yml` in ten repos at once and
+  # their required context would never report. Calling it from `Doc gate` means
+  # the PR carrying such a commit cannot merge: same-repo reusable calls on a
+  # `pull_request` run resolve against the PR's own merge ref, so the broken
+  # version is exercised before it can reach main.
+  no-op-merge:
+    uses: ./.github/workflows/empty-pr-guard.yml
+
   gate:
     name: Doc gate
     runs-on: ubuntu-latest
+    # `needs:` alone would not block anything: a job skipped by a failed
+    # dependency reports conclusion `skipped`, and branch protection treats a
+    # skipped required check as a PASS. `if: always()` keeps this job running
+    # and reporting, and the assertion step below is what fails it.
+    needs: [no-op-merge]
+    if: always()
     steps:
+      - name: The no-op merge guard must have passed
+        env:
+          NO_OP_MERGE: ${{ needs.no-op-merge.result }}
+        run: |
+          [ "$NO_OP_MERGE" = "success" ] || {
+            echo "::error::no-op merge guard result is '$NO_OP_MERGE' (expected 'success') — see the 'No-op merge guard' job. Merging this PR would change nothing."
+            exit 1
+          }
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
