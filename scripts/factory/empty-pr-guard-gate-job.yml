@@ -1,0 +1,77 @@
+# Canonical caller for the fleet no-op merge guard (toon-meta#405, #406).
+#
+# NOT A WORKFLOW. This file is a reference snippet: the job block below is
+# copied into the workflow that computes each repo's ONE aggregate required
+# check — `ci.yml` in most repos, `docs-gate.yml` in toon-meta.
+#
+# It replaces the original `empty-pr-guard-shim.yml`, a stand-alone workflow of
+# its own. The shim worked, but its check could only ever be advisory: a red
+# non-required check is a warning on the merge button, not a block, and
+# connector#1008 — the empty merge this guard exists for — was merged by a
+# human. Making it blocking means the repo's required context must go red when
+# the guard goes red, and the required context is the aggregate. So the guard
+# moved inside the aggregate's workflow and the shim was deleted; running both
+# would put two identical `No-op merge guard` check runs on every PR.
+#
+# ── WHY NOT JUST ADD A SECOND REQUIRED CONTEXT ──────────────────────────────
+# Because a required context that can never appear wedges a repo forever, and
+# this fleet has already been bitten: a changesets "Version Packages" PR whose
+# commits are attributed to `github-actions[bot]` gets its `pull_request` runs
+# held at `action_required` by the org approval policy, which creates NO check
+# runs at all — so the required context never reports and the PR is
+# permanently BLOCKED (swap#147, 2026-08-16; toon#207 the same shape). Going
+# through the aggregate keeps every repo at exactly one required context, so
+# this guard adds no new instance of that failure mode.
+#
+# ── SHAPE A: the repo's aggregate is a job that asserts on its `needs:` ─────
+# (connector `ci-status`/"CI Status Summary"; swap/relay/store/rig/buzz/
+# toon-client/toon `ci-ok`/"CI OK".) Add the job below, then add `no-op-merge`
+# to the aggregate's `needs:` list AND to whatever it asserts — a bare `needs:`
+# is not enough, see SHAPE B.
+
+jobs:
+  no-op-merge:
+    uses: toon-protocol/toon-meta/.github/workflows/empty-pr-guard.yml@main
+    # No `secrets: inherit` — the guard makes no API call and no write of any
+    # kind; it reads only the merge ref the default checkout already gives it.
+    # Handing it FACTORY_OPS_TOKEN would widen a monitored credential (#271)
+    # for nothing.
+    #
+    # No `if:` either. The gate workflow runs on `push` as well as
+    # `pull_request`, and on `push` the guard passes with a plain "no merge
+    # result to evaluate". A job-level `if:` would make it `skipped` there, and
+    # every aggregate in this fleet correctly treats a skipped gating job as a
+    # failure (#279).
+
+# ── SHAPE B: the repo's required check IS the single job that does the work ─
+# (fractal and Forge `gate`; toon-meta `Doc gate`.) Do NOT simply add
+# `needs: [no-op-merge]` to it: when a `needs:` dependency fails, GitHub
+# reports the dependent job with conclusion `skipped`, and branch protection
+# treats a skipped required check as a PASS. The guard would be invisible.
+#
+# Instead give the gate job `needs: [no-op-merge]` PLUS `if: always()` — so it
+# still runs and still reports when the guard fails — and make its FIRST step
+# assert the result:
+#
+#     gate:
+#       runs-on: ubuntu-latest
+#       needs: [no-op-merge]
+#       if: always()
+#       steps:
+#         - name: The no-op merge guard must have passed
+#           env:
+#             NO_OP_MERGE: ${{ needs.no-op-merge.result }}
+#           run: |
+#             [ "$NO_OP_MERGE" = "success" ] || {
+#               echo "::error::no-op merge guard result is '$NO_OP_MERGE' — see that job"
+#               exit 1
+#             }
+#         - uses: actions/checkout@v4
+#         ... the rest of the gate, unchanged ...
+#
+# ── JOB NAMING CONSTRAINT ───────────────────────────────────────────────────
+# Keep the caller job id `no-op-merge`. `PLUMBING_CHECKS` in
+# scripts/factory/pr-signals.mjs strips the names `automerge`, `sweep`,
+# `forward`, `guard`, `review`, `fix` and `implement` from the check-set
+# verdict in BOTH directions — a job called `guard` would be a check that can
+# never fail a PR.
