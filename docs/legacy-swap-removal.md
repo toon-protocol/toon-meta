@@ -145,10 +145,17 @@ claim-in-FULFILL response shape is removed."* The plan honours it.
 The connector is **swap-agnostic**, and this is a finding rather than an omission.
 
 - The Rust connector deleted the legacy condition class with the TypeScript prototype
-  (connector#465 / #543) and inverts it: an all-zero condition is invalid outright
-  (ADR 0019).
-- Zero-condition support that remains is for the **announcer's unpaid bootstrap greeting
-  probe** — unrelated to swap. It **must not** be removed as part of this work.
+  (connector#465 / #543) and inverts it. ADR 0019 states it directly: *"The Rust connector
+  deleted that class — an all-zero condition is invalid outright."*
+- Zero-condition support that remains in the Rust connector is for the **announcer's unpaid
+  bootstrap greeting probe** — unrelated to swap. It **must not** be removed as part of this
+  work.
+
+> **Two different zero-condition seams — do not conflate them.** The seam a swap request or an
+> RFQ lands on belongs to the **swap node's own embedded TypeScript `ConnectorNode`**, reached
+> by a client **direct-dialling** the maker's announced `btpEndpoint`. That is the seam §1.1
+> says must survive. The zero-condition handling in the **Rust fleet connector** is a separate
+> thing serving the announcer's greeting. Neither is the other, and neither is removed.
 - No `g.toon.swap.*` special-casing, no swap-shaped price, route or address rule.
 
 Docs hygiene only:
