@@ -129,10 +129,11 @@ claim-in-FULFILL response shape is removed."* The plan honours it.
 | Kind         | Location                                             | Disposition                                                    |
 | ------------ | ---------------------------------------------------- | -------------------------------------------------------------- |
 | Handler      | `packages/sdk/src/swap-handler.ts:764` `createSwapHandler` | **DELETE** — the published symbol; forces a **major**      |
-| Handler file | rest of `swap-handler.ts`                            | **DELETE**, except `applyRate`                                   |
-| **Shared**   | `packages/sdk/src/swap-handler.ts:568` `applyRate`   | **RELOCATE FIRST** — rolling importers at `adaptive-controller.ts:52`, `swap/rolling-engine.ts:78` |
+| Handler file | rest of `swap-handler.ts`                            | **DELETE** in full — stage 3 already moved every shared symbol out |
+| **Shared**   | `packages/sdk/src/swap-handler.ts:568` `applyRate` + `ApplyRateParams` | **RELOCATED** by toon#212 → `apply-rate.ts` — rolling importers at `adaptive-controller.ts:52`, `swap/rolling-engine.ts:78` |
+| **Shared**   | `packages/sdk/src/swap-handler.ts:45,:81` `IssueClaimParams`, `IssueClaimResult` | **RELOCATED** by toon#212 → `claim-issuance.ts` — `swap`'s `MultiChainClaimIssuer` (an ADR-0003 keeper) extends both at `claim-issuer.ts:118,:128` |
 | Legacy sender| `packages/sdk/src/stream-swap.ts` (`streamSwap`)     | **DELETE**                                                       |
-| **Shared**   | `packages/sdk/src/stream-swap.ts:315` `AccumulatedClaim` | **RELOCATE FIRST** — settlement type, not a legacy type      |
+| **Shared**   | `packages/sdk/src/stream-swap.ts:315` `AccumulatedClaim` | **RELOCATED** by toon#212 → `settlement/accumulated-claim.ts` — settlement type, not a legacy type |
 | Barrel       | `packages/sdk/src/index.ts:157`, `:174`              | **AMEND** the `./swap-handler.js` re-exports                     |
 | API guard    | `packages/sdk/src/index.test.ts:120-188`             | **AMEND** — frozen public-API list                               |
 | Tests        | `swap-handler.test.ts`                               | **RE-HOME** its quote-tape / receipts assertions, then delete    |
@@ -238,6 +239,26 @@ Move `applyRate` / `ApplyRateParams` out of `swap-handler.ts` and `AccumulatedCl
 `stream-swap.ts` into their own modules, re-exporting from the same barrel paths so nothing
 observable changes. Re-home `swap-handler.test.ts`'s quote-tape and receipts assertions.
 
+**Landed as toon#212 (sdk 3.3.0), and it found two symbols this plan missed.** The full sweep
+moved **five**, not three: `IssueClaimParams` and `IssueClaimResult` are the same trap as
+`applyRate` one inheritance hop away — `swap`'s `MultiChainClaimIssuer`, an explicit ADR-0003
+keeper, declares `IssueRollingClaimParams extends IssueClaimParams` and
+`RollingIssueClaimResult extends IssueClaimResult`. Deleting `swap-handler.ts` without moving
+them would have broken the rolling claim issuer, not just the rate helper. Final destinations:
+`apply-rate.ts`, `claim-issuance.ts`, `settlement/accumulated-claim.ts`.
+
+Two dispositions were checked and deliberately left in place: `findSwapPair` (its only external
+importer uses it inside `withMaxRateAge`, which stage 6 deletes) and `ClaimIssuer` (its whole
+contract is the legacy `issueClaim`).
+
+The re-home AC is **partly a no-op by design**: `applyRate`'s eight tests moved verbatim, but the
+quote-tape and receipts assertions drive `createSwapHandler` itself and assert on its FULFILL
+metadata, so relocating them would not save them from stage 7. Their path-agnostic content is
+already covered at `stream-receipts.test.ts:373-457` and by `swap`'s `rolling-engine.test.ts`.
+
+**Stage 7 is blocked on publishing sdk 3.3.0** — it needs a released version to prove its own
+downstreams against.
+
 Ship as **sdk 3.3.0 (minor)**. After this, `swap-handler.ts` and `stream-swap.ts` have **no
 non-legacy importers**, which is the precondition that makes Stage 7 a mechanical deletion.
 
@@ -290,8 +311,9 @@ Delete `issueClaim`, `SwapInventory.debit` / `credit` / `refundDebit`, `withMaxR
 
 ### Stage 7 — The SDK withdraws `createSwapHandler` (major) — toon#211
 
-Delete `swap-handler.ts` (minus the already-relocated `applyRate`), `stream-swap.ts` (minus the
-already-relocated `AccumulatedClaim`), the barrel re-exports, `scripts/swap*.mjs`, and amend the
+Delete `swap-handler.ts` and `stream-swap.ts` **in full** — stage 3 (toon#212) moved every
+shared symbol into `apply-rate.ts`, `claim-issuance.ts` and `settlement/accumulated-claim.ts`,
+none of which this stage touches — plus the barrel re-exports, `scripts/swap*.mjs`, and amend the
 frozen public-API list. → **sdk 4.0.0**, shipped with a migration note naming `startSwapNode`
 as the supported way to run a maker.
 
