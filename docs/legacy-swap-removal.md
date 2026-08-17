@@ -182,6 +182,32 @@ But swap#137 logs **refusals**, not **admissions**: `swap.claim.refused`,
 served a swap. **"No legacy traffic for N days" is therefore not measurable today** — which is
 why Stage 0 exists and why it is first.
 
+### 3.1 Stage 0 classifies correctly, but the gate still cannot fail (swap#171)
+
+Stage 0 shipped (swap#159) and its classifier is live-proven: a default `toon_swap` against
+`g.toon.swap.maker` on 2026-08-17T16:37Z emitted exactly `rolling-rfq` then `rolling-fill`,
+zero legacy, and the claim settled on chain (`0x7680fcfb…`). The classification is right.
+
+The **reading taken from it** is not, for two independent reasons found taking that reading:
+
+1. **The evidence is deleted by every deploy.** `swap:release` is auto-on-green, so each merge
+   to `swap` main has the box's Watchtower recreate `swap-node` with `--cleanup`, and
+   `docker logs` only ever holds the current container's stdout. Verified on the relay box:
+   container created 2026-08-17T12:36:46Z, `restarts=0`, no exited predecessors — every earlier
+   intake line gone. Since **Stages 4–8 all merge to `swap`**, the observation window resets
+   every time this epic advances. The work and its evidence destroy each other.
+2. **The read pattern never matches.** The gate was being read with
+   `grep '"event":"swap.intake"'`, but the emitted name is `swap.intake.arrival`
+   (`intake-event.ts:18`). Measured against the two real arrivals above: documented pattern `0`,
+   actual events present `2`. It reports `0 legacy` unconditionally — including when every
+   arrival is legacy.
+
+A gate that cannot say *no* is worse than no gate, because it reads as a pass. **swap#171**
+replaces the log-window count with a durable intake ledger on the existing `/app/state` volume —
+per-class counts plus a `lastSeenAt` watermark and a ledger `since`, read at
+`GET /admin/intake` — so the gate survives recreates and can distinguish *no legacy* from
+*no traffic at all*. **A zero denominator is not a pass.**
+
 ---
 
 ## 4. The stages
@@ -197,7 +223,9 @@ peer and pair. Ship it on `swap:release`.
 
 - **Blocked by:** nothing.
 - **Exit criterion:** the deployed `g.toon.swap.maker` emits the event, and a per-path count is
-  readable from the box's logs for a full day.
+  readable for a full day **across deploys** — see §3.1. The original wording ("readable from
+  the box's logs") is not achievable while `swap:release` is auto-on-green; swap#171 makes the
+  count durable, and Stage 0 is not fully met until that ships.
 - **Revert:** delete a log line.
 
 ### Stage 1 — Make the client's fallback loud (`toon-client`, removes nothing) — toon-client#595
@@ -269,7 +297,9 @@ integration suites and `fixture-topology.ts`. Rebaseline `.sandcastle/gate-basel
 
 - **Blocked by:** Stage 4, Stage 2c, **and Stage 0's measured gate — no legacy intake observed
   on the deployed maker for N consecutive days** (N to be set when Stage 0 produces its first
-  baseline; it is a real reading, not a guess).
+  baseline; it is a real reading, not a guess) — **and swap#171**, without which that reading
+  cannot fail and cannot survive the merges these stages themselves perform (§3.1). PR swap#169
+  implements this stage and is held for exactly that reason.
 - **Deploy note:** merging this moves `swap:release` and the relay box's label-scoped Watchtower
   recreates `swap-node` within ~60 s. The ADR 0041 config gate — which boots the new image
   against `connector`'s committed `infra/linode-relay/swap.config.json` — is what stands between
