@@ -251,22 +251,48 @@ function sweepRepo(repo) {
     ) ?? [];
   if (ticketed.length === 0) return;
 
-  const prs =
-    gh(
-      [
-        "pr",
-        "list",
-        "--repo",
-        repo,
-        "--state",
-        "open",
-        "--limit",
-        String(PR_LIMIT),
-        "--json",
-        "number,title,headRefName,body,url",
-      ],
-      { json: true, allowFail: true },
-    ) ?? [];
+  // NOT `?? []`. `gh(..., { json: true, allowFail: true })` returns `null` when
+  // the call FAILED and `[]` when the repo genuinely has no open PRs, and
+  // collapsing the two makes every ticket in this repo read as PR-less. The
+  // `hasOpenPr` guard below is the one thing standing between a reap and
+  // finished work, so a swallowed failure here reaps live tickets and pairs
+  // `needs:human` onto them, which then blocks their PRs in the auto-merge pass
+  // via `needs-human-issue`.
+  //
+  // Observed 2026-08-17 (toon-meta#417): during a GitHub 503 window this fetch
+  // failed for `connector` while succeeding for `forge` and `buzz` in the same
+  // pass, so connector#1011/#975/#709 were all reaped as
+  // "succeeded-with-no-changes ... no open PR" while their PRs #1019/#976/#966
+  // sat open on exactly the branches the comment named. Nothing appeared in the
+  // log, because `allowFail` had swallowed the error.
+  //
+  // So: fail closed, the same way a missing `labeled` timeline event does below.
+  // A genuinely dead label lingering one more pass is far cheaper than wedging
+  // green work shut.
+  const prs = gh(
+    [
+      "pr",
+      "list",
+      "--repo",
+      repo,
+      "--state",
+      "open",
+      "--limit",
+      String(PR_LIMIT),
+      "--json",
+      "number,title,headRefName,body,url",
+    ],
+    { json: true, allowFail: true },
+  );
+  if (prs === null) {
+    console.log(
+      `\n━━ ${repo} — could NOT list open PRs (API failure); every ticket would ` +
+        `read as PR-less, so skipping this repo's ${ticketed.length} ticket(s) ` +
+        `entirely (fail closed — toon-meta#417)`,
+    );
+    for (let i = 0; i < ticketed.length; i += 1) bump("prs-unfetchable");
+    return;
+  }
   const agentPrIssueIds = new Set(
     prs
       .filter((p) => FACTORY_BRANCH_PREFIXES.some((pre) => (p.headRefName ?? "").startsWith(pre)))
@@ -431,7 +457,7 @@ console.log(
     `${n("pairing-blocker")} blocker-ref (${n("reap-repeat-death")} escalated as repeat-deaths), ` +
     `${n("reap-already")} already reaped, ` +
     `${n("in-progress")} in progress, ${n("too-recent")} too recent to judge, ` +
-    `${n("open-pr")} with an open PR, ${n("unjudgeable")} unjudgeable (no labeled-event found).`,
+    `${n("open-pr")} with an open PR, ${n("unjudgeable")} unjudgeable (no labeled-event found), ${n("prs-unfetchable")} skipped because their repo's open PRs could not be listed (toon-meta#417).`,
 );
 
 if (hasFailures(report)) {
