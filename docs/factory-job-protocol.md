@@ -51,8 +51,10 @@ Checked 2026-08-03, per #262 decision 4 (NIP-90 kind space, not buzz's `43001–
 | **`6097`** | Factory job result | `request_kind + 1000`, per the NIP-90 formula — not a second arbitrary allocation |
 | `7000` | Factory job feedback (quote / increment offer / narration) | shared feedback kind, disambiguated by the `status` tag (§3, §4, §6) |
 
-If a future ticket needs a second factory job type, it takes `5098`/`6098`, in the same
-registry-checked manner — re-run §1.1's checks, don't assume the next integer is free by then.
+If a future ticket needs a second factory job type, it re-runs §1.1's checks and takes the next
+slot the registry — ours included — actually shows free. **Not `5098`**: the EVM gas station took
+that on 2026-08-03 (store#73, now toon-protocol/gas-station). This sentence used to name `5098`
+as the obvious next one, which is exactly the assumption its own second clause warns against.
 
 ### 1.3 Discovery is pull, not push — and stays that way
 
