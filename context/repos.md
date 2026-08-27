@@ -7,7 +7,8 @@ TOON is a **polyrepo** under the `toon-protocol` GitHub org. Code is shared via 
 | **toon** | `@toon-protocol/core`, `@toon-protocol/sdk` | npm libs (no image/CLI) | Platform |
 | **relay** | `@toon-protocol/relay`, `@toon-protocol/bls` (+ `town` launcher code-merge pending) | npm + `relay` image | Relay |
 | **swap** | `@toon-protocol/swap` | npm + `swap` image | Swap |
-| **store** | Arweave DVM build context (`Dockerfile.dvm` + entrypoint over sdk handler) | `store` image | Store |
+| **store** | Arweave DVM build context (`Dockerfile.store` + entrypoint over sdk handler); kind:5094 blob storage, kind:5095 ArNS buy | `store` image | Store |
+| **gas-station** | kind:5096 Solana fee-payer co-sign, kind:5098 EVM ERC-2771 relayer — extracted from `store` 2026-08-27 | `gas-station` image | Store |
 | **toon-client** | the two **official TOON client implementations**, both over `@toon-protocol/client`: `@toon-protocol/client-mcp` (`toon-clientd` + the `toon_*`/`toon_git_*` MCP tools — the agent-host client) and `@toon-protocol/rig` (the `rig` CLI — the git-native client, standalone/daemon-free; replaces the deprecated `@toon-protocol/git`); plus `@toon-protocol/rig-web` (the Rig SPA read surface), `@toon-protocol/views`, `@toon-protocol/arweave` | npm + plugin | Client |
 | **toon-meta** | this repo — shared skills, context, docs | the `toon-skills` plugin | Cross-cutting |
 | **connector** *(pre-existing)* | the ILP payment engine + on-chain contracts/programs/zkApp + `@toon-protocol/mina-zkapp` | npm `@toon-protocol/connector`, `shared`, `mina-zkapp` + image | Payments |

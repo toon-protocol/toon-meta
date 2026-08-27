@@ -63,8 +63,22 @@ settles **Solana** with the ario store DVM, which terminates the route.
 
 | Node | Linode label | IP | Plan | Role |
 |------|-------------|-----|------|------|
-| TOON apex (client entry: connector + relay + faucet) | `toon` | `104.237.150.177` | g6-standard-1 (2 GB) | accepts client USDC; settles **Solana** with `ario` |
-| Store (connector + Arweave DVM + ARIO gas station) | `ario` | `45.79.173.113` | g6-standard-1 (2 GB) | terminates `g.toon.ario`; receives **Sol USDC** |
+| Store (connector + Arweave DVM) | `ario` | `45.79.173.113` | g6-nanode-1 (1 GB) | terminates `g.toon.ario`; kind:5094 blob storage, kind:5095 ArNS buy |
+| Relay | `relay` | `97.107.134.182` | g6-nanode-1 (1 GB) | terminates `g.toon.relay`; the fleet's write ingress |
+| Gas station | `gas` | `45.79.131.21` | g6-nanode-1 (1 GB) | terminates `g.toon.gas`; kind:5096 Solana fee-payer, kind:5098 EVM relayer |
+| Faucet | `faucet` | `173.255.237.8` | g6-standard-2 (4 GB) | 3-chain devnet faucet; no connector |
+
+Verified against the Linode API on 2026-08-27. Two corrections to what this
+table said before: the apex (`toon`, `104.237.150.177`) was destroyed under
+toon-meta#310/#313 and is not a box any more, and the surviving boxes were
+resized to nanodes — this table had them on the 2GB plan.
+
+The gas box is new (2026-08-27). It carries the two gas-station kinds that used
+to run on `ario`: they were never storage, and a node that spends its own money
+on a caller's transaction wants its own funding and its own blast radius. Its
+whole deployment is [toon-protocol/gas-station](https://github.com/toon-protocol/gas-station)'s
+own `deploy/` directory — there is no `infra/linode-gas/` in the connector
+repo, because the app repo carries its own box now.
 
 Settlement links (per-peer `chain:` in each `connector.yaml`): toon↔ario on
 `solana:devnet` (one shared bidirectional Solana channel `5z6znXjH…`) — the only

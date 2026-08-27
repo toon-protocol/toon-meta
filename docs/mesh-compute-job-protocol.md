@@ -45,9 +45,17 @@ delta from that date is recorded here.
   Nothing has been registered in `5090-5099` in the interim.
 - **`data-vending-machine.org`** — still domain-parked as of #263's check; no change, not
   re-verified independently (same source, same finding, nothing to re-derive).
-- **Our own allocations**, now four deep in `5090-5099`: `5094`/`5095`/`5096` (store, see
-  `docs/deployment.md`, `docs/handoff-arweave-dvm-deploy.md`) and `5097`/`6097` (factory job
-  request/result, #263). This document takes the next slot.
+- **Our own allocations**, now five deep in `5090-5099`: `5094`/`5095` (store),
+  `5096` (Solana gas station) and `5098` (EVM gas station) — both now in
+  [toon-protocol/gas-station](https://github.com/toon-protocol/gas-station) — and `5097`/`6097`
+  (factory job request/result, #263). This document takes the next slot.
+
+  **`5098` was this document's original allocation and was wrong.** The EVM gas station shipped
+  it on 2026-08-03 in store#73, five days before this document was written, and the check above
+  read the public registry without re-reading our own. That is the failure mode §1.1's last line
+  warns about — "don't assume the next integer is free by then" — applied to us rather than to
+  someone else. Shipped code and shipped clients win a collision; the document moves. Nothing was
+  deployed against the mesh-compute `5098`, so this costs a paragraph and nothing else.
 - **NIP-89** ([`nostr-protocol/nips/blob/master/89.md`](https://github.com/nostr-protocol/nips/blob/master/89.md))
   reserves `kind:31990` (application handler information, parameterized-replaceable) and
   `kind:31989` (handler recommendations) generically — not DVM-specific, and not previously
@@ -64,8 +72,8 @@ delta from that date is recorded here.
 
 | Kind | Name | Formula |
 |---|---|---|
-| **`5098`** | Mesh-compute job request | next free slot after `5094`–`5097`, no public-registry collision in `5090-5099` |
-| **`6098`** | Mesh-compute job result | `request_kind + 1000`, per the NIP-90 formula |
+| **`5099`** | Mesh-compute job request | next free slot after `5094`–`5099`, no public-registry collision in `5090-5099` |
+| **`6099`** | Mesh-compute job result | `request_kind + 1000`, per the NIP-90 formula |
 | `7000` | Mesh-compute job feedback (accepted / refused / completed-offer / narration) | shared feedback kind, disambiguated by the `status` tag (§6, §9) |
 | **`31990`** | Mesh-compute seller advertisement | NIP-89 handler info, this document's schema (§3) |
 | **`21090`** | Mesh-compute liveness | NIP-01 ephemeral range, clear of `20032`–`20034` (§4) |
@@ -109,7 +117,7 @@ finds, and the only place a stranger learns how to pay a seller it has never tal
 | Tag | Required | Format | Description |
 |---|---|---|---|
 | `d` | Yes | `["d", "mesh-compute"]` | Fixed identifier — one active advertisement per seller (epic decision 4: one node, one whole model at a time). Republishing with this `d` replaces the prior ad. |
-| `k` | Yes | `["k", "5098"]` | The request kind this handler serves (§5.1's `kind:5098`), per generic NIP-89 semantics. |
+| `k` | Yes | `["k", "5099"]` | The request kind this handler serves (§5.1's `kind:5099`), per generic NIP-89 semantics. |
 | `model` | Yes, repeatable | `["model", "<model-id>"]` | Model(s) currently loaded and served, e.g. `"llama-3.1-70b-instruct"`. Repeat if more than one is hot. **Unverifiable — see §3.4 and the Gotchas.** |
 | `context` | Yes | `["context", "<max-context-tokens>"]` | Maximum context window, in tokens, for the advertised model(s). |
 | `max_tokens` | Yes | `["max_tokens", "<max-output-tokens>"]` | Ceiling on output tokens per job — the seller's own limit, not a per-job request parameter. |
@@ -210,7 +218,7 @@ relay after it has already dropped off the connector, and a buyer pays for a job
 
 ---
 
-## 5. `kind:5098` — Job request
+## 5. `kind:5099` — Job request
 
 ### 5.1 Tags
 
@@ -276,7 +284,7 @@ encrypted it via §6.1's `encryptArtifact()`, and is ready to be paid for it.
 
 | Tag | Required | Format | Description |
 |---|---|---|---|
-| `e` | Yes | `["e", "<kind:5098 event id>", "<relay-hint>", "root"]` | The job request. |
+| `e` | Yes | `["e", "<kind:5099 event id>", "<relay-hint>", "root"]` | The job request. |
 | `e` | Yes | `["e", "<kind:7000 accepted-event id>", "<relay-hint>", "reply"]` | The acceptance (§9.1). |
 | `p` | Yes | `["p", "<buyer-pubkey>"]` | |
 | `status` | Yes | `["status", "completed-offer"]` | |
@@ -357,9 +365,9 @@ would erase the ambient-reputation signal completely, not just the prompt. Inste
 |---|---|---|
 | `kind:31990` advertisement (§3) | Everything — it is an ad. | None. |
 | `kind:21090` liveness (§4) | Everything — routing needs it. | None. |
-| `kind:5098` request (§5) | `p` (both pubkeys via event author + tag), `model`, `max_tokens`, `price_accept`, `created_at`. | The `i` tag's prompt — NIP-44 encrypted to the seller's pubkey when `encrypted` is present (§5.1), reusing the "Encrypted Job Requests" pattern generic NIP-90 already defines (`skills/dvm-protocol/references/nip-spec.md`), not a full gift wrap. |
+| `kind:5099` request (§5) | `p` (both pubkeys via event author + tag), `model`, `max_tokens`, `price_accept`, `created_at`. | The `i` tag's prompt — NIP-44 encrypted to the seller's pubkey when `encrypted` is present (§5.1), reusing the "Encrypted Job Requests" pattern generic NIP-90 already defines (`skills/dvm-protocol/references/nip-spec.md`), not a full gift wrap. |
 | `kind:7000` feedback (§6, §9) | `status`, `reason` (refusals), `amount`, `condition`, timestamps. | The `completed-offer`'s content — hashlock ciphertext, already opaque for delivery reasons (§6.2), doing double duty as privacy. |
-| `kind:6098` result (§9.3) | `outcome`, timestamps, both pubkeys. | Nothing new — points back at the same offer, carries no separate payload. |
+| `kind:6099` result (§9.3) | `outcome`, timestamps, both pubkeys. | Nothing new — points back at the same offer, carries no separate payload. |
 
 **What leaks under this split:** which pubkey paid which pubkey, when, how much, against which
 advertised model, and whether the job completed, refused, or stalled. **What does not leak:** the
@@ -381,12 +389,12 @@ not reuse). §6.2 above already specifies `completed-offer`; the other two are b
 
 ### 9.1 `status:"accepted"` — prompt acknowledgment
 
-Published immediately on receiving a `kind:5098` the seller intends to serve. Carries no `amount`
+Published immediately on receiving a `kind:5099` the seller intends to serve. Carries no `amount`
 or `condition` — it is a promise to do the work, not a payable offer.
 
 | Tag | Required | Format |
 |---|---|---|
-| `e` | Yes | `["e", "<kind:5098 event id>", "<relay-hint>", "root"]` |
+| `e` | Yes | `["e", "<kind:5099 event id>", "<relay-hint>", "root"]` |
 | `p` | Yes | `["p", "<buyer-pubkey>"]` |
 | `status` | Yes | `["status", "accepted"]` |
 
@@ -397,7 +405,7 @@ seller's reputation than a fast decline."* This is what buyer retry logic reads.
 
 | Tag | Required | Format | Description |
 |---|---|---|---|
-| `e` | Yes | `["e", "<kind:5098 event id>", "<relay-hint>", "root"]` | |
+| `e` | Yes | `["e", "<kind:5099 event id>", "<relay-hint>", "root"]` | |
 | `p` | Yes | `["p", "<buyer-pubkey>"]` | |
 | `status` | Yes | `["status", "refused"]` | |
 | `reason` | Yes | `["reason", "vram-exhausted" \| "model-not-loaded" \| "context-exceeded"]` | The three cases the ticket names. `content` MAY carry free-text elaboration; `reason` is the machine-readable field retry logic keys on. |
@@ -407,7 +415,7 @@ Narration (`status:"processing"`) is available under the same rules as
 content, and a client encountering `processing` with any of those tags MUST treat it as malformed
 and MUST NOT pay against it.
 
-### 9.3 `kind:6098` — Job result, and the terminal outcomes
+### 9.3 `kind:6099` — Job result, and the terminal outcomes
 
 Published once a job reaches a terminal state, mirroring `docs/factory-job-protocol.md` §5's
 three-outcome model, adapted to mesh-compute's single-shot shape (no milestones to partially
@@ -415,10 +423,10 @@ complete) and its prompt-refusal path (§9.2), which factory's shape has no equi
 
 | Tag | Required | Format | Description |
 |---|---|---|---|
-| `e` | Yes | `["e", "<kind:5098 event id>", "<relay-hint>", "root"]` | |
+| `e` | Yes | `["e", "<kind:5099 event id>", "<relay-hint>", "root"]` | |
 | `e` | Yes | `["e", "<last kind:7000 event id>", "<relay-hint>", "reply"]` | The `completed-offer` (completed) or the last `accepted`/`refused` event before a stall (abandoned). |
 | `p` | Yes | `["p", "<buyer-pubkey>"]` | |
-| `request` | Yes | `["request", "<kind:5098 event JSON>"]` | The full original request, for verification (generic NIP-90 kind:6xxx convention). |
+| `request` | Yes | `["request", "<kind:5099 event JSON>"]` | The full original request, for verification (generic NIP-90 kind:6xxx convention). |
 | `outcome` | Yes | `["outcome", "completed" \| "refused" \| "abandoned-provider" \| "abandoned-buyer"]` | The terminal state — exactly these four. |
 
 Outcome semantics:
@@ -444,7 +452,7 @@ prompts whose answers differ sharply between model sizes or families — a **can
 documented buyer practice for narrowing that gap informally, **not** a protocol feature. `buzz#94`
 explicitly defers them to documentation rather than a verification badge, and no other ticket owns
 this text, so it lives here. A buyer MAY, before or alongside a real job, send a small, cheap
-`kind:5098` whose expected answer it already knows for the model class it is paying for, and treat
+`kind:5099` whose expected answer it already knows for the model class it is paying for, and treat
 a wildly wrong answer as a reputation signal to weigh going forward. This is advice, not a wire
 format — nothing above changes to accommodate it, and no client is required to implement it.
 
@@ -466,7 +474,7 @@ format — nothing above changes to accommodate it, and no client is required to
   same shape, different event, different plane (the community mesh's roster-gated discovery stays
   out of scope, epic decision 3).
 - **The buyer never joins the mesh** (epic decision 2). Nothing in this document describes an iroh
-  endpoint, a mesh address, or an admission step. The `kind:5098`/`kind:31990` wire above is the
+  endpoint, a mesh address, or an admission step. The `kind:5099`/`kind:31990` wire above is the
   entire buyer-visible surface; the DVM is the door.
 
 ---
