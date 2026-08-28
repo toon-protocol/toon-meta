@@ -77,6 +77,10 @@ rig name buy <name-13-chars-plus> --network devnet --yes   # DVM is defaulted
 rig name set  <name> <manifestTx>  --network devnet --yes
 rig name status <name> --network devnet
 # resolves at https://<name>.ar-io.dev/ (gateway TTL 3600s)
+# ar-io.dev is ar.io's TESTNET gateway: right for --network devnet names, and
+# ONLY for those. A mainnet name resolves on a mainnet gateway instead, e.g.
+# https://<name>.permagate.io/ or https://<name>.ardrive.net/ (never arweave.net,
+# which runs a forked ArNS). See ar-io/ar-io-node#860.
 ```
 
 ## Warts and one-line fixes
