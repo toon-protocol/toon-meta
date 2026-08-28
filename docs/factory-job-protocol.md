@@ -38,7 +38,7 @@ Checked 2026-08-03, per #262 decision 4 (NIP-90 kind space, not buzz's `43001–
 - **`data-vending-machine.org`** — domain-parked (Namecheap auction page) as of this check; it no
   longer hosts a kind list and is not a usable source of truth.
 - **Our own allocations.** The store already ships `5094` (Arweave blob storage), `5095` (ArNS
-  buy), `5096` (Solana gas station) — see `docs/deployment.md`, `docs/handoff-arweave-dvm-deploy.md`,
+  buy), `5096` (Solana gas station) — see `docs/deployment.md`, the `store` and `gas-station` repos,
   `docs/rfc-peering-naming.md`, `context/glossary.md`. `5250` ("Dungeon" compute DVM) was removed
   from TOON entirely and is not a collision to worry about (see
   `skills/dvm-protocol/references/nip-spec.md`).
@@ -353,4 +353,4 @@ Carried over from #262 so nobody looks for them here:
 - `skills/private-dms/references/nip-spec.md` — NIP-59 rumor → seal → gift wrap construction reused in §2.2
 - `skills/git-collaboration/references/kind-5094-blob-storage.md` — the sibling DVM kind whose `bid`/`i` tag conventions this spec reuses rather than reinventing
 - `docs/protocol.md` — per-byte relay write pricing that applies to every event in this document
-- `docs/deployment.md`, `docs/handoff-arweave-dvm-deploy.md` — the store's existing `5094`/`5095`/`5096` allocations checked in §1.1
+- `docs/deployment.md`, and the `store` / `gas-station` repos — the existing `5094`/`5095`/`5096`/`5098` allocations checked in §1.1

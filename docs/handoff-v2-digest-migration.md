@@ -1,5 +1,15 @@
 # Handoff: v2 EIP-712 balance-proof digest migration
 
+> [!NOTE]
+> **⚠️ Historical — landed 2026-08-28.** Every blocker this handoff was waiting on is
+> closed: connector **#328**, **#329** and **#332**, and `connector@4.0.0` shipped. The
+> adversarial-review fund-safety gaps in §5 were resolved, not deferred.
+>
+> **The canonical spec is now
+> [`connector/docs/rolling-swap-v2-digest-spec.md`](https://github.com/toon-protocol/connector/blob/main/docs/rolling-swap-v2-digest-spec.md)** —
+> read that, not this. This file is kept for its golden EIP-712 vector and the migration
+> reasoning; its "next action" and status lines below describe a state that no longer exists.
+
 **Status (2026-07-16):** Shipped end-to-end **except the connector**. The connector v2 cutover PR is written and green on CI but **HELD by an adversarial review that found HIGH fund-safety gaps** (see §5). Next action: a second fix pass on connector **#332**, re-review, then publish `connector@4.0.0` and finish `swap#63` + `store`.
 
 Owner issues: connector **#328** (the gap tracker) and connector **#329** (design + the corrected, knowledge-grounded plan — read the latest comment first). This doc is the fast path.
