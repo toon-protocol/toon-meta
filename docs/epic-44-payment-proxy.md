@@ -1,5 +1,15 @@
 # Epic 44: Payment Proxy — run any HTTP service behind the connector like nginx
 
+> [!NOTE]
+> **⚠️ Historical — closed epic, archived 2026-08-28.** This is the planning scaffold for epic #44
+> (payment proxy), written 2026-06-23 by the issue-executor agent. The MVP shipped and its two
+> surviving stories are tracked where they belong, as connector **#223** and **#224**.
+>
+> The live content survives as [`payment-proxy.md`](./payment-proxy.md), the RFC. Note that the
+> `deploy/pay-edge/` bundle this document treats as the deliverable was **deleted 2026-08-05**
+> along with the TypeScript connector it ran; the one surviving bundle is
+> `connector/deploy/connector-rust/`.
+
 **Date:** 2026-06-23
 **Author:** claude[bot] (issue-executor — agent/53)
 **Status:** MVP delivered (all MVP stories closed); two future stories open

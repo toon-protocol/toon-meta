@@ -1,5 +1,18 @@
 # Audit — `docs/two-node-architecture.md`
 
+> [!NOTE]
+> **⚠️ Historical — spent 2026-08-28.** This audited a *target* architecture against connector
+> `6439562c` on 2026-08-12. Two days later the cutover it examined was executed, and roughly 250
+> connector commits and 25 ADRs have landed since. Its findings are now folded into
+> [`two-node-architecture.md`](./two-node-architecture.md)'s own corrections banner — **read that
+> instead.**
+>
+> Read this only as a dated primary-source record. Two specific traps if you do: several of its
+> "corrected" citations point into `crates/connector-cli/src/announce.rs`, a file **deleted** by
+> ADR 0046, and one cites `docs/protocol/peer-wire-spec.md`, which does not exist under that name
+> (it is `peer-carriage-spec.md`; "peer wire" is a retired term, ADR 0027). Correcting a line
+> number inside a deleted file is worse than the error it fixed.
+
 **Scope:** primary-source audit of the two-node target architecture against `connector` (`main`, `6439562c`), `toon` (`origin/main`, `53196fc`), `toon-client` (`fix/republish-clients-live-genesis`, `7630aeb`, plus `origin/main`), `rig` (`main`, `7243bd4`), `relay`, `store`, and npm. Conducted 2026-08-12. The document under audit was written at connector `275ff37`; `main` is now **20 commits** past that.
 
 > **Which revision this audited.** The audit was conducted against the spec as it stood on the

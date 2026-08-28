@@ -13,19 +13,18 @@ TOON follows the BTP 2.0 framing closely and extends it with one custom sub-prot
 
 - **Transport.** A client opens a WebSocket to the apex connector (`ws://host:3000/btp` in direct mode, or a SOCKS5h-proxied `.anon` hidden-service address in HS mode). All PREPARE/FULFILL/REJECT framing rides this one bilateral link (`btp/btp-types.ts`).
 - **Auth.** The session authenticates with a BTP `authToken` (the standard RFC-0023 `auth` sub-protocol), establishing the bilateral peering relationship before any value-bearing packet is sent.
-- **`payment-channel-claim` sub-protocol (TOON extension).** This is what makes TOON's BTP "pay-to-write." A write packet carries, alongside the ILP payload, a BTP protocolData entry named **`payment-channel-claim`** (content type 1 / JSON, `btp/btp-claim-types.ts:196`). The content is a signed off-chain **payment-channel balance proof**:
+- **`payment-channel-claim` sub-protocol (TOON extension).** This is what makes TOON's BTP "pay-to-write." A write packet carries, alongside the ILP payload, a BTP protocolData entry named **`payment-channel-claim`** (content type 1 / JSON, `btp/btp-claim-types.ts:196`). The content is a signed off-chain **payment-channel claim**:
   - `EVMClaimMessage` — EIP-712 signature over `channelId / nonce / transferredAmount`, with `signerAddress` (`btp-claim-types.ts:80`).
   - `SolanaClaimMessage` — Ed25519 signature, base58 `signerPublicKey` (`:109`).
-  - `MinaClaimMessage` — Pallas/zk commitment (Poseidon), zkApp channel (`:142`).
   - All share `BaseClaimMessage` (`:32`); the union is `BTPClaimMessage` (`:185`).
-- **The claim IS the payment.** Unlike vanilla bilateral transfer where settlement is tracked out-of-band, on TOON the claim itself is the bilateral balance proof: it asserts a new monotonically-increasing `nonce` and cumulative `transferredAmount` against an on-chain channel deposit. The connector validates it at ingress (`btp/inbound-claim-validator.ts`) before forwarding.
+- **The claim IS the payment.** Unlike vanilla bilateral transfer where settlement is tracked out-of-band, on TOON the claim itself is the bilateral record: it asserts a new monotonically-increasing `nonce` and cumulative `transferredAmount` against an on-chain channel deposit. The connector validates it at ingress (`btp/inbound-claim-validator.ts`) before forwarding.
 - **Zero-amount and parent→child packets carry no claim.** Free reads, and the apex's free-forward of a packet to its own child node, skip the claim entirely (`inbound-claim-validator.ts:124-146`).
 - **Privacy overlay.** TOON optionally wraps the BTP WebSocket in an ATOR/SOCKS5h `.anon` hidden service so neither side learns the other's network location. This is layered under BTP, not a change to the framing.
 
 ## What a TOON client does over BTP
 
 1. Open WebSocket → send BTP `auth` with the `authToken` → session authenticated.
-2. To publish: build the ILP packet (TOON-encoded Nostr event in `data`), attach the `payment-channel-claim` protocolData with a freshly-signed balance proof (nonce = previous + 1), send as a BTP MESSAGE/PREPARE.
+2. To publish: build the ILP packet (TOON-encoded Nostr event in `data`), attach the `payment-channel-claim` protocolData with a freshly-signed claim (nonce = previous + 1), send as a BTP MESSAGE/PREPARE.
 3. Connector validates the claim, deducts its fee, routes by ILP address, and the destination returns FULFILL (accepted) or REJECT.
 4. To read: send NIP-01 subscription packets with **no claim** — reads are free.
 
@@ -33,7 +32,7 @@ The daemon owns this single session and the nonce watermark (it must never go ba
 
 ## Common Topics
 - BTP 2.0 WebSocket framing as TOON's sole transport (`btp/btp-types.ts`)
-- The `payment-channel-claim` sub-protocol and the EVM/Solana/Mina claim shapes
+- The `payment-channel-claim` sub-protocol and the EVM/Solana claim shapes
 - `authToken`-based bilateral peering
 - ATOR `.anon` / SOCKS5h privacy overlay
 - Why reads and parent→child forwards carry no claim

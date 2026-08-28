@@ -1,5 +1,23 @@
 # Treasury Wallet & Demo Funding
 
+> ## ⚠️ Partly historical — read the corrections first
+>
+> - **Two chains, not three.** Mina left the connector repository with
+>   [connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md)
+>   (built connector#1205): the zkApp, `tools/mina`, `infra/mina` and the
+>   faucet's Mina legs are deleted, and `POST /api/mina/*` answers `404`. Every
+>   Mina row below is history. What survives, and must **not** be removed, is the
+>   connector's refusal of a claim whose `blockchain` is `mina` **by name**
+>   ([ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md)) —
+>   wire behaviour owed to `toon-client`.
+> - **The devnet faucet drips USDC only**, on Base Sepolia and Solana devnet.
+>   The SOL leg was retired (connector#898 — use <https://faucet.solana.com>) and
+>   Base Sepolia never dripped ETH.
+> - `scripts/e2e-wallet.mjs` and `proxy wallet show` lived in the monorepo and in
+>   the removed `proxy` product; neither exists.
+>
+> Current addresses, faucet routes and funding: [`deployment.md`](./deployment.md).
+
 The demo runs with **real value on public testnets/devnets** — but always small,
 bounded amounts using a **testnet-only** treasury. This doc covers key management,
 per-chain faucet sources, spend caps, and teardown.

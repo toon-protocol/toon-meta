@@ -213,7 +213,7 @@ echo 'RIG_MNEMONIC="abandon abandon … about"' >> .env
 
 # 2. money (devnet: free faucet drip — works with ZERO config; rig ≥ 2.13
 #    infers the devnet faucet from the built-in genesis seed. Elsewhere it
-#    prints addresses to fund. Gas is assumed: hold a little ETH/SOL/MINA.)
+#    prints addresses to fund. Gas is assumed: hold a little ETH and SOL.)
 rig fund
 rig balance                  # wallet balances + channel holdings (free)
 
@@ -237,11 +237,11 @@ Every rig-owned command takes `--json` for machine consumers — the strict cont
 
 **Steering knobs** (all free — they only write local config):
 
-- `rig chain set <evm|sol|mina>` — pin which chain (and therefore which USDC) settles paid writes; `rig chain` shows the current pick, `rig chain unset` reverts to auto.
-- `rig entry <apex|url>` — pick the network entry node (payment ingress + relay); clears the topology cache for you. rig also ships a `sandbox` alias, but the devnet entry node it targeted was decommissioned on 2026-07-31 and no longer resolves to a live node — use `apex` or an explicit URL.
+- `rig chain set <evm|sol>` — pin which chain (and therefore which USDC) settles paid writes; `rig chain` shows the current pick, `rig chain unset` reverts to auto. The devnet settles **two** chains: `evm:84532` and `solana:devnet`.
+- `rig entry <url>` — pick the network entry node (payment ingress + relay); clears the topology cache for you. Both built-in aliases are dead: `sandbox`'s box was decommissioned 2026-07-31 and `apex`'s was destroyed 2026-08-14. Pass an explicit URL — the relay is the fleet's write ingress (`https://proxy.relay.devnet.toonprotocol.dev/ilp`).
 - `rig channels` — shorthand for `rig channel list`.
 
-**Mina note:** the Mina `PaymentChannel` zkApp is single-pair, so each identity needs its own deployment — rig ≥ 2.13.0 **auto-deploys** it on the first Mina channel open (needs ~1.5 MINA gas in the wallet; compile ≈1-3 min + block inclusion ≈3-6 min, one-time). Pre-deploy with `rig channel deploy-zkapp` so the first paid Mina write stays fast.
+**No Mina.** rig still carries Mina zkApp plumbing (`rig channel deploy-zkapp`, the per-pair `PaymentChannel` auto-deploy), but it has no counterparty: Mina left the connector repository with [connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md), and a connector **refuses a claim whose `blockchain` is `mina` by name** ([ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md), a refusal deliberately preserved as wire behaviour owed to `toon-client`). Pinning Mina buys a reject, not a payment.
 
 ### Install & prerequisites
 
@@ -257,7 +257,7 @@ Every rig-owned command takes `--json` for machine consumers — the strict cont
 
 **Funding is owner-side — there is no x402 onboarding in this path.** The repo owner self-funds before the first push, and since [toon-client#263](https://github.com/toon-protocol/toon-client/issues/263) the CLI owns the full money lifecycle itself:
 
-- **`rig fund`** — free: drips devnet faucet funds to the active identity's wallet (`--chain evm|solana|mina`); on other networks it prints the derived address(es) to fund externally.
+- **`rig fund`** — free: drips devnet faucet **USDC** to the active identity's wallet (`--chain evm|solana`); on other networks it prints the derived address(es) to fund externally. Gas is not dripped — get devnet SOL from <https://faucet.solana.com> and Base Sepolia ETH from a public faucet.
 - **`rig balance`** — free: on-chain wallet balances plus recorded payment-channel holdings, reading the actual settlement chain the bootstrap selected.
 - **`rig channel list | open | close | settle`** — `list` shows the channels paid commands hold (free); `open` explicitly opens (or resumes) the channel for a peer, with `--deposit` to add collateral; `close` starts the on-chain settlement challenge window; `settle` releases the remaining collateral after it elapses.
 
@@ -371,7 +371,7 @@ The daemon's key signs, so the daemon identity is the repo owner. The daemon's `
 
 ### Cost model
 
-- **Uploads are per-byte:** object bytes × the store's per-byte rate. **Events are flat:** one fixed `feePerEvent` per publish, regardless of event size. All fees are in base units of the channel asset, itemized in the plan before you confirm.
+- **Uploads scale with length:** the store prices a route as a **schedule** — a base plus an amount per **kibibyte** of payload (connector ADR 0065; the live store is 1000 + 10/KiB). **Events are flat:** one fixed `feePerEvent` per publish, regardless of event size. All fees are in base units of the channel asset, itemized in the plan before you confirm.
 - **Writes are permanent and non-refundable.** Arweave storage is permanent by design, and relay events cannot be unpublished. Treat the confirm prompt accordingly.
 - **Delta pushes skip known objects.** Uploads are content-addressed: the plan subtracts everything already on Arweave (via the `kind:30618` `arweave` map and a Git-SHA GraphQL fallback), so a re-push never re-pays for objects the store already has. A push with nothing new is a free no-op (`Everything up-to-date — nothing to push (and nothing paid).`), and a crashed push resumes without double-paying.
 - **Estimates are free.** `--json` without `--yes` (CLI) and `dry_run: true` (MCP) plan and price without paying.

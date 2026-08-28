@@ -1,77 +1,84 @@
 # Deployment
 
-## Prerequisites
+## Building from source
 
-- Docker & Docker Compose
-- Node.js >= 20
-- pnpm 8.15.0 (`corepack enable && corepack prepare pnpm@8.15.0 --activate`)
-- Connector contracts repo cloned at `../connector` (required for SDK E2E infrastructure)
+TOON is a **polyrepo**. There is no `town` monorepo — `github.com/toon-protocol/town`
+does not exist, and the archived original monorepo is not what any of this builds
+from. Clone the one repo you need:
 
-## Building from Source
+| What you want | Repo | Build |
+|---|---|---|
+| the connector (the payment engine) | `toon-protocol/connector` | Rust — `cargo build --release`; the container recipe is [`deploy/connector-rust/`](https://github.com/toon-protocol/connector/tree/main/deploy/connector-rust), the only bundle that repo still ships |
+| a relay node (app + its own deploy bundle) | `toon-protocol/relay` | `pnpm install && pnpm build`; `deploy/` |
+| an Arweave store node | `toon-protocol/store` | `pnpm install && pnpm build`; `deploy/` |
+| a gas station (kind:5096 / kind:5098) | `toon-protocol/gas-station` | `pnpm install && pnpm build`; `deploy/` |
+| `@toon-protocol/core` · `sdk` | `toon-protocol/toon` | `pnpm install && pnpm build` |
+| the clients (`rig`, `client-mcp`) | `toon-protocol/toon-client` | `pnpm install && pnpm build` |
 
-```bash
-git clone https://github.com/toon-protocol/town.git
-cd toon
-
-pnpm install        # Install dependencies
-pnpm build          # Build all packages
-pnpm test           # Run tests (optional)
-pnpm lint           # Lint (optional)
-pnpm format         # Format (optional)
-```
-
-## SDK E2E Infrastructure
-
-Deploy a controlled 2-peer setup with Anvil for local development and testing:
-
-```bash
-./scripts/sdk-e2e-infra.sh up
-```
-
-To stop the infrastructure:
-
-```bash
-./scripts/sdk-e2e-infra.sh down
-```
-
-**Services started:**
-
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Anvil | http://localhost:18545 | Local EVM chain (chain ID 31337) |
-| Peer 1 BLS | http://localhost:19100 | ILP packet validation |
-| Peer 1 Relay | ws://localhost:19700 | Nostr WebSocket |
-| Peer 2 BLS | http://localhost:19110 | ILP packet validation |
-| Peer 2 Relay | ws://localhost:19710 | Nostr WebSocket |
+Every code repo pins its toolchain with Devbox — see
+[`context/dev-environment.md`](../context/dev-environment.md). The connector's
+own local chain profiles (`docker-compose.yml` + `local/`) are the supported way
+to run a disposable EVM/Solana pair for tests; the old `scripts/sdk-e2e-infra.sh`
+two-peer harness lived in the monorepo and went with it.
 
 ## Linode Devnet — LIVE (public-chain settlement)
 
-The devnet runs on **two Linode boxes** (relay/proxy/faucet apex + Arweave store DVM)
-and settles on **public networks** — Base Sepolia, Solana devnet, and Mina
-devnet. The three self-hosted blockchain boxes (Anvil, solana-test-validator,
-Mina lightnet) were **deleted on 2026-07-19** as part of the public-chain
-cutover, and the sandbox entry box (`toon-relay-test`, `50.116.48.49`,
-`*.sandbox.devnet.toonprotocol.dev`) was **decommissioned on 2026-07-31** — it is
-no longer needed. DNS is Porkbun-managed; endpoints are under
-`*.devnet.toonprotocol.dev` with trusted Let's Encrypt TLS.
+**There is no apex.** The `toon` box (`104.237.150.177`) was **destroyed on
+2026-08-14** (toon-meta#310/#313); the relay is the fleet's write ingress in its
+place. What is left is **four boxes** — relay, store (`ario`), gas, and a
+connector-less faucet. Settlement is on **two public networks**, Base Sepolia and
+Solana devnet. Verified by live probe 2026-08-28. Mina is gone: the connector deleted `packages/mina-zkapp`, `tools/mina`,
+`infra/mina`, the faucet's Mina leg and `docs/mina-deployment.md` under
+[connector ADR 0065, *Mina leaves the repository*](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md)
+(built in connector#1205). Note the connector has **two** ADR 0065s; cite them by title.
+
+> **Do not "clean up" the `mina` claim refusal.** The connector still refuses a
+> claim whose `blockchain` is `mina`, **by name**, with
+> [ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md)'s
+> reason in the error text. That is wire behaviour owed to `toon-client` — an older
+> client gets the same answer it got yesterday — and ADR 0065 explicitly preserves
+> it. It is not Mina support and it is not dead code.
+
+The three self-hosted blockchain boxes (Anvil, solana-test-validator, Mina
+lightnet) were **deleted on 2026-07-19** as part of the public-chain cutover, and
+the sandbox entry box (`toon-relay-test`, `50.116.48.49`,
+`*.sandbox.devnet.toonprotocol.dev`) was **decommissioned on 2026-07-31**. DNS is
+Porkbun-managed; endpoints are under `*.devnet.toonprotocol.dev` with trusted
+Let's Encrypt TLS.
 
 ### Node layout
 
-Two connector nodes form a **cross-currency multi-hop** path. A client pays the
-`toon` apex in **Base** or **Solana** USDC (pinned with `rig chain set`); the apex
-settles **Solana** with the ario store DVM, which terminates the route.
+A client pays the **relay** in Base or Solana USDC (pinned with `rig chain set`);
+the relay is the write ingress, and the store terminates the Arweave route. The
+apex hop that used to sit in front of them is gone — each box now answers for
+itself.
 
-| Node | Linode label | IP | Plan | Role |
-|------|-------------|-----|------|------|
-| Store (connector + Arweave DVM) | `ario` | `45.79.173.113` | g6-nanode-1 (1 GB) | terminates `g.toon.ario`; kind:5094 blob storage, kind:5095 ArNS buy |
-| Relay | `relay` | `97.107.134.182` | g6-nanode-1 (1 GB) | terminates `g.toon.relay`; the fleet's write ingress |
-| Gas station | `gas` | `45.79.131.21` | g6-nanode-1 (1 GB) | terminates `g.toon.gas`; kind:5096 Solana fee-payer, kind:5098 EVM relayer |
-| Faucet | `faucet` | `173.255.237.8` | g6-standard-2 (4 GB) | 3-chain devnet faucet; no connector |
+| Node | Linode label | IP | Plan | ILP addresses (probed 2026-08-28) | Role |
+|------|-------------|-----|------|-----------------------------------|------|
+| Relay | `relay` | `97.107.134.182` | g6-nanode-1 (1 GB) | `g.toon.relay` | the fleet's write ingress |
+| Store | `ario` | `45.79.173.113` | g6-nanode-1 (1 GB) | `g.toon.store`, `g.toon.relay.store` | kind:5094 blob storage, kind:5095 ArNS buy |
+| Gas station | `gas` | `45.79.131.21` | g6-nanode-1 (1 GB) | `g.toon.gas`, `g.toon.relay.gas` | kind:5096 Solana fee-payer, kind:5098 EVM relayer |
+| Faucet | `faucet` | `173.255.237.8` | g6-standard-2 (4 GB) | — (no connector) | 2-chain USDC faucet |
+
+> **`ario` is a box label and a hostname, not an ILP address.** There is no
+> `g.toon.ario` route. `GET https://proxy.ario.devnet.toonprotocol.dev/ilp`
+> answers `g.toon.store` / `g.toon.relay.store`, each priced as a **schedule** —
+> base 1000 plus 10 per **KiB** of payload
+> ([connector ADR 0065, *a price is a schedule over payload length*](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-a-price-is-a-schedule-over-payload-length.md))
+> — not the flat 1000 that `connector/docs/devnet-pricing.md` still records.
+> That file is stale (connector#1250). For a per-box price or address, read the
+> owning node repo's own `deploy/` bundle, which ADR 0068 made the authority, or
+> probe `GET <node>/ilp`. The relay's own answer, probed 2026-08-28:
+> `g.toon.relay` 1, `g.toon.relay.ephemeral` 0, `g.toon.relay.gas` 1001,
+> `g.toon.relay.store` 1001 + 10/KiB.
 
 Verified against the Linode API on 2026-08-27. Two corrections to what this
 table said before: the apex (`toon`, `104.237.150.177`) was destroyed under
 toon-meta#310/#313 and is not a box any more, and the surviving boxes were
-resized to nanodes — this table had them on the 2GB plan.
+resized to nanodes — this table had them on the 2GB plan. The faucet box is
+oversized for what it now does: dropping Mina removed the o1js circuit compile
+that forced the 4 GB plan (connector ADR 0065, *Mina leaves the repository*), so
+it is a shrink waiting to happen.
 
 The gas box is new (2026-08-27). It carries the two gas-station kinds that used
 to run on `ario`: they were never storage, and a node that spends its own money
@@ -80,19 +87,9 @@ whole deployment is [toon-protocol/gas-station](https://github.com/toon-protocol
 own `deploy/` directory — there is no `infra/linode-gas/` in the connector
 repo, because the app repo carries its own box now.
 
-Settlement links (per-peer `chain:` in each `connector.yaml`): toon↔ario on
-`solana:devnet` (one shared bidirectional Solana channel `5z6znXjH…`) — the only
-connector↔connector link in the fleet. Per-peer non-EVM channel settlement requires
-the connector fix on the `3.36.x` line (image `3.36.3-solchan.0`); see the
-`fix/channelmanager-open-3.36` branch.
-
-Clients paying in Mina need a **dedicated** client-build PaymentChannel zkApp
-(one zkApp per participant pair — the apex's cannot be reused). rig ≥ 2.13.0
-deploys this zkApp **automatically** on the first Mina channel open (or explicitly
-via `rig channel deploy-zkapp`); the zkApp key is recorded in
-`~/.toon-client/keys/rig-mina-zkapps.json`. Note that the Mina client-entry leg
-was only ever exercised through the retired sandbox entry, so it is **unproven
-against the apex** — the demoed paths are Base Sepolia and Solana.
+Settlement runs on `evm:84532` and `solana:devnet` only. The apex↔store
+connector↔connector link (`solana:devnet`, shared channel `5z6znXjH…`) went with
+the apex; each surviving box now settles with its own counterparties directly.
 
 ### Endpoints
 
@@ -100,16 +97,18 @@ against the apex** — the demoed paths are Base Sepolia and Solana.
 
 | Service | Endpoint | Node | Notes |
 |---------|----------|------|-------|
-| Relay | `wss://relay-ws.<box>` | toon | Nostr WebSocket (oblivious relay, free read) |
-| Payment proxy | `https://proxy.<box>` / `wss://proxy.<box>:443` | toon | ILP ingress (`g.toon.relay`) |
-| Faucet (+ frontend) | `https://faucet.<box>` | toon | Multi-chain faucet, 3-chain web UI at `/` |
-| Store ILP edge | `https://proxy.store.<box>/ilp` | store | route `g.toon.ario` |
-| Store DVM | `https://dvm.<box>` | store | `/health`; `/store` = payment-oblivious job route (kind:5094/5095/5096) |
+| Relay reads | `wss://relay-ws.<box>` | relay | Nostr WebSocket (payment-oblivious, free read) |
+| Relay ILP edge | `https://proxy.relay.<box>/ilp` · `wss://proxy.relay.<box>/ilp/btp` | relay | the fleet's write entry now that the apex is gone |
+| Faucet (+ frontend) | `https://faucet.<box>` | faucet | USDC faucet, **two-chain** web UI at `/` |
+| Store ILP edge | `https://proxy.ario.<box>/ilp` | store | routes `g.toon.store`, `g.toon.relay.store` (the `proxy.store.<box>` alias still resolves) |
+| Gas-station ILP edge | `https://proxy.gas.<box>/ilp` | gas | routes `g.toon.gas`, `g.toon.relay.gas` |
 
-Retired endpoints (DNS records pending removal): `relay-ws.sandbox.*`,
+Dead endpoints, probed 2026-08-28: `proxy.<box>` **does not connect at all** (the
+destroyed apex), and `dvm.<box>` resolves to the store box but returns **404**.
+Also retired, DNS records pending removal: `relay-ws.sandbox.*`,
 `proxy.sandbox.*` (the decommissioned sandbox entry box), `evm-rpc.*`,
 `solana-rpc.*`, `solana-ws.*`, `mina.*`, `mina-accounts.*`. `store.<box>` was
-never wired (parked at the registrar) — use `dvm.<box>` / `proxy.store.<box>`.
+never wired (parked at the registrar) — use `proxy.ario.<box>`.
 
 Public chain RPCs (no self-hosted chain infra):
 
@@ -117,202 +116,231 @@ Public chain RPCs (no self-hosted chain infra):
 |-------|----------------------|-----|
 | EVM Base Sepolia | `evm:84532` | `https://sepolia.base.org` (channel-open flows prefer a single-backend RPC, e.g. `https://base-sepolia-rpc.publicnode.com` — the official LB serves stale reads that break open→deposit sequencing) |
 | Solana devnet | `solana:devnet` | `https://api.devnet.solana.com` |
-| Mina devnet | `mina:devnet` | `https://api.minascan.io/node/devnet/v1/graphql` |
 
-### Deployed settlement contracts (public networks, verified 2026-07-19)
+There is no third chain. `mina:devnet` is not announced, not settled and not
+configurable (connector ADR 0065, *Mina leaves the repository*).
 
-**USDC is 6-decimal on every chain** (uniform claim base units). Verified by
-paid `rig push` round-trips per chain (channel open → per-packet claims →
-FULFILL → relay read-back; Solana claims redeemed on-chain).
+### Deployed settlement contracts (public networks, verified 2026-08-28)
 
-> **Authoritative runtime source:** the apex's kind:10032 announce on
-> `wss://relay-ws.devnet.toonprotocol.dev` carries `supportedChains`,
-> `settlementAddresses`, `tokenNetworks`, `preferredTokens`, and per-route
-> `capabilities` prices — clients derive settlement parameters from the
-> announce. This table is a human-readable snapshot.
+**USDC is 6-decimal on both chains** (uniform claim base units — no cross-chain
+normalization). Canonical source:
+[`connector/infra/linode/endpoints.json`](https://github.com/toon-protocol/connector/blob/main/infra/linode/endpoints.json).
 
-**2026-07-31 — apex settlement identity rotated.** The apex's EVM settlement
-address changed from `0xC0E55cD2…` to `0xF29fD62C4848B9573C9b90adbF61b664F386d9CF`
-(Solana and the Nostr announce identity rotated too). Eight Base Sepolia channels
-opened against the old address remain open and inactive; no funds are at risk and
-each counterparty can settle unilaterally. Channel ids and the exact
-`closeChannel` / `settleChannel` steps:
-[operator notice](./operators/2026-07-31-apex-settlement-identity-rotation.md).
-The contracts in the table below are unchanged.
+> **Authoritative runtime source:** `GET` a connector's own `/ilp` URL. It
+> returns that node's **self-description** — the facts a stranger needs to
+> transact with it, as one document, with no ILP packet and no encoder
+> ([connector ADR 0050](https://github.com/toon-protocol/connector/blob/main/docs/adr/0050-a-connectors-url-resolves-to-its-self-description.md)).
+> The kind:10032 announce that used to carry this was **removed**
+> ([ADR 0046](https://github.com/toon-protocol/connector/blob/main/docs/adr/0046-the-kind-10032-announce-is-removed-a-connector-needs-no-relay.md)):
+> a connector answers, it does not announce, and it must work with no relay in
+> the world. The table below is a human-readable snapshot.
 
 | Chain | What | Address |
 |-------|------|---------|
-| Base Sepolia | TokenNetworkRegistry | `0xcC9079adE929b168B54145f6d25262b64FAB9D5b` |
-| Base Sepolia | TokenNetwork (runtime-resolved) | `0x1E95493fEF46707E034b4a1945f25a8C76A1823D` |
+| Base Sepolia (`evm:84532`) | **TokenNetworkRegistry** — this is what a connector is configured with | `0x0c41D9D424d6B075A3cEa1068a694f7847a8CCa5` |
+| Base Sepolia | TokenNetwork (USDC) — **derived, not independent** | `0xe9E05dfecfe165266C88d73e61D483612651952a` |
 | Base Sepolia | Mock USDC (ERC-20, 6dp, **ungated mint**) | `0x49beE1Bca5d15Fb0963117923403F9498119a9Ce` |
 | Solana devnet | Payment-channel **program** | `2aEVJ8koKD8LTZrLRSGtAtU7LBt4e7QjjCgf1kzQ7Rip` |
-| Solana devnet | Mock USDC SPL **mint** (6dp) | `xyc5J8MgKFiEN13PnfftdXxUzYH34FEvw1LCrFwN7in` |
-| Mina devnet | **PaymentChannel** zkApp (bare, client-build vk) | `B62qmgPhv2Xo6QVEtwjLja8UZJUtu8yapRFAR6gaoGtbM9zE5hG7Tkf` |
-| Mina devnet | Rate-limited mock USDC token (6dp, permissionless mint 1000/addr/24h) | `B62qqN1Pu3kF2KGmqLA8EwpqfWrnFTVZJGDSDHQuQRoVt5BCFjhNz3d` |
-| Mina devnet | USDC **tokenId** | `9497120696276615621907376728658022802954262638363646162765282600447713419198` |
+| Solana devnet | Mock USDC SPL **mint** (6dp) | `34eSxY7qxQ4GzyhDJ8GpUcTz1WWzruGbJbR8q6TtxfQU` |
 
-> **Mina vk gotcha (cost a redeploy):** the PaymentChannel zkApp MUST be
-> deployed from the **client-side build** (`@toon-protocol/mina-zkapp@0.1.1`
-> npm package + o1js 2.14.0, BARE — no `initializeChannel`) or the client's
-> channel-open proof fails with "Stale verification key". The connector repo's
-> local `packages/mina-zkapp` dist has drifted from the published 0.1.1
-> (same version, different vk). Deploy records + zkApp key:
-> `~/.toon-client/keys/mina-zkapp-client-deploy.json` (operator Mac).
-> Mina USDC deploy record: `~/.toon-client/keys/usdc-rl-deploy.json`.
+> **The TokenNetwork row is derived.** A connector is configured with the
+> **registry** (`[settlement.evm] contract_address`) and resolves the
+> TokenNetwork at boot via `getTokenNetwork(token)`. The two move together or
+> this table is lying — and it has lied before: the 2026-08-06 ERC-2771 cutover
+> repointed the registry and left the TokenNetwork on the retired contract for
+> **three weeks**, and nothing noticed, because only a direct reader of that
+> value was pointed at a dead contract. Re-derive rather than copy:
+>
+> ```bash
+> cast call --rpc-url https://base-sepolia-rpc.publicnode.com \
+>   0x0c41D9D424d6B075A3cEa1068a694f7847a8CCa5 \
+>   "getTokenNetwork(address)(address)" \
+>   0x49beE1Bca5d15Fb0963117923403F9498119a9Ce
+> ```
+
+**Retired — if you find one of these presented as live config, it is stale:**
+
+| Address | Was |
+|---------|-----|
+| `0xcC9079adE929b168B54145f6d25262b64FAB9D5b` | registry, pre-2026-08-06 |
+| `0x1E95493fEF46707E034b4a1945f25a8C76A1823D` | TokenNetwork, pre-2026-08-06 |
+| `0x8263BdD4eB4862395Cb4ef5dA5d637F4b047Eea1` | registry, 2026-08-06 ERC-2771 cutover |
+| `0xa79C3b1dbcEA00a6d84735a134395D8eF6D6a478` | TokenNetwork, 2026-08-06 ERC-2771 cutover |
+| `xyc5J8MgKFiEN13PnfftdXxUzYH34FEvw1LCrFwN7in` | Solana mock USDC mint, retired 2026-08-27 — **its mint authority is lost**, so it can never be refilled |
+
+Both EVM pairs were retired by the **ADR 0059 derived-channel-id cutover**,
+broadcast 2026-08-28 at block 46055303
+([connector `docs/evm-deployment.md`](https://github.com/toon-protocol/connector/blob/main/docs/evm-deployment.md),
+[ADR 0059](https://github.com/toon-protocol/connector/blob/main/docs/adr/0059-a-channel-is-derived-from-its-participants.md)).
+`TokenNetwork` is not upgradeable, so every change to it is a cutover of that
+shape.
+
+**2026-07-31 — apex settlement identity rotated.** The apex's EVM settlement
+address changed from `0xC0E55cD2…` to `0xF29fD62C4848B9573C9b90adbF61b664F386d9CF`
+(Solana and the Nostr identity rotated too). Eight Base Sepolia channels opened
+against the old address remain open and inactive; no funds are at risk and each
+counterparty can settle unilaterally. Channel ids and the exact `closeChannel` /
+`settleChannel` steps: [operator notice](./operators/2026-07-31-apex-settlement-identity-rotation.md).
+Those channels are on the **pre-2026-08-06** TokenNetwork above; the apex itself
+has since been destroyed.
+
+### Two standing hazards
+
+**1. The Solana payment-channel program cannot be upgraded.** Its upgrade
+authority is `AEPoA5xTTJY9SR8c5CfsemFGC5TmxQBe6Xf6wewEtnYa`, the 2026-07-18
+deployer key, and that key is **lost** — in no repository, on no machine, in no
+surviving scratchpad. Any change to `packages/solana-program/src` is therefore a
+**fresh deploy at a new program id**, not an upgrade. That is a migration, not a
+release:
+[ADR 0053](https://github.com/toon-protocol/connector/blob/main/docs/adr/0053-a-solana-claim-binds-its-domain-the-way-an-evm-claim-does.md)
+binds the settlement program into a claim's signed message, so a new program id
+is a **new claim domain**, and every open channel on the old program has to be
+drained or abandoned first. The same lost key was the retired mint's mint
+authority — record:
+[`packages/solana-program/deployments/devnet-public.md`](https://github.com/toon-protocol/connector/blob/main/packages/solana-program/deployments/devnet-public.md).
+
+**2. Three boxes, no apex, and the boxes deploy themselves.** The apex was
+destroyed 2026-08-14. Relay and store were re-deployed on **2026-08-27** from
+their **own** repos' `deploy/` bundles — `docker compose` out of a checkout at
+`/root/relay` or `/root/store`, not `/root/connector` — and the relay now runs
+**Caddy**, not nginx. `connector/infra/linode-relay/` and
+`connector/infra/linode-store/` are **test fixtures, not what the boxes run**;
+each directory says so in its own `README.md`, and `devnet_configs_load.rs` still
+boots them, which is why they were not deleted. Editing a file there changes
+nothing on any box
+([ADR 0068](https://github.com/toon-protocol/connector/blob/main/docs/adr/0068-a-node-repository-pins-the-connector-nothing-here-moves-a-tag-onto-a-box.md)).
 
 ### Faucet routes (`https://faucet.devnet.toonprotocol.dev`)
 
+**USDC only, on two chains.** The native-token legs are gone: the SOL airdrop was
+retired in connector#898 (get devnet SOL from <https://faucet.solana.com>), Base
+Sepolia never dripped ETH, and both Mina legs were deleted with
+[connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md).
+Retired routes answer `404`, not `503` — `packages/faucet/test/routes.test.js`
+pins that.
+
 | Method & path | Body | Drips |
 |---------------|------|-------|
-| `POST /api/base-sepolia/request` | `{address}` | 1000 USDC (ungated on-chain mint; faucet key only pays gas — **no ETH drip**, fund gas separately) |
-| `POST /api/solana/request` | `{address}` | 2 SOL airdrop + 1000 USDC treasury transfer. The airdrop is **skipped** when the recipient already holds SOL, and a **failed** airdrop (public devnet quota/dry) no longer aborts the USDC transfer |
-| `POST /api/solana/usdc-request` | `{address}` | **USDC only, no airdrop** — treasury-funded token transfer. Works even when the devnet airdrop is dry and when the recipient holds 0 SOL. Use for addresses already funded with SOL |
-| `POST /api/mina/request` | `{address}` | 5 MINA + USDC (treasury self-mint on the rate-limited token) |
-| `POST /api/mina/usdc-request` | `{address}` | **USDC only** — treasury transfer, no native MINA leg (rate-limited ~1000/24h) |
+| `POST /api/base-sepolia/request` | `{address}` | 1000 USDC. The mock USDC `mint(address,uint256)` is **ungated** — anyone can coin fresh tokens to any address — so the faucet key only pays gas. **No ETH drip**; fund gas separately. Per-address 24h cooldown |
+| `POST /api/solana/usdc-request` | `{address}` | USDC only, **no airdrop** — a transfer from the faucet box's own treasury, which is also the mint authority, so the leg cannot run dry. Works with a 0-SOL recipient |
 | `GET /api/info` | — | machine-readable per-chain config (routes, `usdcMint`/`tokenAddress`, `ready`, drip amounts) — **query this to discover live addresses** |
-| `POST /api/request` | `{address}` | **deprecated** legacy anvil leg (`local:true`, dead). ⚠️ Stale clients (e.g. older `rig fund`) hit this by mistake — use the `/api/base-sepolia/request` route for public EVM USDC |
 
-> **Airdrop coupling (fixed).** The Solana `/api/solana/request` leg used to abort the whole
-> request (and thus the USDC transfer) whenever the public Solana devnet airdrop was
-> rate-limited/dry (`429 "airdrop faucet has run dry"`). The USDC transfer is treasury-funded and
-> independent of that airdrop, so it is now decoupled: the airdrop is skipped for already-funded
-> recipients and tolerated on failure, and `POST /api/solana/usdc-request` drips USDC with no
-> airdrop leg at all. (connector `packages/faucet/src/solana.js`.)
-
-The web frontend at `/` exposes all three public chains. Treasuries:
-Mina `B62qmVAwZb65H8Kv9wc2yhZJSirNcuq2FuhsrXdB8uM2W1AiQqJJmUD` (top up via
-https://faucet.minaprotocol.com), Solana `AEPoA5xTTJY9SR8c5CfsemFGC5TmxQBe6Xf6wewEtnYa`
-(mint authority; keypair at `~/.toon-client/keys/solana-usdc-treasury.json` and
-`/root/keys/solana-usdc-treasury.json` on the toon box), Base Sepolia faucet key
+Treasuries: Solana `Bg5YF6nCKe8aeJwoyovYpGr7Qj9ViGSXiH9JHE7tH98F` (mint authority
+for `34eSxY7q…`, generated **on the faucet box** by
+`infra/linode-faucet/generate-solana-treasury.sh`; the private half has never
+left that box, and the recovery if the box is lost is to re-run the two scripts
+and re-pin the new mint); Base Sepolia faucet key
 `0x6bafedaF18FF62f0a63dd0148bafa163204627F6` (needs only gas ETH).
-**Never send transactions from the faucet's hot keys manually while the
-service is live — it desyncs the faucet's nonce manager.**
+**Never send transactions from the faucet's hot keys manually while the service
+is live — it desyncs the faucet's nonce manager.**
+
+The faucet box deploys from `infra/linode-faucet/` in the **connector** repo,
+built on-box; it is the one box ADR 0068 leaves under this repo's `fleet-ops.yml`
+(`box-status` / `restart` / `deploy` only). It runs no connector.
 
 ### Pointing a client at the devnet (rig standalone)
 
-With `rig >= 2.13.0` **no `config.json` is needed at all** on the apex path:
+With `rig >= 2.13.0` **no `config.json` is needed** for the normal path:
 
-- relay + payment ingress come from core's committed genesis seed (the live
-  devnet apex), or a live kind:10032 announce once discovered;
-- `rig fund` infers devnet (and the faucet URL) from the same seed on a truly
-  fresh install;
-- chain RPCs, tokens, TokenNetworks, and the Solana/Mina channel params derive
-  from the announce + core 3.1.2 presets;
-- on Mina, the first channel open **auto-deploys** the identity's dedicated
-  PaymentChannel zkApp (single-pair; key saved under
-  `~/.toon-client/keys/rig-mina-zkapps.json`; pre-deploy with
-  `rig channel deploy-zkapp` to keep the first paid write fast).
+- relay + payment ingress come from core's committed genesis seed, or from a
+  node's own self-description (`GET /ilp`) once discovered — the kind:10032
+  announce that used to carry this is removed
+  ([connector ADR 0046](https://github.com/toon-protocol/connector/blob/main/docs/adr/0046-the-kind-10032-announce-is-removed-a-connector-needs-no-relay.md),
+  [ADR 0050](https://github.com/toon-protocol/connector/blob/main/docs/adr/0050-a-connectors-url-resolves-to-its-self-description.md));
+- `rig fund` infers devnet (and the faucet URL) from the same seed on a fresh
+  install;
+- chain RPCs, tokens, TokenNetworks and the Solana channel params derive from
+  that self-description plus core's presets.
 
 Steering knobs (all free, local-config writes):
 
-- `rig chain set <evm|sol|mina>` — which chain/USDC settles paid writes
-  (per-run override: `TOON_CLIENT_CHAIN=evm:84532|solana:devnet|mina:devnet`,
-  announced spellings).
-- `rig entry <apex|url>` — which entry node to pay through; auto-clears the
-  topology cache. NOTE: a repo publishes to its git `origin` relay, which
-  overrides config — after switching, `rig remote add origin <relay>` in the
-  repo (or use a fresh repo). rig's built-in `sandbox` alias pointed at the
-  decommissioned sandbox entry box and no longer resolves to a live node.
+- `rig chain set <evm|sol>` — which chain's USDC settles paid writes (per-run
+  override: `TOON_CLIENT_CHAIN=evm:84532|solana:devnet`). **`mina` is not a
+  choice**: the fleet settles two chains, and a connector **refuses a claim
+  whose `blockchain` is `mina` by name**
+  ([connector ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md),
+  preserved deliberately by ADR 0065). rig still carries Mina zkApp plumbing;
+  it has no counterparty.
+- `rig entry <url>` — which entry node to pay through; auto-clears the topology
+  cache. NOTE: a repo publishes to its git `origin` relay, which overrides
+  config — after switching, `rig remote add origin <relay>` in the repo (or use
+  a fresh repo). The built-in `sandbox` and `apex` aliases point at boxes that no
+  longer exist.
 - `rig channels` — the recorded payment channels (`rig balance` for wallets).
 
-Manual overrides remain available for self-hosted networks — the pre-2.13
-shape (btpUrl/relayUrl/faucetUrl/chainRpcUrls/minaChannel fields in
-`~/.toon-client/config.json`) still wins over every derived value. Do **not**
-set `supportedChains`/`tokenNetworks`/`preferredTokens` explicitly — explicit
-topology bypasses announce-derived route prices and reintroduces F06
-rejections. After HAND-editing config, delete
-`~/.toon-client/rig-topology-cache.json` (cached topology can mask edits;
-`rig entry` does this for you).
+Manual overrides remain available for self-hosted networks — the pre-2.13 shape
+(`btpUrl`/`relayUrl`/`faucetUrl`/`chainRpcUrls` in `~/.toon-client/config.json`)
+still wins over every derived value. Do **not** set
+`supportedChains`/`tokenNetworks`/`preferredTokens` explicitly — explicit
+topology bypasses derived route prices and reintroduces F06 rejections. After
+hand-editing config, delete `~/.toon-client/rig-topology-cache.json` (a cached
+topology masks edits; `rig entry` does this for you).
 
 The end-to-end demo flow (fund → push → site → ArNS name) is scripted in
 [`scripts/demo-e2e.sh`](../scripts/demo-e2e.sh); the demo-day command sequence
 lives in [`docs/demo-day-runbook.md`](demo-day-runbook.md).
 
-### Operating the devnet
+### Operating the devnet — a node repository pins the connector
 
-Both boxes are managed from the connector repo checkouts on the boxes
-themselves (`/root/connector`, branches `feat/devnet-multi-node` /
-`feat/devnet-store-node`; compose files `infra/linode-node/docker-compose.node.yml`
-and `infra/linode-store/docker-compose.store.yml`). `infra/devnet-manage.sh`
-still automates provisioning but its chain-box legs are now historical.
+[Connector ADR 0068](https://github.com/toon-protocol/connector/blob/main/docs/adr/0068-a-node-repository-pins-the-connector-nothing-here-moves-a-tag-onto-a-box.md)
+**inverted the old model.** The connector repo does not pin child-node images
+and does not deploy. A **node repository pins the connector**, by release
+handle, in exactly one guarded place in its own `deploy/` bundle:
 
-> **Restart order matters:** connector 3.36.x downstream BTP clients give up
-> permanently after 5 reconnect retries (~60 s). After any apex connector
-> restart, `docker restart linode-store-connector-1` on the store box.
+| Repo | Pin of record |
+|------|---------------|
+| relay | `deploy/Dockerfile` → `ARG CONNECTOR_TAG` (its Watchtower recreates the container in ~60s) |
+| store | `deploy/docker-compose.yml` → `image: …/connector:rust-sha-…` |
+| gas-station | `deploy/docker-compose.yml` → `image: …/connector:rust-sha-…` |
 
-### Path A reference deployment — `deploy/pay-edge/` (separate box)
+Each pin is guarded by that repo's own bundle test. The connector repo **builds
+and cuts a release** — one human `workflow_dispatch` of `release-connector.yml`,
+producing a dated handle like `2026.08.21.1`, deliberately **never semver**
+because no crate under `crates/` has a release process and the image will not
+claim a stability contract it has not earned. Adopting a build is a node repo's
+own reviewed change.
 
-The Path A payment-proxy app deployment is a **separate box** from the chains box
-above. Its reusable artifact is the connector repo's **`deploy/pay-edge/`** bundle:
-`docker-compose.yml` + `docker-compose.caddy.yml` (Caddy auto-HTTPS publishing only
-80/443; the connector port is unpublished via `ports: !reset []`) + `connector.yaml`
-+ `.env.example` (primary knob `TOON_MNEMONIC`) + `prove-roundtrip.ts` + `README.md`.
+What went with the inversion:
 
-On a box with wildcard DNS + ports 80/443: set a 3-line Caddyfile and `.env`, then
-`docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d`; Caddy
-issues a **trusted** cert in ~6s. This is **proven live** at
-**`https://connector.pay.toonprotocol.dev/ilp`** — a generic, payment-oblivious
-backend fronted by the connector proxy, verified by a real paid round-trip (paid
-`POST /ilp` → FULFILL with injected `x-toon-*` headers; unpaid → 402; real on-chain
-USDC settlement). The Path A **core is shipped on connector `main`**; the
-`deploy/pay-edge/` bundle itself shipped via connector PR #252 (merged; supersedes
-closed connector PR #246), and the devnet multi-chain roundtrip harness shipped via
-connector PR #245 (merged). See
-[deploy-app-guide.md → Path A](deploy-app-guide.md#path-a--payment-proxy-front-an-http-app).
+- **`promote-to-fleet.yml` is deleted.** Nothing in the connector repo moves a
+  tag onto a box.
+- **`fleet-ops.yml` offers only the faucet box**, and `devnet-manage.sh`'s
+  relay/store deploy legs are removed. They were `scp`-ing configs to
+  `/root/connector/...` — a path neither box reads any more — then re-reading
+  that same dead path to "confirm" the write. It passed every time. A false
+  green is worse than a failure, and the fix was to remove the write path, not
+  to repair it.
+- **`:rust-release` is frozen** at `rust-sha-8708caf`, a build that **predates
+  connector#1230**: on it a peering established by `POST /peers` can accept a
+  claim but never sign one, so every packet forwarded over a runtime peering is
+  refused `T00`. It serves, and quietly cannot pay. **Do not pin it.** It is not
+  deleted only because GHCR has no untag operation — `rust-release` and
+  `rust-sha-8708caf` are two tags on one package version, and deleting the
+  version would take the immutable rollback target with it.
+- **Drift is watched read-only.** `fleet-pin-drift.yml` holds no credential and
+  reaches no box; it fails, and opens a `needs:human` issue, if any of the three
+  repos pins `rust-release`, `rust-main` or `latest` instead of an immutable
+  `rust-sha-` build, or if the three pins name different builds.
+
+To change what a box runs, open a change in the repo that owns it.
 
 ## Town CLI
-
-Run a relay with one command (no Docker required):
 
 ```bash
 npx @toon-protocol/town --mnemonic "your twelve word mnemonic phrase here"
 ```
 
-Town embeds its own ILP connector by default — no external connector needed. See the [Town Guide](town-guide.md) for full CLI reference and environment variables.
+See the [Town Guide](town-guide.md). **Caveat:** Town embeds the **TypeScript**
+connector, which
+[connector ADR 0017](https://github.com/toon-protocol/connector/blob/main/docs/adr/0017-the-typescript-connector-is-a-prototype.md)
+made a prototype and whose source and images are deleted. Treat this path as
+unverified against the current fleet; the supported connector is the Rust one in
+[`deploy/connector-rust/`](https://github.com/toon-protocol/connector/tree/main/deploy/connector-rust).
 
-## Health Checks
+## Local development
 
-```bash
-curl http://localhost:19100/health   # Peer 1 BLS
-curl http://localhost:19110/health   # Peer 2 BLS
-curl http://localhost:18545           # Anvil (returns error object = healthy)
-```
-
-The relay ports (19700, 19710) are WebSocket-only — no HTTP health endpoint.
-
-## View Logs
-
-```bash
-docker compose -p toon-sdk-e2e -f docker-compose-sdk-e2e.yml logs -f
-```
-
-## E2E Testing
-
-```bash
-# SDK E2E (requires SDK E2E infrastructure)
-cd packages/sdk && pnpm test:e2e:docker
-
-# Client E2E (requires SDK E2E infrastructure)
-cd packages/client && pnpm test:e2e
-
-# Town E2E (requires SDK E2E infrastructure)
-cd packages/town && pnpm test:e2e
-```
-
-## Troubleshooting
-
-**Infrastructure won't start:**
-
-1. Check Docker is running: `docker ps`
-2. Verify connector repo: `ls ../connector/packages/contracts`
-3. Check logs: `docker compose -p toon-sdk-e2e -f docker-compose-sdk-e2e.yml logs`
-
-**Tests failing:**
-
-1. Verify infrastructure is up: `curl http://localhost:19100/health`
-2. Check Anvil: `curl http://localhost:18545`
-3. Restart: `./scripts/sdk-e2e-infra.sh down && ./scripts/sdk-e2e-infra.sh up`
-
-**Port conflicts:**
-
-Use `lsof -i :<port>` to find conflicting processes. See port tables above for expected assignments.
+The two-peer `scripts/sdk-e2e-infra.sh` harness, its `Peer 1`/`Peer 2` app
+health endpoints and the `toon-sdk-e2e` compose project all belonged to the
+monorepo and do not exist here. For a disposable local chain pair, use the
+connector repo's own `docker-compose.yml` chain profiles and `local/` — that is
+its `local` tier, funded from genesis, with no shared state.

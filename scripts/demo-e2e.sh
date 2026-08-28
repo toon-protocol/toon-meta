@@ -9,27 +9,28 @@
 #   - rig >= 2.13.0 on PATH (npm i -g @toon-protocol/rig)
 #     plus the optional ArNS deps next to it:
 #     npm i -g @ar.io/sdk @ar.io/solana-contracts @solana/kit
-#   - ZERO config needed on the apex path: relay/ingress come from the
-#     genesis seed or announce, chain params from core presets + announce,
-#     the faucet is inferred, the devnet DVM is the default --via, and the
-#     Mina per-pair zkApp auto-deploys on first use. (A hand-written
-#     ~/.toon-client/config.json still wins field-by-field; after editing
-#     one, delete ~/.toon-client/rig-topology-cache.json.)
-#   - A funded identity: FUND=1 runs `rig fund` for you (USDC on all three
-#     chains; https://faucet.devnet.toonprotocol.dev). GAS is assumed —
-#     hold a little ETH (Base Sepolia) and SOL.
+#   - ZERO config needed: relay/ingress come from the genesis seed or a node's
+#     own self-description (GET /ilp), chain params from core presets, the
+#     faucet is inferred, and the devnet DVM is the default --via. (A
+#     hand-written ~/.toon-client/config.json still wins field-by-field; after
+#     editing one, delete ~/.toon-client/rig-topology-cache.json.)
+#   - A funded identity: FUND=1 runs `rig fund` for you (USDC on BOTH chains;
+#     https://faucet.devnet.toonprotocol.dev). GAS is assumed — hold a little
+#     ETH (Base Sepolia) and SOL; the faucet drips neither.
 #
 # Usage:
 #   ./demo-e2e.sh <repo-dir> [arns-name]
 #   CHAIN=solana:devnet ./demo-e2e.sh /tmp/rig-demo my-demo-name
 #   FUND=1 ./demo-e2e.sh /tmp/rig-demo                 # faucet drip first
-# Chain pinning uses the ANNOUNCED spellings: evm:84532, solana:devnet,
-# mina:devnet. ArNS names: ~13+ chars keeps the lease under the DVM's float.
+# Chain pinning uses the announced spellings, and there are two: evm:84532 and
+# solana:devnet. Mina left the connector repository with connector ADR 0065 —
+# a connector still REFUSES a claim whose blockchain is `mina` by name (ADR
+# 0002, deliberately kept as wire behaviour owed to toon-client), so pinning it
+# gets you a reject, not a payment. ArNS names: ~13+ chars keeps the lease
+# under the DVM'"'"'s float.
 #
-# The fleet is two boxes: the client pays the `toon` apex, which settles Solana
-# with the `ario` store DVM (toon → ario). The sandbox entry box that once
-# fronted a Mina entry leg was decommissioned 2026-07-31 and is no longer
-# needed, so ENTRY/sandbox handling is gone from this script.
+# The sandbox entry box was decommissioned 2026-07-31 and the `toon` apex was
+# destroyed 2026-08-14, so ENTRY/sandbox handling is gone from this script.
 set -euo pipefail
 
 REPO_DIR=${1:?usage: demo-e2e.sh <repo-dir> [arns-name]}
@@ -42,7 +43,7 @@ RELAY=${RELAY:-wss://relay-ws.devnet.toonprotocol.dev}
 step() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 
 if [ -n "$FUND" ]; then
-  step "0a/6 faucet drip (USDC, all chains — gas is assumed)"
+  step "0a/6 faucet drip (USDC on both chains — gas is assumed)"
   rig fund
 fi
 

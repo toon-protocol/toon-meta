@@ -4,16 +4,19 @@ Cross-cutting assets for the **TOON Protocol** — the shared **context hub** an
 
 ## Quickstart — send your first paid packet
 
-The live devnet settles on **public chains** (exact-match chain ids: `evm:84532` ·
-`solana:devnet` · `mina:devnet`). The fastest path from zero to a paid write:
+The live devnet settles on **two public chains** (exact-match chain ids: `evm:84532` ·
+`solana:devnet`). Mina left the connector repository with
+[connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md).
+The fastest path from zero to a paid write:
 
 1. `npm i -g @toon-protocol/rig` and follow the
    [rig README](https://github.com/toon-protocol/toon-client/blob/main/packages/rig/README.md)
    (steps 1–8: identity → remote → fund → push). Its
    ["Devnet reference (public chains)"](https://github.com/toon-protocol/toon-client/blob/main/packages/rig/README.md#devnet-reference-public-chains)
    section has every endpoint and contract address.
-2. Fund a wallet at **<https://faucet.devnet.toonprotocol.dev>** (web UI, all
-   three chains) or `rig fund`.
+2. Fund a wallet at **<https://faucet.devnet.toonprotocol.dev>** (web UI, USDC
+   on both chains) or `rig fund`. The faucet drips **USDC only** — get devnet SOL
+   from <https://faucet.solana.com> and Base Sepolia gas ETH from a public faucet.
 3. The exact client config + full address book:
    [docs/deployment.md → "Pointing a client at the devnet"](./docs/deployment.md#pointing-a-client-at-the-devnet-rig-standalone).
    The scripted end-to-end demo (push → permaweb site → ArNS name):
@@ -23,7 +26,7 @@ The live devnet settles on **public chains** (exact-match chain ids: `evm:84532`
 
 - **[`context/`](./context/)** — the curated **context architecture**: [context](./context/context.md) · [architecture](./context/architecture.md) · [repos](./context/repos.md) · [decisions](./context/decisions.md) · [glossary](./context/glossary.md). **Start at [`context/context.md`](./context/context.md).**
 - **[`skills/`](./skills/)** — the shared Claude Agent Skills (NIP-on-TOON, Interledger RFC localized to TOON's claim-over-BTP model, git-on-Nostr, content/social, dev utilities), published as the **`toon-skills`** plugin. Product-specific skills (e.g. `toon-client`) ship in their own product plugins.
-- **[`docs/`](./docs/)** — deep protocol/implementation reference (protocol.md, settlement.md, architecture.md, bootstrap.md, guides). New here: **[factory-job-protocol.md](./docs/factory-job-protocol.md)** — the factory job market's wire: NIP-90 kind allocation (`5097`/`6097`/`7000`), the RFQ quote and per-increment offer tags, and the exact fields that bind a job increment to its ILP hashlock ([toon-meta#263](https://github.com/toon-protocol/toon-meta/issues/263), part of the agents-earning epic [#262](https://github.com/toon-protocol/toon-meta/issues/262)); **[node-operator-guide.md](./docs/node-operator-guide.md)** — the operator front-door: run a relay/store node, peer it, and put your own app behind TOON (leans on the connector's runnable `deploy/node-quickstart/` + `deploy/pay-edge/` bundles); **[rfc-peering-naming.md](./docs/rfc-peering-naming.md)** — discovery/peering routing model + the NIP-kind-marketplace vs ArNS-names design; **[deploy-app-guide.md](./docs/deploy-app-guide.md)** — how to deploy/monetize an app with TOON (payment-proxy + native-node paths, with shipped-vs-in-progress status).
+- **[`docs/`](./docs/)** — deep protocol/implementation reference (protocol.md, settlement.md, architecture.md, bootstrap.md, guides). New here: **[factory-job-protocol.md](./docs/factory-job-protocol.md)** — the factory job market's wire: NIP-90 kind allocation (`5097`/`6097`/`7000`), the RFQ quote and per-increment offer tags, and the exact fields that bind a job increment to its ILP hashlock ([toon-meta#263](https://github.com/toon-protocol/toon-meta/issues/263), part of the agents-earning epic [#262](https://github.com/toon-protocol/toon-meta/issues/262)); **[node-operator-guide.md](./docs/node-operator-guide.md)** — the operator front-door: run a relay/store node, peer it, and put your own app behind TOON (the connector's one surviving bundle is `deploy/connector-rust/`; `deploy/node-quickstart/` and `deploy/pay-edge/` were deleted 2026-08-05); **[rfc-peering-naming.md](./docs/rfc-peering-naming.md)** — discovery/peering routing model + the NIP-kind-marketplace vs ArNS-names design; **[deploy-app-guide.md](./docs/deploy-app-guide.md)** — how to deploy/monetize an app with TOON (payment-proxy + native-node paths, with shipped-vs-in-progress status).
 - **[`docs/operators/`](./docs/operators/)** — **operator notices**: dated, public announcements about the live devnet that a counterparty or node operator may need to act on. Latest: [apex settlement identity rotated — open Base Sepolia channels](./docs/operators/2026-07-31-apex-settlement-identity-rotation.md) (2026-07-31).
 
 ## Using the shared skills in another repo

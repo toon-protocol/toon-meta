@@ -1,6 +1,6 @@
 ---
 name: rfc-0019-glossary
-description: Glossary of Interledger (RFC 0019) and TOON Protocol terms. Use when users ask "what is" / "define" for a TOON or ILP term - apex, child, claim, balance proof, free-forward, town/dvm/mill, kind:10032, connector, BTP, settlement - or need clarification on protocol terminology. Triggers on 'what is', 'define', 'terminology', 'glossary', or an unclear TOON/ILP term.
+description: Glossary of Interledger (RFC 0019) and TOON Protocol terms. Use when users ask "what is" / "define" for a TOON or ILP term - apex, child, claim, free-forward, town/dvm/mill, kind:10032, connector, BTP, settlement - or need clarification on protocol terminology. Triggers on 'what is', 'define', 'terminology', 'glossary', or an unclear TOON/ILP term.
 ---
 
 # RFC 0019: Interledger + TOON Glossary
@@ -13,8 +13,8 @@ Authoritative definitions for the terms an agent meets working with TOON Protoco
 - **Apex** — a deployment's connector, nodeId `g.proxy`. The parent of the child service nodes. Owns the BTP port, validates claims, takes a fee, routes by ILP address.
 - **Child** — a service node under the apex: **town** (Nostr relay, pay-per-publish), **dvm** (NIP-90 compute; only kind:5094 Arweave blob storage is deployed), **mill** (multi-chain swap peer). Registered `relation:'child'`, tags the apex as parent.
 - **The proxy** — the connector acting as the proxy-server layer: the apex connector (nodeId `g.proxy`) plus its co-located backend nodes (town/dvm/mill containers). There is no separate operator product — the proxy *is* the connector at the edge.
-- **Claim / payment-channel claim** — a signed off-chain **balance proof** (EIP-712 / Ed25519 / Pallas) asserting a monotonic `nonce` and cumulative `transferredAmount` against an on-chain channel deposit. TOON's unit of payment; sent over BTP as the `payment-channel-claim` sub-protocol.
-- **Balance proof** — synonym for the claim; the signed assertion of how much has been transferred on a channel.
+- **Claim / payment-channel claim** — a signed off-chain assertion (EIP-712 or Ed25519) of a monotonic `nonce` and cumulative `transferredAmount` against an on-chain channel deposit. TOON's unit of payment; sent over BTP as the `payment-channel-claim` sub-protocol.
+- **Balance proof** — a **retired** synonym for the claim, still found in older documents and in identifier names (`balanceProofHashEvm`). Say **claim**.
 - **Free-forward** — the apex forwarding a packet to its own child without a per-packet claim (parent→child carries no claim; settled in aggregate).
 - **Nonce watermark** — the monotonic per-channel counter that must never go backwards; a regressed nonce invalidates the proof. The client daemon persists it.
 - **kind:10032** — Nostr ILP peer-info event; a node's advertisement of its ILP address + reachable BTP/HS endpoints. TOON's discovery mechanism (replaces SPSP/payment pointers).
@@ -37,7 +37,7 @@ Authoritative definitions for the terms an agent meets working with TOON Protoco
 SPSP, payment pointer, STREAM, STREAM receipt, and on-chain HTLC escrow — see `rfc-0009`, `rfc-0026`, `rfc-0029`, `rfc-0039`, `rfc-0022` for why each is absent from TOON's pay path. **Present, by contrast** (don't list these as absent): **ILP-over-HTTP** (`rfc-0035`, the one-shot edge ingress + HTTP→BTP upgrade) and packet-level **execution-condition/fulfillment** (active under NIP-59 claim-wrapping).
 
 ## Common Topics
-- TOON terms: apex, child, claim, balance proof, free-forward, nonce watermark
+- TOON terms: apex, child, claim, free-forward, nonce watermark
 - TOON kinds: 10032, 10035, 5094
 - Standard ILP: connector, ILP address, BTP, PREPARE/FULFILL/REJECT, clearing/settlement
 - Which classic ILP terms do NOT apply to TOON

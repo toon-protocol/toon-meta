@@ -4,6 +4,20 @@
 **Package:** `@toon-protocol/client`
 **Date:** 2026-03-31
 
+> **Correction 2026-08-28 — the Mina leg of this spec has no counterparty.**
+> Every Mina row below (`m/44'/12586'/…`, `mina-signer`, the `mina` keypair in
+> the keystore, `registerChainSigner('mina', …)`, `"chains": "nostr,evm,solana,mina"`)
+> describes a chain the network no longer settles. Mina left the connector
+> repository with
+> [connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md)
+> (built connector#1205), and a connector **refuses a claim whose `blockchain` is
+> `mina` by name**
+> ([ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md)) —
+> a refusal deliberately preserved as wire behaviour owed to `toon-client`, so
+> keeping the derivation code is harmless, but a client that signs a Mina claim
+> gets a reject rather than a payment. Two chains settle: `evm:84532` and
+> `solana:devnet`.
+
 ---
 
 ## Problem

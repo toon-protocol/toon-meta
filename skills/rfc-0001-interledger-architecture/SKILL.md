@@ -14,17 +14,17 @@ Implements the RFC 0001 layered model as the foundation of TOON Protocol: **pay-
 | **Application** | App-level intent / setup | A Nostr event (the thing being published) encoded with the **TOON codec**. Service discovery is **Nostr kind:10032 peer-info**, not SPSP (`rfc-0009`). |
 | **Transport** | End-to-end value delivery | **One BTP WebSocket packet per write** carrying a signed `payment-channel-claim`. TOON does **not** use STREAM (`rfc-0029`) — no chunking/flow-control/quoting. |
 | **Interledger** | Packet routing across connectors | ILPv4 PREPARE/FULFILL/REJECT (`rfc-0027`), routed by `g.*` ILP address (`rfc-0015`). |
-| **Ledger** | Settlement on an underlying ledger | **In-process multi-chain payment-channel providers** (EVM / Solana / Mina) redeeming signed claims on-chain. Not the RFC-0038 separate settlement-engine process (`rfc-0038`). |
+| **Ledger** | Settlement on an underlying ledger | **In-process multi-chain payment-channel providers** (EVM and Solana) redeeming signed claims on-chain. Not the RFC-0038 separate settlement-engine process (`rfc-0038`). |
 
 ## TOON's actual topology
 
 - **Apex = the connector** (`@toon-protocol/connector`), nodeId `g.proxy`. It owns the BTP port, validates claims, takes a fee, and routes by ILP address.
 - **Children** = service nodes under the apex: **town** (the Nostr relay, pay-per-publish), **dvm** (NIP-90 compute; the only deployed kind is 5094 Arweave blob storage), **mill** (multi-chain swap peer). Each is registered `relation:'child'` and tags `g.proxy` as its parent.
-- **Clients** pay the apex over BTP with a signed balance-proof claim; the apex validates, takes its fee, and **forwards to the child for free** (parent→child packets carry no per-packet claim — settled in aggregate).
+- **Clients** pay the apex over BTP with a signed claim; the apex validates, takes its fee, and **forwards to the child for free** (parent→child packets carry no per-packet claim — settled in aggregate).
 
 ## The core mental model
 
-- **Write = pay.** ILP packet + signed payment-channel **claim** (an EIP-712 / Ed25519 / Pallas balance proof against an on-chain channel deposit) over BTP → connector validates → FULFILL or REJECT. Cost scales with encoded byte size.
+- **Write = pay.** ILP packet + signed payment-channel **claim** (an EIP-712 or Ed25519 cumulative assertion against an on-chain channel deposit) over BTP → connector validates → FULFILL or REJECT. A route's price is a schedule over payload length — a base plus an amount per **kibibyte** (connector ADR 0065).
 - **Read = free.** NIP-01 subscriptions over the same link, no claim.
 - **Settlement is off-chain + threshold.** Each write advances a monotonic nonce + cumulative amount; the connector redeems on-chain only when a threshold is crossed.
 

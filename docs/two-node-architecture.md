@@ -14,6 +14,19 @@
 
 ---
 
+> **Corrections, 2026-08-28 — this document has been overtaken and its config snippets will not boot.**
+> Kept as the record of a target that was executed, not as something to copy.
+>
+> | What it says | What is true |
+> |---|---|
+> | `token_network = "0xa79C3b1dbcEA00a6d84735a134395D8eF6D6a478"` (§1.3, §3.3) | **Retired.** That pair went out with the ADR 0059 cutover, broadcast 2026-08-28 at block 46055303. Live: registry `0x0c41D9D424d6B075A3cEa1068a694f7847a8CCa5`, TokenNetwork `0xe9E05dfecfe165266C88d73e61D483612651952a`. And a connector is configured with the **registry** — it resolves the TokenNetwork at boot via `getTokenNetwork(token)`, so the TokenNetwork value is **derived**, never pinned independently. |
+> | `ceiling = …` in the TOML | **Retired** by [connector ADR 0033](https://github.com/toon-protocol/connector/blob/main/docs/adr/0033-the-exposure-machinery-is-retired-not-restated.md); the bound that survives is the **cap** ([ADR 0049](https://github.com/toon-protocol/connector/blob/main/docs/adr/0049-the-cap-bounds-one-packet-is-discovered-by-t04-and-is-set-from-outside.md)). A config carrying `ceiling` refuses to start. |
+> | `prefix = "g.toon.ario"` | Not an address any route answers to. Probed 2026-08-28, the store box serves `g.toon.store` and `g.toon.relay.store`, priced as a schedule (base 1000 + 10 per **KiB**, [ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-a-price-is-a-schedule-over-payload-length.md)). `ario` is the box label. |
+> | §3.3's `channelId = keccak256(p1, p2, channelCounter)` | Superseded: a channel is now **derived from its participants** ([ADR 0059](https://github.com/toon-protocol/connector/blob/main/docs/adr/0059-a-channel-is-derived-from-its-participants.md)). |
+> | `infra/linode-relay/` · `infra/linode-store/` as the boxes' config | **Fixtures**, not what the boxes run. Both boxes re-deployed 2026-08-27 from their own repos' `deploy/` bundles ([ADR 0068](https://github.com/toon-protocol/connector/blob/main/docs/adr/0068-a-node-repository-pins-the-connector-nothing-here-moves-a-tag-onto-a-box.md)); the relay runs Caddy, not nginx. |
+> | the `[announce]` block / kind:10032 (§6.1, §5.3) | **Removed** ([ADR 0046](https://github.com/toon-protocol/connector/blob/main/docs/adr/0046-the-kind-10032-announce-is-removed-a-connector-needs-no-relay.md)). A node answers at `GET /ilp` with its self-description ([ADR 0050](https://github.com/toon-protocol/connector/blob/main/docs/adr/0050-a-connectors-url-resolves-to-its-self-description.md)). |
+> | the faucet's Mina legs and `MINA_*` env (§4.4, §4.6) | **Deleted** with [ADR 0065, *Mina leaves the repository*](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md). The faucet is USDC on two chains. The connector's refusal of a `mina` claim **by name** survives and is not to be cleaned up ([ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md)). |
+
 ## 0. The shape, and the vocabulary
 
 ### 0.1 The target
@@ -115,7 +128,7 @@ peer_id = "relay-store"
 channel_id = "0x<the new relay<->store channel, §3>"
 counterparty_key = "0x<the STORE box's EVM settlement address>"
 chain_id = 84532
-token_network = "0xa79C3b1dbcEA00a6d84735a134395D8eF6D6a478"
+token_network = "0xa79C3b1dbcEA00a6d84735a134395D8eF6D6a478"   # RETIRED 2026-08-28 — see the corrections banner
 
 [[routes]]
 prefix = "g.toon.ario"
@@ -140,7 +153,7 @@ peer_id = "relay-store"
 channel_id = "0x<the SAME channel id as above, §3>"
 counterparty_key = "0x<the RELAY box's EVM settlement address>"
 chain_id = 84532
-token_network = "0xa79C3b1dbcEA00a6d84735a134395D8eF6D6a478"
+token_network = "0xa79C3b1dbcEA00a6d84735a134395D8eF6D6a478"   # RETIRED 2026-08-28 — see the corrections banner
 
 [[routes]]
 prefix = "g.toon.relay"
@@ -301,7 +314,7 @@ For reference, the Solana shape uses `channel_account` (the PDA) and `program_id
 
 **Open a NEW channel between the relay box's settlement identity and the store box's settlement identity.** Existing channel `0x62c81d83…` is to be **LEFT ALONE** — it is not repurposed, not redeposited, and not renamed by this spec.
 
-Chain: **Base Sepolia (`chain_id = 84532`)**, `token_network = "0xa79C3b1dbcEA00a6d84735a134395D8eF6D6a478"` — the pair both boxes already carry on their existing peer-channel rows (`infra/linode-relay/connector-rust.toml:101-102`, `infra/linode-store/connector-rust.toml:257-258`).
+Chain: **Base Sepolia (`chain_id = 84532`)**, `token_network = "0xa79C3b1dbcEA00a6d84735a134395D8eF6D6a478"` (**retired 2026-08-28** — see the corrections banner) — the pair both boxes already carry on their existing peer-channel rows (`infra/linode-relay/connector-rust.toml:101-102`, `infra/linode-store/connector-rust.toml:257-258`).
 
 Nothing on chain prevents a second channel between the same pair — `openChannel` derives `channelId = keccak256(p1, p2, channelCounter)` from an incrementing counter, so `ChannelAlreadyExists` cannot fire in practice (`packages/contracts/src/TokenNetwork.sol:214-246`). One channel is nonetheless what this spec calls for, because one channel is what the two legs already give you.
 

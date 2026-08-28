@@ -9,14 +9,24 @@ deliverable only — no deploys, no key handling, no funds move as a result of
 writing it down. Whether a given family has *met* the bar stays a human
 judgment call; this document only fixes what the bar is.
 
-It covers the three settlement families TOON supports today: **EVM**
+It covers the two settlement families TOON supports today: **EVM**
 (currently Base Sepolia; Base mainnet at cutover, per
-[connector#388](https://github.com/toon-protocol/connector/issues/388)),
-**Solana** (devnet; mainnet path per
-[connector#834](https://github.com/toon-protocol/connector/issues/834)),
-and **Mina** (devnet). See [settlement.md](./settlement.md) for the
-per-chain claim shapes and [deployment.md](./deployment.md) for the live
-devnet's addresses and endpoints.
+[connector#388](https://github.com/toon-protocol/connector/issues/388))
+and **Solana** (devnet; mainnet path per
+[connector#834](https://github.com/toon-protocol/connector/issues/834)).
+See [settlement.md](./settlement.md) for the per-chain claim shapes and
+[deployment.md](./deployment.md) for the live devnet's addresses and endpoints.
+
+> **There is no Mina family, and its column is deleted from §1.** Mina left the
+> connector repository with
+> [connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md)
+> (built connector#1205) — the zkApp, its tooling and the faucet's Mina legs are
+> all gone, and no cycle was ever observed against it. What survives, and is
+> **not** to be cleaned up, is the connector's refusal of a claim whose
+> `blockchain` is `mina` **by name**
+> ([ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md)):
+> wire behaviour owed to `toon-client`, and outside this document's scope
+> because a refusal has no soak clock.
 
 ## 1. Paths that must be exercised live
 
@@ -25,14 +35,22 @@ in-unit — signed, deterministic, no chain latency or public-RPC flake. The
 soak is the live counterpart: the same lifecycle, on the real public
 network, with real (if valueless, on testnets) transactions.
 
-| Path | EVM (Base Sepolia) | Solana (devnet) | Mina (devnet) |
-|------|---------------------|------------------|-----------------|
-| Channel open | `openChannel` on `TokenNetwork` | channel PDA created on the payment-channel program | client-build `PaymentChannel` zkApp deployed (one per participant pair — [deploy-app-guide.md](./deploy-app-guide.md)) |
-| Per-claim update | signed EIP-712 balance proof accepted, `claimFromChannel` advances `claimedAmounts` | Ed25519 balance proof, `CLAIM_FROM_CHANNEL` advances the on-chain watermark | Pallas-Schnorr claim, apex co-signs, `claimFromChannel` advances nonce + balance commitment |
-| Channel close | `closeChannel` (either participant), 24h challenge period | channel closed on the program — **not yet observed**, see the note below | zkApp `settle()` path invoked |
-| Claim redeemed / recipient credited | on `claimFromChannel`, net balance settles on `TokenNetwork` | at channel close, `SETTLE_CHANNEL` (vault → recipient ATA) — **not yet observed**, see the note below | at channel close, Story 34.4 fund-custody zkApp `settle()` (vault → participants) |
-| Coop-close | both-signed close digest (`coopCloseHashEvm` et al. in `@toon-protocol/settlement-digest`) accepted | equivalent cooperative-close message accepted — **not yet observed**, see the note below | equivalent cooperative-close message accepted |
-| Rescue (unilateral exit, no counterparty cooperation) | `closeChannel` + `settleChannel` callable by a single participant with no signature from the other side — **not yet observed**, see the note below | equivalent unilateral close/settle instruction on the program — **not yet observed**, see the note below | equivalent unilateral path on the zkApp |
+| Path | EVM (Base Sepolia) | Solana (devnet) |
+|------|---------------------|------------------|
+| Channel open | `openChannel` on `TokenNetwork` | channel PDA created on the payment-channel program |
+| Per-claim update | signed EIP-712 claim accepted, `claimFromChannel` advances `claimedAmounts` | Ed25519 claim, `CLAIM_FROM_CHANNEL` advances the on-chain watermark |
+| Channel close | `closeChannel` (either participant), 24h challenge period | channel closed on the program — **not yet observed**, see the note below |
+| Claim redeemed / recipient credited | on `claimFromChannel`, net balance settles on `TokenNetwork` | at channel close, `SETTLE_CHANNEL` (vault → recipient ATA) — **not yet observed**, see the note below |
+| Coop-close | both-signed close digest (`coopCloseHashEvm` et al. in `@toon-protocol/settlement-digest`) accepted | equivalent cooperative-close message accepted — **not yet observed**, see the note below |
+| Rescue (unilateral exit, no counterparty cooperation) | `closeChannel` + `settleChannel` callable by a single participant with no signature from the other side — **not yet observed**, see the note below | equivalent unilateral close/settle instruction on the program — **not yet observed**, see the note below |
+
+> **Solana's program cannot be upgraded.** Its upgrade authority is the lost
+> 2026-07-18 deployer key, so closing any Solana gap that needs a program change
+> means a **fresh deploy at a new program id** — and
+> [ADR 0053](https://github.com/toon-protocol/connector/blob/main/docs/adr/0053-a-solana-claim-binds-its-domain-the-way-an-evm-claim-does.md)
+> binds the program into a claim's signed message, so that is a new claim domain
+> and a migration: every open channel on the old program drains or is abandoned
+> first. Budget it as one.
 
 **EVM Rescue — not yet observed.** The [2026-07-31 apex identity rotation
 notice](./operators/2026-07-31-apex-settlement-identity-rotation.md) records
@@ -61,15 +79,6 @@ rows: a live Solana channel taken through close (cooperative or
 unilateral) and `SETTLE_CHANNEL`, cited by transaction signature or an
 equivalent on-chain read.
 
-**Mina — no full cycle observed.** No live open → close/settle cycle against
-the apex has been observed on Mina devnet: [deployment.md](./deployment.md)
-records that the Mina client-entry leg "was only ever exercised through the
-retired sandbox entry, so it is **unproven against the apex** — the demoed
-paths are Base Sepolia and Solana." The cells in this column therefore
-describe the shape of each path, not an observation of one. What would prove
-them: a single full cycle against the apex, cited by zkApp account address
-and the transaction hashes for the open, a claim, and the `settle()`.
-
 Every path in the table needs at least one live, on-chain observation — on a
 network §2 admits for gap-closing — before a family's soak clock can be said
 to have started at all. Repetition against the volume/duration bar (§3) only
@@ -79,7 +88,7 @@ counts paths that have already been proven to work at least once.
 
 Public networks only, named explicitly. Never a local validator. The
 fleet has run no self-hosted blockchain infrastructure since 2026-07-19,
-when the Anvil / `solana-test-validator` / Mina lightnet boxes were deleted
+when the Anvil and `solana-test-validator` boxes were deleted
 as part of the public-chain cutover
 ([deployment.md → Linode Devnet](./deployment.md#linode-devnet--live-public-chain-settlement)).
 
@@ -112,11 +121,12 @@ The devnet/testnet networks themselves, per family:
 |--------|---------|-----------------------|-----|
 | EVM | Base Sepolia | `evm:84532` | `https://sepolia.base.org` (prefer `https://base-sepolia-rpc.publicnode.com` for channel operations — the official LB serves stale reads) |
 | Solana | Solana devnet (public cluster) | `solana:devnet` | `https://api.devnet.solana.com` |
-| Mina | Mina devnet (public) | `mina:devnet` | `https://api.minascan.io/node/devnet/v1/graphql` |
 
-Contract/program addresses are the live devnet apex's kind:10032 announce
-(authoritative at runtime); see
-[deployment.md → Deployed settlement contracts](./deployment.md#deployed-settlement-contracts-public-networks-verified-2026-07-19)
+Contract/program addresses come from each node's own self-description at
+`GET <node>/ilp` (authoritative at runtime — the kind:10032 announce that used
+to carry them is removed, [connector ADR 0046](https://github.com/toon-protocol/connector/blob/main/docs/adr/0046-the-kind-10032-announce-is-removed-a-connector-needs-no-relay.md) /
+[ADR 0050](https://github.com/toon-protocol/connector/blob/main/docs/adr/0050-a-connectors-url-resolves-to-its-self-description.md));
+see [deployment.md → Deployed settlement contracts](./deployment.md#deployed-settlement-contracts-public-networks-verified-2026-08-28)
 for the current snapshot.
 
 ## 3. Volume and duration bar
@@ -134,20 +144,19 @@ it fixes the unit the rest of this section builds on):
 
 That fixes the unit; the numeric values are this document's job to propose.
 The bar runs on public devnet/testnet only, per §2.
-All three families use the same shape of bar — a family is not exempt from
+Both families use the same shape of bar — a family is not exempt from
 soaking just because its instrument is newer. §1's rule binds here too: a
 family's clock cannot be said to be running until every path in its §1 row
 has at least one live observation — and as of this writing **no family
 clears that test**. EVM is missing just the rescue path (§1); Solana is
 missing close, coop-close, and rescue (§1) — the cited evidence covers open
-and per-claim update only; Mina is missing a full cycle. This changes the
-arithmetic below but not the gating rule.
+and per-claim update only. This changes the arithmetic below but not the
+gating rule.
 
 | Family | N (distinct channels) | M (distinct identities) | D (days) | Notes |
 |--------|------------------------|---------------------------|----------|-------|
 | EVM (Base Sepolia) | ≥ 20 | ≥ 10 | ≥ 14 consecutive, **starting only after §1's rescue gap closes** | Baseline plausibility: the fleet has already put **19** channels through a complete open/claim/close/settle lifecycle in the ordinary course of devnet operation, closed and settled by the apex on 2026-07-30 — one channel short of this bar's N, so N ≥ 20 asks for marginally more than devnet has already produced incidentally. The [2026-07-31 notice](./operators/2026-07-31-apex-settlement-identity-rotation.md) lists twelve further channels against the same retired apex identity — eight still open with a counterparty deposit, four open with nothing deposited on either side — none of which completed a lifecycle, so none counts toward the 19; the eight are §1's Rescue row, addressed there. The 19 give the volume/duration bar real baseline plausibility, but per §1's own rule the EVM clock cannot be said to have started until at least one live rescue is observed. |
 | Solana (devnet) | ≥ 20 | ≥ 10 | ≥ 14 consecutive, **starting only after §1's close/coop-close/rescue gap closes** | The Solana-settling client is new as of this week (2026-08-09) — see [#307](https://github.com/toon-protocol/toon-meta/issues/307)'s own thread: one independent node with six consecutive paid writes on one channel, one third-party-funded `g.toon.ario` job, one `g.toon.relay` channel resolved purely from chain. That is real evidence for §1's open and per-claim-update rows, but covers none of close, coop-close, or rescue (see the note under §1's table) — per §1's own rule the Solana clock cannot be said to have started until those are observed too. |
-| Mina (devnet) | ≥ 20 | ≥ 10 | ≥ 14 consecutive, **starting only after the prerequisite below is met** | **Prerequisite:** at least one full live open → close/settle cycle against the apex. `deployment.md` notes the Mina client-entry leg "was only ever exercised through the retired sandbox entry, so it is unproven against the apex — the demoed paths are Base Sepolia and Solana." Until that single cycle is observed, §1's Mina row is not yet checked off, and no soak window can be running. |
 
 "Unexplained" F-class reject, precisely: a REJECT whose error code
 (`F01`/`F03`/`F04`/`F06`/`F08`/`F99` — see
@@ -179,7 +188,6 @@ assuming one.
 | Per-channel payer-side state (nonce, cumulative claimed, deposit) | `/ilp/claim-state` — challenge-authenticated, so only a channel's own counterparty can read it; a record that does not depend on trusting the node's own counters | Yes |
 | Distinct channel count, EVM | `ChannelOpened` events on the `TokenNetwork` contract, filtered by address — the same query the [2026-07-31 notice](./operators/2026-07-31-apex-settlement-identity-rotation.md) tells counterparties to use to find their own channel ids | Yes |
 | Distinct channel count, Solana | channel PDAs owned by the payment-channel program (`getProgramAccounts`) | Yes |
-| Distinct channel count, Mina | deployed `PaymentChannel` zkApp accounts (one per participant pair; deploy records tracked in `~/.toon-client/keys/rig-mina-zkapps.json` per operator) | Yes, but the record today is a single operator's local file, not a query anyone can run independently. **The one new counter/index this document identifies as missing:** a public or fleet-side index of deployed Mina zkApp addresses (or an on-chain discovery query equivalent to `ChannelOpened`/`getProgramAccounts`), so a reviewer can verify Mina breadth without trusting the deploying operator's own bookkeeping. |
 | Distinct identity count (M) | the counterparty address/pubkey on each distinct channel found via the above — no separate counter, derived from the same per-channel enumeration | Derived, not separate |
 | Unexplained F-class rejects | REJECT logs with `code` + `data.reason`, cross-checked against the claim-state / claim-signed counters above for each rejected packet's charge outcome | Yes (logs exist per [protocol.md](./protocol.md) and [rolling-swap.md](./rolling-swap.md)'s F-class discussion); no dedicated "unexplained-reject" counter exists — classifying a reject as explained/unexplained is a manual cross-check today, not an automated gate |
 
@@ -194,8 +202,8 @@ confirm none are unexplained.
 **Settled 2026-08-09** (owner decision):
 
 > **Resets:** any change to the on-chain program bytecode, or to the code
-> that produces or validates balance proofs — claim signing, claim
-> bounding, settlement-destination validation.
+> that produces or validates claims — claim signing, claim bounding,
+> settlement-destination validation.
 >
 > **Does not reset:** every other backend change.
 
@@ -218,11 +226,12 @@ rule:
   program id (105,128 → 109,401 bytes, per
   [#307](https://github.com/toon-protocol/toon-meta/issues/307)'s own
   thread), which is exactly the kind of event that resets the clock.
-- **Mina:** [treasury-funding.md](./treasury-funding.md) notes the zkApp is
-  **re-deployed on each devnet reset**. Since a devnet reset always produces
-  a new zkApp account (a new on-chain program instance, not a patch to the
-  existing one), it resets the clock by the same rule as an EVM/Solana
-  program upgrade — not as an exception to it.
+- **Solana, specifically:** the program can no longer be upgraded in place —
+  its upgrade authority is the lost 2026-07-18 deployer key — so the next
+  bytecode change lands at a **new program id**. Under
+  [ADR 0053](https://github.com/toon-protocol/connector/blob/main/docs/adr/0053-a-solana-claim-binds-its-domain-the-way-an-evm-claim-does.md)
+  that is a new claim domain, which resets the clock by this rule and forces
+  every open channel on the old program to drain or be abandoned first.
 
 ## Status
 
@@ -236,8 +245,7 @@ rule:
   connector#834 (Solana mainnet), connector#835 (Solana rent costs), and
   this ticket.
 - Whether any family has *met* the bar in §3 is not decided here and stays
-  a human call, per this ticket's explicit scope. As of this writing, all
-  three families have a §1 gap that means no clock has started at all:
-  EVM's rescue path (§1, §3), Solana's close/coop-close/rescue paths
-  (§1, §3), and Mina's full open→close cycle (§3). None of this is a
-  reason to lower the bar — it is the bar doing its job.
+  a human call, per this ticket's explicit scope. As of this writing, both
+  families have a §1 gap that means no clock has started at all: EVM's rescue
+  path (§1, §3) and Solana's close/coop-close/rescue paths (§1, §3). None of
+  this is a reason to lower the bar — it is the bar doing its job.

@@ -1,5 +1,5 @@
 // ── TOON devnet dashboard data layer (constants, types, formatters, fetchers) ──
-export const C = { mina:'#e94a8c', base:'#3d7bff', sol:'#14f195', ar:'#f5a623',
+export const C = { base:'#3d7bff', sol:'#14f195', ar:'#f5a623',
   ok:'#28d17c', bad:'#ff5c6c', warn:'#ffb347', gold:'#ffd479', pulse:'#7cf3c0', dim:'#5b6779' }
 
 export type NostrEvent = { id:string; pubkey:string; kind:number; content:string; tags:string[][]; created_at:number; sig:string; _src?:string; _fresh?:boolean }
@@ -27,9 +27,11 @@ export type NostrEvent = { id:string; pubkey:string; kind:number; content:string
 // relay's Nostr WS stream (free reads) and on-chain balance reads.
 export const RETIRED_TELEMETRY = 'Packet counters, settlement claims and the routes/peers/channels tables came from the TypeScript connector admin API, which no longer exists. Rather than render zeros, this page now shows only what it can actually observe.'
 
-// The fleet is two boxes: the apex (client entry + relay + faucet) and the ario
-// store, which terminates the route. The former sandbox entry box was
-// decommissioned 2026-07-31 — it is no longer needed and no longer exists.
+// STALE NODE SET: this page still models the fleet as apex + ario. The apex
+// (`toon`, 104.237.150.177) was DESTROYED 2026-08-14 and proxy.devnet.* does not
+// connect; the relay (proxy.relay.devnet.toonprotocol.dev) is the write ingress
+// now, and a `gas` box joined 2026-08-27. The store box's ILP addresses are
+// `g.toon.store` / `g.toon.relay.store` — `ario` is a box label, not a route.
 export type NodeKey = 'toon' | 'ario'
 export type NodeDef = { key:NodeKey; name:string; nid:string; ip:string; role:string; base:string }
 export const ORIGIN = typeof location !== 'undefined' ? location.origin : ''
@@ -38,15 +40,15 @@ export const NODES: NodeDef[] = [
   // The store box's paid edge was renamed to proxy.ario.* in connector#774.
   // The old proxy.store.* alias still resolves and the older dvm.* name no
   // longer answers at all; proxy.ario.* is the canonical name.
-  { key:'ario', name:'Store · ario', nid:'g.toon.ario', ip:'45.79.173.113', role:'terminates the route — Arweave DVM, receives Sol USDC', base:'https://proxy.ario.devnet.toonprotocol.dev' },
+  { key:'ario', name:'Store · ario', nid:'g.toon.store', ip:'45.79.173.113', role:'terminates the route — Arweave DVM; g.toon.store + g.toon.relay.store, priced 1000 + 10/KiB', base:'https://proxy.ario.devnet.toonprotocol.dev' },
 ]
-// Chain vocabulary for a settlement leg. `mina` still names a live devnet chain
-// — the apex and ario both hold Mina settlement wallets, which the balance table
-// below still reads — but no leg in the fleet settles in Mina today, so no drawn
-// link currently carries the mina label. The Mina *entry* leg was only ever
-// exercised through the retired sandbox entry box.
+// Chain vocabulary for a settlement leg. Two chains, and only two: Mina left the
+// connector repository with connector ADR 0065 (built #1205) — the zkApp, the
+// tooling and the faucet's Mina legs are all deleted. What survives, and must
+// NOT be "cleaned up", is the connector's refusal of a claim whose `blockchain`
+// is `mina`, by name (connector ADR 0002): that is wire behaviour owed to
+// toon-client, not Mina support.
 export const LINKS = {
-  mina:{ label:'Mina USDC', color:C.mina, chain:'mina:devnet' },
   base:{ label:'Base USDC', color:C.base, chain:'evm:84532' },
   sol :{ label:'Sol USDC',  color:C.sol,  chain:'solana:devnet' },
 } as const
@@ -62,7 +64,7 @@ export const KIND: Record<number,string> = { 1:'note',3:'contacts',4:'dm',1063:'
   5094:'store-request',5095:'arns-buy',5096:'gas-station',6094:'store-result',6095:'arns-result',6096:'gas-result',7000:'dvm-status' }
 export const kindLabel = (k:number) => 'kind:'+k+(KIND[k]?' · '+KIND[k]:'')
 export function kindColor(k:number){ if(k>=5000&&k<7000)return C.ar; if(k===7000)return C.warn; if(k>=30000||k===1617||k===1621||k===1630)return C.sol; if(k===10032||k===10002)return C.dim; if(k===1||k===1111)return C.base; return C.gold }
-export function chainColor(c?:string){ c=(c||'').toLowerCase(); if(c.startsWith('evm'))return C.base; if(c.startsWith('sol'))return C.sol; if(c.startsWith('mina'))return C.mina; return C.dim }
+export function chainColor(c?:string){ c=(c||'').toLowerCase(); if(c.startsWith('evm'))return C.base; if(c.startsWith('sol'))return C.sol; return C.dim }
 
 export function trunc(s?:string,h=6,t=4){ s=String(s||''); return s.length>h+t+1 ? s.slice(0,h)+'…'+s.slice(-t) : s }
 export function ago(ts:string|number){ const s=Math.max(0,(Date.now()-new Date(ts).getTime())/1000); if(s<60)return Math.floor(s)+'s'; if(s<3600)return Math.floor(s/60)+'m'; if(s<86400)return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d' }
@@ -75,17 +77,20 @@ export function packetDesc(ev:NostrEvent){ let c:any={}; try{ c=JSON.parse(ev.co
 }
 
 // ── wallets & balances ──
-export const RPC = { base:'https://base-sepolia-rpc.publicnode.com', sol:'https://api.devnet.solana.com', mina:'https://api.minascan.io/node/devnet/v1/graphql' }
+export const RPC = { base:'https://base-sepolia-rpc.publicnode.com', sol:'https://api.devnet.solana.com' }
 const BASE_USDC='0x49beE1Bca5d15Fb0963117923403F9498119a9Ce'
-const SOL_USDC='xyc5J8MgKFiEN13PnfftdXxUzYH34FEvw1LCrFwN7in'
+// Mock USDC on public Solana devnet, re-minted 2026-08-27: the previous mint
+// (xyc5J8Mg…) is still on chain but its mint AUTHORITY is lost, so it can never
+// be refilled. Canonical: connector/infra/linode/endpoints.json.
+const SOL_USDC='34eSxY7qxQ4GzyhDJ8GpUcTz1WWzruGbJbR8q6TtxfQU'
 export const ARIO_MINT='6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN'
-export const NATIVE: Record<string,string> = { base:'ETH', sol:'SOL', mina:'MINA' }
-export const GAS_FLOOR: Record<string,number> = { base:0.005, sol:0.1, mina:1 }
-export const EXPL: Record<string,(a:string)=>string> = { base:a=>`https://sepolia.basescan.org/address/${a}`, sol:a=>`https://explorer.solana.com/address/${a}?cluster=devnet`, mina:a=>`https://minascan.io/devnet/account/${a}` }
-export type WalletRow = { role:string; chain:'base'|'sol'|'mina'; addr:string; ario?:boolean }
-const WALLETS: Record<NodeKey,{settle:Partial<Record<'base'|'sol'|'mina',string>>; extra?:WalletRow[]}> = {
-  toon:{ settle:{ base:'0xF29fD62C4848B9573C9b90adbF61b664F386d9CF', sol:'HgNmgJYrZFrx9DZgMopKa9971zGXW3hPL32Wsc6KzF6', mina:'B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq' } },
-  ario:{ settle:{ base:'0x6B6c2DACf7Ac1F1273F72beF2E6084F9Ee6D3bff', sol:'W6yK72j365eK7t4Qj5An1AaYtUEJcJK7TBPvGeDk1LV', mina:'B62qkWSoKW4ewE2Wn7ibgtXz6TV72L22YVGoz2bL5x3yu4FsUipdQG8' },
+export const NATIVE: Record<string,string> = { base:'ETH', sol:'SOL' }
+export const GAS_FLOOR: Record<string,number> = { base:0.005, sol:0.1 }
+export const EXPL: Record<string,(a:string)=>string> = { base:a=>`https://sepolia.basescan.org/address/${a}`, sol:a=>`https://explorer.solana.com/address/${a}?cluster=devnet` }
+export type WalletRow = { role:string; chain:'base'|'sol'; addr:string; ario?:boolean }
+const WALLETS: Record<NodeKey,{settle:Partial<Record<'base'|'sol',string>>; extra?:WalletRow[]}> = {
+  toon:{ settle:{ base:'0xF29fD62C4848B9573C9b90adbF61b664F386d9CF', sol:'HgNmgJYrZFrx9DZgMopKa9971zGXW3hPL32Wsc6KzF6' } },
+  ario:{ settle:{ base:'0x6B6c2DACf7Ac1F1273F72beF2E6084F9Ee6D3bff', sol:'W6yK72j365eK7t4Qj5An1AaYtUEJcJK7TBPvGeDk1LV' },
     // Both rotated 2026-07-31: the gas-station key had been committed to the
     // public repo, and the ARNS DVM key was swept alongside it. Old addresses
     // are drained -- monitoring them would show a permanently empty wallet.
@@ -93,7 +98,7 @@ const WALLETS: Record<NodeKey,{settle:Partial<Record<'base'|'sol'|'mina',string>
             {role:'gas station', chain:'sol', addr:'66oMXXhCFT6EhqE7LeGhbMXvV1PZyxatFZ74zvHfKCfr'} ] },
 }
 export function walletRows(key:NodeKey):WalletRow[]{ const w=WALLETS[key]; const rows:WalletRow[]=[];
-  for(const ch of ['base','sol','mina'] as const) if(w.settle[ch]) rows.push({role:'settlement',chain:ch,addr:w.settle[ch]!});
+  for(const ch of ['base','sol'] as const) if(w.settle[ch]) rows.push({role:'settlement',chain:ch,addr:w.settle[ch]!});
   for(const x of (w.extra||[])) rows.push(x); return rows }
 export function gasWarn(chain:string,v?:number){ return v!=null && v<GAS_FLOOR[chain] }
 
@@ -112,8 +117,6 @@ export async function readBal(chain:string,addr:string,wantArio?:boolean):Promis
       let usdc=0,ario=0; for(const a of (t.result?.value||[])){ const i=a.account.data.parsed.info; const amt=i.tokenAmount.uiAmount||0
         if(i.mint===SOL_USDC) usdc+=amt; if(i.mint===ARIO_MINT) ario+=amt }
       return { native:(b.result?.value||0)/1e9, usdc, ario:wantArio?ario:undefined } }
-    if(chain==='mina'){ const r=await rpc(RPC.mina,{query:`{account(publicKey:"${addr}"){balance{total}}}`})
-      return { native:Number(r.data?.account?.balance?.total||0)/1e9 } }
     return {}
   }catch(e:any){ return { err:e?.message||'err' } }
 }

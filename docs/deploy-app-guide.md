@@ -5,9 +5,8 @@ an HTTP service or are building natively on TOON's protocol primitives.
 
 > **Just want to run a node and join the network?** If you want to run a prebuilt **relay / store /
 > swap** node (rather than deploy an app), start at the **[Node Operator Guide](./node-operator-guide.md)** —
-> it walks the Docker-image + peering path end-to-end and links the runnable
-> [`deploy/node-quickstart/`](https://github.com/toon-protocol/connector/tree/main/deploy/node-quickstart)
-> bundle. This page (deploy-an-app) covers the two *app* paths below.
+> it walks the Docker-image + peering path end-to-end and links each node repo's own runnable
+> `deploy/` bundle. This page (deploy-an-app) covers the two *app* paths below.
 
 ## Path A — payment-proxy (front an HTTP app)
 
@@ -19,8 +18,13 @@ upgrade to a duplex BTP session; your backend never changes and never sees payme
 client shim, RFC 9421 claim↔request binding, and the `RouteTermination` config surface all exist
 on `main` and were verified by a real paid round-trip — proven live at
 `connector.pay.toonprotocol.dev`. Also shipped: the devnet multi-chain roundtrip harness
-(connector PR #245, merged) and the `deploy/pay-edge/` deploy bundle (connector PR #252, merged;
-supersedes closed connector PR #246). Two future items remain tracked in the epic: transparent
+(connector PR #245, merged) and, at the time, the `deploy/pay-edge/` bundle (connector PR #252) —
+**that bundle was deleted 2026-08-05** along with `deploy/node-quickstart/`, because both ran the
+TypeScript connector at `connector:3.44.0`, whose source, build workflow and image are all gone.
+The surviving recipe is
+[`deploy/connector-rust/`](https://github.com/toon-protocol/connector/tree/main/deploy/connector-rust)
+with a `[[routes]]` entry whose `handler_url` is your app. Two future items remain tracked in the
+epic: transparent
 cross-chain FX (Story 44.12, `connector#223`) and full RFC 9421
 hardening beyond the shipped MVP claim↔request binding — replay cache, JWKS/`.well-known`,
 content-digest canonicalisation, key lifecycle (Story 44.13, `connector#224`).
@@ -30,8 +34,8 @@ Start here:
   ladder, packet shape
 - [`epic-44-payment-proxy.md`](./epic-44-payment-proxy.md) — the implementation epic: stories,
   what shipped vs. what's still open
-- [`deployment.md`](./deployment.md#path-a-reference-deployment--deploypay-edge-separate-box) —
-  the reference deployment (`deploy/pay-edge/` bundle)
+- [`node-operator-guide.md` §5](./node-operator-guide.md#5-put-your-own-app-behind-toon-the-proxy-path) —
+  the reference deployment (`deploy/connector-rust/` plus a `[[routes]]` `handler_url`)
 
 ## Path B — native node (build on the SDK / Town)
 

@@ -1,29 +1,60 @@
 # Architectural Decisions
 
-Curated, durable decisions. ADR-lite: each is *decision → why*.
+Curated, durable **cross-repo** decisions. ADR-lite: each is *decision → why*.
 
-## Payment & protocol
+**toon-meta does not restate protocol law.** The connector owns it, in [`docs/adr/`](https://github.com/toon-protocol/connector/blob/main/docs/adr/README.md) (69 status-tracked records) and [`CONTEXT.md`](https://github.com/toon-protocol/connector/blob/main/CONTEXT.md). Below: the load-bearing records by number, then the decisions that are genuinely this repo's.
 
-- **Messages and money are one packet.** Every monetized flow = a single ILP PREPARE carrying both the TOON-encoded event and its payment. *Why:* the core protocol thesis; no separate invoice/settle round-trip.
-- **Prepaid, supply-driven pricing.** Providers advertise price in a replaceable Nostr event (`SkillDescriptor`, kind:10035); the request packet's amount IS the payment. `settleCompute()` deprecated. *Why:* removes request-for-quote latency; the network can't distinguish rails.
-- **TOON's value layer is the signed payment-channel claim — not SPSP / STREAM / payment-pointers.** SPSP kinds (23194/23195) were removed. *Why:* a write is one packet + one balance-proof claim; there's no stream to chunk, no quoting. *Transports:* claims ride over **BTP/WebSocket** (duplex sessions + inter-connector peering) **and ILP-over-HTTP** (`POST /ilp`, the one-shot edge/onboarding ingress, with an HTTP→BTP upgrade) — see `rfc-0023`, `rfc-0035`. *Atomicity:* multi-hop uses packet-level **execution-condition/fulfillment** (active when NIP-59 claim-wrapping supplies the preimage); there is **no on-chain HTLC escrow**. See the `rfc-*` skills for per-RFC detail.
-- **USDC is the sole user-facing token.** *Why:* simplicity; operator staking tokens stay invisible to relay users.
-- **Claims are per-chain balance proofs:** EIP-712 (EVM), Ed25519 (Solana), Pallas/Schnorr zk (Mina). Settlement is **in-process multi-chain** (not RFC-0038's separate service), redeeming via `claimFromChannel` at a per-peer threshold.
-- **Payment proxy (TOON in front of any HTTP service).** A connector at the edge can act as a **payment proxy server** — proxying the payment the way nginx fronts TLS: onboard via **x402** (HTTP 402), pay one-shot via **transparent HTTP-in-ILP** (the raw HTTP request rides in the opaque ILP `data`), upgrade to **BTP** for sessions; the backend stays payment-oblivious and the connector never parses `data`. *Why:* agent-first adoption — ride x402's installed base, and channels + n-hop routing beat per-request on-chain settlement at volume. **Path A status: core shipped on connector `main`** — proxy handler, x402 greeting, `h402Fetch` shim, RFC 9421 binding, and `RouteTermination` config all exist on `main` and were verified by a real paid round-trip (proven live at `connector.pay.toonprotocol.dev`, reusable artifact `connector/deploy/pay-edge/`). Also shipped: the devnet multi-chain roundtrip harness + connector naming + Porkbun DNS (connector PR #245, merged) and the `deploy/pay-edge/` deploy bundle (connector PR #252, merged; supersedes closed connector PR #246). Only future item: transparent cross-chain FX. See [`payment-proxy.md`](../docs/payment-proxy.md).
+## The connector ADRs every repo is bound by
+
+Status is on each record's own `**Status:**` line, which is the authority — not this table.
+
+| ADR | Decision |
+|---|---|
+| **0027** | Connectors peer over BTP or ILP-over-HTTP; the raw-TCP peer wire is deleted. |
+| **0033** | The exposure machinery is retired, not restated — `exposure`, `ceiling` and `flush` are gone; `cap` is the surviving idea. |
+| **0042** | A packet carries its claim. Nothing is owed between packets. |
+| **0043** | Purchasable peering is removed; a peering cannot be bought, learned, earned or announced into existence. |
+| **0046** | The kind:10032 announce is removed; a connector needs no relay. (Retires 0030.) |
+| **0049** | The cap bounds one packet, is discovered by its `T04`, and is set from outside. |
+| **0050** | A connector's URL resolves to its self-description. |
+| **0052** | Permissionless payment is guaranteed; a claim, never an identity, authorises. |
+| **0057** | Minimum delivery is retired; a claim bounds erosion. |
+| **0058** | A peering is established from a URL; its identity is trust-on-first-use. |
+| **0059** | A channel is derived from its participants, on both chains, by the same rule. |
+| **0060** | A claim proves a peering; the shared secret is deleted. (Vectors at schema 4.) |
+| **0061** | A fee attaches to a peering, not to a route. |
+| **0063** | The ILP packet is TOON's dialect, not RFC 0027's. |
+| **0065** | A price is a schedule over payload length. |
+| **0065-mina** | Mina leaves the repository. |
+| **0066** | The operator dashboard is a page the surface serves; it signs in the browser. |
+| **0067** | A route declares its request shape, and the connector never reads it. |
+| **0068** | A node repository pins the connector; nothing in the connector moves a tag onto a box. |
+
+Also worth knowing by number: **0009** (one typed config file, no environment layer — `RUST_LOG` is the only env var), **0021** (vectors are normative, prose is not), **0040** (a verified payment is stated to the app via `X-TOON-*`), **0062** (an RFC is vendored verbatim and profiled, never forked).
+
+## Cross-repo decisions
+
+- **The connector is a paid reverse proxy, and there are two roles.** It terminates payments the way nginx terminates SSL; **connector** and **app**, no third. *Why:* an app that must import a payment library is a worse product than one that is handed ordinary, already-paid HTTP. Consequence for every other repo: no repo re-verifies a claim, and no repo calls its service a BLS, an agent runtime or a backend.
+- **Messages and money are one packet.** Every monetized flow is one PREPARE carrying both the payload and its covering claim (connector ADR 0042). *Why:* the core thesis; no invoice/settle round-trip, and nothing owed between packets for a counterparty to walk away inside.
+- **USDC is the sole user-facing token**, on two chains — Base Sepolia (`evm:84532`) and Solana devnet. *Why:* simplicity; operator tokens stay invisible to users. Mina left the connector repository (ADR 0065-mina) — but a claim declaring `blockchain: "mina"` is still **refused by name**, wire behaviour owed to toon-client and not to be cleaned up.
+- **TOON's value layer is the signed payment-channel claim — not SPSP, STREAM or payment-pointers.** SPSP kinds (23194/23195) were removed. Multi-hop atomicity is packet-level condition/fulfilment; there is no on-chain HTLC escrow. *Why:* a write is one packet and one claim; there is no stream to chunk and no quoting.
+- **Prepaid, supply-driven pricing.** Providers advertise price in a replaceable Nostr event (`SkillDescriptor`, kind:10035); the request packet's amount IS the payment. *Why:* removes request-for-quote latency. The connector's own prices are published on its self-description, not announced.
 
 ## Boundaries
 
-- **Claim validation lives ONLY in the connector.** `core` never imports the connector (structural `EmbeddableConnectorLike` interface); `sdk` dynamically imports it only to auto-create one; the `payment-handler-bridge` dispatches an *already-paid* packet to business logic. *Why:* the connector is the only component holding channel state — re-validating downstream is double work and incorrect.
-- **Apex / free-forward.** Operators run an apex (the connector as a proxy-server layer, `g.toon`) + child nodes; parent→child packets carry no per-packet claim (settled in aggregate). Children must be `relation:'child'` and tag `g.toon` as parent. *Why:* one paid hop at the edge; children earn via aggregate settlement.
+- **Claim validation lives ONLY in the connector.** An app receives ordinary HTTP that was already paid for, plus `X-TOON-Payer`/`X-TOON-Amount`/`X-TOON-Chain` when the delivering connector was the one paid (connector ADR 0040). *Why:* the connector is the only party holding channel state; re-validating downstream is double work and incorrect. The old seam — `localDelivery`, `POST /handle-packet`, `PaymentRequest`, `ConnectorNode`, `ClaimReceiver`, `SettlementMonitor` — is **deleted**, not moved.
+- **There is no apex.** Every hop is a peering an operator wrote down; every PREPARE carries its covering claim and pays that peering's flat fee. *Why:* free-forwarding needed an apex to trust, a parent tag on every child, and an accumulation to settle in aggregate; all three were removed. The apex box was destroyed 2026-08-14.
+- **An ILP address is self-asserted — a claim, not a grant.** Nothing allocates one; reachability is the only registry. *Why:* an address that needed granting would need a granter. Nothing answers at `g.toon`.
 - **Trust degrades; money doesn't.** (TEE) Attestation state changes never trigger payment-channel closure. *Why:* trust is a gradient, not a gate.
 
-## Repo split (2026-06)
+## Repo split
 
-- **Polyrepo with npm + pinned-digest coupling** (not a monorepo, not submodules). *Why:* per-team ownership; teams build/test/release without rebuilding the world. Mirrors how the connector was already consumed.
-- **`toon` (core+sdk) is libraries only; connector is an optional peer.** *Why:* the library layer must build/publish independent of the payment engine.
-- **The connector owns & publishes `@toon-protocol/mina-zkapp`.** *Why:* one canonical Mina channel contract; the connector already depends on it, and it was unpublished/`private`, breaking installs.
+- **Polyrepo with npm coupling for libraries and an image pin for deployment** (not a monorepo, not submodules). *Why:* per-team ownership; teams build/test/release without rebuilding the world.
+- **`toon` (core+sdk) is libraries only.** *Why:* the library layer must build and publish independently of the payment engine — which is now a Rust binary it could not import anyway.
+- **The connector publishes no npm package.** One static Rust binary, one OCI image, `ghcr.io/toon-protocol/connector:rust-main` plus dated release handles. `@toon-protocol/connector`, `@toon-protocol/shared` and `@toon-protocol/mina-zkapp` are gone. *Why:* there is no TypeScript connector left to depend on (ADR 0017 called it a prototype, and it was switched off).
+- **A node repository pins the connector, not the reverse** (connector ADR 0068). relay, store and gas-station each pin a release handle in exactly one guarded place in their own `deploy/`. *Why:* both halves of an image/config pair belong in one repo; the connector repo holding a write credential into two other repos' deploy state is a wider blast radius than the bug it would fix.
 - **Publish via `pnpm publish` / changesets, never `npm publish`.** *Why:* `npm publish` shipped unresolved `workspace:*`, making `sdk@0.5.0`/`town@0.4.0` uninstallable.
-- **`g.toon` is the canonical apex wire nodeId.** *Why:* it's baked into the connector + child parent tags and every party must agree on it, or paid forwarding breaks (T00/F06) — so it's a load-bearing on-wire term, not cosmetic. **Status:** the live devnet and the epic-44 docs use **`g.toon`** (children `g.toon.<type>`, env prefix `PROXY_*`; live ILP edges e.g. `connector.pay.toonprotocol.dev/ilp`, `proxy.store.devnet.toonprotocol.dev/ilp`). "Connector" remains the repo/product name — only the on-wire nodeId + env prefix are the `g.toon` axis. A cleanup to purge remaining legacy `g.connector` references in favor of `g.toon` is a **pending follow-up**.
+- **`g.toon.<name>` is how this fleet names itself, and that is a convention, not law.** The live nodes claim `g.toon.relay` and `g.toon.store`. *Why:* keeping names beneath one label keeps peers' routing tables small — a courtesy, never a delegation, and never an apex.
 
 ## Knowledge architecture
 

@@ -12,7 +12,7 @@ SPSP is the classic Interledger Application-layer protocol: a receiver exposes a
 **TOON does NOT use SPSP for payment setup.** There is no SPSP HTTPS handshake in the pay path. (`facilitator/spsp-client.ts` exists in the connector tree but is imported nowhere in production — it is vestigial and used only in tests.) TOON sets up and discovers payments entirely differently:
 
 - **Discovery = Nostr kind:10032 peer-info events.** Instead of resolving a payment pointer to an SPSP endpoint, a TOON node advertises its ILP address, reachable BTP/HS endpoints, and capabilities in a **kind:10032** event on the relay. Clients read these (free) to find the apex and child nodes. DVM/service capabilities are advertised in **kind:10035** SkillDescriptor events.
-- **Setup = open a payment channel + sign claims over BTP.** A client funds an on-chain payment channel (EVM/Solana/Mina), opens a single **BTP WebSocket** session to the apex, and each paid write carries a signed **payment-channel balance-proof claim** (see `rfc-0023`). There is no SPSP receiver-info exchange and no shared-secret negotiation — the on-chain channel and the signed claim ARE the setup.
+- **Setup = open a payment channel + sign claims over BTP.** A client funds an on-chain payment channel (EVM or Solana), opens a single **BTP WebSocket** session to its entry node, and each paid write carries a signed **payment-channel claim** (see `rfc-0023`). There is no SPSP receiver-info exchange and no shared-secret negotiation — the on-chain channel and the signed claim ARE the setup.
 - **No STREAM follow-on.** SPSP normally bootstraps a STREAM connection; TOON has no STREAM (see `rfc-0029`). One write = one BTP packet + one claim.
 
 ## What to tell a user asking "how do I set up a payment on TOON?"

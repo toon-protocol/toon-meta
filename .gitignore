@@ -15,3 +15,11 @@ prototypes/**/node_modules/
 prototypes/**/target/
 prototypes/*/state/
 prototypes/**/*.log
+
+# Tool-output scratch. Playwright-MCP regenerates .playwright-mcp/ every session,
+# and the repo has never tracked an image — a figure that belongs here goes in
+# docs/assets/ deliberately, so negate it there rather than committing loose PNGs.
+.playwright-mcp/
+*.png
+!docs/assets/*.png
+figs.txt
