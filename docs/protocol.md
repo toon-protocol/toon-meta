@@ -49,14 +49,23 @@ A reject code binds only where a sender must act differently (ADR 0051).
 
 ## Live devnet
 
-| Destination | Terminates at | Price (base units of 6-dp USDC) |
-|-------------|---------------|--------------------------------|
-| `g.toon.relay` | relay box | **1**, flat |
-| `g.toon.store`, `g.toon.relay.store` | store box (`ario`) | **`base = 1000, per_kib = 10`** — a schedule |
-| `g.toon.store.relay` | store box | **2**, flat |
-| `g.toon.gas`, `g.toon.relay.gas` | gas box | **1000** |
+There are **three tiers of authority**, and a table in this repo is none of them:
 
-Probed live 2026-08-28 from each node's `GET /ilp`. **A node repository's own `deploy/` bundle is the authority for what its box serves** (ADR 0068) — read that, or probe. `connector/docs/devnet-pricing.md` is behind the fleet on all three counts and is tracked as connector#1250: it still names `g.toon.ario` (a box label, not an address any route answers to), still shows the store as flat, and does not know about the gas box.
+| Tier | What it decides | Where |
+|---|---|---|
+| The node repo's `deploy/` bundle | what a box terminates and charges, guarded by that repo's own bundle test | `relay/deploy/`, `store/deploy/`, `gas-station/deploy/` (ADR 0068) |
+| Runtime peer-route state | the forwarded legs between boxes, established over the operator surface and held in the node's state volume | `POST /peers` → `POST /routes/peers` (ADR 0058, 0034) |
+| The node's self-description | what is true **right now** | free, unauthenticated `GET <node>/ilp` |
+
+**Do not copy a price out of this page.** The forwarded legs are runtime state, mutable by an
+operator write and durable only in the box's state volume — they are in no committed file in any
+repository. A table probed on 2026-08-28 already drifted within the same day: the store box then
+served a third route, `g.toon.store.relay` at 2, and now serves only two. Ask the node.
+
+For orientation only, and true when last probed: the relay terminates `g.toon.relay` at 1 and a
+free `g.toon.relay.ephemeral`; the store terminates `g.toon.store` and `g.toon.relay.store` on a
+`base = 1000, per_kib = 10` schedule; the gas box terminates `g.toon.gas`. `connector/docs/devnet-pricing.md`
+is history rather than a price list (connector#1250).
 
 **Nothing answers at `g.toon`.** It remains the namespace root in the wire protocol, but the apex was destroyed on 2026-08-14 (connector#872, toon-meta#313) and no node claims that address. An ILP address is **self-asserted** — nothing allocates one, no registry records one, and no connector is given one by another. *(This lands the correction `two-node-architecture.md` §5.4 asked for.)*
 

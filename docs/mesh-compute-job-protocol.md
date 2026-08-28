@@ -167,9 +167,14 @@ expected cost from `max_tokens` before sending the job. A floor is left to the s
 `price` value rather than a protocol minimum — undercutting is a reputation and market-clearing
 problem, not a wire-format one.
 
-This does not need to be settled through the payment leg either way: `docs/devnet-pricing.md`
-(connector) prices routes in flat per-packet µUSDC — `1` on `g.toon.relay`, `1000`–`1002` on
-`g.toon.ario` — which is the transport fee, a different unit entirely from the inference `price`
+This does not need to be settled through the payment leg either way: a route's price is transport,
+a different unit entirely from the inference `price` advertised here (per toon-meta#261:
+**two currencies never sum**). Concretely, `g.toon.relay` terminates at `1` µUSDC and the store's
+`g.toon.store` on a `base = 1000, per_kib = 10` schedule — but take those from the node, not from
+here: the authority is each node repo's own `deploy/` bundle (ADR 0068) and its live `GET /ilp`.
+`connector/docs/devnet-pricing.md` is history rather than a price list (connector#1250), and the
+store answers `g.toon.store`, never `g.toon.ario`, which is only a box label. The point that survives
+whatever the figures are is that this is the transport fee, not the inference `price`
 advertised here (per toon-meta#261: **two currencies never sum**). A job's ILP packet(s) pay the
 connector's per-packet routing fee regardless of `price`'s unit; `price` is the separate, job-level
 amount carried in the `amount` tag of §6.2's completed-offer, exactly as
