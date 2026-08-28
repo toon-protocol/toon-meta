@@ -50,7 +50,7 @@ Generate queries that should NOT activate this skill. These must clearly belong 
 
 - **nostr-protocol-core territory** (3-4): General protocol questions
   - "How do I publish an event on TOON?" (generic write, not NIP-specific)
-  - "How do I calculate fees?" (fee mechanics, not this NIP)
+  - "What does publishing cost on TOON?" (pricing mechanics, not this NIP)
 
 - **nostr-social-intelligence territory** (3-4): Pure social judgment
   - "Should I engage with this controversial post?" (social judgment)
@@ -80,10 +80,10 @@ Each output eval tests a specific capability:
 
 Generate evals covering these dimensions:
 
-1. **Write operation** (write-capable NIPs): Agent correctly uses `publishEvent()` with fee awareness
-2. **Read operation** (read-capable NIPs): Agent correctly handles TOON-format responses
+1. **Write operation** (write-capable NIPs): Agent constructs and signs the event, then hands it to `client.send({ body: signedEvent })` and lets the client price the packet — no hand-computed charge
+2. **Read operation** (read-capable NIPs): Agent reads over plain NIP-01 for free and does not claim relay responses are TOON-encoded
 3. **Social judgment**: Agent applies NIP-specific social context appropriately
-4. **Error handling**: Agent handles F04 or other protocol errors correctly
+4. **Error handling**: Agent handles reject codes correctly — `F03 INVALID_AMOUNT` (the claim did not cover the charge), `F02` (nothing routes that name), `T01` (the peer was not there), `T04` (over the peering's cap; the message states the cap) — and knows a REJECT comes back as `{ fulfilled: false }`, never thrown
 5. **Boundary case**: Agent correctly identifies when this NIP does NOT apply (excluded NIPs, wrong context)
 
 ## TOON Assertion Integration
@@ -95,4 +95,4 @@ After generating base evals, inject TOON compliance assertions (Step 6 of the pi
 - **Generic queries:** "Tell me about NIP-25" is too vague. Use "I want to react to a post on TOON with a custom emoji — how?"
 - **Overlapping triggers:** Do not write should-trigger queries that could equally activate `nostr-protocol-core`. Be NIP-specific.
 - **Missing social triggers:** Every NIP skill must have social-situation triggers, not just protocol-technical ones.
-- **Rubric without TOON awareness:** The `incorrect` tier must flag vanilla Nostr patterns (raw WebSocket writes, no fee consideration).
+- **Rubric without TOON awareness:** The `incorrect` tier must flag vanilla Nostr patterns (raw WebSocket writes, no cost awareness at all) *and* the two TOON-specific inventions: calling a method the client does not have (the removed `publishEvent()`, a caller-facing `signBalanceProof()`) and computing a charge by multiplying the event's byte count by a rate. The metered quantity is the sealed payload, so that arithmetic is unavailable to the agent by construction.

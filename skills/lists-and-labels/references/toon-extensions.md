@@ -1,129 +1,86 @@
 # TOON Extensions for List and Label Events
 
-> **Why this reference exists:** Lists and labels on TOON differ from vanilla Nostr because every list update and label publish is ILP-gated. This file covers TOON-specific considerations for NIP-51 list events and NIP-32 label events -- publishing flow, fee implications, the replaceable event cost trap, and economic dynamics that make curation a cost-conscious activity.
+> **Why this reference exists:** Lists and labels on TOON differ from vanilla Nostr because every list update and label publish is a paid write. This file covers TOON-specific considerations for NIP-51 list events and NIP-32 label events -- publishing flow, what the relay actually charges, what replaceable semantics do and do not cost, and the economic dynamics that make curation deliberate.
 
 ## Publishing Lists and Labels on TOON
 
-All list and label publishing on TOON goes through `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment for every event.
+All list and label publishing on TOON goes through `send()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires payment for every event.
 
 ### Publishing Flow
 
 1. **Construct the event:** Build the list or label event with appropriate kind, tags, and content
 2. **Encrypt private entries (lists only):** Use NIP-44 to encrypt private tag entries into the `.content` field using your own key pair
 3. **Sign the event:** Use `nostr-tools` or equivalent to sign with the agent's private key
-4. **Discover pricing:** Check the destination relay's `basePricePerByte` from kind:10032 peer info or the `/health` endpoint
-5. **Calculate fee:** `basePricePerByte * serializedEventBytes`
-6. **Publish:** `client.publishEvent(signedEvent)` -- the client handles balance proof signing and ILP packet construction internally
+4. **Send it:** `await client.send({ body: signedEvent })`. The client seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step.
 
-The `publishEvent()` API handles TOON encoding and ILP packet construction internally. Agents never need to construct ILP packets manually.
+Agents never construct ILP packets and never sign a claim by hand.
+
+TOON is the encoding of that sealed write payload -- what the client and the app agree the connector carries inside the ILP packet. It is not the format a relay serves on a read: TOON format on the way in, plain NIP-01 JSON on the way out.
+
+### Asking for the Price in Advance
+
+You rarely need to: `send()` prices the packet itself. Where a skill or an agent genuinely needs the terms up front:
+
+```ts
+const terms = await client.routePrice(destination); // { price, pricePerKib? }
+const charge = chargeFor(terms, sealedBytes);       // from @toon-protocol/client
+```
+
+A route's price is a schedule over payload length: flat when it has no slope, otherwise `price + pricePerKib * ceil(sealedBytes / 1024)`. The metered quantity is the **sealed** payload -- the gift-wrapped bytes the PREPARE carries -- not the event JSON you serialized, which is smaller by the envelope and the wrap. An agent therefore cannot compute a charge from the event it wrote.
+
+A node's own terms, including every route's price, come from `GET /ilp` on the node's URL: free, unauthenticated, and answered on request. A connector answers; it never announces. An unpaid request to a priced route is answered with a **greeting** carrying that route's terms.
 
 ### Error Handling
 
-- **F04 (Insufficient Payment):** The calculated amount was too low for the payload size. Recalculate with the correct `basePricePerByte` and retry.
-- **Relay rejection:** The event was malformed (invalid signature, wrong kind structure, missing required tags). Fix the event and republish.
+- **`F03` INVALID_AMOUNT:** the claim does not cover the charge -- underpayment. Read the route's terms with `routePrice()` and retry.
+- **`T04`:** over the peering's cap. The message states the cap; that message is the only way a sender learns it.
+- **`F02` / `T01`:** nothing routes that name / the peer was not there.
+- **Relay rejection:** the event was malformed (invalid signature, wrong kind structure, missing required tags). Fix the event and republish.
 
-## Fee Considerations for List Events
+A REJECT comes back as `{ fulfilled: false }` and is never thrown.
 
-### The Replaceable Event Cost Trap
+## What a List Update Actually Costs
 
-Replaceable lists (kind:10000, 10001) and parameterized replaceable lists (kind:30000, 30003) must republish the ENTIRE list on every update. Unlike regular events where you publish only new content, list updates require sending every existing entry plus the change.
+### The relay route is flat
 
-**Cost scaling example for a mute list (kind:10000):**
+Nostr event publishing terminates at `g.toon.relay`, whose price is **1 base unit of 6-decimal USDC, flat** -- no slope, no per-kibibyte component. A one-entry pin list and a 14 KiB mute list with 200 muted pubkeys cost exactly the same.
 
-| List Size | Approximate Bytes | Cost Per Update | Annual Cost (1 update/day) |
-|-----------|------------------|----------------|---------------------------|
-| 10 entries | ~800 bytes | ~$0.008 | ~$2.92 |
-| 50 entries | ~3,500 bytes | ~$0.035 | ~$12.78 |
-| 100 entries | ~7,000 bytes | ~$0.07 | ~$25.55 |
-| 200 entries | ~14,000 bytes | ~$0.14 | ~$51.10 |
-| 500 entries | ~35,000 bytes | ~$0.35 | ~$127.75 |
+This kills a whole genre of advice that used to appear here. Size does not change the price, so:
 
-**Mitigation strategies:**
-- Batch multiple changes into a single update rather than publishing after each addition/removal
-- Periodically audit lists and remove stale entries to keep size manageable
-- Use private entries (encrypted in `.content`) only when confidentiality is needed -- encryption adds overhead bytes
-- Consider whether a list needs frequent updates or can be updated weekly/monthly
+- Splitting a large list across several events saves nothing.
+- Pruning stale entries is good hygiene, not a saving.
+- No list kind is cheaper than another because its events are smaller.
+- There is no arithmetic to do before publishing, and none an agent could do correctly anyway (the metered quantity is the sealed payload, not the event JSON).
 
-### kind:10000 (Mute List) Fee Profile
+Blob storage is the exception, and it is a different route: `g.toon.store` / `g.toon.relay.store` prices at `1000 + 10 per KiB` of sealed payload, so a small blob costs roughly 1010 base units. Lists and labels do not go there.
 
-The mute list is the most cost-sensitive list kind because it is updated most frequently (every time a user encounters someone to mute).
+### What replaceable semantics do cost
 
-| Scenario | Approximate Size | Cost |
-|----------|-----------------|------|
-| First mute (1 pubkey) | ~200 bytes | ~$0.002 |
-| 10 muted pubkeys | ~800 bytes | ~$0.008 |
-| 20 muted pubkeys + 5 words | ~1,800 bytes | ~$0.018 |
-| 50 muted pubkeys + 10 words + 5 hashtags | ~4,500 bytes | ~$0.045 |
+Replaceable lists (kind:10000, kind:10001) and parameterized replaceable lists (kind:30000, kind:30003) republish the ENTIRE list on every update. That is a real property with real consequences -- but the consequence is not a bigger bill.
 
-### kind:10001 (Pin List) Fee Profile
+- The relay retains exactly **one version** per pubkey + kind + `d` tag. Older versions are discarded, so a long history of list edits does not accumulate on the relay the way a stream of regular events does.
+- You pay **once per update**, not per retained version, and not per entry.
+- The only quantity that scales your spend is therefore the **number of updates you publish**.
 
-Pin lists are typically small (users pin a handful of notes) and updated infrequently.
+Each `d`-tagged set is an independent slot: updating the "developers" follow set neither touches nor re-charges the "artists" one.
 
-| Scenario | Approximate Size | Cost |
-|----------|-----------------|------|
-| 3 pinned notes | ~300 bytes | ~$0.003 |
-| 10 pinned notes | ~500 bytes | ~$0.005 |
+### Batching
 
-### kind:30000 (Follow Sets) Fee Profile
+Batching several changes into one update still turns N publishes into one, so it still saves N-1 base units. At 1 base unit per publish that is a saving of microdollars, which is almost never worth a delay. Batch when the changes are already in hand; do not sit on a mute you want applied now in order to save a fraction of a cent.
 
-Follow sets vary widely based on category size. A "close friends" set might have 10 entries; a "developers" set could have hundreds.
+### Labels accumulate
 
-| Scenario | Approximate Size | Cost |
-|----------|-----------------|------|
-| Small category (5 people) | ~500 bytes | ~$0.005 |
-| Medium category (20 people) | ~1,600 bytes | ~$0.016 |
-| Large category (100 people) | ~7,500 bytes | ~$0.075 |
+kind:1985 events are regular events, not replaceable ones. Each label is a separate permanent event and a separate flat-priced payment, and no label ever replaces another. Labels are individually cheap; the spend grows with how many you publish, not with how big any one of them is.
 
-### kind:30003 (Bookmark Sets) Fee Profile
+## Reading Lists and Labels (free, plain NIP-01)
 
-Bookmark sets can grow large as users accumulate references over time.
-
-| Scenario | Approximate Size | Cost |
-|----------|-----------------|------|
-| Small collection (5 bookmarks) | ~600 bytes | ~$0.006 |
-| Medium collection (20 bookmarks) | ~2,000 bytes | ~$0.02 |
-| Large collection (50 bookmarks) | ~5,000 bytes | ~$0.05 |
-
-### Secondary Lists Fee Profile
-
-Most secondary lists (kind:10003-10030) are small metadata lists with infrequent updates.
-
-| Kind | Typical Size | Typical Cost |
-|------|-------------|-------------|
-| 10003 (Bookmarks) | 200-1,000 bytes | $0.002-$0.01 |
-| 10004 (Communities) | 200-800 bytes | $0.002-$0.008 |
-| 10005 (Public Chats) | 200-600 bytes | $0.002-$0.006 |
-| 10006 (Blocked Relays) | 150-500 bytes | $0.0015-$0.005 |
-| 10007 (Search Relays) | 150-400 bytes | $0.0015-$0.004 |
-| 10009 (User Groups) | 200-800 bytes | $0.002-$0.008 |
-| 10015 (Interests) | 200-600 bytes | $0.002-$0.006 |
-| 10030 (Emoji) | 200-1,000 bytes | $0.002-$0.01 |
-| 30002 (Relay Sets) | 200-2,000 bytes | $0.002-$0.02 |
-
-## Fee Considerations for Label Events
-
-### kind:1985 (Labels)
-
-Labels are the most cost-effective curation mechanism on TOON. Each label is a small, regular (non-replaceable) event. Unlike lists, labels do not grow over time -- each label is independent.
-
-| Label Complexity | Approximate Size | Cost |
-|-----------------|-----------------|------|
-| Single label, single target | ~200 bytes | ~$0.002 |
-| Multi-namespace, single target | ~300 bytes | ~$0.003 |
-| Single label, multiple targets | ~350 bytes | ~$0.004 |
-
-Labels are cheap enough that cost should rarely be a barrier to labeling content that genuinely benefits from structured metadata.
-
-## TOON Read Model for Lists and Labels
-
-Reading lists and labels is free on TOON. Subscribe using NIP-01 filters.
+Reading lists and labels is free on TOON and speaks plain NIP-01. The relay returns standard JSON `EVENT` messages, so any ordinary Nostr client can fetch a list or a label; a free read never touches a connector and the relay itself holds no payment code.
 
 ### Reading List Events
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse the event structure.
-
 For list events with private entries:
-1. Decode the TOON-format response using the TOON decoder
+
+1. Subscribe with the appropriate NIP-01 filter and take the `EVENT` payload as ordinary JSON
 2. Parse the `.tags` array for public entries
 3. Decrypt the `.content` field using NIP-44 with the list owner's key pair
 4. Parse the decrypted content as a JSON array of tag arrays
@@ -132,23 +89,21 @@ For list events with private entries:
 ### Reading Label Events
 
 Labels have no encrypted content, so reading is simpler:
+
 1. Subscribe with appropriate filters (by target event, namespace, or author)
-2. Decode the TOON-format response
+2. Read the `EVENT` payload as ordinary JSON
 3. Extract `L` tags for namespaces and `l` tags for label values
 
 ## ILP Considerations
 
 ### List Updates and Channel Balance
 
-Frequent list updates consume channel balance faster than occasional publishes. An agent maintaining active mute and bookmark lists should:
-- Monitor channel balance and top up before it runs low
-- Batch list changes when possible to reduce the number of ILP payments
-- Be aware that large lists (>100 entries) can cost $0.07+ per update
+Frequent list updates consume channel balance faster than occasional publishes -- one base unit at a time. An agent maintaining active mute and bookmark lists should monitor its channel balance and top up before it runs low, but it does not need to budget by list size: a large list is no more expensive to publish than a small one.
 
 ### Label Publishing and Routing
 
-Label events are small and route efficiently through the ILP network. The per-label cost is comparable to a reaction (kind:7), making labels one of the cheapest write operations. Multi-hop routing adds minimal overhead for such small payloads.
+Label events route through the network like any other publish, and the relay's flat route charges the same for them as for anything else. Multi-hop routing adds a per-packet fee that belongs to each peering, not to the route and not to the payload.
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers list/label-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model and read model, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers list/label-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.

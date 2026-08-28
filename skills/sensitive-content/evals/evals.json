@@ -85,16 +85,16 @@
     {
       "id": "add-content-warning-to-note",
       "prompt": "I want to publish a kind:1 note on TOON that describes a violent incident. How do I add a content warning so readers can choose whether to view it?",
-      "expected_output": "Add the content-warning tag to your kind:1 event's tags array: [\"content-warning\", \"violence\"]. This tells clients to hide the content behind a click-through warning displaying 'violence' as the reason. Sign the event, calculate the fee (the tag adds ~32 bytes, approximately $0.0003 extra at default basePricePerByte of 10n), and publish via publishEvent() from @toon-protocol/client. The content warning is part of the signed event and cannot be added after publishing. Clients that support NIP-36 will hide the content; clients that do not will display it normally.",
+      "expected_output": "Add the content-warning tag to your kind:1 event's tags array: [\"content-warning\", \"violence\"]. This tells clients to hide the content behind a click-through warning displaying 'violence' as the reason. Sign the event, then send it with await client.send({ body: signedEvent }) from @toon-protocol/client -- send() seals the payload, prices it, mints the covering claim and carries it. Do not work the charge out yourself: the live relay route g.toon.relay is 1 base unit, flat (USDC is 6-decimal, so $0.000001), so the tag's ~32 bytes add nothing; for another route ask with client.routePrice() and price it with chargeFor(terms, sealedBytes). The content warning is part of the signed event and cannot be added after publishing. Clients that support NIP-36 will hide the content; clients that do not will display it normally.",
       "rubric": {
-        "correct": "Instructs to add [\"content-warning\", \"violence\"] to the tags array. Uses publishEvent() from @toon-protocol/client. Explains the fee impact is negligible (~$0.0003). Notes that clients hide content behind a click-through. Explains the tag is part of the signed event. Does NOT use raw WebSocket writes.",
-        "acceptable": "Correctly describes the content-warning tag and uses publishEvent(), but may not calculate exact fee or fully explain client-side behavior.",
+        "correct": "Instructs to add [\"content-warning\", \"violence\"] to the tags array. Uses client.send() from @toon-protocol/client. Explains the fee impact is negligible (~$0.0003). Notes that clients hide content behind a click-through. Explains the tag is part of the signed event. Does NOT use raw WebSocket writes.",
+        "acceptable": "Correctly describes the content-warning tag and uses client.send(), but may not calculate exact fee or fully explain client-side behavior.",
         "incorrect": "Does not mention the content-warning tag, uses raw WebSocket patterns, omits payment entirely, or claims content warnings provide encryption or access control."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee awareness for the content-warning tag overhead",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses the client.send() API, not raw WebSocket",
+        "toon-fee-check: Response asks the node for the price (routePrice/chargeFor or the self-description) and does NOT invent a per-byte rate",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response explains that content warnings are for reader choice, not censorship",
         "trigger-coverage: Description includes both protocol and social-situation triggers"
       ]
@@ -102,16 +102,16 @@
     {
       "id": "content-warning-on-article",
       "prompt": "I'm publishing a kind:30023 article on TOON about wartime photography that includes descriptions of graphic images. How do I add a content warning with a specific reason?",
-      "expected_output": "Add [\"content-warning\", \"graphic violence, disturbing imagery\"] to your kind:30023 event's tags array alongside the d, title, summary, and other article tags. The reason string is freeform -- use a specific description so readers can make an informed decision. The tag adds approximately 55 bytes (~$0.0006 extra), negligible relative to the article's base cost. Publish via publishEvent(). Note: kind:30023 is a parameterized replaceable event. If you update the article later, include the content-warning tag in the updated version -- it does not carry over automatically. Write the summary field carefully so it does not itself contain the graphic content.",
+      "expected_output": "Add [\"content-warning\", \"graphic violence, disturbing imagery\"] to your kind:30023 event's tags array alongside the d, title, summary, and other article tags. The reason string is freeform -- use a specific description so readers can make an informed decision. The tag adds approximately 55 bytes (~$0.0006 extra), negligible relative to the article's base cost. send it with await client.send({ body: signedEvent }). Note: kind:30023 is a parameterized replaceable event. If you update the article later, include the content-warning tag in the updated version -- it does not carry over automatically. Write the summary field carefully so it does not itself contain the graphic content.",
       "rubric": {
-        "correct": "Adds content-warning tag with specific reason to the kind:30023 event. Uses publishEvent(). Calculates negligible fee overhead. Notes that replaceable event updates must re-include the tag. Advises careful summary writing. Uses a specific reason rather than generic 'sensitive'.",
-        "acceptable": "Correctly describes adding the content-warning tag to an article and uses publishEvent(), but may not mention the replaceable event update consideration or summary advice.",
+        "correct": "Adds content-warning tag with specific reason to the kind:30023 event. Uses client.send(). Calculates negligible fee overhead. Notes that replaceable event updates must re-include the tag. Advises careful summary writing. Uses a specific reason rather than generic 'sensitive'.",
+        "acceptable": "Correctly describes adding the content-warning tag to an article and uses client.send(), but may not mention the replaceable event update consideration or summary advice.",
         "incorrect": "Uses raw WebSocket patterns, omits payment, suggests a different mechanism than the content-warning tag, or claims the tag carries over to updated versions automatically."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response notes the negligible fee overhead of the content-warning tag on articles",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses the client.send() API, not raw WebSocket",
+        "toon-fee-check: Response asks the node for the price (routePrice/chargeFor or the self-description) and does NOT invent a per-byte rate",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response recommends a specific reason rather than generic warning",
         "trigger-coverage: Description includes both protocol and social-situation triggers"
       ]
@@ -119,16 +119,16 @@
     {
       "id": "spoiler-warning",
       "prompt": "I want to post a note discussing the ending of a popular TV show on TOON. How do I add a spoiler warning so I don't ruin it for others?",
-      "expected_output": "Add [\"content-warning\", \"spoiler: Show Title\"] to your kind:1 event's tags array. Include the media title in the reason so readers who have already seen it can safely click through, while those who haven't can skip it. Do NOT put the actual spoiler in the reason string -- keep the spoiler in the content field behind the warning. The tag adds approximately 50-60 bytes (~$0.0005 extra), negligible. Publish via publishEvent() from @toon-protocol/client. Clients that support NIP-36 will hide the content behind a click-through displaying your reason.",
+      "expected_output": "Add [\"content-warning\", \"spoiler: Show Title\"] to your kind:1 event's tags array. Include the media title in the reason so readers who have already seen it can safely click through, while those who haven't can skip it. Do NOT put the actual spoiler in the reason string -- keep the spoiler in the content field behind the warning. The tag adds approximately 50-60 bytes (~$0.0005 extra), negligible. send it with await client.send({ body: signedEvent }) from @toon-protocol/client. Clients that support NIP-36 will hide the content behind a click-through displaying your reason.",
       "rubric": {
-        "correct": "Uses content-warning tag with spoiler reason including the media title. Warns against putting actual spoilers in the reason string. Uses publishEvent(). Notes negligible cost. Explains that including the title helps readers decide whether to click through.",
-        "acceptable": "Correctly describes the content-warning tag with spoiler reason and uses publishEvent(), but may not explicitly warn against spoilers in the reason string.",
+        "correct": "Uses content-warning tag with spoiler reason including the media title. Warns against putting actual spoilers in the reason string. Uses client.send(). Notes negligible cost. Explains that including the title helps readers decide whether to click through.",
+        "acceptable": "Correctly describes the content-warning tag with spoiler reason and uses client.send(), but may not explicitly warn against spoilers in the reason string.",
         "incorrect": "Does not use the content-warning tag, puts the spoiler in the reason string, uses raw WebSocket, or suggests a different spoiler mechanism."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes cost awareness for the spoiler warning tag",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses the client.send() API, not raw WebSocket",
+        "toon-fee-check: Response asks the node for the price (routePrice/chargeFor or the self-description) and does NOT invent a per-byte rate",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response warns against putting actual spoilers in the reason string",
         "trigger-coverage: Description includes both protocol and social-situation triggers"
       ]
@@ -136,16 +136,16 @@
     {
       "id": "querying-content-warned-events",
       "prompt": "How do I find all events with content warnings on a TOON relay? Is it free to query?",
-      "expected_output": "Subscribe using a NIP-01 filter with the #content-warning tag filter: { \"#content-warning\": [] } to find all events that have the content-warning tag. Combine with kinds or authors filters to narrow results. Reading is free on TOON -- no ILP payment is needed. TOON relays return TOON-format strings in EVENT messages, not JSON objects -- use the TOON decoder to parse responses. Note that not all relays support filtering by arbitrary tag names; if the relay does not support #content-warning filtering, fetch events by kind or author and filter client-side.",
+      "expected_output": "Subscribe using a NIP-01 filter with the #content-warning tag filter: { \"#content-warning\": [] } to find all events that have the content-warning tag. Combine with kinds or authors filters to narrow results. Reading is free on TOON -- no ILP payment is needed. Reads are free and speak plain NIP-01: the relay returns standard JSON EVENT messages, so parse them as ordinary Nostr events -- there is no TOON decoding step, because TOON encodes the write payload sealed inside the ILP packet, never a relay response. Note that not all relays support filtering by arbitrary tag names; if the relay does not support #content-warning filtering, fetch events by kind or author and filter client-side.",
       "rubric": {
-        "correct": "Uses #content-warning tag filter in NIP-01 subscription. Correctly identifies this as a free read operation. Mentions TOON-format strings and the need for a decoder. Notes that relay support for arbitrary tag filtering may vary. Does NOT suggest payment is needed.",
+        "correct": "Uses #content-warning tag filter in NIP-01 subscription. Correctly identifies this as a free read operation. Says the response is plain NIP-01 JSON needing no decoder. Notes that relay support for arbitrary tag filtering may vary. Does NOT suggest payment is needed.",
         "acceptable": "Correctly describes the subscription filter and mentions free reading on TOON, but may not note relay support variability for arbitrary tag filtering.",
-        "incorrect": "Assumes standard JSON responses, suggests payment is needed to read, or does not describe a valid filter structure."
+        "incorrect": "Claims relay responses are TOON-encoded or need a TOON decoder, suggests payment is needed to read, or does not describe a valid filter structure."
       },
       "assertions": [
-        "toon-write-check: Response correctly identifies querying as a read-only operation -- no publishEvent() needed",
+        "toon-write-check: Response correctly identifies querying as a read-only operation -- no paid client.send() needed",
         "toon-fee-check: Response correctly notes that reading/querying is free on TOON",
-        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has interaction-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers"
       ]
@@ -160,9 +160,9 @@
         "incorrect": "Recommends against adding a content warning, dismisses the concern, suggests no warning is needed for educational content, or uses raw WebSocket patterns."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API or correctly describes the tag without raw WebSocket",
-        "toon-fee-check: Response notes the negligible cost of adding a content warning",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses the client.send() API or correctly describes the tag without raw WebSocket",
+        "toon-fee-check: Response asks the node for the price (routePrice/chargeFor or the self-description) and does NOT invent a per-byte rate",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response applies the 'when in doubt, add it' principle with reasoning",
         "trigger-coverage: Description includes both protocol and social-situation triggers"
       ]

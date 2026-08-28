@@ -1,50 +1,56 @@
 # TOON Compliance Assertions
 
-> **Why compliance assertions exist:** A NIP skill that teaches vanilla Nostr patterns on TOON is actively harmful — events sent without ILP payment are rejected, and agents parsing TOON-format strings as JSON will break. These 5 assertions catch the most common pipeline defects before they propagate to downstream skills. Every assertion exists because a real failure mode was identified.
+> **Why compliance assertions exist:** A NIP skill that teaches vanilla Nostr patterns on TOON is actively harmful — a write sent without a covering claim is rejected, and an agent told to run a relay's `EVENT` messages through a TOON decoder cannot read the network at all. These 5 assertions catch the most common pipeline defects before they propagate to downstream skills. Every assertion exists because a real failure mode was identified.
+>
+> The automated counterpart lives in `skill-eval-framework/references/toon-compliance-runner.md`, which adds a sixth (`eval-completeness`). The two files must agree; that one is the executable spec.
 
 ## The 5 Assertion Templates
 
 ### 1. `toon-write-check` (write-capable NIPs only)
 
-**What it checks:** The generated skill instructs agents to use `publishEvent()` from `@toon-protocol/client` for writing events, NOT bare WebSocket EVENT array patterns.
+**What it checks:** The generated skill instructs agents to construct and sign the event and then hand it to `client.send()` from `@toon-protocol/client`, NOT bare WebSocket EVENT array patterns.
 
-**Why this matters:** TOON relays reject events without ILP payment. Any skill that teaches raw WebSocket writes produces agents that cannot publish. This is the single most common failure in vanilla NIP-to-skill conversion.
+**Why this matters:** The relay app contains no payment code; the connector in front of it terminates payment and refuses a write that arrives without a covering claim. Any skill that teaches raw WebSocket writes points the agent past that connector, producing agents that cannot publish. Just as damaging: a skill that names a method the client does not have. `publishEvent()` and a caller-facing `signBalanceProof()` **do not exist** — a skill teaching them teaches an agent to call nothing. `send()` seals the payload, reads the route's price, mints the covering claim and carries it; a caller never signs a claim by hand and never builds an ILP packet.
 
 **When it applies:** Write-capable and both classifications only. Read-only NIPs do not publish events.
 
-**Pass criteria:** The skill's SKILL.md body or references mention `publishEvent()` for writing this NIP's event kinds. No bare EVENT array patterns appear in any markdown file.
+**Pass criteria:** The skill's SKILL.md body or references show `client.send({ body: signedEvent })` (optionally with a leading destination string) for writing this NIP's event kinds. No bare EVENT array patterns appear in any markdown file.
 
-**Fail criteria:** The skill shows raw WebSocket EVENT patterns, references `relay.send()`, or omits the publishing mechanism entirely.
+**Fail criteria:** The skill shows raw WebSocket EVENT patterns, references `relay.send()`, names the retired `publishEvent()` or `signBalanceProof()`, hand-rolls an ILP packet, or omits the publishing mechanism entirely.
 
-**Assertion text for evals:** `"toon-write-check: Response uses publishEvent() API, not raw WebSocket"`
+**Assertion text for evals:** `"toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket or the retired publishEvent()"`
 
 ### 2. `toon-fee-check` (write-capable NIPs only)
 
-**What it checks:** The generated skill includes fee awareness — either explicit fee calculation or a reference to `nostr-protocol-core`'s fee calculation details.
+**What it checks:** The generated skill is cost-aware in the way the protocol actually allows — it lets the client price the packet, or asks the route for its price. It must NOT teach an agent to compute a charge itself.
 
-**Why this matters:** Agents that publish without understanding fees will either overpay (wasting funds) or underpay (getting F04 rejections). Fee awareness is not optional on a paid network.
+**Why this matters:** A price belongs to a terminated route and is a schedule over payload length: flat when it has no slope, otherwise `price + pricePerKib * ceil(sealedBytes / 1024)`. The metered quantity is the **sealed** payload — the gift-wrapped bytes the PREPARE carries — not the event JSON, which is smaller by the envelope and the wrap. An agent therefore cannot correctly compute a charge from the event it wrote, and any skill teaching byte arithmetic teaches underpayment (`F03 INVALID_AMOUNT`). The stable assertion id keeps the word "fee" for compatibility with every skill already emitted; what it grades is the route **price**.
 
 **When it applies:** Write-capable and both classifications only.
 
-**Pass criteria:** The skill mentions `basePricePerByte`, references fee calculation, or includes approximate cost for this NIP's typical payload size.
+**Pass criteria:** The skill either states that `send()` prices the packet itself, or shows `await client.routePrice(destination)` → `{ price, pricePerKib? }` followed by `chargeFor(terms, sealedBytes)` where a price is genuinely needed up front. Naming the live cost of this NIP's destination route also passes — a Nostr event to `g.toon.relay` costs 1 base unit of 6-decimal USDC, flat.
 
-**Fail criteria:** The skill describes publishing without any mention of cost, pricing, or fee calculation.
+**Fail criteria:** The skill multiplies bytes by a rate, mentions the retired `basePricePerByte` or `feePerByte`, describes a "per-byte price", counts the event JSON's own length as the metered quantity, or describes publishing with no mention of cost at all.
 
-**Assertion text for evals:** `"toon-fee-check: Response includes fee calculation or cost awareness"`
+**Assertion text for evals:** `"toon-fee-check: Response lets the client price the packet or reads routePrice()/chargeFor(); does not compute a charge from the event's own byte count"`
 
-### 3. `toon-format-check` (read-capable NIPs only)
+### 3. `toon-read-check` (read-capable NIPs only)
 
-**What it checks:** The generated skill documents that TOON relays return TOON-format strings in EVENT messages, not standard JSON objects.
+> **Renamed.** This assertion was `toon-format-check`, and it asserted the opposite of the truth: that relay responses are TOON-encoded. Both the name and the meaning are inverted. A generated skill still carrying `toon-format-check` predates this correction and must be regenerated.
 
-**Why this matters:** Agents that expect JSON event objects from TOON relays will fail to parse responses. The TOON format is a fundamental protocol difference that every read-capable skill must surface.
+**What it checks:** The generated skill documents that reads are free and speak plain NIP-01, and does NOT claim relay responses are TOON-encoded.
+
+**Why this matters:** The relay's reads are free and speak plain NIP-01. It returns standard JSON `EVENT` messages — any ordinary Nostr client can read it with no decoder and no TOON awareness, and the relay contains no payment code at all. A free read never touches a connector. A skill that tells an agent to decode relay responses produces an agent that cannot read the network.
+
+TOON encoding is real, but it is not there. TOON is the encoding of the **write payload** — an agreement between a client and an app about the bytes the connector carries **sealed** inside the ILP packet. **TOON on the way in, plain NIP-01 JSON on the way out.**
 
 **When it applies:** Read-capable and both classifications only. Write-only NIPs (if any exist) do not read responses.
 
-**Pass criteria:** The skill mentions TOON-format strings, references `@toon-format/toon` decoder, or notes that relay responses differ from standard Nostr.
+**Pass criteria:** The skill states that reads are free and speak plain NIP-01. No file calls relay responses TOON-format strings, and none tells the agent to parse an `EVENT` message with `@toon-format/toon` — a read never needs decoding.
 
-**Fail criteria:** The skill describes reading events without mentioning TOON format, or assumes standard JSON responses.
+**Fail criteria:** The skill claims relay responses are TOON-encoded, reaches for a TOON decoder on a subscription (a read never needs one), or describes reading without noting that reads are free.
 
-**Assertion text for evals:** `"toon-format-check: Response mentions TOON-format strings in relay responses"`
+**Assertion text for evals:** `"toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded"`
 
 ### 4. `social-context-check` (all NIPs)
 
@@ -80,7 +86,7 @@ Based on NIP classification, inject these assertions into every output eval:
 
 | Classification | Assertions Injected |
 |---------------|-------------------|
-| Read-only | `toon-format-check`, `social-context-check`, `trigger-coverage` |
+| Read-only | `toon-read-check`, `social-context-check`, `trigger-coverage` |
 | Write-capable | `toon-write-check`, `toon-fee-check`, `social-context-check`, `trigger-coverage` |
 | Both | All 5 assertions |
 
@@ -91,8 +97,8 @@ Add assertion text to each output eval's `assertions` array. Example for a write
 ```json
 {
   "assertions": [
-    "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-    "toon-fee-check: Response includes fee calculation or cost awareness",
+    "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket or the retired publishEvent()",
+    "toon-fee-check: Response lets the client price the packet or reads routePrice()/chargeFor(); does not compute a charge from the event's own byte count",
     "social-context-check: Skill has NIP-specific Social Context section",
     "trigger-coverage: Description includes both protocol-technical and social-situation triggers",
     "Response correctly classifies the NIP as write-capable"

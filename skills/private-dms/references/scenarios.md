@@ -1,12 +1,12 @@
 # Private DM Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common private messaging operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation, gift wrap construction, and the publishEvent API. These scenarios bridge the gap between knowing the NIP-17 event kind (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common private messaging operations on TOON. Each scenario shows the complete flow from intent to sent event, including TOON-specific considerations like gift wrap construction and the `send()` API. These scenarios bridge the gap between knowing the NIP-17 event kind (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Sending a Private DM
 
 **When:** An agent wants to send a private direct message to another user on TOON.
 
-**Why this matters:** Private DMs are the most common encrypted messaging operation. On TOON, each DM requires constructing a three-layer gift wrap and paying per-byte for the published kind:1059 event. Understanding the full flow prevents malformed events that waste ILP payment.
+**Why this matters:** Private DMs are the most common encrypted messaging operation. On TOON, each DM requires constructing a three-layer gift wrap and paying for the one kind:1059 packet that carries it. Understanding the full flow prevents malformed events that waste ILP payment.
 
 ### Steps
 
@@ -22,16 +22,14 @@
 
 6. **Create the gift wrap (kind:1059).** JSON-serialize the seal. NIP-44 encrypt the serialized seal using the ephemeral private key and the recipient's public key. Create a kind:1059 event with: the ephemeral pubkey, a randomized `created_at`, a `p` tag with the recipient's pubkey `["p", "<recipient-pubkey>"]`, and the encrypted payload as content. Sign with the ephemeral private key.
 
-7. **Calculate the fee.** Serialize the kind:1059 event and compute: `basePricePerByte * serializedEventBytes`. A short DM typically produces a ~400-600 byte gift wrap, costing ~$0.004-$0.006 at default pricing.
-
-8. **Publish via `publishEvent()`** from `@toon-protocol/client`. Only the kind:1059 gift wrap is published to the relay.
+7. **Send it.** `await client.send({ body: giftWrap })` from `@toon-protocol/client`. Only the kind:1059 gift wrap goes to the relay. The client seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step. The relay route is flat-priced at 1 base unit per packet, so the gift wrap's size does not change what you pay.
 
 ### Considerations
 
 - Generate a NEW ephemeral key for every gift wrap. Reusing ephemeral keys links messages to the same sender, defeating metadata protection.
-- The `p` tag on the gift wrap reveals the recipient to the relay. This is necessary for delivery but means the relay knows who receives messages (though not from whom or what).
+- The `p` tag on the gift wrap reveals the recipient to the relay. This is necessary for delivery but means the relay knows who receives messages (though not from whom or what). The relay does not otherwise know a gift wrap is a gift wrap: it implements NIP-01 and NIP-34, and stores a signed kind:1059 event exactly like any other event, with no NIP-17 or NIP-59 handling of its own.
 - Most Nostr libraries (nostr-tools) provide helper functions for gift wrap construction. Use them rather than implementing the three-layer model manually.
-- On TOON, the privacy premium (2-5x plaintext cost) is the price for metadata protection. A plaintext kind:1 note of similar length would cost less.
+- Metadata protection is free of charge on the relay route. A gift wrap is 2-5x the bytes of an equivalent plaintext note, but the route is flat-priced, so both cost one base unit. Choose encryption on privacy grounds, not price grounds.
 
 ## Scenario 2: Replying to a DM
 
@@ -49,12 +47,12 @@
 
 3. **Do NOT include a `subject` tag** on replies. The subject was set on the first message of the conversation and is inherited by context.
 
-4. **Wrap and publish.** Follow the same seal-then-gift-wrap flow as Scenario 1 (steps 4-8). The wrapping process is identical regardless of whether the DM is a new message or a reply.
+4. **Wrap and send.** Follow the same seal-then-gift-wrap flow as Scenario 1 (steps 4-7). The wrapping process is identical regardless of whether the DM is a new message or a reply.
 
 ### Considerations
 
 - The `e` tag references the kind:14 event ID (the rumor's computed ID), not the kind:1059 gift wrap ID. Recipients match reply threads by decrypting their gift wraps and checking the `e` tags on the inner kind:14 events.
-- Each reply is a separate gift wrap with its own ILP fee. Rapid back-and-forth in a DM conversation adds up -- keep replies substantive rather than sending many one-word messages.
+- Each reply is a separate gift wrap and therefore a separate packet with its own price. Rapid back-and-forth in a DM conversation adds up by count, not by length -- one substantive reply costs a third of three one-word ones.
 - If the conversation has multiple participants (group DM), include all `p` tags from the original message and wrap separately for each recipient.
 
 ## Scenario 3: Sending a Group DM
@@ -80,9 +78,7 @@
    b. Generate a fresh ephemeral keypair (unique per recipient).
    c. Create a kind:1059 gift wrap by NIP-44 encrypting the seal with the ephemeral key and that recipient's pubkey. Sign with the ephemeral key. Add `["p", "<this-recipient-pubkey>"]` tag.
 
-4. **Calculate total fee.** Each gift wrap is a separate published event. Total cost = N * single gift wrap cost. For a short message to 5 recipients: 5 * ~$0.005 = ~$0.025.
-
-5. **Publish all gift wraps via `publishEvent()`** from `@toon-protocol/client`. Each gift wrap is published independently.
+4. **Send each gift wrap.** `await client.send({ body: giftWrap })` from `@toon-protocol/client`, once per recipient -- each gift wrap is an independent packet with its own claim. On the flat-priced relay route the total is N base units for N participants: a message to 5 recipients (4 plus yourself) costs 5 base units, whether it is a word or a page.
 
 ### Considerations
 
@@ -90,17 +86,17 @@
 - Each recipient's gift wrap uses a DIFFERENT ephemeral key. Never reuse ephemeral keys across recipients -- this would link the gift wraps.
 - Include a gift wrap addressed to yourself. Without self-delivery, your own inbox will not have a copy of the sent message.
 - Group identity is implicit -- defined by the set of `p` tags. There is no "group creation" event. Clients identify group conversations by matching `p` tag sets across decrypted messages.
-- For groups larger than ~10 people, consider NIP-29 relay groups or NIP-28 public channels instead. The linear cost scaling of group DMs makes them impractical for large audiences.
+- For groups larger than ~10 people, consider NIP-29 relay groups or NIP-28 public channels instead. The linear cost scaling of group DMs makes them impractical for large audiences. Be aware that the fleet relay implements NIP-01 and NIP-34 only -- it does not enforce NIP-29 membership server-side, so those groups are a client-side convention over ordinary events.
 
 ## Scenario 4: Reading Your DM Inbox
 
 **When:** An agent wants to check for new private DMs on a TOON relay.
 
-**Why this matters:** Reading DMs is free on TOON. The agent subscribes to kind:1059 events, decrypts them in two stages, and recovers the kind:14 messages. Understanding the decryption flow and TOON format parsing is essential for reliable inbox reading.
+**Why this matters:** Reading DMs is free on TOON. The agent subscribes to kind:1059 events, decrypts them in two stages, and recovers the kind:14 messages. The relay side is ordinary NIP-01 -- the work is entirely in the NIP-44 decryption, not in any TOON parsing.
 
 ### Steps
 
-1. **Subscribe to gift wraps addressed to you.** Create a NIP-01 subscription with filter: `{ kinds: [1059], "#p": ["<your-pubkey>"] }`. TOON relays return TOON-format strings in EVENT messages -- use the TOON decoder to parse the raw response.
+1. **Subscribe to gift wraps addressed to you.** Create a NIP-01 subscription with filter: `{ kinds: [1059], "#p": ["<your-pubkey>"] }`. The relay answers in plain NIP-01: `["EVENT", <sub_id>, <standard JSON event>]`. `JSON.parse` the frame and the event is already a `NostrEvent` -- no decoder, no TOON dependency, no connector.
 
 2. **For each received kind:1059 event, decrypt the gift wrap layer.** Extract the ephemeral pubkey from the event's `pubkey` field. NIP-44 decrypt the `content` field using your private key and the ephemeral pubkey. This yields the JSON-serialized kind:1060 seal.
 
@@ -126,6 +122,6 @@
 - Reading and decrypting is free on TOON. No ILP payment is required.
 - If decryption fails at either layer, the gift wrap was not intended for you or is corrupted. Discard silently -- do not treat decryption failure as an error worth reporting.
 - The inner kind:14 event is unsigned. Trust the seal's signature (signed by the real author) as proof of authorship.
-- TOON relays return TOON-format strings, not standard JSON. Always use the TOON decoder before attempting to parse event fields.
+- Relay responses are **standard JSON**, not TOON-format strings. Any ordinary Nostr client reads a TOON relay unchanged; do not import `@toon-format/toon` for a read. TOON is the encoding of the *write* payload sealed inside the ILP packet -- TOON on the way in, plain NIP-01 JSON on the way out. The only unwrapping a read needs is the two NIP-44 decryptions below.
 - The gift wrap's `created_at` is randomized -- do not use it for message ordering. Use the kind:14 rumor's `created_at` for chronological ordering.
 - Consider caching conversation keys (derived from ECDH) locally to avoid repeated key derivation when decrypting multiple messages from the same sender.

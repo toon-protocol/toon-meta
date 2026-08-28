@@ -116,7 +116,7 @@ A 1:1 conversation is identified by the pair of pubkeys (sender + recipient). Al
 
 The `subject` tag provides an optional conversation topic. When present on the first message, subsequent replies in the thread inherit the subject context. Clients may use the subject to visually group or label conversation threads.
 
-The subject tag should only appear on conversation-initiating messages. Including it on every reply wastes bytes (relevant on TOON where every byte costs money).
+The subject tag should only appear on conversation-initiating messages. Repeating it on every reply is simply wrong per the NIP -- it is not a cost question, since the TOON relay route is flat-priced and extra bytes are free.
 
 ## Relationship to NIP-04 (Deprecated)
 
@@ -136,11 +136,13 @@ NIP-17 replaces NIP-04 DMs entirely. Key differences:
 
 ## Relay Behavior
 
-Relays that support NIP-17:
+What the NIP asks of a relay that supports NIP-17:
 - MUST NOT publish kind:14 events directly (reject if received as a standalone event)
 - Should store kind:1059 gift wrap events and deliver them to subscribers matching the `p` tag filter
 - Cannot read, search, or index the encrypted content of gift wraps
 - May implement NIP-17 support alongside NIP-04 during the transition period
+
+**What the fleet relay actually does:** it implements **NIP-01 and NIP-34 only**. It has no NIP-17 or NIP-59 handling -- it does not know a gift wrap is a gift wrap, and stores a signed kind:1059 event exactly as it stores any other signed event, indexing its `p` tag the way NIP-01 indexes every `p` tag. Every privacy property below therefore comes from what the client constructs, not from anything the relay enforces. Do not publish a bare kind:14 and rely on the relay to refuse it.
 
 ## Security Properties
 

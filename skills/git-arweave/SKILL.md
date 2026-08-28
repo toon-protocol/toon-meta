@@ -2,7 +2,7 @@
 name: git-arweave
 description: Git-Arweave integration on TOON Protocol. Covers upload flow ("how do I
   upload git objects to Arweave?", "git Arweave integration", construct git object,
-  base64 encode, kind:5094 DVM request, Git-SHA Git-Type Repo tags, publishEvent,
+  base64 encode, kind:5094 DVM request, Git-SHA Git-Type Repo tags, client.send,
   DVM provider uploads to Arweave), SHA resolution ("how do I resolve a git SHA on
   Arweave?", "SHA resolution", Arweave GraphQL queries by Git-SHA tag, transaction
   ID, gateway URL), manifest transactions ("how do repository manifests work?",
@@ -19,7 +19,7 @@ description: Git-Arweave integration on TOON Protocol. Covers upload flow ("how 
 
 Reference skill for how git objects map to Arweave transactions and how to navigate the DAG on Arweave. This skill bridges `git-objects` (binary format construction) and `git-collaboration` (kind:5094 DVM upload mechanics), focusing on the Arweave-specific layer: upload flows, SHA-to-transaction resolution, manifest transactions, DAG navigation, and gateway access patterns.
 
-On TOON, uploading git objects to Arweave involves two cost components: the TOON relay write fee for the kind:5094 event (per-byte ILP payment) and the Arweave permanent storage cost handled by the DVM provider. Understanding the integration layer helps agents optimize uploads, resolve objects efficiently, and navigate repository DAGs stored on Arweave.
+On TOON, uploading git objects to Arweave involves two cost components: the price of the kind:5094 write to the store route, and the Arweave permanent storage cost handled by the DVM provider and covered by the request's `bid`. Understanding the integration layer helps agents optimize uploads, resolve objects efficiently, and navigate repository DAGs stored on Arweave.
 
 ## Upload Flow Overview
 
@@ -30,9 +30,11 @@ The upload flow connects git object construction to Arweave permanent storage:
 3. **Check Arweave** for duplicates via GraphQL query on `Git-SHA` tag -- saves money if already uploaded
 4. **Base64-encode** the binary object for the kind:5094 `i` tag payload (~33% size increase)
 5. **Construct** the kind:5094 DVM request event with `Git-SHA`, `Git-Type`, and `Repo` tags -- see `git-collaboration` skill
-6. **Publish** the kind:5094 event via `publishEvent()` from `@toon-protocol/client` (ILP payment)
+6. **Send** the kind:5094 event with `await client.send('g.toon.store', { body: signedEvent })` from `@toon-protocol/client` -- `send()` seals the payload, reads the route's price, mints the covering claim and carries it
 7. **DVM provider** receives the job, uploads the object to Arweave, returns the Arweave transaction ID in a kind:6094 result
 8. **Resolve** the object at `https://arweave.net/<tx-id>`
+
+TOON format is the encoding of that sealed write payload -- the bytes the connector carries inside the ILP packet in step 6. Reading back the other way is different: the kind:6094 result and the kind:30618 repo state come off the relay free, as plain NIP-01 JSON that any ordinary Nostr client can parse, and a free read never touches a connector. TOON on the way in, plain NIP-01 JSON on the way out.
 
 Upload order matters: blobs first, then trees, then commits. This ensures all referenced objects exist on Arweave before the referencing object.
 
@@ -69,7 +71,7 @@ Each resolution step is an Arweave GraphQL query by `Git-SHA` tag followed by a 
 
 ## Arweave Upload Methods
 
-- **kind:5094 DVM path (recommended)**: Publish a kind:5094 event via `publishEvent()` -- the DVM provider handles the Arweave upload. Objects are discoverable on the TOON relay, tracked via kind:6094 results, and other agents can find them via standard NIP-01 filters. **Always use this for production.**
+- **kind:5094 DVM path (recommended)**: Send a kind:5094 event with `client.send()` -- the DVM provider handles the Arweave upload. Objects are discoverable on the TOON relay, tracked via kind:6094 results, and other agents can find them via standard NIP-01 filters. **Always use this for production.**
 - **Free dev uploads** (dev-only, up to 100KB): `TurboFactory.unauthenticated()` from `@ardrive/turbo-sdk` -- bypasses TOON relay entirely. Objects are NOT discoverable by other agents on the network. Use only for testing SHA-1 computation and Arweave resolution.
 
 ## Social Context
@@ -79,7 +81,7 @@ Git-Arweave integration is an infrastructure concern that affects the economics 
 - **Deduplication is economically important.** Always check Arweave for existing objects before uploading. Identical file contents across branches or repositories share the same SHA-1, so duplicate uploads waste money.
 - **Upload ordering affects resolution reliability.** If a tree references a blob that has not yet been uploaded, the DAG cannot be fully traversed. Upload bottom-up: blobs, trees, commits.
 - **Manifest transactions reduce resolution cost.** Instead of N individual GraphQL queries to resolve a repository, a manifest transaction provides a single entry point linking all objects.
-- **Permanent storage means one-time cost.** Unlike traditional hosting, Arweave storage persists indefinitely. The upload cost (TOON relay fee + Arweave storage) is a one-time investment.
+- **Permanent storage means one-time cost.** Unlike traditional hosting, Arweave storage persists indefinitely. The upload cost (the store route's price + Arweave storage) is a one-time investment.
 
 ## When to Read Each Reference
 
@@ -87,12 +89,12 @@ Read the appropriate reference file based on the situation:
 
 - **Upload flow details, Arweave tag schema, GraphQL queries, and resolution patterns** -- Read [nip-spec.md](references/nip-spec.md) for the complete Arweave integration specification.
 - **Step-by-step scenarios for upload, resolution, DAG navigation, and bulk upload** -- Read [scenarios.md](references/scenarios.md) for worked examples with code.
-- **TOON fee structure, free dev uploads, and dual-cost model** -- Read [toon-extensions.md](references/toon-extensions.md) for TOON-specific economics and cost optimization.
+- **Store route pricing, free dev uploads, and the dual-cost model** -- Read [toon-extensions.md](references/toon-extensions.md) for TOON-specific economics and cost optimization.
 
 ### Cross-Skill References
 
 - **Git object binary format (blob, tree, commit construction)** -- See `git-objects` for how to construct the binary objects that get uploaded.
 - **kind:5094 DVM request event format** -- See `git-collaboration` for the complete kind:5094 event structure, required tags, and chunked upload support.
 - **NIP-73 external content IDs (arweave:tx: references)** -- See `media-and-files` for referencing Arweave content in Nostr events.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and route-pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **DVM protocol mechanics (job requests, results, feedback)** -- See `dvm-protocol` for the NIP-90 DVM lifecycle that kind:5094 participates in.

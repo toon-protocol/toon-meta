@@ -84,17 +84,17 @@
   "output_evals": [
     {
       "id": "upload-and-publish-metadata",
-      "prompt": "I want to upload an image to a NIP-96 file storage server and then publish the file metadata on my TOON relay. The relay's basePricePerByte is 10 micro-USDC. Walk me through the full flow.",
-      "expected_output": "First, discover the server by fetching /.well-known/nostr/nip96.json to get the api_url, download_url, and supported content_types. Verify your image MIME type is supported. Upload via multipart/form-data POST to api_url with a NIP-98 HTTP Auth event (kind:27235) as Authorization: Nostr <base64>. Include the file field, optional caption, alt text, and no_transform if needed. The server responds with nip94_event tags for constructing a kind:1063 event. Build the kind:1063 file metadata event using those tags, sign it, and publish via publishEvent() from @toon-protocol/client. The upload itself is free (external HTTP). The kind:1063 metadata event costs ~300-800 bytes * 10n basePricePerByte = ~$0.003-$0.008.",
+      "prompt": "I want to upload an image to a NIP-96 file storage server and then publish the file metadata on my TOON relay. Walk me through the full flow.",
+      "expected_output": "First, discover the server by fetching /.well-known/nostr/nip96.json to get the api_url, download_url, and supported content_types. Verify your image MIME type is supported. Upload via multipart/form-data POST to api_url with a NIP-98 HTTP Auth event (kind:27235) as Authorization: Nostr <base64>. Include the file field, optional caption, alt text, and no_transform if needed. The server responds with nip94_event tags for constructing a kind:1063 event. Build the kind:1063 file metadata event using those tags, sign it, and send it with await client.send({ body: signedEvent }) from @toon-protocol/client -- send() seals the payload, reads the route's price, mints the covering claim and carries it. The upload itself is free (external HTTP). The kind:1063 event goes to g.toon.relay, whose route is flat-priced at 1 base unit of 6-dp USDC, so the event's size does not change what it costs.",
       "rubric": {
-        "correct": "Separates the HTTP upload (free, external) from the kind:1063 metadata publish (paid via publishEvent()). Describes server discovery via /.well-known/nostr/nip96.json. Includes NIP-98 authentication for the upload. Calculates fee for the metadata event (~$0.003-$0.008). Does NOT use raw WebSocket writes for publishing.",
-        "acceptable": "Correctly separates upload from metadata publish and uses publishEvent(), but may not calculate exact fees or fully describe server discovery.",
-        "incorrect": "Conflates the file upload with TOON relay publishing, suggests the upload itself costs ILP payment, uses raw WebSocket writes, or omits NIP-98 authentication."
+        "correct": "Separates the HTTP upload (free, external) from the kind:1063 metadata publish (paid via client.send()). Describes server discovery via /.well-known/nostr/nip96.json. Includes NIP-98 authentication for the upload. Lets client.send() price the packet, or names the relay's flat 1 base unit, rather than computing a charge from the event's byte count. Does NOT use raw WebSocket writes for publishing.",
+        "acceptable": "Correctly separates upload from metadata publish and uses client.send(), but may not state the route price or fully describe server discovery.",
+        "incorrect": "Conflates the file upload with TOON relay publishing, suggests the upload itself costs ILP payment, uses raw WebSocket writes, omits NIP-98 authentication, calls publishEvent() or signBalanceProof(), invents a per-byte rate and multiplies it by the event's size, or claims relay reads come back TOON-encoded and need a decoder."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for kind:1063, not raw WebSocket",
-        "toon-fee-check: Response notes the upload is free but kind:1063 metadata costs per-byte",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client for kind:1063, not raw WebSocket",
+        "toon-fee-check: Response notes the upload is free and lets the client price the kind:1063 write (or reads the route price); it does not compute a charge from the event's byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response distinguishes external HTTP upload from TOON relay publishing",
         "trigger-coverage: Description includes both protocol and social-situation triggers"
       ]
@@ -109,9 +109,9 @@
         "incorrect": "Suggests discovery requires TOON payment, describes a non-standard discovery mechanism, or omits the well-known endpoint."
       },
       "assertions": [
-        "toon-write-check: Response correctly identifies server discovery as a read-only HTTP operation -- no publishEvent() needed",
+        "toon-write-check: Response correctly identifies server discovery as a read-only HTTP operation -- no client.send() needed",
         "toon-fee-check: Response notes server discovery is free (standard HTTP GET)",
-        "toon-format-check: Response mentions TOON-format strings when discussing kind:1063 metadata retrieval from relays",
+        "toon-read-check: Response treats kind:1063 metadata retrieval as a free plain-NIP-01 read, not a TOON-encoded one",
         "social-context-check: Response advises checking server capabilities before uploading",
         "trigger-coverage: Description includes both protocol and social-situation triggers"
       ]
@@ -119,16 +119,16 @@
     {
       "id": "file-download",
       "prompt": "I have a SHA-256 hash of a file that was uploaded to a NIP-96 server. How do I download it? Is there a cost on TOON?",
-      "expected_output": "Download using the URL pattern: <download_url>/<sha256-hash>.<ext>. The download_url comes from the server's /.well-known/nostr/nip96.json. The SHA-256 hash is the original file hash (before any server transforms). No authentication is required for downloads. The download is a direct HTTP GET from the file storage server -- it does not go through the TOON relay and has no ILP cost. To find the download_url for a file, query kind:1063 events on the relay using #x (hash) tag filters. Reading kind:1063 events from TOON is free.",
+      "expected_output": "Download using the URL pattern: <download_url>/<sha256-hash>.<ext>. The download_url comes from the server's /.well-known/nostr/nip96.json. The SHA-256 hash is the original file hash (before any server transforms). No authentication is required for downloads. The download is a direct HTTP GET from the file storage server -- it does not go through the TOON relay and has no ILP cost. To find the download_url for a file, query kind:1063 events on the relay using #x (hash) tag filters. Reading kind:1063 events from TOON is free and speaks plain NIP-01 -- the relay returns standard JSON EVENT messages that any ordinary Nostr client can parse, and a free read never touches a connector.",
       "rubric": {
-        "correct": "Describes the download URL pattern. Notes no authentication needed. States download is free (external HTTP, not TOON relay). Mentions querying kind:1063 events to find the URL. Notes reading is free on TOON.",
+        "correct": "Describes the download URL pattern. Notes no authentication needed. States download is free (external HTTP, not TOON relay). Mentions querying kind:1063 events to find the URL. Notes reading is free on TOON and comes back as plain NIP-01 JSON.",
         "acceptable": "Correctly describes the download pattern and notes it is free, but may not mention kind:1063 querying.",
-        "incorrect": "Claims downloading costs ILP payment, requires authentication, or routes through the TOON relay."
+        "incorrect": "Claims downloading costs ILP payment, requires authentication, routes through the TOON relay, or claims relay reads are TOON-encoded and need a decoder."
       },
       "assertions": [
-        "toon-write-check: Response correctly identifies downloading as a read-only operation -- no publishEvent() needed",
+        "toon-write-check: Response correctly identifies downloading as a read-only operation -- no client.send() needed",
         "toon-fee-check: Response notes downloading is free (external HTTP) and reading kind:1063 is free on TOON",
-        "toon-format-check: Response mentions TOON-format strings when discussing kind:1063 event retrieval",
+        "toon-read-check: Response treats kind:1063 event retrieval as a free plain-NIP-01 read, not a TOON-encoded one",
         "social-context-check: Skill has file-storage-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers"
       ]
@@ -136,16 +136,16 @@
     {
       "id": "file-deletion",
       "prompt": "I uploaded a file to a NIP-96 server and want to delete it. How do I authenticate the deletion request?",
-      "expected_output": "Send an HTTP DELETE request to <api_url>/<sha256-hash>.<ext>. Authenticate with a NIP-98 HTTP Auth event (kind:27235) where the method tag is set to DELETE and the u tag matches the deletion URL. Base64-encode the signed event and include it as Authorization: Nostr <base64>. Not all servers support deletion -- check the server capabilities first. The deletion request is external HTTP -- no TOON relay payment. However, the kind:1063 metadata event on the relay is not automatically removed. To remove the metadata, publish a kind:5 deletion request targeting the kind:1063 event via publishEvent().",
+      "expected_output": "Send an HTTP DELETE request to <api_url>/<sha256-hash>.<ext>. Authenticate with a NIP-98 HTTP Auth event (kind:27235) where the method tag is set to DELETE and the u tag matches the deletion URL. Base64-encode the signed event and include it as Authorization: Nostr <base64>. Not all servers support deletion -- check the server capabilities first. The deletion request is external HTTP -- no TOON relay payment. However, the kind:1063 metadata event on the relay is not automatically removed. To remove the metadata, send a kind:5 deletion request targeting the kind:1063 event with client.send().",
       "rubric": {
-        "correct": "Describes HTTP DELETE with NIP-98 auth including method:DELETE and u tag. Notes not all servers support deletion. Distinguishes server-side file deletion from relay-side kind:1063 metadata removal. Mentions kind:5 deletion for the metadata event via publishEvent().",
+        "correct": "Describes HTTP DELETE with NIP-98 auth including method:DELETE and u tag. Notes not all servers support deletion. Distinguishes server-side file deletion from relay-side kind:1063 metadata removal. Mentions kind:5 deletion for the metadata event via client.send().",
         "acceptable": "Correctly describes the DELETE request and NIP-98 auth, but may not mention the separate kind:5 deletion for relay metadata.",
         "incorrect": "Omits NIP-98 authentication, conflates server deletion with relay event deletion, or claims deletion goes through the TOON relay."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() for kind:5 deletion of metadata, not raw WebSocket",
-        "toon-fee-check: Response notes HTTP deletion is free but kind:5 deletion request costs per-byte",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() for kind:5 deletion of metadata, not raw WebSocket",
+        "toon-fee-check: Response notes HTTP deletion is free and that the kind:5 deletion request is a paid TOON write priced by the client, not by the event's byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response notes the distinction between server-side and relay-side deletion",
         "trigger-coverage: Description includes both protocol and social-situation triggers"
       ]
@@ -153,16 +153,16 @@
     {
       "id": "permanent-vs-ephemeral-storage",
       "prompt": "I'm deciding between NIP-96 file storage and Arweave for hosting important content on TOON. What should I consider?",
-      "expected_output": "NIP-96 servers are centralized HTTP services -- convenient and fast, but they can go offline, delete files, or change terms. Good for social media, ephemeral content, and files where availability is nice but not critical. Arweave provides permanent, decentralized storage via the Arweave DVM (kind:5094) -- once uploaded, content cannot be deleted or censored. Better for archival content, legal records, and anything requiring permanence. On TOON, NIP-96 metadata events (kind:1063) cost ~$0.003-$0.008. Arweave DVM uploads (kind:5094) cost more but provide permanence guarantees. You can use both: NIP-96 for immediate availability and Arweave for permanent backup.",
+      "expected_output": "NIP-96 servers are centralized HTTP services -- convenient and fast, but they can go offline, delete files, or change terms. Good for social media, ephemeral content, and files where availability is nice but not critical. Arweave provides permanent, decentralized storage via the Arweave DVM (kind:5094) -- once uploaded, content cannot be deleted or censored. Better for archival content, legal records, and anything requiring permanence. On TOON, a NIP-96 metadata event (kind:1063) goes to g.toon.relay at a flat 1 base unit of 6-dp USDC. An Arweave DVM upload (kind:5094) terminates at g.toon.store, whose price is metered over the sealed payload -- 1000 + 10 per KiB, so a small blob is ~1010 base units -- plus the bid covering Arweave storage. You can use both: NIP-96 for immediate availability and Arweave for permanent backup.",
       "rubric": {
-        "correct": "Compares NIP-96 (centralized, ephemeral, convenient) with Arweave (decentralized, permanent, more expensive). Discusses use cases for each. Mentions combining both approaches. Notes TOON costs for metadata events.",
-        "acceptable": "Correctly identifies the tradeoffs between NIP-96 and Arweave but may not suggest combining them or provide cost estimates.",
-        "incorrect": "Claims NIP-96 is permanent, claims Arweave is centralized, or ignores the cost difference."
+        "correct": "Compares NIP-96 (centralized, ephemeral, convenient) with Arweave (decentralized, permanent, more expensive). Discusses use cases for each. Mentions combining both approaches. Distinguishes the relay's flat-priced kind:1063 write from the store route's metered kind:5094 write.",
+        "acceptable": "Correctly identifies the tradeoffs between NIP-96 and Arweave but may not suggest combining them or name the route prices.",
+        "incorrect": "Claims NIP-96 is permanent, claims Arweave is centralized, ignores the cost difference, or prices either write by multiplying a per-byte rate against the event's size."
       },
       "assertions": [
-        "toon-write-check: Response mentions publishEvent() for kind:1063 or kind:5094 events on TOON",
-        "toon-fee-check: Response includes cost awareness for metadata events on TOON",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response mentions client.send() for kind:1063 or kind:5094 events on TOON",
+        "toon-fee-check: Response distinguishes the relay's flat route price from the store route's metered one, and does not invent a per-byte rate over the event JSON",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response discusses responsible storage choices and server reliability concerns",
         "trigger-coverage: Description includes both protocol and social-situation triggers"
       ]

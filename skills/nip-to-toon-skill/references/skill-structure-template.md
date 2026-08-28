@@ -33,11 +33,11 @@ description: {80-120 words. Include BOTH protocol-technical triggers AND social-
 
 ## TOON Write Model
 
-{ONLY for write-capable or both classifications. How to publish this NIP's events via publishEvent(). Include typical payload size and approximate cost. Reference nostr-protocol-core for full write model details.}
+{ONLY for write-capable or both classifications. How to publish this NIP's events: construct and sign the event, then `await client.send({ body: signedEvent })` -- the client seals the payload, reads the route's price, mints the covering claim and carries it. Name the destination route and its live price (Nostr events go to `g.toon.relay`: 1 base unit of 6-decimal USDC, flat). Do NOT teach byte arithmetic -- the metered quantity is the sealed payload, not the event JSON. Reference nostr-protocol-core for full write model details.}
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
-{ONLY for read-capable or both classifications. How to subscribe to and parse this NIP's events. Note TOON format string responses. Reference nostr-protocol-core for full read model details.}
+{ONLY for read-capable or both classifications. How to subscribe to and parse this NIP's events. Reads are free and speak plain NIP-01 -- the relay returns standard JSON `EVENT` messages, no decoder and no connector involved. Never say relay responses are TOON-encoded. Reference nostr-protocol-core for full read model details.}
 
 ## When to Read Each Reference
 
@@ -51,7 +51,7 @@ description: {80-120 words. Include BOTH protocol-technical triggers AND social-
 
 ## Integration with Other Skills
 
-- **nostr-protocol-core**: Provides the underlying write/read model. Reference for publishEvent() API, fee calculation, TOON format parsing.
+- **nostr-protocol-core**: Provides the underlying write/read model. Reference for the `client.send()` API, route pricing, and where TOON encoding actually lives (the sealed write payload, not relay reads).
 - **nostr-social-intelligence**: Provides social judgment guidance. Reference for when/how to engage decisions.
 ```
 
@@ -82,6 +82,6 @@ description: {80-120 words. Include BOTH protocol-technical triggers AND social-
 **Why references exist:** Progressive disclosure. References load only when Claude determines they are needed, keeping the context window lean for common queries while providing depth for complex ones.
 
 - `nip-spec.md`: Summarize the NIP specification. Extract event kinds, tag structures, content format, and filter patterns. Do not copy the NIP verbatim — summarize for agent consumption.
-- `toon-extensions.md`: Document how TOON changes this NIP's behavior. Fee calculation for typical payload sizes. Any excluded NIP overlaps. Transport differences.
-- `scenarios.md`: 3-5 concrete usage scenarios showing the skill in action on TOON. Include fee estimates, social context considerations, and error handling.
+- `toon-extensions.md`: Document how TOON changes this NIP's behavior. The destination route and its price schedule (flat, or `price + pricePerKib`). Any excluded NIP overlaps. Transport differences.
+- `scenarios.md`: 3-5 concrete usage scenarios showing the skill in action on TOON. Include the destination route's price, social context considerations, and error handling (a REJECT arrives as `{ fulfilled: false }`, never thrown).
 - Every reference MUST explain WHY (reasoning), not just list rules (D9-008 compliance).

@@ -17,7 +17,7 @@ A kind:1068 event is a regular (non-replaceable) event that defines a poll quest
 
 Poll types are determined by tag presence: single choice (default), multiple choice (if multiple `response` tags allowed), range/rating (if `valueMinimum`/`valueMaximum` present).
 
-To create a poll on TOON, construct a kind:1068 event and publish via `publishEvent()` from `@toon-protocol/client`. Typical cost: ~300-600 bytes = ~$0.003-$0.006. Polls with many options or long question text cost more.
+To create a poll on TOON, construct and sign a kind:1068 event, then `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The relay route is flat-priced, so a poll with many options and a long question costs exactly what a two-option poll costs.
 
 ## kind:1018 -- Poll Responses (NIP-88)
 
@@ -27,37 +27,39 @@ A kind:1018 event is a regular (non-replaceable) event that casts a vote on an e
 **Required tags:** `e` (poll event ID being responded to), `response` (option index, e.g., `["response", "0"]`)
 **Optional tags:** Multiple `response` tags for multiple-choice polls
 
-To vote on TOON, construct a kind:1018 event and publish via `publishEvent()` from `@toon-protocol/client`. Typical cost: ~200-300 bytes = ~$0.002-$0.003. Votes are compact events with minimal content.
+To vote on TOON, construct and sign a kind:1018 event, then `await client.send({ body: signedEvent })` from `@toon-protocol/client`. A vote is a paid write at the same flat price as the poll it answers.
 
 ## TOON Write Model
 
-All poll operations on TOON require ILP payment. Use `publishEvent()` from `@toon-protocol/client` -- never raw WebSocket writes.
+All poll operations on TOON require ILP payment. Construct the event, sign it, then `await client.send({ body: signedEvent })` from `@toon-protocol/client` -- never raw WebSocket writes. The client seals the payload, reads the route's price, mints the covering claim and carries it; there is no separate pricing, claim-signing or publish step.
 
-**Fee formula:** `basePricePerByte * serializedEventBytes` where default `basePricePerByte` = 10n ($0.00001/byte). Poll creation costs more than voting because the question text and option tags add bytes. Votes are among the cheapest write events due to empty content and minimal tags.
+**What it costs:** Nostr events publish to `g.toon.relay`, which is priced flat at 1 base unit of 6-decimal USDC per packet. Creating a poll and casting a vote cost the same, and neither varies with the number of options or the length of the question. If you need the price up front, `await client.routePrice(destination)` returns the route's terms -- do not count your own bytes, because the metered quantity is the sealed payload rather than the event JSON.
 
-For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading polls and vote results is free. Subscribe using NIP-01 filters: `kinds: [1068]` for polls, `kinds: [1018]` for responses. Use `#e` tag filters to find all votes on a specific poll.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Reads are free and speak plain NIP-01. The relay returns **standard JSON** `EVENT` messages -- `["EVENT", <sub-id>, {"id": ..., "pubkey": ..., "created_at": ..., "kind": 1018, "tags": [...], "content": ..., "sig": ...}]` -- so any ordinary Nostr client can tally a poll. There is no decoder step, and a read never touches a connector.
+
+TOON is the encoding of the *write* payload: an agreement between the client and the app about the bytes the connector carries sealed inside the ILP packet. It is not what a relay serves on a read. **TOON on the way in, plain NIP-01 JSON on the way out.** For the full read model, read `skills/nostr-protocol-core/references/toon-read-model.md`.
 
 ## Social Context
 
 Polls on TOON carry economic weight that fundamentally changes polling dynamics compared to free platforms.
 
-**Voting costs money = ballot-stuffing prevention.** On free networks, a single actor can create thousands of accounts and vote thousands of times for free. On TOON, every vote costs ~$0.002-$0.003. Stuffing 1,000 ballots costs $2-$3 -- making coordinated manipulation economically visible and costly. This is natural sybil resistance through economic friction.
+**Voting costs money -- but the friction is the channel, not the price.** On free networks a single actor can create thousands of keypairs and vote thousands of times for nothing. On TOON every vote is a paid write, and a payer needs a funded payment channel, not just a keypair: opening one is an on-chain transaction with a deposit behind it. That setup cost is where the sybil resistance lives. The per-vote price itself is small -- `g.toon.relay` is flat at 1 base unit of 6-decimal USDC, so a thousand ballots cost a thousand base units. Paid voting raises the cost of manipulation and makes it visible; it does not price it out.
 
-**Poll creation signals genuine interest.** Creating a poll costs ~$0.003-$0.006. This filters out low-effort engagement-bait polls that proliferate on free platforms. When someone creates a poll on TOON, they are investing in the question.
+**Poll creation signals genuine interest.** Creating a poll is a paid write from a funded channel. This filters out the low-effort engagement-bait polls that proliferate on free platforms. When someone creates a poll on TOON, they are investing in the question.
 
-**Each vote is a micro-payment of conviction.** Voters spend money to express their preference, making poll results a higher-quality signal of genuine sentiment. A poll with 50 votes on TOON represents ~$0.10-$0.15 of collective investment in the outcome.
+**Each vote is a micro-payment of conviction.** Voters spend money to express their preference, making poll results a higher-quality signal of genuine sentiment. A poll with 50 votes represents 50 paid writes from 50 funded channels -- the channels, not the dollar total, are the signal.
 
 **Timed polls with `endsAt` create urgency.** Setting a deadline encourages participation within a window. The economic cost per vote remains constant, but the time constraint adds social pressure to participate before the poll closes.
 
 **Anti-patterns to avoid:**
-- Creating polls with trivially obvious outcomes (wastes your money and voters' money)
-- Voting on polls you have not read the options for (each vote costs money)
+- Creating polls with trivially obvious outcomes (wastes attention, and every response is still a paid write)
+- Voting on polls you have not read the options for (each vote is a paid write)
 - Creating duplicate polls on the same topic (each costs money; consolidate your question)
 - Ignoring the `endsAt` tag when one is set (votes after deadline may be disregarded by clients)
 
@@ -68,9 +70,9 @@ For deeper social judgment guidance on when and how to engage, see `nostr-social
 Read the appropriate reference file based on the situation:
 
 - **Constructing kind:1068 or kind:1018 events, understanding tag formats and poll types** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-88 specification.
-- **Understanding TOON-specific poll costs and voting economics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated polling extensions, ballot-stuffing prevention, and fee considerations.
+- **Understanding what polls and votes cost on TOON and the voting economics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated polling extensions, ballot-stuffing prevention, and fee considerations.
 - **Step-by-step poll workflows** -- Read [scenarios.md](references/scenarios.md) for creating polls, voting, viewing results, and timed polls on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and route pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on when and whether to engage** -- See `nostr-social-intelligence` for base social intelligence and interaction decisions.
 - **Referencing polls or poll results in other content** -- See `content-references` for nostr: URI linking to poll events.
 - **Reacting to or commenting on polls** -- See `social-interactions` for kind:7 reactions and kind:1111 comments on poll events.

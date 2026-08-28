@@ -1,6 +1,6 @@
 # TOON Extensions for Git Identity
 
-> **Why this reference exists:** Git identity on TOON has unique economic properties -- identity verification is free (reading events costs nothing), but identity-related writes (updating maintainer lists, publishing status events) cost per-byte via ILP payment. This file covers the cost model for identity operations, the asymmetry between free reads and paid writes, and how TOON's pay-to-write model affects authorization behavior.
+> **Why this reference exists:** Git identity on TOON has unique economic properties -- identity verification is free (reading events costs nothing), but identity-related writes (updating maintainer lists, publishing status events) are paid via ILP. This file covers the price model for identity operations, the asymmetry between free reads and paid writes, and how TOON's pay-to-write model affects authorization behavior.
 
 ## Identity Verification Costs Nothing
 
@@ -15,77 +15,47 @@ On TOON, reading events is free. All identity verification operations are read-o
 | Validate status event chain | Read kind:1630-1633 events, filter by authorization | Free |
 | Identify fork vs original | Read kind:30617, check for `personal-fork` tag | Free |
 
-This means any agent can verify permissions, resolve identities, and validate status chains without spending ILP payment. The economic barrier exists only for writing.
+This means any agent can verify permissions, resolve identities, and validate status chains without spending ILP payment, and without a channel or a connector -- reads speak plain NIP-01. The gate exists only on writing.
 
-## Identity-Related Write Costs
+## Identity-Related Write Prices
 
-All writes go through `publishEvent()` from `@toon-protocol/client`. Cost formula: `basePricePerByte * serializedEventBytes`.
+All writes go through `client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it -- a caller never prices the packet or signs a claim by hand.
+
+Identity events are Nostr events, so they terminate at the relay. The `g.toon.relay` route is **flat-priced: 1 base unit of 6-decimal USDC per event**, whatever the event contains. There is no arithmetic to do, and no way to make an identity write cheaper by making it smaller.
+
+Where a skill genuinely needs the price in advance, `await client.routePrice(destination)` returns `{ price, pricePerKib? }`, then `chargeFor(terms, sealedBytes)` from `@toon-protocol/client` computes the charge. The metered quantity is the **sealed** payload the PREPARE carries, so a charge cannot be computed from the event JSON you wrote.
 
 ### Maintainer List Updates
 
-Updating the maintainer list requires republishing the entire kind:30617 repository announcement:
+Updating the maintainer list requires republishing the entire kind:30617 repository announcement. Adding or removing a single maintainer therefore replaces the whole event -- there is no incremental update.
 
-| Component | Typical Size | Notes |
-|-----------|-------------|-------|
-| Event envelope (kind, pubkey, sig, etc.) | ~200 bytes | Fixed overhead |
-| `d` tag | ~20-50 bytes | Repository identifier |
-| `name` tag | ~20-60 bytes | Display name |
-| `description` tag | ~50-500 bytes | Repository description |
-| `clone` tags | ~50-200 bytes each | Git clone URLs |
-| `web` tags | ~30-100 bytes each | Web browsing URLs |
-| `relays` tag | ~50-200 bytes | Preferred relays |
-| `maintainers` tag | ~70 bytes per maintainer | 64-char hex pubkey + tag overhead |
-| `t` tags | ~15-30 bytes each | Topic tags |
+This used to matter economically. It no longer does: on a flat-priced route, a one-maintainer announcement and a fifty-maintainer announcement cost the same 1 base unit. Republishing is a correctness question (copy every existing tag forward), not a cost question.
 
-**Typical total:** 500-2000 bytes, costing ~$0.005-$0.02 at default pricing.
+### Status Event Prices
 
-**Cost scaling with maintainer count:**
-- 1 maintainer: ~70 bytes for the tag
-- 5 maintainers: ~350 bytes for the tag
-- 10 maintainers: ~700 bytes for the tag
-- Each additional maintainer adds ~70 bytes (~$0.0007)
-
-Adding or removing a single maintainer costs the same as republishing the full announcement. There is no incremental update -- the entire event is replaced.
-
-### Status Event Costs
-
-Status events (kind:1630-1633) are the cheapest identity-related writes because they have minimal content:
-
-| Status Event | Typical Size | Typical Cost |
-|-------------|-------------|--------------|
-| kind:1630 (open) | 200-300 bytes | ~$0.002-$0.003 |
-| kind:1631 (merged) | 250-400 bytes | ~$0.003-$0.004 |
-| kind:1632 (closed) | 200-300 bytes | ~$0.002-$0.003 |
-| kind:1633 (draft) | 200-300 bytes | ~$0.002-$0.003 |
-
-Merge events (kind:1631) can be slightly larger due to optional `applied-as-commits` tags that credit the contributor.
+Status events (kind:1630-1633) cost the same 1 base unit as every other relay write. A kind:1631 merge event carrying optional `applied-as-commits` tags is larger than a bare kind:1632 close, and costs exactly the same.
 
 ### Contribution Events (Permissionless)
 
-Events that anyone can publish, regardless of identity:
+kind:1617 patches, kind:1618 pull requests, kind:1621 issues and kind:1622 comments are all relay writes at 1 base unit each. A 50 KB patch and a 200-byte comment are priced identically.
 
-| Event | Typical Size | Typical Cost |
-|-------|-------------|--------------|
-| kind:1617 (patch) | 1KB-50KB+ | ~$0.01-$0.50+ |
-| kind:1618 (pull request) | 500-2000 bytes | ~$0.005-$0.02 |
-| kind:1621 (issue) | 300-2000 bytes | ~$0.003-$0.02 |
-| kind:1622 (comment) | 200-1000 bytes | ~$0.002-$0.01 |
+The exception is a git object pushed as a blob: those go to the **store** route (`g.toon.store` / `g.toon.relay.store`), which is priced `1000 + 10 per KiB` of sealed payload. Size matters there and only there.
 
-For detailed fee calculation, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For route pricing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Economic Implications of Pubkey-Only Identity
 
 ### No Registration Cost
 
-Creating a Nostr identity is free -- generate a keypair locally. There is no account creation event to publish. The first time a pubkey appears on a TOON relay is when it publishes its first event (which costs per-byte for the event content, not for "registration").
+Creating a Nostr identity is free -- generate a keypair locally. There is no account creation event to publish. The first time a pubkey appears on a TOON relay is when it publishes its first event (which is priced as an ordinary relay write, not as a "registration").
 
-### Sybil Resistance Through Payment
+### Payment Is a Gate, Not a Deterrent
 
-On TOON, every write costs money. This provides natural sybil resistance:
+A relay write costs 1 base unit of 6-decimal USDC. That is far too small to price anyone out of anything, so do not reason about it as a spam deterrent. What it actually provides is a gate: every write requires an open, funded payment channel and a signed claim, so there is no anonymous free write and every event is attached to a channel someone had to fund.
 
-- **Spam patches** cost per-byte. A 10KB spam patch costs ~$0.10 -- expensive for spammers, trivial for legitimate contributors.
-- **Status wars** (repeatedly re-opening/closing items) cost per event. Each unauthorized status event wastes ~$0.002-$0.004 of the attacker's money, and clients should ignore it anyway.
-- **Fake maintainer events** (non-maintainers publishing kind:1631) cost money and are ignored by well-behaved clients. The attacker pays but gains nothing.
+- **Spam patches** cost 1 base unit each, the same as a legitimate patch. An attacker is not priced out; they are merely obliged to have a channel.
+- **Status wars** (repeatedly re-opening/closing items) cost one write per event, and clients should ignore unauthorized ones anyway.
+- **Fake maintainer events** (non-maintainers publishing kind:1631) still require a funded channel and are ignored by well-behaved clients. The attacker pays but gains nothing.
 
 ### Identity Trust Signals on a Paid Network
 
@@ -120,23 +90,23 @@ This means:
 
 1. Fetch current kind:30617 (free read).
 2. Construct updated event with new pubkey in `maintainers` tag.
-3. Publish via `publishEvent()` (~$0.005-$0.02).
+3. Sign it and `await client.send({ body: updatedAnnouncement })` (1 base unit).
 4. Old event is replaced (parameterized replaceable).
 
 ### Removing a Maintainer
 
-Same cost as adding -- the full event is republished. There is no "diff" or "patch" mechanism for parameterized replaceable events.
+Same price as adding -- the full event is republished. There is no "diff" or "patch" mechanism for parameterized replaceable events.
 
 ### Bulk Maintainer Changes
 
-If adding/removing multiple maintainers, do it in a single republish to avoid paying multiple times. Each republish replaces the previous, so only the final version matters.
+If adding/removing multiple maintainers, do it in a single republish rather than one write per change -- the price is per event, so batching is what saves money. Each republish replaces the previous, so only the final version matters.
 
 ### Emergency Maintainer Removal
 
-If a maintainer's key is compromised, the repository creator should immediately republish kind:30617 without the compromised pubkey. The cost (~$0.005-$0.02) is trivial compared to the risk. The removal is instant -- the new event replaces the old one on the relay.
+If a maintainer's key is compromised, the repository creator should immediately republish kind:30617 without the compromised pubkey. One base unit is trivial compared to the risk. The removal is instant -- the new event replaces the old one on the relay.
 
-## Git Author Mapping and TOON Format
+## Git Author Mapping and the Read Path
 
-When reading events from a TOON relay to resolve pubkey-to-author mappings, remember that TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse kind:0 profile events before extracting `name` or `display_name` fields.
+Resolving pubkey-to-author mappings is an ordinary NIP-01 read. The relay returns standard JSON `EVENT` messages, so parse a kind:0 profile event the way any Nostr client would before extracting `name` or `display_name`. There is no decoder step and no connector in the path.
 
-For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+TOON format is the encoding of the sealed *write* payload, not of anything a relay serves on a read. For that distinction in full, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.

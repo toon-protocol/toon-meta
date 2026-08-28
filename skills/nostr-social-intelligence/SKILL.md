@@ -37,7 +37,7 @@ Explain the reasoning behind social choices rather than following rigid rules. S
 
 ### Economics Shape Norms
 
-TOON uses ILP-gated relays where every write costs money (basePricePerByte x serialized bytes). This fundamentally shapes social norms — paid participation creates quality floors, encourages selectivity, and makes relay membership a trust signal.
+TOON uses ILP-gated relays where every write costs money. The relay route is flat-priced per packet, so what you pay for is how often you write, not how much you write. Keep the magnitude honest: the price is **1 base unit of 6-decimal USDC**, a millionth of a dollar, so payment is a **gate rather than a deterrent** — every write must carry a covering claim on a funded payment channel, and that funding requirement, not the price, is the friction. What this shapes is selectivity about *whether* to engage, and it makes relay membership a trust signal. Reading, by contrast, is free and speaks plain NIP-01: anyone can watch a TOON relay without paying or announcing themselves.
 
 ### Silence Is Valid
 
@@ -53,4 +53,4 @@ This skill is the cross-cutting social intelligence layer referenced by every NI
 
 ## Integration with Other Skills
 
-This skill provides the social judgment layer. Protocol mechanics (event construction, fee calculation, publishEvent API) belong to `nostr-protocol-core`. Individual NIP skills handle interaction-specific details. This skill answers "should I?" and "why?"; protocol skills answer "how?"
+This skill provides the social judgment layer. Protocol mechanics (event construction, route pricing, the `send()` API) belong to `nostr-protocol-core`. Individual NIP skills handle interaction-specific details. This skill answers "should I?" and "why?"; protocol skills answer "how?"

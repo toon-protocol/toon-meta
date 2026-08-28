@@ -40,7 +40,7 @@ Empty string.
 
 ## TOON Write Model
 
-Approximate size: 300–500 bytes. Cost at default `basePricePerByte` (10n): ~$0.003–$0.005.
+The relay route (`g.toon.relay`) is flat-priced: **1 base unit** of 6-decimal USDC per event, whatever its size. Confirm with `await client.routePrice('g.toon.relay')` rather than assuming a figure.
 
 ### Example 1: Force-Push Update
 
@@ -59,8 +59,8 @@ const event = {
   ]
 };
 
-// Sign, calculate fee (~400 bytes ≈ $0.004), publish
-await publishEvent(signedEvent, { destination, claim });
+// Sign, then send -- the client seals it, prices the route and mints the claim
+await client.send({ body: signedEvent });
 ```
 
 ### Example 2: Update with New Merge Base
@@ -81,7 +81,7 @@ const event = {
 };
 ```
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading is free. Get updates for a specific PR:
 
@@ -89,7 +89,7 @@ Reading is free. Get updates for a specific PR:
 {"kinds": [1619], "#E": ["<pr-event-id>"]}
 ```
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse.
+The relay answers reads with ordinary NIP-01 `EVENT` messages in plain JSON -- any Nostr client can parse them, and a free read never touches a connector.
 
 ## Event Structure (JSON)
 

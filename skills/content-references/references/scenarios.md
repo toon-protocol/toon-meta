@@ -1,6 +1,6 @@
 # Content Referencing Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common content referencing operations on TOON. Each scenario shows the complete flow from intent to published event with embedded references, including TOON-specific considerations like fee calculation and the publishEvent API. These scenarios bridge the gap between knowing the URI format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common content referencing operations on TOON. Each scenario shows the complete flow from intent to published event with embedded references, including TOON-specific considerations like what the write costs and the `client.send()` API. These scenarios bridge the gap between knowing the URI format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Mentioning a User in a Short Note
 
@@ -18,21 +18,19 @@
 
 4. **Sign the event** using your Nostr private key.
 
-5. **Calculate the fee.** A short note (~200 bytes) plus one npub1 mention (~69 bytes URI + ~70 bytes tag) totals ~339 bytes. At default `basePricePerByte` of 10n, cost is approximately $0.003.
-
-6. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+5. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it. The mention makes the event ~139 bytes bigger and changes the charge not at all -- `g.toon.relay` is flat-priced at 1 base unit per event.
 
 ### Considerations
 
 - The `p` tag is required alongside the inline URI. Without it, the mentioned user may not receive a notification and indexers cannot track the mention.
-- On TOON, mentioning multiple users increases the event cost. A note with 5 mentions adds ~695 bytes of reference data, roughly tripling the base note cost.
-- Prefer `nprofile1` when mentioning users who publish on relays different from yours. The relay hints enable cross-relay resolution at a modest byte cost increase.
+- Mentioning multiple users makes the event bigger but not dearer. A note with 5 mentions adds ~695 bytes of reference data and is still charged 1 base unit.
+- Prefer `nprofile1` when mentioning users who publish on relays different from yours. The relay hints enable cross-relay resolution and cost nothing on a flat-priced route.
 
 ## Scenario 2: Embedding a Note Reference in an Article
 
 **When:** An agent writes a kind:30023 long-form article and wants to reference a specific note or event inline.
 
-**Why this matters:** Note references in articles create rich, interconnected content. On TOON, articles already cost significantly more than short notes, so the marginal cost of adding references is proportionally smaller.
+**Why this matters:** Note references in articles create rich, interconnected content. On TOON an article and a short note cost the relay's same flat price, and the references add nothing to either.
 
 ### Steps
 
@@ -44,15 +42,13 @@
 
 4. **Sign the event.**
 
-5. **Calculate the fee.** An article (~5000 bytes) plus one nevent1 reference (~100 bytes URI + ~70 bytes tag) totals ~5170 bytes. At default pricing, cost is approximately $0.052.
-
-6. **Publish via `publishEvent()`.**
+5. **Send it.** `await client.send({ body: signedEvent })`. One flat charge of 1 base unit, whatever the article's length.
 
 ### Considerations
 
 - In markdown content, `nostr:` URIs appear naturally within the text flow. Clients that render markdown will detect and linkify them.
 - `nevent1` is preferred over `note1` for articles because articles are more likely to be read across relay boundaries, and relay hints improve resolution reliability.
-- The marginal cost of adding references to a long-form article is small relative to the article's base cost. An article with 10 references adds ~1700 bytes (~$0.017), roughly a 34% increase on a 5000-byte article.
+- Adding references to a long-form article costs nothing on the relay. An article with 10 references is ~1700 bytes bigger and is charged the same 1 base unit as one with none.
 
 ## Scenario 3: Linking to a Long-form Article (naddr1)
 
@@ -72,13 +68,13 @@
 
 3. **Embed in content.** Place `nostr:naddr1...` inline in the event's `content` field. Add a `["a", "30023:<author-pubkey>:<d-tag>"]` tag to the tags array.
 
-4. **Sign, calculate fee, and publish via `publishEvent()`.**
+4. **Sign the event and send it** with `await client.send({ body: signedEvent })`.
 
 ### Considerations
 
 - `naddr1` references always resolve to the latest version. If the article author updates the article, readers following your reference will see the updated content.
 - The `a` tag format is `<kind>:<pubkey>:<d-tag>`. This is a compound identifier that differs from `e` and `p` tags.
-- `naddr1` URIs are the longest entity type (~80-150 bytes) and their corresponding `a` tags are also larger (~100-150 bytes). A single naddr1 reference adds ~180-300 bytes total.
+- `naddr1` URIs are the longest entity type (~80-150 bytes) and their corresponding `a` tags are also larger (~100-150 bytes). A single naddr1 reference adds ~180-300 bytes, and no charge.
 - This is the preferred way to link to articles, wiki pages, and other parameterized replaceable events. Using `note1` or `nevent1` to reference an article would point to a specific version that may become outdated.
 
 ## Scenario 4: Constructing a nprofile1 with Relay Hints
@@ -97,23 +93,23 @@
 
 3. **Embed in content.** Place `nostr:nprofile1...` inline in the event's `content` field where the mention should appear. Add a `["p", "<hex-pubkey>"]` tag to the tags array.
 
-4. **Sign, calculate fee, and publish via `publishEvent()`.**
+4. **Sign the event and send it** with `await client.send({ body: signedEvent })`.
 
 ### Considerations
 
-- `nprofile1` costs ~13-53 more bytes than `npub1` (depending on number of relay hints), but the relay discovery information significantly improves reference reliability.
-- Include 1-2 relay hints. More hints improve resolution but increase byte cost. Two relay hints provide good redundancy without excessive overhead.
+- `nprofile1` is ~13-53 bytes longer than `npub1` (depending on number of relay hints) at the same flat price, and the relay discovery information significantly improves reference reliability.
+- Include 1-2 relay hints. More hints improve resolution at no extra charge, but bloat the URI for every reader. Two relay hints provide good redundancy without excessive overhead.
 - The `p` tag does not include relay hints -- it uses only the hex pubkey. The relay hints are carried in the inline URI's TLV encoding.
 
 ## Scenario 5: Parsing References from a Received Event
 
 **When:** An agent receives an event from a TOON relay and wants to extract and resolve all content references within it.
 
-**Why this matters:** Understanding incoming references is essential for rendering content, building reference graphs, and identifying connections between content. TOON relays return events in TOON format, requiring an additional parsing step.
+**Why this matters:** Understanding incoming references is essential for rendering content, building reference graphs, and identifying connections between content. The relay returns ordinary NIP-01 JSON, so extraction is plain string work over the `content` field.
 
 ### Steps
 
-1. **Decode the TOON-format response.** Use the TOON decoder to extract the event's fields from the TOON-format string. This gives you the `content` field and `tags` array.
+1. **Take the event's fields.** Reads are free and speak plain NIP-01 -- the relay returns standard JSON `EVENT` messages, so the `content` field and `tags` array are there to read with no decoding step.
 
 2. **Scan content for `nostr:` URIs.** Iterate through the `content` string looking for occurrences of `nostr:` followed by bech32 data. The bech32 portion continues until a non-bech32 character (whitespace, most punctuation).
 
@@ -130,4 +126,4 @@
 - Not all events will have perfectly matching tags for every inline URI. Treat tag correspondence as expected but not guaranteed.
 - When resolving `nprofile1` or `nevent1` references, try the relay hints first if the reference is not available on the local relay.
 - `naddr1` references resolve to the latest version of the parameterized replaceable event. The resolved content may differ from what the referencing author originally saw.
-- Parsing references is a read-only operation that costs nothing on TOON. The cost was paid by the original publisher when they embedded the references.
+- Parsing references is a read-only operation that costs nothing on TOON. The write was paid for by the original publisher when they published the event.

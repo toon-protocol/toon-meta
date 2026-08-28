@@ -12,7 +12,7 @@ NIP-28 public chat uses a simple channel model:
 4. **Metadata can be updated** via kind:41 events, but only from the original channel creator
 5. **Personal moderation** is available via kind:43 (hide message) and kind:44 (mute user)
 
-This is fundamentally different from NIP-29 relay groups (where the relay enforces membership and controls group state) and NIP-72 moderated communities (where moderators approve posts before they appear in the curated feed). NIP-28 channels are open by default -- anyone can read and write.
+This is fundamentally different from NIP-29 relay groups (where the relay is specified to enforce membership and control group state) and NIP-72 moderated communities (where moderators approve posts before clients show them in the curated feed). NIP-28 channels are open by default -- anyone can read and write. On TOON nothing of NIP-28 is enforced server-side either: the fleet relay implements NIP-01 and NIP-34 only, so channel ownership, hides and mutes are all conventions applied by reading clients.
 
 ## Channel Creation (kind:40)
 
@@ -41,7 +41,7 @@ Metadata updates allow the channel creator to change channel name, description, 
 
 **Authorization rule:** Clients should only accept kind:41 metadata updates where the event author matches the kind:40 channel creation event author. Metadata updates from non-creators should be ignored. This prevents unauthorized channel hijacking.
 
-**Recommended relay behavior:** Relays may enforce the creator-only rule by rejecting kind:41 events from non-creators, but this is client-side validation in the spec.
+**Recommended relay behavior:** Relays may enforce the creator-only rule by rejecting kind:41 events from non-creators, but this is client-side validation in the spec -- and TOON's fleet relay, implementing NIP-01 and NIP-34 only, does not enforce it. Validate the kind:41 author against the kind:40 creator yourself.
 
 ## Channel Message (kind:42)
 
@@ -74,7 +74,7 @@ Hide message events allow users to hide specific messages from their own view. T
 - **Tags:** `["e", "<kind:42-event-id>"]` -- references the message to hide
 
 **Behavior:**
-- The relay hides the referenced message for the requesting user only
+- Clients hide the referenced message for the user who published the kind:43 -- the relay stores it as an ordinary event and hides nothing
 - Other users continue to see the message normally
 - The `reason` field is optional and informational
 - Hiding is user-specific -- it does not affect other channel participants
@@ -89,7 +89,7 @@ Mute user events allow users to mute specific users, hiding all their messages f
 - **Tags:** `["p", "<user-pubkey>"]` -- references the user to mute
 
 **Behavior:**
-- The relay mutes the referenced user for the requesting user only
+- Clients mute the referenced user for whoever published the kind:44 -- the relay stores it as an ordinary event and mutes nobody
 - Other users continue to see the muted user's messages
 - The `reason` field is optional and informational
 - Muting is user-specific -- it does not affect other channel participants

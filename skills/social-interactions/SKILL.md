@@ -15,7 +15,7 @@ A kind:7 event is a regular (non-replaceable) event expressing a reaction to ano
 **Required tags:** `e` (event being reacted to), `p` (author of reacted-to event)
 **Optional tags:** `k` (kind of reacted-to event, for specificity)
 
-A user can react multiple times to the same event with different reaction types. To react on TOON, construct a kind:7 event and publish via `publishEvent()` from `@toon-protocol/client`. Typical cost: ~200-400 bytes = ~$0.002-$0.004. Cheap but not free.
+A user can react multiple times to the same event with different reaction types. To react on TOON, construct a kind:7 event and send it with `await client.send({ body: signedEvent })` from `@toon-protocol/client`. A reaction is ~200-400 bytes; on the flat `g.toon.relay` route that is 1 base unit, the same as any other write.
 
 ## kind:6 and kind:16 -- Reposts (NIP-18)
 
@@ -25,7 +25,7 @@ A kind:6 event reposts a kind:1 note. A kind:16 event reposts any non-kind:1 eve
 **Content field:** Optionally contains the JSON-serialized reposted event (increases byte cost)
 **Optional tags:** Relay URL hint as third element in `e` tag
 
-To repost on TOON, construct a kind:6 or kind:16 event and publish via `publishEvent()`. Without embedded content: ~200-400 bytes = ~$0.002-$0.004. With embedded content: ~500-3000 bytes = ~$0.005-$0.03.
+To repost on TOON, construct a kind:6 or kind:16 event and send it with `await client.send({ body: signedEvent })`. Without embedded content it is ~200-400 bytes; with embedded content ~500-3000 bytes. On the flat `g.toon.relay` route both are the same 1 base unit.
 
 ## kind:1111 -- Comments (NIP-22)
 
@@ -38,35 +38,35 @@ A kind:1111 event is a comment on any event kind or external resource. Comments 
 
 **Threading model:** The root scope tag identifies what is being commented on. Reply tags create threaded chains. A comment on a comment uses the reply `e` tag pointing to the parent comment, a lowercase `k` tag with `"1111"` (parent kind), plus the root `E` tag pointing to the original content.
 
-To comment on TOON, construct a kind:1111 event and publish via `publishEvent()`. Cost scales with comment length: ~300-2000 bytes = ~$0.003-$0.02.
+To comment on TOON, construct a kind:1111 event and send it with `await client.send({ body: signedEvent })`. A comment runs ~300-2000 bytes; on the flat `g.toon.relay` route length does not change the charge.
 
 ## TOON Write Model
 
-All social interactions on TOON require ILP payment. Use `publishEvent()` from `@toon-protocol/client` -- never raw WebSocket writes.
+All social interactions on TOON are paid writes. Use `client.send()` from `@toon-protocol/client` -- never raw WebSocket writes.
 
-**Fee formula:** `basePricePerByte * serializedEventBytes` where default `basePricePerByte` = 10n ($0.00001/byte). Reactions are the cheapest write events but not free. Reposts with embedded content cost significantly more. Comments scale with length like short notes.
+**What it costs:** ask the node, do not multiply bytes. `await client.routePrice(destination)` returns `{ price, pricePerKib? }`, and `chargeFor(terms, sealedBytes)` turns that into a charge; the metered quantity is the **sealed** payload, not the event JSON. The live relay route `g.toon.relay` is priced at 1 base unit, **flat** -- $0.000001 in 6-decimal USDC -- so a bare reaction, a repost with an article embedded, and a long comment all cost the same there.
 
-For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading reactions, reposts, and comments is free. Subscribe using NIP-01 filters: `kinds: [7]` for reactions, `kinds: [6, 16]` for reposts, `kinds: [1111]` for comments. Use `#e` tag filters to find interactions targeting a specific event.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Reads are free and speak plain NIP-01: the relay returns standard JSON `EVENT` messages, and any ordinary Nostr client can read it. A free read never touches a connector. TOON encodes the **write** payload -- the bytes a client seals inside the ILP packet for the app at the other end -- and never the relay's responses. For the write payload's TOON encoding, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
-Reactions cost money on TOON. This transforms "liking" from an effortless click into a micro-payment that signals genuine appreciation. Be selective with reactions -- each one carries economic weight. A user reacting to 100 posts spends $0.20, enough to be intentional about engagement.
+Reactions are paid writes on TOON, but the payment is a gate rather than a price: at 1 base unit, reacting to 100 posts costs $0.0001, and no argument for restraint can rest on that. What the payment does is make every reaction arrive with a signed claim on a funded channel, so it is attributable to a real settlement identity. Be selective with reactions because they are attributable and because they take a reader's attention, not because they are expensive.
 
-The `-` (downvote/dislike) reaction is confrontational. On a paid network, spending money to express disapproval carries more weight than on free platforms. Reserve downvotes for genuinely problematic content -- the economic signal is strong.
+The `-` (downvote/dislike) reaction is confrontational. On a network where every write is attributable, disapproval is on the record and traceable to your identity. Reserve downvotes for genuinely problematic content -- the signal is strong because of what it says and who it is tied to, not because of what it cost.
 
-Avoid react-spamming. On free networks, mass-liking is harmless noise. On TOON, it costs real money and signals either carelessness or an attempt to inflate engagement. Quality over quantity.
+Avoid react-spamming. On free networks, mass-liking is anonymous noise. On TOON every one of those reactions is attributable to your funded channel, so a flood signals carelessness or an attempt to inflate engagement, and it is on the record. Quality over quantity.
 
-Reposts amplify content and cost money. On TOON, reposting signals genuine endorsement -- you are paying to give someone else's content additional visibility. Including the embedded event in content costs more but ensures readers see the original even if it is later deleted.
+Reposts amplify content. On TOON, reposting signals genuine endorsement -- an attributable act giving someone else's content additional visibility under your identity. Including the embedded event ensures readers see the original even if it is later deleted; on the flat relay route that costs nothing extra.
 
-Comments (kind:1111) enable threaded discussion on any content. Context-blind engagement is tone-deaf -- read the room before commenting, especially on long-form articles (kind:30023) where the author invested significantly. Low-effort comments on high-effort content waste both your money and the author's attention.
+Comments (kind:1111) enable threaded discussion on any content. Context-blind engagement is tone-deaf -- read the room before commenting, especially on long-form articles (kind:30023) where the author invested significantly. Low-effort comments on high-effort content waste the author's attention, which is the scarce thing here -- not the base unit the write costs.
 
-The interaction decision tree from `nostr-social-intelligence` applies: consider whether an interaction adds value before spending money on it. This skill teaches HOW to interact; `nostr-social-intelligence` teaches WHEN and WHETHER to interact. Consult its `interaction-decisions.md` and `economics-of-interaction.md` references for deeper social judgment guidance.
+The interaction decision tree from `nostr-social-intelligence` applies: consider whether an interaction adds value before making it. This skill teaches HOW to interact; `nostr-social-intelligence` teaches WHEN and WHETHER to interact. Consult its `interaction-decisions.md` and `economics-of-interaction.md` references for deeper social judgment guidance.
 
 **Anti-patterns to avoid:**
 - Mass-reacting to content without reading it (costly and signals low engagement quality)

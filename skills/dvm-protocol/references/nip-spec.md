@@ -367,11 +367,13 @@ Subscribe with a filter on the result kind and the `e` tag referencing the reque
 
 ### Discovering DVM Service Providers
 
-Query for kind:10035 SkillDescriptor events (TOON-specific):
+NIP-90 defines no discovery event. The nearest standard mechanism is NIP-89: query for kind:31990 handler advertisements that declare a job kind.
 
 ```json
-["REQ", "dvm-providers", { "kinds": [10035] }]
+["REQ", "dvm-providers", { "kinds": [31990], "#k": ["5094"] }]
 ```
+
+On TOON, what a service costs is not published as an event at all. A node answers for itself: `GET /ilp` on its URL returns its self-description, including every route's price, and `client.routePrice(destination)` reads the same terms.
 
 ## Client Behavior
 
@@ -393,4 +395,4 @@ Providers implementing NIP-90 should:
 3. **Negotiate payment** by publishing kind:7000 with `"payment-required"` and `amount` tag if the bid is insufficient.
 4. **Deliver results** as kind:6xxx events with `e`, `p`, and `request` tags.
 5. **Handle errors gracefully** by publishing kind:7000 with `"error"` status and a descriptive content message.
-6. **Advertise capabilities** via kind:10035 SkillDescriptor events (on TOON) or kind:31990 app handler events (NIP-89).
+6. **Advertise capabilities** via kind:31990 app handler events (NIP-89). On TOON a node's routes and prices are not advertised at all -- they are answered on request at `GET /ilp`.

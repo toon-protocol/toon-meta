@@ -1,6 +1,6 @@
 # Search Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common search operations on TOON. Each scenario shows the complete flow from intent to results, including TOON-specific considerations like relay capability detection and TOON-format response parsing. These scenarios bridge the gap between knowing the NIP-50 filter syntax (nip-spec.md) and knowing the TOON read mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common search operations on TOON. Each scenario shows the complete flow from intent to results, including TOON-specific considerations like relay capability detection and the fact that reads are free and plain NIP-01. These scenarios bridge the gap between knowing the NIP-50 filter syntax (nip-spec.md) and knowing the TOON read mechanics (toon-extensions.md).
 
 ## Scenario 1: Basic Text Search
 
@@ -10,7 +10,7 @@
 
 ### Steps
 
-1. **Check relay support.** Fetch the relay's NIP-11 information document (HTTP GET with `Accept: application/nostr+json` header). Verify `50` is in the `supported_nips` array. On TOON, also check the `/health` endpoint for search capability information.
+1. **Check relay support.** Fetch the relay's NIP-11 information document (HTTP GET with `Accept: application/nostr+json` header). Verify `50` is in the `supported_nips` array. This is the only place search support is stated: a TOON node's self-description publishes route prices, not NIP support.
 
 2. **Construct the search filter.** Build a NIP-01 filter object with a `search` field:
    ```json
@@ -23,14 +23,14 @@
 
 3. **Send the REQ message.** Send `["REQ", "<subscription_id>", <filter>]` over the WebSocket connection to the relay.
 
-4. **Receive and parse results.** The relay sends EVENT messages for each match, followed by EOSE. On TOON, EVENT messages contain TOON-format strings, not standard JSON -- decode using the TOON decoder before processing.
+4. **Receive and parse results.** The relay sends EVENT messages for each match, followed by EOSE. Reads are free and speak plain NIP-01, so each EVENT is standard JSON -- there is no decoding step.
 
 5. **Close the subscription.** Send `["CLOSE", "<subscription_id>"]` when done, unless you want to receive new events matching the search in real time.
 
 ### Considerations
 
-- Search is a read-only operation -- no `publishEvent()` call and no ILP payment needed.
-- TOON relay search results represent content that authors paid to publish, providing a natural quality filter.
+- Search is a read-only operation -- no paid `client.send()` call and no payment needed.
+- Every TOON search result was published through a funded, attributable channel. That is a gate on who can publish, not a price that filters quality.
 - Set a reasonable `limit` to avoid receiving excessive results. Start with 20-50 and paginate if needed.
 
 ## Scenario 2: Filtered Search (Kind + Author + Search)
@@ -55,7 +55,7 @@
 
 3. **Send the REQ message.** The relay applies all filter criteria: only kind:30023 events, by the specified author, containing "payment channels" in the searchable text.
 
-4. **Parse TOON-format results.** Decode each EVENT message using the TOON decoder. Extract article metadata (title, summary, d-tag) from the event tags.
+4. **Read the results.** Each EVENT message is plain NIP-01 JSON. Extract article metadata (title, summary, d-tag) from the event tags.
 
 5. **Close the subscription** when done.
 
@@ -87,7 +87,7 @@
    ```
    If `50` is present, the relay supports NIP-50 search.
 
-4. **On TOON relays, check the `/health` endpoint.** TOON relays expose an enriched health endpoint at `/health` that includes relay capabilities, pricing, and ILP configuration. This can provide additional search capability information beyond the standard NIP-11 document.
+4. **Do not look for a second capability document.** NIP-11 `supported_nips` is the whole answer for search support. A TOON node does answer a free, unauthenticated `GET /ilp` with its **self-description** — its addresses, its settlement facts and every route's price — but that document says nothing about which NIPs a relay implements, and there is no `/health` price endpoint to consult: it was removed along with the `kind:10032` announce, and a route price now lives on the self-description.
 
 5. **Cache the result.** Relay capabilities change infrequently. Cache the NIP-50 support status for each relay to avoid repeated NIP-11 fetches.
 
@@ -121,7 +121,7 @@
 
 3. **Send the REQ message.** The relay searches across kind:1 notes and kind:30023 articles within the specified time range.
 
-4. **Parse TOON-format results.** Decode each EVENT message. The `created_at` field in each event confirms the timestamp falls within the requested range.
+4. **Read the results.** Each EVENT message is plain NIP-01 JSON. The `created_at` field in each event confirms the timestamp falls within the requested range.
 
 5. **Paginate if needed.** If the result count equals the `limit`, there may be more results. Adjust `until` to the `created_at` of the last received event and repeat the query to fetch the next page.
 

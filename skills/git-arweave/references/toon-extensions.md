@@ -1,45 +1,42 @@
 # TOON Extensions for Git-Arweave Integration
 
-> **Why this reference exists:** Git-Arweave integration on TOON involves a dual-cost model unique to the protocol: the TOON relay write fee for the kind:5094 event (paid via ILP) and the Arweave permanent storage cost (handled by the DVM provider). This file covers the TOON-specific economics, fee calculations, free dev upload paths, cost optimization strategies, and the relationship between the DVM prepaid model and Arweave storage pricing.
+> **Why this reference exists:** Git-Arweave integration on TOON involves a dual-cost model unique to the protocol: the price of the kind:5094 write to the store route (paid via ILP) and the Arweave permanent storage cost (handled by the DVM provider). This file covers the TOON-specific economics, how the store route is priced, free dev upload paths, cost optimization strategies, and the relationship between the DVM prepaid model and Arweave storage pricing.
 
 ## Dual-Cost Model
 
 Every git object upload to Arweave via TOON incurs two separate costs:
 
-### 1. TOON Relay Write Fee (kind:5094 Event)
+### 1. The Store Route's Price (kind:5094 Event)
 
-The relay charges `basePricePerByte * serializedEventBytes` for publishing the kind:5094 DVM request. This fee is paid via ILP through the TOON payment channel.
+Blob storage terminates at `g.toon.store` (also reachable as `g.toon.relay.store`). Unlike the relay's flat route, the store route's price is a **schedule over payload length**: `1000 + 10 * ceil(sealedBytes / 1024)`, in base units of 6-dp USDC. A small object is ~1010 base units, about $0.00101.
 
-The kind:5094 event size is dominated by the base64-encoded git object in the `i` tag. Base64 encoding adds ~33% overhead:
+The metered quantity is the **sealed** payload -- the gift-wrapped bytes the PREPARE carries -- not the event JSON and not the file you started from. It is larger than both, by the envelope and the wrap. You therefore cannot work out the charge from the base64 length of your `i` tag, and you should not try.
 
-| Binary Object Size | Base64 Size | Event Size (with tags) | Relay Fee at 10n/byte |
-|-------------------|-------------|----------------------|----------------------|
-| 100 bytes | ~136 bytes | ~350 bytes | ~$0.004 |
-| 1 KB | ~1.37 KB | ~1.6 KB | ~$0.016 |
-| 10 KB | ~13.7 KB | ~14 KB | ~$0.14 |
-| 50 KB | ~68.5 KB | ~69 KB | ~$0.69 |
-| 100 KB | ~137 KB | ~137 KB | ~$1.37 |
+Two consequences worth holding on to:
+
+- **The store route is the one place where size moves the price.** Nostr events on `g.toon.relay` are flat at 1 base unit regardless of length; a kind:5094 blob write is not. Every KiB is another 10 base units.
+- **Ask, do not multiply.** `await client.routePrice('g.toon.store')` returns `{ price, pricePerKib }`, and `chargeFor(terms, sealedBytes)` from `@toon-protocol/client` turns those terms into a charge. `chargeFor` is the only thing that should decide what goes on a claim. In the ordinary case you need neither: `send()` prices the packet itself.
 
 ### 2. Arweave Storage Cost (DVM Provider Fee)
 
-The DVM provider charges for permanently storing the object on Arweave. This cost is covered by the `bid` tag amount in the kind:5094 event. The provider's pricing is advertised in their kind:10035 SkillDescriptor.
+The DVM provider charges for permanently storing the object on Arweave. This cost is covered by the `bid` tag amount in the kind:5094 event. To learn what a provider's node charges, read its own `GET /ilp` self-description -- free and unauthenticated, listing its addresses, settlement facts and every route's price. A connector answers; it never announces.
 
 Arweave storage costs are relatively low for small objects:
 - Objects under 100KB: effectively free via `TurboFactory.unauthenticated()` (dev mode)
 - Larger objects: priced by the Arweave network based on data size and current network conditions
 
-### Total Cost Formula
+### Total Cost
 
 ```
-Total Upload Cost = TOON Relay Fee + DVM Provider Fee
-                  = (basePricePerByte * kind5094EventBytes) + (provider's Arweave storage markup)
+Total Upload Cost = store route price + DVM provider fee
+                  = chargeFor(routePrice('g.toon.store'), sealedBytes) + the bid covering Arweave storage
 ```
 
-Both components scale linearly with object size. The relay fee scales with the base64-encoded size (larger than binary), while the Arweave fee scales with the binary size.
+Both components grow with object size: the store route by the KiB of sealed payload, the Arweave fee by the binary size.
 
 ## Publishing Flow on TOON
 
-All git-Arweave uploads go through `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment.
+All git-Arweave uploads go through `client.send()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the store route requires ILP payment.
 
 ### Step-by-Step Flow
 
@@ -49,28 +46,29 @@ All git-Arweave uploads go through `publishEvent()` from `@toon-protocol/client`
 4. **Base64-encode** the binary object
 5. **Construct the kind:5094 event** with required tags
 6. **Sign the event** with the agent's Nostr private key
-7. **Discover pricing** from the relay's `basePricePerByte` (via `/health` endpoint or kind:10032)
-8. **Calculate fee**: `basePricePerByte * serializedEventBytes`
-9. **Sign balance proof**: `client.signBalanceProof(channelId, amount)`
-10. **Publish**: `client.publishEvent(signedEvent, { destination, claim })`
-11. **Subscribe to kind:6094** for the DVM result containing the Arweave transaction ID
+7. **Send it**: `await client.send('g.toon.store', { body: signedEvent })`. The client seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step.
+8. **Subscribe to kind:6094** for the DVM result containing the Arweave transaction ID
 
 ### Error Handling
 
-- **F04 (Insufficient Payment):** The calculated amount was too low. Recalculate with actual serialized size and retry.
-- **Relay rejection:** Malformed event (invalid signature, missing required tags). Fix and republish.
+A REJECT comes back as `{ fulfilled: false }`; it is never thrown.
+
+- **F03 (INVALID_AMOUNT):** the claim does not cover the charge -- underpayment. Let `send()` price the packet, or size the claim with `chargeFor(terms, sealedBytes)`; never from your own byte count.
+- **T04:** over the peering's cap. The message states the cap; that is the only way a sender learns it.
+- **F02 / T01:** nothing routes that name, or the peer was not there.
+- **Store rejection:** malformed event (invalid signature, missing required tags). Fix and resend.
 - **DVM failure (kind:7000 with error status):** The Arweave upload provider could not store the object. Check the error content for details (insufficient bid, upload failure, rate limit).
 - **DVM timeout:** No kind:6094 or kind:7000 response within expected timeframe. The DVM provider may be offline. Try a different provider or retry.
 
 ## Free Dev Uploads (TurboFactory.unauthenticated)
 
-> **WARNING: Dev-only path.** Direct TurboFactory uploads bypass the TOON relay and DVM provider entirely. Objects uploaded this way are **NOT discoverable** via TOON relay queries (no kind:5094 event exists on the relay), other TOON agents cannot find them via standard NIP-01 filters, and no DVM provider earns fees. Use the kind:5094 DVM path via `publishEvent()` for production — it ensures objects are discoverable, the upload is tracked on the relay, and the DVM provider handles Arweave storage reliably.
+> **WARNING: Dev-only path.** Direct TurboFactory uploads bypass the TOON relay and DVM provider entirely. Objects uploaded this way are **NOT discoverable** via TOON relay queries (no kind:5094 event exists on the relay), other TOON agents cannot find them via standard NIP-01 filters, and no DVM provider earns fees. Use the kind:5094 DVM path via `client.send()` for production — it ensures objects are discoverable, the upload is tracked on the relay, and the DVM provider handles Arweave storage reliably.
 
 For development and testing only, `@ardrive/turbo-sdk` provides free uploads up to 100KB per object via `TurboFactory.unauthenticated()`. This uploads directly to Arweave, bypassing the TOON network.
 
 ### When to Use Free Dev Uploads
 
-- **Development and testing** -- iterating on git object construction without paying TOON relay fees
+- **Development and testing** -- iterating on git object construction without paying the store route
 - **Proof of concept** -- validating SHA-1 computation and Arweave resolution before committing to the DVM path
 
 ### Limitations
@@ -115,12 +113,12 @@ For production workloads or files exceeding 100KB, use authenticated uploads via
 
 ### Cost Comparison: DVM Path vs Direct Upload
 
-| Path | TOON Relay Fee | Arweave Cost | Total | Discoverability |
-|------|---------------|-------------|-------|-----------------|
-| DVM (kind:5094) | Yes (per-byte) | Covered by bid | Relay fee + bid | Via TOON relay + Arweave |
-| Direct (turbo-sdk) | No | Wallet/credits | Arweave only | Arweave only |
+| Path | Store Route Price | Arweave Cost | Total | Discoverability |
+|------|------------------|-------------|-------|-----------------|
+| DVM (kind:5094) | Yes, metered by KiB of sealed payload | Covered by bid | Route price + bid | Via TOON relay + Arweave |
+| Direct (turbo-sdk) | None | Wallet/credits | Arweave only | Arweave only |
 
-The DVM path is the standard TOON flow -- it creates a discoverable record on the TOON relay and handles Arweave upload via the provider. Direct uploads are cheaper but bypass the relay.
+The DVM path is the standard TOON flow -- it creates a discoverable record on the TOON relay and handles Arweave upload via the provider. Direct uploads are cheaper but bypass the network.
 
 ## Cost Optimization Strategies
 
@@ -144,7 +142,7 @@ query {
 
 If results exist, skip the upload. Savings: 100% of the upload cost for that object.
 
-**Why this matters on TOON:** Every duplicate upload wastes both the TOON relay fee and the Arweave storage fee. SHA-1 content addressing means identical file contents across branches, commits, or repositories produce the same hash. A file that has not changed between commits does not need re-uploading.
+**Why this matters on TOON:** Every duplicate upload wastes both the store route's price and the Arweave storage fee. SHA-1 content addressing means identical file contents across branches, commits, or repositories produce the same hash. A file that has not changed between commits does not need re-uploading.
 
 ### 2. Upload Ordering
 
@@ -159,7 +157,7 @@ Before bulk uploading a repository:
 - Skip build artifacts, `node_modules`, compiled binaries
 - Skip files matching `.gitignore` patterns
 - Consider whether binary assets (images, fonts) need to be on Arweave
-- Large binary files dominate upload cost -- a 1MB image costs ~$13.70 in relay fees alone
+- Large binary files dominate upload cost -- the store route adds 10 base units for every KiB of sealed payload, so a megabyte-scale asset is three orders of magnitude past the 1000-unit base
 
 ### 4. Incremental Uploads
 
@@ -200,17 +198,13 @@ For repositories with many objects, create a manifest transaction after uploadin
 - Path-based resolution (no individual GraphQL queries needed)
 - Cheaper resolution for consumers navigating the DAG
 
-## Cost Estimates by Repository Profile
+## Estimating a Repository Upload
 
-| Profile | Files | Total Size | Relay Fees | Arweave Storage | Total Estimate |
-|---------|-------|-----------|------------|-----------------|----------------|
-| Micro (3 files, 5KB) | 3 blobs + 1 tree + 1 commit | ~7KB | ~$0.03 | ~$0.001 | ~$0.03 |
-| Small (20 files, 50KB) | ~25 objects | ~70KB base64 | ~$0.20 | ~$0.005 | ~$0.21 |
-| Medium (100 files, 500KB) | ~120 objects | ~700KB base64 | ~$2.00 | ~$0.05 | ~$2.05 |
-| Large (500 files, 5MB) | ~600 objects | ~7MB base64 | ~$20.00 | ~$0.50 | ~$20.50 |
-| Binary-heavy (100 files, 50MB) | ~120 objects | ~70MB base64 | ~$200.00 | ~$5.00 | ~$205.00 |
+A bulk upload has two shapes to it: a fixed 1000 base units for every kind:5094 object you send, plus 10 base units for every KiB of sealed payload across all of them. So a repository of many tiny objects is dominated by the per-object base, while a repository of a few large binaries is dominated by the KiB term.
 
-**Key insight:** The TOON relay fee dominates total cost for most repositories. This is because the relay fee is based on the base64-encoded event size, which is ~33% larger than the binary object. Arweave permanent storage is comparatively cheap.
+You cannot turn that into a dollar figure from the working tree, because the metered length is the sealed payload rather than the files or the base64 in the `i` tag. To estimate before committing to a bulk upload, seal and price one representative object -- `routePrice('g.toon.store')` for the terms and `chargeFor(terms, sealedBytes)` for that object's charge -- then scale by the object count, and compare against the `bid` amounts the providers want for Arweave storage.
+
+**Key insight:** the store route's price dominates total cost for most repositories; Arweave permanent storage is comparatively cheap.
 
 ## Permanent Storage Economics
 
@@ -221,11 +215,11 @@ Arweave provides permanent storage -- objects persist indefinitely with no ongoi
 - **Immutable:** Once uploaded, the object cannot be modified or deleted -- only superseded by new versions
 - **Content-addressed:** The SHA-1 hash in the `Git-SHA` tag provides a verifiable link between the git object graph and Arweave storage
 
-This model favors well-considered, infrequent uploads. On TOON, the per-byte cost of the kind:5094 event further incentivizes uploading only necessary, minimal objects -- aligning with git best practices of small, focused commits.
+This model favors well-considered, infrequent uploads. On TOON, the store route's metered price further incentivizes uploading only necessary, minimal objects -- aligning with git best practices of small, focused commits.
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers git-Arweave-specific upload economics; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and route-pricing details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers git-Arweave-specific upload economics; the protocol core covers the foundational mechanics shared by all event kinds.
 
 For the kind:5094 event structure and tag format, see the `git-collaboration` skill's `kind-5094-blob-storage.md` reference.
 

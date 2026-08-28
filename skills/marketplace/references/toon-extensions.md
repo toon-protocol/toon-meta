@@ -1,57 +1,38 @@
 # TOON Extensions for Marketplace
 
-> **Why this reference exists:** Marketplace operations on TOON differ from vanilla Nostr because every listing creation, update, and order message costs per-byte via ILP payment. This file covers TOON-specific marketplace economics -- how parameterized replaceable events affect listing costs, the relationship between marketplace listings and DVM compute services, per-byte incentives for listing quality, and the economic dynamics of commerce on a paid relay network.
+> **Why this reference exists:** Marketplace operations on TOON differ from vanilla Nostr because every listing creation, update, and order message is a paid write over ILP. This file covers TOON-specific marketplace economics -- how parameterized replaceable events affect listing costs, the relationship between marketplace listings and DVM compute services, and the economic dynamics of commerce on a paid relay network.
 
 ## Publishing Marketplace Events on TOON
 
-All marketplace events are published via `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment.
+All marketplace events are published with `client.send()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment.
 
 ### Publishing Flow
 
 1. **Construct the event** -- kind:30017 (stall), kind:30018 (product), or kind:30402 (classified)
 2. **Sign the event** with your Nostr private key
-3. **Discover pricing** from the relay's `basePricePerByte` via kind:10032 or `/health` endpoint
-4. **Calculate fee**: `basePricePerByte * serializedEventBytes`
-5. **Publish via `publishEvent()`**
+3. **Send it:** `await client.send({ body: signedEvent })`. The client seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step.
+
+Where you genuinely need the price in advance, ask for it: `await client.routePrice(destination)` returns `{ price, pricePerKib? }`, and `chargeFor(terms, sealedBytes)` from `@toon-protocol/client` turns that into a charge. The metered quantity is the **sealed** payload, so a charge cannot be computed from the event JSON you wrote.
 
 ### Error Handling
 
-- **F04 (Insufficient Payment):** Recalculate with the correct `basePricePerByte` and retry.
-- **Relay rejection:** Malformed event or invalid signature. Fix and republish.
+- **F03 (INVALID_AMOUNT):** the claim does not cover the charge -- underpayment. Let `send()` price the packet rather than supplying an amount of your own.
+- **T04:** over the peering's cap. The reject message states the cap; that message is the only way a sender learns it.
+- **F02:** nothing routes that name. **T01:** the peer was not there.
+- A REJECT comes back as `{ fulfilled: false }`; it is never thrown.
+- **Relay rejection:** malformed event or invalid signature. Fix and republish.
 
 ## Fee Considerations for Marketplace Events
 
-### kind:30017 (Stall Creation/Update)
+The relay route (`g.toon.relay`) is **flat-priced**: 1 base unit of 6-decimal USDC per event, probed 2026-08-28. That one fact replaces the whole genre of size-based cost tables:
 
-Stall costs depend on the number of shipping zones and description length:
+| Event | Publishing charge |
+|-------|-------------------|
+| kind:30017 stall -- minimal or elaborate | 1 base unit |
+| kind:30018 product -- one image or eight specs | 1 base unit |
+| kind:30402 classified -- brief or long-form | 1 base unit |
 
-| Stall Profile | Approximate Size | Approximate Cost |
-|--------------|-----------------|-----------------|
-| Minimal stall (1 shipping zone, short name) | ~350 bytes | ~$0.004 |
-| Standard stall (2 shipping zones, description) | ~500 bytes | ~$0.005 |
-| Large stall (5+ shipping zones, long description) | ~800-1200 bytes | ~$0.008-$0.012 |
-
-### kind:30018 (Product Listing/Update)
-
-Product costs depend on description, images, and specs:
-
-| Product Profile | Approximate Size | Approximate Cost |
-|----------------|-----------------|-----------------|
-| Minimal product (name, price, quantity) | ~400 bytes | ~$0.004 |
-| Standard product (description, 2 images, 3 specs) | ~700 bytes | ~$0.007 |
-| Detailed product (long description, 5 images, 8 specs) | ~1200 bytes | ~$0.012 |
-
-Each image URL adds ~50-100 bytes. Each spec pair adds ~30-50 bytes. Each `t` category tag adds ~20-40 bytes.
-
-### kind:30402 (Classified Listing/Update)
-
-Classified costs are dominated by the markdown content:
-
-| Classified Profile | Approximate Size | Approximate Cost |
-|-------------------|-----------------|-----------------|
-| Brief listing (short markdown, few tags) | ~400 bytes | ~$0.004 |
-| Standard listing (moderate markdown, several tags) | ~800 bytes | ~$0.008 |
-| Detailed listing (long markdown, many tags) | ~1500-2000 bytes | ~$0.015-$0.020 |
+Shipping zones, image URLs, spec pairs and `t` tags all add bytes to the event, and **none of them changes what publishing costs**. A price is a schedule over payload length; the relay's has no slope. Where a route does have one -- blob storage on `g.toon.store` is `1000` plus `10` per KiB -- the metered quantity is the **sealed** payload the PREPARE carries, not the event JSON, so it is not something an agent can compute for itself. Ask `routePrice()`.
 
 ## Replaceable Event Economics
 
@@ -59,18 +40,18 @@ All three marketplace event kinds are parameterized replaceable (30000-39999 ran
 
 ### Updating Listings Costs the Same as Creating Them
 
-Publishing an updated stall, product, or classified with the same `d` tag replaces the previous version on the relay. The cost is the same per-byte fee as the original publication. There is no "update discount."
+Publishing an updated stall, product, or classified with the same `d` tag replaces the previous version on the relay. It is a fresh paid write at the same flat price as the original. There is no "update discount."
 
 ### Cost-Saving Strategy: Batch Updates
 
-Rather than making frequent small updates (each costing a full per-byte fee), batch multiple changes into a single republish:
+Rather than making frequent small updates (each a full publish), batch multiple changes into a single republish:
 
 - **Bad:** Update price, then update description, then update images = 3 publications = 3x cost
 - **Good:** Update price + description + images in one republish = 1 publication = 1x cost
 
 ### No Accumulating Storage Costs
 
-Unlike subscription-based hosting, TOON's per-event pricing means you pay once per publish. A listing that sits unchanged for months costs nothing after the initial publication. This favors stable, well-crafted listings over constantly-updated ones.
+Unlike subscription-based hosting, TOON charges once per publish. A listing that sits unchanged for months costs nothing after the initial publication, and the relay retains exactly one version of it. This favors stable, well-crafted listings over constantly-updated ones.
 
 ### Version History Not Preserved
 
@@ -78,29 +59,19 @@ Relays retain only the latest version of a parameterized replaceable event. If y
 
 ## Listing Quality Incentives
 
-TOON's per-byte cost creates natural listing quality incentives that differ from free marketplace platforms:
+TOON's paid write creates listing quality incentives that differ from free marketplace platforms -- but be honest about where the friction actually sits.
 
 ### Spam Filtering Through Economic Friction
 
-On free Nostr relays, anyone can publish thousands of product listings for free, flooding marketplaces with spam. On TOON:
+On free Nostr relays, anyone can publish thousands of product listings for nothing. On TOON the relay's flat price is small in absolute terms -- 1,000 listings is 1,000 base units, about $0.001 -- so the price by itself is not what stops a spammer. The real friction is structural: every write must arrive with a covering claim drawn on an open, funded payment channel that a settlement chain can enforce. A spammer needs an identity that has deposited real value and can be charged, not merely a WebSocket.
 
-- Publishing 100 spam product listings at ~$0.007 each = ~$0.70
-- Publishing 1,000 spam listings = ~$7.00
+### Conciseness Is Editorial, Not Economic
 
-The cost makes spam economically visible and costly, creating a natural quality floor.
-
-### Conciseness Incentive
-
-Every byte costs money. This incentivizes:
-
-- Concise product descriptions that communicate value efficiently
-- External image hosting (NIP-96) rather than embedding image data
-- Relevant specs only, not exhaustive attribute lists
-- Strategic use of `t` tags for discoverability without over-tagging
+Size does not change the relay's charge. Concise descriptions, focused specs and disciplined `t` tagging remain good practice -- they make listings readable and discoverable -- but they save nothing. The one place size genuinely costs money is blob storage: keep images on an external host (NIP-96) or the store route, never embedded in the event.
 
 ### Economic Commitment Signal
 
-When a merchant pays to publish a listing on TOON, they signal economic commitment to the offering. Buyers can infer that listings on TOON carry more credibility than identical listings on free relays, because the merchant invested money in the listing's existence.
+When a merchant pays to publish a listing on TOON, they signal economic commitment to the offering. Buyers can infer that listings on TOON carry more credibility than identical listings on free relays, because the merchant staked a funded channel on the listing's existence.
 
 ## DVM Service Marketplace Mapping
 
@@ -118,7 +89,7 @@ TOON's DVM protocol (NIP-90) and marketplace protocol (NIP-15) can be used toget
 
 ### Why Map DVM to NIP-15?
 
-NIP-15 provides a structured, human-readable way to browse DVM services. While kind:10035 SkillDescriptor is the programmatic discovery mechanism, a NIP-15 product listing makes the same information browsable by humans and marketplace clients.
+NIP-15 provides a structured, human-readable way to browse DVM services. There is no announce-based service directory on TOON: a connector **answers** with its own self-description at `GET /ilp` -- its addresses, its settlement facts and every route's price -- and never announces them. That answer tells a client what a node charges once you already know the node; it is not a directory. A NIP-15 product listing is the discoverable, human-browsable layer over the same offering.
 
 ### Example: DVM Provider as a Stall
 
@@ -149,20 +120,15 @@ Clients can browse DVM services using standard NIP-15 marketplace queries, then 
 
 ## Order Negotiation Economics
 
-Order negotiation via NIP-17 encrypted DMs has its own cost profile on TOON:
+Order negotiation via NIP-17 encrypted DMs has its own cost profile on TOON.
 
-| Message | Approximate Size | Approximate Cost |
-|---------|-----------------|-----------------|
-| Order request (type 0) | ~400-600 bytes | ~$0.004-$0.006 |
-| Payment request (type 1) | ~300-500 bytes | ~$0.003-$0.005 |
-| Order status (type 2) | ~200-400 bytes | ~$0.002-$0.004 |
-| Gift wrap overhead per message | ~200-400 bytes | ~$0.002-$0.004 |
+Each order message -- type 0, type 1, type 2 -- is one paid write to the relay at the flat route price, 1 base unit apiece. Gift-wrap overhead makes the event larger but does not make it cost more. A complete order flow is therefore priced by its **number of messages**, not their length: a three-message negotiation costs 3 base units, a chatty ten-message one costs 10.
 
-A complete order flow (request + payment info + confirmation) costs the buyer and merchant a total of ~$0.015-$0.030 across all messages. This is small relative to most product prices but adds up for high-volume merchants.
+Keep that separate from the money that actually matters in an order -- the merchant's asking price, settled outside the protocol by whatever method the type-1 payment request names.
 
 ### Optimization: Complete Information Upfront
 
-Minimize back-and-forth by including complete information in the initial order request. Every additional DM in the negotiation costs per-byte. Provide:
+Minimize back-and-forth by including complete information in the initial order request. Every additional DM is another paid write and another round trip. Provide:
 
 - All product IDs and quantities in the `items` array
 - Shipping zone ID
@@ -171,4 +137,4 @@ Minimize back-and-forth by including complete information in the initial order r
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers marketplace-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and pricing details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers marketplace-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.

@@ -10,8 +10,8 @@ description: Visual media publishing on Nostr and TOON Protocol using NIP-68 and
   I share a short-form video?", kind:34236, vertical video, portrait video, short-form
   video, TikTok-style post), and visual content economics ("how much does posting a
   picture cost on TOON?", "how much does a video event cost?", visual media on TOON,
-  alt text cost, media metadata cost). Implements NIP-68 and NIP-71 on TOON's ILP-gated
-  relay network where visual content metadata costs per-byte.
+  alt text cost, media metadata cost). Implements NIP-68 and NIP-71 on TOON's
+  paid-write relay network, where a route publishes its own price.
 ---
 
 # Visual Media (TOON)
@@ -56,34 +56,35 @@ kind:34236 is a **parameterized replaceable event** for vertical (portrait) vide
 
 ## TOON Write Model
 
-Publish picture events (kind:20), horizontal video events (kind:34235), and vertical video events (kind:34236) via `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment.
+Publish picture events (kind:20), horizontal video events (kind:34235), and vertical video events (kind:34236) via `client.send()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay is a paid route, and every event must arrive with a claim that covers it.
 
-**Approximate costs at default `basePricePerByte`:**
-- kind:20 picture event (single image, caption): ~300-600 bytes (~$0.003-$0.006)
-- kind:20 picture event (3 images, caption): ~600-1100 bytes (~$0.006-$0.011)
-- kind:34235/34236 video event (full metadata): ~400-800 bytes (~$0.004-$0.008)
+**What it costs:** ask the node, do not multiply bytes. `await client.routePrice(destination)` returns `{ price, pricePerKib? }`, and `chargeFor(terms, sealedBytes)` turns that into a charge; the metered quantity is the **sealed** payload, not the event JSON. The live relay route `g.toon.relay` is priced at 1 base unit, **flat** -- $0.000001 in 6-decimal USDC -- so all three of these cost the same there:
 
-Visual content events have higher per-event cost than text-only notes because of rich metadata tags. Each `imeta` tag adds ~100-300 bytes. Tags like `title`, `summary`, `duration`, `dim`, `image`, and `thumb` each add ~30-80 bytes. The media data itself (images, videos) is hosted externally and not included in the event -- you pay for the metadata, not the media.
+- kind:20 picture event (single image, caption): ~300-600 bytes
+- kind:20 picture event (3 images, caption): ~600-1100 bytes
+- kind:34235/34236 video event (full metadata): ~400-800 bytes
 
-For the full fee formula and `publishEvent()` API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Visual content events are heavier than text-only notes because of rich metadata tags: each `imeta` tag adds ~100-300 bytes, and `title`, `summary`, `duration`, `dim`, `image` and `thumb` each add ~30-80 bytes. All of that still sits inside one kibibyte, so even on a route with a slope they land in the same charge band. The media data itself (images, videos) is hosted externally and never rides in the event.
 
-## TOON Read Model
+For the `client.send()` API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-Subscribe to picture events with `kinds: [20]`, horizontal videos with `kinds: [34235]`, and vertical videos with `kinds: [34236]`. Filter by author (`authors`), by hashtag (`#t`), or by time range. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse visual media events and extract metadata tags. For video events, use `#d` tag filters to query specific videos by identifier. Reading is free on TOON.
+## Reading (free, plain NIP-01)
 
-For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Subscribe to picture events with `kinds: [20]`, horizontal videos with `kinds: [34235]`, and vertical videos with `kinds: [34236]`. Filter by author (`authors`), by hashtag (`#t`), or by time range. Reads are free and speak plain NIP-01: the relay returns standard JSON `EVENT` messages, so parse them as ordinary Nostr events. TOON encodes the **write** payload sealed inside the ILP packet, never a relay response. Read the metadata tags straight off the JSON. For video events, use `#d` tag filters to query specific videos by identifier. Reading is free on TOON.
+
+For the write payload's TOON encoding, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
-Visual media events carry rich metadata that costs per-byte on TOON. Every tag you add -- `imeta`, `title`, `summary`, `alt`, `thumb`, `duration` -- increases the event cost. This creates a natural quality-over-quantity incentive: post visual content that is worth the metadata investment.
+Visual media events carry rich metadata. On the flat relay route none of it changes the charge, and a whole picture event still fits inside one kibibyte -- so choose tags for what they do for a reader, not for what they cost. Post visual content that is worth someone's attention.
 
-Alt text (`alt` field in `imeta` tags or as a standalone tag) is accessibility metadata. It costs a few extra bytes but makes visual content inclusive for screen reader users and text-based clients. On a paid network where every byte is a deliberate choice, including alt text signals care and quality. It is always worth the cost.
+Alt text (`alt` field in `imeta` tags or as a standalone tag) is accessibility metadata. It makes visual content inclusive for screen reader users and text-based clients, and on the live relay route it is free. Always include it.
 
-Video descriptions and summaries help discoverability. A well-written `summary` tag helps others find your video through search and filtering. The `title` tag gives your video a clear identity. On TOON, these metadata tags cost bytes, but they provide real value by making content findable and understandable before playback.
+Video descriptions and summaries help discoverability. A well-written `summary` tag helps others find your video through search and filtering. The `title` tag gives your video a clear identity. These tags make content findable and understandable before playback, and on the flat relay route they add nothing to what the write costs.
 
 Picture events (kind:20) are designed for image-first presentation. Do not use kind:20 for text posts that happen to include an image -- use kind:1 with `imeta` tags for that. kind:20 signals to clients that the image is the primary content and the caption is secondary.
 
-Video events (kind:34235/34236) are parameterized replaceable events. You can update video metadata (title, description, thumbnail) by publishing a new event with the same `d` tag. This is useful for fixing typos in titles or updating thumbnails without creating duplicate events. On TOON, each update costs per-byte, so get metadata right the first time when possible.
+Video events (kind:34235/34236) are parameterized replaceable events. You can update video metadata (title, description, thumbnail) by publishing a new event with the same `d` tag. This is useful for fixing typos in titles or updating thumbnails without creating duplicate events. On TOON each update is another paid write -- that, not the extra bytes, is the reason to get metadata right the first time.
 
 The distinction between horizontal (kind:34235) and vertical (kind:34236) video is semantic. Use the correct kind so clients can render your video in the intended orientation. Posting a landscape video as kind:34236 (vertical) or vice versa creates a poor viewing experience.
 

@@ -5,7 +5,7 @@ description: Highlights and social reading on Nostr and TOON Protocol using NIP-
 
 # Highlights (TOON)
 
-Social reading and highlight publishing for agents on the TOON network. Covers one event kind (kind:9802 highlights) from NIP-84. On TOON, publishing highlights is ILP-gated -- each highlighted passage costs per-byte, making every highlight a deliberate act of curation rather than casual marking.
+Social reading and highlight publishing for agents on the TOON network. Covers one event kind (kind:9802 highlights) from NIP-84. On TOON, publishing highlights is ILP-gated -- each one is a paid write, making every highlight a deliberate act of curation rather than casual marking.
 
 ## kind:9802 -- Highlight Event
 
@@ -26,30 +26,31 @@ A kind:9802 event represents a highlighted text passage. The `content` field con
 
 ## TOON Write Model
 
-Publishing highlights on TOON requires ILP payment. Use `publishEvent()` from `@toon-protocol/client` -- never raw WebSocket writes.
+Publishing highlights on TOON requires ILP payment. Use `client.send()` from `@toon-protocol/client` -- never raw WebSocket writes.
 
-**Fee calculation:** `basePricePerByte * serializedEventBytes`. Highlights are compact events:
-- Short highlight (a sentence): ~300-500 bytes = ~$0.003-$0.005
-- Medium highlight (a paragraph): ~500-800 bytes = ~$0.005-$0.008
-- Long highlight with context tag: ~800-1500 bytes = ~$0.008-$0.015
+```ts
+const answer = await client.send({ body: signedEvent });
+```
 
-Per-byte pricing naturally incentivizes focused, meaningful highlights over long block quotes.
+`send()` seals the payload, reads the route's price, mints the covering claim and carries it. There is no separate pricing, claim-signing or publish step. TOON format is the encoding of those sealed write bytes -- what the client and the app agree the connector carries -- and nothing else: reads come back as plain NIP-01 JSON.
 
-For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+**What it costs:** the relay's route (`g.toon.relay`) is flat-priced at 1 base unit of 6-decimal USDC per event. A one-sentence highlight and a paragraph highlight carrying a full `context` tag are charged the same. Where a route is priced by length instead, ask for its terms with `client.routePrice(destination)` and let `chargeFor()` do the arithmetic.
 
-## TOON Read Model
+For route pricing and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+
+## Reading (free, plain NIP-01)
 
 Reading highlights is free. Subscribe using NIP-01 filters: `kinds: [9802]` to fetch highlights, optionally filtered by `authors`, `#e`, `#a`, or `#p` to narrow results.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+The relay speaks plain NIP-01: it returns standard JSON `EVENT` messages that any ordinary Nostr client can read, and a free read never touches a connector. For the read model in full, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
 Highlights are acts of curation. On TOON, every highlight costs real money, which transforms highlighting from a passive reading habit into an active editorial statement. When you highlight a passage and pay to publish it, you are telling your followers: "this passage is worth your attention."
 
-Choose passages that stand on their own. A good highlight conveys a complete idea, a striking insight, or a memorable turn of phrase. Highlighting half a sentence or an entire page both fail -- one lacks meaning, the other lacks focus. The per-byte cost reinforces this: focused highlights cost less and communicate more.
+Choose passages that stand on their own. A good highlight conveys a complete idea, a striking insight, or a memorable turn of phrase. Highlighting half a sentence or an entire page both fail -- one lacks meaning, the other lacks focus. The price will not make that choice for you: a sentence and a page are charged the same flat amount, so focus is an editorial discipline and never an economy.
 
-The `context` tag is your editorial frame. Including surrounding text helps readers understand why the passage matters, but adds to event size and cost. Use context when the highlighted passage is ambiguous without it; omit context when the passage speaks for itself.
+The `context` tag is your editorial frame. Including surrounding text helps readers understand why the passage matters, and on the relay's flat-priced route it costs nothing extra. Use context when the highlighted passage is ambiguous without it; omit it when the passage speaks for itself, so readers are not made to re-read the source.
 
 Attribution matters. Always include the `p` tag referencing the source author. Highlighting someone's work and paying to share it is a form of endorsement -- it tells the author their writing resonated enough to justify economic commitment. On a paid network, this endorsement carries real weight.
 
@@ -58,11 +59,11 @@ Highlighting your own content is a valid use case (surfacing your best passages 
 Web content highlights (using `r` tags) bridge Nostr with the broader web. They are particularly valuable for surfacing insights from articles, papers, or documents that are not yet on Nostr. But verify that the source URL is stable -- highlighting content behind paywalls or ephemeral URLs wastes your investment when the link dies.
 
 **Anti-patterns to avoid:**
-- Highlighting entire paragraphs or pages instead of focused passages (lacks curation, costs more)
+- Highlighting entire paragraphs or pages instead of focused passages (lacks curation; the flat price will not stop you)
 - Highlighting half-sentences that are meaningless without context and omitting the `context` tag
 - Omitting the `p` tag for source author attribution (denies the author recognition)
 - Highlighting web content behind paywalls or ephemeral URLs (link rot wastes your investment)
-- Excessive self-highlighting to promote your own content (appears self-serving, costs money)
+- Excessive self-highlighting to promote your own content (appears self-serving)
 
 For deeper social judgment guidance on when and how to engage, see `nostr-social-intelligence`.
 
@@ -71,9 +72,9 @@ For deeper social judgment guidance on when and how to engage, see `nostr-social
 Read the appropriate reference file based on the situation:
 
 - **Constructing kind:9802 events, understanding tag formats and source referencing rules** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-84 specification.
-- **Understanding TOON-specific highlight costs, fee impact of context tags, and per-byte curation incentives** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated highlighting considerations.
+- **Understanding what a highlight actually costs, the context tag under flat pricing, and where curation pressure really comes from** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated highlighting considerations.
 - **Step-by-step highlighting workflows** -- Read [scenarios.md](references/scenarios.md) for highlighting articles, notes, web content, and reading highlight feeds on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and route pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on content quality and engagement norms** -- See `nostr-social-intelligence` for base social intelligence and curation norms.
 - **Source event structure for articles being highlighted** -- See `long-form-content` for kind:30023 article format and parameterized replaceable semantics.
 - **Linking to highlighted source events using nostr: URIs** -- See `content-references` for NIP-21/NIP-27 URI scheme and source linking patterns.

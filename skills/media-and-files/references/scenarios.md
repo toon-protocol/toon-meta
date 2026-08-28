@@ -1,12 +1,12 @@
 # Media and Files Usage Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common media operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation, the publishEvent API, and media economics. These scenarios bridge the gap between knowing the NIP-92/NIP-94/NIP-73 tag formats (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common media operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like the route's charge for publishing, the `client.send()` API, and media economics. These scenarios bridge the gap between knowing the NIP-92/NIP-94/NIP-73 tag formats (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Attaching Media to a Kind:1 Note (NIP-92 `imeta`)
 
 **When:** An agent wants to share a note that includes an image or other media attachment.
 
-**Why this matters:** Adding `imeta` tags to a note provides structured metadata about media URLs in the content. On TOON, each `imeta` tag adds approximately 100-300 bytes to the event, increasing the per-byte cost.
+**Why this matters:** Adding `imeta` tags to a note provides structured metadata about media URLs in the content. On TOON the relay route is flat-priced, so the tags make the event larger without making it cost more.
 
 ### Steps
 
@@ -28,21 +28,19 @@
 
 4. **Sign the event** using your Nostr private key.
 
-5. **Calculate the fee.** A kind:1 note with one `imeta` tag is approximately 400-700 bytes (~$0.004-$0.007 at default `basePricePerByte`).
-
-6. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+5. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it -- no separate pricing or claim step. Cost: 1 base unit of 6-decimal USDC, flat.
 
 ### Considerations
 
-- Include `alt` text for accessibility. It adds a few bytes but makes the content inclusive.
+- Include `alt` text for accessibility. It adds bytes to the event and nothing to the charge.
 - The `x` (SHA-256 hash) field enables content verification -- include it when integrity matters.
-- On TOON, adding `imeta` tags to a note roughly doubles its cost compared to a text-only note. Include media metadata only when it adds genuine value.
+- An `imeta`-laden note costs exactly what a text-only note costs on the relay. Include media metadata when it adds value to the reader, not when it fits a budget.
 
 ## Scenario 2: Creating a File Metadata Event (kind:1063)
 
 **When:** An agent wants to catalog or announce a file hosted elsewhere as a standalone metadata event.
 
-**Why this matters:** kind:1063 creates a discoverable, searchable record of a file. Other users can find it by querying for file metadata. On TOON, the metadata event is small (300-800 bytes), making it an economical way to catalog files.
+**Why this matters:** kind:1063 creates a discoverable, searchable record of a file. Other users can find it by querying for file metadata. On TOON the metadata event is one flat-priced relay write, whatever the size of the file it describes -- an economical way to catalog files.
 
 ### Steps
 
@@ -69,15 +67,13 @@
 
 5. **Sign the event** using your Nostr private key.
 
-6. **Calculate the fee.** A standard kind:1063 event is approximately 500-650 bytes (~$0.005-$0.007).
-
-7. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+6. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. Cost: 1 base unit, flat -- optional tags do not change it.
 
 ### Considerations
 
 - All three required tags (`url`, `m`, `x`) are mandatory. Omitting any will produce a non-compliant event.
 - The content field is a free-text description, not JSON. Write a clear, informative caption.
-- kind:1063 is a regular event (not replaceable). To update file metadata, publish a new kind:1063 event. Consider using NIP-09 deletion (kind:5) to mark the old event as deleted.
+- kind:1063 is a regular event (not replaceable). To update file metadata, publish a new kind:1063 event -- another paid write, at the same flat price. Consider using NIP-09 deletion (kind:5) to mark the old event as deleted.
 - The `ox` tag is useful when the server transforms files (resizing images, re-encoding video). Record the original hash in `ox` and the served hash in `x`.
 
 ## Scenario 3: Referencing Arweave Content (NIP-73 `i` Tag)
@@ -88,7 +84,7 @@
 
 ### Steps
 
-1. **Upload content to Arweave** (if not already uploaded). Use the Arweave DVM (kind:5094) or direct Arweave upload. Obtain the Arweave transaction ID.
+1. **Upload content to Arweave** (if not already uploaded). Use the Arweave DVM (kind:5094 request, kind:6094 result) or a direct Arweave upload. On TOON the DVM sits behind the store route (`g.toon.store` / `g.toon.relay.store`), which is the one route in this skill priced by payload size -- let `send()` price it, or ask `await client.routePrice('g.toon.store')` and pass the terms to `chargeFor()`. Obtain the Arweave transaction ID.
 
 2. **Construct the event.** This can be any event kind. For a kind:1063 file metadata event referencing an Arweave-hosted file:
    ```json
@@ -119,15 +115,13 @@
 
 4. **Sign the event** using your Nostr private key.
 
-5. **Calculate the fee.** The `i` tag adds approximately 70-90 bytes ($0.0007-$0.0009). Total event cost depends on the host event type.
-
-6. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+5. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The `i` tag adds bytes to the event and nothing to the charge: 1 base unit, flat, whatever the host event kind.
 
 ### Considerations
 
 - The `arweave:tx:` ID provides a permanent, immutable reference. The content at that Arweave TX ID cannot be altered or deleted.
 - Combining kind:1063 (`url` pointing to `https://arweave.net/<txid>`) with an `i` tag (`arweave:tx:<txid>`) provides both URL-based access and content-ID-based discovery.
-- The Arweave DVM (kind:5094 from Epic 8) handles the upload logistics. NIP-73's `i` tag handles the reference. They are complementary -- the DVM uploads, NIP-73 references.
+- The Arweave DVM (kind:5094 from Epic 8) handles the upload logistics, and is charged by size on the store route. NIP-73's `i` tag handles the reference, and is a flat-priced relay write. They are complementary -- the DVM uploads, NIP-73 references -- and they are billed on two different routes.
 - Anyone can search `#i: ["arweave:tx:<txid>"]` to discover all events referencing that Arweave content.
 
 ## Scenario 4: Querying File Metadata Events
@@ -145,7 +139,7 @@
    - By hash: `kinds: [1063], #x: ["abc123..."]`
    - By external content ID: `kinds: [1063], #i: ["arweave:tx:<txid>"]`
 
-2. **Decode TOON-format responses.** TOON relays return TOON-format strings, not standard JSON. Use the TOON decoder to parse file metadata events.
+2. **Read the responses as plain NIP-01 JSON.** The relay returns standard JSON `EVENT` messages -- `JSON.parse` the frame and take element 2. There is no decoder step: TOON encodes the *write* payload sealed inside the ILP packet, not what a relay serves on a read.
 
 3. **Extract metadata.** Parse the event's tags for `url`, `m`, `x`, `size`, `dim`, `alt`, and any `i` tags. Read the content field for the file description/caption.
 
@@ -165,7 +159,7 @@
 
 ### Steps
 
-1. **Receive and decode the event.** TOON relays return TOON-format strings. Use the TOON decoder to extract the event fields.
+1. **Receive the event.** The relay sends plain NIP-01 JSON, so `JSON.parse` the frame and take element 2 to get an ordinary `NostrEvent`. No TOON decoding is involved on a read.
 
 2. **Iterate the tag array.** Look for tags where the first element is `"imeta"`:
    ```

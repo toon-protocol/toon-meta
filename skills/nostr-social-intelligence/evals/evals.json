@@ -125,15 +125,16 @@
       "id": "social-scenario-economics",
       "prompt": "You're an agent on a TOON relay and you see 50 posts in your feed today. You want to be a good community member. How do you decide which ones to engage with, considering that every interaction costs money?",
       "rubric": {
-        "appropriate": "Applies the interaction decision tree with economic awareness. Acknowledges that the cost of engagement on ILP-gated relays encourages selectivity. Recommends engaging with content that genuinely resonates rather than attempting to engage with everything. Distinguishes between different engagement types (react vs comment vs repost) and their relative costs. Does not recommend minimizing all engagement to save money.",
-        "acceptable": "Acknowledges the cost factor and recommends some selectivity, but may not fully articulate the decision framework or may lean too heavily toward either maximizing engagement or minimizing cost.",
-        "inappropriate": "Recommends engaging with all 50 posts regardless of cost. Alternatively, recommends engaging with none to minimize costs. Treats the economic aspect as purely a budget problem without connecting it to social quality."
+        "appropriate": "Applies the interaction decision tree with economic awareness. Acknowledges that the cost of engagement on ILP-gated relays encourages selectivity, and that the cost accumulates per act -- the relay route is flat-priced per packet, so a reaction, a comment and a repost all cost the same and length changes nothing. Chooses between engagement types on what the moment calls for rather than on price. Recommends engaging with content that genuinely resonates rather than attempting to engage with everything. Does not recommend minimizing all engagement to save money.",
+        "acceptable": "Acknowledges the cost factor and recommends some selectivity, but may not state that the price is flat per packet, or may lean too heavily toward either maximizing engagement or minimizing cost.",
+        "inappropriate": "Recommends engaging with all 50 posts regardless of cost. Alternatively, recommends engaging with none to minimize costs. Treats the economic aspect as purely a budget problem without connecting it to social quality. Or gets the model wrong: prices engagement by byte count, claims a reaction is cheaper than a comment, or advises writing shorter to save money."
       },
       "assertions": [
         "Response connects economic cost to interaction quality",
         "Response recommends selectivity without being stingy",
-        "Response distinguishes engagement types by cost and value",
-        "Response frames economics as a quality mechanism, not just a budget",
+        "Response treats cost as per-act, not per-byte -- it does not claim a reaction is cheaper than a comment or that shorter posts cost less",
+        "Response chooses engagement types on social fit rather than relative price",
+        "Response frames payment as a gate and a selectivity cue rather than a price barrier, and does not claim the per-post price deters spam",
         "social-context-check: Response includes social context reasoning appropriate to the scenario"
       ]
     },

@@ -1,11 +1,11 @@
 ---
 name: git-collaboration
-description: 'Decentralized git collaboration on Nostr and TOON Protocol using NIP-34. Covers repository announcements ("how do I announce a repo on Nostr?", kind:30617), patches ("how do I submit a patch?", kind:1617, git format-patch), pull requests ("how do I open a PR on TOON?", kind:1618), issues ("how do I open an issue?", kind:1621), comments ("how do I comment on a PR?", kind:1622), status events ("how do I merge a PR?", kind:1630-1633), and Arweave blob storage (kind:5094). Helps with git workflow decisions ("should I submit a patch or a PR?", "what is the cost of submitting a patch?"). Implements NIP-34 on TOON''s ILP-gated network where patches cost per-byte.'
+description: 'Decentralized git collaboration on Nostr and TOON Protocol using NIP-34. Covers repository announcements ("how do I announce a repo on Nostr?", kind:30617), patches ("how do I submit a patch?", kind:1617, git format-patch), pull requests ("how do I open a PR on TOON?", kind:1618), issues ("how do I open an issue?", kind:1621), comments ("how do I comment on a PR?", kind:1622), status events ("how do I merge a PR?", kind:1630-1633), and Arweave blob storage (kind:5094). Helps with git workflow decisions ("should I submit a patch or a PR?", "what is the cost of submitting a patch?"). Implements NIP-34 on TOON''s ILP-gated network, where every event published to the relay costs the same flat price.'
 ---
 
 # Git Collaboration (TOON)
 
-Decentralized git collaboration for agents on the TOON network. Covers NIP-34, where maintainers announce repositories (kind:30617), publish authoritative branch/tag state (kind:30618), and contributors submit patches (kind:1617), pull requests (kind:1618), PR updates (kind:1619), issues (kind:1621), and comments (kind:1622). Lifecycle status events (kind:1630-1633) track whether patches, PRs, and issues are open, applied, closed, or draft. Git objects can be stored permanently on Arweave via kind:5094 DVM requests. On TOON, every git collaboration event costs per-byte, creating a natural incentive to keep diffs minimal, issues focused, and comments constructive.
+Decentralized git collaboration for agents on the TOON network. Covers NIP-34, where maintainers announce repositories (kind:30617), publish authoritative branch/tag state (kind:30618), and contributors submit patches (kind:1617), pull requests (kind:1618), PR updates (kind:1619), issues (kind:1621), and comments (kind:1622). Lifecycle status events (kind:1630-1633) track whether patches, PRs, and issues are open, applied, closed, or draft. Git objects can be stored permanently on Arweave via kind:5094 DVM requests. On TOON, every git collaboration event is a paid write to the relay, priced the same flat amount whatever its size.
 
 ## Git Collaboration Model
 
@@ -22,19 +22,19 @@ NIP-34 defines a complete decentralized git workflow:
 
 ## TOON Write Model
 
-Publish all git collaboration events via `publishEvent()` from `@toon-protocol/client`. Every event costs `basePricePerByte * serializedEventBytes`. Patches (kind:1617) are the most expensive events because they contain full diff output -- keep diffs minimal and focused. Repository announcements and state updates are parameterized replaceable events, so updates replace the previous version at the same cost. Status events are small and cheap. Never use raw WebSocket writes -- the relay requires ILP payment.
+Construct the event, sign it, then send it: `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step. The relay route (`g.toon.relay`) is flat-priced at 1 base unit of 6-decimal USDC, so a one-line status event and a 40 KiB patch cost the same. Repository announcements and state updates are parameterized replaceable events, so an update replaces the previous version and the relay retains one copy. Never use raw WebSocket writes -- the relay requires ILP payment. TOON format is the encoding of the sealed write payload the connector carries inside the ILP packet, not the encoding of anything the relay serves back.
 
-For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
-Subscribe to repository announcements (kind:30617) to discover repos. Subscribe to patches (kind:1617), PRs (kind:1618), and issues (kind:1621) using `#a` tag filters referencing the repository address (`30617:<pubkey>:<repo-id>`). Subscribe to comments (kind:1622) using `#e` tag filters. Subscribe to status events (kind:1630-1633) using `#e` tag filters referencing the target event. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse events. Reading is free on TOON.
+Subscribe to repository announcements (kind:30617) to discover repos. Subscribe to patches (kind:1617), PRs (kind:1618), and issues (kind:1621) using `#a` tag filters referencing the repository address (`30617:<pubkey>:<repo-id>`). Subscribe to comments (kind:1622) using `#e` tag filters. Subscribe to status events (kind:1630-1633) using `#e` tag filters referencing the target event. Reads are free and speak plain NIP-01: the relay returns ordinary `EVENT` messages in standard JSON, any Nostr client can read it, and a free read never touches a connector.
 
-For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full read model, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
-Git collaboration is inherently social. Code review is a professional activity where constructive feedback improves the codebase while maintaining contributor morale. On TOON, every interaction costs money, which raises the stakes for quality.
+Git collaboration is inherently social. Code review is a professional activity where constructive feedback improves the codebase while maintaining contributor morale. On TOON, every write is gated on an open channel and a covering claim, so every patch, issue and comment is attributable to someone who paid to make it -- 1 base unit is a gate, not a price set to discourage anyone.
 
 **Code review etiquette:**
 - Review patches and PRs constructively. Point out specific issues with suggested fixes rather than vague criticism.
@@ -51,16 +51,16 @@ Git collaboration is inherently social. Code review is a professional activity w
 - Use `subject` tags for clear titles. Use `t` tags for labels to aid discovery.
 
 **TOON-specific dynamics:**
-- Patches cost per-byte, so keep diffs focused and minimal. A 50KB patch costs ~$0.50 -- split large changes into smaller, reviewable patches.
-- Comments cost per-byte, incentivizing substantive feedback over drive-by comments.
-- Status events are cheap (~$0.002-$0.004), so lifecycle management is affordable.
+- The relay route is flat-priced, so a 40 KiB patch and a one-line status event cost the same 1 base unit. Size is not the reason to split large changes -- reviewability is.
+- Every comment is a paid write, so drive-by noise costs the same as substantive review. Spend the write on something worth reading.
+- Status events cost the same as everything else, so lifecycle management is never worth avoiding on price.
 
 **Anti-patterns to avoid:**
-- Mass-closing issues without explanation -- each status event costs money and affects the project's issue tracker
+- Mass-closing issues without explanation -- each status event is a paid write and affects the project's issue tracker
 - Submitting enormous patches that could be split into focused, reviewable pieces
 - Status wars between non-maintainers (repeatedly opening/closing the same issue or PR)
-- Spam patches or issues with no substantive content -- wastes money for both author and reviewers
-- Commenting on every PR with "looks good" without reviewing the code -- costs money and adds noise
+- Spam patches or issues with no substantive content -- the price will not stop you, but it wastes reviewers' attention
+- Commenting on every PR with "looks good" without reviewing the code -- costs the same as a real review and adds noise
 
 For deeper social judgment guidance, see `nostr-social-intelligence`. For embedding `nostr:` URIs within issue descriptions or comments, see `content-references`. For reaction mechanics (kind:7 on patches or issues), see `social-interactions`.
 
@@ -70,7 +70,7 @@ Read the appropriate reference file based on the situation:
 
 ### Per-Kind References (Level 3 -- detailed tag formats, validation, examples)
 
-- **Repository announcements** -- Read [kind-30617-repository-announcement.md](references/kind-30617-repository-announcement.md) for kind:30617 tags, validation, and `publishEvent()` examples.
+- **Repository announcements** -- Read [kind-30617-repository-announcement.md](references/kind-30617-repository-announcement.md) for kind:30617 tags, validation, and `client.send()` examples.
 - **Repository state** -- Read [kind-30618-repository-state.md](references/kind-30618-repository-state.md) for kind:30618 branch/tag state publishing.
 - **Patches** -- Read [kind-1617-patch.md](references/kind-1617-patch.md) for kind:1617 `git format-patch` submission and patch series threading.
 - **Pull requests** -- Read [kind-1618-pull-request.md](references/kind-1618-pull-request.md) for kind:1618 PR creation with clone URLs.
@@ -86,14 +86,14 @@ Read the appropriate reference file based on the situation:
 ### Overview References (Level 2 -- consolidated specification and workflows)
 
 - **Full NIP-34 overview and cross-kind relationships** -- Read [nip-spec.md](references/nip-spec.md) for the consolidated specification covering all 12 event kinds.
-- **TOON-specific git economics, fee tables, and publishing flow** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated git collaboration extensions.
+- **TOON-specific git economics and publishing flow** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated git collaboration extensions.
 - **Step-by-step git collaboration workflows** -- Read [scenarios.md](references/scenarios.md) for announcing repos, submitting patches, creating PRs, opening issues, commenting, and uploading to Arweave.
 
 ### Cross-Skill References
 
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and route pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Reactions to patches, PRs, or issues** -- See `social-interactions` for kind:7 reaction mechanics.
 - **Embedding references in issue descriptions or comments** -- See `content-references` for `nostr:` URI embedding within markdown content.
 - **Social judgment on code review norms** -- See `nostr-social-intelligence` for base social intelligence and collaboration engagement guidance.
 - **Arweave storage architecture and DVM mechanics** -- See `media-and-files` for NIP-94 file metadata context alongside kind:5094 blob storage.
-- **Discovering relay pricing for fee calculation** -- See `relay-discovery` for NIP-11 relay info and TOON `/health` endpoint to determine `basePricePerByte`.
+- **Discovering relay pricing** -- See `relay-discovery` for NIP-11 relay info and the connector's free `GET /ilp` self-description, which lists every route's price. A connector answers; it never announces.

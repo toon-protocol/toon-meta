@@ -1,31 +1,33 @@
 # TOON Extensions for Content References
 
-> **Why this reference exists:** Content references on TOON differ from vanilla Nostr because every byte costs money. This file covers the TOON-specific considerations for embedding `nostr:` URIs in events -- byte costs, fee impact, the `publishEvent()` integration, and TOON-format parsing for extracting references from received events.
+> **Why this reference exists:** Content references on TOON travel inside paid writes. This file covers the TOON-specific considerations for embedding `nostr:` URIs in events -- reference sizes, what the relay actually charges for them, the `client.send()` integration, and extracting references from the plain NIP-01 JSON a read returns.
 
 ## Publishing Events with References on TOON
 
-All event publishing on TOON goes through `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment for every event. References are embedded within the `content` field of events published through this API.
+All event publishing on TOON goes through `client.send()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment for every event. References are embedded within the `content` field of events published through this API.
 
 ### Publishing Flow for Events Containing References
 
 1. **Construct the event:** Build the event (kind:1, kind:30023, kind:1111, etc.) with `nostr:` URIs embedded in the `content` field
 2. **Add corresponding tags:** For each inline `nostr:` URI, add the matching `p`, `e`, or `a` tag to the event's tags array
 3. **Sign the event:** Use nostr-tools or equivalent to sign with the agent's private key
-4. **Discover pricing:** Check the destination relay's `basePricePerByte` from kind:10032 peer info or the `/health` endpoint
-5. **Calculate fee:** `basePricePerByte * serializedEventBytes` -- note that references and their tags both contribute to the byte count
-6. **Sign a balance proof:** `client.signBalanceProof(channelId, amount)`
-7. **Publish:** `client.publishEvent(signedEvent, { destination, claim })`
+4. **Send it:** `await client.send({ body: signedEvent })`
+
+`send()` seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step, and an agent never builds an ILP packet. TOON format is the encoding of those sealed write bytes, and only of those: reads come back as ordinary NIP-01 JSON. A REJECT comes back as `{ fulfilled: false }`; it is never thrown.
+
+Where you genuinely need the price in advance, ask the node: `await client.routePrice(destination)` returns `{ price, pricePerKib? }`, and `chargeFor(terms, sealedBytes)` from `@toon-protocol/client` turns those terms into a charge. A node's free, unauthenticated `GET /ilp` self-description carries the same facts for every route -- a connector answers, it never announces.
 
 ### Error Handling
 
-- **F04 (Insufficient Payment):** The calculated amount was too low. Events with many references can be larger than expected due to cumulative URI and tag bytes. Recalculate with actual serialized size.
+- **F03 (INVALID_AMOUNT):** the claim did not cover the charge. This is underpayment, and it is what you get for computing a charge from the event JSON you wrote: the metered quantity is the **sealed** payload, which is larger by the envelope and the wrap. Let `send()` price the packet.
+- **T04:** the amount is over the peering's cap. The reject message states the cap -- that is the only way a sender learns it.
 - **Relay rejection:** Malformed event (invalid signature, missing required tags for inline URIs). Fix and republish.
 
-## Byte Cost of Content References
+## Size of Content References
 
-Each `nostr:` URI and its corresponding tag add bytes to the event, directly increasing the ILP fee.
+Each `nostr:` URI and its corresponding tag add bytes to the event. On the relay's flat-priced route they do not add to the charge; they matter when a reference-heavy event is stored on a length-priced route such as `g.toon.store`.
 
-### URI Byte Costs
+### URI Sizes
 
 | URI Type | Approximate URI Size | Notes |
 |----------|---------------------|-------|
@@ -35,7 +37,7 @@ Each `nostr:` URI and its corresponding tag add bytes to the event, directly inc
 | `nostr:nevent1...` | ~80-140 bytes | TLV relay hints + author pubkey + kind |
 | `nostr:naddr1...` | ~80-150 bytes | TLV kind + pubkey + d-tag + relay hints (longest) |
 
-### Tag Byte Costs
+### Tag Sizes
 
 Each inline URI requires a corresponding tag in the event's tags array:
 
@@ -45,33 +47,33 @@ Each inline URI requires a corresponding tag in the event's tags array:
 | `["e", "<hex-event-id>"]` | ~70 bytes | 64-char hex event ID + JSON overhead |
 | `["a", "<kind>:<pubkey>:<d-tag>"]` | ~100-150 bytes | Compound identifier, size varies with d-tag length |
 
-### Combined Reference Cost Examples
+### Combined Reference Sizes
 
-| Scenario | URI Bytes | Tag Bytes | Total Added | Cost at 10n/byte |
-|----------|-----------|-----------|-------------|------------------|
-| 1 user mention (npub1) | ~69 | ~70 | ~139 | ~$0.001 |
-| 1 note embed (nevent1) | ~100 | ~70 | ~170 | ~$0.002 |
-| 1 article link (naddr1) | ~120 | ~130 | ~250 | ~$0.003 |
-| 3 user mentions | ~200 | ~210 | ~410 | ~$0.004 |
-| Short note + 3 mentions | ~350 content + ~410 refs | | ~760 total | ~$0.008 |
-| Article + 5 references | ~5000 content + ~800 refs | | ~5800 total | ~$0.058 |
+| Scenario | URI Bytes | Tag Bytes | Total Added |
+|----------|-----------|-----------|-------------|
+| 1 user mention (npub1) | ~69 | ~70 | ~139 |
+| 1 note embed (nevent1) | ~100 | ~70 | ~170 |
+| 1 article link (naddr1) | ~120 | ~130 | ~250 |
+| 3 user mentions | ~200 | ~210 | ~410 |
+| Short note + 3 mentions | ~350 content + ~410 refs | | ~760 total |
+| Article + 5 references | ~5000 content + ~800 refs | | ~5800 total |
 
-### Cost Impact Analysis
+### What This Costs
 
-A plain short note (kind:1) with no references costs approximately $0.003-$0.005. Adding 3 inline mentions roughly doubles the cost. For long-form articles (kind:30023), the reference overhead is proportionally smaller because the article content dominates the byte count.
+Nothing extra. `g.toon.relay` is flat-priced at 1 base unit of 6-decimal USDC per event: a bare note, a note with three mentions and a 5 KB article with five references are all charged the same 1. Size only reaches the bill on a length-priced route -- `g.toon.store` charges `1000 + 10 per KiB` of sealed payload -- and there the quantity is the sealed bytes, not the table above.
 
-The TLV entities (`nprofile1`, `nevent1`, `naddr1`) cost more bytes than simple entities (`npub1`, `note1`) but provide relay hints that improve reference resolution. This is a meaningful tradeoff: spend more bytes now for better link reliability later.
+The TLV entities (`nprofile1`, `nevent1`, `naddr1`) are larger than the simple entities (`npub1`, `note1`) but provide relay hints that improve reference resolution. On the relay this used to be a tradeoff and is no longer one: the hints are free, so prefer them.
 
-## TOON-Format Parsing for Reference Extraction
+## Extracting References from Received Events
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. To extract references from received events:
+Reads are free and speak plain NIP-01: the relay returns standard JSON `EVENT` messages, and a free read never touches a connector. To extract references from received events:
 
-1. **Decode the TOON-format response** using the TOON decoder to extract the event's `content` field
+1. **Take the event's `content` field** straight from the JSON the relay returned -- there is nothing to decode first
 2. **Scan content for `nostr:` URIs** using string matching (look for `nostr:` prefix followed by bech32 characters)
 3. **Decode each bech32 entity** per NIP-19 to extract the underlying data (pubkeys, event IDs, relay hints, etc.)
 4. **Cross-reference with event tags** to verify tag correspondence -- each URI should have a matching tag
 
-### Reference Resolution from TOON Events
+### Reference Resolution from Received Events
 
 After extracting and decoding references:
 - **npub1 / nprofile1:** Fetch the profile (kind:0) using the decoded pubkey. Use relay hints from nprofile1 for cross-relay resolution.
@@ -82,4 +84,4 @@ Reading referenced events from TOON relays is free (no ILP payment for subscript
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers reference-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and route-pricing details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers reference-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.

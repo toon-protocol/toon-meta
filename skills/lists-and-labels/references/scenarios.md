@@ -1,6 +1,6 @@
 # Lists and Labels Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common list curation and labeling operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation, the replaceable event cost trap, and the publishEvent API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common list curation and labeling operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like the flat-priced relay route, replaceable-event semantics, and `client.send()`. Reads are free and plain NIP-01; only the write is paid. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Adding Someone to Your Mute List
 
@@ -10,7 +10,7 @@
 
 ### Steps
 
-1. **Fetch your current mute list.** Subscribe with `{ "kinds": [10000], "authors": ["<your-pubkey>"] }`. Decode the TOON-format response. Decrypt the `.content` field with NIP-44 using your own key pair to get private entries. Parse the `.tags` array for public entries.
+1. **Fetch your current mute list.** Subscribe with `{ "kinds": [10000], "authors": ["<your-pubkey>"] }`. The read is free and comes back as plain NIP-01 JSON. Decrypt the `.content` field with NIP-44 using your own key pair to get private entries. Parse the `.tags` array for public entries.
 
 2. **Decide: public or private mute.** Private muting (encrypted in `.content`) is almost always preferred -- it keeps your conflicts confidential. Public muting (in `.tags`) broadcasts who you have muted, which can create social tension.
 
@@ -22,22 +22,21 @@
 
 6. **Sign the event.**
 
-7. **Calculate the fee.** The cost is based on the ENTIRE updated list size, not just the new entry. A list with 50 entries might be ~3,500 bytes = ~$0.035 per update.
-
-8. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+7. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the relay route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step.
 
 ### Considerations
 
-- Batch muting: If you need to mute multiple users, add all of them in a single update rather than publishing separately for each one. Each publish costs the full list size.
+- The relay's route is flat: 1 base unit whether the list holds one entry or five hundred. The whole list is republished on every change, but that does not make the publish cost more.
+- Batch muting: adding several people in one update turns N publishes into one. It is tidier, and it saves N-1 base units -- far too little to justify delaying a mute you want applied now.
 - The muted party is never notified. Muting is invisible to the target.
-- To un-mute, fetch the current list, remove the entry, and republish. This also costs the full list size.
-- Consider the cost trap: a large mute list (200+ entries) costs ~$0.14 per update. Periodically audit and prune stale entries.
+- To un-mute, fetch the current list, remove the entry, and republish. Same flat price.
+- Prune stale entries for hygiene and client-side performance, not for savings.
 
 ## Scenario 2: Organizing Contacts into Follow Sets
 
 **When:** An agent wants to categorize contacts into named groups (e.g., "developers", "artists", "news-sources").
 
-**Why this matters:** Follow sets (kind:30000) enable structured relationship management beyond the flat follow list (kind:3). On TOON, each category is a separate parameterized replaceable event, so updating one category does not incur costs for other categories.
+**Why this matters:** Follow sets (kind:30000) enable structured relationship management beyond the flat follow list (kind:3). On TOON, each category is a separate parameterized replaceable event with its own `d`-tagged slot, so updating one category neither touches nor re-charges the others.
 
 ### Steps
 
@@ -47,32 +46,30 @@
 
 3. **Sign the event.**
 
-4. **Calculate the fee.** A category with 20 people is ~1,600 bytes = ~$0.016.
-
-5. **Publish via `publishEvent()`.**
+4. **Send it via `client.send({ body: signedEvent })`.** One flat base unit, whatever the category's size.
 
 ### Adding to an Existing Category
 
 1. **Fetch the current set.** Subscribe with `{ "kinds": [30000], "authors": ["<your-pubkey>"], "#d": ["developers"] }`.
 
-2. **Decode and decrypt.** Parse public tags and decrypt private entries from `.content`.
+2. **Read and decrypt.** Parse public tags from the plain NIP-01 response and decrypt private entries from `.content`.
 
 3. **Append the new `p` tag.** Preserve all existing entries.
 
-4. **Re-encrypt, sign, calculate fee, and publish.**
+4. **Re-encrypt, sign, and send.**
 
 ### Considerations
 
 - Each category is independent. Updating "developers" does not touch or re-cost "artists".
 - For the flat follow list (kind:3), see the social-identity skill. Follow sets complement but do not replace the follow list.
-- Large categories (100+ people) cost ~$0.075 per update. Consider splitting into sub-categories if a set grows very large.
+- A 100-person category costs exactly what a 5-person one does. Split a set into sub-categories for organization, never to reduce the price.
 - Public follow set entries signal your social graph openly. Use private entries for categories where membership should be confidential.
 
 ## Scenario 3: Curating a Bookmark Collection
 
 **When:** An agent wants to save and organize references to valuable content.
 
-**Why this matters:** Bookmark sets (kind:30003) enable structured knowledge management. On TOON, the cost of maintaining bookmark collections scales with size, incentivizing deliberate curation over hoarding.
+**Why this matters:** Bookmark sets (kind:30003) enable structured knowledge management. On TOON, a collection costs one flat base unit each time you republish it, however many bookmarks it holds -- so what to curate for is usefulness, not weight.
 
 ### Steps
 
@@ -80,7 +77,7 @@
 
 2. **Construct the kind:30003 event.** Add the `d` tag. Add reference tags: `e` for specific events, `a` for replaceable events (articles), `t` for hashtags, `r` for URLs. Add metadata tags (`title`, `description`) for discoverability.
 
-3. **Sign, calculate fee, and publish via `publishEvent()`.**
+3. **Sign and send via `client.send({ body: signedEvent })`.**
 
 ### Example: Bookmarking an Article
 
@@ -98,14 +95,14 @@ Tags:
 - Use `a` tags for articles (kind:30023) and other replaceable events -- they remain valid even when the event is updated.
 - Use `e` tags for specific event snapshots (notes, reactions).
 - Use `r` tags for external URLs that are not Nostr events.
-- A collection with 50 bookmarks costs ~$0.05 per update. Consider whether every bookmark justifies the ongoing maintenance cost.
+- A 50-bookmark collection costs the same to republish as a 5-bookmark one. The reason to prune is that an unfocused collection stops being useful, not that it is expensive.
 - Private bookmarks (encrypted in `.content`) keep your reading interests confidential.
 
 ## Scenario 4: Labeling Content with Structured Metadata
 
 **When:** An agent wants to apply a structured label to a piece of content for categorization or quality assessment.
 
-**Why this matters:** Labels (kind:1985) create a shared metadata layer across Nostr. On TOON, each label costs money, which discourages frivolous labeling and increases the signal quality of the label namespace.
+**Why this matters:** Labels (kind:1985) create a shared metadata layer across Nostr. On TOON each label is its own gated write -- it needs an open channel and a signed claim, so nobody labels anonymously -- but at 1 base unit the price deters nothing. What keeps a namespace worth reading is the labeller's judgement.
 
 ### Steps
 
@@ -126,9 +123,7 @@ Tags:
 
 5. **Sign the event.**
 
-6. **Calculate the fee.** Typically ~200-300 bytes = ~$0.002-$0.003. Labels are cheap.
-
-7. **Publish via `publishEvent()`.**
+6. **Send it via `client.send({ body: signedEvent })`.** One flat base unit, like any other publish to the relay.
 
 ### Example: Labeling an Article as Educational
 
@@ -143,15 +138,15 @@ Content: "This article provides a clear introduction to ILP routing."
 ### Considerations
 
 - Labels are permanent (non-replaceable). Once published, a label exists independently. To retract, publish a kind:5 deletion event.
-- Multiple namespaces in one label event are allowed and cost-efficient (one event, multiple classifications).
+- Multiple namespaces in one label event are allowed and cost-efficient: one publish, one payment, several classifications.
 - The `ugc` namespace is a good default for informal labeling. Use ISO or reverse domain notation for interoperable, structured taxonomies.
-- Avoid over-labeling. Each label costs money. Label content that genuinely benefits from structured metadata.
+- Avoid over-labeling. Labels are regular events, so each is a separate permanent event and a separate payment that nothing later replaces.
 
 ## Scenario 5: Self-Labeling Content at Creation Time
 
 **When:** An agent is publishing a new event (note, article, etc.) and wants to attach structured labels to it at creation time rather than publishing a separate kind:1985 label event.
 
-**Why this matters:** Self-labeling is more cost-efficient than publishing a separate label event. Instead of paying for two events (the content + the label), the labels are included as tags in the original event at marginal byte cost.
+**Why this matters:** Self-labeling is more cost-efficient than publishing a separate label event -- not because the tags are small, but because it is one publish instead of two. Extra tags on an event you were publishing anyway are free on the relay's flat route.
 
 ### Steps
 
@@ -166,7 +161,7 @@ Content: "This article provides a clear introduction to ILP routing."
      ["l", "en", "ISO-639-1"]
    ```
 
-3. **Publish the event normally via `publishEvent()`.** The label tags add ~50-100 bytes to the event, costing ~$0.0005-$0.001 extra.
+3. **Send the event normally via `client.send({ body: signedEvent })`.** The label tags cost nothing extra: the relay's route is flat, so the labelled event and the unlabelled one are priced identically.
 
 ### Considerations
 
@@ -179,7 +174,7 @@ Content: "This article provides a clear introduction to ILP routing."
 
 **When:** An agent needs to decide which list entries should be visible to others and which should remain encrypted.
 
-**Why this matters:** The public/private dual-entry model is a core feature of NIP-51 lists. On TOON, this decision affects both privacy and byte cost (encryption adds overhead).
+**Why this matters:** The public/private dual-entry model is a core feature of NIP-51 lists. On TOON the decision is purely about privacy and about what relays can filter on -- encryption adds bytes, but the relay's flat route does not charge for them.
 
 ### Decision Framework
 
@@ -204,15 +199,15 @@ Content: "This article provides a clear introduction to ILP routing."
 
 ### Considerations
 
-- Encrypted content adds byte overhead (~50-100 bytes for NIP-44 wrapper). For very small lists, the encryption overhead is proportionally significant.
-- Switching an entry from public to private (or vice versa) requires republishing the entire list -- same cost as any other update.
+- Encrypted content adds byte overhead (~50-100 bytes for the NIP-44 wrapper). That changes the event's size, not its price.
+- Switching an entry from public to private (or vice versa) requires republishing the entire list -- same flat cost as any other update.
 - Relays cannot filter on private entries. If you privately mute someone, the relay still delivers their content to you -- client-side filtering handles it.
 
 ## Scenario 7: Batch-Updating a Growing List
 
-**When:** An agent has accumulated multiple changes to make to a list and wants to minimize cost.
+**When:** An agent has accumulated multiple changes to make to a list.
 
-**Why this matters:** The replaceable event cost trap means every list update costs the full serialized size. Batching changes into a single update saves money.
+**Why this matters:** Every list update is a full republish of the list, and the relay retains only the newest version. Batching turns several publishes into one -- a real but very small saving, because the price is flat per publish and does not grow with the list.
 
 ### Steps
 
@@ -222,18 +217,22 @@ Content: "This article provides a clear introduction to ILP routing."
 
 3. **Apply all changes at once.** Add new entries, remove stale ones, update metadata -- all in one operation.
 
-4. **Publish a single updated event.** One ILP payment for all changes instead of one per change.
+4. **Send a single updated event.** One payment for all changes instead of one per change.
 
-### Cost Savings Example
+### What Batching Actually Saves
 
-A mute list with 100 entries (~7,000 bytes, ~$0.07 per update):
-- **Without batching:** 10 individual mutes = 10 publishes = ~$0.70
-- **With batching:** 1 publish with all 10 additions = ~$0.07
-- **Savings:** ~$0.63 (90% reduction)
+A mute list with 100 entries, adding 10 more:
+
+- **Without batching:** 10 publishes = 10 base units.
+- **With batching:** 1 publish = 1 base unit.
+- **Savings:** 9 base units of 6-decimal USDC -- nine millionths of a dollar.
+
+The list's size does not enter the arithmetic at all: the relay's route is flat, so the 110-entry publish costs exactly what a 1-entry publish costs.
 
 ### Considerations
 
-- Batching introduces a delay between intent and publication. For mute lists, consider whether immediate muting (at full cost) is worth the responsiveness vs batching (cheaper but delayed).
+- Batching introduces a delay between intent and publication. Given the size of the saving, responsiveness almost always wins -- mute someone the moment you decide to.
+- The genuine reasons to batch are fewer round trips and fewer replaced versions on the relay, not the bill.
 - For lists that rarely change (relay sets, interests), batching is less relevant since updates are infrequent.
 - Keep a local copy of your lists to avoid re-fetching on every update. Sync periodically to catch changes from other clients.
 
@@ -241,7 +240,7 @@ A mute list with 100 entries (~7,000 bytes, ~$0.07 per update):
 
 **When:** An agent wants to remove a list entirely or clear all its entries.
 
-**Why this matters:** Both deletion approaches cost money on TOON. Choose the appropriate method based on whether you want to remove the list or just empty it.
+**Why this matters:** Both deletion approaches are publishes, so both cost a write on TOON. Choose the appropriate method based on whether you want to remove the list or just empty it.
 
 ### Option A: NIP-09 Deletion (kind:5)
 
@@ -249,7 +248,7 @@ Publish a deletion event requesting the relay remove the list:
 
 1. **Construct a kind:5 event.** Add an `e` tag with the list event ID. Add a `k` tag with the list kind (e.g., "10000" for mute list).
 
-2. **Sign, calculate fee (~$0.002-$0.003), and publish.**
+2. **Sign and send via `client.send({ body: signedEvent })`.**
 
 3. **Note:** Relays SHOULD honor deletions but are not required to. The list may persist on some relays.
 
@@ -259,7 +258,7 @@ Publish a new version of the replaceable list with empty tags and content:
 
 1. **Construct a new event** with the same kind (and `d` tag for parameterized replaceable). Set `.tags` to empty (or just the `d` tag for sets). Set `.content` to empty string.
 
-2. **Sign, calculate fee (~$0.001-$0.002 for the minimal event), and publish.**
+2. **Sign and send via `client.send({ body: signedEvent })`.**
 
 3. **The relay replaces** the old version with the empty one. Effectively clears the list.
 
@@ -267,4 +266,4 @@ Publish a new version of the replaceable list with empty tags and content:
 
 - Option A (deletion) is a request; relays may ignore it. Option B (empty replaceable) is guaranteed to work for replaceable event kinds.
 - For parameterized replaceable events (kind:30000, 30003), Option B requires including the `d` tag to target the correct slot.
-- Both options cost money. Budget for cleanup operations.
+- Both options are paid writes, at the same flat price as any other publish.

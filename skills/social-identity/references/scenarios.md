@@ -1,6 +1,6 @@
 # Identity Management Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common identity operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation and the publishEvent API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common identity operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like what a write actually costs and the `client.send()` API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Creating Your First Profile
 
@@ -16,11 +16,11 @@
 
 3. **Sign the event** using your Nostr private key via `nostr-tools` or equivalent.
 
-4. **Calculate the fee.** Estimate event size (typically 200-500 bytes for a first profile). At default `basePricePerByte` of 10n, cost is $0.002-$0.005.
+4. **Know what it costs, and do not work it out yourself.** The live relay route `g.toon.relay` is priced at 1 base unit, flat -- $0.000001 in 6-decimal USDC -- so a 200-byte profile and a 500-byte one cost the same. For another route, ask: `await client.routePrice(destination)`, then `chargeFor(terms, sealedBytes)`. The metered quantity is the sealed payload, not the event JSON.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`. The client handles TOON encoding, ILP payment, and relay communication.
+5. **Send it with `await client.send({ body: signedEvent })`** from `@toon-protocol/client`. `send()` seals the payload, prices it, mints the covering claim and carries it.
 
-6. **Verify publication.** Subscribe to your own kind:0 events to confirm the relay accepted and stored your profile. Remember that relay responses use TOON-format strings.
+6. **Verify publication.** Subscribe to your own kind:0 events to confirm the relay accepted and stored your profile. Remember that reads are free and the response is plain NIP-01 JSON -- no decoding step.
 
 ### Considerations
 
@@ -36,7 +36,7 @@
 
 ### Steps
 
-1. **Fetch your current profile.** Subscribe with `kinds: [0], authors: [<your-pubkey>]` to get your latest kind:0. Parse the TOON-format response.
+1. **Fetch your current profile.** Subscribe with `kinds: [0], authors: [<your-pubkey>]` to get your latest kind:0. Parse the plain NIP-01 JSON response.
 
 2. **Parse existing fields.** Extract the current `content` JSON and all existing tags (especially `i` tags for NIP-39).
 
@@ -44,7 +44,7 @@
 
 4. **Construct and sign** the new kind:0 event with the merged content and tags.
 
-5. **Publish via `publishEvent()`** with the updated event.
+5. **Send it with `await client.send({ body: signedEvent })`** with the updated event.
 
 ### Considerations
 
@@ -60,7 +60,7 @@
 
 ### Adding a Follow
 
-1. **Fetch your current kind:3.** Subscribe with `kinds: [3], authors: [<your-pubkey>]`. Parse the TOON-format response.
+1. **Fetch your current kind:3.** Subscribe with `kinds: [3], authors: [<your-pubkey>]`. Parse the plain NIP-01 JSON response.
 
 2. **Extract existing p tags.** Build a list of all current follows from the `p` tags.
 
@@ -68,7 +68,7 @@
 
 4. **Construct and sign** the new kind:3 event with all p tags (existing + new).
 
-5. **Publish via `publishEvent()`**. Fee scales with total list size, not just the addition.
+5. **Send it with `await client.send({ body: signedEvent })`**. Fee scales with total list size, not just the addition.
 
 ### Removing a Follow
 
@@ -78,7 +78,7 @@
 
 3. **Construct and sign** the new kind:3 event with the remaining p tags.
 
-4. **Publish via `publishEvent()`**. Note: removing a follow still costs money because you are publishing the updated list.
+4. **Send it with `await client.send({ body: signedEvent })`**. Note: removing a follow still costs money because you are publishing the updated list.
 
 ### Considerations
 
@@ -113,7 +113,7 @@
 
 4. **Update your kind:0 profile.** Set the `nip05` field to your identifier (e.g., `alice@example.com`).
 
-5. **Publish the updated profile via `publishEvent()`.**
+5. **Publish the updated profile via `client.send()`.**
 
 6. **Test verification.** Use a Nostr client to check that your NIP-05 resolves correctly.
 
@@ -142,7 +142,7 @@
 
 5. **Keep all existing fields and tags.** Merge the new `i` tag with any existing `i` tags and other content.
 
-6. **Construct, sign, and publish via `publishEvent()`.**
+6. **Construct, sign, and send it with `await client.send({ body: signedEvent })`.**
 
 ### Adding Multiple External Identities
 

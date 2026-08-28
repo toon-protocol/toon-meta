@@ -64,7 +64,7 @@ The relay returns a JSON object with the following fields (all optional):
 - **`supported_nips`** -- Array of NIP numbers the relay supports. Always check this before assuming a relay supports specific event kinds or features.
 - **`payment_required`** -- Boolean. On TOON relays, this is always `true`. Clients must pay via ILP to publish events.
 - **`limitation`** -- Object describing relay constraints. `max_message_length` and `max_content_length` are important for sizing events.
-- **`fees`** -- Standard NIP-11 fee structure. TOON relays extend this with per-byte ILP pricing via the `/health` endpoint.
+- **`fees`** -- Standard NIP-11 fee structure. On TOON, a relay's actual write price is not here and not on the relay at all: it is on the fronting connector's self-description (`GET /ilp`).
 - **`retention`** -- Array of retention policy objects describing how long the relay stores events. Each object may specify `time` (seconds) and/or `count` limits, optionally filtered by `kinds`. Relays with limited retention may discard old events.
 - **`relay_countries`** -- Array of ISO 3166-1 alpha-2 country codes (e.g., `["US", "DE"]`) indicating where the relay operates. Useful for geographic relay selection and latency optimization.
 

@@ -18,16 +18,20 @@ license: MIT
 
 **Status: draft.** This documents how a Nostr `kind` selects a *render strategy* on the client, and how a renderer travels as data over the same network the events do.
 
-**Scope.** Render-side only. The route (`kind:10032`), capability/pricing (`kind:10035` beyond its `ui` tag), provider attestation, the paid-write invocation, and settlement are separate concerns specified elsewhere and deliberately excluded here. This doc touches `kind:10035` only for the `ui` tag that carries the renderer link.
+**Scope.** Render-side only. Routing, pricing, provider attestation, the paid-write invocation, and settlement are separate concerns, specified in the connector repo and deliberately excluded here. This doc touches the capability descriptor only for the `ui` tag that carries the renderer link.
 
-Kind numbers are **established** (in the TOON glossary) or **proposed** (suggested here, to ratify).
+> **The descriptor this draft was written against no longer exists.** `kind:10035` `SkillDescriptor` was removed along with the `kind:10032` announce (connector ADR 0046; ADR 0061 and ADR 0065 replaced the money model). A connector **answers** — `GET /ilp` returns its self-description with its addresses, settlement facts and every route's price — and it never announces. Nothing on the fleet publishes `kind:10035`, so **the `ui` tag currently has no carrier**. That is a real, unresolved gap in this draft, not a detail: see §6.
+
+Kind numbers are **proposed** (suggested here, to ratify) or **removed**.
 
 ## 0. Kind registry (render-scoped)
 
 | Kind | Status | Role in this doc |
 |---|---|---|
 | `31036` | **proposed** | Renderer: holds the mcp-ui `UIResource` HTML for one target kind |
-| `10035` | established | Only its `ui` tag is in scope — the kind→renderer link |
+| `10035` | **removed** (ADR 0046) | *Was* the carrier of the `ui` tag — the kind→renderer link. Nothing publishes it; a replacement carrier is unspecified (§6) |
+
+Neither kind is implemented on the fleet. `kind:10035` survives only in the legacy `@toon-protocol/core` package, and `kind:31036` render support is not in the published client. Treat this whole document as a design draft, not as a description of running code.
 
 ## 1. Thesis — a kind is an open component-catalog key
 
@@ -52,7 +56,7 @@ Trust runs **opposite** to flexibility: the native branch is safest and least ex
 
 This is the Nostr analog of the MCP Apps `_meta.ui.resourceUri` link. In MCP Apps a tool carries `_meta.ui.resourceUri`, the host fetches the resource via `resources/read`, and renders it with `AppRenderer`. Here a **kind** plays the role of the tool, a `["ui", ...]` tag is the link, and a `31036` event is the resource.
 
-The link tag (its only in-scope appearance on `kind:10035`):
+The link tag. This draft placed it on `kind:10035`, which has since been removed — **the carrier is now an open question (§6)**, though the tag's shape is independent of whichever event ends up holding it:
 
 ```
 ["ui", <kind>, <ui-uri>, <renderer-coord>]
@@ -140,6 +144,7 @@ The branch feeding that surface (branch 3/4) is by definition untrusted code, so
 
 ## 6. Open questions (render-scoped)
 
+- **The `ui` tag has no carrier.** This is the blocking one. The link from a kind to its renderer coordinate was specified as a tag on `kind:10035` `SkillDescriptor`, and that event was removed with the announce (ADR 0046). A connector answers `GET /ilp` and never announces, so the link cannot simply move onto the connector's self-description: mapping a Nostr kind to a renderer is application knowledge, and the connector never parses a payload or dispatches on an event kind. The realistic homes are a new addressable Nostr event published by the provider, a tag on the renderer event itself (making `31036` self-describing and discoverable by `k`-tag filter, removing the indirection entirely), or a **controller** outside the connector that indexes providers. Pick one before anything here can be built; do not assume `kind:10035` will come back.
 - **Renderer swap.** `kind:31036` is addressable-replaceable, so the same coordinate can later serve different HTML. For high-trust kinds, allowlist by **event id / content hash**, not by coordinate — if the coordinate resolves to a new id, refuse and fall back to the client's native form (branch 1). Low-stakes kinds can render any provider widget sandboxed.
 - **Many providers, one kind.** If several providers publish renderers for the same kind, the `ui` tag is per-descriptor — the client needs a selection/ranking policy (which is where a provider-trust signal would enter, out of scope here).
 - **A2UI catalog versioning.** Branch 2 is fixed to the A2UI "Basic" catalog (§3.2), but versions will drift. Decide whether the client's supported catalog version is itself discoverable (an event/advertisement) or simply assumed, and the fallback when a renderer's `["a2ui", <version>]` exceeds what the client supports (render a subset, or fall through to branch 1/native).

@@ -1,6 +1,6 @@
 # Git Identity Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for verifying identity, checking authorization, mapping pubkeys to git authors, and managing maintainer lists. Each scenario shows the complete flow from the question ("can this pubkey merge?") to the answer, including the TOON relay interactions and cost implications.
+> **Why this reference exists:** Agents need step-by-step workflows for verifying identity, checking authorization, mapping pubkeys to git authors, and managing maintainer lists. Each scenario shows the complete flow from the question ("can this pubkey merge?") to the answer, including the TOON relay interactions and price implications.
 
 ## Scenario 1: Verify Maintainer Status
 
@@ -59,7 +59,7 @@ Zero. Maintainer verification is purely a read operation.
        ['applied-as-commits', '<commit-sha-1>', '<commit-sha-2>']
      ]
    };
-   await client.publishEvent(mergeEvent);
+   await client.send({ body: signedMergeEvent });
    ```
 
 4. **If not authorized, do not publish.** Instead, consider:
@@ -70,8 +70,8 @@ Zero. Maintainer verification is purely a read operation.
 ### Cost
 
 - Checking permission: free (read).
-- Publishing the merge event (if authorized): ~$0.002-$0.004 at default pricing (status events are small).
-- Publishing an unauthorized merge event: same cost, but wasted -- clients will ignore it.
+- Publishing the merge event (if authorized): 1 base unit of 6-decimal USDC -- the `g.toon.relay` route is flat-priced, so the `applied-as-commits` tags do not add to it.
+- Publishing an unauthorized merge event: same price, but wasted -- clients will ignore it.
 
 ## Scenario 3: Map Nostr Pubkey to Git Author
 
@@ -101,13 +101,13 @@ Zero. Maintainer verification is purely a read operation.
 ### Cost
 
 - Resolving the display name: free (read from relay).
-- The git author mapping itself has no direct cost -- it affects the commit object size, which affects the kind:5094 upload cost.
+- The git author mapping itself has no direct cost. It changes the commit object's size, which matters only for the store route (`g.toon.store` / `g.toon.relay.store`, priced `1000 + 10 per KiB` of sealed payload) that carries the object as a blob.
 
 ## Scenario 4: Manage the Maintainer List
 
 **When:** A repository creator needs to add or remove maintainers from their repository.
 
-**Why this matters:** The maintainer list controls who can merge patches and close issues. Adding an untrusted maintainer is a security risk. On TOON, each maintainer list update costs per-byte because the entire kind:30617 event must be republished.
+**Why this matters:** The maintainer list controls who can merge patches and close issues. Adding an untrusted maintainer is a security risk. On TOON, each maintainer list update is a paid write because the entire kind:30617 event must be republished.
 
 ### Steps
 
@@ -128,7 +128,7 @@ Zero. Maintainer verification is purely a read operation.
    ["maintainers", "<existing-pk-1>", "<existing-pk-2>", "<new-pk>"]
    ```
 
-4. **Publish via `publishEvent()`.** The new event replaces the old one because kind:30617 is parameterized replaceable (same `d` tag + same author = replacement).
+4. **Sign it and `await client.send({ body: updatedAnnouncement })`.** The new event replaces the old one because kind:30617 is parameterized replaceable (same `d` tag + same author = replacement).
 
 #### Removing a Maintainer
 
@@ -136,13 +136,13 @@ Zero. Maintainer verification is purely a read operation.
 
 2. **Construct the updated event.** Remove the target pubkey from the `maintainers` tag. If the `maintainers` tag would be empty, omit it entirely (the creator is always implicitly a maintainer).
 
-3. **Publish via `publishEvent()`.** The removal is immediate -- the old event is replaced.
+3. **Sign it and `await client.send({ body: updatedAnnouncement })`.** The removal is immediate -- the old event is replaced.
 
 **Important:** Only the repository creator (the pubkey that originally signed the kind:30617) can update the maintainer list. A maintainer who is not the creator cannot modify the list.
 
 ### Cost
 
-Each maintainer list update costs `basePricePerByte * serializedEventBytes`. A typical kind:30617 event is 500-2000 bytes, costing ~$0.005-$0.02 at default pricing. The cost is the same whether adding or removing -- the full event is republished.
+Each maintainer list update costs 1 base unit of 6-decimal USDC. The `g.toon.relay` route is flat-priced, so a fifty-maintainer announcement costs no more than a one-maintainer one, and adding costs the same as removing.
 
 ## Scenario 5: Validate a Status Event Chain
 

@@ -1,12 +1,12 @@
 # Marketplace Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common marketplace operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like per-byte costs, replaceable event economics, and the publishEvent API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common marketplace operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like the route's charge for publishing, replaceable event economics, and the `client.send()` API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Creating a Stall
 
 **When:** A merchant wants to set up a shop on TOON, defining their accepted currency and shipping options.
 
-**Why this matters:** A stall (kind:30017) is the prerequisite for listing products. Products reference their parent stall via `stall_id`. On TOON, creating a stall costs per-byte, so plan the shipping zones and description carefully before publishing.
+**Why this matters:** A stall (kind:30017) is the prerequisite for listing products. Products reference their parent stall via `stall_id`. On TOON, creating a stall is a paid write, so publish it once you know your shipping zones rather than iterating live.
 
 ### Steps
 
@@ -42,22 +42,20 @@
 
 6. **Sign the event.**
 
-7. **Calculate the fee.** A stall with one shipping zone and a short description is ~400-500 bytes. At default `basePricePerByte` of 10n, cost is approximately $0.004-$0.005.
-
-8. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+7. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it -- no separate pricing or claim step. The relay route is flat-priced, so a stall costs 1 base unit of 6-decimal USDC whatever its size.
 
 ### Considerations
 
 - The `d` tag value and the content JSON `id` field must match.
-- Keep the description concise -- every byte costs money on TOON.
-- Multiple shipping zones increase event size. Define only the zones you actually serve.
+- Length does not change the charge on the relay route. Write the description for the buyer.
+- Define only the shipping zones you actually serve -- a correctness matter, not a cost one.
 - As a parameterized replaceable event, you can update the stall later by republishing with the same `d` tag.
 
 ## Scenario 2: Listing a Product
 
 **When:** A merchant wants to list a product for sale within an existing stall.
 
-**Why this matters:** Products (kind:30018) are the core listings that buyers discover. On TOON, product events with many images, long descriptions, or extensive specs cost more per-byte. Keep listings informative but lean.
+**Why this matters:** Products (kind:30018) are the core listings that buyers discover. On TOON, publishing one is a paid write at the relay route's flat price -- images, long descriptions and extensive specs make the event bigger but not dearer.
 
 ### Steps
 
@@ -89,22 +87,20 @@
 
 6. **Sign the event.**
 
-7. **Calculate the fee.** A product with one image URL, short description, and two specs is ~500-700 bytes. Cost: ~$0.005-$0.007.
-
-8. **Publish via `publishEvent()`.**
+7. **Send it.** `await client.send({ body: signedEvent })`. Cost: 1 base unit, flat.
 
 ### Considerations
 
-- Host product images externally (NIP-96 file storage servers). Do not embed image data in the event -- it would be extremely expensive per-byte.
-- Keep `specs` focused on key product attributes. Exhaustive specs inflate the event size.
-- The `quantity` field is self-reported. Update it by republishing with the same `d` tag when inventory changes.
-- Use `t` tags strategically but sparingly -- each tag adds ~20-40 bytes.
+- Host product images externally (NIP-96 file storage servers). Do not embed image data in the event. Blob storage belongs on the store route (`g.toon.store`), which *is* priced by size.
+- Keep `specs` focused on key product attributes -- for the buyer's sake, not the bill's.
+- The `quantity` field is self-reported. Update it by republishing with the same `d` tag when inventory changes; each republish is another paid write.
+- Use `t` tags strategically. Extra tags do not raise the charge, but over-tagging dilutes discovery.
 
 ## Scenario 3: Creating a Classified Listing
 
 **When:** An agent wants to post a classified ad for a service, job, rental, or other non-product offering.
 
-**Why this matters:** Classified listings (kind:30402) use markdown content with structured tags. On TOON, the markdown body is the largest cost driver -- write concisely.
+**Why this matters:** Classified listings (kind:30402) use markdown content with structured tags. On TOON, publishing one is a paid write at the relay route's flat price -- the length of the markdown body does not change it.
 
 ### Steps
 
@@ -138,16 +134,14 @@
 
 5. **Sign the event.**
 
-6. **Calculate the fee.** A classified with moderate markdown content and several tags is ~600-1000 bytes. Cost: ~$0.006-$0.010.
-
-7. **Publish via `publishEvent()`.**
+6. **Send it.** `await client.send({ body: signedEvent })`. Cost: 1 base unit, flat.
 
 ### Considerations
 
 - Put structured data (price, location, title) in tags for machine readability. The markdown body is for human readers.
-- Use the `price` tag with three elements: amount, currency, frequency (e.g., `"hour"`, `"month"`, `"one-time"`).
+- The `price` tag is NIP-99 application data -- what you are asking for the work -- and has nothing to do with what the route charges to publish the listing. Use three elements: amount, currency, frequency (e.g., `"hour"`, `"month"`, `"one-time"`).
 - Set `published_at` to indicate freshness. Stale classifieds lose credibility.
-- Markdown formatting adds bytes. Use headings and lists but avoid excessive formatting.
+- Use headings and lists for readability; formatting costs nothing extra.
 
 ## Scenario 4: Discovering Listings
 
@@ -179,23 +173,23 @@
 
 5. **Search classifieds by location.** Currently requires fetching all classifieds and filtering client-side by the `location` tag, as most relays do not support location-based filtering.
 
-6. **Parse TOON-format responses.** TOON relays return TOON-format strings in EVENT messages, not JSON objects. Use the TOON decoder to parse each event, then parse the content field as JSON (for products/stalls) or markdown (for classifieds).
+6. **Read the events.** The relay answers reads in plain NIP-01: standard JSON `EVENT` messages, with no decoding step. Then parse the `content` field as JSON (for products/stalls) or read it as markdown (for classifieds).
 
 7. **Check product availability.** Parse the content JSON and verify `quantity > 0` before initiating an order.
 
 ### Considerations
 
 - All discovery queries are free reads on TOON.
-- TOON relays return TOON-format strings -- use the TOON decoder before parsing content.
+- Reads speak plain NIP-01 -- the relay returns standard JSON events, so `content` is the only thing left to parse. TOON is the encoding of the sealed *write* payload, not of what a relay serves on a read.
 - Products reference stalls via `stall_id` in the content JSON. To display a product with its stall context, fetch both the product and its parent stall.
 - Parameterized replaceable events (kind:30017, 30018, 30402) are deduplicated by pubkey + kind + `d` tag. The relay returns only the latest version.
-- Use NIP-50 search filters (if the relay supports them) for full-text search across listing content.
+- Do not rely on NIP-50 `search` filters: the fleet relay implements NIP-01 and NIP-34 only. Fetch by `kinds` and tag filters, then do any full-text matching client-side.
 
 ## Scenario 5: Initiating an Order
 
 **When:** A buyer wants to purchase a product from a merchant.
 
-**Why this matters:** Order negotiation uses NIP-17 encrypted direct messages. On TOON, each DM costs per-byte (~$0.004-$0.015), so the order conversation has a real cost. Keep messages structured and concise.
+**Why this matters:** Order negotiation uses NIP-17 encrypted direct messages. On TOON each DM is a paid write at the relay route's flat price, so the cost of a negotiation is its number of messages, not their length. Keep it structured and few.
 
 ### Steps
 
@@ -224,7 +218,7 @@
 
 4. **Send as an encrypted DM.** Construct a NIP-17 private DM (kind:14) to the merchant with the order JSON as content. See the `private-dms` skill for DM construction.
 
-5. **Publish the DM via `publishEvent()`.** Cost: ~$0.004-$0.008 for the gift-wrapped DM.
+5. **Send the DM.** `await client.send({ body: giftWrappedEvent })`. Cost: 1 base unit, flat -- gift-wrap overhead makes the event bigger but not dearer.
 
 6. **Wait for merchant response.** Monitor your DM inbox for a type 1 (payment request) or type 2 (fulfillment) message from the merchant.
 
@@ -233,7 +227,7 @@
 ### Considerations
 
 - Order messages use NIP-17 encryption -- third parties cannot see order details, payment info, or addresses.
-- Keep the order JSON structured. Unstructured messages are harder for merchants to process and cost the same per-byte.
+- Keep the order JSON structured. Unstructured messages are harder for merchants to process and cost exactly as much to send.
 - Include a `contact` field with at least your Nostr pubkey for follow-up communication.
 - There is no built-in escrow or dispute resolution. Trust is based on merchant reputation and NIP-05 verification.
-- Each message in the order conversation costs per-byte on TOON. Minimize back-and-forth by providing complete information upfront.
+- Each message in the order conversation is a separate paid write on TOON. Minimize back-and-forth by providing complete information upfront.

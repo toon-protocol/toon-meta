@@ -33,7 +33,7 @@ def extract_key_terms(assertion_text):
     # Extract technical terms (camelCase, snake_case, @-prefixed, dotted paths)
     technical = re.findall(
         r'@[\w/-]+(?:/[\w-]+)*'  # @toon-protocol/client
-        r'|\b[a-z]+[A-Z]\w+'    # publishEvent, basePricePerByte (word boundary)
+        r'|\b[a-z]+[A-Z]\w+'    # routePrice, chargeFor, pricePerKib (word boundary)
         r'|\b[A-Z][a-z]+[A-Z]\w+'  # WebSocket (PascalCase with inner caps)
         r'|\w+_\w+'             # snake_case
         r'|\b[A-Z]{2,}\b'      # TOON, EVENT, JSON (whole words only)
@@ -42,7 +42,7 @@ def extract_key_terms(assertion_text):
 
     # Extract domain-specific single keywords that are strong signal
     domain_keywords = re.findall(
-        r'\b(?:fee|cost|pricing|payment|format|compliance|assertion|grading|benchmark)\b',
+        r'\b(?:fee|price|cost|pricing|payment|format|compliance|assertion|grading|benchmark)\b',
         text, re.IGNORECASE
     )
     # Deduplicate while preserving order
@@ -56,6 +56,24 @@ def extract_key_terms(assertion_text):
     return exact_terms + technical + unique_domain
 
 
+# An assertion may be compound: one positive clause and one negative clause joined
+# by "and does not ..." / "but never ...". The canonical toon-read-check has this
+# shape. Split so both halves are graded, instead of the whole thing being read as
+# one positive claim (which lets the prohibited content through).
+COMPOUND_SPLIT = re.compile(
+    r',?\s+(?:and|but)\s+(?=(?:it\s+)?(?:does\s+NOT\b|does\s+not\b|never\b|no\s+longer\b))',
+    re.IGNORECASE,
+)
+
+
+def split_compound_assertion(assertion_text):
+    """Return (positive_clause, negative_clause) or None if not compound."""
+    parts = COMPOUND_SPLIT.split(assertion_text, maxsplit=1)
+    if len(parts) == 2 and parts[0].strip() and parts[1].strip():
+        return parts[0].strip(), parts[1].strip()
+    return None
+
+
 def is_negation_assertion(assertion_text):
     """Check if the assertion is checking for absence."""
     negation_patterns = [
@@ -64,12 +82,9 @@ def is_negation_assertion(assertion_text):
         r'Response should not\b',
         r'Response never\b',
         r'\bno bare\b',
-        r'does NOT use\b',
-        r'does NOT contain\b',
-        r'does NOT recommend\b',
-        r'does not use\b',
-        r'does not contain\b',
-        r'does not recommend\b',
+        r'\bdoes NOT\s+(?:use|contain|recommend|claim|state|assert|assume|invent|mention|suggest)\b',
+        r'\bdoes not\s+(?:use|contain|recommend|claim|state|assert|assume|invent|mention|suggest)\b',
+        r'^never\s+(?:use|contain|recommend|claim|state|assert|assume|invent|mention|suggest)\b',
     ]
     for pattern in negation_patterns:
         if re.search(pattern, assertion_text, re.IGNORECASE):
@@ -81,9 +96,9 @@ def extract_negation_target(assertion_text):
     """Extract what should NOT be present."""
     # Common patterns: "does NOT use X", "does not contain X"
     patterns = [
-        r'NOT\s+(?:use|contain|mention|recommend|suggest)\s+(.+?)(?:\.|$)',
-        r'does not\s+(?:use|contain|mention|recommend|suggest)\s+(.+?)(?:\.|$)',
-        r'never\s+(?:use|contain|mention|recommend|suggest)\s+(.+?)(?:\.|$)',
+        r'NOT\s+(?:use|contain|mention|recommend|suggest|claim|state|assert|assume|invent)\s+(.+?)(?:\.|$)',
+        r'does not\s+(?:use|contain|mention|recommend|suggest|claim|state|assert|assume|invent)\s+(.+?)(?:\.|$)',
+        r'never\s+(?:use|contain|mention|recommend|suggest|claim|state|assert|assume|invent)\s+(.+?)(?:\.|$)',
     ]
     for pattern in patterns:
         match = re.search(pattern, assertion_text, re.IGNORECASE)
@@ -115,8 +130,30 @@ def check_reasoning_indicators(response_text):
 
 
 def grade_assertion(assertion_text, response_text):
-    """Grade a single assertion against the response. Returns (passed, evidence)."""
+    """Grade a single assertion against the response. Returns (passed, evidence).
+
+    Assertion keys carry a prefix that is stripped before matching, so both
+    `toon-read-check:` (the read model: free, plain NIP-01, never TOON-encoded)
+    and `toon-format-check:` (accurate format assertions that are merely named
+    for the old scheme -- base64 overhead, hex conversion, event-kind
+    distinctions) grade identically.
+    """
     response_lower = response_text.lower()
+
+    # Handle compound assertions: grade the positive and negative halves separately.
+    compound = split_compound_assertion(assertion_text)
+    if compound and not is_negation_assertion(compound[0]):
+        positive, negative = compound
+        pos_passed, pos_evidence = grade_assertion(positive, response_text)
+        neg_passed, neg_evidence = grade_assertion('Response ' + negative, response_text)
+        if pos_passed and neg_passed:
+            return True, f"{pos_evidence} {neg_evidence}"
+        failed = []
+        if not pos_passed:
+            failed.append(pos_evidence)
+        if not neg_passed:
+            failed.append(neg_evidence)
+        return False, ' '.join(failed)
 
     # Handle negation assertions
     if is_negation_assertion(assertion_text):

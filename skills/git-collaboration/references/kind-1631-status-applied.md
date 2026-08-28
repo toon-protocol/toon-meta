@@ -59,6 +59,6 @@ Optional markdown explaining the merge or resolution.
 
 ## TOON Fee Estimate
 
-Approximate size: 250-400 bytes. Cost at default `basePricePerByte` (10n): ~$0.003-$0.004.
+The relay route (`g.toon.relay`) is flat-priced: **1 base unit** of 6-decimal USDC per event, whatever its size. Confirm with `await client.routePrice('g.toon.relay')` rather than assuming a figure.
 
-Status events are cheap. Lifecycle management is affordable.
+A merge status costs the same 1 base unit as the patch it applies. Lifecycle management is affordable.

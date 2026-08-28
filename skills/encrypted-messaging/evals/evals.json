@@ -84,17 +84,17 @@
   "output_evals": [
     {
       "id": "gift-wrap-dm-construction",
-      "prompt": "I want to send a private direct message to another user on TOON. The relay's basePricePerByte is 10 micro-USDC. Walk me through the full gift wrap flow and tell me the cost.",
-      "expected_output": "Construct a kind:14 inner event (rumor) with your real pubkey, real timestamp, message content, and p tag for recipient. Do not sign it. Create a kind:1060 seal by NIP-44 encrypting the inner event with your private key and recipient pubkey, sign with your real key, randomize created_at. Generate a fresh ephemeral keypair. Create a kind:1059 gift wrap by NIP-44 encrypting the seal with the ephemeral key and recipient pubkey, sign with ephemeral key, add p tag with recipient pubkey, randomize created_at. Publish via publishEvent(). Cost for a short message: ~400-700 bytes at 10n basePricePerByte = ~$0.004-$0.007.",
+      "prompt": "I want to send a private direct message to another user on TOON. Walk me through the full gift wrap flow and tell me what it costs.",
+      "expected_output": "Construct a kind:14 inner event (rumor) with your real pubkey, real timestamp, message content, and p tag for recipient. Do not sign it. Create a kind:1060 seal by NIP-44 encrypting the inner event with your private key and recipient pubkey, sign with your real key, randomize created_at. Generate a fresh ephemeral keypair. Create a kind:1059 gift wrap by NIP-44 encrypting the seal with the ephemeral key and recipient pubkey, sign with ephemeral key, add p tag with recipient pubkey, randomize created_at. Send it with client.send({ body: signedGiftWrap }) from @toon-protocol/client -- send() seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it, so there is no separate fee-calculation, claim-signing or publish step. Cost: the relay's route (g.toon.relay) is flat-priced at 1 base unit of 6-decimal USDC per event, so the ~400-700 byte gift wrap costs the same as a plaintext note of any length.",
       "rubric": {
-        "correct": "Describes the three-layer model: unsigned inner event (kind:14 rumor), kind:1060 seal (NIP-44 encrypted, signed by real author, randomized timestamp), kind:1059 gift wrap (NIP-44 encrypted with fresh ephemeral key, p tag for recipient, randomized timestamp). Publishes via publishEvent(). Calculates approximate fee: ~400-700 bytes * 10n = ~$0.004-$0.007. Mentions ephemeral key must be fresh per message. Does NOT use raw WebSocket writes.",
-        "acceptable": "Uses publishEvent() and describes the three-layer model correctly, but may not calculate exact fee or may not emphasize ephemeral key freshness.",
-        "incorrect": "Uses raw WebSocket patterns, omits payment, confuses the layer order, reuses ephemeral keys, or publishes the seal or inner event directly."
+        "correct": "Describes the three-layer model: unsigned inner event (kind:14 rumor), kind:1060 seal (NIP-44 encrypted, signed by real author, randomized timestamp), kind:1059 gift wrap (NIP-44 encrypted with fresh ephemeral key, p tag for recipient, randomized timestamp). Sends with client.send() and lets the client price the packet. States the relay route is flat, so encryption overhead does not change the price. Mentions ephemeral key must be fresh per message. Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses client.send() and describes the three-layer model correctly, but may not state that the relay route is flat or may not emphasize ephemeral key freshness.",
+        "incorrect": "Uses raw WebSocket patterns, calls publishEvent() or a caller-facing signBalanceProof() (neither exists), computes the charge by multiplying the event's byte count by a rate, omits payment entirely, confuses the layer order, reuses ephemeral keys, or publishes the seal or inner event directly."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee calculation or cost awareness for gift wraps",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket, and does not call the removed publishEvent()",
+        "toon-fee-check: Response lets the client price the packet (or reads the route price) and does not compute a charge from the gift wrap's own byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has encryption-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response describes three layers: inner event (rumor), seal (kind:1060), gift wrap (kind:1059)"
@@ -110,9 +110,9 @@
         "incorrect": "Uses NIP-04 (AES-CBC), omits padding, omits key derivation steps, or describes a non-NIP-44 encryption scheme."
       },
       "assertions": [
-        "toon-write-check: Response correctly identifies NIP-44 encryption as a local operation -- publishEvent() is used only when publishing the resulting encrypted event",
-        "toon-fee-check: Response explains that encryption overhead (padding, nonce, MAC) increases the byte count and therefore TOON publishing cost",
-        "toon-format-check: Response mentions TOON-format strings in relay responses when discussing encrypted event retrieval",
+        "toon-write-check: Response correctly identifies NIP-44 encryption as a local operation -- client.send() is used only when publishing the resulting encrypted event",
+        "toon-fee-check: Response notes the encryption overhead grows the payload, and does not turn that byte count into a charge -- on the relay's flat route it does not change what the write costs",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has encryption-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response describes HKDF-SHA256 key derivation with 'nip44-v2' salt",
@@ -124,19 +124,19 @@
     {
       "id": "decrypt-gift-wrap",
       "prompt": "I received a kind:1059 event on a TOON relay. How do I decrypt it to read the actual message? Is there a cost to read it?",
-      "expected_output": "Reading is free on TOON. Subscribe with kinds:[1059] and #p filter for your pubkey. Use TOON decoder to parse the event. Decrypt the gift wrap content using your private key and the ephemeral pubkey from the event -- yields the kind:1060 seal. Parse the seal, extract the real author pubkey. Decrypt the seal content using your private key and the real author pubkey -- yields the inner event (rumor). Parse the inner event to get the actual content, real author, and real timestamp. The inner event is unsigned (plausible deniability). Store decrypted messages locally, never re-publish.",
+      "expected_output": "Reading is free on TOON and never touches a connector. Subscribe with kinds:[1059] and #p filter for your pubkey. The relay's reads speak plain NIP-01, so the EVENT message carries a standard JSON object -- no TOON decoder is involved; TOON is the encoding of the sealed write payload, not of a read response. Decrypt the gift wrap content using your private key and the ephemeral pubkey from the event -- yields the kind:1060 seal. Parse the seal, extract the real author pubkey. Decrypt the seal content using your private key and the real author pubkey -- yields the inner event (rumor). Parse the inner event to get the actual content, real author, and real timestamp. The inner event is unsigned (plausible deniability). Store decrypted messages locally, never re-publish.",
       "rubric": {
-        "correct": "States reading is free on TOON. Describes two-stage decryption: (1) decrypt gift wrap content with recipient key + ephemeral pubkey to get seal, (2) decrypt seal content with recipient key + real author pubkey to get inner event. Mentions TOON decoder for parsing relay responses. Notes inner event is unsigned. Advises against re-publishing decrypted content.",
-        "acceptable": "Correctly describes the two-stage decryption and mentions reading is free, but may not mention TOON decoder or the unsigned nature of the inner event.",
-        "incorrect": "Suggests payment is needed to read, describes only one decryption step, or suggests re-publishing decrypted content."
+        "correct": "States reading is free on TOON and that the relay returns standard NIP-01 JSON. Describes two-stage decryption: (1) decrypt gift wrap content with recipient key + ephemeral pubkey to get seal, (2) decrypt seal content with recipient key + real author pubkey to get inner event. Notes inner event is unsigned. Advises against re-publishing decrypted content.",
+        "acceptable": "Correctly describes the two-stage decryption and mentions reading is free, but may not note the unsigned nature of the inner event.",
+        "incorrect": "Suggests payment is needed to read, claims relay responses are TOON-encoded or that a TOON decoder is needed, describes only one decryption step, or suggests re-publishing decrypted content."
       },
       "assertions": [
-        "toon-write-check: Response correctly identifies decryption as a read-only operation -- no publishEvent() needed",
+        "toon-write-check: Response correctly identifies decryption as a read-only operation -- no client.send() and no payment needed",
         "toon-fee-check: Response correctly notes that reading and decrypting gift wraps is free on TOON",
-        "toon-format-check: Response mentions TOON-format strings in relay responses or TOON decoder",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has encryption-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
-        "Response states reading and decrypting is free on TOON",
+        "Response states reading and decrypting is free on TOON and that the relay returns plain NIP-01 JSON",
         "Response describes two-stage decryption (gift wrap layer then seal layer)",
         "Response mentions the inner event is unsigned for plausible deniability"
       ]
@@ -144,20 +144,20 @@
     {
       "id": "encryption-cost-comparison",
       "prompt": "I want to send a 200-byte message on TOON. Compare the cost of sending it as a plaintext kind:1 note vs a gift-wrapped encrypted DM. Is the privacy premium worth it?",
-      "expected_output": "Plaintext kind:1 note: ~350-400 bytes (content + event envelope) = ~$0.004. Gift-wrapped DM: ~600-900 bytes (inner event + seal with NIP-44 encryption + gift wrap with NIP-44 encryption + event envelopes + padding) = ~$0.006-$0.009. Privacy premium is approximately 2-3x. Worth it for genuinely private communication. Not worth it for public content that does not need privacy -- encrypting public content wastes money and signals unnecessary secrecy.",
+      "expected_output": "They cost the same. The relay's route (g.toon.relay) is flat-priced at 1 base unit of 6-decimal USDC per event, so a ~350-400 byte plaintext kind:1 note and a ~600-900 byte gift-wrapped DM are both 1 base unit. There is no privacy premium to weigh: encryption expands the payload (padding, two NIP-44 layers, two extra event envelopes) without expanding the bill, so choose between plaintext and gift wrap on audience, not on price. Encrypting content that was meant to be public is still an anti-pattern -- it signals unnecessary secrecy and costs your readers the ability to read you -- but it does not waste money. Size only moves the price on a route that carries a slope, such as the blob store at g.toon.store (1000 + 10 per KiB of sealed payload); there, read client.routePrice(destination) and use chargeFor(), because the metered quantity is the sealed payload and not the event JSON you wrote.",
       "rubric": {
-        "correct": "Provides cost comparison: plaintext ~$0.003-$0.004 vs gift-wrapped ~$0.006-$0.009. Explains the sources of overhead (padding, double NIP-44 encryption, event envelopes). Discusses when the privacy premium is justified vs when it is wasteful. Notes that encrypting public content is an anti-pattern.",
-        "acceptable": "Provides approximate cost comparison and mentions the privacy premium concept, but may not break down the overhead sources or discuss when encryption is appropriate.",
-        "incorrect": "Claims encryption is free, ignores the cost difference, or recommends encrypting all content regardless of privacy needs."
+        "correct": "States both cost the same because the relay route is flat-priced (1 base unit of 6-decimal USDC per event). Explains that encryption overhead (padding, double NIP-44 encryption, event envelopes) grows the payload but not the price. Notes there is no privacy premium and that the choice should be made on audience. Notes encrypting public content is still an anti-pattern for signalling reasons.",
+        "acceptable": "States that the relay route is flat and that the two cost the same, but may not break down the overhead sources or discuss when encryption is appropriate.",
+        "incorrect": "Claims a privacy premium or a per-byte cost difference, multiplies a byte count by a rate to produce a dollar figure, claims encryption is free of any charge at all, or recommends encrypting all content regardless of privacy needs."
       },
       "assertions": [
-        "toon-write-check: Response mentions publishEvent() for publishing either plaintext or gift-wrapped events",
-        "toon-fee-check: Response includes fee comparison between plaintext and encrypted",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() for publishing either plaintext or gift-wrapped events",
+        "toon-fee-check: Response reads the route price rather than computing a charge from byte counts, and states the relay route is flat so the two events cost the same",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has encryption-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
-        "Response provides cost estimates for both plaintext and gift-wrapped versions",
-        "Response discusses when the privacy premium is or is not justified"
+        "Response states the plaintext note and the gift wrap cost the same on the relay's flat route",
+        "Response discusses choosing between plaintext and encryption on audience rather than price"
       ]
     },
     {
@@ -170,9 +170,9 @@
         "incorrect": "Claims ephemeral key reuse compromises content encryption, confuses ephemeral keys with conversation keys, or says reuse is acceptable."
       },
       "assertions": [
-        "toon-write-check: Response mentions publishEvent() for publishing gift wraps on TOON",
-        "toon-fee-check: Response notes that each gift wrap is a separately published event with its own fee",
-        "toon-format-check: Response mentions TOON-format strings in relay responses when discussing gift wrap events",
+        "toon-write-check: Response uses client.send() for publishing gift wraps on TOON",
+        "toon-fee-check: Response notes that each gift wrap is a separately published event paid at the route's price",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has encryption-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response explains that ephemeral key reuse enables linking gift wraps to the same sender",
@@ -183,16 +183,16 @@
     {
       "id": "group-dm-cost-scaling",
       "prompt": "I want to send a gift-wrapped group DM to 10 recipients on TOON. How does the cost scale and are there alternatives?",
-      "expected_output": "Group DMs require a separate gift wrap for each recipient, each with its own ephemeral key. For 10 recipients with a short message: 10 * ~$0.004-$0.006 = ~$0.040-$0.060 total. Cost scales linearly with recipient count. Alternatives for large groups: NIP-29 relay groups (single event per message, relay-enforced membership) or NIP-28 public channels (single event, publicly visible). Gift wrapping is appropriate for small private groups where metadata protection matters. For 50+ recipients, the linear cost makes relay groups or channels more economical.",
+      "expected_output": "Group DMs require a separate gift wrap for each recipient, each with its own ephemeral key, and each is its own paid write with client.send(). The relay's route (g.toon.relay) is flat-priced at 1 base unit of 6-decimal USDC per event, so 10 recipients cost 10 base units. Cost scales linearly with the recipient count and not at all with message length -- a long group DM costs the same as a short one. Alternatives for large groups: NIP-29 relay groups (single event per message, membership enforced by a relay that implements NIP-29 -- the fleet relay implements NIP-01 and NIP-34 only) or NIP-28 public channels (single event, publicly visible). Gift wrapping is appropriate for small private groups where metadata protection matters. For 50+ recipients, the linear per-write cost makes relay groups or channels more economical.",
       "rubric": {
-        "correct": "Explains linear cost scaling: N recipients = N gift wraps. Calculates approximate cost for 10 recipients. Suggests alternatives (NIP-29 relay groups, NIP-28 public channels) for large groups. Discusses the tradeoff between privacy (gift wrap) and cost efficiency (groups/channels).",
-        "acceptable": "Correctly describes linear scaling and calculates cost, but may not suggest alternatives or discuss tradeoffs.",
-        "incorrect": "Claims a single gift wrap can serve multiple recipients, ignores the linear cost scaling, or does not mention alternatives."
+        "correct": "Explains linear cost scaling: N recipients = N gift wraps = N paid writes at the relay's flat route price. Gives the count for 10 recipients (10 base units). Notes that message length does not change the price. Suggests alternatives (NIP-29 relay groups, NIP-28 public channels) for large groups without implying the fleet relay itself enforces NIP-29 membership. Discusses the tradeoff between privacy (gift wrap) and cost efficiency (groups/channels).",
+        "acceptable": "Correctly describes linear scaling per recipient, but may not state the flat route price or suggest alternatives.",
+        "incorrect": "Claims a single gift wrap can serve multiple recipients, ignores the linear cost scaling, scales the cost by message size, or does not mention alternatives."
       },
       "assertions": [
-        "toon-write-check: Response mentions publishEvent() for each gift wrap sent to each recipient",
-        "toon-fee-check: Response includes cost calculation for group DMs",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() for each gift wrap sent to each recipient",
+        "toon-fee-check: Response scales cost by the number of paid writes at the route's flat price, not by byte counts",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has encryption-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response explains linear cost scaling (N recipients = N gift wraps)",

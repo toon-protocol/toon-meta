@@ -77,16 +77,16 @@
     {
       "id": "uri-construction",
       "prompt": "I want to mention another user in a short note on TOON. Their hex pubkey is abc123...def. How do I construct the nostr: URI and what tags do I need?",
-      "expected_output": "Encode the hex pubkey to bech32 npub1 format (or nprofile1 with relay hints for cross-relay resolution). Place nostr:npub1... inline in the kind:1 event content field. Add a corresponding [\"p\", \"<hex-pubkey>\"] tag. Publish via publishEvent() from @toon-protocol/client. The mention adds ~69 bytes (URI) + ~70 bytes (tag) = ~139 bytes to the event, costing approximately $0.001 at default basePricePerByte.",
+      "expected_output": "Encode the hex pubkey to bech32 npub1 format (or nprofile1 with relay hints for cross-relay resolution). Place nostr:npub1... inline in the kind:1 event content field. Add a corresponding [\"p\", \"<hex-pubkey>\"] tag. Send it with await client.send({ body: signedEvent }) from @toon-protocol/client, which seals the payload, reads the route price, mints the covering claim and carries it. The mention adds ~139 bytes to the event and nothing to the charge: g.toon.relay is flat-priced at 1 base unit of 6-decimal USDC per event.",
       "rubric": {
-        "correct": "Encodes the pubkey to bech32 npub1 (or nprofile1). Places nostr:npub1... inline in the content field. Adds a p tag with the hex pubkey. Publishes via publishEvent() from @toon-protocol/client. Calculates approximate byte cost of the reference (~69 bytes URI + ~70 bytes tag). Mentions that references add bytes to the event fee.",
-        "acceptable": "Uses publishEvent() and constructs the correct nostr: URI with p tag, but may not calculate exact byte overhead or discuss fee implications.",
-        "incorrect": "Uses raw WebSocket patterns, omits the p tag, uses wrong bech32 prefix, or does not mention publishEvent()."
+        "correct": "Encodes the pubkey to bech32 npub1 (or nprofile1). Places nostr:npub1... inline in the content field. Adds a p tag with the hex pubkey. Sends it with client.send() from @toon-protocol/client and lets the client price the packet. States that the mention adds bytes (~69 URI + ~70 tag) but not cost, because the relay route is flat-priced at 1 base unit per event.",
+        "acceptable": "Uses client.send() and constructs the correct nostr: URI with p tag, but may not say what the write costs or that reference bytes do not change it.",
+        "incorrect": "Uses raw WebSocket patterns, calls the retired publishEvent() or signs a claim by hand, computes a charge from the event byte count, omits the p tag, or uses the wrong bech32 prefix."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee awareness for reference byte cost",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response lets client.send() price the packet (or reads the route price) and does not compute a charge from the event byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has reference-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response constructs a nostr:npub1 or nostr:nprofile1 URI with corresponding p tag"
@@ -95,16 +95,16 @@
     {
       "id": "inline-mention-with-tags",
       "prompt": "I am writing a kind:1 note that mentions two users and references one article. What nostr: URIs do I need and what tags must I include?",
-      "expected_output": "Three inline URIs: nostr:npub1... (or nostr:nprofile1...) for each user mention, and nostr:naddr1... for the article reference. Three corresponding tags: two [\"p\", \"<hex-pubkey>\"] tags and one [\"a\", \"<kind>:<pubkey>:<d-tag>\"] tag. Tags provide machine-readable metadata; inline URIs provide human-readable placement. Both are required. Total reference overhead: ~200-300 bytes of URI data plus ~240+ bytes of tags. Publish via publishEvent().",
+      "expected_output": "Three inline URIs: nostr:npub1... (or nostr:nprofile1...) for each user mention, and nostr:naddr1... for the article reference. Three corresponding tags: two [\"p\", \"<hex-pubkey>\"] tags and one [\"a\", \"<kind>:<pubkey>:<d-tag>\"] tag. Tags provide machine-readable metadata; inline URIs provide human-readable placement. Both are required. The three references add ~200-300 bytes of URI data plus ~240+ bytes of tags, and nothing to the charge -- the relay route is flat-priced. Send it with await client.send({ body: signedEvent }).",
       "rubric": {
-        "correct": "Identifies three inline URIs (two user mentions, one article reference). Specifies correct tag types: p tags for users, a tag for the naddr1 article reference. Explains that both inline URIs and tags are needed. Calculates approximate byte overhead. Publishes via publishEvent(). Notes the fee impact of multiple references.",
-        "acceptable": "Correctly identifies the three URIs and their corresponding tags with publishEvent(), but may not calculate exact byte overhead or explain why both URIs and tags are needed.",
-        "incorrect": "Omits tags for inline URIs, uses e tag instead of a tag for naddr1, or uses raw WebSocket patterns."
+        "correct": "Identifies three inline URIs (two user mentions, one article reference). Specifies correct tag types: p tags for users, a tag for the naddr1 article reference. Explains that both inline URIs and tags are needed. Sends it with client.send(). Notes that the extra references grow the event but not the charge on the flat-priced relay route.",
+        "acceptable": "Correctly identifies the three URIs and their corresponding tags and uses client.send(), but may not say what the write costs or explain why both URIs and tags are needed.",
+        "incorrect": "Omits tags for inline URIs, uses e tag instead of a tag for naddr1, uses raw WebSocket patterns, calls the retired publishEvent(), or prices the references by the byte."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes cost awareness for multiple references",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response states that the extra references do not change the flat route charge, and invents no byte-rate",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has reference-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response includes p tags for user mentions and a tag for naddr1 article reference",
@@ -114,16 +114,16 @@
     {
       "id": "naddr1-article-reference",
       "prompt": "I want to link to a kind:30023 article in my content. The article has d tag 'my-article', author pubkey abc123, and is available on wss://relay.example.com. Should I use note1, nevent1, or naddr1?",
-      "expected_output": "Use naddr1 for parameterized replaceable events like kind:30023 articles. naddr1 encodes kind (30023) + pubkey + d-tag + relay hints using TLV encoding. It always resolves to the latest version of the article, unlike note1 or nevent1 which point to a fixed event ID. Embed nostr:naddr1... in content and add an [\"a\", \"30023:abc123:my-article\"] tag. The naddr1 URI is ~80-150 bytes. Publish via publishEvent().",
+      "expected_output": "Use naddr1 for parameterized replaceable events like kind:30023 articles. naddr1 encodes kind (30023) + pubkey + d-tag + relay hints using TLV encoding. It always resolves to the latest version of the article, unlike note1 or nevent1 which point to a fixed event ID. Embed nostr:naddr1... in content and add an [\"a\", \"30023:abc123:my-article\"] tag. The naddr1 URI is ~80-150 bytes and costs no more than a bare note on the flat-priced relay route. Send it with await client.send({ body: signedEvent }).",
       "rubric": {
-        "correct": "Recommends naddr1 as the correct entity type for parameterized replaceable events. Explains TLV encoding with kind, pubkey, d-tag, and relay hints. Notes that naddr1 resolves to the latest version (unlike note1/nevent1). Specifies the a tag format. Mentions byte cost. Publishes via publishEvent().",
-        "acceptable": "Correctly recommends naddr1 with a tag and publishEvent(), but may not fully explain TLV encoding or the version-resolution advantage.",
-        "incorrect": "Recommends note1 or nevent1 for an article, uses e tag instead of a tag, or does not mention publishEvent()."
+        "correct": "Recommends naddr1 as the correct entity type for parameterized replaceable events. Explains TLV encoding with kind, pubkey, d-tag, and relay hints. Notes that naddr1 resolves to the latest version (unlike note1/nevent1). Specifies the a tag format. Notes the URI size without pricing it by the byte. Sends it with client.send().",
+        "acceptable": "Correctly recommends naddr1 with a tag and client.send(), but may not fully explain TLV encoding or the version-resolution advantage.",
+        "incorrect": "Recommends note1 or nevent1 for an article, uses e tag instead of a tag, calls the retired publishEvent(), or does not mention client.send()."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes byte cost awareness for naddr1 references",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response does not price the naddr1 reference by the byte and lets the client price the packet",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has reference-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response recommends naddr1 for parameterized replaceable events and uses a tag format"
@@ -132,36 +132,36 @@
     {
       "id": "reference-fee-impact",
       "prompt": "I am writing a short note with 5 user mentions on TOON. How much do the references add to the event cost compared to a note with no mentions?",
-      "expected_output": "A plain short note costs ~$0.003-$0.005 (~200-500 bytes). Adding 5 npub1 mentions adds ~345 bytes of URI data (5 * ~69 bytes) plus ~350 bytes of p tags (5 * ~70 bytes) = ~695 bytes of reference overhead. Total event size roughly triples from ~300 to ~995 bytes, costing approximately $0.010. Using nprofile1 instead of npub1 would add more bytes due to relay hints but improve cross-relay resolution. On TOON, each mention is a deliberate economic signal of attribution.",
+      "expected_output": "Nothing. The relay route g.toon.relay is flat-priced at 1 base unit of 6-decimal USDC per event, so a note with 5 mentions and a note with none are charged the same. The 5 mentions do grow the event by ~695 bytes (~345 of URI data plus ~350 of p tags), which matters for readers and for length-priced routes such as g.toon.store, not for this write. Do not work a charge out from the event JSON: on a length-priced route the metered quantity is the sealed payload, so ask with client.routePrice(destination) and use chargeFor(terms, sealedBytes). In the ordinary case client.send() prices the packet itself. Because the relay hints are free here, prefer nprofile1 over npub1.",
       "rubric": {
-        "correct": "Calculates approximate byte cost per reference (~69 bytes URI + ~70 bytes tag = ~137 per mention). Totals for 5 mentions (~695 bytes overhead). Compares to base note cost. Notes the cost roughly triples. Mentions the tradeoff between npub1 (compact) and nprofile1 (relay hints). Discusses the economic signal of mentions on TOON.",
-        "acceptable": "Provides reasonable byte estimates and compares to base note cost, but may not distinguish npub1 vs nprofile1 or discuss the social signal.",
-        "incorrect": "Does not calculate byte overhead, claims references are free, or ignores tag bytes in the calculation."
+        "correct": "Answers that the references add no cost, because the relay route is flat-priced at 1 base unit per event whatever the size. May still give the size added (~695 bytes for 5 mentions) as size, not price. Notes that size only reaches the bill on a length-priced route, where the metered quantity is the sealed payload and the terms come from client.routePrice() plus chargeFor(). Observes that relay hints being free makes nprofile1 the better choice.",
+        "acceptable": "States that the flat route charge does not grow with the references and lets the client price the packet, but may not cover length-priced routes or the npub1 vs nprofile1 choice.",
+        "incorrect": "Multiplies a rate by the event byte count, invents a rate such as the retired basePricePerByte, claims the cost triples, or calls the retired publishEvent()."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes detailed fee calculation for multiple references",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response answers from the flat route price rather than computing a charge from the event byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has reference-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
-        "Response calculates per-reference byte cost including both URI and tag bytes",
-        "Response compares referenced note cost to base note cost"
+        "Response states that the mentions add bytes but not charge on the flat-priced relay route",
+        "Response does not multiply a rate by the event byte count"
       ]
     },
     {
       "id": "parsing-references",
       "prompt": "I received an event from a TOON relay that contains nostr: URIs in its content. How do I extract and resolve the references?",
-      "expected_output": "First decode the TOON-format response using the TOON decoder -- TOON relays return TOON-format strings, not standard JSON objects. Then scan the content field for nostr: prefix followed by bech32 data. Identify entity type from bech32 prefix (npub1, note1, nprofile1, nevent1, naddr1). Decode bech32 per NIP-19 to extract hex pubkeys, event IDs, relay hints, kinds, and d-tags. For TLV entities, use relay hints for cross-relay resolution. Reading referenced events is free on TOON.",
+      "expected_output": "Reads are free and speak plain NIP-01, so the event arrives as a standard JSON EVENT message with no decoding step -- TOON is the encoding of a sealed write payload, not of a read response. Scan the content field for nostr: prefix followed by bech32 data. Identify entity type from bech32 prefix (npub1, note1, nprofile1, nevent1, naddr1). Decode bech32 per NIP-19 to extract hex pubkeys, event IDs, relay hints, kinds, and d-tags. For TLV entities, use relay hints for cross-relay resolution. Reading referenced events is free on TOON.",
       "rubric": {
-        "correct": "Explains TOON-format decoding first (not standard JSON). Describes scanning content for nostr: prefix. Identifies entity types by bech32 prefix. Explains NIP-19 decoding for both simple and TLV entities. Mentions relay hints for cross-relay resolution. Notes reading is free.",
-        "acceptable": "Correctly describes TOON-format parsing and nostr: URI extraction, but may not fully explain TLV decoding or relay hint resolution.",
-        "incorrect": "Assumes standard JSON responses from the relay, does not mention TOON format, or suggests payment is needed to read."
+        "correct": "Reads the event straight from the relay's plain NIP-01 JSON, with no TOON decoding step. Describes scanning content for nostr: prefix. Identifies entity types by bech32 prefix. Explains NIP-19 decoding for both simple and TLV entities. Mentions relay hints for cross-relay resolution. Notes reading is free.",
+        "acceptable": "Correctly describes reading the event and extracting nostr: URIs over plain NIP-01, but may not fully explain TLV decoding or relay hint resolution.",
+        "incorrect": "Claims the relay returns TOON-format strings or that a TOON decoder is needed to read, or suggests payment is needed to read."
       },
       "assertions": [
-        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has reference-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
-        "Response describes TOON-format decoding before URI extraction",
+        "Response extracts URIs from the relay's plain NIP-01 JSON with no decoding step",
         "Response mentions reading is free on TOON"
       ]
     }

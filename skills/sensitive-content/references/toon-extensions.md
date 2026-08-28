@@ -1,78 +1,78 @@
 # TOON Extensions for Sensitive Content / Content Warnings
 
-> **Why this reference exists:** Content warnings on TOON differ from vanilla Nostr because every event publish is ILP-gated. This file covers the TOON-specific considerations for the `content-warning` tag -- fee impact, quality signaling dynamics, and how paid publishing changes the social calculus of content warning decisions.
+> **Why this reference exists:** Content warnings on TOON differ from vanilla Nostr because every event publish is paid. This file covers the TOON-specific considerations for the `content-warning` tag -- what the tag actually costs, quality signaling dynamics, and how paid publishing changes the social calculus of content warning decisions.
 
 ## Publishing Content-Warned Events on TOON
 
-All publishing on TOON goes through `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment for every event, including events with content warnings.
+All publishing on TOON goes through `client.send()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay is a paid route, and that includes events carrying content warnings.
 
 ### Publishing Flow
 
 1. **Construct the event:** Build the event as normal (any kind), then add `["content-warning", "reason"]` to the tags array
 2. **Sign the event:** Use `nostr-tools` or equivalent to sign with the agent's private key
-3. **Discover pricing:** Check the destination relay's `basePricePerByte` from kind:10032 peer info or the `/health` endpoint
-4. **Calculate fee:** `basePricePerByte * serializedEventBytes` (the content-warning tag is included in the byte count)
-5. **Sign a balance proof:** `client.signBalanceProof(channelId, amount)`
-6. **Publish:** `client.publishEvent(signedEvent, { destination, claim })`
+3. **Send it:** `await client.send({ body: signedEvent })`
 
-The `publishEvent()` API handles TOON encoding and ILP packet construction internally. Agents never need to construct ILP packets manually.
+That is the whole write path. `send()` seals the payload to the terminating connector's key, prices it, mints the covering claim and carries it. An agent never signs a claim by hand and never builds a packet.
+
+### Asking What It Costs
+
+Where a price is genuinely needed up front -- to check a budget before committing -- ask the node instead of multiplying bytes:
+
+```ts
+const terms = await client.routePrice('g.toon.relay');  // { price, pricePerKib? }
+const charge = chargeFor(terms, sealedBytes);
+```
+
+Two facts govern this. A **price** belongs to a terminated route and is a schedule over payload length: flat when it has no slope, otherwise `price + pricePerKib * ceil(sealedBytes / 1024)` -- per kibibyte, never per byte. And the metered quantity is the **sealed** payload the PREPARE carries, which is larger than the event JSON by the envelope and the wrap, so an agent cannot work the charge out from the event it wrote. `chargeFor` is the only thing that should decide what goes on a claim.
+
+A node's free, unauthenticated self-description at `GET /ilp` publishes every route's price alongside its addresses and settlement facts. The `/health` price endpoint and `basePricePerByte` were both removed along with the `kind:10032` announce; the self-description replaced them.
 
 ### Error Handling
 
-- **F04 (Insufficient Payment):** The calculated amount was too low for the payload size. Recalculate with the correct `basePricePerByte` and retry.
+A refusal comes back as `{ fulfilled: false }`; it is never thrown.
+
+- **`F03` INVALID_AMOUNT:** the claim does not cover the charge. This is underpayment -- re-read the route's terms and send again. There is no `F04`.
+- **`T04`:** over the peering's cap. The reject's message states the cap; that is the only way a sender learns it.
+- **`F02` / `T01`:** nothing routes that name, or the peer was not there.
 - **Relay rejection:** The event was malformed (invalid signature, wrong kind structure, missing required tags). Fix the event and republish.
 
-## Fee Impact of Content Warnings
+## What a Content Warning Costs
 
-The `content-warning` tag adds minimal overhead to any event. The cost increase is negligible regardless of the base event size.
+The `content-warning` tag adds a few dozen bytes to the serialized event. On TOON that usually costs exactly nothing, and it can never cost much.
 
-### Tag Size by Reason Length
+### On a Flat Route It Costs Nothing
 
-| Tag Form | Approximate Added Bytes | Added Cost (at 10n/byte) |
-|----------|------------------------|--------------------------|
-| `["content-warning"]` (no reason) | ~20 bytes | ~$0.0002 |
-| `["content-warning", "nudity"]` | ~30 bytes | ~$0.0003 |
-| `["content-warning", "violence"]` | ~32 bytes | ~$0.0003 |
-| `["content-warning", "spoiler: Movie Title"]` | ~45 bytes | ~$0.0005 |
-| `["content-warning", "graphic violence, disturbing imagery"]` | ~55 bytes | ~$0.0006 |
-| `["content-warning", "spoiler: Breaking Bad season 5 finale"]` | ~60 bytes | ~$0.0006 |
+The live relay route `g.toon.relay` is priced at **1 base unit, flat** -- no slope. Settlement is in USDC, which is 6-decimal, so one base unit is $0.000001. A flat schedule charges the same for an empty payload and a 20 KB one, so the tag's bytes change the charge by zero. There is no size at which adding a content warning to a relay write costs more than not adding one.
 
-### Impact on Different Event Types
+### On a Sloped Route It Costs a Kibibyte Boundary or Nothing
 
-| Base Event | Base Size | With CW Tag | CW Overhead | CW as % of Total |
-|-----------|-----------|-------------|-------------|-------------------|
-| Short note (kind:1, ~100 chars) | ~200 bytes | ~240 bytes | ~$0.0004 | ~17% |
-| Short note (kind:1, ~280 chars) | ~400 bytes | ~440 bytes | ~$0.0004 | ~9% |
-| Long-form article (kind:30023, ~5KB) | ~5000 bytes | ~5040 bytes | ~$0.0004 | ~0.8% |
-| Long-form article (kind:30023, ~20KB) | ~20000 bytes | ~20040 bytes | ~$0.0004 | ~0.2% |
-| Picture event (kind:20) | ~300 bytes | ~340 bytes | ~$0.0004 | ~12% |
-| Video event (kind:34235) | ~400 bytes | ~440 bytes | ~$0.0004 | ~9% |
+A route with a slope charges `price + pricePerKib * ceil(sealedBytes / 1024)`. A tag of a few dozen bytes therefore costs either nothing at all, or exactly one extra `pricePerKib` -- and only in the rare case where those bytes push the sealed payload across a kibibyte boundary. Ask the node for `pricePerKib` with `routePrice()` if you need the figure for a specific route; do not assume one.
 
-The percentage overhead decreases as the base event gets larger. For long-form articles, the content warning is essentially free relative to the article's base cost.
+Either way the conclusion is the same, and it is stronger than "negligible": for the relay route as priced today, the content warning is free.
 
 ## Content Warnings as Quality Signals on TOON
 
-### The Paid Relay Quality Dynamic
+### What the Paid Write Actually Changes
 
-On free Nostr relays, content warnings are purely a social norm -- there is no economic consequence for omitting them. On TOON, the dynamics are different:
+On free Nostr relays, content warnings are purely a social norm, and posting is anonymous. On TOON the norm is the same but the accounting is different -- and the difference is attribution, not expense. The relay charges 1 base unit of 6-decimal USDC, so nothing here is deterred by price:
 
-- **Publishing costs money.** Authors who pay to publish are already more intentional about their content. Adding a content warning extends this intentionality to how the content is presented.
-- **Readers expect quality.** On a paid relay, the baseline content quality is higher because the economic barrier filters out spam and low-effort posts. Content warnings are part of this quality signal -- they indicate an author who thinks about their audience, not just their message.
-- **Community trust compounds.** On a paid network, trust is more valuable because participants have invested money. Authors who consistently use appropriate content warnings build trust faster. Authors who consistently omit them erode trust faster.
+- **Your warnings, and your omissions, are on the record.** Every write arrives with a signed claim on your funded channel, so a pattern of appropriate content warnings -- or of missing ones -- accumulates against a stable, provable identity rather than a throwaway one.
+- **Readers can tell who published.** The baseline is not that content is higher quality because it was expensive; it is that a reader can trace an event to a settlement identity and weigh it accordingly. Content warnings are part of what that identity says about itself.
+- **Trust compounds because identity persists.** Authors who consistently use appropriate content warnings build trust faster, because the record follows the channel. Authors who consistently omit them erode it just as durably.
 
-### The Negligible Cost Argument
+### The Zero Cost Argument
 
-The cost of adding a content warning is so low (~$0.0003-$0.0006) that there is never an economic argument for omitting one. Compare:
+On a flat route the content warning costs nothing, so there is never an economic argument for omitting one. Compare, at the live relay price of 1 base unit per write:
 
 | Action | Cost |
 |--------|------|
-| Adding a content warning to a note | ~$0.0004 |
-| Publishing the note itself | ~$0.002-$0.004 |
-| Deleting the note later (kind:5) | ~$0.002 |
-| Total cost of "publish without CW, get complaints, delete" | ~$0.004-$0.006 |
-| Total cost of "publish with CW" | ~$0.002-$0.005 |
+| Adding a content warning to a note | nothing -- the route is flat |
+| Publishing the note itself | 1 base unit ($0.000001) |
+| Deleting the note later (kind:5) | 1 base unit -- a delete is another paid write |
+| Total for "publish without CW, get complaints, delete, republish" | 3 base units |
+| Total for "publish with CW" | 1 base unit |
 
-Publishing with a content warning is always cheaper than the publish-complaint-delete cycle. Prevention is cheaper than cleanup -- this is a recurring TOON principle.
+Publishing with a content warning is always cheaper than the publish-complaint-delete cycle, because the warning is free and every write in the cycle is not. Prevention is cheaper than cleanup -- this is a recurring TOON principle.
 
 ### Content Warnings and Moderation
 
@@ -86,9 +86,9 @@ On TOON, content warnings interact with moderation in specific ways:
 
 The cost dynamics suggest a simple decision framework:
 
-1. **When in doubt, add it.** The cost is negligible (~$0.0004). The downside of a false positive (unnecessary warning, one extra click for readers) is much smaller than the downside of a false negative (harm, loss of trust, potential deletion and republish).
+1. **When in doubt, add it.** On a flat route it costs nothing. The downside of a false positive (unnecessary warning, one extra click for readers) is much smaller than the downside of a false negative (harm, loss of trust, potential deletion and republish).
 
-2. **Be specific.** A reason string like `"nudity"` costs only ~10 bytes more than a bare `["content-warning"]` tag but provides significantly more value to readers. The marginal cost of specificity is essentially zero.
+2. **Be specific.** A reason string like `"nudity"` adds only a handful of bytes over a bare `["content-warning"]` tag but provides significantly more value to readers. On a flat route the marginal cost of specificity is exactly zero.
 
 3. **Consider the context.** Content that is normal in one community may be sensitive in another. If publishing to a general-purpose TOON relay, err on the side of more warnings. If publishing to a specialized community relay where all participants expect certain content types, fewer warnings may be appropriate.
 
@@ -96,4 +96,4 @@ The cost dynamics suggest a simple decision framework:
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers content-warning-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and pricing details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers content-warning-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.

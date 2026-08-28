@@ -6,7 +6,7 @@
 
 ### Layer 1: NIP-34 Collaboration Events (Social Layer)
 
-NIP-34 defines the social and coordination events for decentralized git. These are Nostr events published to TOON relays via `publishEvent()`.
+NIP-34 defines the social and coordination events for decentralized git. These are Nostr events sent to TOON relays with `client.send()`.
 
 | Kind | Purpose | Event Type |
 |------|---------|------------|
@@ -71,7 +71,7 @@ The repository announcement (Step 1) establishes the social identity. Git object
 2. kind:1617 (publish patch)      ─── Layer 1: Social (carries diff in content)
 ```
 
-Patches embed git data directly in the Nostr event content. No Arweave upload is needed -- the diff is small enough to live in the event itself. This is why patches cost per-byte on TOON: the diff is the payload.
+Patches embed git data directly in the Nostr event content. No Arweave upload is needed -- the diff is small enough to live in the event itself. Because the patch terminates at the relay, whose route is flat-priced, a large diff costs exactly what a small one does: 1 base unit.
 
 ### Merge Patch Flow
 
@@ -124,8 +124,9 @@ Upload order: blobs first, then trees (bottom-up from leaf directories), then co
 | Submit patch | kind:1617 | `git-collaboration` |
 | Upload object | kind:5094 | `git-collaboration`, `git-objects` |
 | Set status | kind:1630-1633 | `git-collaboration` |
-| Discover pricing | kind:10032 | `relay-discovery` |
-| DVM provider | kind:10035 | `dvm-protocol` |
+| DVM provider | kind:5094 job request | `dvm-protocol` |
+
+Pricing is not an event kind. A connector answers, it never announces: `GET /ilp` on a node's URL returns its free self-description, including every route's price, and an unpaid request to a priced route comes back as a greeting carrying that route's terms.
 
 ## Arweave Resolution Protocol
 

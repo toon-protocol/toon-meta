@@ -53,6 +53,6 @@ Optional markdown (usually empty for drafts).
 
 ## TOON Fee Estimate
 
-Approximate size: 150-250 bytes. Cost at default `basePricePerByte` (10n): ~$0.002-$0.003.
+The relay route (`g.toon.relay`) is flat-priced: **1 base unit** of 6-decimal USDC per event, whatever its size. Confirm with `await client.routePrice('g.toon.relay')` rather than assuming a figure.
 
-Draft status events are the smallest git collaboration events.
+Draft status events are the smallest git collaboration events, and cost the same as the largest.

@@ -77,16 +77,16 @@
     {
       "id": "group-chat-message",
       "prompt": "I want to post a short message in a group chat on TOON. The group ID is 'dev-chat' and it is hosted on wss://relay.example.com. How do I do this?",
-      "expected_output": "Construct a kind:9 event with the message in the content field. Add an [\"h\", \"dev-chat\"] tag to scope the event to the group. Sign the event. Calculate the fee based on serialized size (~200-400 bytes at default basePricePerByte of 10n, approximately $0.002-$0.004). Publish via publishEvent() from @toon-protocol/client, targeting wss://relay.example.com specifically. The relay validates that you are a group member before accepting the message.",
+      "expected_output": "Construct a kind:9 event with the message in the content field. Add an [\"h\", \"dev-chat\"] tag to scope the event to the group. Sign the event. Publish it as the body of a paid request with client.send({ body: signedEvent }) from @toon-protocol/client, against the connector fronting the relay that hosts the group -- publishEvent() does not exist. Do not compute the charge from the event JSON: the metered quantity is the sealed payload, so read the route's terms with await client.routePrice(destination) ({ price, pricePerKib? }) and let chargeFor(terms, sealedBytes) size the claim. A price is a schedule, price + pricePerKib * ceil(sealedBytes / 1024), flat when it has no slope; the unit is a kibibyte, never a byte. g.toon.relay is currently 1 base unit, flat. Two independent checks follow: the connector verifies the claim covers the charge (F03 if not -- there is no F04), and the relay app then checks group membership and the h tag, having never seen the payload. A REJECT comes back as { fulfilled: false } and is never thrown.",
       "rubric": {
-        "correct": "Constructs kind:9 with h tag set to 'dev-chat'. Signs the event. Calculates approximate byte cost. Publishes via publishEvent() targeting the specific hosting relay. Mentions relay membership validation. Notes that the event must go to the hosting relay.",
-        "acceptable": "Uses publishEvent() with kind:9 and h tag correctly, but may not calculate exact byte cost or explain relay membership validation.",
-        "incorrect": "Uses raw WebSocket patterns, omits the h tag, sends to a non-hosting relay, or does not mention publishEvent()."
+        "correct": "Constructs kind:9 with h tag set to 'dev-chat'. Signs the event. Publishes with client.send({ body: signedEvent }) against the node fronting the hosting relay. Reads the route price rather than computing a charge from the event JSON. Notes that the connector checks payment and the relay separately checks membership. Notes that the event must go to the hosting relay.",
+        "acceptable": "Uses client.send() with kind:9 and the h tag correctly and targets the hosting relay, but may not explain the sealed-payload pricing rule or the two-layer check.",
+        "incorrect": "Calls publishEvent() or signBalanceProof(), uses raw WebSocket patterns, omits the h tag, sends to a non-hosting relay, quotes a per-byte price or basePricePerByte, or cites F04."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee awareness for group message byte cost",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response publishes via client.send({ body: signedEvent }), not publishEvent() and not a raw WebSocket",
+        "toon-price-check: Response reads the route's terms (routePrice/chargeFor or GET /ilp) instead of multiplying a per-byte rate",
+        "no-stale-model: Response does not mention basePricePerByte, feePerByte, per-byte pricing, kind:10032, /health pricing, or F04",
         "social-context-check: Skill has group-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response includes h tag with group ID 'dev-chat' in the kind:9 event",
@@ -96,16 +96,16 @@
     {
       "id": "admin-add-member",
       "prompt": "As a group admin on TOON, I want to add a new member to a closed group. The group ID is 'private-team' and the new member's pubkey is abc123. What event do I need to create?",
-      "expected_output": "Create a kind:9000 event with [\"h\", \"private-team\"] tag and [\"p\", \"abc123\"] tag identifying the user to add. Sign the event. The relay validates that you have the add-user permission before accepting. Calculate fee based on serialized size (~200-300 bytes, approximately $0.002-$0.003). Publish via publishEvent() from @toon-protocol/client. The relay updates kind:39002 (member list) to include the new member.",
+      "expected_output": "Create a kind:9000 event with an [\"h\", \"private-team\"] tag and a [\"p\", \"abc123\"] tag identifying the user to add. Sign it and publish it as the body of a paid request: client.send({ body: signedEvent }) from @toon-protocol/client. publishEvent() and a caller-facing signBalanceProof() do not exist -- send() seals, prices and mints the claim. Read the route's terms with client.routePrice(destination) rather than computing a charge from the event's own bytes; the metered quantity is the sealed payload and a price is a schedule over kibibytes. The connector settles the payment first and never parses the payload, so it cannot see the h tag; the relay app then checks that you hold the add-user permission and that the target is not already a member. A permission failure happens after the write was already paid for. On success the relay updates kind:39002 (the member list).",
       "rubric": {
-        "correct": "Uses kind:9000 with h tag and p tag. Mentions add-user permission requirement. Publishes via publishEvent(). Calculates approximate byte cost. Notes that the relay updates the member list (kind:39002).",
-        "acceptable": "Correctly identifies kind:9000 with h and p tags and publishEvent(), but may not mention permission validation or member list update.",
-        "incorrect": "Uses wrong event kind, omits h tag or p tag, or does not mention publishEvent()."
+        "correct": "Uses kind:9000 with h tag and p tag. Publishes with client.send(). Mentions the add-user permission requirement and that the relay updates kind:39002. Distinguishes the connector's payment check from the relay's permission check.",
+        "acceptable": "Correctly identifies kind:9000 with h and p tags and publishes via client.send(), but may not mention the two-layer check or the member-list update.",
+        "incorrect": "Uses the wrong event kind, omits the h or p tag, calls publishEvent() or signBalanceProof(), or quotes a per-byte cost."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee awareness for admin action cost",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response publishes via client.send({ body: signedEvent }), not publishEvent()",
+        "toon-price-check: Response does not compute a charge from the event JSON; it reads the route's terms",
+        "no-stale-model: Response does not mention basePricePerByte, feePerByte, per-byte pricing, kind:10032, or F04",
         "social-context-check: Skill has group-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses kind:9000 with h tag and p tag for the new member"
@@ -114,14 +114,15 @@
     {
       "id": "relay-authority-model",
       "prompt": "How is the relay's role in NIP-29 groups different from standard Nostr relay behavior? Explain the trust model.",
-      "expected_output": "In standard Nostr, relays are passive store-and-forward systems that accept any validly signed event. In NIP-29, the relay is the authority for its groups. It validates group membership before accepting group-scoped events (kind:9, kind:11), manages group state (kind:39000 metadata, kind:39001 admins, kind:39002 members) as relay-controlled replaceable events, enforces admin permissions for moderation actions (kind:9000-9009), and can delete events or remove members. Group events are only valid on the hosting relay -- sending them elsewhere fails. On TOON, the relay also enforces ILP payment alongside membership checks.",
+      "expected_output": "In standard Nostr, relays are passive store-and-forward systems that accept any validly signed event. In NIP-29 the relay is the authority for its groups: it validates group membership before accepting group-scoped events (kind:9, kind:11), manages group state (kind:39000 metadata, kind:39001 admins, kind:39002 members) as relay-controlled replaceable events, enforces admin permissions for kind:9000-9009, and can delete events or remove members. Group events are only valid on the hosting relay. On TOON a relay sits behind a connector -- a paid reverse proxy -- and the two authorities are independent: the connector charges for the route and never parses the payload (payload opacity is a property of carriage), so it cannot see the h tag or enforce membership; the relay app never sees the claim. Paying correctly and being a group member are two separate ways to be refused. Note also that the TOON fleet's own relay serves plain NIP-01 and does not implement NIP-29 group enforcement today.",
       "rubric": {
-        "correct": "Explains the fundamental difference: relay as authority vs passive store-and-forward. Describes membership validation, relay-managed state, permission enforcement. Mentions that group events are relay-specific. Notes TOON's ILP payment layer on top of membership checks.",
-        "acceptable": "Correctly describes the relay-as-authority model and membership validation, but may not fully explain all group state events or TOON-specific ILP interaction.",
-        "incorrect": "Treats NIP-29 groups as standard Nostr events, does not mention relay authority, or claims group events work across any relay."
+        "correct": "Explains relay-as-authority vs passive store-and-forward, membership validation, relay-managed state, permission enforcement, and that group events are relay-specific. Explains that on TOON the connector's payment check and the relay's membership check are separate layers, and that the connector never parses the payload.",
+        "acceptable": "Correctly describes the relay-as-authority model and membership validation, but may not fully separate the connector's payment layer from the relay's group layer.",
+        "incorrect": "Treats NIP-29 groups as standard Nostr events, claims group events work across any relay, or claims the connector inspects the event to enforce group membership or pricing."
       },
       "assertions": [
-        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "layer-separation-check: Response keeps the connector's payment check separate from the relay's membership check, and states the connector never parses the payload",
+        "no-stale-model: Response does not claim ILP-layer per-byte pricing, kind:10032 discovery, or connector-side event validation",
         "social-context-check: Skill has group-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response explains relay-as-authority model vs standard store-and-forward",
@@ -130,33 +131,35 @@
     },
     {
       "id": "group-fee-awareness",
-      "prompt": "I am an admin of a TOON group and need to remove 5 disruptive members and delete 10 of their messages. How much will this cost me?",
-      "expected_output": "Removing 5 members requires 5 kind:9001 events, each approximately 200-300 bytes (~$0.002-$0.003 each), totaling approximately $0.010-$0.015. Deleting 10 messages requires 10 kind:9005 events, each approximately 200-300 bytes (~$0.002-$0.003 each), totaling approximately $0.020-$0.030. Combined cost: approximately $0.030-$0.045 for all 15 admin actions. Published via publishEvent() from @toon-protocol/client. Each action requires the appropriate permission (remove-user for kind:9001, delete-event for kind:9005). On TOON, this economic cost encourages deliberate moderation rather than impulsive reactions.",
+      "prompt": "I am an admin of a TOON group and need to remove 5 disruptive members and delete 10 of their messages. What will this cost me, and how do I find out?",
+      "expected_output": "It is 15 paid writes: 5 kind:9001 events (remove-user) and 10 kind:9005 events (delete-event), each published with client.send({ body: signedEvent }). You cannot compute the cost from the events themselves -- the metered quantity is the sealed payload, not the event JSON, so an agent that multiplies a byte count by a rate will be wrong. Ask instead: GET /ilp on the node returns every route's price, or await client.routePrice(destination) returns { price, pricePerKib? }, and chargeFor(terms, sealedBytes) is the only thing that should decide what goes on a claim. A price is a schedule, price + pricePerKib * ceil(sealedBytes / 1024), flat exactly when it has no slope, in the settlement token's smallest unit (USDC is 6-decimal, so 1_000_000 = $1). Against g.toon.relay's current flat price of 1, all 15 writes come to 15 base units -- fifteen millionths of a dollar -- so treat the payment as a gate rather than a deterrent. Each action still requires the appropriate permission (remove-user for kind:9001, delete-event for kind:9005), checked by the relay after the connector has been paid.",
       "rubric": {
-        "correct": "Calculates per-action cost for both kind:9001 and kind:9005. Totals the combined cost. Uses publishEvent(). Mentions required permissions for each action type. Notes the economic incentive for deliberate moderation.",
-        "acceptable": "Provides reasonable cost estimates and uses publishEvent(), but may not break down per-action costs or discuss moderation deliberateness.",
-        "incorrect": "Claims admin actions are free, does not calculate costs, or ignores the ILP payment requirement."
+        "correct": "Identifies 15 paid writes with the right kinds. Says the charge must be read from the route (GET /ilp / routePrice / chargeFor), not multiplied out of the event JSON, and explains that the sealed payload is what is metered. Uses a schedule over kibibytes, not a per-byte rate. Mentions the required permissions. Does not overstate the deterrent effect.",
+        "acceptable": "Identifies the 15 events and directs the user to read the route's price rather than computing it, but may not explain the sealed-payload rule or the permission checks.",
+        "incorrect": "Multiplies a per-byte rate, cites basePricePerByte or feePerByte, invents dollar figures, claims admin actions are free, or calls publishEvent()."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes detailed fee calculation for multiple admin actions",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response publishes via client.send({ body: signedEvent }), not publishEvent()",
+        "toon-price-check: Response tells the user to read the route's terms (GET /ilp, routePrice, chargeFor) rather than multiplying a per-byte rate",
+        "no-stale-model: Response does not mention basePricePerByte, feePerByte, per-byte pricing, or invented dollar totals",
+        "sealed-payload-check: Response notes the charge is over the sealed payload, not the event JSON",
         "social-context-check: Skill has group-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
-        "Response calculates per-action and total cost for admin operations"
+        "Response identifies 5 kind:9001 and 10 kind:9005 events and the permissions each needs"
       ]
     },
     {
       "id": "subscribe-group-state",
       "prompt": "I want to monitor a group's current members, admins, and messages on TOON. The group ID is 'builders'. How do I subscribe to the group state?",
-      "expected_output": "Subscribe to three group state feeds: kind:39000 with #d filter for 'builders' (metadata), kind:39001 with #d filter for 'builders' (admin list), and kind:39002 with #d filter for 'builders' (member list). For ongoing messages, subscribe to kinds [9, 11] with #h filter for 'builders'. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects -- use the TOON decoder to parse responses. Group state events are replaceable, so always use the latest version. All subscriptions are free on TOON -- reading costs nothing.",
+      "expected_output": "Subscribe to three group state feeds: kind:39000 with a #d filter for 'builders' (metadata), kind:39001 with a #d filter for 'builders' (admin list), and kind:39002 with a #d filter for 'builders' (member list). For ongoing messages, subscribe to kinds [9, 11] with a #h filter for 'builders'. Reads are free on TOON and do not touch the pay path at all -- they go to the relay's own WebSocket port, not through the connector. The fleet's relay speaks plain NIP-01 JSON on reads, so any Nostr client works and there is no decode step. Group state events are replaceable, so always use the latest version of each.",
       "rubric": {
-        "correct": "Specifies correct filter kinds and tag filters (d tag for state events, h tag for messages). Explains TOON-format parsing requirement. Notes that state events are replaceable. Mentions reading is free.",
-        "acceptable": "Correctly identifies the subscription filters and TOON-format parsing, but may not distinguish d tag vs h tag filtering or explain replaceable event semantics.",
-        "incorrect": "Uses wrong filter tags, assumes standard JSON responses, or claims reading costs money."
+        "correct": "Specifies correct filter kinds and tag filters (d tag for state events, h tag for messages). Notes that state events are replaceable. States that reading is free and bypasses the pay path, and that the relay serves plain NIP-01 JSON.",
+        "acceptable": "Correctly identifies the subscription filters and that reading is free, but may not distinguish d tag vs h tag filtering or explain replaceable event semantics.",
+        "incorrect": "Uses wrong filter tags, claims reading costs money or requires a payment channel, or claims responses must be run through a TOON decoder."
       },
       "assertions": [
-        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "free-read-check: Response states reads are free and do not go through the connector",
+        "no-stale-model: Response does not claim relay EVENT payloads are TOON-format strings needing a decoder",
         "social-context-check: Skill has group-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses d tag filter for state events and h tag filter for messages",

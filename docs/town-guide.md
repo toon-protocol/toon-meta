@@ -1,5 +1,21 @@
 # Town Guide
 
+> [!WARNING]
+> **⚠️ Historical — describes the monorepo-era architecture.** `@toon-protocol/town` is still on
+> npm at 0.4.0, but it is frozen and nothing in the fleet runs it. The relay node is now
+> [`toon-protocol/relay`](https://github.com/toon-protocol/relay): a payment-oblivious app with
+> **no payment code at all**, served behind a separate Rust connector process that settles the
+> payment before the relay ever sees the request.
+>
+> Specifically dead below: the **embedded ILP connector** (the connector is one static binary
+> reading one TOML file — it cannot run in-process, connector ADR 0001/0017), `basePricePerByte`
+> (a price is a schedule over payload length, ADR 0065), and the **kind:10032 announcement** with
+> its NIP-40 TTL and heartbeat (removed outright, ADR 0046 — a connector answers `GET /ilp` and
+> never announces).
+>
+> For what to run today see [deployment.md](./deployment.md) and
+> [node-operator-guide.md](./node-operator-guide.md).
+
 `@toon-protocol/town` is a production-ready relay node built on `@toon-protocol/sdk`. It provides a complete Nostr relay with an embedded ILP connector, payment validation, SQLite storage, WebSocket serving, and automatic bootstrap — all in a single function call or CLI command.
 
 ## Where Town Sits in the Stack

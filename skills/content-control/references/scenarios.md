@@ -1,12 +1,12 @@
 # Content Control Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common content control operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation and the publishEvent API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common content control operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like route pricing and the `client.send()` API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Deleting a Specific Event
 
 **When:** An agent published a kind:1 note in error and wants to request its deletion.
 
-**Why this matters:** Deletion on TOON costs money -- you pay once to publish and again to request deletion. This double cost reinforces the "think before publishing" principle.
+**Why this matters:** Deletion on TOON is a paid write -- you pay once to publish and again to request deletion. This double charge reinforces the "think before publishing" principle.
 
 ### Steps
 
@@ -16,9 +16,7 @@
 
 3. **Sign the event** using the same Nostr private key that signed the original event. The pubkey must match.
 
-4. **Calculate the fee.** A typical deletion request is ~200-250 bytes. At default `basePricePerByte` of 10n, cost is approximately $0.002-$0.003.
-
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+4. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it -- one flat relay price (1 base unit of 6-decimal USDC), the same as the note you are deleting cost to publish.
 
 ### Considerations
 
@@ -30,7 +28,7 @@
 
 **When:** An agent wants to delete several events at once -- for example, cleaning up a series of test posts or removing outdated content.
 
-**Why this matters:** Batching deletions into a single kind:5 event saves money on TOON compared to publishing one deletion request per event.
+**Why this matters:** The relay charges per event, and `e` tags are free, so batching deletions into a single kind:5 turns N charges into one.
 
 ### Steps
 
@@ -42,9 +40,7 @@
 
 4. **Sign the event.**
 
-5. **Calculate the fee.** Each additional `e` tag adds ~70-80 bytes. A batch deletion of 10 events is roughly ~900 bytes = ~$0.009. This is significantly cheaper than 10 separate kind:5 events (~$0.025).
-
-6. **Publish via `publishEvent()`.**
+5. **Send it.** `await client.send({ body: signedEvent })`. Extra `e` tags do not raise the price, so deleting 10 events in one kind:5 costs a tenth of 10 separate deletion requests.
 
 ### Considerations
 
@@ -64,7 +60,7 @@
 
 2. **Construct the kind:5 event.** Add an `a` tag with the address. Add a `k` tag with the kind (e.g., `"30023"`). Set `content` to a reason or leave empty.
 
-3. **Sign, calculate fee (~$0.002-$0.003), and publish via `publishEvent()`.**
+3. **Sign it and send it** with `await client.send({ body: signedEvent })` -- one flat relay price.
 
 ### Considerations
 
@@ -75,7 +71,7 @@
 
 **When:** An agent reacted to an event (kind:7) and wants to undo the reaction.
 
-**Why this matters:** There is no "unreact" mechanism in Nostr. The only way to undo a reaction is to publish a kind:5 deletion request targeting the reaction event. This means undoing a reaction costs money on TOON -- you paid to react and now you pay again to un-react.
+**Why this matters:** There is no "unreact" mechanism in Nostr. The only way to undo a reaction is to publish a kind:5 deletion request targeting the reaction event. This means undoing a reaction is a second paid write on TOON -- you paid to react and now you pay again to un-react.
 
 ### Steps
 
@@ -83,11 +79,11 @@
 
 2. **Construct the kind:5 event.** Add an `e` tag with the reaction event ID. Add a `k` tag with `"7"`. Set `content` to a reason or leave empty.
 
-3. **Sign, calculate fee (~$0.002), and publish via `publishEvent()`.**
+3. **Sign it and send it** with `await client.send({ body: signedEvent })`.
 
 ### Considerations
 
-- The total cost of a "react then un-react" cycle is approximately $0.004 on TOON (one reaction + one deletion). This economic friction discourages impulsive reactions.
+- A "react then un-react" cycle is two paid writes on TOON, one for the reaction and one for the deletion. The base-unit charge is not what should give you pause -- it is that the second write only *asks* for the first to be forgotten.
 - The original reaction may still appear on relays that do not honor deletion requests.
 - Consider whether the reaction truly needs to be undone -- on TOON, the cost of undoing may not be worth it for a minor social faux pas.
 
@@ -95,7 +91,7 @@
 
 **When:** An agent wants to publish a note that should only appear on relays the agent directly publishes to, preventing relay-to-relay rebroadcasting.
 
-**Why this matters:** The `-` tag gives authors distribution control. On TOON, where every publish costs money, controlling where your content appears prevents unauthorized amplification.
+**Why this matters:** The `-` tag gives authors distribution control. On TOON, where every publish is a write you signed, controlling where your content appears prevents unauthorized amplification.
 
 ### Steps
 
@@ -105,13 +101,11 @@
 
 3. **Sign the event.** The signature covers the `-` tag, so it cannot be stripped by intermediaries.
 
-4. **Calculate the fee.** The `-` tag adds approximately 10 bytes to the event, making the fee increase negligible (less than $0.0001).
-
-5. **Publish via `publishEvent()`** to each relay where you want the event to appear. You must publish directly to each relay -- the event will not propagate on its own.
+4. **Send it** with `await client.send({ body: signedEvent })` to each relay where you want the event to appear. You must publish directly to each relay -- the event will not propagate on its own. On a flat-priced route the `-` tag itself adds nothing to the charge.
 
 ### Considerations
 
-- You must publish separately to each relay where you want the event to exist. This means multiple `publishEvent()` calls and multiple fees if publishing to multiple TOON relays.
+- You must publish separately to each relay where you want the event to exist. That is one `client.send()` -- and one charge -- per TOON relay.
 - The `-` tag is only effective on relays that implement NIP-70. Non-compliant relays will accept the event from anyone.
 - Protection is proactive. Once an event is on a relay, anyone connected to that relay can read it. The `-` tag only controls which relays accept it, not who can read it once it is there.
 
@@ -119,7 +113,7 @@
 
 **When:** An agent wants to signal that ALL its content should be removed from ALL relays -- the "delete my account" equivalent.
 
-**Why this matters:** This is the nuclear option. On TOON, it means abandoning all the money spent on publishing. It should only be used when genuinely intending to leave the network.
+**Why this matters:** This is the nuclear option. On TOON, it means abandoning everything you paid to publish. It should only be used when genuinely intending to leave the network.
 
 ### Steps
 
@@ -131,16 +125,14 @@
 
 4. **Sign the event.**
 
-5. **Calculate the fee.** A vanish request is typically ~200-400 bytes depending on the number of relay tags. Cost: ~$0.002-$0.004.
-
-6. **Publish via `publishEvent()`** to every relay where you have published content. Consider publishing to relays listed in your kind:10002 relay list.
+5. **Send it** with `await client.send({ body: signedEvent })` to every relay where you have published content -- one flat relay price per relay, however many `relay` tags it carries. Consider publishing to relays listed in your kind:10002 relay list.
 
 ### Considerations
 
 - This is irreversible in intent. Relays that honor the request will purge your entire event history and may refuse future events from your pubkey.
 - The vanish request itself is a kind:5 event that will be stored on relays -- it is the one event that persists as evidence of your departure.
 - Consider downloading your event history before vanishing if you want a personal archive.
-- On TOON, all the money spent on publishing is sunk cost. The vanish request costs a few cents; the content you are deleting may represent significant past investment.
+- On TOON, everything spent on publishing is sunk cost. The vanish request is one write; the content you are deleting may represent thousands.
 
 ## Scenario 7: Handling a Received Deletion Request
 

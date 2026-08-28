@@ -2,123 +2,141 @@
 
 ## Why Writes Cost Money
 
-TOON uses ILP-gated writes because payment prevents spam and creates quality floors. Every event published to a TOON relay carries an ILP payment proportional to its size. This means the network self-regulates: low-value content is expensive relative to its worth, while high-value content is cheap relative to its impact. There is no proof-of-work, no relay authentication handshake, and no Lightning wallet integration -- ILP handles all of these functions.
+TOON gates writes behind payment. The relay is an ordinary Nostr app sitting behind a **connector**, and the connector terminates payment the way nginx terminates SSL: by the time the relay sees a write, it is ordinary HTTP that was already paid for. There is no proof-of-work, no relay authentication handshake, and no Lightning wallet — a claim authorises, and that is the whole gate.
 
-## Pricing Discovery
+Be precise about what that gate is. The price is small — `g.toon.relay` charges **1 base unit** of 6-decimal USDC, a millionth of a dollar — so payment does not *deter* a determined writer. What it does is require a covering claim on a **funded payment channel** for every single write: friction, attribution and a settlement trail, rather than a price barrier.
 
-Before publishing, discover the destination relay's pricing. Two sources:
+Note the shape of the cost. A price attaches to a **route**, and on the live relay route it is **flat per packet**: writing costs the same whether you write ten words or ten thousand. What you pay for is how often you write, not how much.
 
-**kind:10032 events** (ILP Peer Info): Published by relay peers, these include `basePricePerByte` and `feePerByte` fields. Subscribe to kind:10032 on the relay to get current pricing.
+## Asking What a Route Costs
 
-**NIP-11 `/health` endpoint**: TOON relays expose an enriched NIP-11 endpoint that returns pricing, capabilities, chain config, x402 status, and TEE attestation state. Fetch it with a simple HTTP GET:
+A connector **answers**; it never announces. Everything you need is on one free, unauthenticated document — the node's **self-description**, served from `GET /ilp` on its own URL (connector ADR 0050). It carries the node's addresses, its settlement facts, and every route's price.
 
 ```typescript
-const info = await fetch('http://relay-host:3100/health').then(r => r.json());
-// info.pricing.basePricePerByte -> "10" (string, micro-USDC per byte)
+const terms = await client.routePrice('g.toon.relay');
+// { price: 1n }                  — flat
+// { price: 1000n, pricePerKib: 10n } — metered, on a route like g.toon.store
+// null                            — this node terminates no matching route
 ```
 
-## Fee Calculation
+`null` is an **answer**, not a failure: it means "I do not terminate that". A connector that could not be reached throws instead, so the two are never confused.
 
-The base fee formula:
+If you want the figure a packet would actually carry, hand those terms to `chargeFor`:
 
+```typescript
+import { chargeFor } from '@toon-protocol/client';
+const amount = chargeFor(terms, sealedBytes);
 ```
-amount = basePricePerByte * serializedEventBytes
-```
 
-Where:
-- `basePricePerByte` defaults to 10n (10 micro-USDC per byte = $0.00001/byte)
-- `serializedEventBytes` is the length of the TOON-encoded event in bytes
-- Amounts are in USDC micro-units (6 decimal places)
+**You almost never need to do this.** `send()` calls `chargeFor` itself. Reach for it only when you must show a user a price before committing.
 
-Example: A 250-byte event at the default rate costs `10 * 250 = 2500` micro-USDC ($0.0025).
+**You cannot compute the charge yourself.** The metered quantity is the **sealed** payload — the gift-wrapped bytes the PREPARE carries — not your event JSON, which is smaller by the envelope and the wrap. Ask; do not multiply. And the unit is a **kibibyte**: a per-byte price never existed on TOON.
 
-For multi-hop routes, intermediary fees are added automatically. See [fee-calculation.md](fee-calculation.md) for the full route-aware formula.
+Prices are whole counts of the settlement token's smallest unit. USDC is 6-decimal, so `1_000_000` = $1 and the relay route's price of `1` is one millionth of a dollar.
+
+**Retired:** `basePricePerByte`, `feePerByte`, `kind:10032` peer info, a `/health` pricing endpoint, `kind:10035` / `SkillDescriptor` per-kind pricing, `resolveRouteFees()`, `calculateRouteAmount()` and LCA route resolution. ADR 0046 removed the announce; ADR 0061 and ADR 0065 replaced the money model. The cost of a multi-hop path is discovered from a probe's reject, not computed from a fee table.
 
 ## Publishing with `@toon-protocol/client`
 
-The transport for agents is `@toon-protocol/client`, specifically the `ToonClient.publishEvent()` method. The SDK (`createNode()`, `HandlerRegistry`) is for service node providers, not agents.
+The transport for agents is `@toon-protocol/client`. Build and sign the event as you would for any relay, then send it:
 
 ```typescript
 import { ToonClient } from '@toon-protocol/client';
-import { encodeEventToToon, decodeEventFromToon } from '@toon-protocol/relay';
+import { finalizeEvent } from 'nostr-tools/pure';
 
-// Create and start the client
-const client = new ToonClient({
-  connectorUrl: 'http://localhost:8080',
-  secretKey,
-  ilpInfo: { ilpAddress: 'g.toon.myagent', btpEndpoint: 'ws://localhost:3000', pubkey },
-  toonEncoder: encodeEventToToon,
-  toonDecoder: decodeEventFromToon,
-  relayUrl: 'ws://localhost:7100',
-  btpUrl: 'ws://localhost:3000',
+const client = await ToonClient.create({
+  connector: 'https://proxy.relay.devnet.toonprotocol.dev',
+  mnemonic: process.env.TOON_MNEMONIC,
 });
 
-await client.start();
+await client.channel.open({ deposit: 100_000n });
 
-// Sign a balance proof for the payment channel
-const claim = await client.signBalanceProof(channelId, amount);
+const signedEvent = finalizeEvent(
+  { kind: 1, content: 'Hello from TOON!', tags: [], created_at: Math.floor(Date.now() / 1000) },
+  secretKey
+);
 
-// Publish to the default destination
-const result = await client.publishEvent(signedEvent, { claim });
+// The node's own published address
+const answer = await client.send({ body: signedEvent });
 
-// Publish to a specific destination (multi-hop routing)
-const result2 = await client.publishEvent(signedEvent, {
-  destination: 'g.toon.peer1',
-  claim,
-});
-
-if (!result.success) {
-  console.error('Publish failed:', result.error);
-}
+// Or name a route yourself
+const stored = await client.send('g.toon.relay.store', { body: blob });
 ```
+
+`send()` does all of it in order: it seals the payload to the connector that **terminates** the route, asks that connector the price, charges it against the sealed bytes, ensures a channel, signs a claim for exactly that amount, picks a carriage, and reads the sealed answer back. A caller never prices a packet by hand, never signs a claim by hand, and never constructs an ILP packet.
 
 ### API Signature
 
 ```typescript
-async publishEvent(
-  event: NostrEvent,
-  options?: {
-    destination?: string;    // ILP address of target relay (default: config.destinationAddress)
-    claim?: SignedBalanceProof; // Signed balance proof for payment channel
-  }
-): Promise<PublishEventResult>
+send(request?: SendRequest, options?: SendOptions): Promise<SendResult>;
+send(destination: string, request?: SendRequest, options?: SendOptions): Promise<SendResult>;
+
+interface SendRequest {
+  method?: string;                                   // default 'POST'
+  target?: string;                                   // path beneath the route's handler
+  headers?: Record<string, string> | [string, string][];
+  body?: string | Uint8Array | object;               // an object also sets content-type: application/json
+}
+
+interface SendOptions {
+  amount?: bigint;    // override; on a forwarded route, above the price is refused F03
+  sealTo?: Uint8Array | string;  // needed only when the addressed node FORWARDS the route
+  timeoutMs?: number;
+}
 ```
 
-The client internally:
-1. Encodes the event to TOON format via `toonEncoder`
-2. Calculates `basePricePerByte * toonData.length`
-3. Constructs an ILP PREPARE packet with the TOON data as payload
-4. Sends via BTP with the signed balance proof claim
+The destination is **optional**. Omit it and the packet goes to the address the connector published for itself, so configuring a client is just a URL — the thing a person actually has.
 
-### Amount Override (D7-007)
+`sealTo` matters only for a forwarded destination: a payload must be sealed to the connector that *terminates* the route, and no hop may name that key on another's behalf. Sealing to a forwarder is a confidentiality failure the wire can only report as an undeliverable packet.
 
-For DVM kinds and other special flows, the `amount` can be overridden to bypass the standard `basePricePerByte * bytes` calculation. This enables the prepaid DVM model where the request packet IS the payment:
+**Retired — these do not exist, and code calling them calls nothing:** `publishEvent()`, a caller-facing `signBalanceProof()`, the `bid` safety cap (D7-006), and the DVM amount override (D7-007) as previously described. `SendOptions.amount` exists, but it is an override, not a negotiation.
+
+## Reading the Answer
+
+A refusal is **returned, never thrown**:
 
 ```typescript
-// DVM job request: amount comes from provider's SkillDescriptor pricing,
-// not from basePricePerByte * bytes
-await client.publishEvent(dvmRequestEvent, {
-  destination: 'g.toon.provider1',
-  claim: await client.signBalanceProof(channelId, providerPrice),
-});
+const answer = await client.send({ body: signedEvent });
+
+if (answer.fulfilled) {
+  answer.status;   // the APP's HTTP status — a 404 is a real answer and costs what a 200 costs
+  answer.headers;  // [name, value][] — in order, duplicates preserved
+  answer.body;
+  answer.claim;    // what this packet spent: { channelId, chain, nonce, cumulative, amount }
+} else {
+  answer.code;     // 'F03' | 'T04' | 'F02' | 'T01' | …
+  answer.message;
+}
 ```
-
-### Bid Safety Cap (D7-006)
-
-The `bid` semantic is a client-side safety cap: "I won't pay more than X for this event." If the destination's price exceeds the bid, the client throws before sending. This protects against price surprises but is not an offer or negotiation -- the actual price comes from the provider's advertised `SkillDescriptor.pricing` or `basePricePerByte`.
 
 ## Error Handling
 
-**F04 (Insufficient Payment)**: The amount sent was too low for the payload size. This typically means the event grew larger than expected after encoding, or the relay's `basePricePerByte` increased since pricing was last fetched. Re-discover pricing and retry.
+| Code | Means | What to do |
+|------|-------|-----------|
+| `F03` | INVALID_AMOUNT — the claim does not cover the charge. **This is underpayment.** | Re-ask `routePrice()` and retry; the reject carries the real figure. `send()` normally makes this impossible. |
+| `T04` | Over the peering's cap. The message **states the cap** — the only way a sender learns it. | Send less in one packet. It is never carried and never split for you. |
+| `R01` | This hop's fee alone exceeds the arriving amount, so nothing would be forwarded. | Send more, or take a shorter path. |
+| `F02` | Nothing routes that name. | Check the destination against the node's self-description. |
+| `T01` | The peer was not there. | Transport problem, not a payment problem. |
 
-**MISSING_CLAIM**: A signed balance proof is required for client-to-node publishing. Call `client.signBalanceProof()` first.
+**There is no `F04`.** Underpayment is `F03`.
 
-**NO_BTP_CLIENT**: BTP transport is required for publishing. Ensure `btpUrl` is configured.
+**The connector never parses the payload.** There is no TOON parse, no signature check and no event-kind dispatch anywhere on the packet path — the terminating connector reads only the envelope. The old five-stage validation pipeline (size → TOON parse → Schnorr → pricing → kind dispatch), and its `F04`/`F06`/`F08` table, were never true of it.
 
 ## Simplified Write Model (D9-005)
 
-There is no condition and no fulfillment computation on the client side. Agents never compute SHA-256 double-hashes or manage ILP conditions. The `publishEvent()` API is the complete interface -- the ILP layer handles conditions and fulfillments internally.
+There is no condition and no fulfilment computation on the client side. Agents never compute SHA-256 double-hashes and never manage ILP conditions. `send()` mints the gift wrap, the execution condition and the shared secret together, so they cannot drift.
+
+## TOON Encoding Is the Write Payload, Not the Read Response
+
+TOON is an agreement between a **client and an app** about the bytes of the write payload — the bytes `send()` seals and the connector carries without ever opening them. That is the whole of its scope on the packet path.
+
+It is **not** what a relay serves on a read. The relay returns **standard JSON** `EVENT` messages and speaks plain NIP-01, so any ordinary Nostr client can read it with no decoder.
+
+**TOON on the way in, plain NIP-01 JSON on the way out.**
 
 ## What NOT to Do
 
-Never send events via raw WebSocket EVENT messages to a TOON relay. TOON relays require ILP payment with every write. The `publishEvent()` method handles encoding, payment, and transport. Raw WebSocket writes will be rejected because they carry no payment.
+Never send events by raw WebSocket EVENT message to the relay app expecting them to be accepted as writes. A write must arrive through the connector in front of the relay, because that is where payment is terminated. Reads are the opposite: `["REQ", …]` straight to the relay app is correct, free, and never touches a connector.
+
+Never reach for `@toon-format/toon` to parse a relay subscription. Nothing on a read is TOON-encoded.

@@ -85,16 +85,16 @@
     {
       "id": "imeta-tag-construction",
       "prompt": "I want to attach an image to a kind:1 note on TOON. The image is hosted at https://example.com/photo.jpg (JPEG, 245760 bytes, 1920x1080). How do I construct the imeta tag and publish the event?",
-      "expected_output": "Construct a kind:1 event with the image URL in the content. Add an imeta tag: [\"imeta\", \"url https://example.com/photo.jpg\", \"m image/jpeg\", \"alt <description of the image>\", \"x <sha256-hex-hash>\", \"size 245760\", \"dim 1920x1080\"]. Sign the event. Calculate the fee -- a kind:1 note with one imeta tag is approximately 400-700 bytes (~$0.004-$0.007 at default basePricePerByte). Publish via publishEvent() from @toon-protocol/client. Include alt text for accessibility. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects.",
+      "expected_output": "Construct a kind:1 event with the image URL in the content. Add an imeta tag: [\"imeta\", \"url https://example.com/photo.jpg\", \"m image/jpeg\", \"alt <description of the image>\", \"x <sha256-hex-hash>\", \"size 245760\", \"dim 1920x1080\"]. Sign the event, then send it: await client.send({ body: signedEvent }) from @toon-protocol/client -- the client seals the payload, reads the route's price, mints the covering claim and carries it, so there is no separate pricing or claim-signing step. The relay route is flat-priced, so the imeta tag makes the event larger without making it cost more: this note costs the same as a text-only note. Include alt text for accessibility -- it adds bytes and no charge. Reading back is a separate, free path that speaks plain NIP-01: the relay returns standard JSON EVENT messages, so no TOON decoder is involved. TOON encodes the write payload sealed inside the ILP packet, not what a relay serves on a read.",
       "rubric": {
-        "correct": "Constructs imeta tag with correct space-separated key-value format including url, m, alt, x, size, dim fields. Publishes via publishEvent(). Includes approximate byte cost for the event with imeta tag overhead. Mentions alt text for accessibility. Mentions TOON-format strings.",
-        "acceptable": "Uses publishEvent() with imeta tag including url and m fields, but may not include all fields or exact byte cost estimates.",
-        "incorrect": "Uses raw WebSocket, omits imeta tag entirely, uses wrong tag format (e.g., separate tags instead of imeta), or does not mention publishEvent()."
+        "correct": "Constructs imeta tag with correct space-separated key-value format including url, m, alt, x, size, dim fields. Sends via client.send() from @toon-protocol/client. Lets the client price the packet, or states the relay route is flat-priced so imeta overhead does not change the charge. Mentions alt text for accessibility. States that relay reads are free and return plain NIP-01 JSON, with no TOON decoding on the read path.",
+        "acceptable": "Uses client.send() with an imeta tag including url and m fields, but may not include all fields or state the route price.",
+        "incorrect": "Uses raw WebSocket, calls publishEvent() or signBalanceProof() (neither exists), computes a per-byte cost from the event's size or cites basePricePerByte, omits the imeta tag entirely, uses the wrong tag format (e.g., separate tags instead of imeta), or claims relay responses are TOON-encoded or that a TOON decoder is needed to read them."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee awareness for imeta tag byte overhead",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not publishEvent() and not raw WebSocket",
+        "toon-fee-check: Response lets the client price the packet, or states the relay route is flat-priced so imeta overhead does not change the charge; it does not compute a cost from the event's byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has media-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "eval-completeness: At least 6 trigger evals and 4 output evals",
@@ -105,16 +105,16 @@
     {
       "id": "kind-1063-file-metadata",
       "prompt": "I want to create a kind:1063 file metadata event on TOON to describe a PDF file hosted at https://files.example.com/report.pdf. What tags are required and how do I publish it?",
-      "expected_output": "Construct a kind:1063 event. Set the content field to a human-readable file description (e.g., 'Quarterly revenue report for Q4 2025'). Add the three required tags: [\"url\", \"https://files.example.com/report.pdf\"], [\"m\", \"application/pdf\"], [\"x\", \"<sha256-hex-hash>\"]. Optionally add size, summary, alt tags. Sign the event. Calculate the fee -- a kind:1063 event is approximately 300-800 bytes (~$0.003-$0.008 at default basePricePerByte). Publish via publishEvent() from @toon-protocol/client. TOON relays return TOON-format strings in EVENT messages.",
+      "expected_output": "Construct a kind:1063 event. Set the content field to a human-readable file description (e.g., 'Quarterly revenue report for Q4 2025'). Add the three required tags: [\"url\", \"https://files.example.com/report.pdf\"], [\"m\", \"application/pdf\"], [\"x\", \"<sha256-hex-hash>\"]. Optionally add size, summary, alt tags. Sign the event, then send it: await client.send({ body: signedEvent }) from @toon-protocol/client. The relay route is flat-priced, so a minimal kind:1063 and a fully-tagged one cost the same -- 1 base unit of 6-decimal USDC. Note that you are paying for the metadata event, not for the PDF's storage: if the file itself were stored through TOON's Arweave DVM it would go to the store route, which is priced by payload size. Reading back is a separate, free path that speaks plain NIP-01: the relay returns standard JSON EVENT messages, so no TOON decoder is involved. TOON encodes the write payload sealed inside the ILP packet, not what a relay serves on a read.",
       "rubric": {
-        "correct": "Includes all three required tags (url, m, x) as separate tag arrays. Content field is free-text description, not JSON. Publishes via publishEvent(). Includes approximate byte cost. Mentions TOON-format strings.",
-        "acceptable": "Includes required tags and publishEvent() but may not detail content field format or byte cost.",
-        "incorrect": "Omits required tags, puts metadata in content as JSON, uses raw WebSocket, or does not mention publishEvent()."
+        "correct": "Includes all three required tags (url, m, x) as separate tag arrays. Content field is free-text description, not JSON. Sends via client.send(). Lets the client price the packet, or states the relay route is flat-priced. Distinguishes the flat-priced metadata event from size-priced blob storage. States that relay reads are free and return plain NIP-01 JSON, with no TOON decoding on the read path.",
+        "acceptable": "Includes required tags and uses client.send(), but may not detail the content field format or the route price.",
+        "incorrect": "Omits required tags, puts metadata in content as JSON, uses raw WebSocket, calls publishEvent(), computes a fee from the event's byte count or cites basePricePerByte, or claims relay responses are TOON-encoded or that a TOON decoder is needed to read them."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee awareness for kind:1063 byte cost",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not publishEvent() and not raw WebSocket",
+        "toon-fee-check: Response lets the client price the packet, or states the relay route is flat-priced, and does not compute a charge from the event's byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has media-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response includes all three required tags: url, m, x"
@@ -123,16 +123,16 @@
     {
       "id": "arweave-content-reference",
       "prompt": "I uploaded a file to Arweave and got transaction ID bNBsl1C_QXyT9V0riR. How do I reference this Arweave content in a Nostr event on TOON? What is the relationship between the Arweave DVM and NIP-73?",
-      "expected_output": "Add an i tag to your event: [\"i\", \"arweave:tx:bNBsl1C_QXyT9V0riR\"]. This creates a permanent, immutable reference to the Arweave content. You can combine this with a kind:1063 file metadata event that has url pointing to https://arweave.net/bNBsl1C_QXyT9V0riR plus the i tag for content-ID-based discovery. The Arweave DVM (kind:5094 from Epic 8) handles the upload logistics; NIP-73 i tags handle the reference and discovery. They are complementary -- the DVM uploads, NIP-73 references. The i tag adds approximately 70-90 bytes ($0.0007-$0.0009). Anyone can search #i: [\"arweave:tx:bNBsl1C_QXyT9V0riR\"] to discover all events referencing that content. Publish via publishEvent(). TOON relays return TOON-format strings.",
+      "expected_output": "Add an i tag to your event: [\"i\", \"arweave:tx:bNBsl1C_QXyT9V0riR\"]. This creates a permanent, immutable reference to the Arweave content. You can combine this with a kind:1063 file metadata event that has url pointing to https://arweave.net/bNBsl1C_QXyT9V0riR plus the i tag for content-ID-based discovery. The Arweave DVM (kind:5094 request, kind:6094 result) handles the upload logistics; NIP-73 i tags handle the reference and discovery. They are complementary -- the DVM uploads, NIP-73 references -- and they are billed on two different routes: the DVM sits behind the store route (g.toon.store), which is priced by payload size, while the referencing event is a flat-priced relay write. Send the event with await client.send({ body: signedEvent }); the i tag adds bytes and no charge. Anyone can search #i: [\"arweave:tx:bNBsl1C_QXyT9V0riR\"] to discover all events referencing that content. Reading back is a separate, free path that speaks plain NIP-01: the relay returns standard JSON EVENT messages, so no TOON decoder is involved. TOON encodes the write payload sealed inside the ILP packet, not what a relay serves on a read.",
       "rubric": {
-        "correct": "Uses correct arweave:tx: format in i tag. Explains the upload-reference pattern (DVM uploads, NIP-73 references). Mentions combining with kind:1063 for full metadata. Includes byte cost estimate for i tag. Mentions publishEvent() and TOON-format strings.",
-        "acceptable": "Correctly formats arweave:tx: i tag and uses publishEvent(), but may not fully explain the DVM/NIP-73 relationship.",
-        "incorrect": "Uses wrong i tag format, confuses DVM upload with NIP-73 referencing, or does not mention publishEvent()."
+        "correct": "Uses correct arweave:tx: format in i tag. Explains the upload-reference pattern (DVM uploads, NIP-73 references). Mentions combining with kind:1063 for full metadata. Distinguishes the size-priced store route for the blob from the flat-priced relay write for the reference. Uses client.send(), and states that relay reads return plain NIP-01 JSON rather than TOON-encoded events.",
+        "acceptable": "Correctly formats the arweave:tx: i tag and uses client.send(), but may not fully explain the DVM/NIP-73 relationship or the two routes.",
+        "incorrect": "Uses wrong i tag format, confuses DVM upload with NIP-73 referencing, calls publishEvent(), computes a per-byte cost for the i tag or cites basePricePerByte, or claims relay responses are TOON-encoded or that a TOON decoder is needed to read them."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee awareness for i tag byte overhead",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not publishEvent() and not raw WebSocket",
+        "toon-fee-check: Response does not compute a per-byte charge for the i tag; it lets the client price the packet, or notes the relay route is flat-priced while blob storage on the store route is priced by size",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has media-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses correct arweave:tx: format in i tag",
@@ -141,36 +141,36 @@
     },
     {
       "id": "media-economics-on-toon",
-      "prompt": "How does TOON's per-byte pricing affect media-rich events? What is the cost difference between a text-only note and a note with three image attachments?",
-      "expected_output": "On TOON, every event costs basePricePerByte * serializedEventBytes. Media-rich events cost more because imeta tags add byte overhead. A text-only kind:1 note is approximately 200-350 bytes (~$0.002-$0.004). Adding one imeta tag adds ~100-300 bytes of overhead. A kind:1 note with three imeta tags is approximately 700-1200 bytes (~$0.007-$0.012) -- roughly 2-3x the cost of a text-only note. This creates a natural quality-over-quantity incentive: share media thoughtfully rather than flooding with attachments. kind:1063 file metadata events are small (300-800 bytes, $0.003-$0.008) because they describe external files rather than embedding data. i tags for external content IDs add minimal overhead (~50-100 bytes). Never embed large binary data in event content -- use URLs. TOON relays return TOON-format strings in EVENT messages.",
+      "prompt": "How does TOON's pricing affect media-rich events? What is the cost difference between a text-only note and a note with three image attachments?",
+      "expected_output": "There is no difference. On TOON a Nostr event goes to the relay, whose route is flat-priced -- 1 base unit of 6-decimal USDC per event, with no slope over payload length -- so a text-only kind:1 note and a kind:1 note with three imeta tags cost exactly the same. imeta tags, i tags and long alt text all make the event bigger without making it dearer, and there is no cost argument for dropping accessibility metadata. The place size does cost money is blob storage: a file stored through TOON's Arweave DVM (kind:5094) goes to the store route (g.toon.store), priced at 1000 base units plus 10 per KiB. Even there, do not do the arithmetic yourself -- await client.routePrice('g.toon.store') returns { price, pricePerKib } and chargeFor(terms, sealedBytes) turns that into a charge, because the metered quantity is the sealed payload the PREPARE carries, not the file on disk. Ordinarily client.send() prices the packet for you. Never embed binary data in event content: the relay would not charge you extra, but a huge packet degrades relay performance and will hit the peering's cap (a T04 reject, whose message states the cap). Reading back is a separate, free path that speaks plain NIP-01: the relay returns standard JSON EVENT messages, so no TOON decoder is involved. TOON encodes the write payload sealed inside the ILP packet, not what a relay serves on a read.",
       "rubric": {
-        "correct": "Compares text-only note cost vs media-rich note cost with specific byte estimates. Explains imeta tag overhead accumulates linearly. Mentions quality-over-quantity incentive. Notes kind:1063 is small because it references external files. Warns against embedding binary data. Mentions TOON-format strings.",
-        "acceptable": "Correctly identifies per-byte cost increase from imeta tags with some cost estimates, but may not detail all scenarios.",
-        "incorrect": "Claims media is free on TOON, provides no cost comparison, or does not explain imeta tag byte overhead."
+        "correct": "States the relay route is flat-priced, so a media-rich note costs the same as a text-only note. Notes that blob storage on the store route is the size-priced case, and that the metered quantity there is the sealed payload, not the file. Directs the reader to let client.send() price the packet, or to routePrice()/chargeFor(), rather than doing arithmetic. Warns against embedding binary data. States that relay reads are free and return plain NIP-01 JSON, with no TOON decoding on the read path.",
+        "acceptable": "Correctly states that imeta overhead does not change what the relay charges, but may not cover the store route or the sealed-payload point.",
+        "incorrect": "Claims media-rich events cost more per byte on the relay, cites basePricePerByte or any per-byte fee formula, computes a charge from the event's own byte count, claims writing is free on TOON, or claims relay responses are TOON-encoded or that a TOON decoder is needed to read them."
       },
       "assertions": [
-        "toon-write-check: Response mentions publishEvent() for publishing media-rich events",
-        "toon-fee-check: Response includes specific fee comparisons between text-only and media-rich events",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client for publishing media-rich events, not publishEvent()",
+        "toon-fee-check: Response states the relay route is flat-priced so imeta overhead does not change the charge, and confines size-based pricing to the store route without computing it by hand",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has media-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
-        "Response compares text-only note cost with media-rich note cost",
-        "Response explains imeta tag byte overhead increases event cost"
+        "Response states a text-only note and a media-rich note cost the same on the flat-priced relay route",
+        "Response does not compute a cost from the event's byte count or cite basePricePerByte"
       ]
     },
     {
       "id": "querying-file-metadata",
       "prompt": "How do I discover and query kind:1063 file metadata events on a TOON relay? I want to find all PDF files published by a specific author.",
-      "expected_output": "Subscribe with a filter combining kinds, authors, and MIME type: kinds: [1063], authors: [\"<pubkey>\"], #m: [\"application/pdf\"]. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects -- use the TOON decoder to parse responses. Extract the content field for the file description, and parse tags for url, m, x, size, alt, and any i tags for external references. You can also filter by hash (#x) or by external content ID (#i) to find specific files. Reading is free on TOON -- no ILP payment required for subscriptions. Verify file integrity by comparing the downloaded file's SHA-256 hash against the x tag value.",
+      "expected_output": "Subscribe with a filter combining kinds, authors, and MIME type: kinds: [1063], authors: [\"<pubkey>\"], #m: [\"application/pdf\"]. Reads are free and speak plain NIP-01: the relay returns standard JSON EVENT messages, so JSON.parse the frame and take element 2 to get an ordinary NostrEvent. There is no decoder step -- TOON encodes the write payload sealed inside the ILP packet, not what a relay serves on a read. Extract the content field for the file description, and parse tags for url, m, x, size, alt, and any i tags for external references. You can also filter by hash (#x) or by external content ID (#i) to find specific files. Reading is free on TOON -- no ILP payment required for subscriptions. Verify file integrity by comparing the downloaded file's SHA-256 hash against the x tag value.",
       "rubric": {
-        "correct": "Uses correct filter with kinds: [1063], authors, and #m tag filter. Mentions TOON-format parsing requirement. Notes reading is free. Mentions content verification via x tag hash comparison.",
-        "acceptable": "Uses correct kinds filter and mentions TOON-format parsing, but may not include all filter options or hash verification.",
-        "incorrect": "Uses wrong filter kinds, assumes standard JSON responses, or claims reading costs money."
+        "correct": "Uses correct filter with kinds: [1063], authors, and #m tag filter. States that reads come back as plain NIP-01 JSON and need no TOON decoder. Notes reading is free. Mentions content verification via x tag hash comparison.",
+        "acceptable": "Uses correct kinds filter and treats relay responses as plain NIP-01 JSON, but may not include all filter options or hash verification.",
+        "incorrect": "Uses wrong filter kinds, claims relay responses are TOON-encoded or that a TOON decoder is needed, or claims reading costs money."
       },
       "assertions": [
-        "toon-write-check: Response correctly notes reading does not require publishEvent() -- only writing does",
-        "toon-fee-check: Response notes reading is free and contrasts with write costs for publishing kind:1063",
-        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "toon-write-check: Response correctly notes reading does not require client.send() -- only writing does",
+        "toon-fee-check: Response notes reading is free and contrasts it with the paid write for publishing kind:1063",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has media-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses correct filter with kinds: [1063] and tag filters",

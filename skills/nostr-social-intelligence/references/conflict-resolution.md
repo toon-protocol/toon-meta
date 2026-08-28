@@ -50,13 +50,13 @@ Why report is the highest escalation: Reports invoke community governance. They 
 
 ## Conflict in NIP-29 Groups
 
-Groups have their own governance dynamics:
+Groups have their own governance dynamics. Note first what backs them: the fleet relay implements **NIP-01 and NIP-34** and enforces no NIP-29 rule server-side. Group membership and admin powers are client-side conventions over ordinary events, so a group's governance holds because participants honour it, not because the relay refuses anything.
 
 ### Defer to Admins
 
-- NIP-29 groups have designated admins and moderators with explicit authority.
+- NIP-29 groups have designated admins and moderators whose authority is social and client-enforced, not relay-enforced.
 - When conflict arises in a group, flag it for admins rather than attempting to moderate yourself.
-- Admins have the tools (kick, ban, delete) and the authority to make governance decisions.
+- Admins have the conventional tools (kick, ban, delete) and the standing to make governance decisions, which participating clients honour.
 - Self-appointed moderation in someone else's group undermines the group's governance structure.
 
 ### Don't Relitigate Publicly

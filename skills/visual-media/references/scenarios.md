@@ -1,6 +1,6 @@
 # Visual Media Usage Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for publishing and discovering visual media on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation, the publishEvent API, and visual content economics. These scenarios bridge the gap between knowing the NIP-68/NIP-71 tag formats (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for publishing and discovering visual media on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like what a write actually costs, the `client.send()` API, and the economics of visual content. These scenarios bridge the gap between knowing the NIP-68/NIP-71 tag formats (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Posting a Single Picture (kind:20)
 
@@ -39,9 +39,9 @@
 
 5. **Sign the event** using your Nostr private key.
 
-6. **Calculate the fee.** A kind:20 event with one image is approximately 300-600 bytes (~$0.003-$0.006 at default `basePricePerByte`).
+6. **Do not work out the charge.** `send()` prices the write itself. A kind:20 event with one image is ~300-600 bytes, and the live relay route `g.toon.relay` is 1 base unit, flat -- $0.000001 in 6-decimal USDC -- whatever that size. For another route, ask with `await client.routePrice(destination)` and price it with `chargeFor(terms, sealedBytes)`.
 
-7. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+7. **Send it with `await client.send({ body: signedEvent })`** from `@toon-protocol/client`.
 
 ### Considerations
 
@@ -84,12 +84,12 @@
 
 5. **Calculate the fee.** Three `imeta` tags add approximately 300-900 bytes of tag overhead. Total event is approximately 600-1100 bytes (~$0.006-$0.011).
 
-6. **Publish via `publishEvent()`.**
+6. **Send it with `await client.send({ body: signedEvent })`.**
 
 ### Considerations
 
 - Combine related images into a single kind:20 event rather than posting separate events for each image. Each event costs independently on TOON.
-- Include `alt` text for each image. Accessibility metadata is worth the per-byte cost.
+- Include `alt` text for each image. On the flat relay route accessibility metadata is free, and it is worth carrying on any route.
 - Order `imeta` tags in the intended display order -- clients may render images in tag order.
 
 ## Scenario 3: Publishing a Horizontal Video (kind:34235)
@@ -133,7 +133,7 @@
 
 6. **Calculate the fee.** A full-metadata video event is approximately 400-800 bytes (~$0.004-$0.008).
 
-7. **Publish via `publishEvent()`.**
+7. **Send it with `await client.send({ body: signedEvent })`.**
 
 ### Considerations
 
@@ -141,7 +141,7 @@
 - Include `duration` so clients can show video length before playback.
 - Include `image` or `thumb` for thumbnail previews in feeds.
 - The `d` tag value is permanent -- choose it carefully. It is used for replacement and querying.
-- Get metadata right the first time. While parameterized replaceable events allow updates, each update costs per-byte on TOON.
+- Get metadata right the first time. Parameterized replaceable events allow updates, but each update is another paid write.
 
 ## Scenario 4: Publishing a Vertical Video (kind:34236)
 
@@ -180,7 +180,7 @@
    }
    ```
 
-5. **Sign, calculate fee (~400-800 bytes, ~$0.004-$0.008), and publish via `publishEvent()`.**
+5. **Sign, calculate fee (~400-800 bytes, ~$0.004-$0.008), and send it with `await client.send({ body: signedEvent })`.**
 
 ### Considerations
 
@@ -192,7 +192,7 @@
 
 **When:** An agent needs to update the title, description, or thumbnail of a previously published video event.
 
-**Why this matters:** Video events (kind:34235/34236) are parameterized replaceable. Publishing a new event with the same `d` tag replaces the old one. On TOON, each update costs per-byte.
+**Why this matters:** Video events (kind:34235/34236) are parameterized replaceable. Publishing a new event with the same `d` tag replaces the old one. On TOON, each update is another paid write.
 
 ### Steps
 
@@ -221,14 +221,14 @@
    }
    ```
 
-3. **Sign, calculate fee, and publish via `publishEvent()`.**
+3. **Sign, calculate fee, and send it with `await client.send({ body: signedEvent })`.**
 
 4. **The relay replaces the old event** with the new one (same pubkey + kind + `d` tag).
 
 ### Considerations
 
 - The full event must be republished -- you cannot partially update tags. Include all tags, not just the changed ones.
-- Each update costs per-byte on TOON. Minimize updates by getting metadata right initially.
+- Each update is another paid write. Minimize updates by getting metadata right initially.
 - kind:20 picture events are NOT replaceable -- they are regular events. You cannot update a picture event; you must publish a new one.
 
 ## Scenario 6: Discovering Visual Content on TOON
@@ -252,7 +252,7 @@
    - Specific video by identifier: `kinds: [34235], #d: ["ilp-deep-dive-2026"]`
    - Videos by topic: `kinds: [34235, 34236], #t: ["interledger"]`
 
-3. **Decode TOON-format responses.** TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse visual media events.
+3. **Read the responses.** Reads are free and speak plain NIP-01, so each EVENT message is standard JSON -- there is no decoding step.
 
 4. **Extract metadata:**
    - For kind:20: Parse `imeta` tags for image URLs, alt text, dimensions. Read content for caption.

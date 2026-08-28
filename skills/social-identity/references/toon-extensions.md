@@ -4,75 +4,94 @@
 
 ## Publishing Identity Events on TOON
 
-All identity event publishing on TOON goes through `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment for every event.
+All identity event publishing on TOON goes through `client.send()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay is a paid route, and every event must arrive with a claim that covers it.
 
 ### Publishing Flow
 
 1. **Construct the event:** Build a kind:0 or kind:3 event with the appropriate fields and tags
 2. **Sign the event:** Use `nostr-tools` or equivalent to sign with the agent's private key
-3. **Discover pricing:** Check the destination relay's `basePricePerByte` from kind:10032 peer info or the `/health` endpoint
-4. **Calculate fee:** `basePricePerByte * serializedEventBytes`
-5. **Sign a balance proof:** `client.signBalanceProof(channelId, amount)`
-6. **Publish:** `client.publishEvent(signedEvent, { destination, claim })`
+3. **Send it:** `await client.send({ body: signedEvent })`
 
-The `publishEvent()` API handles TOON encoding and ILP packet construction internally. Agents never need to construct ILP packets manually.
+That is the whole write path. `send()` seals the payload to the terminating connector's key, prices it, mints the covering claim and carries it. An agent never signs a claim by hand and never builds a packet.
+
+### Asking What It Costs
+
+Where a price is genuinely needed up front, ask the node instead of multiplying bytes:
+
+```ts
+const terms = await client.routePrice('g.toon.relay');  // { price, pricePerKib? }
+const charge = chargeFor(terms, sealedBytes);
+```
+
+A **price** belongs to a terminated route and is a schedule over payload length: flat when it has no slope, otherwise `price + pricePerKib * ceil(sealedBytes / 1024)` -- per kibibyte, never per byte. The metered quantity is the **sealed** payload the PREPARE carries, which is larger than the event JSON by the envelope and the wrap, so an agent cannot work the charge out from the event it wrote. `chargeFor` is the only thing that should decide what goes on a claim.
+
+A node's free, unauthenticated self-description at `GET /ilp` publishes every route's price alongside its addresses and settlement facts. The `/health` price endpoint and `basePricePerByte` were both removed along with the `kind:10032` announce; the self-description replaced them.
+
+The `client.send()` API handles TOON encoding and ILP packet construction internally. Agents never need to construct ILP packets manually.
 
 ### Error Handling
 
-- **F04 (Insufficient Payment):** The calculated amount was too low for the payload size. Recalculate with the correct `basePricePerByte` and retry.
+A refusal comes back as `{ fulfilled: false }`; it is never thrown.
+
+- **`F03` INVALID_AMOUNT:** the claim does not cover the charge. This is underpayment -- re-read the route's terms with `routePrice()` and send again. There is no `F04`.
+- **`T04`:** over the peering's cap. The reject's message states the cap; that is the only way a sender learns it.
+- **`F02` / `T01`:** nothing routes that name, or the peer was not there.
 - **Relay rejection:** The event was malformed (invalid signature, wrong kind structure). Fix the event and republish.
 
-## Fee Considerations for Identity Events
+## What Identity Events Cost
+
+### The Live Relay Route Is Flat
+
+`g.toon.relay` is priced at **1 base unit, flat** -- no slope. Settlement is in USDC, which is 6-decimal, so that is $0.000001 per write, and it is the same figure for a 200-byte profile and a 15 KB follow list. Size does not change the charge on this route.
+
+Do not assume that for another route. A price belongs to a terminated route and is a schedule over payload length: flat when it has no slope, otherwise `price + pricePerKib * ceil(sealedBytes / 1024)`, in kibibytes. Ask with `await client.routePrice(destination)`, then `chargeFor(terms, sealedBytes)`.
 
 ### kind:0 (Profile Metadata)
 
-Typical profile sizes and approximate costs at default pricing (`basePricePerByte` = 10n = $0.00001/byte):
+| Profile Complexity | Approximate Size |
+|-------------------|-----------------|
+| Minimal (name + about) | ~200 bytes |
+| Standard (name, about, picture, nip05, display_name) | ~500 bytes |
+| Full (all NIP-24 fields + NIP-39 i tags) | ~1500-2000 bytes |
 
-| Profile Complexity | Approximate Size | Approximate Cost |
-|-------------------|-----------------|-----------------|
-| Minimal (name + about) | ~200 bytes | ~$0.002 |
-| Standard (name, about, picture, nip05, display_name) | ~500 bytes | ~$0.005 |
-| Full (all NIP-24 fields + NIP-39 i tags) | ~1500-2000 bytes | ~$0.015-$0.02 |
-
-Because kind:0 is replaceable, each update is a full replacement. Include all desired fields in every update -- there are no partial updates. This means even changing a single field (e.g., updating `about`) requires republishing the entire profile and paying for the full event size.
+Because kind:0 is replaceable, each update is a full replacement. Include all desired fields in every update -- there are no partial updates. Even changing a single field means republishing the whole profile. On a flat route that costs no more than a minimal one; what it costs is one more paid write.
 
 ### kind:3 (Follow List)
 
 Follow list size scales linearly with the number of follows:
 
-| Follow Count | Approximate Size | Approximate Cost |
-|-------------|-----------------|-----------------|
-| 10 follows | ~400 bytes | ~$0.004 |
-| 50 follows | ~1500 bytes | ~$0.015 |
-| 100 follows | ~3000 bytes | ~$0.03 |
-| 500 follows | ~15000 bytes | ~$0.15 |
+| Follow Count | Approximate Size |
+|-------------|-----------------|
+| 10 follows | ~400 bytes |
+| 50 follows | ~1500 bytes |
+| 100 follows | ~3000 bytes |
+| 500 follows | ~15000 bytes |
 
-Each follow add or remove requires publishing the entire updated list. Agents with large follow lists pay more per update. This creates a natural incentive to curate follow lists rather than follow indiscriminately.
+Each follow add or remove requires publishing the entire updated list. On the flat relay route that is one write's charge whatever the list's length -- the thing to economise on is the **number** of updates, not their size.
 
 ## Economic Dynamics of Identity on TOON
 
-### Profile Quality Floor
+### The Gate, Not a Deterrent
 
-On free relays, creating hundreds of low-effort profiles costs nothing. On TOON, every profile creation and update has a real cost. This economic floor naturally filters out:
-- Throwaway accounts created for spam or harassment
-- Profile churn (rapidly cycling through names and avatars)
-- Bot farms creating thousands of fake identities
+It is tempting to say that paying makes bad behaviour expensive. At 1 base unit of 6-decimal USDC it does not: a million profile updates cost a dollar. The payment is a **gate**, not a price.
 
-The result is that profiles on TOON tend to be more intentional and higher quality than on free relays.
+What the gate actually requires is that every write arrive with a signed claim on an open payment channel. Before an identity can publish anything at all, it needs a settlement identity and a funded channel behind it -- and every write it makes is attributable to that channel. That is the property that distinguishes a TOON profile from a free-relay one: not that it was expensive, but that somebody with a funded, on-chain-anchored identity stood behind it.
 
-### Follow List as Economic Signal
+So the honest claim is narrow and worth making:
+- A profile on TOON was published by an identity that had already opened and funded a channel.
+- Bot farms are not priced out; they are gated behind provisioning a channel per identity.
+- Profile churn is bounded by the throughput of the channel, not by its cost.
 
-On free relays, following 10,000 accounts costs nothing. On TOON, a follow list update with 10,000 entries would cost approximately $1.50. This means:
-- Large follow lists represent genuine investment
-- Unfollowing is not free -- it requires publishing an updated (still large) list
-- Follow list curation is an ongoing economic decision
+### Follow List as a Signal
+
+A follow list published on TOON is a public declaration made through a funded, attributable channel. Its weight comes from that attribution, not from the size of a bill -- on the live relay route, a 10,000-entry list costs the same 1 base unit as a 10-entry one.
 
 ### Identity Update Frequency
 
-Because each update costs money, agents should batch identity changes when possible:
+Batch identity changes anyway, because each update is a separate paid write and a separate round trip:
 - Update multiple profile fields in a single kind:0 publish rather than publishing separately for each field
 - Build up follow list changes and publish once rather than after every individual follow/unfollow decision
-- Consider whether a profile update adds enough value to justify the cost
+- Consider whether a profile update adds enough value to justify another write
 
 ### NIP-05 and NIP-39 as Trust Amplifiers
 

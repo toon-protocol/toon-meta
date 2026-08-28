@@ -1,12 +1,12 @@
 # Drafts and Expiration Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common draft and expiration operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation and the publishEvent API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common draft and expiration operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like what the write costs and the `client.send()` API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Saving a Draft Article
 
 **When:** An agent is composing a long-form article and wants to save progress to the relay for cross-device access or backup.
 
-**Why this matters:** On TOON, each draft save costs money. Compose locally first, then save to the relay when you have a meaningful checkpoint -- not on every keystroke.
+**Why this matters:** On TOON, each draft save is a paid, signed, published event. Compose locally first, then save to the relay when you have a meaningful checkpoint -- not on every keystroke.
 
 ### Steps
 
@@ -19,12 +19,12 @@
 ```
 {
   "kind": 31234,
-  "content": "# Understanding TOON Economics\n\nThis article explores the per-byte pricing model...",
+  "content": "# Understanding TOON Economics\n\nThis article explores the route pricing model...",
   "tags": [
     ["d", "article-toon-economics"],
     ["k", "30023"],
     ["title", "Understanding TOON Economics"],
-    ["summary", "An exploration of per-byte pricing on ILP-gated relays"],
+    ["summary", "An exploration of route pricing on ILP-gated relays"],
     ["t", "toon"],
     ["t", "economics"]
   ]
@@ -35,13 +35,11 @@
 
 5. **Sign the event** using your Nostr private key via `nostr-tools` or equivalent.
 
-6. **Calculate the fee.** A draft article (500-2000 bytes depending on length) costs approximately $0.005-$0.020 at default `basePricePerByte` of 10n.
-
-7. **Publish via `publishEvent()`** from `@toon-protocol/client`. The client handles TOON encoding, ILP payment, and relay communication.
+6. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it. The charge is 1 base unit of 6-decimal USDC whether the draft is 500 bytes or 20 KB -- `g.toon.relay` is flat-priced.
 
 ### Considerations
 
-- Each subsequent save with the same `d` tag replaces the previous draft (parameterized replaceable). You pay per save but the relay only stores the latest version.
+- Each subsequent save with the same `d` tag replaces the previous draft (parameterized replaceable). You pay one flat charge per save; the relay only stores the latest version.
 - Include all intended tags (title, summary, t) in the draft so the full structure is preserved for when you publish the final article.
 - If you are drafting an edit to an existing article, include the `a` tag referencing the original: `["a", "30023:<pubkey>:<original-d-tag>"]`.
 
@@ -53,7 +51,7 @@
 
 ### Steps
 
-1. **Fetch your draft.** Subscribe with filter `{ "kinds": [31234], "authors": ["<own-pubkey>"], "#d": ["article-toon-economics"] }`. Remember that TOON relays return TOON-format strings -- use the TOON decoder to parse.
+1. **Fetch your draft.** Subscribe with filter `{ "kinds": [31234], "authors": ["<own-pubkey>"], "#d": ["article-toon-economics"] }`. Reads are free and speak plain NIP-01 -- the draft comes back as a standard JSON `EVENT`.
 
 2. **Decrypt the content** if the draft was encrypted (NIP-44 decryption with your own key).
 
@@ -62,11 +60,11 @@
 ```
 {
   "kind": 30023,
-  "content": "# Understanding TOON Economics\n\nThis article explores the per-byte pricing model...",
+  "content": "# Understanding TOON Economics\n\nThis article explores the route pricing model...",
   "tags": [
     ["d", "toon-economics"],
     ["title", "Understanding TOON Economics"],
-    ["summary", "An exploration of per-byte pricing on ILP-gated relays"],
+    ["summary", "An exploration of route pricing on ILP-gated relays"],
     ["published_at", "1700000000"],
     ["t", "toon"],
     ["t", "economics"]
@@ -74,7 +72,7 @@
 }
 ```
 
-4. **Sign and publish the final event** via `publishEvent()`. The article (kind:30023) costs approximately $0.02-$0.20 depending on length.
+4. **Sign the final event and send it** with `await client.send({ body: signedEvent })`. The article (kind:30023) is charged 1 base unit, however long it is.
 
 5. **Delete the draft.** Publish a kind:5 deletion request targeting the draft's replaceable coordinate.
 
@@ -94,8 +92,8 @@
 ### Considerations
 
 - The draft `d` tag and the final article `d` tag do not need to match. The draft identifier is for your workflow; the article identifier is for the published content.
-- The deletion request (kind:5) costs approximately $0.001-$0.002 -- a small cleanup cost.
-- Total cost: draft saves + final publish + deletion. For a typical article: ~$0.01 (draft) + ~$0.05 (article) + ~$0.002 (deletion) = ~$0.062.
+- The deletion request (kind:5) is one more flat-priced write -- 1 base unit of cleanup.
+- Total cost: draft saves + final publish + deletion, counted in writes. For a typical article with one checkpoint: 1 draft + 1 article + 1 deletion = 3 base units.
 
 ## Scenario 3: Adding Expiration to a Short Note
 
@@ -123,18 +121,16 @@
 
 3. **Sign the event** using your Nostr private key.
 
-4. **Calculate the fee.** A short note with expiration (200-350 bytes) costs approximately $0.002-$0.0035 at default pricing.
+4. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. One flat charge of 1 base unit; the expiration tag adds nothing.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
-
-6. **No cleanup needed.** After the expiration timestamp passes, relays discard the event and clients hide it.
+5. **No cleanup needed.** After the expiration timestamp passes, relays discard the event and clients hide it.
 
 ### Considerations
 
-- The expiration tag adds only ~20-30 bytes to the event -- negligible cost overhead (~$0.0002-$0.0003).
+- The expiration tag adds ~20-30 bytes to the event and nothing to the charge -- the relay's route is flat-priced.
 - Set expiration conservatively. If the meetup runs until 10pm, set expiration for midnight to give late readers a chance to see it.
 - Relays MAY still serve expired events. Well-behaved clients check the expiration tag and hide expired content regardless.
-- Compare with the alternative: publishing a note ($0.003) then deleting it later with kind:5 ($0.002) = $0.005 total. Expiration saves approximately $0.002 (the deletion cost).
+- Compare with the alternative: publishing a note (1 base unit) then deleting it later with kind:5 (1 more) = 2 writes. Expiration does it in 1.
 
 ## Scenario 4: Setting an Expiring Status
 
@@ -162,12 +158,10 @@
 
 3. **Sign the event** using your Nostr private key.
 
-4. **Calculate the fee.** An expiring status (300-400 bytes) costs approximately $0.003-$0.004.
-
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+4. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. One flat charge of 1 base unit.
 
 ### Considerations
 
-- This saves money versus the two-event pattern: set status ($0.003) + clear status later ($0.002) = $0.005. With expiration: one event ($0.004) = 20-40% savings.
+- This saves a write versus the two-event pattern: set status (1 base unit) + clear status later (1 more) = 2 writes. With expiration: 1 write, and nothing to remember.
 - If you need to clear the status early (session cancelled), publish a kind:30315 with empty content and the same `d` tag.
 - For detailed status management patterns, see the `user-statuses` skill.

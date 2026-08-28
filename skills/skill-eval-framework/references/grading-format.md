@@ -9,9 +9,9 @@ The grading output is a JSON array of assertion results:
 ```json
 [
   {
-    "text": "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
+    "text": "toon-write-check: Response uses client.send(), not raw WebSocket",
     "passed": true,
-    "evidence": "Response mentions 'client.publishEvent()' on line 3 and does not contain raw WebSocket EVENT patterns."
+    "evidence": "Response mentions 'client.send({ body: signedEvent })' on line 3 and does not contain raw WebSocket EVENT patterns."
   },
   {
     "text": "Response references @toon-protocol/client",
@@ -40,7 +40,7 @@ Example: Assertion `"Response references @toon-protocol/client"` extracts key te
 
 Check if critical substrings appear in the response. Useful for API names, function calls, and technical terms.
 
-Example: Assertion `"toon-write-check: Response uses publishEvent() API"` checks for substrings `["publishEvent"]`.
+Example: Assertion `"toon-write-check: Response uses client.send()"` checks for substrings `["client.send"]`.
 
 ### 3. Negation Detection
 
@@ -78,7 +78,7 @@ The rubric provides qualitative guidance for manual review. Assertions provide t
 ## Evidence Quality
 
 Good evidence is specific and references the response:
-- GOOD: "Response contains 'client.publishEvent(event, { destination })' on line 5, satisfying the publishEvent API requirement."
+- GOOD: "Response contains 'client.send({ body: signedEvent })' on line 5, satisfying the send() API requirement."
 - BAD: "Assertion passed."
 
 Good evidence for failures explains what was expected vs what was found:

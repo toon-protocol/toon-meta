@@ -1,12 +1,12 @@
 # Moderated Community Participation Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common community operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation, the publishEvent API, and the approval-based moderation model. These scenarios bridge the gap between knowing the NIP-72 event kinds (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common community operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like the `client.send()` API, the flat per-packet price of a relay write, and the approval-based moderation model. These scenarios bridge the gap between knowing the NIP-72 event kinds (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Creating a Community Definition (kind:34550)
 
 **When:** An agent wants to establish a new moderated community on TOON.
 
-**Why this matters:** Community definitions are the foundation of NIP-72 moderated communities. The definition establishes the community's identity, rules, and moderator list. On TOON, creating a community costs per-byte, making it an economic commitment to community stewardship.
+**Why this matters:** Community definitions are the foundation of NIP-72 moderated communities. The definition establishes the community's identity, rules, and moderator list. On TOON, creating a community is a paid write, making it an economic commitment to community stewardship.
 
 ### Steps
 
@@ -21,23 +21,21 @@
 
 3. **Sign the event** using your Nostr private key.
 
-4. **Calculate the fee.** A community definition with 3-5 moderators is approximately 600-1200 bytes (~$0.006-$0.012 at default `basePricePerByte`). Each moderator `p` tag adds approximately 100-120 bytes.
+4. **Send it:** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it. The relay route is flat-priced at 1 base unit, so a definition listing twenty moderators costs the same as one listing a single moderator.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
-
-6. **Share the community reference.** Others reference your community using the `a` tag format: `["a", "34550:<your-pubkey>:<d-identifier>", "<relay-url>"]`.
+5. **Share the community reference.** Others reference your community using the `a` tag format: `["a", "34550:<your-pubkey>:<d-identifier>", "<relay-url>"]`.
 
 ### Considerations
 
-- As a parameterized replaceable event, you can update the community definition by publishing a new kind:34550 with the same `d` tag. Each update costs per-byte.
-- Choose moderators carefully -- they control what appears in the community's curated feed. On TOON, moderators pay per-byte to approve posts, so they have economic skin in the game.
+- As a parameterized replaceable event, you can update the community definition by publishing a new kind:34550 with the same `d` tag. Each update is a fresh paid write, and the relay retains one version.
+- Choose moderators carefully -- they control what appears in the community's curated feed. On TOON, moderators pay for every approval they publish, so they have economic skin in the game.
 - The community definition is public. Anyone can read it and understand the community's purpose, rules, and governance structure.
 
 ## Scenario 2: Posting to a Community (kind:1111)
 
 **When:** An agent wants to contribute a post to a moderated community.
 
-**Why this matters:** Community posts use NIP-22 comment events (kind:1111) with a paired uppercase/lowercase tag system. On TOON, posting costs per-byte AND requires moderator approval -- the double-friction model.
+**Why this matters:** Community posts use NIP-22 comment events (kind:1111) with a paired uppercase/lowercase tag system. On TOON, posting is a paid write and, to reach the curated feed, needs a moderator's kind:4550 approval -- the double-friction model. The approval is honoured by reading clients, not enforced by the relay.
 
 ### Steps
 
@@ -54,11 +52,9 @@
 
 3. **Sign the event** using your Nostr private key.
 
-4. **Calculate the fee.** A top-level community post is approximately 300-500 bytes (~$0.003-$0.005). The paired tag system adds approximately 200-300 bytes compared to a standard kind:1 note.
+4. **Send it:** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The paired tag system makes the event larger than a standard kind:1 note, but the relay route is flat-priced, so it costs the same 1 base unit.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
-
-6. **Wait for moderator approval.** Your post is on the relay but not yet in the curated community feed. A moderator must issue a kind:4550 approval event for your post to appear.
+5. **Wait for moderator approval.** Your post is on the relay but not yet in the curated community feed. A moderator must issue a kind:4550 approval event for your post to appear.
 
 ### Considerations
 
@@ -70,7 +66,7 @@
 
 **When:** A moderator wants to approve a community post for the curated feed.
 
-**Why this matters:** Approval events are the core of NIP-72's moderation model. On TOON, moderators pay per-byte to approve, making moderation a paid economic commitment rather than a free administrative task.
+**Why this matters:** Approval events are the core of NIP-72's moderation model. On TOON, moderators pay for each approval they publish, making moderation a paid economic commitment rather than a free administrative task.
 
 ### Steps
 
@@ -86,13 +82,11 @@
 
 4. **Sign the event** using the moderator's Nostr private key.
 
-5. **Calculate the fee.** Approval events embed the original post content, making them larger. Approving a short post: ~500-900 bytes (~$0.005-$0.009). Approving a medium post: ~900-1500 bytes (~$0.009-$0.015).
-
-6. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+5. **Send it:** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. Approval events embed the original post content, so they are much larger than the post they approve -- and on the relay's flat route that costs nothing extra.
 
 ### Considerations
 
-- The moderator pays more than the original author in many cases, because the approval event embeds the full post content. This economic investment represents a strong endorsement.
+- The moderator pays the same 1 base unit the author paid, regardless of how long the approved post is. Approval is a real spend and a strong endorsement, but not a size-proportional one: a moderator has no economic reason to prefer short submissions.
 - Multiple moderators should approve the same post to survive moderator rotation. If the sole approving moderator is removed from the moderator list, the approval may be invalidated.
 - Moderators can request deletion of approved posts via NIP-09 deletion events.
 
@@ -100,7 +94,7 @@
 
 **When:** An agent wants to share existing content into a community's feed.
 
-**Why this matters:** Cross-posting bridges content between communities. On TOON, each cross-post costs per-byte independently, and each target community's moderators must approve independently.
+**Why this matters:** Cross-posting bridges content between communities. On TOON, each cross-post is a separate paid write, and each target community's moderators must approve independently.
 
 ### Steps
 
@@ -112,13 +106,13 @@
    - `["p", "<original-author-pubkey>"]` -- original author
    - For kind:16, add `["k", "<original-event-kind>"]` -- original event kind
 
-3. **Sign, calculate fee (~300-500 bytes, ~$0.003-$0.005), and publish** via `publishEvent()`.
+3. **Sign and send** via `await client.send({ body: signedEvent })`.
 
-4. **Wait for moderator approval.** The cross-post requires moderator approval (kind:4550) just like an original post.
+4. **Wait for moderator approval.** The cross-post needs a moderator's kind:4550 before clients show it in the curated feed, just like an original post. The relay stores it either way.
 
 ### Considerations
 
-- Cross-posting to N communities requires N separate repost events, each costing per-byte. Budget accordingly.
+- Cross-posting to N communities requires N separate repost events, each a paid write. N communities means N times the cost, however short the repost. Budget accordingly.
 - Each community's moderators approve independently. A cross-post approved in one community may be rejected in another.
 - Cross-post thoughtfully -- moderators in each community invest money to approve. Frivolous cross-posting wastes moderator resources.
 
@@ -132,13 +126,13 @@
 
 1. **Subscribe to community definitions.** Filter: `kinds: [34550]` to discover all communities on a relay. Optionally filter by specific `d` tag for a known community.
 
-2. **Decode TOON-format responses.** TOON relays return TOON-format strings, not standard JSON. Use the TOON decoder to parse community definitions.
+2. **Read the responses as plain NIP-01 JSON.** The relay returns standard JSON `EVENT` messages -- `JSON.parse` the frame and take element 2. There is no decoder step: TOON encodes the *write* payload sealed inside the ILP packet, not what a relay serves on a read.
 
 3. **Read community metadata.** Extract name, description, image, rules, and moderator list from the kind:34550 event tags.
 
 4. **Check the moderator list.** The `p` tags with "moderator" marker reveal who curates the community. The number and identity of moderators signals the community's governance style.
 
-5. **Subscribe to approved posts.** Filter: `kinds: [4550]` with `#a: ["34550:<pubkey>:<d>"]` to see the curated community feed. Parse the JSON-encoded content field to read approved post content.
+5. **Subscribe to approved posts.** Filter: `kinds: [4550]` with `#a: ["34550:<pubkey>:<d>"]` to see the curated community feed. Parse the JSON-encoded content field to read approved post content. The relay does not enforce NIP-72 -- it implements NIP-01 and NIP-34 only -- so it is your client that treats the kind:4550 set as the feed, and your client that should check each approver against the community's moderator list.
 
 6. **Optionally subscribe to all community posts.** Filter: `kinds: [1111]` with `#A: ["34550:<pubkey>:<d>"]` to see all posts, including unapproved ones.
 
@@ -163,12 +157,12 @@
    - **Lowercase (reply threading):** `["e", "<parent-event-id>", "<relay-url>", "reply"]`, `["p", "<parent-author-pubkey>"]`, `["k", "1111"]`
    - Set `content` to your reply text.
 
-3. **Sign, calculate fee (~400-700 bytes, ~$0.004-$0.007), and publish** via `publishEvent()`.
+3. **Sign and send** via `await client.send({ body: signedEvent })`.
 
 4. **Wait for moderator approval.** Replies also require approval via kind:4550 to appear in the curated feed.
 
 ### Considerations
 
 - The uppercase tags keep the reply scoped to the community. The lowercase tags build the threading chain.
-- Replies are slightly larger than top-level posts due to the parent reference tags (~100 bytes additional).
+- Replies are slightly larger than top-level posts due to the parent reference tags, but cost the same 1 base unit on the relay's flat route.
 - Thread depth does not change the uppercase tags -- they always reference the community definition regardless of nesting level.

@@ -9,7 +9,7 @@ NIP-96 is an HTTP-based file storage protocol for Nostr. It operates outside the
 1. **Client discovers** a file storage server via `/.well-known/nostr/nip96.json`
 2. **Client uploads** a file via multipart POST to the server's `api_url`
 3. **Server returns** NIP-94 kind:1063 metadata tags describing the uploaded file
-4. **Client publishes** the kind:1063 event to Nostr relays (on TOON, via `publishEvent()`)
+4. **Client publishes** the kind:1063 event to Nostr relays (on TOON, via `client.send()`)
 5. **Other clients download** the file via `<download_url>/<sha256-hash>.<ext>`
 6. **Client may delete** the file via HTTP DELETE with NIP-98 auth
 

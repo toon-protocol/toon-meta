@@ -10,12 +10,12 @@ description: Git identity and authorization on Nostr and TOON Protocol. Covers
   author), and fork identity ("how do personal forks work?", "personal-fork" tag,
   fork identity). Implements the identity and authorization layer of NIP-34 on
   TOON's ILP-gated relay network where identity verification is free (read) but
-  maintainer list updates cost per-byte.
+  maintainer list updates are a paid write.
 ---
 
 # Git Identity (TOON)
 
-Identity and authorization model for decentralized git collaboration on the TOON network. Covers how Nostr's pubkey-only identity maps to git concepts, how maintainer authorization works via kind:30617's `maintainers` tag, the permission model for all NIP-34 operations, the convention for mapping Nostr pubkeys to git author fields, and how personal forks establish independent identity. On TOON, verifying someone's identity or checking their maintainer status is free (reading), but updating the maintainer list costs per-byte because it requires republishing the kind:30617 repository announcement.
+Identity and authorization model for decentralized git collaboration on the TOON network. Covers how Nostr's pubkey-only identity maps to git concepts, how maintainer authorization works via kind:30617's `maintainers` tag, the permission model for all NIP-34 operations, the convention for mapping Nostr pubkeys to git author fields, and how personal forks establish independent identity. On TOON, verifying someone's identity or checking their maintainer status is free (reading), but updating the maintainer list is a paid write because it requires republishing the kind:30617 repository announcement.
 
 ## Identity Model
 
@@ -41,7 +41,7 @@ Maintainer status grants two exclusive privileges:
 
 The repository creator (the pubkey that signed the kind:30617 event) is always implicitly a maintainer, even if not listed in the `maintainers` tag. Maintainer pubkeys are hex-encoded (64 characters), not npub-encoded.
 
-**Updating the maintainer list** requires republishing the entire kind:30617 event with the updated `maintainers` tag. Because kind:30617 is a parameterized replaceable event, the new version replaces the old one. On TOON, this costs `basePricePerByte * serializedEventBytes`.
+**Updating the maintainer list** requires republishing the entire kind:30617 event with the updated `maintainers` tag. Because kind:30617 is a parameterized replaceable event, the new version replaces the old one. On TOON, the relay's route is flat-priced, so this costs 1 base unit of 6-decimal USDC no matter how long the maintainer list grows.
 
 ## Permission Model
 
@@ -63,7 +63,7 @@ NIP-34 defines a clear permission matrix based on identity:
 
 **Key rules:**
 
-- **Anyone can contribute.** Patches (kind:1617), PRs (kind:1618), issues (kind:1621), and comments (kind:1622) are permissionless. On TOON, the ILP payment is the only barrier -- no access control list is needed.
+- **Anyone can contribute.** Patches (kind:1617), PRs (kind:1618), issues (kind:1621), and comments (kind:1622) are permissionless. On TOON, the only gate is that a write requires a funded channel and a claim -- no access control list is needed.
 - **Only maintainers control merges.** A non-maintainer publishing a kind:1631 event is invalid -- clients should ignore it.
 - **Authors control their own items.** A patch author can close their own patch. An issue author can close their own issue. But they cannot merge -- that requires maintainer status.
 - **The most recent valid status wins.** When multiple status events exist for the same target, the most recent one from an authorized pubkey (maintainer or author, depending on the operation) is canonical.
@@ -99,16 +99,17 @@ Personal forks use the `["t", "personal-fork"]` topic tag on their kind:30617 an
 
 ## TOON Write Model
 
-Identity-related writes on TOON go through `publishEvent()` from `@toon-protocol/client`. The key write operation is updating the `maintainers` tag by republishing kind:30617. Never use raw WebSocket writes -- the relay requires ILP payment.
+Identity-related writes on TOON go through `client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step. TOON format is the encoding of that sealed write payload: an agreement between the client and the app about the bytes the connector carries inside the ILP packet. The key write operation is updating the `maintainers` tag by republishing kind:30617. Never use raw WebSocket writes -- the relay requires ILP payment.
 
-**Fee implications:**
-- Updating the maintainer list requires republishing the entire kind:30617 event (~500-2000 bytes, ~$0.005-$0.02 at default pricing).
-- Status events (kind:1630-1633) that enforce authorization are small and cheap (~$0.002-$0.004).
-- Submitting patches, PRs, and issues costs per-byte regardless of identity -- anyone pays the same rate.
+**Price implications:**
+- The `g.toon.relay` route is flat-priced at 1 base unit of 6-decimal USDC. Every identity event costs the same, whatever its size.
+- Updating the maintainer list republishes the entire kind:30617 event, but a longer list does not cost more than a short one.
+- Status events (kind:1630-1633) that enforce authorization cost that same 1 base unit.
+- Submitting patches, PRs, and issues is priced identically regardless of identity -- anyone pays the same rate.
 
-For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the publishing flow and how routes are priced, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 All identity verification is free on TOON -- reading events costs nothing:
 
@@ -117,7 +118,7 @@ All identity verification is free on TOON -- reading events costs nothing:
 - **Resolve display names:** Subscribe to kind:0 for a pubkey to get profile metadata.
 - **Validate status events:** Check that the pubkey on a kind:1631 (merge) event belongs to a listed maintainer.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse events. For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Reads speak plain NIP-01: the relay returns standard JSON `EVENT` messages and any ordinary Nostr client can read it. No decoder is involved, and a free read never touches a connector. TOON encoding applies on the way in, to the sealed write payload, not on the way out.
 
 ## Social Context
 
@@ -126,11 +127,11 @@ Identity and authorization intersect with git collaboration norms. The pubkey-on
 **Maintainer governance:**
 - Adding a maintainer is a trust decision. The maintainer list is publicly visible and cryptographically verifiable -- anyone can read the kind:30617 event to see who has merge authority.
 - Removing a maintainer by republishing kind:30617 without their pubkey is immediate and unambiguous. There is no "revoke access" flow -- the updated event replaces the old one.
-- Rotate maintainers thoughtfully. Each update costs money on TOON and requires republishing the full repository announcement.
+- Rotate maintainers thoughtfully. Each update is a paid write on TOON and requires republishing the full repository announcement.
 
 **Permission boundaries:**
 - Non-maintainers publishing merge events (kind:1631) is a protocol violation. Clients should ignore such events, but the relay will still accept and store them (the relay does not enforce authorization -- it only enforces ILP payment).
-- Status wars (repeatedly re-opening/closing the same item) waste money on TOON. The per-byte cost discourages this, but maintainers should still be judicious.
+- Status wars (repeatedly re-opening/closing the same item) waste money on TOON. Each event is a paid write, but the price is flat and small, so judgement rather than cost is the real brake.
 
 **Identity trust signals:**
 - A pubkey with a kind:0 profile, NIP-05 verification, and contribution history is more trustworthy than a bare pubkey with no history.
@@ -156,5 +157,5 @@ Read the appropriate reference file based on the situation:
 
 - **Full NIP-34 git collaboration event kinds and workflows** -- See `git-collaboration` for kind:30617 repository announcements, patches, PRs, issues, comments, and status events.
 - **Nostr profile metadata and NIP-05 DNS verification** -- See `social-identity` for kind:0 profiles, display names, and external identity linking that supplements pubkey identity.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and route pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Content control and event deletion** -- See `content-control` for NIP-09 deletion requests and NIP-70 protected events that interact with maintainer authority.

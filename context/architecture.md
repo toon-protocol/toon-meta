@@ -63,8 +63,7 @@ payout:  an authenticated operator write, POST /channels/:id/redeem-latest — n
 | Kind | Meaning |
 |------|---------|
 | 1 | Nostr note (relay app; the connector in front prices the packet) |
-| 10035 | Service discovery / SkillDescriptor (pricing) |
 | 5094 / 6094 | Arweave blob-storage DVM request / result (store app) |
 | 5096 / 5098 | Solana fee-payer co-sign / EVM ERC-2771 relay (gas-station app) |
 
-> **kind:10032 is removed** (ADR 0046, which retires ADR 0030). A connector answers `GET /ilp` with its self-description instead; discovery is never a node's job. Other kinds in older planning docs (5000, 5250, 5260, 5300) are valid NIP-90 examples with no provider on the network.
+> **kind:10032 and kind:10035 are both removed.** ADR 0046 (retiring ADR 0030) deleted the announce; ADR 0061 and ADR 0065 replaced the money model that `SkillDescriptor` advertised. A connector answers `GET /ilp` with its self-description, and greets an unpaid request to a priced route with that route's terms; discovery is never a node's job. Neither kind appears anywhere in the fleet. Other kinds in older planning docs (5000, 5250, 5260, 5300) are valid NIP-90 examples with no provider on the network.

@@ -1,8 +1,10 @@
-# TOON Read Model
+# The Read Model — free, plain NIP-01
 
 ## Why Reads Are Free
 
-TOON's economic model is pay-to-write, free-to-read. Writers pay to publish because payment prevents spam and funds relay operators. Readers consume freely because open readability maximizes the network's value -- content that nobody can read has no economic worth. This asymmetry is the foundation of the protocol's economics.
+TOON's economic model is pay-to-write, free-to-read. Writers pay to publish because a paid write is a **gate** -- every write must draw a covering claim against a funded payment channel, which gives the network attribution and a settlement trail, and funds relay operators. (It is a gate rather than a deterrent: the relay route charges 1 base unit of 6-decimal USDC, so the price alone stops nobody.) Readers consume freely because open readability maximizes the network's value -- content that nobody can read has no economic worth. This asymmetry is the foundation of the protocol's economics.
+
+Mechanically, a read **never touches a connector at all**. You open a plain Nostr WebSocket to the relay app and speak NIP-01. There is no channel, no claim, and nothing to pay. Finding a relay to read from is therefore still the ordinary Nostr problem, solved the ordinary Nostr way -- NIP-65 relay lists and the rest. What a connector answers for is the *write* side: its price and payment facts, on `GET /ilp`.
 
 ## Subscription Basics (NIP-01)
 
@@ -34,43 +36,35 @@ Close a subscription when done:
 ["CLOSE", "my-subscription-id"]
 ```
 
-## TOON Format Responses
+## The Relay Speaks Plain NIP-01
 
-This is the critical TOON-specific behavior: relay responses contain TOON-format strings, not standard JSON Nostr event objects.
+A TOON relay never returns TOON-format strings on a read, despite a persistent myth that it does. The relay returns **standard JSON** `EVENT` messages:
 
-When a TOON relay sends an EVENT message, it looks like:
-
-```
-EVENT, <subscription-id>, <toon-format-string>
+```json
+["EVENT", "my-subscription-id", {"id": "…", "pubkey": "…", "created_at": 1756400000, "kind": 1, "tags": [], "content": "…", "sig": "…"}]
 ```
 
-The relay sends an array with "EVENT" as the first element, the subscription ID as the second, and the TOON-format string as the third.
+This is byte-identical to `JSON.stringify(['EVENT', subscriptionId, event])`. Any ordinary Nostr client can read a TOON relay with no decoder, no TOON dependency and no awareness that payment exists anywhere in the system. The relay contains no payment code at all.
 
-Where `<toon-format-string>` is a TOON 1.x encoded representation of the event, not a JSON `{ "id": "...", "pubkey": "...", ... }` object.
-
-### Why TOON Format?
-
-TOON format is the protocol's wire encoding. It is more compact than JSON and includes integrity guarantees needed for the ILP payment pipeline. The relay stores and transmits events in TOON format because that is what the ILP layer produces when a write is accepted. Converting back to JSON on read would add unnecessary overhead and lose the encoding's properties.
-
-### Parsing TOON Format
-
-Use the TOON decoder to parse responses back into standard Nostr event objects:
+Parse it the way you parse any Nostr relay:
 
 ```typescript
-import { decode as decodeToon } from '@toon-format/toon';
-
-// When receiving an EVENT message from a TOON relay WebSocket
 ws.on('message', (data) => {
   const parsed = JSON.parse(data);
   if (parsed[0] === 'EVENT') {
-    const subscriptionId = parsed[1];
-    const toonString = parsed[2];
-    // Decode TOON format back to a standard NostrEvent
-    const event = decodeToon(toonString);
-    // Now event has the standard structure: { id, pubkey, created_at, kind, tags, content, sig }
+    const [, subscriptionId, event] = parsed;
+    // event is already a standard NostrEvent: { id, pubkey, created_at, kind, tags, content, sig }
   }
 });
 ```
+
+**Do not import `@toon-format/toon` for this.** There is nothing to decode.
+
+### Then Where Does TOON Encoding Live?
+
+On the **write payload**. TOON is an agreement between a **client and an app** about the bytes the connector carries **sealed** inside the ILP packet (ADR 0018). It is more compact than JSON, and it is not connector law — the connector never opens those bytes, so no part of the payment path parses TOON.
+
+**TOON on the way in, plain NIP-01 JSON on the way out.**
 
 ### EOSE (End of Stored Events)
 
@@ -102,21 +96,28 @@ New events matching the subscription filters arrive as additional EVENT messages
 ["REQ", "replies", {"kinds": [1], "#e": ["<event-id-hex>"]}]
 ```
 
-### Discover Relay Peer Info
+### Watch a NIP-90 Job Result
 
 ```json
-["REQ", "peers", {"kinds": [10032]}]
+["REQ", "job", {"kinds": [6094], "#e": ["<request-event-id-hex>"]}]
 ```
 
-### Discover DVM Providers
+### Asking a Node What It Charges
 
-```json
-["REQ", "providers", {"kinds": [10035]}]
+Not a subscription. **A connector answers; it never announces** (connector ADR 0022, ADR 0046). Fetch the node's self-description over plain HTTP:
+
 ```
+GET https://proxy.relay.devnet.toonprotocol.dev/ilp
+```
+
+It returns the node's ILP addresses, its settlement facts, and every route's price -- free and unauthenticated (ADR 0050). From the client, `client.describe()` and `client.routePrice(destination)` ask the same question.
+
+**Retired:** `kind:10032` ILP peer info and `kind:10035` / `SkillDescriptor` provider discovery. ADR 0046 removed the announce; there is no replacement subscription, because copying self-descriptions into a discovery network is a controller's job, outside the connector by definition. Do not filter for these kinds -- nothing publishes them.
 
 ## Important Considerations
 
-- TOON format is version 1.x. Do not assume JSON event format in relay responses.
-- The `ToonClient` from `@toon-protocol/client` handles TOON encoding/decoding via the `toonEncoder` and `toonDecoder` config options. If using the client library, decoding is handled for you when processing relay events.
+- Relay responses are **standard JSON**. Do not assume a TOON-encoded event, and do not import a decoder for reads.
+- Reads do not go through `@toon-protocol/client` at all -- it is the *write* path. Use any ordinary Nostr WebSocket client for `REQ`/`EVENT`/`CLOSE`.
+- The fleet relay implements **NIP-01 and NIP-34**. It does not enforce NIP-29 groups, NIP-72 moderation or any other NIP server-side; those are client-side conventions over ordinary events, and the relay stores a signed event like any other.
 - NIP-01 NOTICE messages (`["NOTICE", "<message>"]`) are standard string messages from the relay and are not TOON-encoded.
 - OK messages (`["OK", "<event-id>", <accepted>, "<message>"]`) follow standard NIP-01 format -- these are relay control messages, not event data.

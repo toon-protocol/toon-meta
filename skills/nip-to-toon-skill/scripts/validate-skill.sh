@@ -93,13 +93,23 @@ else
   fail "## Social Context section missing from SKILL.md"
 fi
 
-# Check 6: No bare ["EVENT", ...] patterns in any .md file (recursive)
-echo "[6/8] No bare EVENT patterns"
-BARE_EVENT=$(find "$SKILL_DIR" -name '*.md' -exec grep -l '\["EVENT"' {} + 2>/dev/null || true)
+# Check 6: No bare client->relay EVENT publish patterns in any .md file
+#
+# Only the two-element WRITE form is forbidden -- ["EVENT", <event>] sent at a
+# relay bypasses the connector that terminates payment, so a skill teaching it
+# produces an agent that cannot write.
+#
+# The three-element form ["EVENT", <sub_id>, <event>] is the relay's own
+# server->client read message. Reads are free and speak plain NIP-01, so a skill
+# SHOULD show it; matching it here would forbid the correct read model.
+echo "[6/8] No bare EVENT publish patterns"
+BARE_EVENT=$(find "$SKILL_DIR" -name '*.md' -print0 2>/dev/null \
+  | xargs -0 -r grep -lE '\["EVENT"[[:space:]]*,[[:space:]]*(\{|[A-Za-z_$][A-Za-z0-9_$.]*[[:space:]]*\])' \
+    2>/dev/null || true)
 if [ -n "$BARE_EVENT" ]; then
-  fail "Bare [\"EVENT\", ...] pattern found in: $BARE_EVENT"
+  fail "Bare [\"EVENT\", <event>] publish pattern found in: $BARE_EVENT"
 else
-  pass "No bare [\"EVENT\", ...] patterns found"
+  pass "No bare [\"EVENT\", <event>] publish patterns found"
 fi
 
 # Check 7: Description length is 50-200 words

@@ -86,14 +86,14 @@
       "id": "highlight-article-passage",
       "prompt": "I want to highlight a notable passage from a kind:30023 article on my TOON relay. The article's d tag is 'toon-economics' and the author's pubkey is 'ab12cd34'. The passage I want to highlight is about 80 characters. Walk me through the process.",
       "rubric": {
-        "correct": "Constructs a kind:9802 event with the highlighted passage in content. Uses an a tag with format '30023:ab12cd34:toon-economics' to reference the source article. Includes a p tag with the author's pubkey. Explains the optional context tag for surrounding text. Publishes via publishEvent() from @toon-protocol/client. Calculates approximate fee: ~300-500 bytes * 10n = ~$0.003-$0.005. Does NOT use raw WebSocket writes.",
-        "acceptable": "Uses publishEvent() and constructs a kind:9802 event with correct a tag and p tag, but may not calculate exact fee or explain context tag usage.",
-        "incorrect": "Uses raw WebSocket patterns, omits payment entirely, uses wrong event kind, uses e tag instead of a tag for an article, or puts commentary instead of the passage in content."
+        "correct": "Constructs a kind:9802 event with the highlighted passage in content. Uses an a tag with format '30023:ab12cd34:toon-economics' to reference the source article. Includes a p tag with the author's pubkey. Explains the optional context tag for surrounding text. Sends it with await client.send({ body: signedEvent }) from @toon-protocol/client, which seals the payload, reads the route price, mints the covering claim and carries it. States the charge as 1 base unit of 6-decimal USDC, flat, because g.toon.relay does not price by length. Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses client.send() and constructs a kind:9802 event with correct a tag and p tag, but may not state the flat route charge or explain context tag usage.",
+        "incorrect": "Uses raw WebSocket patterns, calls the retired publishEvent() or signs a claim by hand, works a charge out from the event byte count, omits payment entirely, uses wrong event kind, uses e tag instead of a tag for an article, or puts commentary instead of the passage in content."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee calculation or cost awareness for highlight-sized content",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response lets client.send() price the packet (or reads the route price) and does not compute a charge from the event byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has highlight-curation-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response constructs a kind:9802 event with a tag referencing the article and p tag for author attribution"
@@ -103,14 +103,14 @@
       "id": "highlight-short-note",
       "prompt": "I read a great kind:1 note on TOON and want to highlight a specific sentence from it. I have the event ID. How do I create the highlight?",
       "rubric": {
-        "correct": "Constructs a kind:9802 event with the highlighted sentence in content. Uses an e tag with the event ID to reference the source note (not an a tag, since kind:1 is not parameterized replaceable). Includes a p tag for the note's author. Publishes via publishEvent(). Notes the difference between a highlight (curates a specific passage) and a reaction (approves the whole event) or repost (shares the whole event).",
-        "acceptable": "Uses publishEvent() and constructs a kind:9802 with correct e tag, but may not distinguish highlight from reaction/repost.",
-        "incorrect": "Uses an a tag for a kind:1 note, uses raw WebSocket patterns, or confuses highlight with repost."
+        "correct": "Constructs a kind:9802 event with the highlighted sentence in content. Uses an e tag with the event ID to reference the source note (not an a tag, since kind:1 is not parameterized replaceable). Includes a p tag for the note's author. Sends it with client.send(). Notes the difference between a highlight (curates a specific passage) and a reaction (approves the whole event) or repost (shares the whole event).",
+        "acceptable": "Uses client.send() and constructs a kind:9802 with correct e tag, but may not distinguish highlight from reaction/repost.",
+        "incorrect": "Uses an a tag for a kind:1 note, uses raw WebSocket patterns, calls the retired publishEvent(), or confuses highlight with repost."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee calculation or cost awareness",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response lets the client price the packet and invents no byte-rate",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has highlight-curation-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses e tag (not a tag) to reference the kind:1 note by event ID"
@@ -120,14 +120,14 @@
       "id": "highlight-web-content",
       "prompt": "I found an insightful paragraph on a website at https://example.com/decentralization-article and want to highlight it on TOON. The web author does not have a Nostr account. How do I do this?",
       "rubric": {
-        "correct": "Constructs a kind:9802 event with the highlighted passage in content. Uses an r tag with the URL 'https://example.com/decentralization-article'. Omits the p tag since the author has no Nostr pubkey (or explains it would be included if the author had one). Recommends including a context tag since web content may not be easily accessible to readers. Publishes via publishEvent(). Advises verifying the URL is stable and publicly accessible.",
-        "acceptable": "Uses publishEvent() and constructs kind:9802 with correct r tag, but may not address context tag recommendation or URL stability.",
-        "incorrect": "Uses e or a tag for web content, requires a p tag when the author has no pubkey, or uses raw WebSocket patterns."
+        "correct": "Constructs a kind:9802 event with the highlighted passage in content. Uses an r tag with the URL 'https://example.com/decentralization-article'. Omits the p tag since the author has no Nostr pubkey (or explains it would be included if the author had one). Recommends including a context tag since web content may not be easily accessible to readers, and notes it costs nothing extra on the flat-priced relay route. Sends it with client.send(). Advises verifying the URL is stable and publicly accessible.",
+        "acceptable": "Uses client.send() and constructs kind:9802 with correct r tag, but may not address context tag recommendation or URL stability.",
+        "incorrect": "Uses e or a tag for web content, requires a p tag when the author has no pubkey, uses raw WebSocket patterns, or calls the retired publishEvent()."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes cost awareness for the highlight",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response states the flat route charge or lets client.send() price the packet, without byte arithmetic",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has highlight-curation-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses r tag with the URL to reference web content"
@@ -137,14 +137,14 @@
       "id": "read-highlight-feed",
       "prompt": "I want to see all the passages that people have highlighted from a specific article on TOON. I know the article's a tag coordinates (kind:30023, author pubkey, d tag). How do I fetch these highlights?",
       "rubric": {
-        "correct": "Subscribes using NIP-01 filter with kinds:[9802] and #a filter matching '30023:<pubkey>:<d-tag>'. Explains that TOON relays return TOON-format strings in EVENT messages, not JSON objects. Instructs to parse content (the highlighted passage), a/e/r tags (source reference), p tags (source author), and context tags from each event. Notes that reading is free on TOON (no ILP payment needed). Mentions that multiple highlights of the same passage signals that passage is particularly noteworthy.",
-        "acceptable": "Correctly describes the subscription filter with #a tag and mentions TOON format, but may not discuss social signal of multiple highlights.",
-        "incorrect": "Assumes standard JSON responses, suggests payment is needed to read, or uses wrong filter structure."
+        "correct": "Subscribes using NIP-01 filter with kinds:[9802] and #a filter matching '30023:<pubkey>:<d-tag>'. Notes that reads are free and speak plain NIP-01 -- the relay returns standard JSON EVENT messages, with no TOON decoding step. Instructs to parse content (the highlighted passage), a/e/r tags (source reference), p tags (source author), and context tags from each event. Notes that reading is free on TOON (no ILP payment needed). Mentions that multiple highlights of the same passage signals that passage is particularly noteworthy.",
+        "acceptable": "Correctly describes the subscription filter with #a tag and reads over plain NIP-01, but may not discuss social signal of multiple highlights.",
+        "incorrect": "Claims relay reads are TOON-encoded or that a TOON decoder is needed, suggests payment is needed to read, or uses wrong filter structure."
       },
       "assertions": [
-        "toon-write-check: Response correctly identifies highlight querying as a read-only operation -- no publishEvent() needed",
+        "toon-write-check: Response correctly identifies highlight querying as a read-only operation -- no client.send() needed",
         "toon-fee-check: Response notes that reading highlights is free on TOON",
-        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has highlight-curation-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses NIP-01 filter with kinds:[9802] and #a tag filter"
@@ -152,19 +152,19 @@
     },
     {
       "id": "highlight-with-context-decision",
-      "prompt": "I want to highlight the phrase 'every byte has a price' from a TOON article. The phrase is short and potentially ambiguous without context. Should I include a context tag, and how does that affect cost on TOON?",
+      "prompt": "I want to highlight the phrase 'every write has a price' from a TOON article. The phrase is short and potentially ambiguous without context. Should I include a context tag, and how does that affect cost on TOON?",
       "rubric": {
-        "correct": "Recommends including a context tag because the phrase 'every byte has a price' is short and ambiguous without surrounding text. Explains the context tag format: ['context', '<surrounding-text>'] where the highlighted phrase appears within the context. Calculates the cost trade-off: without context ~300-400 bytes (~$0.003-$0.004), with context ~500-800 bytes (~$0.005-$0.008). Frames this as a value judgment -- the context adds cost but makes the highlight meaningful to readers who have not read the source. Uses publishEvent() for publishing.",
-        "acceptable": "Recommends context tag and explains the cost difference, but may not quantify the specific byte/cost trade-off.",
-        "incorrect": "Advises against context without considering the ambiguity, ignores cost implications, or does not explain context tag format."
+        "correct": "Recommends including a context tag because the phrase 'every write has a price' is short and ambiguous without surrounding text. Explains the context tag format: ['context', '<surrounding-text>'] where the highlighted phrase appears within the context. Answers the cost question correctly: it does not affect the cost, because g.toon.relay is flat-priced at 1 base unit per event whatever the size, so the decision is editorial and not economic. Uses client.send() for publishing.",
+        "acceptable": "Recommends the context tag and says the flat route charge does not change with it, but may not explain where size does reach a bill (a length-priced route, metered on the sealed payload).",
+        "incorrect": "Claims the context tag makes the highlight more expensive, quotes a rate per byte, advises against context without considering the ambiguity, or does not explain context tag format."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response quantifies cost difference between highlights with and without context tags",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response states there is no charge difference between highlights with and without context tags on the flat-priced route",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has highlight-curation-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
-        "Response recommends context tag for the ambiguous short phrase and explains cost trade-off"
+        "Response recommends context tag for the ambiguous short phrase and states that it does not change the charge"
       ]
     }
   ]

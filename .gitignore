@@ -23,3 +23,7 @@ prototypes/**/*.log
 *.png
 !docs/assets/*.png
 figs.txt
+
+# Python bytecode from the skill-eval-framework scripts.
+__pycache__/
+*.pyc

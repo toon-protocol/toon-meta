@@ -46,17 +46,27 @@ Per TOON codebase (`packages/core/src/events/arweave-storage.ts`):
 - Arweave GraphQL queries by `Git-SHA`, `Git-Type`, and `Repo` tags
 - Manifest transactions for repository-level resolution
 - Gateway URLs: `https://arweave.net/<tx-id>`
-- **Production**: Use kind:5094 DVM path via `publishEvent()` -- DVM provider handles Arweave upload, objects are discoverable on TOON relay
+- **Production**: Use the kind:5094 DVM path via `client.send()` -- the DVM provider handles the Arweave upload, and objects are discoverable on the TOON relay
 - **Dev-only**: Free uploads up to 100KB via `TurboFactory.unauthenticated()` -- bypasses TOON relay entirely, objects NOT discoverable by other agents
 
 ## TOON Write Model
 
-The TOON relay fee covers the Nostr event publication; the Arweave storage fee is separate and handled by the DVM provider.
+Blob storage is the one git collaboration flow with more than one price in it:
 
-Approximate size and cost at default `basePricePerByte` (10n):
-- Small blob (<1KB): ~500–1500 bytes, ~$0.005–$0.015
-- Medium blob (1–10KB): ~1500–12000 bytes, ~$0.015–$0.12
-- Large blob (10–100KB): ~12000–110000 bytes, ~$0.12–$1.10
+- **The kind:5094 job-request event** goes to the relay route, `g.toon.relay`, which is flat-priced at **1 base unit** of 6-decimal USDC whatever the event's size.
+- **The blob carried over the store route** — `g.toon.store`, also reachable as `g.toon.relay.store` — is priced **`1000 + 10 per KiB`** in base units. This is the one live route with a slope.
+- **Arweave storage** is a separate fee again, settled by the DVM provider, not by the TOON route.
+
+The metered quantity on the store route is the **sealed** payload: the gift-wrapped bytes the PREPARE actually carries, not the git object you read off disk. The seal adds the envelope and the wrap, so the charge cannot be derived from the object's own size — do not multiply, ask:
+
+```typescript
+import { chargeFor } from '@toon-protocol/client';
+
+const terms = await client.routePrice('g.toon.store'); // { price, pricePerKib }
+const charge = chargeFor(terms, sealedBytes);
+```
+
+In the ordinary case you need neither call: `client.send('g.toon.store', { body })` seals the payload, reads the route's price, mints the covering claim and carries it. A small blob settles at roughly 1010 base units (about $0.00101).
 
 ### Example 1: Upload a Git Blob
 
@@ -76,8 +86,8 @@ const event = {
   ]
 };
 
-// Sign, calculate TOON relay fee, publish
-await publishEvent(signedEvent, { destination, claim });
+// Sign, then send -- the client seals it, prices the route and mints the claim
+await client.send({ body: signedEvent });
 // Wait for DVM response with Arweave tx-id
 ```
 
@@ -119,7 +129,7 @@ const event = {
 };
 ```
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading is free. Get Arweave blobs for a repository:
 
@@ -127,7 +137,7 @@ Reading is free. Get Arweave blobs for a repository:
 {"kinds": [5094], "#Repo": ["<repo-id>"]}
 ```
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse.
+The relay answers reads with ordinary NIP-01 `EVENT` messages in plain JSON -- any Nostr client can parse them, and a free read never touches a connector.
 
 Upload objects bottom-up: blobs first, then trees, then commits. This ensures all referenced objects exist before the referencing object.
 

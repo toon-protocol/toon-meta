@@ -87,7 +87,7 @@ The `content` field must be an empty string.
 ### Award Semantics
 
 - **Only the badge creator can award:** The pubkey signing the kind:8 event must match the pubkey in the `a` tag reference. Awards signed by non-creators are invalid.
-- **Multiple recipients:** Include multiple `p` tags to award the same badge to several recipients in one event. Each `p` tag adds ~70 bytes.
+- **Multiple recipients:** Include multiple `p` tags to award the same badge to several recipients in one event.
 - **Non-replaceable:** Each kind:8 event is permanent. You cannot "update" an award -- only delete it via kind:5.
 - **One badge per award:** Each kind:8 references exactly one badge definition via a single `a` tag.
 
