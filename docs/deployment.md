@@ -30,7 +30,7 @@ connector-less faucet. Settlement is on **two public networks**, Base Sepolia an
 Solana devnet. Verified by live probe 2026-08-28. Mina is gone: the connector deleted `packages/mina-zkapp`, `tools/mina`,
 `infra/mina`, the faucet's Mina leg and `docs/mina-deployment.md` under
 [connector ADR 0065, *Mina leaves the repository*](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md)
-(built in connector#1205). Note the connector has **two** ADR 0065s; cite them by title.
+(built in connector#1205). Note the connector has **two** ADR 0065s; cite them as `0065-price` and `0065-mina` (connector#1249).
 
 > **Do not "clean up" the `mina` claim refusal.** The connector still refuses a
 > claim whose `blockchain` is `mina`, **by name**, with
