@@ -117,8 +117,9 @@ behind one agnostic edge — and it must be preserved.
 
 Flat / quoted **per route**, advertised in the 402 and prepaid in the claim. This matches x402's
 fixed-price-per-resource model and preserves TOON's "the request amount *is* the payment"
-principle. Per-byte pricing (TOON's default for writes) is wrong for proxied APIs, because the
-value lives in the variable-size *response*, not the request.
+principle. A length-scaled price (TOON's default for writes — a base plus an amount per
+**kibibyte**, connector ADR 0065) is wrong for proxied APIs, because the value lives in the
+variable-size *response*, not the request.
 
 ## Binding & trust
 
@@ -264,12 +265,12 @@ follow-on spec; it is **not** proxy MVP.
 > **Proven live** at **`connector.pay.toonprotocol.dev/ilp`**: a generic, payment-oblivious
 > backend was fronted by the connector payment-proxy and verified by a real paid round-trip
 > (paid `POST /ilp` → FULFILL with injected `x-toon-*` headers; unpaid → 402; real on-chain
-> USDC settlement). Reusable artifact: connector `deploy/pay-edge/`.
+> USDC settlement). Reusable artifact: connector `deploy/connector-rust/` — `deploy/pay-edge/` was deleted 2026-08-05 with the TypeScript connector it ran.
 
 **Also shipped:**
 - the **devnet multi-chain roundtrip harness + connector naming + Porkbun DNS provider**
   (connector PR #245, merged);
-- the **`deploy/pay-edge/` deploy bundle** (connector PR #252, merged; supersedes closed
+- the **`deploy/pay-edge/` deploy bundle** (connector PR #252, merged — but **deleted 2026-08-05**; use `deploy/connector-rust/`; supersedes closed
   connector PR #246).
 
 **Remaining future work this RFC motivates:**

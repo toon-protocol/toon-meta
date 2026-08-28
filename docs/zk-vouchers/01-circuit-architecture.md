@@ -221,5 +221,8 @@ sibling issues under #67:
   proof-carrying Nostr events so relays and interpreters know how to verify.
 - **Graceful degradation**: how a non-zk client posts (plain paid write) alongside
   anonymous writes on the same relay without confusion.
-- **Mina / o1js angle**: whether there is reuse with the o1js zkApp path from the WS3
-  work (#22), or whether write-voucher proving is entirely separate.
+- ~~**Mina / o1js angle**~~ — **closed 2026-08-28.** There is nothing to reuse: Mina and
+  o1js left the connector repository with
+  [connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md).
+  Write-voucher proving is entirely separate. (The Poseidon hashes above are the
+  Semaphore/Groth16 circuit's own — unrelated to Mina.)

@@ -23,7 +23,7 @@ Connector / apex (g.proxy)  — validates claim, takes fee, routes by ILP addres
         │  free parent→child forward  (rfc-0032)
         ▼
 Child node: town (relay) / dvm (kind:5094) / mill (swap)
-        │  threshold on-chain settlement, in-process EVM/Solana/Mina (rfc-0038)
+        │  threshold on-chain settlement, in-process EVM/Solana (rfc-0038)
 ```
 
 ## What composes, and what is NOT in the stack

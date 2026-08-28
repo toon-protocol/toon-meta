@@ -1,91 +1,92 @@
 # /deploy-devnet
 
-Deploy or manage the TOON devnet — five Linode nodes (EVM / Solana / Mina lightnet chains + `toon` connector+relay + `store` connector+Arweave DVM) with stable `*.devnet.toonprotocol.dev` DNS and trusted Let's Encrypt TLS. After deployment, update toon-meta docs with the live URLs.
+Provision, DNS and probe the TOON devnet boxes via the connector repo's
+`infra/devnet-manage.sh`.
 
-## What this skill does
-
-1. Resolves the management script path (connector repo sibling or `CONNECTOR_REPO` env)
-2. Runs the requested lifecycle command via `infra/devnet-manage.sh`
-3. Waits for all agents to report healthy
-4. Updates `docs/deployment.md`, `context/context.md`, and the endpoint tables in toon-meta
+**This command does not deploy anything.** Under
+[connector ADR 0068](https://github.com/toon-protocol/connector/blob/main/docs/adr/0068-a-node-repository-pins-the-connector-nothing-here-moves-a-tag-onto-a-box.md)
+a **node repository** pins the connector it runs and brings its own stack up;
+the connector repo builds and cuts a release and stops there. `devnet-manage.sh`
+kept only what is still its to do — create a box, sync its DNS record, probe —
+and its `deploy_store_node` / `deploy_relay_node` legs and the `down` /
+`redeploy` verbs were **removed**. They used to scp a config to
+`/root/connector/...`, a path neither box reads any more, and then re-read that
+dead path to "confirm" the write, reporting green every time.
 
 ## Node layout
 
-> **⚠️ 2026-07-19: the three chain boxes are RETIRED.** Settlement moved to
-> public networks (Base Sepolia / Solana devnet / Mina devnet); the EVM/Solana/
-> Mina Linodes and their DNS records were deleted. Only the `toon` and `store`
-> rows below remain live — do NOT re-provision the chain boxes. See
-> `docs/deployment.md` for the current layout.
+Four boxes, **no apex** — the `toon` box was destroyed 2026-08-14.
+Settlement is on two public chains: Base Sepolia and Solana devnet. The three
+self-hosted chain boxes were deleted 2026-07-19; Mina left the connector
+repository entirely with
+[ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md).
+Do **not** re-provision any of them.
 
-| Node | Linode label | Size | Public URLs |
-|------|-------------|------|-------------|
-| ~~EVM (Anvil)~~ RETIRED | ~~toon-devnet-evm~~ | — | settlement now on public Base Sepolia (`sepolia.base.org`) |
-| ~~Solana~~ RETIRED | ~~toon-devnet-sol~~ | — | settlement now on public Solana devnet (`api.devnet.solana.com`) |
-| ~~Mina lightnet~~ RETIRED | ~~toon-devnet-mina~~ | — | settlement now on public Mina devnet (minascan GraphQL) |
-| TOON connector (toon = relay app) | toon | g6-standard-1 (2GB) | `wss://relay-ws.devnet.toonprotocol.dev`, `https://proxy.devnet.toonprotocol.dev`, `https://faucet.devnet.toonprotocol.dev` |
-| Store (Arweave DVM app) | store | g6-standard-1 (2GB) | `https://proxy.store.devnet.toonprotocol.dev/ilp` (route `g.proxy.store`), `https://dvm.devnet.toonprotocol.dev` |
+| Node | Linode label | Deployed from | Public URLs |
+|------|-------------|---------------|-------------|
+| Relay | `relay` | [`relay`'s own `deploy/`](https://github.com/toon-protocol/relay/tree/main/deploy) (`/root/relay`, Caddy) | `wss://relay-ws.devnet.toonprotocol.dev`, `https://proxy.relay.devnet.toonprotocol.dev/ilp` |
+| Store | `ario` | [`store`'s own `deploy/`](https://github.com/toon-protocol/store/tree/main/deploy) (`/root/store`) | `https://proxy.ario.devnet.toonprotocol.dev/ilp` (routes `g.toon.store`, `g.toon.relay.store`) |
+| Gas station | `gas` | [`gas-station`'s own `deploy/`](https://github.com/toon-protocol/gas-station/tree/main/deploy) | `https://proxy.gas.devnet.toonprotocol.dev/ilp` |
+| Faucet | `faucet` | connector `infra/linode-faucet/`, built on-box | `https://faucet.devnet.toonprotocol.dev` (USDC only, two chains) |
 
-The `toon` and `store` boxes each run their own connector (payment proxy) in front of their app (relay / Arweave DVM). The store reuses the toon node's Mina zkApps. Use the `store` command to (re)deploy just the store box; `up` / `redeploy` cover all nodes.
+`connector/infra/linode-relay/` and `infra/linode-store/` are **test fixtures,
+not what those boxes run** — each says so in its own `README.md`. Editing one
+changes nothing on a box.
 
-## Prerequisites (check these first)
+## Prerequisites
 
 - `LINODE_CLI_TOKEN` in `~/.bashrc` — Linode API token
 - `PORKBUN_API_KEY` + `PORKBUN_SECRET` in `~/.bashrc` — DNS management
-- `~/.ssh/id_rsa` + `~/.ssh/id_rsa.pub` — SSH key registered on Linode account (label "TOON")
+- `~/.ssh/id_rsa` + `~/.ssh/id_rsa.pub` — SSH key registered on Linode (label "TOON")
 - connector repo at `../connector` (or set `CONNECTOR_REPO=<path>`)
-- `TOON_MNEMONIC` in environment or `~/.bashrc` (derive once; don't rotate without updating toon-meta)
 
 ## Commands
 
-Run with no args to get status. Pass a command as the first argument:
+```
+/deploy-devnet status         # Probe every public endpoint (default)
+/deploy-devnet ips            # Print current box IPs
+/deploy-devnet dns            # Sync Porkbun DNS to current box IPs
+/deploy-devnet up             # Provision store + relay boxes and their DNS (no deploy)
+/deploy-devnet store          # Provision + DNS the store box only
+/deploy-devnet relay          # Provision + DNS the relay box only
+/deploy-devnet faucet         # Provision the faucet box only (human finishes on-box)
+/deploy-devnet faucet-cutover # Repoint faucet.devnet at the faucet box — run LAST
+/deploy-devnet faucet-resize  # Resize the live faucet box (10-20 min offline)
+/deploy-devnet destroy        # Delete the store + relay boxes (irreversible; NOT the faucet)
+```
 
-```
-/deploy-devnet up        # Provision all boxes + deploy everything + update DNS
-/deploy-devnet store     # (Re)deploy ONLY the store box (reuses the toon node's Mina zkApps)
-/deploy-devnet down      # Stop containers (boxes stay running; restart is fast)
-/deploy-devnet destroy   # Delete all Linode boxes (loses chain state!)
-/deploy-devnet status    # Probe every public endpoint
-/deploy-devnet redeploy  # Pull latest images + restart containers on all nodes
-/deploy-devnet dns       # Sync Porkbun DNS to current box IPs (run after IP changes)
-/deploy-devnet ips       # Print current box IPs
-/deploy-devnet endpoints # Print current endpoints.json
-```
+There is no `down`, no `redeploy` and no `endpoints` verb. Read
+`connector/infra/linode/endpoints.json` for the canonical endpoint and address
+list, or `GET <node>/ilp` for a node's live self-description
+([ADR 0050](https://github.com/toon-protocol/connector/blob/main/docs/adr/0050-a-connectors-url-resolves-to-its-self-description.md)).
 
 ## Execution instructions
 
-When this skill is invoked:
+1. **Find the management script.** Look for `../connector/infra/devnet-manage.sh`
+   relative to toon-meta, or `$CONNECTOR_REPO/infra/devnet-manage.sh`. If neither
+   exists, tell the user and stop.
 
-1. **Find the management script.** Look for `../connector/infra/devnet-manage.sh` relative to toon-meta. If `CONNECTOR_REPO` env is set, use `$CONNECTOR_REPO/infra/devnet-manage.sh`. If neither exists, tell the user and stop.
-
-2. **Load credentials.** Run:
+2. **Load credentials:**
    ```bash
    eval "$(grep -E '^[[:space:]]*export[[:space:]]+(LINODE_CLI_TOKEN|PORKBUN_API_KEY|PORKBUN_SECRET)=' ~/.bashrc)"
    ```
 
-3. **Parse the argument.** If the user typed `/deploy-devnet up`, the command is `up`. Default to `status` if no argument.
+3. **Parse the argument.** Default to `status`. Refuse a verb not in the list
+   above rather than passing it through.
 
-4. **Execute the command:**
+4. **Execute:**
    ```bash
    CONNECTOR_REPO=<path> bash <path>/infra/devnet-manage.sh <command>
    ```
-   For `up` or `redeploy`, this takes 10-30 minutes (Solana Rust build is slow). Stream output to the user.
+   Stream output. `up` prints where the actual deploy now lives and does not
+   perform one.
 
-5. **After `up` or `redeploy` succeeds:** Run the status check and update toon-meta:
-   - Run `bash <script> endpoints` to get the current endpoint JSON
-   - Update `docs/deployment.md` "Devnet Endpoints" section with the live URLs
-   - Update `context/context.md` devnet section with the live endpoints
-   - Commit the toon-meta changes: `git add docs/deployment.md context/context.md && git commit -m "docs: update devnet endpoints after redeploy"`
+5. **To actually deploy a node,** open a change in that node's own repository —
+   bump its connector pin (relay: `deploy/Dockerfile`'s `ARG CONNECTOR_TAG`;
+   store and gas-station: `deploy/docker-compose.yml`) and let its Watchtower
+   pick the new image up, or run that repo's `deploy/bootstrap.sh` on the box.
+   Never pin `:rust-release` — it is frozen at `rust-sha-8708caf`, a build on
+   which every forward over a runtime peering is refused `T00`.
 
-6. **After `up` with Mina lightnet:** The Mina zkApps (USDC FungibleToken + PaymentChannel) need to be deployed to the fresh lightnet. Remind the user to run the zkApp deployment tools from the connector repo, then update `infra/linode-node/connector.yaml` with the new Mina addresses and redeploy the TOON node.
-
-## Mnemonic note
-
-The demo TOON_MNEMONIC is:
-`giant goat guide develop boy wolf target embody leave sunny paddle neutral`
-
-This derives:
-- EVM settlement: `0xF29fD62C4848B9573C9b90adbF61b664F386d9CF`
-- Solana settlement: `A3FG5y6rfBNJQrsGYTNNR7UHAXCREPJgV362LdTQGNwK`
-- Mina settlement: `B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq`
-
-Keep this mnemonic stable — rotating it requires updating `connector.yaml` settlementAddresses and re-opening payment channels.
+6. **After a box IP changes,** run `dns`, then `status`, and update
+   `docs/deployment.md`'s node-layout and endpoint tables.

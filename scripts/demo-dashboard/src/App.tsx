@@ -89,7 +89,7 @@ function NodeCard({ dash, nk, onOpen }: { dash:Dashboard; nk:NodeKey; onOpen:()=
 // counter to difference, an animated rail would be pure decoration implying
 // traffic nobody is measuring. The leg itself is still a true fact about how
 // these two nodes settle, so the label stays and the motion goes.
-function LinkCol({ which }: { which:'mina'|'base'|'sol' }) {
+function LinkCol({ which }: { which:'base'|'sol' }) {
   const L = LINKS[which]
   return (
     <div className="flex min-w-[120px] flex-col items-center justify-center px-1.5">
@@ -230,7 +230,7 @@ export default function App() {
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Route &amp; settlement</div>
           <div><span className="text-amber-400">client → toon</span> · <b className="text-foreground">Base Sepolia USDC</b> by default (Solana via <code>rig chain set</code>) · pays wss://proxy.devnet.toonprotocol.dev</div>
           <div><span className="text-amber-400">toon ↔ ario</span> · <b className="text-foreground">Solana devnet USDC</b> · solana:devnet · peered over BTP</div>
-          <div><span className="text-amber-400">termination</span> · <b className="text-foreground">g.toon.ario</b> · Arweave store (kind:5094 pay-to-store) · proxy.ario.devnet.toonprotocol.dev</div>
+          <div><span className="text-amber-400">termination</span> · <b className="text-foreground">g.toon.store</b> · Arweave store (kind:5094 pay-to-store) · proxy.ario.devnet.toonprotocol.dev</div>
         </Card>
 
         <footer className="mt-6 text-center text-[11.5px] text-muted-foreground">liveness via GET /ilp/identity @10s · packets via relay Nostr WS · balances via chain RPCs @45s · the connector admin API is no longer publicly readable, so no packet or settlement counters are shown</footer>

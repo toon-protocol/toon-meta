@@ -3,6 +3,26 @@
 **Published 2026-07-31. Applies to: anyone holding an open payment channel with
 the TOON devnet apex on Base Sepolia.**
 
+> **Addendum 2026-08-28 — still actionable, and more urgent than it reads.**
+> The apex **no longer exists**: the box was destroyed 2026-08-14
+> (toon-meta#310/#313). A unilateral `closeChannel` + `settleChannel` is now the
+> *only* way to recover a deposit in one of the eight channels below, and it
+> still works exactly as described — the apex's deposit is zero in every one, so
+> nothing depends on it being reachable.
+>
+> Two facts in this notice have moved on and must not be copied forward:
+> - **`0x1E95493fEF46707E034b4a1945f25a8C76A1823D` is not the live
+>   `TokenNetwork`.** It is the contract *these eight channels live on*, which is
+>   why it stays in this notice — point `closeChannel`/`settleChannel` at it. The
+>   live devnet pair is registry `0x0c41D9D424d6B075A3cEa1068a694f7847a8CCa5` →
+>   TokenNetwork `0xe9E05dfecfe165266C88d73e61D483612651952a` (ADR 0059 cutover,
+>   broadcast 2026-08-28), and the TokenNetwork is **derived** from the registry
+>   at boot via `getTokenNetwork(token)`, never pinned on its own. See
+>   [deployment.md](../deployment.md#deployed-settlement-contracts-public-networks-verified-2026-08-28).
+> - **The kind:10032 announce is removed** ([connector ADR 0046](https://github.com/toon-protocol/connector/blob/main/docs/adr/0046-the-kind-10032-announce-is-removed-a-connector-needs-no-relay.md)).
+>   A node now publishes its settlement facts at `GET <node>/ilp`
+>   ([ADR 0050](https://github.com/toon-protocol/connector/blob/main/docs/adr/0050-a-connectors-url-resolves-to-its-self-description.md)).
+
 ## Summary
 
 The devnet apex node has **rotated its settlement identity**. Its previous EVM
@@ -79,8 +99,8 @@ Two transactions from the wallet that opened the channel, 24 hours apart.
    timeout has elapsed. It transfers each participant's remaining deposit back
    to them. Calling it early reverts with `SettlementTimeoutNotExpired()`.
 
-Neither call takes a balance proof or a signature. You do not need anything from
-the apex.
+Neither call takes a claim or a signature. You do not need anything from the
+apex — which is as well, because it no longer exists.
 
 ### Worked example
 
@@ -88,7 +108,7 @@ Using [Foundry](https://book.getfoundry.sh/)'s `cast`, for the channel
 `0xb738aa73…` held by `0xd7D0D2F8…`:
 
 ```bash
-export TN=0x1E95493fEF46707E034b4a1945f25a8C76A1823D          # TokenNetwork
+export TN=0x1E95493fEF46707E034b4a1945f25a8C76A1823D          # the TokenNetwork THESE EIGHT channels live on (NOT the live one — see the addendum)
 export RPC=https://base-sepolia-rpc.publicnode.com            # Base Sepolia, chain id 84532
 export CID=0xb738aa73d4caf2c4e9cacdb0a1ab07006df23dece1c8742d9d5ddb10fd76b3e3
 

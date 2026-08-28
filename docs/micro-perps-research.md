@@ -686,10 +686,15 @@ plan of record. This is the caveat the brief asked to be checked rather than rep
 check confirms it — with the refinement that the packet-level hashlock **is** shipped and proven,
 and only the claim-level one is missing.
 
-**One correction to `settlement.md` worth flagging:** connector#1031's body states *"ADR 0002
-already dropped Mina from the Rust connector."* `docs/settlement.md` still describes a three-chain
-(EVM/Solana/Mina) claim story. Anything in this note about Mina should be treated as applying to the
-retired TypeScript connector, not the Rust fleet.
+**One correction worth flagging (updated 2026-08-28):** connector#1031's body states *"ADR 0002
+already dropped Mina from the Rust connector."* Mina has since left the connector repository
+altogether — [ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md),
+built connector#1205 — so there are **two** settlement families, EVM and Solana. Anything in this
+note about Mina describes the retired TypeScript connector, not the fleet. The quotations below
+from `soak-criteria.md` are quoted as they read at the time; that document has since dropped its
+Mina column. The connector's refusal of a `mina` claim **by name** survives on purpose
+([ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md)) —
+wire behaviour owed to `toon-client`, not a leftover to clean up.
 
 ### 3.3 Therefore: what a "share" would have to be
 

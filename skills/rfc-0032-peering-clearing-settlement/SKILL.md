@@ -32,7 +32,7 @@ Clearing on TOON is the off-chain accrual of signed **payment-channel claims**. 
 
 ## Settlement: threshold on-chain redemption
 
-Settlement is **in-process and multi-chain** (see `rfc-0038`): when the cleared balance crosses a threshold, the connector redeems the latest claim on the underlying chain via `claimFromChannel` → `settleChannel`/`closeChannel` (EVM / Solana / Mina). This is not the RFC-0038 separate-process HTTP engine — it runs inside the connector.
+Settlement is **in-process and multi-chain** (see `rfc-0038`): when the cleared balance crosses a threshold, the connector redeems the latest claim on the underlying chain via `claimFromChannel` → `settleChannel`/`closeChannel` (EVM or Solana). This is not the RFC-0038 separate-process HTTP engine — it runs inside the connector.
 
 ## The connector fee
 

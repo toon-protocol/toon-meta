@@ -326,7 +326,14 @@ assertion-pinned in the harness), not protocol constants.
 |---|---|---|---|
 | evm (Base-class, ~250 ms median tick) | **1500 ms** | 0.22% | 12.2 bps |
 | solana (~500 ms median tick) | **3000 ms** | 0.62% | 17.3 bps |
-| mina (~4 s median tick, heavy gap tail) | **15000 ms** | 1.51% | 38.7 bps |
+| slow-feed class (~4 s median tick, heavy gap tail) | **15000 ms** | 1.51% | 38.7 bps |
+
+> The third row was measured against a Mina-class feed. **It is a latency
+> archetype, not a supported chain** — the swap path settles EVM and Solana, and
+> Mina left the connector repository with
+> [connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md).
+> The measurements below keep their original "Mina-class" wording because that
+> is what was measured; read it as "a feed with a ~4 s median tick".
 
 What the curves say:
 
@@ -557,16 +564,18 @@ touches the settlement layer (see `settlement.md`):
    settlement" netting is *implemented* only on the paying side today; the receiving side's
    settle path exists only as uncalled SDK library code. The sender cannot realize its
    delivered asset B without it.
-2. **Mina co-sign on the B leg.** Redeeming a Mina channel claim requires both `signatureA`
-   and `signatureB` (`connector/src/settlement/mina-payment-channel-sdk.ts:1199-1240`). As
-   chain-B *recipient*, the sender must contribute a co-signature to redeem — and no
-   receive-side Mina co-sign path exists in toon-client (the existing client Mina signer is
-   payer-side only, `toon-client/packages/client/src/signing/mina-signer.ts:205-262`). A
-   Mina-destination rolling swap is blocked on this; EVM and Solana destinations are not.
-   Relatedly, the swap node's Mina signer silently falls back to a **fake sha256 "signature"**
-   when the `mina-signer` peer dep is absent (`swap/src/payment-channel-signer.ts:253-263`) —
-   R5(a) verification on the sender side catches this before any reveal, which is a good
-   sanity check that the coupling is doing its job.
+2. ~~**Mina co-sign on the B leg.**~~ **MOOT (2026-08-28).** There is no Mina destination to
+   block on: Mina left the connector repository with
+   [connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md)
+   (built connector#1205), and `connector/src/settlement/mina-payment-channel-sdk.ts` went with
+   the whole TypeScript connector ([ADR 0017](https://github.com/toon-protocol/connector/blob/main/docs/adr/0017-the-typescript-connector-is-a-prototype.md)).
+   A rolling swap has two destinations, EVM and Solana. **The connector still refuses a claim
+   whose `blockchain` is `mina` by name** ([ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md)) —
+   deliberate wire behaviour owed to `toon-client`, not a leftover.
+   The general lesson survives the chain: the swap node's signer once fell back to a **fake
+   sha256 "signature"** when its optional peer dep was absent
+   (`swap/src/payment-channel-signer.ts:253-263`), and R5(a) verification on the sender side
+   catches exactly that class of bug before any reveal.
 
 ---
 

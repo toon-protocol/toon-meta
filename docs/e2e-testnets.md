@@ -1,5 +1,17 @@
 # Public-testnet E2E — dev wallet & bootstrap runbook
 
+> ## ⚠️ Historical — the harness this describes no longer exists
+>
+> Every path below (`scripts/sdk-e2e-infra.sh`, `scripts/e2e-wallet.mjs`,
+> `scripts/deploy-e2e-*`, `scripts/fund-e2e-peers*`, `packages/sdk`,
+> `docker-compose-sdk-e2e.yml`) lived in the TOON monorepo, which does not
+> exist; `e2e/testnets.json` was never committed anywhere. The Mina leg
+> throughout is doubly dead — Mina left the connector repository with
+> [connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md).
+> The document is kept unedited as the record of a design that shipped and was
+> retired. **For the current path** see
+> [`deployment.md`](./deployment.md) and [`scripts/demo-e2e.sh`](../scripts/demo-e2e.sh).
+
 The public-testnet E2E mode runs the settlement/swap/pay-to-write flows against
 **real public testnets** instead of the local devnets:
 

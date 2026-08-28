@@ -14,7 +14,7 @@ The authoritative implementation is **`@toon-protocol/connector`** — the apex 
 - **Routing & forwarding.** Routes ILPv4 packets by `g.*` longest-prefix (`routing/routing-table.ts`); forwards to peers per their `relation` (parent/peer/child), with the **free parent→child forward** (`rfc-0032`).
 - **Value validation.** Validates a signed `payment-channel-claim` at ingress (`btp/inbound-claim-validator.ts`) before forwarding any value-bearing packet — this is the connector's core financial obligation on TOON.
 - **Fee handling.** Deducts a connector fee before forwarding (`calculateConnectorFee`, `core/packet-handler.ts`).
-- **Settlement.** Redeems claims on-chain via in-process EVM/Solana/Mina providers (`settlement/provider/`, `rfc-0038`).
+- **Settlement.** Redeems claims on-chain via in-process EVM and Solana providers (`rfc-0038`).
 - **Error handling.** Returns ILPv4 error codes (F06/T04/F03/T00, see `rfc-0027`).
 - **Risk controls.** Rate limiting, fraud detection, audit logging, key management (`security/`, see `rfc-0018`).
 - **Runtime config.** Admin API for live peer/route management (`http/admin-api.ts`, `rfc-0031`).
@@ -27,7 +27,7 @@ For TOON, the binding "requirements" are not the abstract RFC but the connector'
 - `packages/sdk/CONNECTOR_RELEASE_CONTRACT.md` — semver discipline for the connector.
 - `packages/sdk/CONNECTOR_MIGRATION.md` — version-to-version API contract + migration history.
 - `packages/sdk/tests/integration/connector-contract.test.ts` — the contract canary that fails on API drift.
-- The connector package README + its BLS error-code table.
+- The connector package README + its app error-code table.
 
 Point users at these for "what must a TOON connector do / what changed," rather than the generic RFC-0034 text.
 

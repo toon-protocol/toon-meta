@@ -6,10 +6,18 @@ Nostr-event packet stream, and accumulated settlement — so packets can be show
 hopping through each connector during a live `rig push`, without SSH + port
 forwarding to each box's admin dashboard.
 
-The fleet is **two boxes**: the `toon` apex (client entry, relay, faucet) and the
-`ario` store (Arweave DVM, route termination). A third box — the sandbox entry —
-was **decommissioned on 2026-07-31**; it is no longer needed, and the dashboard
-no longer models or polls it.
+> **Stale against the live fleet.** This document still describes the apex +
+> `ario` two-box shape and the TypeScript connector's `/admin/*` telemetry. Both
+> are gone: the apex was destroyed 2026-08-14, the devnet is four boxes (relay,
+> store, gas, faucet) with the relay as write ingress, and the `/admin/*`
+> endpoints this page polled belonged to the TypeScript connector. The code in
+> `scripts/demo-dashboard/` already says so (`RETIRED_TELEMETRY`, and the
+> `STALE NODE SET` note in `src/lib/toon.ts`); this prose has not caught up. The
+> chain and address facts below were corrected 2026-08-28.
+
+The fleet was **two boxes** when this was written: the `toon` apex (client entry,
+relay, faucet) and the `ario` store (Arweave DVM, route termination). A third box
+— the sandbox entry — was **decommissioned on 2026-07-31**.
 
 **Live at:** `https://faucet.devnet.toonprotocol.dev/dash`
 
@@ -57,12 +65,12 @@ Tailwind + **shadcn/ui** app (built to a static bundle) · nginx snippet:
   balances**, **settlement policy**, **peers** (ILP addresses), a per-node
   **packets** list (relay events, kind-labelled), and the **settlement claims**
   log; packet and claim rows are clickable for their full data.
-- **Wallets & balances** — per node, each settlement wallet (Base / Solana /
-  Mina) with address (copy + explorer link) and **live on-chain balance**
+- **Wallets & balances** — per node, each settlement wallet (Base / Solana)
+  with address (copy + explorer link) and **live on-chain balance**
   (native gas + USDC), queried client-side. The **store's ArNS DVM wallet** and
   its **ARIO** token balance (ar.io devnet SPL) and the **gas station** wallet
   are shown too. Node cards carry a compact gas chip that turns red below a
-  floor (ETH < 0.005 / SOL < 0.1 / MINA < 1), and the header flags how many
+  floor (ETH < 0.005 / SOL < 0.1), and the header flags how many
   wallets are low — the top-up cue.
 - **Settlement policy** — the on-chain settle threshold (`defaultThreshold`
   5000 base units = 0.005 USDC) and timeout (`settlementTimeoutSecs` 3600), plus
@@ -94,8 +102,8 @@ live data from two sources, both already public:
    relay (ario publishes to it).
 
 3. **Chain RPCs** — the browser reads wallet balances directly from public RPCs
-   (Base Sepolia `base-sepolia-rpc.publicnode.com`, Solana `api.devnet.solana.com`,
-   Mina `api.minascan.io`), all of which allow browser CORS. Polled every 45 s
+   (Base Sepolia `base-sepolia-rpc.publicnode.com`, Solana `api.devnet.solana.com`),
+   both of which allow browser CORS. Polled every 45 s
    (with an 8 s per-request timeout so one slow RPC can't stall the sweep). ARIO
    balance = the ArNS DVM Solana wallet's holding of SPL mint
    `6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN`.
@@ -109,12 +117,13 @@ the 2 GB boxes):
   expose all-time fees (`connectorFees` / `peers[].byAsset` are empty). The page
   sums net settled (inbound − outbound, USDC 6dp) per node from the claim stream
   as it observes it; a reload resets it.
-- **Mina claim amounts are untracked** — Mina claims report `assetCode:"MINA"`
-  with `amount:0`, so a Mina leg's claim rows show `settle ✓` (not a value) and
-  contribute ~0 to session profit. Base and Solana legs report exact USDC
-  amounts. No leg in the two-box fleet settles in Mina today (the Mina entry leg
-  ran through the retired sandbox entry), so this caveat is currently dormant —
-  the apex's and store's Mina **wallets** are still read and shown.
+- **Two chains, not three.** Mina left the connector repository with
+  [connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md);
+  the dashboard's Mina colour, RPC, wallets, gas floor and balance reader are
+  removed. A connector still **refuses a claim whose `blockchain` is `mina` by
+  name** ([ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md)) —
+  that refusal is wire behaviour owed to `toon-client` and is not to be cleaned
+  up.
 
 ## Build
 

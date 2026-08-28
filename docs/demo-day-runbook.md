@@ -5,9 +5,14 @@ settling on **Base Sepolia** and **Solana devnet** through the two-box fleet
 (client pays the `toon` apex → `toon` settles Solana with `ario`), then a
 permaweb site + ArNS name.
 
-> The sandbox entry box that carried the old Mina entry act was
-> **decommissioned on 2026-07-31** — it is no longer needed, and the acts that
-> ran against it have been removed from this runbook.
+> **Dated 2026-07-22, and the fleet has moved.** The `toon` apex this runbook
+> pays was **destroyed 2026-08-14**; the relay
+> (`https://proxy.relay.devnet.toonprotocol.dev/ilp`) is the write ingress now,
+> and the store answers `g.toon.store`, not `g.toon.ario`. Mina is gone from the
+> connector repository entirely
+> ([connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md))
+> and every Mina faucet route answers `404`. Current facts:
+> [`deployment.md`](./deployment.md).
 
 Everything below assumes `@toon-protocol/rig` **>= 2.13.0** — zero config:
 no `~/.toon-client/config.json` is needed on the apex path. (Distinct from
@@ -91,9 +96,8 @@ rig name status <name> --network devnet
 | Push resolves the wrong entry after switching | The repo's git `origin` relay OVERRIDES config: `rig remote add origin <relay>` in the repo, or use a fresh repo. |
 | Config was HAND-edited and behavior didn't change | `rm ~/.toon-client/rig-topology-cache.json` (`rig entry`/`rig chain set` clear it for you). |
 | Solana faucet airdrop quota exhausted | `curl -X POST https://faucet.devnet.toonprotocol.dev/api/solana/usdc-request -d '{"address":"…"}'` (USDC-only leg) and fund SOL separately. |
-| Mina drip slow | Normal — the Mina faucet leg takes ~75-130 s; `rig fund mina` waits. |
 | Anything touching the faucet's own wallets | **Never** send txs from the faucet hot keys while the service runs (nonce desync). |
-| Tempted to demo Mina | Don't — the Mina entry leg was only ever exercised through the retired sandbox entry, and on-chain Mina SETTLE is vk-drift-blocked and executor-gated besides. Base Sepolia and Solana are the demo. |
+| Tempted to demo Mina | There is nothing to demo. Mina left the connector repository ([ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md)) and a connector **refuses a `mina` claim by name** ([ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md)) — a refusal kept deliberately as wire behaviour owed to `toon-client`. Base Sepolia and Solana are the demo. |
 
 Box restart order (if a connector restart is ever needed): after ANY `toon`
 apex connector restart, restart the `ario` store connector too (3.36.x BTP
