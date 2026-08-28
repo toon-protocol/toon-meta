@@ -380,6 +380,24 @@ is superseded by the floor, not extended.
 
 ## 6. Adaptive controller — δ and W
 
+> [!IMPORTANT]
+> **Not implemented, and not going to be.** toon-client#597 (stage 2b of the
+> [rolling-swap epic](https://github.com/toon-protocol/toon-meta/issues/411)) decided on the
+> record to **drop** the adaptive controller rather than port it to the rolling path. This
+> section is retained as the reasoning that produced that decision, not as a description of the
+> product. Nothing below is built.
+>
+> Why it dissolved rather than moved: **δ** bounded exposure to a stale quote under the legacy
+> verify-after-commit protocol, but rolling re-prices every packet and verifies *before* leg A
+> reveals (§R5/R8), so a mispriced packet is withheld rather than partially executed — there is
+> no exposure left for δ to bound. **W** bounded timing risk across concurrent packets, but the
+> rolling fill loop is strictly sequential (toon-client#596), so W is pinned at 1 and a knob that
+> can never move is dead configuration surface.
+>
+> What bounds the risk instead: the maker's advertised `maxAmount` (kind:20034) and the hard
+> floor bound packet size, the sequential loop bounds the window at 1, and `maxRateAge` bounds
+> staleness.
+
 Two knobs, managed separately: δ (packet size) bounds *per-packet pick-off risk*; W (in-flight
 window) bounds *timing/liveness risk* and, per §3.1, the worst-case unrecovered exposure
 `δ·W`. The controller runs sender-side in the SDK, at the `streamSwapControlled` seam (§2.3).
@@ -603,6 +621,11 @@ only; do not fork the spec to the old names.
 ---
 
 ## 11. Worked example — 100 USDC on Base → MINA, packet by packet
+
+> [!NOTE]
+> This example assumes persisted δ/W controller state. That controller was dropped, not built
+> (§6) — the arithmetic below illustrates the rolling protocol's shape, not a run you can
+> reproduce against the shipped client.
 
 Setup. Sender swaps **100 USDC (Base, 6 decimals = 100,000,000 units)** into **MINA (9
 decimals)**. It has controller state for `(base, makerX, USDC→MINA)` from prior sessions:
