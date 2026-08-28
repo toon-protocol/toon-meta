@@ -45,6 +45,14 @@
     "MD036": false, // no-emphasis-as-heading   (15)
     "MD004": false, // ul-style                  (3) — mixed -/* bullets
 
+    // MD028 (blank line inside blockquote) fires 69 times across the research
+    // notes, which quote primary sources as consecutive blockquotes, each
+    // followed by its own attribution line. The rule's fix — putting `>` on the
+    // blank line between them — would MERGE two quotations from two different
+    // sources into one, making a research note misattribute what it cites.
+    // Disabled because the correct markup is the one the rule objects to.
+    "MD028": false, // no-blanks-blockquote     (69) — consecutive attributed quotes
+
     // --- Bucket 2: meaningful rules, disabled TEMPORARILY pending a one-time --
     // cleanup (very low counts). Re-enable after the deferred cleanup slice.
     "MD018": false, // no-missing-space-atx      (1)

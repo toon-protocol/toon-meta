@@ -1,138 +1,84 @@
 # Architecture
 
-TOON Protocol is a polyrepo (under the `toon-protocol` org) whose packages organize into four layers. Each layer has a single responsibility, and the dependency direction is strictly downward.
+The **cross-repo** picture: who owns what, and how a node is composed. Connector internals are not restated here — read [`connector/docs/architecture/source-tree.md`](https://github.com/toon-protocol/connector/blob/main/docs/architecture/source-tree.md), and [`connector/CONTEXT.md`](https://github.com/toon-protocol/connector/blob/main/CONTEXT.md) for the vocabulary.
 
-## System Layers
+## Two roles, and there is no third
 
-```
-┌─────────────────────────────────────────────────────┐
-│  Discovery Layer                                    │
-│  @toon-protocol/core                                │
-│  Find peers via Nostr events (kind:10032)           │
-│  Bootstrap into the network                         │
-├─────────────────────────────────────────────────────┤
-│  Addressing Layer                                   │
-│  Hierarchical ILP addresses from peering topology   │
-│  g.toon → g.toon.{peer} → g.toon.{peer}.{child}    │
-│  Fee-per-byte advertisement for routing economics   │
-├─────────────────────────────────────────────────────┤
-│  Payment Layer                                      │
-│  ILP Connector (@toon-protocol/connector)           │
-│  Terminates/validates payment at the edge, then     │
-│  forwards a clean packet on — nginx for payment.    │
-│  Format-agnostic: only sha256(data) for transfer-id │
-│  Route micropayments between peers                  │
-│  Each hop deducts its fee and forwards the rest     │
-├─────────────────────────────────────────────────────┤
-│  Storage Layer                                      │
-│  @toon-protocol/relay + @toon-protocol/bls          │
-│  Accept paid events, store them, serve for free     │
-└─────────────────────────────────────────────────────┘
-```
+> **The connector terminates payments the way nginx terminates SSL.** Value arrives wrapped in a protocol the app never speaks; at the last hop the connector unwraps it, verifies it, and hands the app ordinary HTTP that was already paid for.
 
-**Key distinction:** Identity (Nostr pubkey) is permanent. ILP addresses are ephemeral — derived from peering topology, one per upstream connection. A node with two upstream peers has two ILP addresses. See [Protocol — ILP Address Hierarchy](protocol.md#ilp-address-hierarchy) for details.
+| Role | What it is |
+|------|-----------|
+| **Connector** | A paid reverse proxy. Routes, prices, takes the claim, derives the fulfilment, and makes one HTTP request of the app. One static Rust binary reading one TOML file. |
+| **App** | The payment-oblivious origin server behind a **route termination**. Settles nothing, holds no channel, is never told which destination was addressed. It *is* told who paid — `X-TOON-Payer` / `X-TOON-Amount` / `X-TOON-Chain` — and only when this connector took the payment itself (ADR 0040). |
 
-**Payment proxy (direction).** Beyond building *on* TOON (the storage-layer relay/store apps), a connector at the edge can act as a **payment proxy server** in front of any existing HTTP service — onboarding agents via x402 and forwarding clean HTTP to a payment-oblivious backend, the way nginx fronts TLS. See [Payment Proxy →](payment-proxy.md).
+The connector is **not a library the app imports**. There is no in-process mode, no `createNode({...})`, and no mnemonic anywhere: every key it holds is a path, never a value.
 
-## Package Dependency Graph
+## Who owns what
+
+| Repo | Owns | Shape |
+|------|------|-------|
+| [`connector`](https://github.com/toon-protocol/connector) | The protocol, the ADRs, the Rust connector binary, the EVM contracts and the Solana program | image + contracts |
+| [`relay`](https://github.com/toon-protocol/relay) | A Nostr relay you get paid to write to — free NIP-01 reads, paid writes | app + `deploy/` |
+| [`store`](https://github.com/toon-protocol/store) | A paid Arweave blob store; the worked example of putting any app behind the connector | app + `deploy/` |
+| [`gas-station`](https://github.com/toon-protocol/gas-station) | Pays other people's gas — Solana fee-payer co-sign, EVM ERC-2771 relaying | app |
+| [`swap`](https://github.com/toon-protocol/swap) | The relay-mediated rolling swap: cross-chain claim exchange over gift-wrapped relay writes | npm + CLI |
+| [`toon-client`](https://github.com/toon-protocol/toon-client) | `@toon-protocol/client` — the payer library | npm |
+| [`rig`](https://github.com/toon-protocol/rig) | The git-to-TOON write path and its read UI | npm + CLI |
+| [`buzz`](https://github.com/toon-protocol/buzz) | A workspace for humans and agents, on a relay you own | app |
+| [`toon`](https://github.com/toon-protocol/toon) | `@toon-protocol/core`, `sdk`, `settlement-digest` — TypeScript libraries | npm |
+| [`toon-meta`](https://github.com/toon-protocol/toon-meta) | This repo: shared context, agent skills, cross-repo docs | plugin |
+
+ADR 0017: **the TypeScript connector was a prototype, not a reference implementation**, and it is deleted. There is one connector.
+
+## How a node composes
+
+A node repository is **its app plus a pinned connector**, wired in its own `deploy/` bundle (ADR 0068). This repository builds and releases the connector; nothing in it moves a tag onto a box.
 
 ```
-@toon-protocol/town
-├── @toon-protocol/sdk
-│   └── @toon-protocol/core
-├── @toon-protocol/relay
-│   └── @toon-protocol/core
-└── @toon-protocol/connector (peer dependency)
-
-@toon-protocol/bls
-└── @toon-protocol/core
+                    ┌─────────────────────────────────────┐
+ client ── pays ──▶ │  connector          app             │
+                    │  (route, price,  ─▶ (plain HTTP,    │
+                    │   claim, seal)      already paid)   │
+                    └─────────────────────────────────────┘
+                       one box, one deploy/ bundle
 ```
 
-- **`@toon-protocol/core`** — Foundation with no TOON dependencies. Provides bootstrap, discovery, settlement negotiation, [TOON](https://github.com/toon-format/toon) codec, and [NIP-34](https://github.com/nostr-protocol/nips/blob/master/34.md) handling.
-- **`@toon-protocol/sdk`** — Framework layer. Adds identity derivation, handler registry, verification pipeline, pricing validation, and node composition on top of core.
-- **`@toon-protocol/relay`** — [Nostr](https://github.com/nostr-protocol/nips) relay server with WebSocket ([NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md)), SQLite event store, and upstream relay propagation.
-- **`@toon-protocol/town`** — Production relay. Composes SDK + relay + BLS + storage into a single `startTown()` call.
-- **`@toon-protocol/bls`** — Standalone business logic server. HTTP endpoint that validates ILP packets and stores events.
-- **`@toon-protocol/faucet`** — Development tool. Distributes test ETH and tokens for local development.
+The pin is one literal, guarded, in exactly one place:
 
-## Data Flow
+| Repo | Pin |
+|------|-----|
+| `relay` | `deploy/Dockerfile`: `ARG CONNECTOR_TAG=rust-sha-…`, with `connector.toml` **baked** into a `relay-connector` image — so adopting a newer connector and changing the config it reads are the same reviewed commit. |
+| `store` | `deploy/docker-compose.yml`: `ghcr.io/toon-protocol/connector:rust-<handle>`, config rendered from `connector.toml.template`. |
 
-### Writing (Paid)
+Pin an exact build handle, never a floating tag. Because the binary and the box's TOML are a matched pair in both directions, **adding a required config key is a breaking deploy**: land the config first, then bump the pin.
 
-```
-Client              Connector               BLS                    EventStore
-  │                      │                    │                         │
-  │  ILP Prepare         │                    │                         │
-  │  (TOON event)        │                    │                         │
-  │ ──────────────────> │  Route packet      │                         │
-  │                      │ ──────────────────>│                         │
-  │                      │                    │  1. Decode TOON          │
-  │                      │                    │  2. Verify signature     │
-  │                      │                    │  3. Check payment        │
-  │                      │                    │  4. Store event ────────>│
-  │                      │                    │  5. Generate proof       │
-  │  ILP Fulfill         │  Return fulfillment│                         │
-  │ <────────────────── │ <──────────────────│                         │
-```
+## Data flow
 
-Validation order matters — TOON format is checked **before** payment. Malformed events are rejected immediately, even if payment is correct. This prevents paying to store garbage data.
+**Write (paid).** Client seals a payload to the terminating connector's identity key and sends a PREPARE carrying its **covering claim** (ADR 0042). The connector routes it, takes the charge, opens the wrap, makes exactly one HTTP request of the app, seals the app's complete response back, and derives the fulfilment itself (ADR 0019). The app supplies nothing toward the fulfilment — which is why an app that knows nothing about payment cannot leak, forge or withhold one.
 
-#### Multi-Chain Settlement
+A `404` from the app is a real answer: it rides home on a FULFILL and costs the same as a `200`. Only unreachability or a refused target produces a reject.
 
-The payment a write carries is a signed payment-channel balance proof, and that proof can be denominated on **EVM, Solana, or Mina**. A client built from a single BIP-39 mnemonic derives an identity on each chain (Nostr/EVM share secp256k1; Solana is Ed25519; Mina is Pallas) and signs the claim format that chain's connector verifier expects — EIP-712 for EVM, a raw Ed25519 message for Solana, a Pallas-Schnorr claim over a Poseidon commitment for Mina. When the destination is the proxy apex (`g.toon`), the apex validates the claim, fulfills, and auto-drives the on-chain redemption on the matching chain once the per-channel settlement threshold is exceeded. The EVM and Solana paths credit the recipient on-chain (Solana at channel close via `SETTLE_CHANNEL`); on Mina the per-publish claim redeems on-chain (`claimFromChannel`, apex co-signs the counterparty signature) but recipient credit-at-close is a deferred follow-up (Story 34.4). Full detail: [Settlement →](settlement.md).
+**Read (free).** Straight to the app. The relay serves NIP-01 over WebSocket to any Nostr client; no packet, no claim, no connector.
 
-### Reading (Free)
+## Running one
 
-```
-Client              Relay
-  │                   │
-  │  REQ (filter)     │
-  │ ───────────────> │
-  │                   │  Query EventStore
-  │  EVENT (TOON)     │
-  │ <─────────────── │
-  │  EOSE             │
-  │ <─────────────── │
-```
+| Path | What |
+|------|------|
+| [`connector/README.md`](https://github.com/toon-protocol/connector/blob/main/README.md) | Run a node, put your app behind it, get paid, peer it — in that order. |
+| [`connector/local/`](https://github.com/toon-protocol/connector/tree/main/local) | The shipped image against real chains: `make local-verify`. |
+| [`connector/docs/protocol/configuration-spec.md`](https://github.com/toon-protocol/connector/blob/main/docs/protocol/configuration-spec.md) | Every config key and what it binds. |
+| [`docs/node-operator-guide.md`](./node-operator-guide.md) | This repo's operator front door. |
+| [`docs/protocol.md`](./protocol.md) · [`docs/settlement.md`](./settlement.md) | The pointer maps for protocol law and settlement. |
 
-Reads use the standard [Nostr](https://github.com/nostr-protocol/nips) WebSocket protocol ([NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md)). Events are served in [TOON format](https://github.com/toon-format/toon).
+## Retired — do not rebuild
 
-## Deployment Modes
-
-### Embedded (Library)
-
-Import SDK packages directly. The connector runs in-process — zero network overhead.
-
-```typescript
-import { createNode, fromMnemonic } from '@toon-protocol/sdk';
-
-const node = createNode({ secretKey, connector, ...config });
-await node.start();
-```
-
-Best for: AI agents, custom services, applications that need ILP payment capabilities.
-
-### Standalone (Docker)
-
-Run as a microservice using the SDK E2E infrastructure.
-
-```bash
-./scripts/sdk-e2e-infra.sh up
-```
-
-| Port | Service | Protocol |
-|------|---------|----------|
-| 19100 | Peer 1 BLS — ILP packet validation | HTTP |
-| 19700 | Peer 1 Nostr relay — event reads | WebSocket |
-
-Best for: Relay operators, infrastructure providers.
-
-### One-Call API (Town)
-
-Use `startTown()` or the CLI for a complete relay with minimal configuration.
-
-```bash
-npx @toon-protocol/town --mnemonic "..." --connector-url http://localhost:8080
-```
-
-Best for: Quick relay deployment, testing, development.
+| Thing | What killed it |
+|-------|----------------|
+| A "discovery layer" over kind:10032 | ADR 0046 removed the announce; ADR 0050 puts the facts on a `GET` of the node's own URL. |
+| Addresses derived from peering topology, `feePerByte` | An address is self-asserted; a fee attaches to the peering (ADR 0061) and a price is a schedule (ADR 0065, *a price is a schedule*). |
+| `@toon-protocol/bls` and the term "Business Logic Server" | The word is **app**. It never was a third role. |
+| Embedded/in-process mode, `createNode({...})`, `--mnemonic` | The connector is one static binary reading one TOML file; every key is a path. |
+| `./scripts/sdk-e2e-infra.sh`, port 19100 | Replaced by `connector/local/` + `make local-verify`. |
+| One-Call API (`npx @toon-protocol/town`) | The `town` package is not the deployment path; a node repo's own `deploy/` bundle is (ADR 0068). |
+| "Only sha256(data) for transfer-id" | A packet carries a real **condition**, and `condition = sha256(fulfilment)`. |
+| "Each hop deducts its fee and forwards the rest" as the whole story | Every PREPARE carries its own covering claim (ADR 0042); nothing is owed between packets. |

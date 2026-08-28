@@ -70,7 +70,7 @@ Each entry: constraint in one sentence → verbatim quote → source.
 
 Glossary form: "**Announcing**: Pushing facts about yourself into a network unprompted. A connector
 never does this: deciding to participate in a discovery network is the controller's business.
-_Distinct from_: answering, which a connector does do." — `connector/CONTEXT.md` **Announcing**.
+*Distinct from*: answering, which a connector does do." — `connector/CONTEXT.md` **Announcing**.
 
 **Consequence for the object:** the connector will not produce, sign, publish, refresh, or pay for
 it. ADR 0030's operator-run `connector announce` — the one exception ever granted — is "**Retired by
@@ -491,7 +491,7 @@ Source: `connector/docs/the-yellow-brick-road.md` on the unmerged branch
 > "So when someone asks how to reach `g.toon.store`, the honest answer is not an address. It is
 > Glinda's answer.
 >
-> _Follow the road. Start small. Let the bricks earn the next step._"
+> *Follow the road. Start small. Let the bricks earn the next step.*"
 > — §What Glinda knew
 
 ### 4.5 The reputation passage, verbatim
@@ -531,7 +531,7 @@ The branch-only **Path** glossary entry states the same in glossary form:
 > claim it was handed and any hop may decline to carry. The exposure on a path is therefore the one
 > packet in flight, and it is bounded by sizing packets to the path's record — small on a new path,
 > larger on one that has fulfilled — never by escrow. Two paths to the same prefix are two different
-> things to trust. _Avoid_: destination (when the path is meant), route (a route is one hop's
+> things to trust. *Avoid*: destination (when the path is meant), route (a route is one hop's
 > mapping, not the whole path)"
 > — `connector/CONTEXT.md` **Path** (branch `docs/the-yellow-brick-road` only; absent on `main`)
 
@@ -686,7 +686,7 @@ These are the gaps, phrased as questions. The sources above do not answer them.
 13. What does the client do when the object and the node's own self-description disagree? ND-11
     settles greeting-vs-document ("the **document** is authoritative"); nothing settles
     third-party-object-vs-document.
-14. Does the object have a shelf life? ADR 0050 dropped `ttl_secs` because "a _pushed_ copy needed a
+14. Does the object have a shelf life? ADR 0050 dropped `ttl_secs` because "a *pushed* copy needed a
     shelf life; a pulled one does not". A relay-published object is a pushed copy.
 
 **What leaks about the walker**

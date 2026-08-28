@@ -128,11 +128,11 @@ Status: `draft` `optional`. "This NIP describes `kind:31989` and `kind:31990`: a
 Three parties [89.md §Parties involved]:
 
 > * application that handles a specific event kind (note that an application doesn't necessarily need to be a distinct entity and it could just be the same pubkey as user A)
->     * Publishes `kind:31990`, detailing how apps should redirect to it
+>   * Publishes `kind:31990`, detailing how apps should redirect to it
 > * user A, who recommends an app that handles a specific event kind
->     * Publishes `kind:31989`
+>   * Publishes `kind:31989`
 > * user B, who seeks a recommendation for an app that handles a specific event kind
->     * Queries for `kind:31989` and, based on results, queries for `kind:31990`
+>   * Queries for `kind:31989` and, based on results, queries for `kind:31990`
 
 ### 2.1 Kind `31990` — handler information
 

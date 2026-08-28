@@ -1,52 +1,62 @@
 # Inter-repo Contracts
 
-How the TOON repos talk to each other, and where each contract's **source of truth** lives. There are two layers.
+How the TOON repos hold each other to account, and where each contract's **source of truth** lives.
 
-## Layer 1 — library/type contract (compile-time)
+**The old premise of this page is dead.** Published `.d.ts` + semver, `@toon-protocol/shared`, the `/handle-packet` `PaymentRequest`/`PaymentResponse` DTOs, their zod schemas and the admin-DTO unification programme were the cross-repo contract until the Rust connector replaced them. `@toon-protocol/connector`, `@toon-protocol/shared` and `@toon-protocol/mina-zkapp` are gone; `packages/shared` in the connector tree is untracked build output. `localDelivery`, `POST /handle-packet`, `PaymentRequest`, `ConnectorNode`, `ClaimReceiver` and `SettlementMonitor` are all deleted. Nothing below replaces them with a type — the contracts are now **replayable artifacts** and **live documents**.
 
-When repo B `npm install`s repo A's package, the published **`.d.ts` + semver** *is* the contract and the TS compiler enforces it. Discipline:
+## 1. The wire contract — vectors
 
-- Publish with **`pnpm publish`** (rewrites `workspace:*`); never `npm publish`. (See the broken `sdk@0.5.0`/`town@0.4.0`/`bls@1.2.0` for what happens otherwise.)
-- The toon↔connector boundary is guarded by the **canary test** `packages/sdk/tests/integration/connector-contract.test.ts` + `CONNECTOR_RELEASE_CONTRACT.md`. Replicate this pattern on any boundary that matters.
+`connector/vectors/wire-vectors.json`. A committed set of input/output pairs — an encoded packet, a wrapped packet, an envelope, a condition, the fulfilment it derives, a claim — generated from the properties, never captured from what an implementation happened to emit.
 
-This layer is in good shape; no shared schema package is needed for it.
+**Vectors are normative; prose is not** ([ADR 0021](https://github.com/toon-protocol/connector/blob/main/docs/adr/0021-vectors-are-normative-prose-is-not.md)) — the tiebreaker for every protocol question across every repo.
 
-## Layer 2 — wire contract (runtime, cross-process)
+| | |
+|---|---|
+| Suites | `envelope`, `giftwrap`, `fulfilment`, `claim`, `peer_carriage`, `channel_control_declaration` |
+| Schema | **4** — the peer-claim schema since the shared secret was deleted (ADR 0060) |
+| Replayed by | `toon-client` (`packages/client/src/wire/`, refreshed by `scripts/refresh-wire-vectors.mjs`), `rig`, `swap` |
+| Conformance means | reproducing them. An implementation that passes its own tests and fails a vector is wrong. |
 
-No compiler spans a *process* boundary (a client sends a packet to a connector; the connector POSTs to a relay; one node reads another's Nostr event). These need an explicit, shared source of truth. Homes:
+A behavioural rule with no vector yet is **normative prose until its vector lands** (ADR 0045).
 
-| Seam (A → B) | Message shape | Source of truth | Status |
-|---|---|---|---|
-| ILP packet (OER) | client → connector → node | `@toon-protocol/shared` (`types/ilp`, `encoding/oer`) | ✅ one home |
-| **localDelivery `/handle-packet`** | connector ↔ relay/store/node | **`@toon-protocol/shared`** (`types/local-delivery` → `PaymentRequest`/`PaymentResponse`, **zod-validated**) | ✅ unified + runtime-validated (PR #140, merged) |
-| payment-channel claim (BTP `payment-channel-claim`) | client/swap sign ↔ connector validates | connector `btp/` (message shapes) + `@toon-protocol/core` (`balanceProofHash*` helpers) | 🟡 split; claim hashing is shared |
-| connector Admin HTTP API | operator/client → connector | **`@toon-protocol/shared`** (`types/admin` → `PeerRegistrationRequest`, zod) for peer-registration; rest still connector-local | 🟡 peer-registration unified (PR #140, merged; connector derives from it); other DTOs = backlog |
-| TOON event codec (event ↔ bytes) | everywhere | `@toon-protocol/core` (`toon/`) | ✅ one home |
-| Nostr event kinds + tags (10032 peer-info, 10035 SkillDescriptor, 5094/6094 Arweave DVM) | cross-node discovery / DVM | `@toon-protocol/core` (`events/`, builders) | ✅ mostly central |
-| Fastify telemetry API | operator UI → connector | the connector's admin/telemetry HTTP API | connector-local |
-| MCP tool schemas | agent ↔ client-mcp | the client-mcp package | product-local |
+## 2. The protocol reference — vendored RFCs
 
-### The rule
+Ten Interledger RFCs live under `connector/docs/rfcs/`, **vendored verbatim at a pinned upstream commit**, each beneath a TOON profile naming the departures and the record that governs each ([ADR 0062](https://github.com/toon-protocol/connector/blob/main/docs/adr/0062-an-rfc-is-vendored-verbatim-and-profiled-never-forked.md)). An RFC is never forked.
 
-**`@toon-protocol/shared` (connector-owned) is the home for transport/payment wire DTOs** (ILP packet, the `payment-channel-claim` message, localDelivery `PaymentRequest`/`PaymentResponse`, and — as they're unified — the admin-API DTOs). **`@toon-protocol/core` is the home for the TOON event/codec contract** (the binary codec, Nostr event/kind schemas, ILP address derivation). Every repo imports the one definition rather than re-declaring it.
+Precedence, highest first: **vectors → ADRs → `docs/protocol/` → a TOON profile → the RFC body.**
 
-### Why this matters (a real example)
+The largest deliberate departure: the packet is **TOON's dialect, not RFC 0027's** — ILPv4 semantics, TOON encoding, not byte-compatible, ratified rather than tolerated ([ADR 0063](https://github.com/toon-protocol/connector/blob/main/docs/adr/0063-the-ilp-packet-is-toons-dialect-not-rfc-0027s.md)).
 
-The connector's localDelivery `PaymentRequest`/`PaymentResponse` is the canonical wire shape; **connector PR #140 (merged) lifted it into `@toon-protocol/shared@1.3.0`** so any process implementing `/handle-packet` imports one definition.
+## 3. The inter-node contract — the self-description
 
-**Nuance discovered (don't naively "dedup"):** `@toon-protocol/sdk`'s payment-handler *bridge* has a **separate, intentionally-different internal type** — flat `{accept, code?, message?, metadata?}` for handler ergonomics (`ctx.accept(metadata)` / `ctx.reject(ilpCode)`) — and `create-node.ts` (~654–694) has a **deliberate adapter** that translates it to the connector's wire shape (`data` base64 + `rejectReason`, via the canonical reject-code map in `@toon-protocol/core`). So sdk's bridge type is **not** a duplicate of the wire contract and must not be merged with it; the correct hardening is to type that *adapter boundary* against `shared`'s wire types.
+A connector answers a `GET` on its own URL with **one document holding every public fact about it** ([ADR 0050](https://github.com/toon-protocol/connector/blob/main/docs/adr/0050-a-connectors-url-resolves-to-its-self-description.md)): its ILP addresses, its HTTP and BTP endpoints, its peer carriages, the key a packet is sealed to, per chain what opening a channel takes, and what each of its routes costs. Free, unauthenticated, generated from live configuration, never a place a write is accepted.
 
-## Status & follow-ups
+- It is **the whole of what one operator must give another to be peered with** — a peering is established by `POST /peers {id, url, fee, max_packet_amount}` naming that URL, and identity is trust-on-first-use ([ADR 0058](https://github.com/toon-protocol/connector/blob/main/docs/adr/0058-a-peering-is-established-from-a-url.md)).
+- An unpaid request to a priced route gets a **greeting** — that route's terms — which is a projection of the same document, so enforcement can never run ahead of what is published.
+- A route may publish a `request` table naming what a client must send; the connector republishes it verbatim and reads none of its keys ([ADR 0067](https://github.com/toon-protocol/connector/blob/main/docs/adr/0067-a-route-declares-its-request-shape-and-the-connector-never-reads-it.md)).
+- There is **no announce**. kind:10032 is removed (ADR 0046, retiring ADR 0030). A node answers; it never pushes.
 
-**Shipped on PR #140 (connector/shared side, verified — connector's full Jest suite + the new canary pass):**
-- ✅ **zod runtime validation** — `shared` now exports zod schemas (`PaymentRequestSchema`, `PaymentResponseSchema`, `PeerRegistrationRequestSchema`) with inferred types; the wire contract is enforceable at the boundary, not just typed. (zod is `shared`'s first dependency — a deliberate call.)
-- ✅ **Admin peer-registration slice** — `PeerRegistrationRequest`/`PeerRelation` live in `shared`; the connector now **derives** its `config/types` `PeerRegistrationRequest` from the shared wire shape (refining `settlement`) and re-exports `PeerRelation` from shared.
-- ✅ **Canary** — `shared/types/contract.test.ts` (6 cases) validates accept/reject of sample payloads; runs in the connector's Jest suite.
+Consumers should read a node's live figures from its self-description rather than pinning them here. Devnet chain endpoints, tokens and program ids are hand-maintained in `connector/infra/linode/endpoints.json`.
 
-**Gated consumer adoptions (wait on `shared@1.3.0` publishing to npm — PR #140 itself is merged; the npm token/publish step is the only remaining unknown, not verifiable from this repo):**
-1. **sdk adapter boundary** — type `create-node.ts`'s connector-facing adapter against `shared`'s `PaymentResponse`. The bridge's internal DX type **stays** (it is not the wire contract).
-2. **operator admin clients** — any caller of the connector's `registerPeer` admin endpoint imports `PeerRegistrationRequest` from `shared` rather than keeping a local copy.
+## 4. The deployment contract — the image pin
 
-**Remaining backlog:**
-3. **Other admin DTOs** — routes / channels / earnings / settlement / inventory (incremental, same pattern as peer-registration).
-4. **More canaries** — extend per consuming repo as they adopt the shared schemas.
+**A node repository pins the connector; nothing in the connector moves a tag onto a box** ([ADR 0068](https://github.com/toon-protocol/connector/blob/main/docs/adr/0068-a-node-repository-pins-the-connector-nothing-here-moves-a-tag-onto-a-box.md)). The direction is the opposite of what this repo used to record.
+
+| Repo | Pins the connector at | Guarded by |
+|---|---|---|
+| `relay` | `deploy/Dockerfile` — `FROM ghcr.io/toon-protocol/connector:${CONNECTOR_TAG}` | a test in that repo |
+| `store` | `deploy/docker-compose.yml` — `image: ghcr.io/toon-protocol/connector:rust-<handle>` | a test in that repo |
+| `gas-station` | `deploy/docker-compose.yml` — same shape | a test in that repo |
+
+The connector repo builds the image and cuts a dated release handle (`release-connector.yml`); it does not deploy. `promote-to-fleet.yml` is deleted, and ADR 0068 carries a falsifier that fails if it returns. Because a binary and a box's mounted TOML are a matched pair, **adding a required config key is a breaking deploy**: land the config, then bump the pin.
+
+## 5. Still library-shaped
+
+| Seam | Source of truth |
+|---|---|
+| TOON event codec (event ↔ bytes) | `@toon-protocol/core` (`toon/`) |
+| Nostr event kinds + tags (10035, 5094/6094, 5096/5098) | `@toon-protocol/core` (`events/`, builders) |
+| Client behaviour (claims, channels, packets) | `@toon-protocol/client` — and the vectors above, which it replays |
+| MCP tool schemas | the `client-mcp` package (product-local) |
+
+Publish these with **`pnpm publish`** / changesets, never `npm publish` — the latter shipped unresolved `workspace:*` and made `sdk@0.5.0`/`town@0.4.0` uninstallable.

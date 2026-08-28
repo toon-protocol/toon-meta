@@ -1,122 +1,73 @@
 # Settlement
 
-TOON uses payment channels for off-chain micropayments, settled on-chain when needed. Settlement is **multi-chain**: a client can settle on EVM, Solana, or Mina, signing the claim format each chain's connector verifier expects. See [Multi-Chain Claims](#multi-chain-claims) below.
+**Settlement law is the connector's**, in [`connector/docs/adr/`](https://github.com/toon-protocol/connector/tree/main/docs/adr) — each record's own `**Status:**` line is the authority for whether it is live. This page is the pointer map plus the cross-repo facts (live addresses, one deliberate wire refusal, one open hazard).
 
-## Chain Negotiation
+| Question | Record |
+|----------|--------|
+| How does a peering find a chain? | `0058` a peering is established from a URL |
+| Which channel is it? | `0059` a channel is derived from its participants |
+| What proves the peering? | `0060` a claim proves a peering; the shared secret is deleted |
+| Who may pay? | `0052` permissionless payment is guaranteed; a claim, never an identity, authorises |
+| Where does the claim ride? | `0042` a packet carries its claim |
+| What is signed? | `0024` EIP-712 digest (EVM) · `0053` a Solana claim binds its domain |
 
-When two nodes want to peer, they need to agree on which blockchain to use for settlement. This happens automatically using publicly advertised kind:10032 data.
+Mechanics, not decisions: [`connector/docs/protocol/payment-spec.md`](https://github.com/toon-protocol/connector/blob/main/docs/protocol/payment-spec.md) and [`README.md` §3 "Get paid"](https://github.com/toon-protocol/connector/blob/main/README.md).
 
-**Algorithm:**
+## A peering finds its chain from a URL
 
-1. Both nodes publish kind:10032 events listing their supported chains
-2. The joining node reads the peer's kind:10032 event
-3. `negotiateSettlementChain()` finds the intersection of supported chains
-4. Picks the optimal chain (prefer mainnet over testnet, lower fees over higher)
+One authenticated operator write — `POST /peers { id, url, fee, max_packet_amount }` — where `url` is the counterparty's **self-description** URL (ADR 0050). The node fetches it, picks the carriage from the endpoint scheme (`wss://` → BTP, `https://` → ILP-over-HTTP), finds the **shared settlement chain** in it, and derives the channel. There is no Nostr in this path, no announce and no negotiation function (ADR 0058).
 
-**Chain format:** negotiation is an **exact string intersection** — a chain id
-only matches if both sides spell it identically. The devnet apex announces the
-short forms `evm:{chainId}` / `{chain}:{network}`:
+**Identity is trust-on-first-use over TLS, and it attaches to the peer's URL** — never to a channel. Whoever answers that URL today is who the peering is with, vouched for by nothing beyond the operator's own vetting.
 
-| Announced id | Chain |
-|--------------|-------|
-| `evm:84532` | Base Sepolia (the live devnet EVM chain) |
-| `solana:devnet` | Solana devnet (public cluster) |
-| `mina:devnet` | Mina devnet (public) |
+## A channel is derived from its participants
 
-Client-side code may also use the longer `evm:{family}:{chainId}` spelling
-(e.g. `evm:base:84532`); rig ≥2.10.2 aligns it to the announced spelling by
-numeric chain id, but when writing configs or docs prefer the announced
-strings verbatim.
+| Chain | Derivation |
+|-------|-----------|
+| **EVM** | `keccak256(abi.encodePacked(p1, p2, channelEpoch[p1][p2]))`, participants sorted. The token is implicit — one `TokenNetwork` per token. |
+| **Solana** | the PDA over `["channel", min(p1,p2), max(p1,p2), mint]` — uniqueness enforced structurally. |
 
-## Payment Channels
+`channelCounter` is **deleted**, `channelEpoch` is public so the identifier is derivable from public data, and `ChannelAlreadyExists` is now a **live refusal** rather than dead code. At most one live channel exists per pair per token; the epoch advances in `settleChannel`, so a settled pair starts fresh instead of being locked out of its only identifier (ADR 0059, built #1158). Both sides compute the same answer, so **no channel identifier is ever exchanged and there is no shared secret** (ADR 0060).
 
-Channels are opened unilaterally — the joining node opens a channel on the negotiated chain's TokenNetwork contract without requiring the peer's cooperation.
+Broadcast on **Base Sepolia at block 46055303, 2026-08-28** — see [`connector/docs/evm-deployment.md`](https://github.com/toon-protocol/connector/blob/main/docs/evm-deployment.md) "Second cutover".
 
-**How channels work:**
+## Settlement is an operator act
 
-1. Joiner calls `openChannel(peerAddress, timeout)` on the TokenNetwork contract
-2. TokenNetwork enforces one open channel per participant pair
-3. Off-chain balance updates happen via signed BTP claims
-4. On-chain settlement claims can be submitted at any time — the channel remains open for continued use
+Never on the packet path, and there is **no threshold and no auto-drive**. Every one is an authenticated write on the operator surface (RFC 9421 signature, not the bearer token — ADR 0008), and each answers `503` when no `[settlement]` backend is configured.
 
-### Self-Describing BTP Claims
+| Write | Does |
+|-------|------|
+| `POST /channels` | Open a payment channel. |
+| `POST /channels/:id/fund` | **Self-deposit** — your own collateral behind your own claims. Both chains. |
+| `POST /channels/:id/redeem-latest` | **This is how you get paid.** |
+| `POST /channels/:id/redeem` | Redeem one specific claim. |
+| `POST /channels/:id/settle` · `/close` · `/cooperative-close` | End it. |
 
-Each BTP claim includes all the information needed for verification:
+Claims are the truth; a balance is a projection of them.
 
-- `chainId` — Which chain the channel is on
-- `tokenNetworkAddress` — Which TokenNetwork contract
-- `tokenAddress` — Which token
-- `channelId` — Which channel
+## Configuration: the registry, not the TokenNetwork
 
-The receiving connector verifies the channel on-chain the first time it sees a new channel (TOFU model — trust on first use), then caches the verification for subsequent claims.
+`[settlement.evm].contract_address` is the **`TokenNetworkRegistry`**. The connector resolves the TokenNetwork at boot by calling `getTokenNetwork(token)`, and refuses to start if the chain disagrees with the config. Solana has no registry, so `[settlement.solana].program_id` names the payment-channel program itself.
 
-### EIP-712 Signatures
+## Live devnet addresses
 
-Claims use EIP-712 typed data signatures with `chainId` and `verifyingContract` in the domain separator. This makes claims tamper-proof and chain-specific — a claim from one chain cannot be replayed on another.
+Read from [`connector/infra/linode/endpoints.json`](https://github.com/toon-protocol/connector/blob/main/infra/linode/endpoints.json) — never retyped from memory.
 
-## Multi-Chain Claims
+| Chain | Item | Address |
+|-------|------|---------|
+| Base Sepolia (`84532`) | `TokenNetworkRegistry` | `0x0c41D9D424d6B075A3cEa1068a694f7847a8CCa5` |
+| Base Sepolia | `TokenNetwork` (USDC) | `0xe9E05dfecfe165266C88d73e61D483612651952a` — **derived**, see below |
+| Base Sepolia | mock USDC, 6 dp | `0x49beE1Bca5d15Fb0963117923403F9498119a9Ce` |
+| Solana devnet | payment-channel program | `2aEVJ8koKD8LTZrLRSGtAtU7LBt4e7QjjCgf1kzQ7Rip` |
+| Solana devnet | mock USDC mint, 6 dp | `34eSxY7qxQ4GzyhDJ8GpUcTz1WWzruGbJbR8q6TtxfQU` |
 
-A client built from a single BIP-39 mnemonic derives an identity on every supported chain (Nostr/EVM share secp256k1; Solana is Ed25519; Mina is Pallas). When it pays a destination, it builds the **chain-appropriate** balance-proof claim for the channel it negotiated, and the connector validates each by `blockchain` type:
+**The TokenNetwork is derived, not independent**: it is whatever `registryAddress.getTokenNetwork(tokenAddress)` answers on chain, so the two move together or the file is lying. `endpoints.json`'s own note records the three weeks the pair sat un-reconciled. Re-derive rather than trust a copy.
 
-| Chain      | Signature scheme                                                                                                                | Claim shape (per-publish balance proof)                                                                                                   |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **EVM**    | EIP-712 over `keccak256(channelId ‖ cumulativeAmount ‖ nonce ‖ recipient)`                                                      | `{ blockchain:'evm', channelId (0x hex), nonce, transferredAmount, signature }`                                                           |
-| **Solana** | Ed25519 over the raw on-chain message `channel_pda(32) ‖ nonce(8 LE) ‖ transferredAmount(8 LE)`                                 | `{ blockchain:'solana', channelAccount (base58 PDA), programId, nonce, transferredAmount, signature (base64), signerPublicKey (base58) }` |
-| **Mina**   | Pallas-Schnorr over `[balanceCommitment, nonce, channelHash]`, where `balanceCommitment = Poseidon([balanceA, balanceB, salt])` | `{ blockchain:'mina', zkAppAddress (B62), tokenId, balanceCommitment, salt, nonce, proof (base64), signerPublicKey (B62) }`               |
+**Purged — these are dead and must not appear anywhere:** `0x1E95493fEF46707E034b4a1945f25a8C76A1823D`, `0xa79C3b1dbcEA00a6d84735a134395D8eF6D6a478`, `0xcC9079adE929b168B54145f6d25262b64FAB9D5b`, `xyc5J8MgKFiEN13PnfftdXxUzYH34FEvw1LCrFwN7in`.
 
-The canonical hash/field layouts live in `@toon-protocol/core` (`packages/core/src/settlement/`) so client signers and connector verifiers cannot drift.
+## Mina: refused by name, deliberately
 
-### On-Chain Settlement Through a Proxy Apex
+Mina left the connector repository (ADR 0065, *Mina leaves the repository*, built #1205; extends ADR 0002). The connector nonetheless still **refuses a claim whose `blockchain` is `"mina"` by name** — `ClientClaimError::Mina` in `connector-domain/src/client_claim.rs`, surfacing as `UnsupportedChain("mina")`. That is wire behaviour owed to `toon-client`, not a leftover to be cleaned up.
 
-When a client pays a proxy apex, the apex validates the claim, returns FULFILL, and — once the per-channel settlement threshold is exceeded — auto-drives the on-chain redemption (the client never submits a settlement transaction itself):
+## Open hazard: the Solana program cannot be upgraded
 
-- **EVM** — net balance settled on the `TokenNetwork` contract.
-- **Solana** — the connector calls `CLAIM_FROM_CHANNEL` per advancing claim; the recipient's tokens are credited **at channel close** via `SETTLE_CHANNEL` (vault → recipient ATA).
-- **Mina** — the connector calls `claimFromChannel` per advancing claim, **co-signing the counterparty signature** with the apex Mina key, so the on-chain zkApp nonce and balance commitment advance and the tx lands. The recipient's tokens are credited **at channel close** via the Story 34.4 fund-custody zkApp (`@toon-protocol/connector` ≥3.10.0): `deposit()` escrows the deposit on the zkApp account and `settle()` drains the custodied balance to the participants (`balanceB`→recipient / apex, `balanceA`→depositor refund) — the Mina analog of Solana's `SETTLE_CHANNEL` vault→recipient transfer.
-
-(Per-chain settle mechanics first verified against `@toon-protocol/connector` 3.10.0 and unchanged in behavior through 3.38.0 — the current published release; see `packages/sdk/CONNECTOR_MIGRATION.md` for the version-by-version settlement history.)
-
-## Settlement Info in kind:10032
-
-Nodes advertise their settlement capabilities in kind:10032 events:
-
-```json
-{
-  "supportedChains": ["evm:84532", "solana:devnet", "mina:devnet"],
-  "settlementAddresses": {
-    "evm:84532": "0xF29fD62C4848B9573C9b90adbF61b664F386d9CF",
-    "solana:devnet": "HgNmgJYrZFrx9DZgMopKa9971zGXW3hPL32Wsc6KzF6",
-    "mina:devnet": "B62qkEx3MsKtaEJqJMg8ZC2eXtz8FNpZy4huVpBnnUHVRUEf5f1vqdq"
-  },
-  "tokenNetworks": {
-    "evm:84532": "0x1E95493fEF46707E034b4a1945f25a8C76A1823D",
-    "solana:devnet": "2aEVJ8koKD8LTZrLRSGtAtU7LBt4e7QjjCgf1kzQ7Rip",
-    "mina:devnet": "B62qmgPhv2Xo6QVEtwjLja8UZJUtu8yapRFAR6gaoGtbM9zE5hG7Tkf"
-  },
-  "preferredTokens": {
-    "evm:84532": "0x49beE1Bca5d15Fb0963117923403F9498119a9Ce",
-    "solana:devnet": "xyc5J8MgKFiEN13PnfftdXxUzYH34FEvw1LCrFwN7in",
-    "mina:devnet": "B62qqN1Pu3kF2KGmqLA8EwpqfWrnFTVZJGDSDHQuQRoVt5BCFjhNz3d"
-  }
-}
-```
-
-(This is the live devnet apex's announce as of 2026-07-19 — see
-[deployment.md](./deployment.md#deployed-settlement-contracts-public-networks-verified-2026-07-19)
-for the full table. The announce also carries per-route `capabilities` prices;
-paid packets must claim at least the route price.)
-
-The TokenNetwork address (not the registry address) must be published — peers use this to open channels directly.
-
-## Contracts (Local Anvil — `sdk-e2e-infra` only)
-
-These addresses apply **only** to the local docker `sdk-e2e-infra` Anvil
-deployment (they are deterministic there). The live devnet's public-chain
-contracts are in
-[deployment.md](./deployment.md#deployed-settlement-contracts-public-networks-verified-2026-07-19).
-
-| Contract | Address |
-|----------|---------|
-| Mock USDC (ERC20) | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
-| TokenNetworkRegistry | `0xe7f1725e7734ce288f8367e1bb143e90bb3f0512` |
-| TokenNetwork (USDC) | `0xCafac3dD18aC6c6e92c921884f9E4176737C052c` |
+Its upgrade authority is the deployer key from the 2026-07-18 deploy, and that key is lost. Any change to `packages/solana-program/src` is a **fresh deploy at a new program id**, not an upgrade — and because ADR 0053 binds the settlement program into a claim's signed message, a new program id is a new claim domain: every open channel on the old one must be drained or abandoned first. Plan it as a migration, not a release. Record: [`packages/solana-program/deployments/devnet-public.md`](https://github.com/toon-protocol/connector/blob/main/packages/solana-program/deployments/devnet-public.md).
