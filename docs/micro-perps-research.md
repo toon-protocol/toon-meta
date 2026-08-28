@@ -838,12 +838,12 @@ operator, holding exposure to an asset they cannot see, cannot value, and cannot
 
 Before the negatives swamp the note: **TOON's per-packet cost is real, verified, and extremely
 low.** The connector's pricing doc is explicit and guarded by CI constants
-(`connector/docs/devnet-pricing.md`, "The table"):
+(figures as of this note's date; `connector/docs/devnet-pricing.md` is history rather than a price list — connector#1250 — and the authority is each node repo's `deploy/` bundle plus the live `GET /ilp`):
 
 | Route | Price | Where | Guarded by |
 |---|---|---|---|
 | relay `g.toon.relay` — terminate | **1 µUSDC** | `infra/linode-relay/connector-rust.toml` | `EXPECTED_RELAY_PRICE` |
-| store `g.toon.ario` — terminate | **1000 µUSDC** | `infra/linode-store/connector-rust.toml` | `EXPECTED_STORE_PRICE` |
+| store `g.toon.store` — terminate | **1000 µUSDC** base (now `+ 10/KiB`) | `store/deploy/connector.toml.template` | that repo's bundle test |
 
 Prices are base units of 6-decimal USDC, so **1 µUSDC = $0.000001 per packet**, and the doc records
 it verified live on 2026-08-14 post-cutover via `GET /ilp/routes/price`. The rationale given is

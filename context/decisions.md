@@ -24,7 +24,7 @@ Status is on each record's own `**Status:**` line, which is the authority — no
 | **0060** | A claim proves a peering; the shared secret is deleted. (Vectors at schema 4.) |
 | **0061** | A fee attaches to a peering, not to a route. |
 | **0063** | The ILP packet is TOON's dialect, not RFC 0027's. |
-| **0065** | A price is a schedule over payload length. |
+| **0065-price** | A price is a schedule over payload length. |
 | **0065-mina** | Mina leaves the repository. |
 | **0066** | The operator dashboard is a page the surface serves; it signs in the browser. |
 | **0067** | A route declares its request shape, and the connector never reads it. |

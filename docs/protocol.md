@@ -17,7 +17,7 @@ This page is a pointer map, plus the little that is genuinely cross-repo.
 | **Payload & termination** | `0018` a payload is sealed to the terminating connector · `0019` a terminating connector derives the fulfilment · `0032` a client destination is never a route termination · `0040` a verified payment is stated to the app · `0064` a deadline bounds the wait for an app, not the answer |
 | **Encoding & conformance** | `0021` vectors are normative, prose is not · `0063` the ILP packet is TOON's dialect, not RFC 0027's · `0062` an RFC is vendored verbatim and profiled, never forked |
 
-Two records are numbered **0065** in that folder (`0065-a-price-is-a-schedule-over-payload-length.md` and `0065-mina-leaves-the-repository.md`). Cite 0065 by title, never by number alone.
+Two records share the number **0065** — a one-off collision between two branches cut on the same day (connector#1249). Neither is renumbered, deliberately: a number there is dated evidence of when a decision was taken, and both are already cited by number from this repo, so renumbering would silently falsify those citations rather than merely make them ambiguous. Cite them as **`0065-price`** (a price is a schedule over payload length) and **`0065-mina`** (Mina leaves the repository) — the form the connector's own index uses. 0065 is closed; no third record takes it.
 
 Specifications rather than decisions live in [`connector/docs/protocol/`](https://github.com/toon-protocol/connector/tree/main/docs/protocol) (client edge, peer carriage, packet flow, payment, self-description, configuration, operator). The ten Interledger RFCs the connector implements are **vendored verbatim at a pinned upstream commit** under [`connector/docs/rfcs/`](https://github.com/toon-protocol/connector/tree/main/docs/rfcs), each beneath a TOON profile naming the departures (ADR 0062). Link those, never interledger.org — the profile is the part that binds.
 
@@ -49,14 +49,23 @@ A reject code binds only where a sender must act differently (ADR 0051).
 
 ## Live devnet
 
-| Destination | Terminates at | Price (base units of 6-dp USDC) |
-|-------------|---------------|--------------------------------|
-| `g.toon.relay` | relay box | **1**, flat |
-| `g.toon.store`, `g.toon.relay.store` | store box (`ario`) | **`base = 1000, per_kib = 10`** — a schedule |
-| `g.toon.store.relay` | store box | **2**, flat |
-| `g.toon.gas`, `g.toon.relay.gas` | gas box | **1000** |
+There are **three tiers of authority**, and a table in this repo is none of them:
 
-Probed live 2026-08-28 from each node's `GET /ilp`. **A node repository's own `deploy/` bundle is the authority for what its box serves** (ADR 0068) — read that, or probe. `connector/docs/devnet-pricing.md` is behind the fleet on all three counts and is tracked as connector#1250: it still names `g.toon.ario` (a box label, not an address any route answers to), still shows the store as flat, and does not know about the gas box.
+| Tier | What it decides | Where |
+|---|---|---|
+| The node repo's `deploy/` bundle | what a box terminates and charges, guarded by that repo's own bundle test | `relay/deploy/`, `store/deploy/`, `gas-station/deploy/` (ADR 0068) |
+| Runtime peer-route state | the forwarded legs between boxes, established over the operator surface and held in the node's state volume | `POST /peers` → `POST /routes/peers` (ADR 0058, 0034) |
+| The node's self-description | what is true **right now** | free, unauthenticated `GET <node>/ilp` |
+
+**Do not copy a price out of this page.** The forwarded legs are runtime state, mutable by an
+operator write and durable only in the box's state volume — they are in no committed file in any
+repository. A table probed on 2026-08-28 already drifted within the same day: the store box then
+served a third route, `g.toon.store.relay` at 2, and now serves only two. Ask the node.
+
+For orientation only, and true when last probed: the relay terminates `g.toon.relay` at 1 and a
+free `g.toon.relay.ephemeral`; the store terminates `g.toon.store` and `g.toon.relay.store` on a
+`base = 1000, per_kib = 10` schedule; the gas box terminates `g.toon.gas`. `connector/docs/devnet-pricing.md`
+is history rather than a price list (connector#1250).
 
 **Nothing answers at `g.toon`.** It remains the namespace root in the wire protocol, but the apex was destroyed on 2026-08-14 (connector#872, toon-meta#313) and no node claims that address. An ILP address is **self-asserted** — nothing allocates one, no registry records one, and no connector is given one by another. *(This lands the correction `two-node-architecture.md` §5.4 asked for.)*
 
