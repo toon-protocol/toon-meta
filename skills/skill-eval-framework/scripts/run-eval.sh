@@ -8,8 +8,35 @@ set -euo pipefail
 
 SKILL_DIR="${1:?Usage: run-eval.sh <skill-directory>}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-VALIDATE_SCRIPT="$PROJECT_ROOT/.claude/skills/nip-to-toon-skill/scripts/validate-skill.sh"
+# SCRIPT_DIR is <repo>/skills/skill-eval-framework/scripts, so the repo root is
+# three levels up, not four, and the skills live at skills/ with no .claude prefix.
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+VALIDATE_SCRIPT="$PROJECT_ROOT/skills/nip-to-toon-skill/scripts/validate-skill.sh"
+
+# Markdown is hard-wrapped, so a line-based grep splits sentences and both misses
+# violations and mis-reads the exclusion markers that sit on a neighbouring line.
+# reflow() joins wrapped prose (and wrapped list items) into one line per block,
+# leaving headings, table rows and fences alone, so every check below sees whole
+# sentences however the author happened to wrap them.
+reflow() {
+  cat "$@" 2>/dev/null | awk '
+    function flush() { if (buf != "") { print buf; buf = "" } }
+    /^[[:space:]]*$/                            { flush(); next }
+    /^[[:space:]]*```/                          { flush(); print; next }
+    /^#/                                        { flush(); print; next }
+    /^[[:space:]]*\|/                           { flush(); print; next }
+    /^[[:space:]]*([-*+]|[0-9]+\.)[[:space:]]/  { flush(); buf = $0; next }
+                                                { if (buf == "") buf = $0; else buf = buf " " $0 }
+    END { flush() }
+  '
+}
+
+# Every markdown file a skill ships, reflowed. Callers must use `grep -c ... >/dev/null`
+# rather than `grep -q`: -q exits on the first match, SIGPIPEs this awk, and under
+# `set -o pipefail` that turns a successful match into a failed pipeline.
+skill_prose() {
+  reflow "$SKILL_DIR"/*.md "$SKILL_DIR"/references/*.md
+}
 
 ERRORS=0
 CHECKS=0
@@ -65,13 +92,16 @@ echo "── Phase 2: TOON Compliance Assertions ──"
 IS_WRITE=false
 IS_READ=false
 
-# Check for write-capable indicators
-if grep -rq 'publishEvent' "$SKILL_DIR"/*.md "$SKILL_DIR"/references/*.md 2>/dev/null; then
+# Check for write-capable indicators. The retired APIs are listed too, so a skill
+# that still teaches them is classified write-capable and fails assertion 1 rather
+# than being silently skipped.
+if skill_prose | grep -c 'client\.send(\|routePrice\|chargeFor\|publishEvent\|signBalanceProof' >/dev/null; then
   IS_WRITE=true
 fi
 
-# Check for read-capable indicators
-if grep -rqi 'TOON[- ]format\|toon-format\|TOON format' "$SKILL_DIR"/*.md "$SKILL_DIR"/references/*.md 2>/dev/null; then
+# Check for read-capable indicators. Reads on TOON are free and speak plain NIP-01,
+# so a read-capable skill is one that talks about subscribing or querying a relay.
+if skill_prose | grep -ci 'NIP-01\|\bREQ\b\|EOSE\|subscribe\|subscription\|free to read\|reads are free' >/dev/null; then
   IS_READ=true
 fi
 
@@ -88,23 +118,52 @@ fi
 echo "Classification: $CLASSIFICATION"
 echo ""
 
+# A "retirement marker": wording that shows a line NAMES a dead term in order to
+# bury it, rather than teaching it. Kept in ONE place because it is consulted by
+# three separate checks below, and two copies of it drifted apart once already.
+# Plain negations ("there is no basePricePerByte", "none of which exist") are as
+# much a retirement as the word "removed", and omitting them failed skills for
+# writing the correction in ordinary English.
+RETIRED_MARKER='removed|retired|no longer|not exist|none of|deleted|never|\bno\b|used to|gone|dropped|instead of|rather than'
+
 # Assertion 1: toon-write-check (write-capable only)
 echo "[1/6] toon-write-check"
 if [ "$IS_WRITE" = true ]; then
   WRITE_OK=true
-  # Check publishEvent is referenced
-  if ! grep -rq 'publishEvent' "$SKILL_DIR"/*.md "$SKILL_DIR"/references/*.md 2>/dev/null; then
+  # Check client.send() is the taught write path
+  if ! skill_prose | grep -c 'client\.send(' >/dev/null; then
     WRITE_OK=false
   fi
-  # Check no bare EVENT array patterns
-  BARE_EVENT=$(grep -rl '\["EVENT"' "$SKILL_DIR"/*.md "$SKILL_DIR"/references/*.md 2>/dev/null || true)
+  # Check no raw-WebSocket EVENT WRITE.
+  #
+  # The hazard is a skill teaching `ws.send(JSON.stringify(["EVENT", ev]))`
+  # instead of client.send(). It is NOT the string `["EVENT"` on its own:
+  # since the read model was corrected, a skill is EXPECTED to quote the
+  # relay's plain NIP-01 read response, which is literally
+  # `["EVENT", <sub-id>, {...}]`. Matching the bare token failed eleven
+  # skills for documenting the read shape correctly -- the check punished
+  # the fix it was meant to protect.
+  #
+  # So: fail only when an EVENT array shares a line with a send/publish
+  # verb, which is what a raw write actually looks like.
+  BARE_EVENT=$(skill_prose | grep -i '\["EVENT"' \
+    | grep -Ei '\.send\(|JSON\.stringify|websocket|ws\.|publish|POST ' \
+    | grep -vi 'client\.send\(' || true)
   if [ -n "$BARE_EVENT" ]; then
     WRITE_OK=false
   fi
+  # Check no retired client APIs. publishEvent() and a caller-facing
+  # signBalanceProof() do not exist; a skill naming them tells an agent to call
+  # nothing. A line that explicitly marks them removed is allowed.
+  RETIRED_API=$(skill_prose | grep -i 'publishEvent\|signBalanceProof' \
+    | grep -vEi "$RETIRED_MARKER" || true)
+  if [ -n "$RETIRED_API" ]; then
+    WRITE_OK=false
+  fi
   if [ "$WRITE_OK" = true ]; then
-    pass "toon-write-check: publishEvent referenced, no bare EVENT patterns"
+    pass "toon-write-check: client.send() referenced, no bare EVENT patterns, no retired APIs"
   else
-    fail "toon-write-check: missing publishEvent or bare EVENT pattern found"
+    fail "toon-write-check: missing client.send(), bare EVENT pattern, or retired publishEvent/signBalanceProof found"
   fi
 else
   skip "toon-write-check: not applicable (not write-capable)"
@@ -113,25 +172,64 @@ fi
 # Assertion 2: toon-fee-check (write-capable only)
 echo "[2/6] toon-fee-check"
 if [ "$IS_WRITE" = true ]; then
-  if grep -rqi 'basePricePerByte\|fee calculation\|fee awareness\|publishing fee\|event fee\|pay.*to.*write\|ILP.*payment\|cost.*per.*byte\|pricing model' "$SKILL_DIR"/*.md "$SKILL_DIR"/references/*.md 2>/dev/null; then
-    pass "toon-fee-check: fee-related terms found"
+  FEE_OK=true
+  # The skill must tell the agent to ASK the node what a route costs.
+  if ! skill_prose | grep -ci 'routePrice\|chargeFor\|GET /ilp\|self-description\|greeting' >/dev/null; then
+    FEE_OK=false
+  fi
+  # It must not invent a per-byte rate. A line that explicitly marks the term
+  # removed is allowed.
+  PER_BYTE=$(skill_prose | grep -i 'basePricePerByte\|feePerByte\|per-byte\|per byte' \
+    | grep -vEi "$RETIRED_MARKER" || true)
+  if [ -n "$PER_BYTE" ]; then
+    FEE_OK=false
+  fi
+  if [ "$FEE_OK" = true ]; then
+    pass "toon-fee-check: price is asked for (routePrice/chargeFor/self-description), no invented per-byte rate"
   else
-    fail "toon-fee-check: no fee-related terms found"
+    fail "toon-fee-check: no price-discovery terms found, or an invented per-byte rate is taught"
   fi
 else
   skip "toon-fee-check: not applicable (not write-capable)"
 fi
 
-# Assertion 3: toon-format-check (read-capable only)
-echo "[3/6] toon-format-check"
+# Assertion 3: toon-read-check (read-capable only)
+echo "[3/6] toon-read-check"
 if [ "$IS_READ" = true ]; then
-  if grep -rqi 'TOON[- ]format\|toon-format\|TOON format' "$SKILL_DIR"/*.md "$SKILL_DIR"/references/*.md 2>/dev/null; then
-    pass "toon-format-check: TOON format reference found"
+  READ_OK=true
+  # Presence: the skill documents the read model at all -- either in the corrected
+  # words, or with a TOON-encoding reference (which is legitimate when it is about
+  # the sealed write payload; the negative guard below is what separates the two).
+  if ! skill_prose | grep -ci 'plain NIP-01\|reads are free\|free to read\|free read\|TOON[- ]format' >/dev/null; then
+    READ_OK=false
+  fi
+  # Negative guard: the false read model. A skill claiming relay reads come back
+  # TOON-encoded fails mechanically, exactly as a removed API does. A line that
+  # explicitly marks the claim false is allowed.
+  #
+  # Match the HALLMARKS of the false model, not the token `TOON-format`.
+  #
+  # A generic negation exemption cannot work here, because the false sentence
+  # contains one: "TOON relays return TOON-format strings in EVENT messages,
+  # **not** standard JSON objects." Its "not" negates *JSON*, while correct
+  # prose negates *TOON* ("Relay responses are standard JSON, not TOON-format
+  # strings"). Exempting on `not` therefore passed the false claim and failed
+  # the true one -- both, at different times, during this sweep.
+  #
+  # So key on what only the false model ever says: it DENIES standard JSON, or
+  # it instructs a decode. Correct prose asserts standard JSON positively and
+  # never instructs one. Verified against both phrasings and all 33 skills.
+  FALSE_READ_MODEL=$(skill_prose | grep -Ei 'not standard JSON|use the TOON decoder|using the TOON decoder|decode the TOON-format|TOON-format response using' || true)
+  if [ -n "$FALSE_READ_MODEL" ]; then
+    READ_OK=false
+  fi
+  if [ "$READ_OK" = true ]; then
+    pass "toon-read-check: read model documented, no TOON-encoded-response claim"
   else
-    fail "toon-format-check: no TOON format reference found"
+    fail "toon-read-check: read model not documented, or relay responses claimed to be TOON-encoded (TOON decoder / TOON-format strings)"
   fi
 else
-  skip "toon-format-check: not applicable (not read-capable)"
+  skip "toon-read-check: not applicable (not read-capable)"
 fi
 
 # Assertion 4: social-context-check (all)
@@ -156,7 +254,7 @@ HAS_PROTOCOL=false
 HAS_SOCIAL=false
 
 # Protocol-technical indicators
-if echo "$DESCRIPTION" | grep -qi 'kind:[0-9]\|NIP-[0-9]\|publishEvent\|event\|relay\|subscribe\|compliance\|eval\|benchmark\|validation\|grading'; then
+if echo "$DESCRIPTION" | grep -qi 'kind:[0-9]\|NIP-[0-9]\|client.send\|event\|relay\|subscribe\|compliance\|eval\|benchmark\|validation\|grading'; then
   HAS_PROTOCOL=true
 fi
 

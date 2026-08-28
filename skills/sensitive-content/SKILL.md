@@ -21,25 +21,25 @@ The tag can be added to any event kind -- short notes (kind:1), long-form articl
 
 ## TOON Write Model
 
-Adding a content warning to any event on TOON is done through `publishEvent()` from `@toon-protocol/client` -- never raw WebSocket writes.
+Adding a content warning to any event on TOON is done through `client.send()` from `@toon-protocol/client` -- never raw WebSocket writes.
 
 **Adding the tag:** Include `["content-warning", "reason"]` or `["content-warning"]` in the event's tags array before signing and publishing. The tag can coexist with any other tags the event already has.
 
-**Fee impact:** The `content-warning` tag adds approximately 30-60 bytes to the serialized event depending on the length of the reason string. At default `basePricePerByte` of 10n, this is approximately $0.0003-$0.0006 extra -- negligible. A bare `["content-warning"]` tag (no reason) adds ~20 bytes (~$0.0002). There is no economic reason to omit a content warning when one is warranted.
+**Cost impact:** The `content-warning` tag adds a few dozen bytes to the serialized event depending on the length of the reason string. The live relay route `g.toon.relay` is priced at 1 base unit, **flat** -- USDC is 6-decimal, so that is $0.000001 per write whatever its size -- which means the tag costs exactly nothing there. On a route that does have a slope, a few dozen bytes cost either nothing or one extra `pricePerKib`, and only if they cross a kibibyte boundary. There is no economic reason to omit a content warning when one is warranted.
 
-**Publishing flow:** Construct the event with the `content-warning` tag included, sign it, calculate the fee based on the full serialized size, and publish via `publishEvent()`. The content warning is part of the signed event and cannot be added or removed after publishing without creating a new event.
+**Publishing flow:** Construct the event with the `content-warning` tag included, sign it, then `await client.send({ body: signedEvent })`. `send()` seals the payload, prices it, mints the covering claim and carries it, so there is nothing for the agent to calculate: the metered quantity is the sealed payload, not the event JSON. If you need the figure up front, ask the node with `await client.routePrice(destination)` and price it with `chargeFor(terms, sealedBytes)`. The content warning is part of the signed event and cannot be added or removed after publishing without creating a new event.
 
 For the complete TOON write model, fee calculation, and publishing flow details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
-Reading events with content warnings is free on TOON. Subscribe using standard NIP-01 filters. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects -- use the TOON decoder to parse responses.
+Reading events with content warnings is free on TOON. Subscribe using standard NIP-01 filters. Reads are free and speak plain NIP-01: the relay returns standard JSON `EVENT` messages, so parse them as ordinary Nostr events. TOON encodes the **write** payload sealed inside the ILP packet, never a relay response.
 
 **Filtering for content-warned events:** Use the `#content-warning` tag filter in NIP-01 subscriptions to find events that have a content-warning tag. Combine with `kinds` and `authors` filters to narrow results.
 
 **Client display responsibility:** When an event includes the `content-warning` tag, the client SHOULD hide the content behind a click-through or collapsible warning. Display the reason text if present. If no reason is given, display a generic "Sensitive content" warning. The reader decides whether to view the content -- the warning is advisory, not a block.
 
-For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the write payload's TOON encoding, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 

@@ -19,7 +19,7 @@ Not all skills in `skills/` are TOON NIP skills. Filter out:
 - **`rfc-*`**: ILP RFC reference skills. No evals.json, different purpose.
 - **`skill-eval-framework`**: This framework itself. Self-evaluation is handled separately during calibration, not in batch runs.
 
-**Why filtering matters:** Running TOON compliance checks on non-TOON skills produces false failures (e.g., `playwright-cli` will never mention `publishEvent()`). Filtering prevents noise in the aggregate report.
+**Why filtering matters:** Running TOON compliance checks on non-TOON skills produces false failures (e.g., `playwright-cli` will never mention `client.send()`). Filtering prevents noise in the aggregate report.
 
 ## Execution Flow
 
@@ -47,7 +47,7 @@ The batch runner produces a JSON report to stdout:
       "toon_compliance": {
         "toon-write-check": "PASS",
         "toon-fee-check": "PASS",
-        "toon-format-check": "PASS",
+        "toon-read-check": "PASS",
         "social-context-check": "PASS",
         "trigger-coverage": "PASS",
         "eval-completeness": "PASS"
@@ -84,7 +84,7 @@ Skills root: skills/
   SKIP: skill-creator (filtered)
   SKIP: skill-eval-framework (filtered)
 
-  Skill                        Struct Write  Fee    Format Social Trigger Evals  Overall
+  Skill                        Struct Write  Fee    Read   Social Trigger Evals  Overall
   ---------------------------- ------ ------ ------ ------ ------ ------ ------ ------
   nip-to-toon-skill            PASS   PASS   PASS   PASS   PASS   PASS   PASS   PASS
   nostr-protocol-core          PASS   PASS   PASS   PASS   PASS   PASS   PASS   PASS

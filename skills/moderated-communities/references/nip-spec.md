@@ -11,7 +11,7 @@ In standard Nostr, published events are immediately visible to subscribers. NIP-
 3. **Moderators issue approval events** (kind:4550) to make the post visible in the curated community feed
 4. **Unapproved posts exist** on the relay but are not surfaced in the community view by compliant clients
 
-This is fundamentally different from NIP-29 relay groups, where the relay rejects events from non-members before storage. In NIP-72, anyone can post -- moderators control visibility, not access.
+This is fundamentally different from NIP-29 relay groups, where the relay is specified to reject events from non-members before storage. In NIP-72, anyone can post -- moderators control visibility, not access. On TOON neither is enforced server-side: the fleet relay implements NIP-01 and NIP-34 only, so a kind:4550 approval is an ordinary event and the curation is applied by reading clients.
 
 ## Community Definition (kind:34550)
 

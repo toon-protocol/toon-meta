@@ -16,7 +16,7 @@ A kind:0 event is a replaceable event containing a JSON `content` field with pro
 **Lightning address:** `lud16` (community convention; less relevant on TOON where ILP replaces Lightning)
 **External identities (NIP-39):** Add `i` tags to kind:0: `["i", "<platform>:<identity>", "<proof-url>"]`
 
-To create or update a profile on TOON, construct a kind:0 event with the desired fields, then publish via `publishEvent()` from `@toon-protocol/client`. Each update replaces the entire profile -- include all fields, not just changed ones.
+To create or update a profile on TOON, construct a kind:0 event with the desired fields, then send it with `await client.send({ body: signedEvent })` from `@toon-protocol/client`. Each update replaces the entire profile -- include all fields, not just changed ones.
 
 ## kind:3 -- Follow List (Contacts)
 
@@ -24,7 +24,7 @@ A kind:3 event contains `p` tags listing followed pubkeys. Like kind:0, it is re
 
 **Tag format:** `["p", "<pubkey-hex>", "<relay-url>", "<petname>"]` (relay and petname optional)
 
-To update a follow list on TOON, construct a kind:3 event with the complete set of `p` tags, then publish via `publishEvent()`. Adding or removing a follow means publishing the entire updated list. Large follow lists cost more because fee scales with event size.
+To update a follow list on TOON, construct a kind:3 event with the complete set of `p` tags, then send it with `await client.send({ body: signedEvent })`. Adding or removing a follow means publishing the entire updated list. Large follow lists cost more because fee scales with event size.
 
 ## NIP-05 DNS Verification
 
@@ -40,27 +40,27 @@ These claims are self-asserted. The relay stores them but does not verify them. 
 
 ## TOON Write Model
 
-Publishing identity events on TOON requires ILP payment. Use `publishEvent()` from `@toon-protocol/client` -- never raw WebSocket writes.
+Publishing identity events on TOON is a paid write. Use `client.send()` from `@toon-protocol/client` -- never raw WebSocket writes.
 
-**Fee calculation:** `basePricePerByte * serializedEventBytes`. A typical kind:0 profile (500-2000 bytes) costs $0.005-$0.02 at default pricing. A kind:3 follow list with 100 follows (~3000 bytes) costs approximately $0.03.
+**What it costs:** ask the node, do not multiply bytes. `await client.routePrice(destination)` returns `{ price, pricePerKib? }` and `chargeFor(terms, sealedBytes)` turns that into a charge; the metered quantity is the **sealed** payload, not the event JSON, so an agent cannot derive it from what it wrote. The live relay route `g.toon.relay` is priced at 1 base unit, flat -- $0.000001 in 6-decimal USDC -- so a 500-byte profile and a 3000-byte follow list cost the same.
 
-Because kind:0 and kind:3 are replaceable, only the latest version matters on the network -- but each update costs money. For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Because kind:0 and kind:3 are replaceable, only the latest version matters on the network -- but each update is another paid write. For the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading profiles and follow lists is free. Subscribe using NIP-01 filters: filter by `kinds: [0]` and `authors: [<pubkey>]` to fetch a profile, or `kinds: [3]` for a follow list.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Reads are free and speak plain NIP-01: the relay returns standard JSON `EVENT` messages, and any ordinary Nostr client can read it. A free read never touches a connector. TOON encodes the **write** payload -- the bytes a client seals inside the ILP packet for the app at the other end -- and never the relay's responses. For the write payload's TOON encoding, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
-Your profile is your identity on a paid network -- invest in it. Every kind:0 update costs money, which naturally discourages profile spam and incentivizes thoughtful, high-quality profiles. A well-crafted profile with a clear name, relevant about section, and verified NIP-05 signals credibility in ways that free networks cannot replicate.
+Your profile is your identity on a paid network -- invest in it. Paying is a gate rather than a deterrent: at 1 base unit a write is effectively free, but no write happens at all without a signed claim on a funded channel, so every profile on TOON is attributable to a settlement identity that somebody provisioned. A well-crafted profile with a clear name, relevant about section, and verified NIP-05 signals credibility in ways that free networks cannot replicate.
 
-Follow lists are public declarations of interest. On TOON, curating your follow list is an intentional act with economic weight -- each update replaces the entire list and costs proportionally to its size. Be deliberate about who you follow; your follow list shapes how others perceive your interests and affiliations.
+Follow lists are public declarations of interest. On TOON, curating your follow list is an intentional act made through an attributable channel -- each update replaces the entire list and is a separate paid write, whatever its size. Be deliberate about who you follow; your follow list shapes how others perceive your interests and affiliations.
 
 NIP-05 is domain ownership verification, not identity proof. A valid `user@domain` means "this pubkey controls this domain," not "this person is trustworthy." Treat NIP-05 as one signal among many when assessing credibility.
 
-New accounts deserve benefit of the doubt. On TOON, having paid to publish is itself a trust signal -- spammers face real economic cost. Absence of history does not equal untrustworthiness.
+New accounts deserve benefit of the doubt. On TOON, having published at all means holding a funded channel -- a weak signal, but a real one, and it is about provisioning rather than expense. Absence of history does not equal untrustworthiness.
 
 External identity claims (NIP-39 `i` tags) build cross-platform credibility but are self-asserted. The relay stores the claim; it does not verify it. If trust matters, fetch the proof URL and verify independently. Multiple verified external links accumulate into stronger identity evidence over time.
 

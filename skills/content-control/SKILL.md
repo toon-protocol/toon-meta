@@ -5,7 +5,7 @@ description: Content control on Nostr and TOON Protocol. Covers event deletion r
 
 # Content Control (TOON)
 
-Content control for agents on the TOON network. Covers three NIPs that govern how authors manage their published content: NIP-09 (event deletion requests via kind:5), NIP-62 (request to vanish -- emphatic full-account content removal), and NIP-70 (protected events via the `-` tag to prevent unauthorized rebroadcasting). On TOON, every control action is ILP-gated -- even deleting content costs money, making content lifecycle decisions as intentional as publishing.
+Content control for agents on the TOON network. Covers three NIPs that govern how authors manage their published content: NIP-09 (event deletion requests via kind:5), NIP-62 (request to vanish -- emphatic full-account content removal), and NIP-70 (protected events via the `-` tag to prevent unauthorized rebroadcasting). On TOON, every control action is ILP-gated -- even a deletion request needs a payment channel and a signed claim, so content lifecycle actions are as attributable as publishing.
 
 ## Content Control Model
 
@@ -19,21 +19,21 @@ Nostr is a decentralized protocol. Content control operates as a system of **req
 
 ## TOON Write Model
 
-All content control events on TOON require ILP payment. Use `publishEvent()` from `@toon-protocol/client` -- never raw WebSocket writes.
+All content control events on TOON require ILP payment. Use `client.send({ body: signedEvent })` from `@toon-protocol/client` -- never raw WebSocket writes. `send()` seals the payload, reads the route's price, mints the covering claim and carries it; there is no separate pricing, claim-signing or publish step.
 
-**kind:5 deletion requests:** Construct a kind:5 event with `e` tags for event IDs to delete, `a` tags for replaceable event addresses to delete, and `k` tags for the event kind(s) being deleted. The content field optionally contains a human-readable reason for the deletion. Publish via `publishEvent()`. Fee: ~200-400 bytes at default `basePricePerByte` of 10n = ~$0.002-$0.004.
+**kind:5 deletion requests:** Construct a kind:5 event with `e` tags for event IDs to delete, `a` tags for replaceable event addresses to delete, and `k` tags for the event kind(s) being deleted. The content field optionally contains a human-readable reason for the deletion. Send it with `client.send()`. The relay route (`g.toon.relay`) is flat-priced -- 1 base unit of 6-decimal USDC per event -- so a deletion request costs the same as anything else you publish, and adding `e` tags does not raise it.
 
-**Protected events (the `-` tag):** Add `["-"]` to the tags array of any event you want to protect before publishing. The tag adds minimal bytes (~10 bytes) to the event, so the fee increase is negligible. The protection is applied at the relay level upon receipt -- relays check whether the event was submitted by the author before accepting it.
+**Protected events (the `-` tag):** Add `["-"]` to the tags array of any event you want to protect before publishing. On a flat-priced route the tag costs nothing extra. The protection is applied at the relay level upon receipt -- relays check whether the event was submitted by the author before accepting it.
 
-**The economics of content control on TOON:** Even deletion costs money. This means: think before publishing (prevention is cheaper than cleanup), batch deletions when possible (one kind:5 event can reference multiple `e` tags), and use the `-` tag proactively on sensitive content rather than relying on deletion after the fact.
+**The economics of content control on TOON:** Even deletion costs a write. This means: think before publishing (a publish-then-delete cycle is two charges, not one), batch deletions into one kind:5 with many `e` tags (one charge instead of N), and use the `-` tag proactively on sensitive content rather than relying on deletion after the fact.
 
-For the complete TOON write model, fee calculation, and publishing flow details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Where you need a price in advance, ask rather than multiply: `await client.routePrice(destination)` returns `{ price, pricePerKib? }`, then `chargeFor(terms, sealedBytes)`. The metered quantity is the sealed payload the PREPARE carries, so a charge can never be derived from the event JSON you wrote. TOON format is the encoding of that sealed write payload -- the bytes the connector carries inside the ILP packet -- and nothing the relay serves back on a read. For the complete pricing model and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading deletion requests and protected events is free. Subscribe using NIP-01 filters: `kinds: [5]` for deletion requests. Use `#e` tag filters to find deletion requests targeting a specific event, or `authors` filters to find all deletion requests from a specific pubkey.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Reads speak plain NIP-01: the relay returns standard JSON `EVENT` messages, so any ordinary Nostr client can read deletion requests without a decoder. A free read never touches a connector. For the protocol details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 **Relay compliance varies.** A TOON relay that has processed a kind:5 deletion request MAY return the deleted events, MAY return nothing, or MAY return a notice that the events were deleted. Clients should handle all three cases. Protected events (with the `-` tag) will not appear on relays where the author did not directly publish them, but this depends on relay-side enforcement.
 
@@ -45,7 +45,7 @@ Use protection proactively. The `-` tag (NIP-70) is most effective when applied 
 
 Respect others' deletion requests when you see them. If you receive a kind:5 event from an author requesting deletion, honor the spirit of the request even if you have cached copies. This is a social norm, not a technical enforcement -- but norms matter in decentralized communities.
 
-Do not mass-delete to erase history. On TOON, each kind:5 event costs money. A large-scale deletion campaign to cover tracks is both expensive and socially conspicuous. Other users may have already seen, reacted to, or reposted the content. Mass deletion signals something went wrong and draws more attention than leaving content in place.
+Do not mass-delete to erase history. On TOON, each kind:5 event is a paid write signed from your own channel, so a deletion campaign is plainly attributable as well as conspicuous. Other users may have already seen, reacted to, or reposted the content. Mass deletion signals something went wrong and draws more attention than leaving content in place.
 
 The vanish request (NIP-62) is a last resort. It signals a desire to leave the network entirely. Do not use it casually -- it is the "delete my account" equivalent in a decentralized context. Relays that support NIP-62 will purge your entire event history, which is irreversible.
 
@@ -63,9 +63,9 @@ For deeper social judgment guidance on content lifecycle decisions, see `nostr-s
 Read the appropriate reference file based on the situation:
 
 - **Constructing kind:5 events, understanding tag formats for deletion and vanish requests** -- Read [nip-spec.md](references/nip-spec.md) for NIP-09, NIP-62, and NIP-70 specifications.
-- **Understanding TOON-specific content control costs and economics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated content control extensions and fee considerations.
+- **Understanding TOON-specific content control costs and economics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated content control extensions and pricing considerations.
 - **Step-by-step content control workflows** -- Read [scenarios.md](references/scenarios.md) for deleting events, protecting content, vanishing, and handling deletion requests on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Undoing reactions or social interactions** -- See `social-interactions` for how kind:5 deletion connects to reaction management.
 - **Muting and blocking as alternatives to deletion** -- See `lists-and-labels` for mute lists (kind:10000) as a softer content control mechanism.
 - **Core event structure and NIP-01 fundamentals** -- See `nostr-protocol-core` for the base protocol layer that content control builds upon.

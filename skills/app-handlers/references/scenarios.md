@@ -1,12 +1,12 @@
 # App Handler Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common application handler operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation and the publishEvent API. These scenarios bridge the gap between knowing the tag format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common application handler operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like route pricing and the `client.send()` API. These scenarios bridge the gap between knowing the tag format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Advertising an Application
 
 **When:** A developer has built a Nostr client or tool and wants to advertise it in the NIP-89 application handler registry so other users and clients can discover it.
 
-**Why this matters:** On TOON, publishing a handler advertisement costs money. This creates a quality signal -- only committed application developers will pay to register their apps, filtering out abandoned or test listings.
+**Why this matters:** On TOON a handler advertisement cannot be posted anonymously -- the write needs an open payment channel and a signed claim, so every listing is bound to a funded identity. The price is a base unit; it is the gate rather than the cost that keeps throwaway listings out.
 
 ### Steps
 
@@ -26,21 +26,19 @@
 
 6. **Construct the kind:31990 event.** Assemble all tags, set the content field to your markdown description, and sign the event.
 
-7. **Calculate the fee.** A typical handler info event runs ~300-500 bytes. At default `basePricePerByte` of 10n, cost is approximately $0.003-$0.005.
-
-8. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+7. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step. The relay route is flat: 1 base unit of 6-decimal USDC per event.
 
 ### Considerations
 
 - As a parameterized replaceable event, you can update your listing by publishing a new kind:31990 with the same `d` tag. You pay again for the update, but the old version is replaced -- no accumulation.
-- Keep the markdown description concise. Every byte costs money, and excessively long descriptions increase the publishing fee without proportional value.
+- Keep the markdown description concise for the reader's sake, not for the price: the relay route is flat-priced, so a long description costs exactly what a short one does.
 - If your app handles TOON-specific events, mention ILP payment support in the description so users know it works on paid relays.
 
 ## Scenario 2: Recommending an Application
 
 **When:** A user has found an application they like for a specific event kind and wants to recommend it to others.
 
-**Why this matters:** On TOON, paying to recommend an app is an economic endorsement. Your recommendation carries the weight of money spent, making it a stronger signal than a free upvote.
+**Why this matters:** On TOON a recommendation is a paid write from a funded identity, not an anonymous upvote. It is cheap, but it is attributable -- that is what gives it weight.
 
 ### Steps
 
@@ -56,9 +54,7 @@
 
 5. **Sign the event.**
 
-6. **Calculate the fee.** A recommendation event with a short review runs ~200-400 bytes. Cost is approximately $0.002-$0.004.
-
-7. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+6. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`, exactly as for the handler listing. Same flat price: 1 base unit of 6-decimal USDC.
 
 ### Considerations
 
@@ -83,7 +79,7 @@
    ["REQ", "find-handlers", { "kinds": [31990], "#k": ["30023"] }]
    ```
 
-2. **Parse the TOON-format responses.** TOON relays return TOON-format strings, not JSON objects. Decode each response to extract the event fields.
+2. **Read the responses.** The relay answers in plain NIP-01 -- standard JSON `EVENT` messages, no decoder needed.
 
 3. **Extract app information.** For each kind:31990 result, parse:
    - `d` tag: application identifier
@@ -125,7 +121,7 @@
    ["REQ", "trusted-recs", { "kinds": [31989], "authors": ["<pubkey1>", "<pubkey2>", "..."], "#d": ["<target-kind>"] }]
    ```
 
-3. **Parse TOON-format responses.** Decode each kind:31989 event to extract the `a` tags (app references) and content (reviews).
+3. **Read the responses.** Each kind:31989 event arrives as plain NIP-01 JSON; extract the `a` tags (app references) and content (reviews).
 
 4. **Resolve app handler info.** For each recommended app, fetch the kind:31990 event:
    ```json

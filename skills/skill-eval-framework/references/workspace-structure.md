@@ -71,9 +71,9 @@ Per-assertion results (see grading-format.md for full schema):
 ```json
 [
   {
-    "text": "toon-write-check: Response uses publishEvent() API",
+    "text": "toon-write-check: Response uses client.send()",
     "passed": true,
-    "evidence": "Response contains 'client.publishEvent()' on line 3."
+    "evidence": "Response contains 'client.send({ body: signedEvent })' on line 3."
   }
 ]
 ```

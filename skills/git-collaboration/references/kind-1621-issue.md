@@ -36,9 +36,9 @@ Markdown text describing the issue (bug report, feature request, discussion topi
 
 ## TOON Write Model
 
-Approximate size: 300–2000 bytes. Cost at default `basePricePerByte` (10n): ~$0.003–$0.02.
+The relay route (`g.toon.relay`) is flat-priced: **1 base unit** of 6-decimal USDC per event, whatever its size. Confirm with `await client.routePrice('g.toon.relay')` rather than assuming a figure.
 
-On TOON, detailed issues cost more per-byte but are more valuable than vague one-liners. Include reproduction steps, expected vs actual behavior, and environment details.
+A detailed issue costs exactly what a vague one-liner costs, so there is no saving in writing less. Include reproduction steps, expected vs actual behavior, and environment details.
 
 ### Example 1: Concise Bug Report
 
@@ -54,8 +54,8 @@ const event = {
   ]
 };
 
-// Sign, calculate fee (~400 bytes ≈ $0.004), publish
-await publishEvent(signedEvent, { destination, claim });
+// Sign, then send -- the client seals it, prices the route and mints the claim
+await client.send({ body: signedEvent });
 ```
 
 ### Example 2: Detailed Bug Report with Environment
@@ -86,8 +86,8 @@ const event = {
   ]
 };
 
-// Sign, calculate fee (~600 bytes ≈ $0.006), publish
-await publishEvent(signedEvent, { destination, claim });
+// Sign, then send -- the client seals it, prices the route and mints the claim
+await client.send({ body: signedEvent });
 ```
 
 ### Example 3: Feature Request
@@ -105,7 +105,7 @@ const event = {
 };
 ```
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading is free.
 
@@ -113,7 +113,7 @@ Reading is free.
 {"kinds": [1621], "#a": ["30617:<pubkey>:<repo-id>"]}
 ```
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse.
+The relay answers reads with ordinary NIP-01 `EVENT` messages in plain JSON -- any Nostr client can parse them, and a free read never touches a connector.
 
 ## Event Structure (JSON)
 

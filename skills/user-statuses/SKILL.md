@@ -33,32 +33,32 @@ Each unique `d` tag value is a separate replaceable slot. A user can have a `gen
 
 ## TOON Write Model
 
-Publishing status events on TOON requires ILP payment. Use `publishEvent()` from `@toon-protocol/client` -- never raw WebSocket writes.
+Publishing status events on TOON is a paid write. Use `client.send()` from `@toon-protocol/client` -- never raw WebSocket writes.
 
-**Fee calculation:** `basePricePerByte * serializedEventBytes`. A typical kind:30315 status event (200-400 bytes) costs $0.002-$0.004 at default pricing. Statuses are short text, making them among the cheapest events to publish.
+**What it costs:** ask the node, do not multiply bytes. `await client.routePrice(destination)` returns `{ price, pricePerKib? }`, and `chargeFor(terms, sealedBytes)` turns that into a charge; the metered quantity is the **sealed** payload, not the event JSON. The live relay route `g.toon.relay` is priced at 1 base unit, **flat** -- $0.000001 in 6-decimal USDC -- so a 200-byte status and a 400-byte one cost the same.
 
-Because kind:30315 is parameterized replaceable, only the latest version per `d` tag matters on the network -- but each update costs money. For detailed fee calculation and the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Because kind:30315 is parameterized replaceable, only the latest version per `d` tag matters on the network -- but each update is another paid write. For the complete publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading user statuses is free. Subscribe using NIP-01 filters: filter by `kinds: [30315]` and `authors: [<pubkey>]` to fetch all statuses for a user, or add `#d: ["general"]` to fetch a specific status type.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Reads are free and speak plain NIP-01: the relay returns standard JSON `EVENT` messages, and any ordinary Nostr client can read it. A free read never touches a connector. TOON encodes the **write** payload -- the bytes a client seals inside the ILP packet for the app at the other end -- and never the relay's responses. For the write payload's TOON encoding, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
-Statuses signal availability and activity. On a paid network, a status update is a deliberate communication -- the user paid to broadcast their current state. Respect what statuses convey: a "busy" or "DND" status means the user does not want to be disturbed; a "music" status is casual sharing, not an invitation for commentary.
+Statuses signal availability and activity. On a network where every write is attributable, a status update is a deliberate communication under a real settlement identity. Respect what statuses convey: a "busy" or "DND" status means the user does not want to be disturbed; a "music" status is casual sharing, not an invitation for commentary.
 
 Status updates are transient by nature. Use the `expiration` tag for time-bound statuses (conference attendance, temporary availability) so they auto-clear rather than going stale. A stale "At the hackathon" status from last month looks careless.
 
-The parameterized replaceable model means each update fully replaces the previous one per `d` tag -- there is no history. This is economically efficient: you only pay for the current state, not a log. But it also means you should not use statuses as a journaling mechanism.
+The parameterized replaceable model means each update fully replaces the previous one per `d` tag -- there is no history. That keeps the payload small and the relay's storage bounded. It also means you should not use statuses as a journaling mechanism.
 
-On TOON, the per-byte cost naturally discourages status spam. Rapidly cycling through status updates (changing every few minutes) burns money with diminishing returns. Set a status when your state meaningfully changes, not as a fidget.
+Do not mistake the payment for a spam deterrent: at 1 base unit, cycling a status every minute for a day costs $0.00144. What it is instead is a gate -- every update arrives with a signed claim on your funded channel and is attributable to you. Set a status when your state meaningfully changes, not as a fidget, because rapid cycling is noise to your followers.
 
 **Anti-patterns to avoid:**
 - Updating status every few minutes like a micro-blog (use kind:1 notes for that)
 - Setting a status and forgetting to clear it when it becomes stale
-- Using verbose status text when a short phrase suffices (you pay per byte)
+- Using verbose status text when a short phrase suffices (brevity is for the reader; on the flat relay route it is not cheaper)
 - Ignoring expiration tags for inherently temporary statuses (conference, meeting, streaming)
 
 For deeper social judgment guidance on when and how to engage, see `nostr-social-intelligence`.

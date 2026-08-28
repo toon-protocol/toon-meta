@@ -17,7 +17,7 @@ description: Git object binary format reference for TOON Protocol. Covers blob f
 
 Binary format reference for git objects used in TOON's decentralized git collaboration. Covers the three core git object types (blob, tree, commit), their binary construction, SHA-1 content addressing, and the relationship between Nostr identity and git authorship. This is a knowledge skill -- git objects are not Nostr event kinds themselves, but they are the payload uploaded to Arweave via kind:5094 DVM requests (see `git-collaboration` for the upload mechanism).
 
-On TOON, git objects uploaded via kind:5094 cost per-byte for the Nostr event (which carries the base64-encoded object), plus Arweave storage costs handled by the DVM provider. Understanding the binary format helps agents construct valid objects and predict upload costs.
+On TOON, a git object pushed as a blob terminates at the store route (`g.toon.store` / `g.toon.relay.store`), priced `1000 + 10 per KiB` of sealed payload in base units of 6-decimal USDC. Arweave storage itself is handled by the DVM provider. Understanding the binary format helps agents construct valid objects; let the client price the write rather than counting bytes yourself.
 
 ## Git Object Model
 
@@ -140,7 +140,7 @@ Git objects are uploaded to Arweave via kind:5094 DVM requests (defined in the `
 1. **Construct** the git object in binary format (this skill)
 2. **Compute** its SHA-1 hash (this skill)
 3. **Base64-encode** the binary object for the kind:5094 `i` tag
-4. **Publish** the kind:5094 event with `Git-SHA`, `Git-Type`, and `Repo` tags (see `git-collaboration`)
+4. **Send** the kind:5094 request with `await client.send('g.toon.store', { body: signedEvent })`, carrying `Git-SHA`, `Git-Type`, and `Repo` tags (see `git-collaboration`). The client seals the payload, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step. TOON format is the encoding of that sealed write payload, the bytes the connector carries inside the ILP packet; reading events back is an ordinary plain NIP-01 read with no decoder involved.
 
 Upload order matters: blobs first, then trees (which reference blob SHA-1s), then commits (which reference tree SHA-1s). This ensures all referenced objects exist on Arweave before the referencing object.
 
@@ -150,15 +150,15 @@ Read the appropriate reference file based on the situation:
 
 - **Detailed binary format specifications for blob, tree, and commit objects** -- Read [nip-spec.md](references/nip-spec.md) for complete binary construction rules, byte layouts, and validation constraints.
 - **Step-by-step construction workflows with code examples** -- Read [scenarios.md](references/scenarios.md) for constructing blobs, trees, commits, and computing SHA-1 hashes.
-- **Relationship to kind:5094 Arweave uploads and TOON fee implications** -- Read [toon-extensions.md](references/toon-extensions.md) for upload flow, base64 encoding overhead, and cost calculations.
+- **Relationship to kind:5094 Arweave uploads and TOON pricing** -- Read [toon-extensions.md](references/toon-extensions.md) for the upload flow, base64 encoding overhead, and how the store route is priced.
 
 ### Cross-Skill References
 
 - **Uploading git objects to Arweave (kind:5094 DVM requests)** -- See `git-collaboration` for the kind:5094 event format, DVM request construction, and Arweave upload mechanics.
 - **Arweave content references and file metadata** -- See `media-and-files` for NIP-73 `arweave:tx:` external content IDs and NIP-94 file metadata.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and route pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Nostr identity and profile metadata** -- See `social-identity` for kind:0 profile metadata used in Nostr pubkey to git author mapping.
 
 ## Social Context
 
-Git objects represent the underlying data structures of version-controlled code. On TOON, uploading git objects to Arweave via kind:5094 costs per-byte, so constructing objects correctly matters -- malformed objects waste storage fees and break content-addressed resolution. Blob, tree, and commit objects each follow strict binary formats that must be respected for SHA-1 hashes to match. When collaborating on a paid network, correct object construction ensures that references between objects (trees pointing to blobs, commits pointing to trees) resolve properly for all participants.
+Git objects represent the underlying data structures of version-controlled code. On TOON, pushing a git object as a blob is a paid write on the store route, whose price rises with the sealed payload's size in kibibytes, so constructing objects correctly matters -- malformed objects waste money and break content-addressed resolution. Blob, tree, and commit objects each follow strict binary formats that must be respected for SHA-1 hashes to match. When collaborating on a paid network, correct object construction ensures that references between objects (trees pointing to blobs, commits pointing to trees) resolve properly for all participants.

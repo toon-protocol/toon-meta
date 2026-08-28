@@ -306,9 +306,9 @@ const event = {
 };
 ```
 
-### Step 5: Publish via TOON
+### Step 5: Send via TOON
 
-Publish the kind:5094 event via `publishEvent()` from `@toon-protocol/client`. The relay charges `basePricePerByte * serializedEventBytes`.
+Send the kind:5094 event with `await client.send('g.toon.store', { body: signedEvent })` from `@toon-protocol/client`. Blob storage terminates at `g.toon.store` (also reachable as `g.toon.relay.store`), whose price is `1000 + 10 per KiB` of sealed payload, in base units of 6-dp USDC. `send()` seals the payload, reads that price, mints the covering claim and carries it.
 
 ### Step 6: Receive DVM Result
 
@@ -429,7 +429,7 @@ const uploadResult = await turbo.uploadFile({
 
 The standard TOON flow does not require the uploader to have an Arweave wallet. The DVM provider handles the Arweave upload:
 
-1. Client publishes kind:5094 event (pays TOON relay fee)
+1. Client sends the kind:5094 event with `client.send()` (pays the store route's price)
 2. DVM provider receives the job
 3. DVM provider uploads to Arweave using their own wallet/credits
 4. DVM provider returns the Arweave transaction ID in kind:6094

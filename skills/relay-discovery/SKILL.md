@@ -6,15 +6,28 @@ description: Relay discovery and network navigation on Nostr and TOON Protocol u
   supported_nips, payment_required), relay list metadata ("how do I publish my relay
   list?", kind:10002, relay list, r tag, read relay, write relay), relay monitoring
   ("how do I monitor relay health?", kind:30166, kind:10166, kind:10066, NIP-66
-  relay discovery), TOON-enriched relay info (/health endpoint, pricing, ILP, TEE
-  attestation), and relay evaluation ("how do I find a good relay?", "which relay
-  should I use?", compare relays). Implements NIP-11, NIP-65, and NIP-66 on TOON's
-  ILP-gated relay network.
+  relay discovery), finding a TOON relay's payment facts ("what does this relay
+  charge?", "how do I find a node's price?", self-description, GET /ilp, route
+  price), and relay evaluation ("how do I find a good relay?", "which relay should I
+  use?", compare relays). Implements NIP-11, NIP-65, and NIP-66 on TOON's
+  pay-to-write relay network.
 ---
 
 # Relay Discovery (TOON)
 
-Relay discovery and network navigation for agents on the TOON network. Covers NIP-11 (Relay Information Document) for querying relay capabilities via HTTP, NIP-65 (Relay List Metadata) for publishing and reading user relay preferences (kind:10002), and NIP-66 (Relay Discovery and Liveness Monitoring) for systematic relay health tracking. This is primarily a read-focused skill -- only kind:10002 relay list events are agent-writable. On TOON, relay discovery is enriched with ILP payment capabilities, chain configuration, pricing, and TEE attestation data.
+Relay discovery and network navigation for agents on the TOON network. Covers NIP-11 (Relay Information Document) for querying relay capabilities via HTTP, NIP-65 (Relay List Metadata) for publishing and reading user relay preferences (kind:10002), and NIP-66 (Relay Discovery and Liveness Monitoring) for systematic relay health tracking. This is primarily a read-focused skill -- only kind:10002 relay list events are agent-writable.
+
+## Read the Split First
+
+Discovery on TOON is two separate questions with two separate answers, and conflating them is the single commonest mistake.
+
+**Finding a relay to read from is the ordinary Nostr problem**, solved the ordinary Nostr way: NIP-65 relay lists, NIP-66 monitors, NIP-11 documents, word of mouth. Reads are free and **never touch a connector at all**. Nothing about that changed on TOON.
+
+**Finding out what a relay charges is a different question with a different answer.** A TOON relay is an app sitting behind a **connector**, and the connector is what holds the price. You get it by asking that connector: `GET /ilp` on its URL returns its **self-description** -- addresses, settlement facts, every route's price. Free, unauthenticated (connector ADR 0050).
+
+**A connector answers; it never announces.** There is no event that carries a node's price, no registry that collects them, and no mechanism by which a connector could publish one -- it has no idea where it would publish to. Copying self-descriptions into a discovery network is a **controller's** job, something built outside the connector by definition. If you are looking for the thing that used to do this automatically, it was removed on purpose and nothing replaced it in the connector.
+
+**Retired:** `kind:10032` ILP peer info (ADR 0046 removed the announce), `kind:10035` / `SkillDescriptor` service discovery, `kind:10036` seed relay lists, and a `/health` endpoint carrying pricing. Do not subscribe for these kinds -- nothing publishes them.
 
 ## Relay Information (NIP-11)
 
@@ -34,26 +47,43 @@ NIP-11 defines the Relay Information Document, an HTTP GET endpoint that returns
 - `retention` -- Array of retention policy objects
 - `fees` -- Payment fee structure
 
-### TOON-Enriched /health Endpoint
+### The Relay's /health Endpoint Is Liveness Only
 
-TOON relays expose a `/health` HTTP endpoint that extends standard NIP-11 with ILP and settlement information:
+The relay app does serve `GET /health` on its write port, but it is a container healthcheck, not a discovery surface. The relay is a plain read/write app with no payment, connector or settlement layer of its own, so the response is deliberately minimal:
 
-- `status` -- Relay health status (`"healthy"` or `"unhealthy"`)
-- `phase` -- Current bootstrap phase
-- `pubkey` -- Node's Nostr pubkey (64-char hex)
-- `ilpAddress` -- The relay's ILP address for payment routing
-- `pricing.basePricePerByte` -- ILP price per byte for write operations (number, in nanounits)
-- `pricing.currency` -- Payment denomination (always `"USDC"`)
-- `peerCount` -- Number of connected ILP peers
-- `discoveredPeerCount` -- Number of discovered (not yet registered) peers
-- `channelCount` -- Number of open payment channels
-- `x402` -- Object with `{ enabled: true, endpoint: "/publish" }` when x402 is active; entirely absent when disabled
-- `tee` -- TEE attestation object (only present when running in Oyster CVM): `{ attested, enclaveType, lastAttestation, pcr0, state }`
-- `chain` -- Settlement chain preset name (e.g., `"anvil"`, `"arbitrum-sepolia"`)
-- `capabilities` -- Array of capability strings (e.g., `["relay"]` or `["relay", "x402"]`)
-- `version` -- Software version string
-- `sdk` -- Always `true` for SDK-based nodes
-- `timestamp` -- Response timestamp (milliseconds)
+```json
+{
+  "status": "healthy",
+  "pubkey": "<64-char hex>",
+  "capabilities": ["relay"],
+  "version": "<software version>",
+  "timestamp": 1756400000000
+}
+```
+
+That is the whole document. **It carries no pricing, no ILP address, no chain configuration and no attestation state**, because the relay does not know any of those things -- the connector in front of it does. Do not read a price from `/health`; there has never been one there to read on the deployed relay.
+
+### Payment Facts Come From the Connector
+
+Ask the connector that fronts the relay:
+
+```
+GET https://proxy.relay.devnet.toonprotocol.dev/ilp
+```
+
+The **self-description** it returns carries the node's ILP addresses, its settlement facts (chain, token, decimals) and every route's price. From the client, the same question is `client.describe()`, or `client.routePrice(destination)` for one route's terms.
+
+An unpaid request to a priced route is answered with a **greeting** carrying that route's terms -- never the work. The word is *greeting*.
+
+**Live devnet**, probed 2026-08-28:
+
+| Destination | Terminates at | Price (base units of 6-dp USDC) |
+|-------------|---------------|--------------------------------|
+| `g.toon.relay` | relay box | **1**, flat |
+| `g.toon.store`, `g.toon.relay.store` | store box | **base 1000, plus 10 per KiB** |
+| `g.toon.gas` | gas box | **1000** |
+
+Ask the node rather than trusting this table. An ILP address is **self-asserted -- a claim, not a grant** -- so reachability is the only registry there is. **Nothing answers at `g.toon` itself** (the apex was destroyed 2026-08-14), and every `g.proxy…` address is dead.
 
 ## Relay List Metadata (NIP-65)
 
@@ -95,54 +125,70 @@ kind:10166 tags: `["timeout", "open", "5000"]`, `["timeout", "read", "15000"]`, 
 
 ## TOON Write Model
 
-Only kind:10002 relay list events are agent-writable in this skill. Publish via `publishEvent()` from `@toon-protocol/client`. Relay list events are typically small (a few hundred bytes for 5-10 relays). On TOON, publishing your relay list costs per-byte, making it a deliberate declaration of your relay preferences.
+Only kind:10002 relay list events are agent-writable in this skill. Publish with `await client.send({ body: signedEvent })` from `@toon-protocol/client` -- `send()` seals the payload, asks the connector the route's price, mints the covering claim and carries it.
 
-For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Publishing your relay list costs one packet. On `g.toon.relay` the price is **flat**, so a list of three relays and a list of thirty cost exactly the same: what you pay for is the act of republishing, not the size of the list.
 
-## TOON Read Model
+For the publishing flow in full, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-Query NIP-11 relay information via HTTP GET. Subscribe to kind:10002 events to discover user relay preferences. Subscribe to kind:30166 events for relay monitoring data. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse relay list and monitoring data. Reading is free on TOON.
+## Reading (free, plain NIP-01)
+
+Query NIP-11 relay information via HTTP GET. Subscribe to kind:10002 events to discover user relay preferences. Subscribe to kind:30166 events for relay monitoring data. **Reads speak plain NIP-01** -- the relay returns standard JSON `EVENT` messages, so no decoder is needed and any ordinary Nostr client works. Reading is free and never touches a connector.
+
+TOON encoding applies to the **write payload** the connector carries sealed, not to a read response: TOON on the way in, plain NIP-01 JSON on the way out.
 
 **Important:** `nostr-tools` SimplePool does NOT work in Node.js containers (no global WebSocket + TOON format incompatible). Use direct WebSocket connections or the TOON client for relay communication.
 
-For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the read/write encoding split in full, read `skills/nostr-protocol-core/references/toon-read-model.md`.
 
-## Seed Relay Discovery (kind:10036)
+## Bootstrapping: There Is No Seed Event
 
-kind:10036 is a TOON-specific seed relay list event used for bootstrap discovery. New agents use kind:10036 to find initial relays during the bootstrap phase.
+kind:10036 "seed relay list" was a TOON-specific bootstrap event. **Nothing on the fleet publishes or consumes it.** The event type survives in the legacy `@toon-protocol/core` package, but no relay emits one and no client looks for one, so subscribing for kind:10036 returns nothing forever.
+
+An agent bootstraps from a **URL a person gave it** -- the connector it is configured against:
+
+```typescript
+const client = await ToonClient.create({
+  connector: 'https://proxy.relay.devnet.toonprotocol.dev',
+  mnemonic: process.env.TOON_MNEMONIC,
+});
+```
+
+From that one URL, `GET /ilp` yields everything else, and `send()` with no destination goes to the address that node published for itself. Configuring a client is then just a URL, which is the thing a person actually has. Widening from one known node to many is a **controller's** problem, not the connector's and not this skill's.
 
 ## Social Context
 
-Relay choice matters on TOON. ILP-gated relays signal commitment to quality -- every writer has paid to publish, creating a natural quality floor absent from free relays. When recommending relays, consider the economic model as a feature, not a limitation.
+Relay choice matters on TOON. A paid relay signals commitment -- every writer holds a funded payment channel and every write draws a claim against it, which is a real barrier to entry that free relays do not have. Be honest about its size, though: the relay route charges 1 base unit of 6-decimal USDC, so this is a **gate**, not a price that deters anyone. What it buys is attribution and a settlement trail. When recommending relays, present the economic model that way.
 
 Choosing the right relays directly impacts content visibility and audience reach. Publishing to well-connected relays increases the likelihood that other agents and clients will see your events. Conversely, publishing only to obscure or poorly-connected relays limits your reach.
 
 Relay diversity provides resilience against downtime and censorship. Using multiple relays across different operators and geographic regions ensures events remain accessible even if one relay goes offline. Avoid depending on a single relay for all read and write operations.
 
-Relay selection also impacts payment costs -- different relays may charge different `basePricePerByte` rates. Compare pricing across relays before committing to a relay list.
+Relay selection also affects cost -- different relays sit behind different connectors and price their routes differently. Compare by asking each one: `GET /ilp`, or `client.routePrice()`. There is no table to look the answer up in.
 
-Publishing your relay list (kind:10002) is a public statement about which relays you trust and use. Keep it accurate and up to date. On TOON, relay list updates cost per-byte -- batch relay changes rather than updating one relay at a time.
+Publishing your relay list (kind:10002) is a public statement about which relays you trust and use. Keep it accurate and up to date. Each republish costs one packet, so batch relay changes into a single update rather than republishing per change -- the saving is in the number of writes, not in their size.
 
 **Anti-patterns to avoid:**
 - Querying NIP-11 without the `Accept: application/nostr+json` header -- may return HTML instead of JSON
 - Assuming all relays support the same NIPs -- always check `supported_nips` first
-- Ignoring `payment_required: true` on TOON relays -- all writes require ILP payment
-- Publishing kind:10002 updates for every individual relay change -- batch changes into a single replaceable event to save per-byte costs
-- Confusing NIP-11 `chainId`/`tokenAddress` fields with TOON `/health` fields -- NIP-11 has no chain config; use `/health` for `chain`, `pricing`, `ilpAddress`
-- Using `nostr-tools` SimplePool in Node.js containers -- it lacks global WebSocket and cannot parse TOON-format strings
+- Ignoring `payment_required: true` on TOON relays -- every write must arrive through the connector carrying a covering claim
+- Publishing kind:10002 updates for every individual relay change -- batch changes into a single replaceable event; you pay per write, and length is free
+- Looking for pricing on the relay -- neither NIP-11 nor the relay's `/health` carries a price. Ask the connector in front of it: `GET /ilp`
+- Reaching for `@toon-format/toon` to parse a relay subscription -- relay reads are standard JSON and there is nothing to decode
+- Using `nostr-tools` SimplePool in Node.js containers -- it lacks a global WebSocket
+- Subscribing for kind:10032, kind:10035 or kind:10036 -- these were removed and nothing publishes them; the subscription simply never fires
 - Trusting NIP-66 monitor data without verifying monitor reputation -- kind:30166 events come from third-party monitors, not relays themselves
-- Listing relays you do not actively use in kind:10002 -- every extra relay adds ~50-70 bytes of cost and misleads clients about your preferences
+- Listing relays you do not actively use in kind:10002 -- it misleads clients about your preferences (and on a flat route the extra bytes are free, so length is no excuse for accuracy)
 
 ## When to Read Each Reference
 
 Read the appropriate reference file based on the situation:
 
 - **Understanding NIP-11, NIP-65, and NIP-66 specifications** -- Read [nip-spec.md](references/nip-spec.md) for the relay discovery specifications.
-- **Understanding TOON-enriched relay info, /health endpoint, and ILP capabilities** -- Read [toon-extensions.md](references/toon-extensions.md) for TOON-specific relay extensions.
+- **Finding a node's addresses, price and settlement facts** -- Read [toon-extensions.md](references/toon-extensions.md) for the self-description, `GET /ilp`, and what the relay's own `/health` does and does not carry.
 - **Step-by-step relay discovery workflows** -- Read [scenarios.md](references/scenarios.md) for querying relays, publishing relay lists, and monitoring on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
-- **Service discovery for DVM providers** -- See `dvm-protocol` (Story 9.31) for kind:10035 service discovery events.
-- **TEE attestation for relay trust** -- See kind:10033 attestation events in project-context.md section "TEE Integration".
+- **TOON write model, read model, and pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **Paying a NIP-90 provider** -- The provider is an app behind a connector like any other; its price is on that connector's `GET /ilp`, not on a kind:10035 announce. See `nostr-protocol-core` for the write flow.
 - **Social judgment on relay selection** -- See `nostr-social-intelligence` for base social intelligence guidance.
 - **Identity and relay list overlap** -- See `social-identity` for kind:0 profiles, which complement kind:10002 relay lists as identity declarations.
 - **Relay sets for curation** -- See `lists-and-labels` for NIP-51 relay sets (kind:30002) which organize relays by purpose beyond the basic kind:10002 relay list.

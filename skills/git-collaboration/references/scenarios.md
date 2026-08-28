@@ -1,6 +1,6 @@
 # Git Collaboration Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common git collaboration operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation, the publishEvent API, and economic incentives for keeping diffs minimal. These scenarios bridge the gap between knowing the NIP-34 event kinds (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common git collaboration operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like the `client.send()` write path and the flat price the relay route charges. These scenarios bridge the gap between knowing the NIP-34 event kinds (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Announcing a Repository (kind:30617)
 
@@ -34,18 +34,16 @@
 
 3. **Sign the event** using your Nostr private key.
 
-4. **Calculate the fee.** A full repository announcement is approximately 400-500 bytes (~$0.004-$0.005 at default `basePricePerByte`).
+4. **Send it:** `await client.send({ body: signedEvent })`. The client seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step. The relay route is flat-priced at 1 base unit of 6-decimal USDC.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
-
-6. **Record the repository address.** It is `30617:<your-pubkey>:my-project`. Share this with contributors so they can submit patches, PRs, and issues.
+5. **Record the repository address.** It is `30617:<your-pubkey>:my-project`. Share this with contributors so they can submit patches, PRs, and issues.
 
 ### Considerations
 
 - Include all clone URLs so contributors can fetch code regardless of their preferred protocol.
 - List all maintainers in the `maintainers` tag -- this determines who can authoritatively merge and close.
 - Use topic tags (`t`) for discoverability. Contributors searching for TypeScript projects will find yours.
-- This is a parameterized replaceable event. You can update metadata later at the same per-byte cost.
+- This is a parameterized replaceable event. Later updates replace the previous version at the same flat price, and the relay retains one copy.
 
 ## Scenario 2: Publishing Repository State (kind:30618)
 
@@ -70,7 +68,7 @@
    }
    ```
 
-3. **Sign, calculate fee (~200-800 bytes, ~$0.002-$0.008), and publish** via `publishEvent()`.
+3. **Sign, then send:** `await client.send({ body: signedEvent })`. Each state update is one paid write at the relay's flat price.
 
 ### Considerations
 
@@ -82,7 +80,7 @@
 
 **When:** A contributor wants to submit a code change to a repository as a patch.
 
-**Why this matters:** Patches are the primary code contribution mechanism in NIP-34. On TOON, patches cost per-byte because the content contains full `git format-patch` output, so keep diffs focused and minimal.
+**Why this matters:** Patches are the primary code contribution mechanism in NIP-34. On TOON the content carries full `git format-patch` output, but the relay route is flat-priced -- a 40 KiB patch costs the same 1 base unit as a two-tag status event.
 
 ### Steps
 
@@ -110,22 +108,20 @@
 
 4. **Sign the event** using your Nostr private key.
 
-5. **Calculate the fee.** A small patch is ~500-2000 bytes (~$0.005-$0.02). A large patch can be 10-50KB (~$0.10-$0.50). Consider splitting large changes.
-
-6. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+5. **Send it:** `await client.send({ body: signedEvent })`. Size does not change the price -- consider splitting large changes for reviewability, not for cost.
 
 ### Considerations
 
-- Keep patches focused. A 50KB patch costs ~$0.50. Five 10KB patches cost the same total but are individually reviewable.
-- Avoid unnecessary whitespace changes -- they inflate patch size without adding value.
+- Keep patches focused. Splitting a 50 KiB monolith into five patches is five writes instead of one, so it costs more, not less -- do it anyway, because each piece is individually reviewable.
+- Avoid unnecessary whitespace changes -- they bury the real diff.
 - Use a cover letter (first patch with `["t", "root"]`) for multi-patch series to explain the overall change.
-- Write concise commit messages -- they are part of the patch content and cost per-byte.
+- Write clear commit messages. They are part of the patch content, and length is free.
 
 ## Scenario 4: Creating a Pull Request (kind:1618)
 
 **When:** A contributor wants to request merging a branch with multiple commits.
 
-**Why this matters:** PRs are cheaper than patches on TOON because the content is a markdown description, not the full diff. Reviewers fetch the code via clone URLs.
+**Why this matters:** A PR carries a markdown description rather than the full diff, so reviewers fetch the code via clone URLs. It is not cheaper than a patch -- the relay route is flat-priced -- it is a different review experience.
 
 ### Steps
 
@@ -150,15 +146,13 @@
 
 3. **Sign the event.**
 
-4. **Calculate the fee.** A PR is approximately 400-1000 bytes (~$0.004-$0.01).
+4. **Send it:** `await client.send({ body: signedEvent })`.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
-
-6. **Push the tip to `refs/nostr/<event-id>`** so reviewers can fetch it by event ID.
+5. **Push the tip to `refs/nostr/<event-id>`** so reviewers can fetch it by event ID.
 
 ### Considerations
 
-- Use PRs instead of patches for large contributions -- the markdown description is much cheaper than embedding the full diff.
+- Use PRs instead of patches for large contributions when reviewers should fetch the code rather than read it inline. The saving is in review effort, not in price.
 - Write a clear subject line and description. Reviewers see this before fetching the code.
 - Include at least one clone URL so reviewers can fetch the branch.
 
@@ -182,13 +176,13 @@
    }
    ```
 
-2. **Sign, calculate fee (~300-2000 bytes, ~$0.003-$0.02), and publish** via `publishEvent()`.
+2. **Sign, then send:** `await client.send({ body: signedEvent })`.
 
 ### Considerations
 
-- Use the `subject` tag for a clear title. It costs a few extra bytes but aids discoverability.
+- Use the `subject` tag for a clear title. The extra bytes are free on a flat-priced route and they aid discoverability.
 - Add `t` tags for labels (`bug`, `enhancement`, `question`) to help maintainers triage.
-- On TOON, detailed issues cost more but are more valuable. Include reproduction steps.
+- A detailed issue costs exactly what a one-liner costs. Include reproduction steps.
 
 ## Scenario 6: Commenting on a PR (kind:1622)
 
@@ -209,12 +203,12 @@
    }
    ```
 
-2. **Sign, calculate fee (~200-1000 bytes, ~$0.002-$0.01), and publish** via `publishEvent()`.
+2. **Sign, then send:** `await client.send({ body: signedEvent })`.
 
 ### Considerations
 
-- Consolidate feedback into one detailed comment rather than many short ones. Each event has fixed tag overhead on top of content costs.
-- Include specific suggestions with code snippets. Constructive feedback is worth the per-byte cost.
+- Consolidate feedback into one detailed comment rather than many short ones. The price is per write, not per kibibyte, so five short comments cost five times one long one.
+- Include specific suggestions with code snippets. They cost nothing extra.
 - Use the `a` tag for repository context so clients can display the comment in the right repository.
 
 ## Scenario 7: Uploading Git Objects to Arweave (kind:5094)
@@ -243,7 +237,7 @@
    }
    ```
 
-3. **Sign, calculate fee, and publish** via `publishEvent()`. The TOON relay fee covers the Nostr event; Arweave storage is handled by the DVM provider.
+3. **Sign, then send:** `await client.send({ body: signedEvent })`. The relay's flat price covers the Nostr event. Where the blob travels TOON's store route (`g.toon.store`) instead of inline, that route is priced `1000 + 10 per KiB` of **sealed** payload -- `await client.routePrice('g.toon.store')` and `chargeFor(terms, sealedBytes)` are the way to learn a charge, never the object's own size. Arweave storage is a separate fee handled by the DVM provider.
 
 4. **Wait for DVM response.** The DVM provider uploads to Arweave and publishes a result event with the Arweave transaction ID.
 

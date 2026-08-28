@@ -1,6 +1,6 @@
 # Highlights Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common highlight operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation and the publishEvent API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common highlight operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like what the write costs and the `client.send()` API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Highlighting a Passage from an Article
 
@@ -14,7 +14,7 @@
 
 2. **Select the passage to highlight.** Choose text that conveys a complete idea or striking insight. The passage should stand on its own -- readers will see it without the full article context.
 
-3. **Decide whether to include context.** If the highlighted passage is ambiguous without surrounding text, add a `context` tag with enough surrounding text to provide meaning. If the passage is self-explanatory, omit context to keep the event smaller.
+3. **Decide whether to include context.** If the highlighted passage is ambiguous without surrounding text, add a `context` tag with enough surrounding text to provide meaning. If the passage is self-explanatory, omit context -- not to save money, which it does not, but to spare the reader the source over again.
 
 4. **Construct the kind:9802 event.** Set `kind: 9802`, put the highlighted passage in `content`, and include tags:
    - `["a", "30023:<author-pubkey>:<d-tag>"]` -- source article reference
@@ -23,11 +23,9 @@
 
 5. **Sign the event** using your Nostr private key.
 
-6. **Calculate the fee.** A typical article highlight is 300-800 bytes, costing approximately $0.003-$0.008 at default `basePricePerByte` of 10n. Adding a context tag increases size by 100-500 bytes.
+6. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it. The charge is 1 base unit of 6-decimal USDC -- `g.toon.relay` is flat-priced, so a context tag changes the event's size but not its price.
 
-7. **Publish via `publishEvent()`** from `@toon-protocol/client`.
-
-8. **Verify publication.** Subscribe with `kinds: [9802], authors: [<your-pubkey>]` and confirm the highlight appears. Remember that relay responses use TOON-format strings.
+7. **Verify publication.** Subscribe with `kinds: [9802], authors: [<your-pubkey>]` and confirm the highlight appears. Reads are free and come back as plain NIP-01 JSON.
 
 ### Considerations
 
@@ -53,7 +51,7 @@
    - `["e", "<event-id>"]` -- source note reference
    - `["p", "<author-pubkey>"]` -- source author
 
-4. **Sign, calculate fee, and publish via `publishEvent()`.**
+4. **Sign the event and send it** with `await client.send({ body: signedEvent })`.
 
 ### Considerations
 
@@ -81,11 +79,11 @@
    - `["p", "<author-pubkey>"]` -- source author (if they have a Nostr pubkey)
    - Optionally `["context", "<surrounding-text>"]`
 
-5. **Sign, calculate fee, and publish via `publishEvent()`.**
+5. **Sign the event and send it** with `await client.send({ body: signedEvent })`.
 
 ### Considerations
 
-- Verify the URL is stable and publicly accessible -- paywalled or ephemeral URLs waste your publishing investment when the link dies
+- Verify the URL is stable and publicly accessible -- paywalled or ephemeral URLs waste the write when the link dies
 - If the web author also has Nostr presence, include both `r` (URL) and `p` (pubkey) tags
 - If the same content exists on Nostr (e.g., an article cross-posted from a blog), prefer the `a` tag reference to the Nostr event over the `r` tag web URL
 - Web highlights are particularly valuable for surfacing insights from academic papers, technical documentation, or longform journalism
@@ -107,7 +105,7 @@
 
 2. **Subscribe to the relay** with your chosen filter.
 
-3. **Parse the TOON-format responses.** TOON relays return TOON-format strings, not standard JSON. Use the TOON decoder to extract event data.
+3. **Read the responses.** The relay returns standard NIP-01 JSON `EVENT` messages -- any ordinary Nostr client can read them, and the read never touches a connector.
 
 4. **Extract highlight data.** From each event:
    - `content` -- the highlighted passage

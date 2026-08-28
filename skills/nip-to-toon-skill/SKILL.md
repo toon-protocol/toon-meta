@@ -5,7 +5,7 @@ description: Convert any Nostr NIP specification into a TOON-aware Claude Agent 
 
 # NIP-to-TOON Skill Pipeline
 
-Convert any Nostr NIP into a TOON-aware Claude Agent Skill. This pipeline produces a complete skill directory following skill-creator anatomy: SKILL.md with frontmatter, references, and evals. Every generated skill is TOON-first (ILP-gated writes, TOON-format reads) and socially aware.
+Convert any Nostr NIP into a TOON-aware Claude Agent Skill. This pipeline produces a complete skill directory following skill-creator anatomy: SKILL.md with frontmatter, references, and evals. Every generated skill is TOON-first (paid writes through a connector, free plain-NIP-01 reads) and socially aware.
 
 ## NIP Classification
 
@@ -13,8 +13,8 @@ Before starting the pipeline, classify the target NIP. Classification determines
 
 | Classification | Criteria | Injected Context |
 |---------------|----------|-----------------|
-| **Read-only** | NIP defines filters/queries but no new publishable event kinds (e.g., NIP-50 Search) | TOON read model, `toon-format-check` |
-| **Write-capable** | NIP defines event kinds the agent creates/publishes (e.g., NIP-25 Reactions) | TOON write model, fee calculation, `toon-write-check`, `toon-fee-check` |
+| **Read-only** | NIP defines filters/queries but no new publishable event kinds (e.g., NIP-50 Search) | TOON read model, `toon-read-check` |
+| **Write-capable** | NIP defines event kinds the agent creates/publishes (e.g., NIP-25 Reactions) | TOON write model, route pricing, `toon-write-check`, `toon-fee-check` |
 | **Both** | NIP defines both queryable and publishable event kinds (e.g., NIP-23 Long-form) | All write + read checks |
 
 Universal checks applied regardless: `social-context-check`, `trigger-coverage`.
@@ -30,17 +30,19 @@ Read the NIP specification. Extract:
 - Filter patterns (how to query these events)
 - Classify as read-only / write-capable / both
 
-Flag any TOON-specific considerations: does this NIP overlap with an excluded NIP (NIP-13, NIP-42, NIP-47, NIP-57, NIP-98)? If so, document what ILP replaces.
+Flag any TOON-specific considerations: does this NIP overlap with an excluded NIP (NIP-13, NIP-42, NIP-47, NIP-57, NIP-98)? If so, document what the payment layer replaces.
+
+Also flag what the relay does NOT do. The fleet relay implements **NIP-01 and NIP-34 only**; every other NIP is a client-side convention over kinds and tags. Never let a generated skill imply the relay enforces a NIP's rules server-side.
 
 ### Step 2: TOON Context Injection
 
 Read [toon-protocol-context.md](references/toon-protocol-context.md) for the canonical protocol details.
 
-For **write-capable** NIPs: inject TOON write model section explaining `publishEvent()` usage for the specific event kind, fee calculation for typical payload sizes of this NIP's events, and error handling (F04 insufficient payment).
+For **write-capable** NIPs: inject the TOON write model section -- construct and sign the event, then `await client.send({ body: signedEvent })`, which seals the payload, reads the route's price, mints the covering claim and carries it. Name the destination route and its live price instead of teaching byte arithmetic, and cover error handling (`F03 INVALID_AMOUNT` means the claim did not cover the charge; a REJECT comes back as `{ fulfilled: false }` and is never thrown).
 
-For **read-capable** NIPs: inject TOON read model section documenting that responses come in TOON-format strings, not JSON objects.
+For **read-capable** NIPs: inject the TOON read model section -- reads are free and speak plain NIP-01. The relay returns standard JSON `EVENT` messages that any ordinary Nostr client can read; a read never touches a connector and needs no decoder. TOON is the encoding of the *write* payload sealed inside the ILP packet: TOON on the way in, plain NIP-01 JSON on the way out.
 
-For **all** NIPs: inject relay discovery context (enriched NIP-11 `/health` endpoint, kind:10032 pricing events).
+For **all** NIPs: inject relay discovery context -- a connector answers, it never announces. `GET /ilp` on a node's URL returns its self-description: its addresses, its settlement facts and every route's price, free and unauthenticated. An unpaid request to a priced route is answered with a greeting carrying that route's terms.
 
 ### Step 3: Social Context Layer
 
@@ -83,7 +85,7 @@ Read [toon-compliance-assertions.md](references/toon-compliance-assertions.md).
 
 Auto-inject TOON compliance assertions into the output evals based on NIP classification:
 - **Write-capable:** `toon-write-check`, `toon-fee-check`
-- **Read-capable:** `toon-format-check`
+- **Read-capable:** `toon-read-check`
 - **All:** `social-context-check`, `trigger-coverage`
 
 ### Step 7: Description Optimization

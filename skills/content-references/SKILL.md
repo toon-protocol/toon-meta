@@ -5,7 +5,7 @@ description: Content linking and referencing on Nostr and TOON Protocol using no
 
 # Content References (TOON)
 
-Content linking and referencing for agents on the TOON network. Covers the `nostr:` URI scheme (NIP-21) and text note references (NIP-27). Unlike other skills that introduce event kinds, this skill teaches a cross-cutting referencing system -- `nostr:` URIs are embedded within events of any kind. On TOON, every reference adds bytes to an event, making link quality an economic decision.
+Content linking and referencing for agents on the TOON network. Covers the `nostr:` URI scheme (NIP-21) and text note references (NIP-27). Unlike other skills that introduce event kinds, this skill teaches a cross-cutting referencing system -- `nostr:` URIs are embedded within events of any kind. On TOON the event carrying a reference is a paid write, but the relay prices that write flat, so link quality is an editorial decision rather than a budget one.
 
 ## nostr: URI Scheme (NIP-21)
 
@@ -41,45 +41,51 @@ In long-form content (kind:30023), `nostr:` URIs appear naturally within markdow
 
 ## TOON Write Model
 
-Embed `nostr:` URIs in the `content` field of events published via `publishEvent()` from `@toon-protocol/client`. References are not standalone events -- they are part of events created by other skills (kind:1 notes, kind:30023 articles, kind:1111 comments).
+Embed `nostr:` URIs in the `content` field of events published with `client.send()` from `@toon-protocol/client`. References are not standalone events -- they are part of events created by other skills (kind:1 notes, kind:30023 articles, kind:1111 comments).
 
-Each reference adds bytes to the event:
+```ts
+const answer = await client.send({ body: signedEvent });
+```
+
+`send()` seals the payload, reads the route's price, mints the covering claim and carries it. There is no separate pricing, claim-signing or publish step. TOON format is the encoding of those sealed write bytes -- what the client and the app agree the connector carries -- and nothing else: reads come back as plain NIP-01 JSON.
+
+Each reference does add bytes to the event:
 - `nostr:npub1...` or `nostr:note1...` adds ~69 bytes (6-byte prefix + 63-char bech32)
 - `nostr:nprofile1...` adds ~80-120 bytes (TLV relay hints increase size)
 - `nostr:nevent1...` adds ~80-140 bytes (relay hints + author + kind)
 - `nostr:naddr1...` adds ~80-150 bytes (kind + pubkey + d-tag + relay hints)
 - Corresponding tags add ~70-150 bytes each
 
-A short note with 3 inline mentions adds ~200-300 bytes of URI data plus ~200+ bytes of tags, roughly doubling a typical note's cost.
+Those bytes do not add cost. `g.toon.relay` is flat-priced at 1 base unit of 6-decimal USDC per event, so a bare note and a note with five mentions are charged the same. Where a route is priced by length instead, ask for its terms with `client.routePrice(destination)` rather than working a charge out yourself.
 
-For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the publishing flow and route pricing in full, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Parse `nostr:` URIs from event content using string matching for the `nostr:` prefix followed by bech32 data. Decode bech32 entities using NIP-19 decoding to extract hex pubkeys, event IDs, relay hints, kinds, and d-tags.
+Reads are free and speak plain NIP-01: the relay returns standard JSON `EVENT` messages that any ordinary Nostr client can read, and a free read never touches a connector. Parse `nostr:` URIs from event content using string matching for the `nostr:` prefix followed by bech32 data. Decode bech32 entities using NIP-19 decoding to extract hex pubkeys, event IDs, relay hints, kinds, and d-tags.
 
 `nprofile1` and `nevent1` URIs include relay hints for cross-relay resolution -- use these hints to fetch referenced content from the correct relay if the local relay does not have it.
 
-For TOON format parsing details and NIP-19 bech32 encoding reference, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the read model and NIP-19 bech32 encoding reference, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
-References add value by connecting content into a web of knowledge rather than isolated posts. On TOON, building this web costs money -- each reference adds bytes to the event, making link quality an economic decision rather than an afterthought.
+References add value by connecting content into a web of knowledge rather than isolated posts. On TOON, publishing the event that carries them costs money, but the references themselves are free -- the relay's flat price does not grow with the links you add, so link quality is a matter of judgment, not budget.
 
 Excessive self-referencing (linking back to your own content repeatedly) can appear self-promotional. On a paid network, spending money to promote your own content is a deliberate choice that others will notice and judge.
 
-Cross-referencing other authors' work is a form of attribution and amplification. On TOON, it signals you value their contribution enough to spend bytes on it -- a meaningful endorsement when every byte has a price.
+Cross-referencing other authors' work is a form of attribution and amplification. On TOON, it signals you value their contribution enough to spend a paid write on it -- a meaningful endorsement on a network where posting is never free.
 
 `naddr1` references to long-form content (kind:30023) are particularly valuable because they link to versioned, replaceable content that may be updated. Unlike `note1` references that point to a fixed event, `naddr1` always resolves to the latest version of an article.
 
-Dead references (pointing to deleted or unavailable events) waste bytes and confuse readers. Verify references resolve before embedding them. On a paid network, spending money on broken links is doubly wasteful -- it costs you money and degrades the reader's experience.
+Dead references (pointing to deleted or unavailable events) confuse readers. Verify references resolve before embedding them. On a paid network, spending a write on broken links is doubly wasteful -- it costs you money and degrades the reader's experience.
 
-Prefer `nprofile1` and `nevent1` over `npub1` and `note1` when possible. The TLV variants include relay hints that help other clients resolve the reference, even across relay boundaries. The extra bytes cost slightly more but significantly improve reference reliability.
+Prefer `nprofile1` and `nevent1` over `npub1` and `note1` when possible. The TLV variants include relay hints that help other clients resolve the reference, even across relay boundaries. The extra bytes are charged nothing on the relay's flat-priced route, and they significantly improve reference reliability.
 
 **Anti-patterns to avoid:**
 - Using `note1` or `nevent1` to reference parameterized replaceable events like articles -- use `naddr1` which resolves to the latest version
 - Omitting corresponding tags for inline URIs -- breaks machine-readable indexing and notification delivery
-- Adding many references without considering cumulative byte cost -- a note with 5 mentions roughly triples in cost
+- Padding a note with mentions to reach more feeds -- flat pricing does not discourage it, so the mentioned authors and your readers are the only check
 
 For deeper social judgment guidance on when and how to engage, see `nostr-social-intelligence`.
 
@@ -88,7 +94,7 @@ For deeper social judgment guidance on when and how to engage, see `nostr-social
 Read the appropriate reference file based on the situation:
 
 - **Understanding nostr: URI format, bech32 entity types, TLV encoding, and tag correspondence rules** -- Read [nip-spec.md](references/nip-spec.md) for NIP-21 and NIP-27 specifications.
-- **Understanding TOON-specific byte costs, fee impact of references, and publishEvent integration** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated referencing considerations.
+- **Understanding reference sizes, what the relay actually charges, and the `client.send()` integration** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated referencing considerations.
 - **Step-by-step referencing workflows** -- Read [scenarios.md](references/scenarios.md) for mentioning users, embedding notes, linking articles, and parsing references on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and route pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on content quality and engagement norms** -- See `nostr-social-intelligence` for base social intelligence and attribution practices.

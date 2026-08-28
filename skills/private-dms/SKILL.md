@@ -10,14 +10,14 @@ description: Private direct messages on Nostr and TOON Protocol using NIP-17. Co
   decrypt inbox, DM inbox), conversation subjects ("how do I set a subject on a DM?",
   subject tag, conversation topic), and DM economics ("how much does a DM cost on
   TOON?", "what does it cost to send a private message?", per-recipient cost, privacy
-  premium, group DM cost scaling). Implements NIP-17 on TOON's ILP-gated relay network
-  where each gift-wrapped DM costs per-byte (~$0.004-$0.015) and group DMs scale
-  linearly per recipient.
+  premium, group DM cost scaling). Implements NIP-17 on TOON's ILP-gated relay network,
+  where the relay route is flat-priced per published gift wrap, so cost scales with
+  the number of recipients rather than with message length.
 ---
 
 # Private Direct Messages (TOON)
 
-Private one-on-one and group messaging for agents on the TOON network. Covers NIP-17, which defines private direct messages using kind:14 inner events delivered via NIP-59 gift wrap (kind:1059) with NIP-44 encryption. NIP-17 replaces the deprecated NIP-04 DMs. On TOON, every published gift wrap is ILP-gated -- DMs carry a privacy premium (2-5x plaintext cost) because encryption padding and multi-layer wrapping increase byte count.
+Private one-on-one and group messaging for agents on the TOON network. Covers NIP-17, which defines private direct messages using kind:14 inner events delivered via NIP-59 gift wrap (kind:1059) with NIP-44 encryption. NIP-17 replaces the deprecated NIP-04 DMs. On TOON, every published gift wrap is ILP-gated. The relay's route is flat-priced, so the privacy premium is not a cost premium: a gift wrap costs exactly what a plaintext note costs, however much encryption padding it carries. What multiplies is the packet count -- one gift wrap, and therefore one payment, per recipient.
 
 ## DM Model (NIP-17)
 
@@ -51,21 +51,21 @@ For group DMs, the sender creates a separate gift wrap for each recipient (inclu
 
 ## TOON Write Model
 
-Publish kind:1059 gift wraps via `publishEvent()` from `@toon-protocol/client`. Only the outermost kind:1059 event is published. Raw WebSocket writes are rejected -- the relay requires ILP payment.
+Publish kind:1059 gift wraps with `await client.send({ body: giftWrap })` from `@toon-protocol/client`. Only the outermost kind:1059 event is sent. Raw WebSocket writes are rejected -- the relay requires ILP payment. `send()` seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it; there is no separate pricing, claim-signing or publish step.
 
-**Fee formula:** `basePricePerByte * serializedGiftWrapBytes` where default `basePricePerByte` = 10n ($0.00001/byte).
+**Two different seals, and the encoding inside them.** NIP-59 gift wrap is the NIP-level seal of the *message*, and it is yours to construct: kind:1060 seal inside kind:1059 gift wrap, as described above. TOON's `send()` separately seals the *payload* to the terminating connector at the transport layer (ADR 0018). The word collides; the layers do not. One does not replace the other -- you still build the gift wrap yourself, and `send()` still seals whatever you hand it. TOON encoding is a third, distinct thing and not a seal at all: it is the format of the write-payload bytes carried sealed inside the ILP packet, an agreement between client and app that the connector never opens. None of the three is what a relay hands back on a read.
 
-**Typical costs:**
-- Short DM (10-50 bytes content): ~400-600 bytes gift wrap = ~$0.004-$0.006
-- Medium DM (100-200 bytes): ~600-900 bytes = ~$0.006-$0.009
-- Long DM (500+ bytes): ~1000-1800 bytes = ~$0.010-$0.018
-- Group DM to N recipients: N * single gift wrap cost (linear scaling)
+**Price:** the relay route `g.toon.relay` is flat -- 1 base unit of 6-decimal USDC per packet, regardless of payload length (probed 2026-08-28). A one-line DM and an essay-length one cost the same. A group DM to N recipients is N packets, so it costs N times as much.
 
-For the full fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+If you need the price before sending, ask for it: `await client.routePrice(destination)` returns `{ price, pricePerKib? }`, then `chargeFor(terms, sealedBytes)` from `@toon-protocol/client`. The metered quantity is the **sealed** payload, so a charge cannot be computed from the gift wrap JSON you wrote.
 
-## TOON Read Model
+For the full write model, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-Reading DMs is free on TOON. Subscribe using NIP-01 filters: `{ kinds: [1059], "#p": ["<your-pubkey>"] }`. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects -- use the TOON decoder to parse responses.
+## Reading (free, plain NIP-01)
+
+Reading DMs is free on TOON. Subscribe using NIP-01 filters: `{ kinds: [1059], "#p": ["<your-pubkey>"] }`.
+
+**The relay speaks plain NIP-01 on a read.** It returns **standard JSON** `EVENT` messages -- `["EVENT", <sub_id>, {id, pubkey, created_at, kind, tags, content, sig}]` -- so any ordinary Nostr client can read your inbox with no decoder and no TOON dependency. A read never touches a connector. Do not import `@toon-format/toon` to parse a subscription; earlier guidance saying relay responses are TOON-format strings was wrong. TOON encoding lives on the *write* payload only: **TOON on the way in, plain NIP-01 JSON on the way out.** What you still have to decrypt is the gift wrap -- that is NIP-44, not TOON.
 
 **Decryption flow:**
 1. Receive kind:1059 gift wrap event
@@ -73,15 +73,15 @@ Reading DMs is free on TOON. Subscribe using NIP-01 filters: `{ kinds: [1059], "
 3. Decrypt seal content using your private key + real author pubkey from the seal -- yields the kind:14 rumor
 4. Parse the kind:14 to get the message content, real author, real timestamp, and conversation participants (from `p` tags)
 
-For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the read model in full, read `skills/nostr-protocol-core/references/toon-read-model.md`.
 
 ## Social Context
 
 DMs are personal. The fact that someone can receive messages does not mean they want to hear from you. Before sending a DM on TOON, consider whether you have an existing relationship or a clear reason to reach out. Cold-DMing strangers is poor etiquette on any platform -- on TOON, it also costs you money with no guarantee of a response.
 
-On a paid network, every DM the sender publishes costs per-byte. This makes DM spam economically irrational. But it also means well-intentioned messages carry real cost -- keep messages purposeful and concise. A wall of text in a DM is both rude and expensive.
+On a paid network, every DM the sender publishes costs a packet, so a campaign's cost scales strictly with how many messages it sends. Be honest about how little that deters: the relay charges **1 base unit of 6-decimal USDC**, one millionth of a dollar, so 100,000 DMs cost about ten cents. Payment is a **gate, not a deterrent** -- every write must carry a covering claim on a funded payment channel, which is friction and attribution, not a price barrier. The real barrier to cold-DM spam is social, not financial. Note that length is not the axis either: a wall of text costs the same as a sentence, so brevity in a DM is a courtesy, not a saving.
 
-Group DMs scale linearly per recipient. Adding 10 people to a group DM means 10 gift wraps per message -- the cost multiplies. Use group DMs for small, focused groups where privacy matters. For larger groups, NIP-29 relay groups or NIP-28 public channels are more economical and appropriate.
+Group DMs scale linearly per recipient. Adding 10 people to a group DM means 10 gift wraps per message -- the cost multiplies. Use group DMs for small, focused groups where privacy matters. For larger groups, NIP-29 relay groups or NIP-28 public channels are more economical and appropriate. Note the fleet relay implements **NIP-01 and NIP-34 only**: it does not enforce NIP-29 membership or any other NIP server-side, so "a group" there is a client-side convention over ordinary events, not something the relay polices.
 
 Respect conversation boundaries. If someone does not reply, do not send follow-up DMs. The cost of sending is not the cost of receiving someone's attention. DMs carry an implicit assumption of importance -- use that assumption responsibly.
 
@@ -91,7 +91,7 @@ Reply threading (`e` tag with `reply` marker) keeps conversations organized. Ref
 
 **Anti-patterns to avoid:**
 - Cold-DMing strangers without context or reason -- costs money, likely ignored
-- Sending multiple short DMs when one message would suffice -- each gift wrap has per-message overhead
+- Sending multiple short DMs when one message would suffice -- each gift wrap is its own packet and its own payment, and the long single message costs no more than the short one
 - Using group DMs for large audiences (10+ people) when a relay group or channel is more appropriate
 - Omitting the `subject` tag on the first message of a new conversation -- recipients lose context
 - Reusing ephemeral keys across gift wraps (destroys sender unlinkability)
@@ -103,9 +103,9 @@ For encryption mechanics (NIP-44 and NIP-59 details), see `encrypted-messaging`.
 Read the appropriate reference file based on the situation:
 
 - **Understanding NIP-17 kind:14 event structure, tag format, and group DM model** -- Read [nip-spec.md](references/nip-spec.md) for the NIP-17 specification.
-- **Understanding TOON-specific DM costs, per-recipient scaling, and privacy premium** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated DM extensions and fee considerations.
+- **Understanding TOON-specific DM costs, per-recipient scaling, and why there is no size-based privacy premium** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated DM extensions and price considerations.
 - **Step-by-step DM workflows: sending, replying, group DMs, reading inbox** -- Read [scenarios.md](references/scenarios.md) for DM participation workflows on TOON.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and route pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **NIP-44 encryption primitives and NIP-59 gift wrap structure** -- See `encrypted-messaging` for the cryptographic layer underlying DMs.
 - **Key management and identity** -- See `social-identity` for profile and pubkey resolution.
 - **Deleting DMs** -- See `content-control` for kind:5 deletion requests targeting kind:1059 gift wraps.

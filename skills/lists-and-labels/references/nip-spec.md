@@ -1,6 +1,6 @@
 # NIP Specifications: Lists (NIP-51) and Labeling (NIP-32)
 
-> **Why this reference exists:** Agents need precise event structures to construct valid list and label events. This file covers the wire format for NIP-51 list kinds (mute lists, pin lists, follow sets, bookmark sets, and secondary lists) and NIP-32 labeling (kind:1985). Understanding these structures prevents malformed events that waste ILP payment on rejected publishes.
+> **Why this reference exists:** Agents need precise event structures to construct valid list and label events. This file covers the wire format for NIP-51 list kinds (mute lists, pin lists, follow sets, bookmark sets, and secondary lists) and NIP-32 labeling (kind:1985). Understanding these structures prevents malformed events that waste a paid publish on a rejected event.
 
 ## NIP-51: Lists
 
@@ -8,7 +8,7 @@ NIP-51 defines standardized lists using two event categories: standard lists (re
 
 ### Replaceable vs Parameterized Replaceable Semantics
 
-**Replaceable events (kind:10000-10030):** Only one event per kind per user exists on the relay. Publishing a new event replaces the previous version entirely. The relay discards the older event.
+**Replaceable events (kind:10000-10030):** Only one event per kind per user exists on the relay. Publishing a new event replaces the previous version entirely. The relay discards the older event, and you pay once per update rather than per retained version.
 
 **Parameterized replaceable events (kind:30000-30003):** Multiple events per kind per user, differentiated by the `d` tag value. Each unique `d` tag value is treated as a separate replaceable slot. Publishing with the same `d` tag replaces only that specific slot.
 
@@ -71,15 +71,6 @@ kind:10000 is a **replaceable event** listing entities the user wants to mute. C
 | `t` | Muted hashtag | `["t", "politics"]` |
 | `word` | Muted keyword or phrase | `["word", "spam phrase"]` |
 
-### Typical Byte Sizes
-
-| Entries | Approximate Size | TOON Cost |
-|---------|-----------------|-----------|
-| 5 muted pubkeys | ~500 bytes | ~$0.005 |
-| 20 muted pubkeys | ~1500 bytes | ~$0.015 |
-| 50 muted pubkeys + 10 words | ~4000 bytes | ~$0.04 |
-| 200 muted pubkeys | ~14000 bytes | ~$0.14 |
-
 ### Filter Pattern
 
 ```json
@@ -107,13 +98,6 @@ kind:10001 is a **replaceable event** listing notes the user wants pinned to the
 | Tag | Description | Example |
 |-----|-------------|---------|
 | `e` | Pinned event ID | `["e", "ab12...cd34"]` |
-
-### Typical Byte Sizes
-
-| Entries | Approximate Size | TOON Cost |
-|---------|-----------------|-----------|
-| 3 pinned notes | ~300 bytes | ~$0.003 |
-| 10 pinned notes | ~500 bytes | ~$0.005 |
 
 ### Filter Pattern
 
@@ -151,14 +135,6 @@ kind:30000 is a **parameterized replaceable event** for organizing contacts into
 | `title` | No | Human-readable category title. |
 | `image` | No | URL of an image representing the set. |
 | `description` | No | Description of the category. |
-
-### Typical Byte Sizes
-
-| Category Size | Approximate Size | TOON Cost |
-|--------------|-----------------|-----------|
-| 5 people | ~500 bytes | ~$0.005 |
-| 20 people | ~1600 bytes | ~$0.016 |
-| 100 people | ~7500 bytes | ~$0.075 |
 
 ### Filter Patterns
 
@@ -203,14 +179,6 @@ kind:30003 is a **parameterized replaceable event** for organizing bookmarks int
 | `title` | No | Human-readable collection title. |
 | `image` | No | URL of an image representing the set. |
 | `description` | No | Description of the collection. |
-
-### Typical Byte Sizes
-
-| Collection Size | Approximate Size | TOON Cost |
-|----------------|-----------------|-----------|
-| 5 bookmarks | ~600 bytes | ~$0.006 |
-| 20 bookmarks | ~2000 bytes | ~$0.02 |
-| 50 bookmarks | ~5000 bytes | ~$0.05 |
 
 ### Filter Patterns
 
@@ -412,14 +380,6 @@ Non-kind:1985 events can include `L` and `l` tags to label themselves at creatio
   ]
 }
 ```
-
-### Typical Byte Sizes
-
-| Label Complexity | Approximate Size | TOON Cost |
-|-----------------|-----------------|-----------|
-| Single label, single target | ~200 bytes | ~$0.002 |
-| Multi-namespace, single target | ~300 bytes | ~$0.003 |
-| Single label, multiple targets | ~350 bytes | ~$0.004 |
 
 ### Filter Patterns
 

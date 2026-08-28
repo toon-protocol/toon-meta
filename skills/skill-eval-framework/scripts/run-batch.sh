@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # run-batch.sh — Batch runner: validate all TOON skills in a directory
 # Usage: ./run-batch.sh [skills-root-directory]
-# Default: .claude/skills/
+# Default: <repo>/skills/
 # Output: JSON report to stdout, summary table to stderr
 # Exit 0 = all pass, 1 = any fail
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-SKILLS_ROOT="${1:-$PROJECT_ROOT/.claude/skills}"
+# SCRIPT_DIR is <repo>/skills/skill-eval-framework/scripts, so the repo root is
+# three levels up, not four, and the skills live at skills/ with no .claude prefix.
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+SKILLS_ROOT="${1:-$PROJECT_ROOT/skills}"
 RUN_EVAL="$SCRIPT_DIR/run-eval.sh"
 
 # Skills to skip (not TOON NIP skills)
@@ -45,7 +47,7 @@ for EVALS_FILE in "$SKILLS_ROOT"/*/evals/evals.json; do
   # Print header before first skill
   if [ "$TOTAL" -eq 0 ]; then
     printf "  %-28s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %-6s\n" \
-      "Skill" "Struct" "Write" "Fee" "Format" "Social" "Trigger" "Evals" "Overall" >&2
+      "Skill" "Struct" "Write" "Fee" "Read" "Social" "Trigger" "Evals" "Overall" >&2
     printf "  %-28s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %-6s\n" \
       "----------------------------" "------" "------" "------" "------" "------" "------" "------" "------" >&2
   fi
@@ -74,7 +76,7 @@ for EVALS_FILE in "$SKILLS_ROOT"/*/evals/evals.json; do
 
   WRITE_RESULT=$(parse_assertion "toon-write-check")
   FEE_RESULT=$(parse_assertion "toon-fee-check")
-  FORMAT_RESULT=$(parse_assertion "toon-format-check")
+  READ_RESULT=$(parse_assertion "toon-read-check")
   SOCIAL_RESULT=$(parse_assertion "social-context-check")
   TRIGGER_RESULT=$(parse_assertion "trigger-coverage")
   EVAL_RESULT=$(parse_assertion "eval-completeness")
@@ -110,7 +112,7 @@ for EVALS_FILE in "$SKILLS_ROOT"/*/evals/evals.json; do
       toon_compliance: {
         'toon-write-check': process.argv[4],
         'toon-fee-check': process.argv[5],
-        'toon-format-check': process.argv[6],
+        'toon-read-check': process.argv[6],
         'social-context-check': process.argv[7],
         'trigger-coverage': process.argv[8],
         'eval-completeness': process.argv[9]
@@ -118,7 +120,7 @@ for EVALS_FILE in "$SKILLS_ROOT"/*/evals/evals.json; do
       overall: process.argv[10]
     }, null, 4));
   " "$SKILL_NAME" "$STRUCT_RESULT" "$CLASSIFICATION" \
-    "$WRITE_RESULT" "$FEE_RESULT" "$FORMAT_RESULT" \
+    "$WRITE_RESULT" "$FEE_RESULT" "$READ_RESULT" \
     "$SOCIAL_RESULT" "$TRIGGER_RESULT" "$EVAL_RESULT" "$OVERALL")
 
   RESULTS_JSON="$RESULTS_JSON
@@ -126,7 +128,7 @@ for EVALS_FILE in "$SKILLS_ROOT"/*/evals/evals.json; do
 
   # Print summary line to stderr
   printf "  %-28s %-6s %-6s %-6s %-6s %-6s %-6s %-6s %-6s\n" \
-    "$SKILL_NAME" "$STRUCT_RESULT" "$WRITE_RESULT" "$FEE_RESULT" "$FORMAT_RESULT" "$SOCIAL_RESULT" "$TRIGGER_RESULT" "$EVAL_RESULT" "$OVERALL" >&2
+    "$SKILL_NAME" "$STRUCT_RESULT" "$WRITE_RESULT" "$FEE_RESULT" "$READ_RESULT" "$SOCIAL_RESULT" "$TRIGGER_RESULT" "$EVAL_RESULT" "$OVERALL" >&2
 
 done
 

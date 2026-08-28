@@ -84,17 +84,17 @@
   "output_evals": [
     {
       "id": "create-poll-and-publish",
-      "prompt": "I want to create a simple yes/no poll asking my community whether we should adopt NIP-88 polls. The relay's basePricePerByte is 10 micro-USDC. Walk me through the full flow.",
-      "expected_output": "Construct a kind:1068 event with content set to your poll question (e.g., 'Should we adopt NIP-88 polls?'). Add option tags: ['option', '0', 'Yes'] and ['option', '1', 'No']. Optionally add a relay tag to direct responses to a preferred relay. Sign the event with your Nostr private key. A 2-option poll with a short question is approximately 300 bytes. At basePricePerByte of 10n, the cost is approximately $0.003. Publish via publishEvent() from @toon-protocol/client. Do not use raw WebSocket writes.",
+      "prompt": "I want to create a simple yes/no poll asking my community whether we should adopt NIP-88 polls. Walk me through the full flow.",
+      "expected_output": "Construct a kind:1068 event with content set to your poll question (e.g., 'Should we adopt NIP-88 polls?'). Add option tags: ['option', '0', 'Yes'] and ['option', '1', 'No']. Optionally add a relay tag to direct responses to a preferred relay. Sign the event with your Nostr private key, then send it with await client.send({ body: signedEvent }) from @toon-protocol/client -- the client seals the payload, reads the route's price, mints the covering claim and carries it. The relay route g.toon.relay is flat-priced at 1 base unit of 6-decimal USDC, so the poll costs the same whatever the question length or option count. Do not use raw WebSocket writes, and do not compute a charge from the event's own byte count.",
       "rubric": {
-        "correct": "Uses kind:1068 with option tags indexed from 0. Publishes via publishEvent() not raw WebSocket. Calculates fee (~$0.003 for a simple poll). Notes that poll creation costs money on TOON. Correctly describes the content field as the question text.",
-        "acceptable": "Correctly constructs the kind:1068 event with option tags and uses publishEvent(), but may not calculate exact fees or mention the relay tag.",
-        "incorrect": "Uses wrong event kind, omits option tags, uses raw WebSocket writes, or claims poll creation is free on TOON."
+        "correct": "Uses kind:1068 with option tags indexed from 0. Sends with client.send() from @toon-protocol/client, not raw WebSocket, letting the client price and pay for the packet. States the relay route is flat-priced (1 base unit of 6-decimal USDC) so option count and question length do not change the cost. Notes that poll creation costs money on TOON. Correctly describes the content field as the question text.",
+        "acceptable": "Correctly constructs the kind:1068 event with option tags and uses client.send(), but may not state the flat route price or mention the relay tag.",
+        "incorrect": "Uses wrong event kind, omits option tags, uses raw WebSocket writes, calls publishEvent() or signs a claim by hand, invents per-byte pricing for the poll, or claims poll creation is free on TOON."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for kind:1068, not raw WebSocket",
-        "toon-fee-check: Response calculates poll creation cost based on basePricePerByte (~$0.003-$0.006)",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client for kind:1068, not raw WebSocket or publishEvent()",
+        "toon-fee-check: Response lets the client price the packet or cites the flat relay route price, and does not compute a charge from the event's byte count",
+        "toon-read-check: Response does not claim relay responses are TOON-encoded or that a decoder is needed to read events back",
         "social-context-check: Response notes that poll creation costs money, filtering low-effort polls",
         "trigger-coverage: Description includes both protocol triggers (kind:1068, NIP-88) and social-situation triggers (create a poll, run a vote)"
       ]
@@ -102,16 +102,16 @@
     {
       "id": "vote-on-poll",
       "prompt": "I found a poll event (kind:1068) with ID abc123 that has three options. I want to vote for option 1. How do I cast my vote on TOON, and what does it cost?",
-      "expected_output": "Construct a kind:1018 event with content set to an empty string. Add an e tag referencing the poll event ID: ['e', 'abc123']. Add a response tag with the option index: ['response', '1']. Sign the event. A vote is compact at approximately 200-250 bytes. At default basePricePerByte of 10n, the cost is approximately $0.002. Publish via publishEvent() from @toon-protocol/client. Check for an endsAt tag on the poll first -- if the deadline has passed, your vote may be disregarded by clients. Also check if you have already voted -- duplicate votes waste money and clients deduplicate by pubkey.",
+      "expected_output": "Construct a kind:1018 event with content set to an empty string. Add an e tag referencing the poll event ID: ['e', 'abc123']. Add a response tag with the option index: ['response', '1']. Sign the event, then send it with await client.send({ body: signedEvent }) from @toon-protocol/client -- the client seals, prices, mints the covering claim and carries it. A vote is a paid write at the relay route's flat 1 base unit of 6-decimal USDC, the same price as the poll it answers. Check for an endsAt tag on the poll first -- if the deadline has passed, your vote may be disregarded by clients. Also check if you have already voted -- duplicate votes waste money and clients deduplicate by pubkey.",
       "rubric": {
-        "correct": "Uses kind:1018 with empty content. Includes e tag for poll reference and response tag with option index. Publishes via publishEvent(). Calculates vote cost (~$0.002). Advises checking endsAt and existing votes.",
-        "acceptable": "Correctly constructs the kind:1018 event and uses publishEvent(), but may not mention deadline checking or duplicate vote prevention.",
-        "incorrect": "Uses wrong event kind, puts vote choice in content field instead of response tag, uses raw WebSocket, or claims voting is free."
+        "correct": "Uses kind:1018 with empty content. Includes e tag for poll reference and response tag with option index. Sends with client.send(). States the vote is a paid write at the relay route's flat price, the same as the poll. Advises checking endsAt and existing votes.",
+        "acceptable": "Correctly constructs the kind:1018 event and uses client.send(), but may not mention deadline checking or duplicate vote prevention.",
+        "incorrect": "Uses wrong event kind, puts vote choice in content field instead of response tag, uses raw WebSocket, calls publishEvent() or signs a claim by hand, invents per-byte arithmetic for the vote, or claims voting is free."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for kind:1018, not raw WebSocket",
-        "toon-fee-check: Response calculates vote cost based on basePricePerByte (~$0.002-$0.003)",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client for kind:1018, not raw WebSocket or publishEvent()",
+        "toon-fee-check: Response treats the vote as a paid write priced by the client at the flat relay route price, not per byte",
+        "toon-read-check: Response does not claim relay responses are TOON-encoded or that a decoder is needed to read events back",
         "social-context-check: Response notes voting costs money and advises checking for duplicates or deadlines",
         "trigger-coverage: Description includes both protocol triggers (kind:1018, response tag) and social-situation triggers (vote, cast a vote)"
       ]
@@ -119,16 +119,16 @@
     {
       "id": "view-poll-results",
       "prompt": "I want to see the current results of a poll with event ID def456. How do I aggregate the votes? Is reading results free on TOON?",
-      "expected_output": "Reading poll results is free on TOON -- only writing costs money. Subscribe to { kinds: [1018], '#e': ['def456'] } to fetch all votes for the poll. Also fetch the poll itself with { kinds: [1068], ids: ['def456'] } to get the option labels. To aggregate: group votes by author pubkey, deduplicate by keeping only the most recent vote per pubkey (highest created_at), check the poll's endsAt tag and discard votes after the deadline, then count unique voters per option index. Map each index back to the option label from the poll event's option tags. TOON relays return TOON-format strings -- use the TOON decoder to parse.",
+      "expected_output": "Reading poll results is free on TOON -- only writing costs money. Subscribe to { kinds: [1018], '#e': ['def456'] } to fetch all votes for the poll. Also fetch the poll itself with { kinds: [1068], ids: ['def456'] } to get the option labels. To aggregate: group votes by author pubkey, deduplicate by keeping only the most recent vote per pubkey (highest created_at), check the poll's endsAt tag and discard votes after the deadline, then count unique voters per option index. Map each index back to the option label from the poll event's option tags. Reads speak plain NIP-01: the relay returns standard JSON EVENT messages, [\"EVENT\", <sub-id>, {id, pubkey, created_at, kind, tags, content, sig}], so any ordinary Nostr client can tally a poll with no decoder and no connector on the path.",
       "rubric": {
-        "correct": "States reading is free. Describes correct NIP-01 subscription filters for fetching votes. Explains deduplication by pubkey. Mentions checking endsAt for deadline enforcement. Notes TOON-format responses.",
+        "correct": "States reading is free. Describes correct NIP-01 subscription filters for fetching votes. Explains deduplication by pubkey. Mentions checking endsAt for deadline enforcement. Treats the relay's EVENT messages as standard JSON, with no decoding step.",
         "acceptable": "Correctly describes the subscription filter and free reading, but may not fully explain deduplication or deadline checking.",
-        "incorrect": "Claims reading costs money, uses incorrect subscription filters, or omits pubkey deduplication."
+        "incorrect": "Claims reading costs money, claims the relay returns TOON-format strings or TOON-encoded events, tells the reader to import @toon-format/toon or run a TOON decoder over an EVENT message, uses incorrect subscription filters, or omits pubkey deduplication."
       },
       "assertions": [
-        "toon-write-check: Response correctly identifies reading poll results as a read-only operation -- no publishEvent() needed",
+        "toon-write-check: Response correctly identifies reading poll results as a read-only operation -- no paid client.send() needed",
         "toon-fee-check: Response notes reading is free on TOON",
-        "toon-format-check: Response mentions TOON-format strings when discussing event retrieval from relays",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response explains deduplication by pubkey to prevent double-counting",
         "trigger-coverage: Description includes both protocol triggers (subscription filters, kind:1018) and social-situation triggers (tally results, view results)"
       ]
@@ -136,16 +136,16 @@
     {
       "id": "timed-poll-with-deadline",
       "prompt": "I want to create a poll that expires in 24 hours asking which day works best for a community call. How do I set the deadline, and what happens to votes after it passes?",
-      "expected_output": "Construct a kind:1068 event with your question in content. Add option tags for each day choice (e.g., Monday, Wednesday, Friday). Calculate the Unix timestamp for 24 hours from now and add an endsAt tag: ['endsAt', '<timestamp>']. Optionally add a relay tag to aggregate responses. Sign and publish via publishEvent(). The poll costs approximately $0.004-$0.005 with the extra endsAt tag. After the deadline, the relay does NOT reject late votes -- enforcement is client-side. Well-behaved clients filter out votes with created_at after the endsAt timestamp during result aggregation. You can also manually close a poll early by publishing an event with a closedAt tag.",
+      "expected_output": "Construct a kind:1068 event with your question in content. Add option tags for each day choice (e.g., Monday, Wednesday, Friday). Calculate the Unix timestamp for 24 hours from now and add an endsAt tag: ['endsAt', '<timestamp>']. Optionally add a relay tag to aggregate responses. Sign it and send it with await client.send({ body: signedEvent }). The extra endsAt tag makes the event larger but not more expensive -- the relay route is flat-priced at 1 base unit of 6-decimal USDC. After the deadline, the relay does NOT reject late votes -- enforcement is client-side. Well-behaved clients filter out votes with created_at after the endsAt timestamp during result aggregation. You can also manually close a poll early by publishing an event with a closedAt tag.",
       "rubric": {
-        "correct": "Uses endsAt tag with Unix timestamp. Explains client-side deadline enforcement -- relays accept all paid votes. Mentions closedAt for manual closing. Calculates fee. Uses publishEvent().",
-        "acceptable": "Correctly uses endsAt tag and publishEvent(), but may not explain that enforcement is client-side or mention closedAt.",
-        "incorrect": "Claims relays reject late votes, omits the endsAt tag, or uses wrong timestamp format."
+        "correct": "Uses endsAt tag with Unix timestamp. Explains client-side deadline enforcement -- relays accept all paid votes. Mentions closedAt for manual closing. Notes the endsAt tag does not change the flat route price. Uses client.send().",
+        "acceptable": "Correctly uses endsAt tag and client.send(), but may not explain that enforcement is client-side or mention closedAt.",
+        "incorrect": "Claims relays reject late votes, omits the endsAt tag, uses wrong timestamp format, calls publishEvent(), or claims the endsAt tag costs extra bytes and therefore extra money."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for kind:1068, not raw WebSocket",
-        "toon-fee-check: Response calculates timed poll cost including the endsAt tag overhead",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client for kind:1068, not raw WebSocket or publishEvent()",
+        "toon-fee-check: Response notes the endsAt tag does not change the price, because the relay route is flat",
+        "toon-read-check: Response does not claim relay responses are TOON-encoded or that a decoder is needed to read events back",
         "social-context-check: Response explains that deadline enforcement is client-side, not relay-enforced",
         "trigger-coverage: Description includes both protocol triggers (endsAt tag, kind:1068) and social-situation triggers (timed poll, poll deadline)"
       ]
@@ -153,16 +153,16 @@
     {
       "id": "ballot-stuffing-prevention",
       "prompt": "Someone told me that polls on TOON are resistant to ballot stuffing. How does that work? Is it foolproof?",
-      "expected_output": "Ballot-stuffing resistance on TOON is an emergent property of ILP-gated writes, not a protocol-level enforcement mechanism. Every vote (kind:1018) costs approximately $0.002-$0.003. On free Nostr relays, an attacker can create thousands of keypairs and vote for free. On TOON, stuffing 1,000 ballots costs approximately $2.00. This makes manipulation economically visible and costly, especially for small-to-medium polls. However, it is NOT foolproof: well-funded actors can still pay for votes, there is no identity binding (one person with multiple funded keypairs can vote multiple times), and deduplication by pubkey is client-side only -- relays accept all valid paid votes. The economic friction raises the cost of manipulation but does not eliminate it. It transforms ballot stuffing from trivially free to economically detectable.",
+      "expected_output": "Ballot-stuffing resistance on TOON is an emergent property of ILP-gated writes, not a protocol-level enforcement mechanism. On free Nostr relays an attacker can create thousands of keypairs and vote for free. On TOON every vote (kind:1018) is a paid write, but the per-vote price is small: the relay route is flat at 1 base unit of 6-decimal USDC, so 1,000 ballots cost 1,000 base units. The real friction is upstream of the fee -- a payer needs a funded payment channel, not just a keypair, and opening one is an on-chain transaction with a deposit behind it. A stuffer voting from 1,000 distinct pubkeys needs 1,000 funded channels; running them all from one channel makes the whole block attributable to one payer. It is NOT foolproof: a well-funded actor can fund channels and pay for votes, there is no identity binding (one person with multiple funded channels can vote multiple times), and deduplication by pubkey is client-side only -- relays accept all valid paid votes. Paid writes make manipulation operationally expensive and visible; they do not price it out.",
       "rubric": {
-        "correct": "Explains economic friction as the mechanism (not protocol enforcement). Calculates the cost of manipulation at scale. Acknowledges limitations: not foolproof, no identity binding, client-side deduplication only. Distinguishes TOON from free relays.",
-        "acceptable": "Correctly explains economic friction and cost per vote, but may not fully articulate the limitations.",
-        "incorrect": "Claims TOON has protocol-level ballot-stuffing prevention, claims it is foolproof, or omits the economic mechanism entirely."
+        "correct": "Explains economic friction as the mechanism (not protocol enforcement). Locates the real friction in the funded payment channel each payer needs, not in the per-vote price, and does not overstate the per-vote cost. Acknowledges limitations: not foolproof, no identity binding, client-side deduplication only. Distinguishes TOON from free relays.",
+        "acceptable": "Correctly explains economic friction and that each vote is a paid write, but may not fully articulate the limitations.",
+        "incorrect": "Claims TOON has protocol-level ballot-stuffing prevention, claims it is foolproof, quotes a fabricated per-vote price such as $0.002 or a per-byte fee, or omits the economic mechanism entirely."
       },
       "assertions": [
-        "toon-write-check: Response identifies voting as a paid operation via publishEvent()",
-        "toon-fee-check: Response calculates the cost of vote manipulation at scale (~$2 for 1,000 votes)",
-        "toon-format-check: Response mentions TOON-format strings when discussing vote retrieval",
+        "toon-write-check: Response identifies voting as a paid operation via client.send()",
+        "toon-fee-check: Response states the per-vote price honestly (flat 1 base unit on the relay route) and does not inflate the cost of manipulating a poll at scale",
+        "toon-read-check: Response does not claim relay responses are TOON-encoded or that a decoder is needed to read events back",
         "social-context-check: Response honestly discusses limitations of economic sybil resistance -- not foolproof, no identity binding",
         "trigger-coverage: Description includes both protocol triggers (ILP-gated, kind:1018 cost) and social-situation triggers (ballot stuffing, vote manipulation)"
       ]

@@ -1,6 +1,6 @@
 # TOON Extensions for Git Objects
 
-> **Why this reference exists:** Git objects on TOON are uploaded to Arweave via kind:5094 DVM requests. This file covers the TOON-specific considerations for git object construction and upload -- the relationship between binary object format and kind:5094 events, base64 encoding overhead and its cost impact, upload ordering constraints, deduplication via content-addressed SHA-1, and the fee economics of storing git objects on the TOON network.
+> **Why this reference exists:** Git objects on TOON are uploaded to Arweave via kind:5094 DVM requests. This file covers the TOON-specific considerations for git object construction and upload -- the relationship between binary object format and kind:5094 events, base64 encoding overhead, upload ordering constraints, deduplication via content-addressed SHA-1, and how the store route prices git object uploads.
 
 ## Relationship to kind:5094 Uploads
 
@@ -9,7 +9,7 @@ Git objects are not Nostr event kinds themselves. They are binary payloads uploa
 1. **Construct** the git object in binary format (blob, tree, or commit)
 2. **Compute** its SHA-1 hash for content addressing
 3. **Base64-encode** the binary object for the kind:5094 `i` tag payload
-4. **Publish** the kind:5094 event via `publishEvent()` from `@toon-protocol/client`
+4. **Send** the kind:5094 request with `client.send()` from `@toon-protocol/client`
 
 The kind:5094 event carries TOON-specific tags that link the Arweave upload to the git object graph:
 
@@ -24,7 +24,7 @@ See the `git-collaboration` skill for the complete kind:5094 event structure and
 
 ## Publishing Flow on TOON
 
-All git object uploads go through `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment.
+All git object uploads go through `client.send()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the route requires ILP payment. TOON format is the encoding of the sealed write payload the connector carries; it is not how a relay answers a read, which is plain NIP-01 JSON.
 
 ### Upload Flow
 
@@ -34,15 +34,19 @@ All git object uploads go through `publishEvent()` from `@toon-protocol/client`.
 4. **Base64-encode** the binary object
 5. **Construct the kind:5094 event** with `i` tag containing the base64 payload, plus `Git-SHA`, `Git-Type`, and `Repo` tags
 6. **Sign the event** with the agent's Nostr private key
-7. **Discover pricing** from the relay's `basePricePerByte`
-8. **Calculate fee**: `basePricePerByte * serializedEventBytes`
-9. **Publish** via `publishEvent()`
+7. **Send it:** `await client.send('g.toon.store', { body: signedEvent })`. The client seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step.
+
+If you need the price before you send, `await client.routePrice('g.toon.store')` returns `{ price, pricePerKib? }` and `chargeFor(terms, sealedBytes)` from `@toon-protocol/client` turns that into a charge. The metered quantity is the **sealed** payload the PREPARE carries, not the event JSON you built, so you cannot compute the charge from your own event's length. A node's full self-description, including every route's price, is free at `GET /ilp`; an unpaid request to a priced route comes back as a greeting carrying that route's terms.
 
 ### Error Handling
 
-- **F04 (Insufficient Payment):** Recalculate with the correct `basePricePerByte` and retry.
-- **Relay rejection:** Malformed event (invalid signature, missing tags). Fix and republish.
+- **F03 (INVALID_AMOUNT):** the claim does not cover the charge -- underpayment. Let `client.send()` price the packet rather than supplying an amount by hand.
+- **T04:** over the peering's cap. The reject message states the cap, which is the only way a sender learns it.
+- **F02:** nothing routes that name. **T01:** the peer was not there.
+- **Route rejection:** Malformed event (invalid signature, missing tags). Fix and resend.
 - **DVM failure (kind:7000 error):** The Arweave upload provider could not store the object. Check the error content for details.
+
+A REJECT comes back as `{ fulfilled: false }` and is never thrown.
 
 ## Base64 Encoding Overhead
 
@@ -56,30 +60,15 @@ Git objects are binary data, but the kind:5094 `i` tag carries them as base64-en
 | 100 KB | ~137 KB | +37 KB |
 | 1 MB | ~1.37 MB | +370 KB |
 
-This overhead directly increases the kind:5094 event size and therefore the ILP relay write fee. The base64 payload dominates the event size for all but the smallest objects.
+This overhead directly increases the sealed payload the PREPARE carries, and the store route's price rises with each kibibyte of it. The base64 payload dominates the event size for all but the smallest objects.
 
-## Fee Considerations for Git Object Uploads
+## How the Store Route Prices Git Object Uploads
 
-### kind:5094 Event Cost (Relay Write Fee)
+A kind:5094 upload terminates at the store route (`g.toon.store` / `g.toon.relay.store`). Probed 2026-08-28 its price is **1000 + 10 per KiB** of sealed payload, in base units of 6-decimal USDC (`1_000_000` = $1). A small object is therefore around 1010 base units, roughly $0.00101.
 
-The relay write fee is `basePricePerByte * serializedEventBytes`. The serialized event includes the base64 payload plus all tags and metadata:
+Two things follow. First, the price is a schedule over payload length in kibibytes, so a bigger object really does cost more -- unlike a Nostr event on the relay, which is flat-priced. Second, the length that counts is the **sealed** payload, so the arithmetic is not yours to do: ask with `routePrice()` / `chargeFor()`, or just let `client.send()` price the packet.
 
-| Object Type | Typical Binary Size | Base64 Size | Event Size (with tags) | Approx Cost |
-|------------|-------------------|------------|----------------------|-------------|
-| Small blob (README) | 100-500 bytes | 136-680 bytes | ~350-900 bytes | ~$0.004-$0.009 |
-| Medium blob (source file) | 1-10 KB | 1.4-13.7 KB | ~1.6-14 KB | ~$0.016-$0.14 |
-| Large blob (binary/image) | 100 KB-1 MB | 137 KB-1.37 MB | ~137 KB-1.37 MB | ~$1.37-$13.70 |
-| Tree (10 entries) | ~400 bytes | ~544 bytes | ~760 bytes | ~$0.008 |
-| Tree (50 entries) | ~2 KB | ~2.7 KB | ~2.9 KB | ~$0.029 |
-| Commit (no GPG sig) | ~250-400 bytes | ~340-544 bytes | ~560-760 bytes | ~$0.006-$0.008 |
-
-### Arweave Storage Cost (Provider Fee)
-
-The DVM provider charges separately for Arweave permanent storage. This cost is determined by the provider's kindPricing in their kind:10035 SkillDescriptor. On TOON, the prepaid model means the job request payment covers both relay write fee and compute/storage fee.
-
-### Total Cost = Relay Write Fee + Provider Fee
-
-The relay write fee scales with the kind:5094 event size (dominated by base64 payload). The provider fee scales with the binary object size stored on Arweave. Both scale linearly with object size.
+The Arweave storage itself is the DVM provider's charge, quoted in the provider's own job feedback. The prepaid model means the job request payment covers both the route's price and the provider's compute/storage.
 
 ## Upload Ordering Constraints
 
@@ -116,35 +105,30 @@ query {
 }
 ```
 
-If the query returns results, the object already exists on Arweave. Skip the upload and save the kind:5094 event cost. This is especially valuable for blobs -- identical file contents across repositories or branches share the same SHA-1.
+If the query returns results, the object already exists on Arweave. Skip the upload and save the whole store-route charge. This is especially valuable for blobs -- identical file contents across repositories or branches share the same SHA-1.
 
 ## Economic Dynamics of Git Object Storage on TOON
 
-### Per-Byte Cost Creates Incentive for Small Commits
+### The Store Route's Slope Rewards Small Commits
 
-On TOON, every byte uploaded costs money. This creates natural incentives:
+The store route's price rises with each kibibyte of sealed payload, so object size is a real cost:
 
-- **Minimal diffs** -- change only what needs changing. Large refactoring commits that touch many files cost proportionally more.
+- **Minimal diffs** -- change only what needs changing. A large refactoring commit produces more and bigger blobs.
 - **Compact file formats** -- prefer text over binary when practical. Binary blobs (images, compiled assets) are expensive.
 - **Deduplication awareness** -- unchanged files between commits produce the same blob SHA-1 and do not need re-uploading.
 
+The kind:1617, kind:30617 and kind:30618 events that reference these objects go to the relay instead, where the price is flat at 1 base unit and size makes no difference at all.
+
 ### Permanent Storage vs Temporary Cost
 
-Arweave provides permanent storage. The upload cost is one-time -- once an object is on Arweave, it persists indefinitely with no ongoing fees. The TOON relay write fee is also one-time (the kind:5094 event publication). This model favors infrequent, well-considered uploads over rapid iteration.
+Arweave provides permanent storage. The upload cost is one-time -- once an object is on Arweave, it persists indefinitely with no ongoing charge. The store route's price is charged once too, when the kind:5094 request is sent. This model favors infrequent, well-considered uploads over rapid iteration.
 
-### Cost Comparison: Git Object Types
+### Price Comparison: Git Object Types
 
-Commits and trees are typically cheap (small events). Blobs vary enormously depending on file size. A repository with many small text files is far cheaper to upload than one with large binary assets.
+Commits and trees are small, so they sit near the store route's flat component (~1000 base units each). Blobs vary enormously with file size, and only they climb the per-kibibyte slope. A repository of many small text files is far cheaper to upload than one carrying large binary assets, and the Arweave provider's own charge scales the same way.
 
-| Repository Profile | Estimated Upload Cost |
-|-------------------|---------------------|
-| Small project (10 files, ~50 KB total) | ~$0.10-$0.20 |
-| Medium project (100 files, ~500 KB total) | ~$1.00-$2.00 |
-| Large project (1000 files, ~5 MB total) | ~$10.00-$20.00 |
-| Binary-heavy project (images, assets) | Significantly higher |
-
-These estimates include both relay write fees and approximate Arweave provider fees.
+For a real figure, read the price off the route -- `await client.routePrice('g.toon.store')` -- rather than extrapolating from an object count.
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers git-object-specific upload economics; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and route pricing details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers git-object-specific upload economics; the protocol core covers the foundational mechanics shared by all event kinds.

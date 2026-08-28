@@ -84,16 +84,16 @@
   "output_evals": [
     {
       "id": "save-draft-article",
-      "prompt": "I'm writing a long-form article on TOON about decentralized identity. I want to save my progress as a draft to the relay so I can resume editing later from another device. The relay's basePricePerByte is 10 micro-USDC. Walk me through how to save a draft.",
+      "prompt": "I'm writing a long-form article on TOON about decentralized identity. I want to save my progress as a draft to the relay so I can resume editing later from another device. Walk me through how to save a draft, and tell me what each save costs.",
       "rubric": {
-        "correct": "Constructs a kind:31234 event with a meaningful d tag (draft identifier), k tag set to '30023' (target kind for articles), content in markdown format, and article metadata tags (title, summary, t). Recommends encrypting the draft with NIP-44 self-encryption. Publishes via publishEvent() from @toon-protocol/client. Calculates approximate fee (~$0.005-$0.020 depending on content length). Mentions that kind:31234 is parameterized replaceable so subsequent saves with the same d tag replace the previous version. Does NOT use raw WebSocket writes.",
-        "acceptable": "Uses publishEvent() and constructs a kind:31234 event with correct d and k tags, but may not recommend encryption or calculate exact fees.",
-        "incorrect": "Uses raw WebSocket writes, omits the k tag, uses wrong event kind, or suggests saving the article directly as kind:30023 draft without using kind:31234."
+        "correct": "Constructs a kind:31234 event with a meaningful d tag (draft identifier), k tag set to '30023' (target kind for articles), content in markdown format, and article metadata tags (title, summary, t). Recommends encrypting the draft with NIP-44 self-encryption. Sends it with await client.send({ body: signedEvent }) from @toon-protocol/client, which seals the payload, reads the route price, mints the covering claim and carries it. States the charge as 1 base unit of 6-decimal USDC per save, flat, regardless of article length or encryption overhead. Mentions that kind:31234 is parameterized replaceable so subsequent saves with the same d tag replace the previous version. Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses client.send() and constructs a kind:31234 event with correct d and k tags, but may not recommend encryption or state the flat per-save charge.",
+        "incorrect": "Uses raw WebSocket writes, calls the retired publishEvent() or signs a claim by hand, works a charge out from the draft byte count, omits the k tag, uses wrong event kind, or suggests saving the article directly as kind:30023 draft without using kind:31234."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee calculation or cost awareness for the draft event",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response lets client.send() price the packet (or states the flat route charge) and does not compute a charge from the draft byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response recommends encrypting drafts or discusses draft privacy",
         "trigger-coverage: Description includes both protocol-technical and social-situation triggers"
       ]
@@ -102,30 +102,30 @@
       "id": "publish-from-draft",
       "prompt": "I have a draft article saved as a kind:31234 event on my TOON relay with d tag 'identity-article' and k tag '30023'. The draft is encrypted with NIP-44. I'm ready to publish the final article. What are the complete steps, including cleanup?",
       "rubric": {
-        "correct": "Describes the full workflow: (1) Fetch the draft using NIP-01 filter with kinds:[31234], authors:[own-pubkey], #d:['identity-article']. (2) Decrypt the content using NIP-44. (3) Construct the final kind:30023 event with the draft content, tags, and published_at timestamp. (4) Sign and publish the final article via publishEvent(). (5) Delete the draft by publishing a kind:5 deletion request targeting the draft's a coordinate ['a', '31234:<pubkey>:identity-article']. Notes that reading is free, the article publish costs per-byte, and the deletion costs ~$0.002. Mentions TOON-format strings in relay responses.",
-        "acceptable": "Correctly describes fetching, decrypting, publishing the final event, and deleting the draft, but may not provide exact cost breakdowns or mention TOON format.",
-        "incorrect": "Skips the draft deletion step, suggests raw WebSocket writes, does not decrypt the draft, or publishes the draft directly without creating a new final event."
+        "correct": "Describes the full workflow: (1) Fetch the draft using NIP-01 filter with kinds:[31234], authors:[own-pubkey], #d:['identity-article']. (2) Decrypt the content using NIP-44. (3) Construct the final kind:30023 event with the draft content, tags, and published_at timestamp. (4) Sign the final article and send it with client.send(). (5) Delete the draft by publishing a kind:5 deletion request targeting the draft's a coordinate ['a', '31234:<pubkey>:identity-article']. Notes that reading is free and that the publish and the deletion are one flat-priced write each -- 1 base unit apiece, whatever the article's length. Notes that fetching the draft is a free, plain NIP-01 read.",
+        "acceptable": "Correctly describes fetching, decrypting, sending the final event with client.send(), and deleting the draft, but may not count the writes or say the fetch is a plain NIP-01 read.",
+        "incorrect": "Skips the draft deletion step, suggests raw WebSocket writes, calls the retired publishEvent(), prices the article by its byte count, does not decrypt the draft, or publishes the draft directly without creating a new final event."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() for both the final article and the kind:5 deletion",
-        "toon-fee-check: Response includes cost awareness for both publishing and draft deletion",
-        "toon-format-check: Response mentions TOON-format strings when reading the draft from relay",
+        "toon-write-check: Response uses client.send() for both the final article and the kind:5 deletion",
+        "toon-fee-check: Response counts the publish and the deletion as one flat-priced write each, with no byte arithmetic",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response includes draft cleanup as part of responsible publishing",
         "trigger-coverage: Description includes both protocol-technical and social-situation triggers"
       ]
     },
     {
       "id": "add-expiration-to-note",
-      "prompt": "I want to publish a note on TOON announcing a flash sale that ends in 24 hours. How do I make the note auto-expire so I don't have to manually delete it later? The relay's basePricePerByte is 10 micro-USDC.",
+      "prompt": "I want to publish a note on TOON announcing a flash sale that ends in 24 hours. How do I make the note auto-expire so I don't have to manually delete it later, and what does that save me?",
       "rubric": {
-        "correct": "Constructs a kind:1 event with an expiration tag containing a Unix timestamp 24 hours in the future. Shows the calculation: Math.floor(Date.now() / 1000) + 86400. Explains that relays SHOULD delete expired events and clients SHOULD hide them. Notes the expiration tag adds only ~25-30 bytes (~$0.0003) of overhead. Compares with the alternative: publishing + manual kind:5 deletion = ~$0.005 vs one event with expiration = ~$0.003. Publishes via publishEvent().",
-        "acceptable": "Correctly includes the expiration tag with proper timestamp format and uses publishEvent(), but may not compare costs or calculate exact overhead.",
-        "incorrect": "Omits the expiration tag, suggests a timer-based deletion workflow, uses raw WebSocket writes, or uses milliseconds instead of seconds for the timestamp."
+        "correct": "Constructs a kind:1 event with an expiration tag containing a Unix timestamp 24 hours in the future. Shows the calculation: Math.floor(Date.now() / 1000) + 86400. Explains that relays SHOULD delete expired events and clients SHOULD hide them. Notes the expiration tag adds ~25-30 bytes and no charge at all, because the relay route is flat-priced at 1 base unit per event. Compares with the alternative in writes: publish + manual kind:5 deletion = 2 writes, one event with expiration = 1. Sends it with client.send().",
+        "acceptable": "Correctly includes the expiration tag with proper timestamp format and uses client.send(), but may not count the write it saves.",
+        "incorrect": "Omits the expiration tag, suggests a timer-based deletion workflow, uses raw WebSocket writes, calls the retired publishEvent(), prices the tag by its bytes, or uses milliseconds instead of seconds for the timestamp."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response compares expiration cost savings vs manual deletion",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response counts the saving as one fewer flat-priced write, not as bytes saved",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response discusses expiration as network-friendly behavior",
         "trigger-coverage: Description includes both protocol-technical and social-situation triggers"
       ]
@@ -134,14 +134,14 @@
       "id": "expiring-status",
       "prompt": "I'm attending a 4-hour conference session and want to set a temporary status on TOON that auto-clears when the session ends. How do I combine NIP-38 statuses with NIP-40 expiration?",
       "rubric": {
-        "correct": "Constructs a kind:30315 event with d tag 'general', content about the conference, and an expiration tag with a Unix timestamp 4 hours in the future. Explains that this combines NIP-38 (user statuses) with NIP-40 (expiration). Notes the cost savings: one event with expiration (~$0.004) vs set status + clear status later (~$0.006). Publishes via publishEvent(). Mentions that no cleanup is needed -- the relay discards the event after expiration.",
-        "acceptable": "Correctly combines kind:30315 with an expiration tag and uses publishEvent(), but may not calculate the cost savings vs manual clearing.",
-        "incorrect": "Does not include the expiration tag, suggests a separate timer to clear the status, or uses the wrong event kind."
+        "correct": "Constructs a kind:30315 event with d tag 'general', content about the conference, and an expiration tag with a Unix timestamp 4 hours in the future. Explains that this combines NIP-38 (user statuses) with NIP-40 (expiration). Notes the saving in writes: one event with expiration (1 base unit) vs set status + clear status later (2). Sends it with client.send(). Mentions that no cleanup is needed -- the relay discards the event after expiration.",
+        "acceptable": "Correctly combines kind:30315 with an expiration tag and uses client.send(), but may not count the write saved vs manual clearing.",
+        "incorrect": "Does not include the expiration tag, suggests a separate timer to clear the status, calls the retired publishEvent(), or uses the wrong event kind."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response notes cost savings from using expiration vs manual clear",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response notes the saving is one flat-priced write, and invents no byte-rate",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response discusses preventing stale statuses",
         "trigger-coverage: Description includes both protocol-technical and social-situation triggers"
       ]
@@ -150,14 +150,14 @@
       "id": "read-own-drafts",
       "prompt": "I want to list all my article drafts (kind:30023 targets) saved on a TOON relay. How do I fetch them, and does it cost anything?",
       "rubric": {
-        "correct": "Subscribes using NIP-01 filter with kinds:[31234], authors:[own-pubkey], and optionally #k:['30023'] to filter for article drafts. Explains that reading is free on TOON -- no ILP payment needed. Notes that TOON relays return TOON-format strings in EVENT messages, not JSON objects, so the TOON decoder is needed. Mentions that drafts are typically NIP-44 encrypted and will need to be decrypted after fetching. Each draft's d tag identifies it uniquely.",
-        "acceptable": "Correctly describes the subscription filter, notes reading is free, and mentions TOON format, but may not discuss encryption or filtering by k tag.",
-        "incorrect": "Assumes standard JSON responses, suggests payment is needed to read, uses the wrong event kind in the filter, or queries kind:30023 instead of kind:31234."
+        "correct": "Subscribes using NIP-01 filter with kinds:[31234], authors:[own-pubkey], and optionally #k:['30023'] to filter for article drafts. Explains that reading is free on TOON -- no ILP payment needed, and the relay speaks plain NIP-01, returning standard JSON EVENT messages that any Nostr client can read. Mentions that drafts are typically NIP-44 encrypted and will need to be decrypted after fetching. Each draft's d tag identifies it uniquely.",
+        "acceptable": "Correctly describes the subscription filter, notes reading is free and speaks plain NIP-01, but may not discuss encryption or filtering by k tag.",
+        "incorrect": "Claims relay reads are TOON-encoded or that a TOON decoder is needed, suggests payment is needed to read, uses the wrong event kind in the filter, or queries kind:30023 instead of kind:31234."
       },
       "assertions": [
-        "toon-write-check: Response correctly identifies reading drafts as a read-only operation -- no publishEvent() needed",
+        "toon-write-check: Response correctly identifies reading drafts as a read-only operation -- no client.send() needed",
         "toon-fee-check: Response correctly notes that reading drafts is free on TOON",
-        "toon-format-check: Response explains TOON-format strings in relay responses and need for TOON decoder",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response mentions drafts are typically encrypted and need decryption",
         "trigger-coverage: Description includes both protocol-technical and social-situation triggers"
       ]

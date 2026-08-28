@@ -57,7 +57,7 @@ kind:1068 is a **regular event** (non-replaceable). Each poll creates a new, per
 
 ### Content Field
 
-The content field contains the poll question text. This is the human-readable question that voters see. Keep it clear and concise -- longer questions increase the event byte size and cost on TOON.
+The content field contains the poll question text. This is the human-readable question that voters see. Keep it clear and concise -- for the reader's sake, not for cost: the relay's route price does not move with length.
 
 ### Tag Reference
 
@@ -75,7 +75,7 @@ The content field contains the poll question text. This is the human-readable qu
 
 - Option indices are string integers starting from `"0"` and incrementing sequentially
 - Option labels are human-readable text describing each choice
-- The number of options is not limited, but more options increase event size and cost
+- The number of options is not limited; more options increase event size, but not the flat relay price
 - Option indices must be unique within a poll
 
 ### Poll Type Determination

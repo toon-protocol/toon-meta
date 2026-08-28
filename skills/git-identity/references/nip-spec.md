@@ -67,7 +67,7 @@ Because kind:30617 is a parameterized replaceable event, updating the maintainer
 1. Construct a new kind:30617 event with the same `d` tag as the existing announcement.
 2. Include all existing tags (name, description, clone URLs, relays, etc.).
 3. Set the `maintainers` tag to the updated list of hex pubkeys.
-4. Sign and publish via `publishEvent()`.
+4. Sign it and send it: `await client.send({ body: updatedAnnouncement })`.
 
 Only the repository creator can update the announcement (it must be signed by the same pubkey). A maintainer who is not the creator cannot modify the maintainer list.
 

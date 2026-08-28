@@ -10,14 +10,15 @@ description: HTTP file storage integration on Nostr and TOON Protocol using NIP-
   NIP-98 auth, file removal), and upload economics ("how much does hosting media cost
   on TOON?", "how do I host media?", off-chain HTTP upload, kind:1063 metadata event,
   NIP-94 file metadata). Implements NIP-96 on TOON's ILP-gated network where upload
-  is external HTTP but publishing the resulting kind:1063 metadata event costs per-byte.
+  is external HTTP but publishing the resulting kind:1063 metadata event is a paid
+  TOON write.
 ---
 
 # File Storage (TOON)
 
 HTTP-based file upload, download, and deletion for agents on the TOON network. NIP-96 defines how Nostr clients discover file storage servers, upload files via multipart HTTP POST, download files by hash, and delete files via HTTP DELETE. Authentication uses NIP-98 HTTP Auth events. Servers return NIP-94 kind:1063 file metadata events describing uploaded files.
 
-This skill covers the external HTTP file storage workflow. The upload itself is off-chain HTTP -- it does not go through the TOON relay or require ILP payment. However, publishing the resulting kind:1063 file metadata event on TOON costs per-byte (~$0.003-$0.008), connecting the uploaded file to the Nostr event graph.
+This skill covers the external HTTP file storage workflow. The upload itself is off-chain HTTP -- it does not go through the TOON relay or require ILP payment. However, publishing the resulting kind:1063 file metadata event on TOON is a paid write (`g.toon.relay`, 1 base unit of 6-dp USDC, flat), connecting the uploaded file to the Nostr event graph.
 
 ## File Storage Model
 
@@ -63,21 +64,21 @@ Delete files via HTTP DELETE to `<api_url>/<sha256-hash>.<ext>`. Authentication 
 
 ## TOON Write Model
 
-Uploading a file to a NIP-96 server is an external HTTP operation -- it does not go through `publishEvent()` or require ILP payment. The upload is between the client and the file storage server directly.
+Uploading a file to a NIP-96 server is an external HTTP operation -- it does not go through `client.send()` or require ILP payment. The upload is between the client and the file storage server directly.
 
-However, publishing the resulting kind:1063 file metadata event on a TOON relay requires ILP payment via `publishEvent()` from `@toon-protocol/client`. The kind:1063 event is typically ~300-800 bytes ($0.003-$0.008 at default `basePricePerByte`). This is the only TOON cost in the file storage workflow.
+However, publishing the resulting kind:1063 file metadata event on a TOON relay requires ILP payment via `client.send()` from `@toon-protocol/client`. `send()` seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step. TOON format is the encoding of that sealed write payload -- an agreement between the client and the app about the bytes the connector carries inside the ILP packet -- and never what the relay serves back on a read, which is plain NIP-01 JSON. The relay route `g.toon.relay` is flat-priced at 1 base unit of 6-dp USDC, so a 300-byte and an 800-byte kind:1063 event cost the same. This is the only TOON cost in the file storage workflow.
 
-For the full fee formula and `publishEvent()` API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the pricing model and the client API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
-Query kind:1063 file metadata events using `kinds: [1063]` filters. Filter by `#x` (hash), `#m` (MIME type), or `#url` tags to find specific files. TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse file metadata events. Reading is free on TOON.
+Query kind:1063 file metadata events using `kinds: [1063]` filters. Filter by `#x` (hash), `#m` (MIME type), or `#url` tags to find specific files. Reads are free and speak plain NIP-01: the relay returns standard JSON `EVENT` messages that any ordinary Nostr client can parse, and a free read never touches a connector. TOON on the way in, plain NIP-01 JSON on the way out.
 
-For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the read model in full, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
 
 ## Social Context
 
-NIP-96 file storage is a convenience layer connecting binary files to the Nostr event graph. On TOON, the upload itself is free (external HTTP), but the metadata event costs per-byte. This means the economic cost of sharing files on TOON is minimal -- you pay only for the small metadata event, not the file itself.
+NIP-96 file storage is a convenience layer connecting binary files to the Nostr event graph. On TOON, the upload itself is free (external HTTP), and the metadata event costs the relay's flat 1 base unit. This means the economic cost of sharing files on TOON is minimal -- you pay only for the metadata event, not the file itself.
 
 Upload responsibly. Respect the file storage server's terms of service (`tos_url`). Do not upload illegal content, copyrighted material without rights, or excessively large files beyond the server's stated limits. Server operators bear the cost and legal risk of hosting.
 
@@ -90,7 +91,7 @@ File storage servers are centralized services. They can go offline, delete files
 **Anti-patterns to avoid:**
 - Uploading without checking `content_types` -- the server may reject unsupported MIME types
 - Skipping NIP-98 authentication -- unauthenticated uploads will be rejected
-- Publishing kind:1063 metadata via raw WebSocket -- use `publishEvent()` on TOON
+- Publishing kind:1063 metadata via raw WebSocket -- use `client.send()` on TOON
 - Relying on a single NIP-96 server for critical content -- servers are centralized and can disappear
 
 ## When to Read Each Reference
@@ -100,9 +101,9 @@ Read the appropriate reference file based on the situation:
 - **Understanding NIP-96 server discovery, upload/download/delete protocol** -- Read [nip-spec.md](references/nip-spec.md) for the full NIP-96 specification.
 - **Understanding TOON-specific upload economics and metadata publishing** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated file storage extensions.
 - **Step-by-step server discovery, upload, download, and deletion workflows** -- Read [scenarios.md](references/scenarios.md) for complete operational workflows.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **TOON write model, read model, and route pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **NIP-94 kind:1063 file metadata event structure** -- See `media-and-files` for kind:1063 tag formats, `imeta` tags, and external content IDs.
 - **NIP-98 HTTP Auth event construction** -- See [nip-spec.md](references/nip-spec.md) for the authentication event format used in upload and delete requests.
 - **Permanent file storage via Arweave** -- See `git-collaboration` for kind:5094 Arweave DVM blob storage as an alternative to ephemeral NIP-96 servers.
-- **Discovering relay pricing for metadata event fees** -- See `relay-discovery` for NIP-11 relay info and TOON `/health` endpoint.
+- **Discovering relay route prices for metadata event writes** -- See `relay-discovery` for NIP-11 relay info and the connector's `GET /ilp` self-description.
 - **Social judgment on file sharing norms** -- See `nostr-social-intelligence` for base social intelligence.

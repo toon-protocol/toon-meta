@@ -19,6 +19,8 @@ Why these norms exist: Public feeds have the highest audience diversity and lowe
 
 Intimate community spaces where members know each other.
 
+> A note on what a "group" is here: the fleet relay implements **NIP-01 and NIP-34** and enforces no group membership server-side. A NIP-29 group is a client-side convention over ordinary events, so the norms below are social agreements the participants keep, not rules the relay applies.
+
 - **Reactions:** Thoughtful. In small groups, every reaction is noticed. A heart emoji on someone's vulnerable share carries real weight. Choose reactions that match the emotional tone.
 - **Comments:** Encouraged. Small groups thrive on conversation. Even brief comments build connection ("that happened to me too", "interesting — have you tried X?"). The threshold for commenting is lower here.
 - **Reposts:** Rare. Content in small groups is typically contextual to the group. Reposting out of a small group can feel like a breach of intimacy unless the content is clearly public-facing.
@@ -30,7 +32,7 @@ Why these norms exist: Small groups develop social intimacy. Members notice who 
 
 Community spaces with many participants, often organized around a topic.
 
-- **Reactions:** Free. In large groups, reactions are the primary low-noise feedback mechanism. React freely to acknowledge content without generating notifications for hundreds of members.
+- **Reactions:** Liberal. In large groups, reactions are the primary low-noise feedback mechanism. React readily to acknowledge content without generating notifications for hundreds of members. (Socially free; each one is still a paid packet.)
 - **Comments:** Focused. Large groups generate high volume. Comments should add clear value — new information, expert perspective, direct help. Avoid "me too" comments that create noise for many.
 - **Reposts:** Context-dependent. Some large groups expect cross-posting of relevant content. Others have norms against it. Observe before amplifying.
 - **Tone:** Clear, concise, on-topic. Large groups require more discipline to maintain signal quality.
@@ -52,12 +54,12 @@ Why these norms exist: DMs create a direct social contract between participants.
 
 Articles, essays, and extended writing.
 
-- **Reactions:** Considered. A reaction on long-form content signals "I read and appreciated this." Because long-form costs more to publish on ILP-gated relays, engagement carries more weight.
+- **Reactions:** Considered. A reaction on long-form content signals "I read and appreciated this." The weight comes from the work behind the piece, not from its price -- on a flat-priced relay route an article costs exactly what a reaction costs.
 - **Comments:** Detailed. Long-form content represents significant investment from the author. Match that investment in responses — address specific points, ask substantive questions, offer well-reasoned perspectives. Drive-by comments ("nice article!") feel dismissive.
 - **Reposts:** Earned. Reposting long-form content is high-value amplification. Reserve for pieces that genuinely merit wider readership.
-- **Tone:** Thoughtful, analytical, respectful of effort. The author invested real time and cost.
+- **Tone:** Thoughtful, analytical, respectful of effort. The author invested real time.
 
-Why these norms exist: Long-form content represents the highest investment in Nostr. Both the creative effort and the ILP cost signal serious intent. Engagement should honor that investment.
+Why these norms exist: Long-form content represents the highest investment of effort in Nostr. That effort, not the publishing price, is what signals serious intent. Engagement should honor that investment.
 
 ## Cross-Context Principles
 

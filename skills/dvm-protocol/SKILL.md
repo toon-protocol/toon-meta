@@ -8,16 +8,17 @@ description: DVM protocol (Data Vending Machines) on Nostr and TOON Protocol usi
   compute result, "how do I get my job output?"), job feedback ("how does DVM feedback
   work?", kind:7000, job feedback, status update, payment negotiation, "how do I check
   job status?"), DVM service discovery ("how do I find DVM providers?", "how do I discover
-  compute services?", kind:10035, SkillDescriptor, service discovery), application-specific
-  data ("how do I store app data on Nostr?", kind:30078, NIP-78, application-specific
+  compute services?", NIP-89 kind:31990 handlers, GET /ilp route prices, service
+  discovery), application-specific data ("how do I store app data on Nostr?",
+  kind:30078, NIP-78, application-specific
   data, app data), and DVM economics ("how much does a DVM job cost on TOON?", "how
-  does prepaid DVM work?", kindPricing, prepaid model). Implements NIP-90 and NIP-78
+  does prepaid DVM work?", route price, prepaid model). Implements NIP-90 and NIP-78
   on TOON's ILP-gated relay network where job requests ARE payment.
 ---
 
 # DVM Protocol (TOON)
 
-Data Vending Machines for agents on the TOON network. Covers NIP-90 (Data Vending Machines) and NIP-78 (Application-specific Data). DVM enables paid compute services where clients submit job requests (kind:5xxx), providers return results (kind:6xxx), and feedback events (kind:7000) handle status updates and payment negotiation. On TOON, the prepaid model means the job request itself IS the payment -- there is no separate settlement step. Kind:10035 SkillDescriptor events advertise provider capabilities and pricing. NIP-78 provides application-specific data storage (kind:30078) for DVM configuration and state.
+Data Vending Machines for agents on the TOON network. Covers NIP-90 (Data Vending Machines) and NIP-78 (Application-specific Data). DVM enables paid compute services where clients submit job requests (kind:5xxx), providers return results (kind:6xxx), and feedback events (kind:7000) handle status updates and payment negotiation. On TOON, the prepaid model means the job request itself IS the payment -- there is no separate settlement step. A node's capabilities and every route's price come from asking it: `GET /ilp` returns its self-description. NIP-78 provides application-specific data storage (kind:30078) for DVM configuration and state.
 
 ## DVM Protocol Model
 
@@ -33,34 +34,46 @@ NIP-78 adds application-specific data storage:
 
 ## TOON Write Model
 
-All DVM events are published via `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment.
+All DVM events are published with `client.send()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires payment.
 
-**kind:5094 (Arweave blob storage request) fee estimate:** This is the canonical TOON DVM job. Requests vary widely by input size — a request with inline base64 blob data can be large. At default `basePricePerByte` of 10n ($0.00001/byte), cost scales linearly with payload size. (Generic NIP-90 kinds like kind:5000 text-gen would follow the same per-byte formula, but no TOON node fulfills them.)
+```ts
+const answer = await client.send({ body: signedJobRequest });
+```
 
-**kind:6xxx (job result) fee estimate:** Results vary by output size. A text generation result runs ~300-1000 bytes (~$0.003-$0.01). Blob storage results with hash references are smaller (~200-400 bytes, ~$0.002-$0.004).
+`send()` seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it. There is no separate pricing, claim-signing or publish step, and a REJECT comes back as `{ fulfilled: false }` rather than being thrown.
 
-**kind:7000 (feedback) fee estimate:** Feedback events are typically small (~150-300 bytes, ~$0.0015-$0.003). Status updates and payment negotiation messages are concise.
+TOON format is the encoding of that **sealed write payload** -- an agreement between the client and the app about the bytes the connector carries inside the packet. It is what goes in; what comes back out on a read is plain NIP-01 JSON.
 
-**kind:30078 (app data) fee estimate:** Application-specific data varies by payload. A DVM configuration event runs ~200-500 bytes (~$0.002-$0.005). As a parameterized replaceable event, updates replace the previous version.
+**What a route charges.** A price belongs to a terminated route and is a schedule over payload length: flat when it has no slope, otherwise `price + pricePerKib * ceil(sealedBytes / 1024)`. Prices are quoted in the settlement token's smallest unit, and USDC is 6-decimal, so `1_000_000` = $1. Live routes as of 2026-08-28:
 
-**TOON prepaid model:** On TOON, the job request IS the payment. The ILP payment attached to the kind:5xxx event covers both the relay write fee and the compute fee. There is no separate `settleCompute` step. The provider's kindPricing from their SkillDescriptor (kind:10035) determines the total cost.
+| Route | Price | What it terminates |
+|-------|-------|--------------------|
+| `g.toon.relay` | 1, flat | Nostr event publishing -- every kind:5xxx, kind:6xxx, kind:7000 and kind:30078 event goes here |
+| `g.toon.store` (also `g.toon.relay.store`) | 1000 + 10/KiB | kind:5094 Arweave blob storage -- the canonical TOON DVM |
+| `g.toon.gas` | 1000, flat | the gas station |
 
-For the complete fee formula and publishing flow, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+Because the relay's route is flat, **the size of a DVM event does not change what publishing it costs**. A 200-byte feedback event and a 6 KB job result are both 1 base unit. Only the store route carries a slope, and there the metered quantity is the **sealed** payload the PREPARE carries -- not the event JSON you wrote, which is smaller by the envelope and the wrap -- so an agent cannot correctly work out a charge from the event it authored.
 
-## TOON Read Model
+Where a price is genuinely needed in advance, ask for it: `await client.routePrice(destination)` returns `{ price, pricePerKib? }`, and `chargeFor(terms, sealedBytes)` from `@toon-protocol/client` turns those terms into the number that goes on a claim. A node's whole self-description -- its addresses, its settlement facts and every route's price -- is free and unauthenticated at `GET /ilp` on its URL. A connector answers; it never announces.
+
+**TOON prepaid model:** On TOON, the job request IS the payment. Sending the kind:5xxx event pays the route that terminates it, and there is no separate `settleCompute` step. For the canonical TOON DVM this is exact: kind:5094 blob storage terminates at the store route, and that route's price is the price of the work. Generic NIP-90 kinds have no TOON node to fulfill them, so TOON quotes no price for their compute -- a provider wanting to charge for it would have to terminate a route of its own.
+
+For the complete write model and route pricing, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+
+## Reading (free, plain NIP-01)
 
 Reading DVM events is free. Subscribe using NIP-01 filters:
 - `kinds: [6xxx]` with `#e: ["<job-request-id>"]` for results matching your job request
 - `kinds: [7000]` with `#e: ["<job-request-id>"]` for feedback on your job request
 - `kinds: [5xxx]` for incoming job requests (if you are a provider)
-- `kinds: [10035]` for DVM service discovery (SkillDescriptor events)
+- `kinds: [31990]` with `#k: ["<job-kind>"]` for NIP-89 handler advertisements naming a DVM kind
 - `kinds: [30078]` with `#d: ["<app-identifier>"]` for application-specific data
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse responses. For TOON format details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+The relay's reads are free and speak plain NIP-01: `EVENT` messages carry standard JSON objects, and any ordinary Nostr client can read them. No decoder, no payment, no connector -- a free read never touches one.
 
 ## Social Context
 
-DVM interactions are economic transactions. On TOON, submitting a job request is paying for a service, and publishing a result is fulfilling a paid obligation. This creates clear incentive alignment: providers who deliver quality results earn reputation and repeat business; providers who deliver garbage waste their own relay fees on result events nobody values.
+DVM interactions are economic transactions. On TOON, submitting a job request is paying for a service, and publishing a result is fulfilling a paid obligation. What the payment buys is a *gate*, not a toll: every write needs an open channel and a signed claim, so there are no anonymous free requests and no anonymous free results. At 1 base unit the price itself discourages nobody -- what does the work is that every event is attributable. Providers who deliver quality results earn reputation and repeat business; providers who deliver garbage put their own identity on result events nobody values.
 
 **Job request etiquette:**
 - Be specific about expected output type and parameters. Vague requests waste provider compute and your money.
@@ -72,7 +85,7 @@ DVM interactions are economic transactions. On TOON, submitting a job request is
 - Publish kind:7000 feedback with `processing` status when you begin work. Silence after accepting a job erodes trust.
 - If you cannot complete a job, publish kind:7000 with `error` status and a clear reason. Do not silently drop jobs.
 - Results (kind:6xxx) should include the original request in the `request` tag so clients can verify the result matches their request.
-- Do not publish results for jobs you did not actually process. Fraudulent results waste relay fees and destroy reputation.
+- Do not publish results for jobs you did not actually process. Fraudulent results are signed, paid and attributable -- they destroy reputation.
 
 **Feedback and negotiation:**
 - Use kind:7000 `amount` tags for price negotiation only when the client's bid is genuinely insufficient for the work required.
@@ -93,9 +106,9 @@ Read the appropriate reference file based on the situation:
 
 - **Constructing kind:5xxx, kind:6xxx, kind:7000, or kind:30078 events, understanding tag formats and event structures** -- Read [nip-spec.md](references/nip-spec.md) for the full NIP-90 and NIP-78 specification with tag tables for all DVM event kinds.
 - **Step-by-step workflows for submitting jobs, receiving results, handling feedback, and discovering providers** -- Read [scenarios.md](references/scenarios.md) for complete TOON DVM scenarios.
-- **Understanding TOON-specific extensions: prepaid model, kindPricing, SkillDescriptor integration, and DVM economics** -- Read [toon-extensions.md](references/toon-extensions.md) for ILP-gated DVM protocol extensions.
-- **TOON write model, read model, and fee calculation details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
+- **Understanding TOON-specific extensions: the prepaid model, route pricing, and DVM economics** -- Read [toon-extensions.md](references/toon-extensions.md) for paid DVM protocol extensions.
+- **TOON write model, read model, and route pricing details** -- Read `skills/nostr-protocol-core/references/toon-protocol-context.md` (canonical protocol reference, D9-010).
 - **Social judgment on when and whether to engage** -- See `nostr-social-intelligence` for base social intelligence and interaction decisions.
-- **Service discovery via kind:10035 and relay capabilities** -- See `relay-discovery` for NIP-11 relay info and SkillDescriptor discovery.
+- **Relay capabilities and route discovery** -- See `relay-discovery` for NIP-11 relay info; a node's own routes and prices come from `GET /ilp` on its URL.
 - **Application handler integration for DVM clients** -- See `app-handlers` for NIP-89 kind:31990 handler registration that references DVM kinds.
 - **Blob storage as a DVM example** -- See `git-collaboration` for kind:5094 Arweave blob storage via the DVM pipeline.

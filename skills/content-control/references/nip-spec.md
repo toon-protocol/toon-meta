@@ -132,7 +132,7 @@ A single-element array containing the string `"-"`. Added to the `tags` array of
 - **Proactive, not retroactive:** The `-` tag must be present when the event is first published. It cannot be added after the fact to already-distributed events.
 - **Applies to any event kind:** The `-` tag can be added to events of any kind -- notes (kind:1), articles (kind:30023), reactions (kind:7), metadata (kind:0), etc.
 - **Relay enforcement required:** The protection depends on relay-side enforcement. A relay that does not implement NIP-70 will accept the event from anyone, effectively ignoring the `-` tag.
-- **Minimal size impact:** The `-` tag adds approximately 10 bytes to the serialized event, making the fee impact on TOON negligible.
+- **No cost impact:** The relay route is flat-priced, so adding the `-` tag does not change what the event costs on TOON.
 
 ### Combining Protection with Other Features
 

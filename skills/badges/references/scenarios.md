@@ -1,12 +1,12 @@
 # Badge Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common badge operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation and the publishEvent API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common badge operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like route pricing and the `client.send()` API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Creating a Badge Definition
 
 **When:** An agent or community leader wants to define a new badge that can be awarded to others.
 
-**Why this matters:** The badge definition establishes the badge's identity and visual representation. On TOON, creating a badge costs money, so design it well the first time. The badge definition is parameterized replaceable, so it can be updated later, but each update incurs a fee.
+**Why this matters:** The badge definition establishes the badge's identity and visual representation. On TOON, creating a badge is a paid write from your own channel, so design it well the first time. The badge definition is parameterized replaceable, so it can be updated later, but each update is another write at the same price.
 
 ### Steps
 
@@ -32,11 +32,9 @@
 
 4. **Sign the event** using your Nostr private key via `nostr-tools` or equivalent.
 
-5. **Calculate the fee.** Estimate event size (typically 300-500 bytes). At default `basePricePerByte` of 10n, cost is ~$0.003-$0.005.
+5. **Send it.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it -- one flat relay price (1 base unit of 6-decimal USDC), however much metadata the definition carries.
 
-6. **Publish via `publishEvent()`** from `@toon-protocol/client`. The client handles TOON encoding, ILP payment, and relay communication.
-
-7. **Verify publication.** Subscribe with `kinds: [30009], authors: [<your-pubkey>], #d: ["early-adopter"]` to confirm the relay accepted the badge definition. Remember that relay responses use TOON-format strings.
+6. **Verify publication.** Subscribe with `kinds: [30009], authors: [<your-pubkey>], #d: ["early-adopter"]` to confirm the relay accepted the badge definition. Reads come back as plain NIP-01 JSON.
 
 ### Considerations
 
@@ -49,7 +47,7 @@
 
 **When:** A badge creator wants to award a previously defined badge to one or more recipients.
 
-**Why this matters:** Badge awards are non-replaceable (kind:8) -- each one is permanent and individually priced. Batch awards to multiple recipients in a single event to save on per-event overhead.
+**Why this matters:** Badge awards are non-replaceable (kind:8) -- each one is permanent and individually priced. Batch awards to multiple recipients in a single event: the relay charges per event, not per recipient.
 
 ### Awarding to a Single Recipient
 
@@ -72,9 +70,7 @@
 
 4. **Sign the event.** The signing pubkey must match the pubkey in the `a` tag (you must be the badge creator).
 
-5. **Calculate the fee.** A single-recipient award is typically ~200-300 bytes = ~$0.002-$0.003.
-
-6. **Publish via `publishEvent()`.**
+5. **Send it.** `await client.send({ body: signedEvent })` -- one flat relay price.
 
 ### Awarding to Multiple Recipients (Batch)
 
@@ -94,13 +90,11 @@
 }
 ```
 
-2. **Calculate the fee.** Each additional `p` tag adds ~70 bytes. A 4-recipient award is ~400-500 bytes = ~$0.004-$0.005. This is significantly cheaper than four separate award events (~$0.008-$0.012).
-
-3. **Sign and publish via `publishEvent()`.**
+2. **Sign and send it.** `await client.send({ body: signedEvent })`. Extra `p` tags do not raise the price, so this one write costs a quarter of what four separate award events would.
 
 ### Considerations
 
-- Batch awards save money -- award multiple recipients in a single event when possible
+- Batch awards save money -- one paid write instead of N, since recipients are free and events are not
 - Awards are non-replaceable. Once published, they cannot be updated, only deleted via kind:5
 - Only the badge creator can issue valid awards. Awards signed by other pubkeys are invalid per NIP-58
 - Notify recipients out-of-band if needed -- Nostr has no built-in award notification mechanism
@@ -109,11 +103,11 @@
 
 **When:** A user has received badge awards and wants to showcase them on their profile.
 
-**Why this matters:** Profile badges (kind:30008) are a curated display -- you choose which earned badges to show. On TOON, each update costs money, so curate thoughtfully.
+**Why this matters:** Profile badges (kind:30008) are a curated display -- you choose which earned badges to show. On TOON, each update is a paid write -- and showing ten badges costs no more than showing one, so curate for meaning rather than for length.
 
 ### Steps
 
-1. **Find your badge awards.** Subscribe with `kinds: [8], #p: [<your-pubkey>]` to discover all badges awarded to you. Parse the TOON-format responses.
+1. **Find your badge awards.** Subscribe with `kinds: [8], #p: [<your-pubkey>]` to discover all badges awarded to you. The relay answers in plain NIP-01 JSON.
 
 2. **For each award, note:** The `a` tag value (badge definition reference) and the award event's ID.
 
@@ -137,13 +131,13 @@
 }
 ```
 
-6. **Sign and publish via `publishEvent()`.** Cost scales with badge count: ~200-600 bytes for 1-5 badges = ~$0.002-$0.006.
+6. **Sign and send it.** `await client.send({ body: signedEvent })` -- one flat relay price whatever the badge count.
 
 7. **Verify publication.** Subscribe with `kinds: [30008], authors: [<your-pubkey>], #d: ["profile_badges"]` to confirm.
 
 ### Updating Your Badge Display
 
-1. **Fetch your current kind:30008.** Subscribe with `kinds: [30008], authors: [<your-pubkey>], #d: ["profile_badges"]`. Parse the TOON-format response.
+1. **Fetch your current kind:30008.** Subscribe with `kinds: [30008], authors: [<your-pubkey>], #d: ["profile_badges"]` and read the plain NIP-01 response.
 
 2. **Modify the tag pairs.** Add new `a`+`e` pairs for newly earned badges, remove pairs for badges you no longer want to display, or reorder pairs to change display priority.
 
@@ -179,7 +173,7 @@
 }
 ```
 
-3. **Sign and publish via `publishEvent()`.** The deletion request costs ~200-300 bytes = ~$0.002-$0.003.
+3. **Sign and send it.** `await client.send({ body: signedEvent })`. The deletion request is a paid write like any other -- one flat relay price.
 
 ### Limitations
 
@@ -193,4 +187,4 @@
 - Issue badges thoughtfully -- revocation is imperfect and cannot guarantee removal
 - Include a clear `content` reason in the kind:5 event to explain the revocation
 - For badge systems where revocation is critical, consider off-chain verification mechanisms in addition to kind:5
-- The economic cost of revocation (~$0.002-$0.003) is minimal, but the social cost of revoking may be significant -- communicate with the affected party
+- The economic cost of revocation is one flat relay price, but the social cost of revoking may be significant -- communicate with the affected party

@@ -1,5 +1,20 @@
 # SDK Guide
 
+> [!WARNING]
+> **⚠️ Historical — describes the monorepo-era architecture.** `@toon-protocol/sdk` is still on npm
+> at 3.3.0, but it is frozen and nothing in the fleet builds on it. An app on TOON today holds
+> **no payment code**: it is an ordinary HTTP service behind a connector, told who paid through
+> `X-TOON-Payer` / `X-TOON-Amount` / `X-TOON-Chain` and nothing more (connector ADR 0040).
+> The paying side is [`@toon-protocol/client`](https://github.com/toon-protocol/toon-client).
+>
+> Specifically dead below: `publishEvent()` and `basePricePerByte * toonData.length` — a caller
+> calls `client.send({ body })`, which seals, prices and mints the covering claim; a price is a
+> schedule over the **sealed** payload's length, so an app cannot compute it from the event it
+> wrote (ADR 0065). Payment verification is the connector's, never the app's (ADR 0017/0040).
+>
+> For the current surfaces see [protocol.md](./protocol.md) and
+> [deploy-app-guide.md](./deploy-app-guide.md).
+
 `@toon-protocol/sdk` provides the building blocks for creating services that participate in the TOON network. It handles identity, signature verification, pricing, and handler dispatch — you bring the business logic.
 
 ## Where SDK Sits in the Stack

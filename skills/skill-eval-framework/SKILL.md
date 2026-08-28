@@ -22,15 +22,15 @@ To evaluate one skill:
 ## TOON Compliance Assertions (6 Checks)
 
 Classify the skill first:
-- **Write-capable:** SKILL.md or references mention `publishEvent()` or writing/publishing event kinds.
-- **Read-capable:** SKILL.md or references mention TOON-format strings or reading/subscribing to events.
+- **Write-capable:** SKILL.md or references mention `client.send(`, `routePrice`, `chargeFor`, or writing/publishing event kinds. The retired names `publishEvent` and `signBalanceProof` also classify a skill write-capable, so that a stale skill fails assertion 1 instead of being skipped.
+- **Read-capable:** SKILL.md or references mention NIP-01, REQ/EOSE, subscribing, or free reads.
 - **Both:** mentions both publishing and reading patterns.
 
 Then run applicable assertions:
 
-1. **`toon-write-check`** (write-capable only): Skill references `publishEvent()` from `@toon-protocol/client`. No bare EVENT array patterns in any .md file.
-2. **`toon-fee-check`** (write-capable only): Skill mentions `basePricePerByte`, fee calculation, or references fee documentation.
-3. **`toon-format-check`** (read-capable only): Skill documents TOON-format strings in relay responses, not assumed JSON.
+1. **`toon-write-check`** (write-capable only): Skill teaches `client.send()` from `@toon-protocol/client`. No bare EVENT array patterns in any .md file, and no live reference to the removed `publishEvent()` or a caller-facing `signBalanceProof()`.
+2. **`toon-fee-check`** (write-capable only): Skill teaches the agent to ask the node what a route costs — `await client.routePrice(destination)` then `chargeFor(terms, sealedBytes)`, or the node's free self-description at `GET /ilp` — and never states a per-byte rate.
+3. **`toon-read-check`** (read-capable only): Skill documents the read model, and a negative guard fails it mechanically if it claims relay responses are TOON-encoded (`TOON decoder`, `TOON-format string`) -- a claim that is never true. Renamed from `toon-format-check`, whose text asserted the opposite of the truth; entries that merely carry the old name while stating something accurate keep `toon-format-check`, and both keys grade identically.
 4. **`social-context-check`** (all): Has `## Social Context` section that is NIP-specific (passes substitution test).
 5. **`trigger-coverage`** (all): Description includes both protocol-technical AND social-situation triggers.
 6. **`eval-completeness`** (all): Has at least 6 trigger evals (mix of should/should-not) + 4 output evals with assertions.
@@ -75,7 +75,7 @@ The aggregate report includes:
 
 ## Social Context
 
-Evaluating skills is a quality gate activity that directly impacts agent behavior across the TOON network. Every skill that passes this framework will shape how agents interact on paid relay networks. Thoroughness matters because a false negative (letting a defective skill through) means agents will publish incorrectly, waste money on failed transactions, or violate social norms. False positives (rejecting a good skill) waste developer time and slow the pipeline. Calibrate assertions carefully: use the 80% threshold to account for LLM non-determinism, but never lower the bar on TOON protocol compliance (payment and format checks are binary, not subjective).
+Evaluating skills is a quality gate activity that directly impacts agent behavior across the TOON network. Every skill that passes this framework will shape how agents interact on paid relay networks. Thoroughness matters because a false negative (letting a defective skill through) means agents will call APIs that no longer exist, underpay against a price they invented, or violate social norms. False positives (rejecting a good skill) waste developer time and slow the pipeline. Calibrate assertions carefully: use the 80% threshold to account for LLM non-determinism, but never lower the bar on TOON protocol compliance (the write-path and price-discovery checks are binary, not subjective).
 
 ## Integration with Other Skills
 

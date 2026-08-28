@@ -85,34 +85,35 @@
     {
       "id": "mute-list-creation",
       "prompt": "I want to mute a user on a TOON relay. My current mute list has 30 entries. How do I add someone and what will it cost?",
-      "expected_output": "Fetch your current kind:10000 mute list. TOON relays return TOON-format strings, so use the TOON decoder to parse. Decrypt private entries from .content using NIP-44. Append a new p tag with the pubkey to mute (prefer private entry). Re-encrypt private entries. Republish the entire list via publishEvent() from @toon-protocol/client. With 31 entries, the list is approximately 2,200 bytes at 10n basePricePerByte = ~$0.022. The full list is republished on every change -- batch multiple mutes to save cost.",
+      "expected_output": "Fetch your current kind:10000 mute list. The read is free and comes back as plain NIP-01 JSON -- no TOON decoding, and a free read never touches a connector. Decrypt private entries from .content using NIP-44. Append a new p tag with the pubkey to mute (prefer a private entry). Re-encrypt private entries. Republish the ENTIRE list -- kind:10000 is replaceable, so the relay retains one version per pubkey+kind and the new event replaces the old one. Send it with await client.send({ body: signedEvent }) from @toon-protocol/client; client.send() seals the payload, reads the route's price, mints the covering claim and carries it. Cost: the relay's route is flat at 1 base unit of 6-decimal USDC, so a 31-entry list costs exactly what a 1-entry list costs. Do not compute a charge from the event's byte count -- the metered quantity is the sealed payload, not the event JSON, and on this route size does not affect the price at all. You pay once per update, not per retained version.",
       "rubric": {
-        "correct": "Fetches current kind:10000 mute list first. Explains that the ENTIRE list must be republished (replaceable event). Recommends private entries for muting. Uses publishEvent() from @toon-protocol/client. Calculates approximate fee based on total list size (~2,200 bytes for 31 entries = ~$0.022). Warns about the replaceable event cost trap and suggests batching. Does NOT use raw WebSocket writes.",
-        "acceptable": "Uses publishEvent() and correctly describes the mute list update flow, but may not calculate the exact fee or discuss batching strategies.",
-        "incorrect": "Suggests publishing only the new entry (does not understand replaceable event semantics), uses raw WebSocket patterns, omits payment entirely, or does not mention that the entire list is republished."
+        "correct": "Fetches current kind:10000 mute list over a free plain-NIP-01 read. Explains that the ENTIRE list must be republished (replaceable event) and that the relay retains one version per pubkey+kind. Recommends private entries for muting. Uses client.send() from @toon-protocol/client and lets the client price the packet. States that the relay's route is flat -- 1 base unit regardless of list size -- so a 31-entry list costs the same as a 1-entry list. Does NOT use raw WebSocket writes, does NOT invent a per-byte rate, and does NOT call publishEvent() or signBalanceProof(), which no longer exist, or sign a claim by hand.",
+        "acceptable": "Uses client.send() and correctly describes the mute list update flow, and does not invent per-byte arithmetic, but may not state the flat route price or discuss replaceable-event retention.",
+        "incorrect": "Suggests publishing only the new entry (does not understand replaceable event semantics), uses raw WebSocket patterns, omits payment entirely, calls publishEvent() or signBalanceProof(), which no longer exist, computes a cost from the event's byte count / claims the cost scales with list size, or claims the relay's read response is TOON-encoded or needs a TOON decoder."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee calculation based on total list size, not just the new entry",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket, and not the retired publishEvent()",
+        "toon-fee-check: Response lets the client price the packet (or reads the route price) and does not compute a charge from the event's own byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has curation-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
-        "Response explains that the entire list is republished (replaceable event cost trap)"
+        "Response explains that the entire list is republished and that the relay retains one version per pubkey+kind",
+        "Response states that the relay's route is flat, so list size does not change the price"
       ]
     },
     {
       "id": "label-application",
       "prompt": "I want to label a kind:30023 article on TOON as educational content in the ugc namespace. Walk me through it.",
-      "expected_output": "Construct a kind:1985 event with L tag ['L', 'ugc'], l tag ['l', 'educational', 'ugc'], and an a tag pointing to the article ['a', '30023:<author-pubkey>:<d-tag>', '<relay-hint>']. Optionally add descriptive text in .content. Sign and publish via publishEvent(). Labels are ~200-300 bytes = ~$0.002-$0.003. Labels are regular events (non-replaceable) so each is independent and cheap.",
+      "expected_output": "Construct a kind:1985 event with L tag ['L', 'ugc'], l tag ['l', 'educational', 'ugc'], and an a tag pointing to the article ['a', '30023:<author-pubkey>:<d-tag>', '<relay-hint>']. Optionally add descriptive text in .content. Sign it and send it with await client.send({ body: signedEvent }) -- the client seals, prices and pays for the packet; TOON is the encoding of that sealed write payload, not of anything the relay returns on a read. The relay's route is flat, so the label costs 1 base unit like any other publish. Labels are regular events (non-replaceable), so each one is a separate permanent event and a separate payment; nothing replaces it later.",
       "rubric": {
-        "correct": "Constructs a kind:1985 event with L namespace tag ['L', 'ugc'], l value tag ['l', 'educational', 'ugc'], and a target tag using the a format for replaceable events. Uses publishEvent() from @toon-protocol/client. Calculates cost (~$0.002-$0.003). Explains labels are regular (non-replaceable) events. Does NOT use raw WebSocket writes.",
-        "acceptable": "Correctly constructs the kind:1985 event with proper tags and uses publishEvent(), but may not discuss the non-replaceable nature or exact cost.",
-        "incorrect": "Uses wrong tag format (missing namespace in l tag third element), targets with e tag instead of a tag for a replaceable event, uses raw WebSocket, or omits payment."
+        "correct": "Constructs a kind:1985 event with L namespace tag ['L', 'ugc'], l value tag ['l', 'educational', 'ugc'], and a target tag using the a format for replaceable events. Uses client.send() from @toon-protocol/client and lets the client price the packet. Notes the relay's flat route (1 base unit) and that labels are regular, non-replaceable events so payments accumulate one per label. Does NOT use raw WebSocket writes and does NOT call publishEvent(), which no longer exists.",
+        "acceptable": "Correctly constructs the kind:1985 event with proper tags and uses client.send(), but may not discuss the non-replaceable nature or the flat route price.",
+        "incorrect": "Uses wrong tag format (missing namespace in l tag third element), targets with e tag instead of a tag for a replaceable event, uses raw WebSocket, calls the retired publishEvent(), omits payment, invents per-byte arithmetic for the label's size, or claims labels must be read back through a TOON decoder."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee calculation or cost awareness for labels",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket, and not the retired publishEvent()",
+        "toon-fee-check: Response lets the client price the packet and does not derive a cost from the label's byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has labeling-specific Social Context guidance",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses a tag (not e tag) for targeting a kind:30023 replaceable event",
@@ -122,16 +123,16 @@
     {
       "id": "bookmark-set-management",
       "prompt": "I want to create a bookmark collection called 'nostr-resources' with 3 articles and 2 URLs on TOON. How do I set it up?",
-      "expected_output": "Construct a kind:30003 event with d tag 'nostr-resources'. Add a tags for articles (30023:<pubkey>:<d-tag> format with relay hints). Add r tags for URLs. Optionally add title and description metadata tags. Sign and publish via publishEvent(). A collection with 5 items is approximately 600 bytes = ~$0.006. Each future update republishes the entire collection.",
+      "expected_output": "Construct a kind:30003 event with d tag 'nostr-resources'. Add a tags for articles (30023:<pubkey>:<d-tag> format with relay hints). Add r tags for URLs. Optionally add title and description metadata tags. Sign it and send it with await client.send({ body: signedEvent }). The relay's route is flat at 1 base unit, so the collection's size does not affect the price. Each future update republishes the entire collection into the same d-tagged slot -- the relay keeps one version, and you pay once per update, whatever the collection weighs.",
       "rubric": {
-        "correct": "Constructs a kind:30003 event with d tag set to 'nostr-resources'. Uses a tags for articles (kind:30023 replaceable events) and r tags for URLs. Mentions optional metadata tags (title, description). Publishes via publishEvent(). Calculates approximate fee (~$0.006 for 5 items). Warns that future updates republish the entire collection (cost scales with size). Does NOT use raw WebSocket.",
-        "acceptable": "Correctly uses kind:30003 with d tag and appropriate reference tags, publishes via publishEvent(), but may not discuss future update costs.",
-        "incorrect": "Uses wrong event kind, omits d tag, uses e tags instead of a tags for articles, uses raw WebSocket, or does not mention payment."
+        "correct": "Constructs a kind:30003 event with d tag set to 'nostr-resources'. Uses a tags for articles (kind:30023 replaceable events) and r tags for URLs. Mentions optional metadata tags (title, description). Sends via client.send() and lets the client price the packet. States that the relay's route is flat, so cost does not scale with the collection's size, and that future updates republish the whole collection into one retained d-tagged slot. Does NOT use raw WebSocket and does NOT call publishEvent(), which no longer exists.",
+        "acceptable": "Correctly uses kind:30003 with d tag and appropriate reference tags, sends via client.send(), but may not discuss replaceable-slot semantics or the flat route price.",
+        "incorrect": "Uses wrong event kind, omits d tag, uses e tags instead of a tags for articles, uses raw WebSocket, calls the retired publishEvent(), does not mention payment, claims the cost grows with the number of bookmarks, or claims the relay returns TOON-encoded reads."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee calculation for the bookmark set",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket, and not the retired publishEvent()",
+        "toon-fee-check: Response lets the client price the packet and does not size a charge from the bookmark set's bytes",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has curation-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses kind:30003 with d tag for collection identifier",
@@ -141,16 +142,16 @@
     {
       "id": "public-vs-private-entries",
       "prompt": "I'm building a mute list and a follow set on TOON. For each, should I use public or private entries? What are the tradeoffs?",
-      "expected_output": "Mute list (kind:10000): Use private entries (encrypted in .content via NIP-44). Broadcasting who you mute creates social tension. Private muting is non-confrontational. Follow sets (kind:30000): Default to public entries (in .tags). Public follow sets aid social discovery and signal your interests. Use private entries only for confidential relationships. Encryption adds ~50-100 bytes overhead. On TOON, both public and private entries contribute to the total event size and therefore the ILP fee.",
+      "expected_output": "Mute list (kind:10000): use private entries (encrypted in .content via NIP-44). Broadcasting who you mute creates social tension; private muting is non-confrontational. Follow sets (kind:30000): default to public entries (in .tags). Public follow sets aid social discovery and signal your interests; use private entries only for confidential relationships. Encryption adds ~50-100 bytes of NIP-44 wrapper, but that changes the event's size, not its price: the relay's route is flat, so a publish costs 1 base unit either way. The real trade-off is privacy and filterability -- relays cannot filter on private entries, so client-side filtering has to handle them. Reading either kind of entry back is free and comes over plain NIP-01 JSON.",
       "rubric": {
-        "correct": "Recommends private entries for mute lists (avoids broadcasting conflicts) and public entries for follow sets (aids discovery). Explains the social dynamics of each choice. Notes that encryption adds byte overhead. Acknowledges both types contribute to event size and ILP fee on TOON. Mentions NIP-44 for encryption.",
-        "acceptable": "Correctly distinguishes the recommended visibility for each list type but may not discuss the byte overhead or fee implications.",
-        "incorrect": "Recommends public mute lists, does not distinguish between list types, or ignores the social implications of public vs private entries."
+        "correct": "Recommends private entries for mute lists (avoids broadcasting conflicts) and public entries for follow sets (aids discovery). Explains the social dynamics of each choice. Mentions NIP-44 for encryption. Frames the trade-off as privacy and relay-side filterability, and states that the encryption overhead does not change the price because the relay's route is flat.",
+        "acceptable": "Correctly distinguishes the recommended visibility for each list type but may not discuss filterability or say explicitly that the price is unaffected.",
+        "incorrect": "Recommends public mute lists, does not distinguish between list types, ignores the social implications of public vs private entries, argues for public entries on the grounds that encryption overhead costs more to publish, or claims a TOON decoder is needed to read the list back."
       },
       "assertions": [
-        "toon-write-check: Response references publishEvent() for list updates",
-        "toon-fee-check: Response mentions that both entry types affect event size and cost",
-        "toon-format-check: Response mentions TOON-format strings in relay responses when reading lists",
+        "toon-write-check: Response references client.send() for list updates, not the retired publishEvent()",
+        "toon-fee-check: Response does not claim encryption overhead raises the price; the relay's route is flat",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response addresses public vs private list social dynamics",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response recommends private entries for mute lists",
@@ -161,21 +162,20 @@
     {
       "id": "batch-update-economics",
       "prompt": "I need to mute 10 users on TOON. My mute list currently has 100 entries. Should I mute them one at a time or all at once? What's the cost difference?",
-      "expected_output": "Batch all 10 mutes into a single update. With 100 entries, the list is approximately 7,000 bytes = ~$0.07 per update. One at a time: 10 updates = ~$0.70. Batched: 1 update with 110 entries = ~$0.077. Batching saves approximately $0.62 (90% reduction). Fetch the current list once, add all 10 p tags, and publish once via publishEvent().",
+      "expected_output": "Mute them as you decide to -- the cost difference is negligible. The relay's route is flat at 1 base unit of 6-decimal USDC per publish, and the price does not depend on the list's size, so 10 separate updates cost 10 base units and one batched update costs 1. The saving is 9 base units, about nine millionths of a dollar. The 110-entry republish costs exactly what a 1-entry publish costs. Batch when the changes are already in hand -- fewer round trips, fewer replaced versions on the relay -- but never delay a mute to save money. Either way: fetch the current list over a free plain-NIP-01 read, add the p tags, and send with await client.send({ body: signedEvent }).",
       "rubric": {
-        "correct": "Strongly recommends batching. Calculates per-update cost for 100 entries (~$0.07). Shows cost for 10 individual updates (~$0.70) vs 1 batched update (~$0.077). Quantifies savings (~$0.62 or ~90%). Describes the workflow: fetch once, add all entries, publish once via publishEvent().",
-        "acceptable": "Recommends batching and explains the cost trap, but may not calculate exact savings or per-update costs.",
-        "incorrect": "Suggests updating one at a time, does not understand the replaceable event cost model, or omits fee awareness entirely."
+        "correct": "States that the relay's route is flat -- 1 base unit per publish, independent of list size -- so batching saves only 9 base units (roughly nine millionths of a dollar) and responsiveness should win. Explains that each update republishes the whole list into a single retained version, and that you pay once per update rather than per entry or per retained version. Describes the workflow: fetch, add the p tags, send via client.send(). Does not compute anything from the event's byte count.",
+        "acceptable": "Notes that the price is flat per publish and that the saving from batching is trivial, and uses client.send(), but may not quantify the saving or explain replaceable-event retention.",
+        "incorrect": "Claims the cost scales with the list's size or byte count, quotes a per-byte rate, presents batching as a large saving, calls the retired publishEvent(), omits payment awareness entirely, or claims the current list must be decoded from a TOON-format response."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API",
-        "toon-fee-check: Response calculates cost difference between batched and individual updates",
-        "toon-format-check: Response mentions TOON-format strings when fetching the current list",
+        "toon-write-check: Response uses client.send(), not the retired publishEvent()",
+        "toon-fee-check: Response prices a publish from the route (flat, 1 base unit) rather than from the event's byte count or list size",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has curation-specific Social Context section with anti-patterns",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
-        "Response recommends batching mute list changes",
-        "Response explains the replaceable event cost trap (entire list republished per update)",
-        "Response quantifies the cost savings of batching"
+        "Response explains that each update republishes the entire list and the relay retains one version",
+        "Response states the saving from batching is negligible because the price is flat per publish"
       ]
     }
   ]

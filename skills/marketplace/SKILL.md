@@ -12,15 +12,15 @@ description: Marketplace and classified listings on Nostr and TOON Protocol usin
   direct messages, buyer-merchant communication), and listing discovery ("how do I find
   products on Nostr?", "how do I search for listings?", "how do I browse a marketplace?",
   stall discovery, product search, classified search, category browsing). Implements NIP-15
-  and NIP-99 on TOON's ILP-gated network where stalls, products, and classifieds cost
-  per-byte to publish.
+  and NIP-99 on TOON's ILP-gated network where publishing a stall, product, or
+  classified is a paid write carried by `client.send()`.
 ---
 
 # Marketplace (TOON)
 
 Decentralized marketplace and classified listings for agents on the TOON network. NIP-15 defines how merchants create stalls (kind:30017) and list products (kind:30018), with order negotiation via direct messages. NIP-99 defines classified listings (kind:30402) for services, real estate, jobs, and other non-product offerings. All three event kinds are parameterized replaceable events using `d` tags for stable identifiers.
 
-This skill covers the full marketplace lifecycle: creating merchant stalls, listing products with pricing and inventory, posting classified ads, discovering listings, and negotiating orders. On TOON, every marketplace write operation costs per-byte via `publishEvent()`, creating an economic quality signal -- merchants pay to list, which filters spam listings absent from free relays.
+This skill covers the full marketplace lifecycle: creating merchant stalls, listing products with pricing and inventory, posting classified ads, discovering listings, and negotiating orders. On TOON, every marketplace write is a paid write: `client.send()` seals the event, reads the route's price, mints the covering claim and carries it. Merchants pay to list, so a listing carries an economic commitment that a free relay cannot ask for.
 
 ## Marketplace Model
 
@@ -164,7 +164,7 @@ NIP-15 defines order negotiation through encrypted direct messages (NIP-17, kind
 3. **Buyer sends payment proof.** A DM with payment confirmation (transaction ID, receipt, etc.).
 4. **Merchant confirms fulfillment.** A DM with shipping/delivery details.
 
-Order messages are standard NIP-17 private DMs. On TOON, each DM costs per-byte (~$0.004-$0.015 per message). See the `private-dms` skill for DM construction and costs.
+Order messages are standard NIP-17 private DMs. On TOON each DM is a paid write to the relay, charged at the relay route's flat price regardless of message length. See the `private-dms` skill for DM construction and costs.
 
 **Order request JSON (sent as DM content):**
 ```json
@@ -188,20 +188,26 @@ Order messages are standard NIP-17 private DMs. On TOON, each DM costs per-byte 
 
 ## TOON Write Model
 
-All marketplace events are published via `publishEvent()` from `@toon-protocol/client`. Each write costs `basePricePerByte * serializedEventBytes`.
+All marketplace events are published with `client.send()` from `@toon-protocol/client`:
 
-| Event Type | Approximate Size | Cost at 10n/byte |
-|-----------|-----------------|------------------|
-| Stall (kind:30017) | ~400-800 bytes | ~$0.004-$0.008 |
-| Product (kind:30018) | ~500-1200 bytes | ~$0.005-$0.012 |
-| Classified (kind:30402) | ~400-2000 bytes | ~$0.004-$0.020 |
-| Order DM (kind:14 via NIP-17) | ~400-800 bytes | ~$0.004-$0.008 |
+```ts
+await client.send({ body: signedEvent });
+```
 
-Products with many images, long descriptions, or extensive specs cost more. Keep listings concise to minimize per-byte costs. Updating a listing (republishing with the same `d` tag) costs the same as creating a new one.
+`send()` seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it. There is no separate pricing, claim-signing or publish step.
 
-For the full fee formula and `publishEvent()` API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+**Two prices are in play, and they are not the same thing:**
 
-## TOON Read Model
+- **The merchant's asking price** -- the `price` field in a kind:30018 product's content JSON, or the `price` tag on a kind:30402 classified. This is NIP-15/NIP-99 application data carried inside the event. It is what a buyer pays the merchant, settled outside the protocol.
+- **The route's charge for publishing** -- what it costs to get the listing onto the relay. This comes from the connector in front of the relay, never from anything in the event. Where you genuinely need it in advance, `await client.routePrice(destination)` returns `{ price, pricePerKib? }` and `chargeFor(terms, sealedBytes)` turns that into a charge. In the ordinary case you need neither -- `send()` prices the packet itself.
+
+The relay route (`g.toon.relay`) is **flat-priced**: 1 base unit of 6-decimal USDC per event, probed 2026-08-28. A 400-byte stall and a 2 KiB classified cost exactly the same to publish, and republishing with the same `d` tag costs the same as the original. Size does not change the price, so there is no byte-shaving to do.
+
+On a route that does have a slope, the metered quantity is the **sealed** payload the PREPARE carries -- not the event JSON you wrote, which is smaller by the envelope and the wrap. A charge can never be computed from your own event's byte count.
+
+For the full write model and client API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+
+## Reading (free, plain NIP-01)
 
 Query marketplace events using kind filters:
 
@@ -209,38 +215,40 @@ Query marketplace events using kind filters:
 - **Products:** `kinds: [30018]`, filter by `#d` (product ID), `#t` (category), or author pubkey
 - **Classifieds:** `kinds: [30402]`, filter by `#d` (listing ID), `#t` (category/tag), or author pubkey
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse marketplace events. Reading is free on TOON.
+Reads are free and speak plain NIP-01. The relay returns **standard JSON** `EVENT` messages -- `["EVENT", <sub-id>, {"id": ..., "pubkey": ..., "created_at": ..., "kind": 30018, "tags": [...], "content": ..., "sig": ...}]` -- so any ordinary Nostr client can browse the marketplace. There is no decoder step, and a read never touches a connector. The only parsing a listing needs is `JSON.parse` on the event's `content` field, which is where NIP-15 puts the stall or product record.
+
+TOON is the encoding of the *write* payload: an agreement between the client and the app about the bytes the connector carries sealed inside the ILP packet. It is not what a relay serves on a read. **TOON on the way in, plain NIP-01 JSON on the way out.**
 
 To find all products in a stall, query by the merchant's pubkey and kind:30018, then filter by `stall_id` in the parsed content JSON. To browse by category, use `#t` tag filters.
 
-For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+For the full read model, read `skills/nostr-protocol-core/references/toon-read-model.md`.
 
 ## Social Context
 
-Marketplace listings on TOON carry an economic quality signal. The per-byte cost to publish means merchants pay to list, which naturally filters spam and low-effort listings that plague free marketplace platforms. This is a feature, not a bug -- it creates a marketplace where listings have nonzero economic commitment behind them.
+Marketplace listings on TOON carry an economic quality signal. Publishing needs an open, funded payment channel and a covering claim on every event -- merchants pay to list, which free marketplace platforms cannot ask for. The friction is the funded channel and the per-event charge, not the size of the listing.
 
 **Pricing considerations on a paid network:**
-- Keep product descriptions concise but informative. Every byte costs money.
-- Use external image hosting (NIP-96) for product images rather than embedding image data.
-- Use `t` tags strategically for discoverability but do not over-tag -- each tag adds bytes.
-- Stall updates (changing shipping zones, currency) cost the same as creation. Batch changes rather than making frequent small updates.
+- The relay charges a flat price per event, so a longer description does not cost more. Write for the buyer, not for the byte count.
+- Use external image hosting (NIP-96) for product images rather than embedding image data. Blob storage is a different route (`g.toon.store`) and that one *is* priced by size.
+- Use `t` tags strategically for discoverability. Extra tags do not raise the relay's charge; over-tagging is a discovery problem, not a cost one.
+- Stall updates (changing shipping zones, currency) cost a full publish each. Batch changes rather than making frequent small updates.
 
 **Classified listing best practices:**
-- Use markdown formatting in kind:30402 content for readability, but keep it lean.
+- Use markdown formatting in kind:30402 content for readability. Length does not change the publishing charge, so structure it for the reader.
 - Include the `price` tag for machine-readable pricing -- do not put price only in the markdown body.
 - Use `location` tag for geographic relevance even for remote/digital services.
 - Set `published_at` to indicate freshness -- stale classifieds lose credibility.
 
 **Order negotiation etiquette:**
-- Keep order DMs structured (use the JSON format). Unstructured messages are harder to process and cost the same per-byte.
+- Keep order DMs structured (use the JSON format). Unstructured messages are harder for the merchant to process and cost exactly as much to send.
 - Merchants should respond promptly to order requests. Silence after payment is a trust violation.
 - Include a `contact` field in order requests to provide fallback communication channels.
 
 **Anti-patterns to avoid:**
 - Publishing products without a parent stall -- products reference a `stall_id` that must exist as a kind:30017 event
 - Putting structured product data in kind:30402 classifieds -- use kind:30018 for actual products with inventory
-- Using raw WebSocket writes instead of `publishEvent()` on TOON
-- Listing items at price 0 with quantity 0 as "coming soon" placeholders -- this wastes per-byte cost
+- Using raw WebSocket writes instead of `client.send()` on TOON -- the relay requires payment
+- Listing items at price 0 with quantity 0 as "coming soon" placeholders -- this spends a paid write on something nobody can buy
 - Omitting the `d` tag -- without it, you cannot update the listing later
 
 ## When to Read Each Reference
@@ -254,5 +262,5 @@ Read the appropriate reference file based on the situation:
 - **Order negotiation via encrypted DMs** -- See `private-dms` for NIP-17 DM construction, gift wrapping, and per-message costs.
 - **Product images via NIP-96 file storage** -- See `media-and-files` for kind:1063 file metadata and `imeta` tag format; see `file-storage` for NIP-96 upload workflow.
 - **DVM service marketplace mapping** -- Read [toon-extensions.md](references/toon-extensions.md) for how DVM compute services map to NIP-15 stalls and products.
-- **Discovering relay pricing for listing fees** -- See `relay-discovery` for NIP-11 relay info and TOON `/health` endpoint.
+- **Discovering the route price for listing fees** -- See `relay-discovery` for NIP-11 relay info and the connector's `GET /ilp` self-description, which carries every route's price. A connector answers; it never announces.
 - **Social judgment on marketplace interactions** -- See `nostr-social-intelligence` for base social intelligence.

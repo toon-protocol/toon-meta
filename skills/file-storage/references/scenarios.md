@@ -1,6 +1,6 @@
 # File Storage Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common file storage operations on TOON. Each scenario shows the complete flow from intent to result, including NIP-96 server interaction, NIP-98 authentication, and TOON-specific considerations like publishing the resulting kind:1063 metadata event via `publishEvent()`. These scenarios bridge the gap between knowing the NIP-96 protocol (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common file storage operations on TOON. Each scenario shows the complete flow from intent to result, including NIP-96 server interaction, NIP-98 authentication, and TOON-specific considerations like publishing the resulting kind:1063 metadata event via `client.send()`. These scenarios bridge the gap between knowing the NIP-96 protocol (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Discovering a File Storage Server
 
@@ -71,18 +71,16 @@
 
 7. **Construct the kind:1063 event.** Use the tags from `nip94_event.tags` and the content from `nip94_event.content`. Sign the event with your Nostr private key.
 
-8. **Calculate the TOON fee.** The kind:1063 event is typically ~300-800 bytes (~$0.003-$0.008 at default `basePricePerByte`).
-
-9. **Publish the kind:1063 event on TOON.** Use `publishEvent()` from `@toon-protocol/client`. This is the only step that involves TOON/ILP payment.
+8. **Send the kind:1063 event on TOON.** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. The client seals the payload, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step. This is the only step that involves TOON/ILP payment.
 
 ### Considerations
 
-- The upload (steps 2-6) is off-chain HTTP. No TOON relay or ILP payment is involved until step 9.
+- The upload (steps 2-6) is off-chain HTTP. No TOON relay or ILP payment is involved until step 8.
 - The NIP-98 auth event must have a recent `created_at` (within ~60 seconds). Do not pre-generate auth events.
 - Include `alt` text for images -- it costs nothing in the upload and produces better accessibility metadata.
 - Use `no_transform: "true"` when exact file content matters (cryptographic hashes, archival content).
 - The `ox` tag in the response contains the original file hash; `x` contains the hash after server transforms.
-- On TOON, you pay only for the kind:1063 metadata event (~300-800 bytes), not for the file upload itself.
+- On TOON, you pay only for the kind:1063 metadata event, not for the file upload itself. The relay route is flat-priced at 1 base unit of 6-dp USDC, so the event's size does not change what it costs.
 
 ## Scenario 3: Downloading a File
 
@@ -134,7 +132,7 @@
 
 6. **Parse the response.** On success: `{"status": "success", "message": "File deleted"}`. On error: `{"status": "error", "message": "..."}`.
 
-7. **Optionally delete the kind:1063 event on TOON.** If you published a kind:1063 metadata event referencing this file, consider publishing a kind:5 deletion request event (NIP-09) to remove the now-orphaned metadata. This costs per-byte on TOON via `publishEvent()`.
+7. **Optionally delete the kind:1063 event on TOON.** If you published a kind:1063 metadata event referencing this file, consider publishing a kind:5 deletion request event (NIP-09) to remove the now-orphaned metadata. That deletion request is itself a paid TOON write, sent with `client.send()`.
 
 ### Considerations
 
@@ -143,4 +141,4 @@
 - The NIP-98 auth event must have a recent `created_at` (within ~60 seconds).
 - Server deletion is permanent. There is no undo.
 - Not all servers support deletion. Some servers retain files permanently by design.
-- If publishing a kind:5 deletion request on TOON, that event costs per-byte (~200-300 bytes, ~$0.002-$0.003). See `content-control` for kind:5 event construction.
+- A kind:5 deletion request on TOON costs the relay's flat 1 base unit, the same as any other event. See `content-control` for kind:5 event construction.

@@ -85,16 +85,16 @@
     {
       "id": "advertise-app",
       "prompt": "I built a Nostr client that handles kind:1 notes and kind:30023 articles. I want to advertise it on a TOON relay so other users can discover it. How do I do this and what will it cost?",
-      "expected_output": "Construct a kind:31990 parameterized replaceable event with a d tag for your app identifier, k tags for '1' and '30023', web/ios/android platform URL tags with optional <bech32> deep link placeholders, r tags for relay hints, and a markdown description in content. Publish via publishEvent() from @toon-protocol/client. Approximate fee: ~300-500 bytes at 10n basePricePerByte = ~$0.003-$0.005. As a parameterized replaceable event, updates replace the previous listing.",
+      "expected_output": "Construct a kind:31990 parameterized replaceable event with a d tag for your app identifier, k tags for '1' and '30023', web/ios/android platform URL tags with optional <bech32> deep link placeholders, r tags for relay hints, and a markdown description in content. Publish via client.send({ body: signedEvent }) from @toon-protocol/client, which seals the payload, reads the route's price, mints the covering claim and carries it. The relay route is flat-priced -- 1 base unit of 6-decimal USDC per event, whatever the listing's length -- so do not compute a charge from the event's own byte count. As a parameterized replaceable event, updates replace the previous listing.",
       "rubric": {
-        "correct": "Constructs a kind:31990 event with d tag (app identifier), k tags for '1' and '30023', platform URL tags (web/ios/android) with <bech32> placeholder explanation, and markdown content description. Publishes via publishEvent() from @toon-protocol/client. Calculates approximate fee: ~300-500 bytes at 10n = ~$0.003-$0.005. Explains parameterized replaceable semantics (updates replace old listing). Does NOT use raw WebSocket writes.",
-        "acceptable": "Uses publishEvent() and constructs a kind:31990 event with correct d and k tags, but may not explain URL templates with <bech32> placeholders or parameterized replaceable update semantics in detail.",
-        "incorrect": "Uses raw WebSocket patterns, omits payment entirely, uses wrong event kind, does not include d or k tags, or treats the event as non-replaceable."
+        "correct": "Constructs a kind:31990 event with d tag (app identifier), k tags for '1' and '30023', platform URL tags (web/ios/android) with <bech32> placeholder explanation, and markdown content description. Publishes via client.send() from @toon-protocol/client and lets the client price the packet. Notes the relay route is flat-priced (1 base unit of 6-decimal USDC per event, size-independent) rather than computing a charge from the event's byte count. Explains parameterized replaceable semantics (updates replace old listing). Does NOT use raw WebSocket writes.",
+        "acceptable": "Uses client.send() and constructs a kind:31990 event with correct d and k tags, but may not explain URL templates with <bech32> placeholders or parameterized replaceable update semantics in detail.",
+        "incorrect": "Uses raw WebSocket patterns, calls a retired publishEvent() or hand-signs a claim, invents a per-byte rate or multiplies the event's byte count by a price, omits payment entirely, uses wrong event kind, does not include d or k tags, or treats the event as non-replaceable."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee calculation or cost awareness for handler info events",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response lets the client price the packet (or reads the route price) and does not compute a charge from the event's own byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has app-handler-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response constructs a kind:31990 event with d tag and k tags for handled kinds"
@@ -103,16 +103,16 @@
     {
       "id": "recommend-app",
       "prompt": "I found a great article reader app on Nostr and want to recommend it for handling kind:30023 events. The app's handler info is published by pubkey abc123 with d tag 'article-reader-pro'. How do I publish this recommendation on TOON?",
-      "expected_output": "Construct a kind:31989 parameterized replaceable event with d tag set to '30023' (the kind being recommended for), an a tag referencing '31990:abc123:article-reader-pro' with an optional relay hint as the third element, and optional review text in the content field. Publish via publishEvent(). Cost: ~200-400 bytes = ~$0.002-$0.004. Since kind:31989 is parameterized replaceable keyed by d tag, publishing a new recommendation for kind:30023 replaces any previous one.",
+      "expected_output": "Construct a kind:31989 parameterized replaceable event with d tag set to '30023' (the kind being recommended for), an a tag referencing '31990:abc123:article-reader-pro' with an optional relay hint as the third element, and optional review text in the content field. Publish via client.send({ body: signedEvent }); the client seals, prices and mints the claim. Same flat relay price as any other event: 1 base unit of 6-decimal USDC. Since kind:31989 is parameterized replaceable keyed by d tag, publishing a new recommendation for kind:30023 replaces any previous one.",
       "rubric": {
-        "correct": "Constructs a kind:31989 event with d tag '30023', a tag '31990:abc123:article-reader-pro' with optional relay hint, and optional review content. Publishes via publishEvent(). Calculates fee: ~200-400 bytes = ~$0.002-$0.004. Explains that kind:31989 is parameterized replaceable -- one active recommendation per kind per user. Does NOT use raw WebSocket writes.",
-        "acceptable": "Correctly constructs the kind:31989 event with d and a tags and uses publishEvent(), but may not explain parameterized replaceable semantics or exact cost.",
-        "incorrect": "Uses raw WebSocket patterns, omits the a tag reference, uses wrong d tag format, or does not mention payment."
+        "correct": "Constructs a kind:31989 event with d tag '30023', a tag '31990:abc123:article-reader-pro' with optional relay hint, and optional review content. Publishes via client.send() and lets the client price the packet. Notes the flat relay price (1 base unit of 6-decimal USDC), not a byte-count calculation. Explains that kind:31989 is parameterized replaceable -- one active recommendation per kind per user. Does NOT use raw WebSocket writes.",
+        "acceptable": "Correctly constructs the kind:31989 event with d and a tags and uses client.send(), but may not explain parameterized replaceable semantics or the flat route price.",
+        "incorrect": "Uses raw WebSocket patterns, calls a retired publishEvent(), derives a charge from the event's byte count, omits the a tag reference, uses wrong d tag format, or does not mention payment."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee calculation or cost awareness for recommendation events",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response lets the client price the packet and notes the relay route is flat-priced, not byte-metered",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has app-handler-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response constructs a kind:31989 event with d tag for the kind and a tag referencing the handler info event"
@@ -121,16 +121,16 @@
     {
       "id": "discover-handlers",
       "prompt": "I encountered a kind:5600 DVM event on a TOON relay and my client does not handle it natively. How do I find applications that can handle this kind?",
-      "expected_output": "Subscribe with a NIP-01 filter: kinds:[31990] and #k:['5600'] to find all apps that handle kind:5600. Reading is free on TOON. TOON relays return TOON-format strings, not JSON -- use the TOON decoder. Extract d tags for app identifiers, web/ios/android tags for platform URLs, and content for app descriptions. Optionally check kind:31989 recommendations with #d:['5600'] to see which apps users endorse. For TOON DVM integration, cross-reference with kind:10035 SkillDescriptor events.",
+      "expected_output": "Subscribe with a NIP-01 filter: kinds:[31990] and #k:['5600'] to find all apps that handle kind:5600. Reading is free on TOON and speaks plain NIP-01 -- the relay returns standard JSON EVENT messages, so no decoder is needed and the read never touches a connector. Extract d tags for app identifiers, web/ios/android tags for platform URLs, and content for app descriptions. Optionally check kind:31989 recommendations with #d:['5600'] to see which apps users endorse. To learn what a DVM charges, fetch its connector's GET /ilp self-description -- a connector answers, it never announces, so there is no service-advertisement event to query.",
       "rubric": {
-        "correct": "Describes subscription with kinds:[31990] and #k:['5600'] filter. Explains that reading is free on TOON. Mentions TOON-format strings and the need for a TOON decoder. Explains how to extract app information from results. Suggests checking kind:31989 recommendations. Mentions kind:10035 SkillDescriptor cross-referencing for DVM integration.",
-        "acceptable": "Correctly describes the query filter and mentions TOON format, but may not reference kind:10035 SkillDescriptor integration or recommendation cross-referencing.",
-        "incorrect": "Assumes standard JSON responses, suggests payment is needed to read, uses wrong filter syntax, or does not use the #k tag filter."
+        "correct": "Describes subscription with kinds:[31990] and #k:['5600'] filter. Explains that reading is free on TOON and comes back as plain NIP-01 JSON, needing no decoder. Explains how to extract app information from results. Suggests checking kind:31989 recommendations. For the DVM's own service terms, points at the node's GET /ilp self-description rather than an advertisement event.",
+        "acceptable": "Correctly describes the query filter and treats the response as ordinary NIP-01 JSON, but may not reference GET /ilp service discovery or recommendation cross-referencing.",
+        "incorrect": "Claims relay reads are TOON-encoded or need a TOON decoder, suggests payment is needed to read, uses wrong filter syntax, or does not use the #k tag filter."
       },
       "assertions": [
-        "toon-write-check: Response correctly identifies handler discovery as a read-only operation -- no publishEvent() needed for querying",
+        "toon-write-check: Response correctly identifies handler discovery as a read-only operation -- no client.send() write needed for querying",
         "toon-fee-check: Response correctly notes that reading/discovering handlers is free on TOON",
-        "toon-format-check: Response explains TOON-format strings in relay responses",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has app-handler-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response uses NIP-01 filter with kinds:[31990] and #k tag filter",
@@ -140,16 +140,16 @@
     {
       "id": "update-app-listing",
       "prompt": "My app now supports kind:1111 comments in addition to kind:1 and kind:30023. I need to update my handler listing on TOON. How do I do this and will it replace the old one?",
-      "expected_output": "Publish a new kind:31990 event with the same d tag as your original listing, adding a new k tag for '1111' alongside the existing '1' and '30023' k tags. Because kind:31990 is parameterized replaceable (keyed by pubkey + kind + d-tag), the new event replaces the old one -- relays keep only the latest version. Publish via publishEvent(). Cost: ~300-500 bytes = ~$0.003-$0.005 for the updated listing. You pay for the full event each time you update, but no old versions accumulate.",
+      "expected_output": "Publish a new kind:31990 event with the same d tag as your original listing, adding a new k tag for '1111' alongside the existing '1' and '30023' k tags. Because kind:31990 is parameterized replaceable (keyed by pubkey + kind + d-tag), the new event replaces the old one -- relays keep only the latest version. Publish via client.send({ body: signedEvent }). You pay the flat relay price (1 base unit of 6-decimal USDC) each time you update, and adding a k tag does not change it, but no old versions accumulate.",
       "rubric": {
-        "correct": "Instructs to publish a new kind:31990 event with the same d tag and all three k tags ('1', '30023', '1111'). Explains parameterized replaceable semantics: latest event replaces the old one, keyed by pubkey + kind + d-tag. Uses publishEvent(). Notes cost is for the full updated event. Clarifies no old versions accumulate on the relay.",
-        "acceptable": "Correctly describes publishing a new event with the same d tag and all k tags via publishEvent(), but may not fully explain the replacement mechanics.",
-        "incorrect": "Suggests editing the existing event in place, does not include all three k tags, uses raw WebSocket, or does not mention payment."
+        "correct": "Instructs to publish a new kind:31990 event with the same d tag and all three k tags ('1', '30023', '1111'). Explains parameterized replaceable semantics: latest event replaces the old one, keyed by pubkey + kind + d-tag. Uses client.send(). Notes each update costs the same flat route price. Clarifies no old versions accumulate on the relay.",
+        "acceptable": "Correctly describes publishing a new event with the same d tag and all k tags via client.send(), but may not fully explain the replacement mechanics.",
+        "incorrect": "Suggests editing the existing event in place, does not include all three k tags, uses raw WebSocket, calls a retired publishEvent(), prices the update by its byte count, or does not mention payment."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes cost awareness for the updated listing",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket",
+        "toon-fee-check: Response notes each update pays the same flat route price, with no per-byte arithmetic",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has app-handler-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response explains parameterized replaceable semantics for kind:31990 updates",
@@ -159,20 +159,20 @@
     {
       "id": "toon-aware-app-handler",
       "prompt": "I am building a TOON-native client app. What special considerations should I address in my kind:31990 handler advertisement to signal TOON support?",
-      "expected_output": "Include TOON support details in the markdown content description: ILP-gated publishing, TOON-format event parsing, payment channel management. Add r tags with TOON relay URLs. If the app handles write operations, ensure it integrates with @toon-protocol/client for publishEvent() and fee calculation. For DVM integration, cross-reference with kind:10035 SkillDescriptor events. There is no standardized TOON-support tag, so the content field is the primary signal.",
+      "expected_output": "Include TOON support details in the markdown content description: ILP-gated publishing, payment channel management. Add r tags with TOON relay URLs. If the app handles write operations, ensure it integrates with @toon-protocol/client and calls client.send(), which prices the packet itself. For DVM service terms, the node's own GET /ilp self-description is the discovery surface -- a connector answers, it never announces. There is no standardized TOON-support tag, so the content field is the primary signal.",
       "rubric": {
-        "correct": "Advises including TOON capabilities in the markdown content: ILP payment integration, TOON-format parsing, payment channel support. Recommends r tags with TOON relay URLs. Notes that write-capable apps must integrate with @toon-protocol/client. Mentions kind:10035 SkillDescriptor cross-referencing for DVM. Explains there is no standardized tag for TOON support -- content description is the primary signal.",
-        "acceptable": "Mentions including TOON support in the content description and r tags for TOON relays, but may not cover all technical integration points or kind:10035.",
-        "incorrect": "Suggests a non-existent TOON-specific tag, does not mention ILP integration requirements, or ignores TOON-format parsing needs."
+        "correct": "Advises including TOON capabilities in the markdown content: ILP payment integration, payment channel support. Recommends r tags with TOON relay URLs. Notes that write-capable apps must integrate with @toon-protocol/client and write via client.send(). Points at GET /ilp for a DVM's service terms. Explains there is no standardized tag for TOON support -- content description is the primary signal.",
+        "acceptable": "Mentions including TOON support in the content description and r tags for TOON relays, but may not cover all technical integration points or GET /ilp service discovery.",
+        "incorrect": "Suggests a non-existent TOON-specific tag, teaches a retired publishEvent() or per-byte fee arithmetic, claims the app needs a TOON decoder to read the relay, or does not mention ILP integration requirements."
       },
       "assertions": [
-        "toon-write-check: Response mentions publishEvent() API for TOON write integration",
-        "toon-fee-check: Response includes cost awareness for publishing TOON-native handler info",
-        "toon-format-check: Response mentions TOON-format strings and parsing requirements",
+        "toon-write-check: Response mentions client.send() from @toon-protocol/client for TOON write integration",
+        "toon-fee-check: Response has the client price the write rather than teaching a per-byte fee calculation",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Skill has app-handler-specific Social Context section",
         "trigger-coverage: Description includes both protocol and social-situation triggers",
         "Response describes including TOON capabilities in the content field",
-        "Response mentions kind:10035 SkillDescriptor for DVM integration"
+        "Response points at the node's GET /ilp self-description for DVM service terms"
       ]
     }
   ]

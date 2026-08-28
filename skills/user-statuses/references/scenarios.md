@@ -1,6 +1,6 @@
 # User Status Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common user status operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation and the publishEvent API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common user status operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like what a write actually costs and the `client.send()` API. These scenarios bridge the gap between knowing the event format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Setting a General Status
 
@@ -10,7 +10,7 @@
 
 ### Steps
 
-1. **Choose your status text.** Keep it concise -- you pay per byte. "Working on TOON SDK" is better than "Currently sitting at my desk working on the TOON Protocol SDK repository, specifically the client package."
+1. **Choose your status text.** Keep it concise for the reader's sake; on the flat relay route it is not cheaper, just better. "Working on TOON SDK" beats "Currently sitting at my desk working on the TOON Protocol SDK repository, specifically the client package."
 
 2. **Construct the kind:30315 event.** Build the event with `kind: 30315`, `content` set to your status text, and a `d` tag of `"general"`. Optionally add an `r` tag with a relevant URL.
 
@@ -27,11 +27,11 @@
 
 3. **Sign the event** using your Nostr private key via `nostr-tools` or equivalent.
 
-4. **Calculate the fee.** A typical general status (200-300 bytes) costs approximately $0.002-$0.003 at default `basePricePerByte` of 10n.
+4. **Do not work out the charge.** `send()` prices the write itself. The live relay route `g.toon.relay` is 1 base unit, flat -- $0.000001 in 6-decimal USDC -- whatever the status's size. For another route, ask with `await client.routePrice(destination)` and price it with `chargeFor(terms, sealedBytes)`.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`. The client handles TOON encoding, ILP payment, and relay communication.
+5. **Send it with `await client.send({ body: signedEvent })`** from `@toon-protocol/client`. The client handles TOON encoding, ILP payment, and relay communication.
 
-6. **Verify publication.** Subscribe to your own kind:30315 events with `#d: ["general"]` to confirm the relay accepted and stored your status. Remember that relay responses use TOON-format strings.
+6. **Verify publication.** Subscribe to your own kind:30315 events with `#d: ["general"]` to confirm the relay accepted and stored your status. Remember that reads are free and the response is plain NIP-01 JSON -- no decoding step.
 
 ### Considerations
 
@@ -64,9 +64,9 @@
 
 3. **Sign the event** using your Nostr private key.
 
-4. **Calculate the fee.** A music status with an `r` tag URL (250-350 bytes) costs approximately $0.0025-$0.0035.
+4. **Know what it costs.** A music status with an `r` tag URL runs 250-350 bytes; on the flat `g.toon.relay` route that is the same 1 base unit as any other write.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+5. **Send it with `await client.send({ body: signedEvent })`** from `@toon-protocol/client`.
 
 ### Considerations
 
@@ -100,9 +100,9 @@
 
 3. **Sign the event** using your Nostr private key.
 
-4. **Calculate the fee.** An expiring status with URL (300-400 bytes) costs approximately $0.003-$0.004.
+4. **Know what it costs.** An expiring status with a URL runs 300-400 bytes; on the flat `g.toon.relay` route that is 1 base unit, and it saves the second write a manual clear would need.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+5. **Send it with `await client.send({ body: signedEvent })`** from `@toon-protocol/client`.
 
 6. **No cleanup needed.** After the expiration timestamp passes, relays discard the event. You do not need to publish a clearing event.
 
@@ -136,9 +136,9 @@
 
 3. **Sign the event** using your Nostr private key.
 
-4. **Calculate the fee.** A clearing event is minimal (150-200 bytes) and costs approximately $0.0015-$0.002.
+4. **Know what it costs.** A clearing event is minimal (150-200 bytes), but it is still a paid write -- 1 base unit on the flat `g.toon.relay` route. An `expiration` tag on the original avoids it entirely.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+5. **Send it with `await client.send({ body: signedEvent })`** from `@toon-protocol/client`.
 
 ### Considerations
 

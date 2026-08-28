@@ -8,7 +8,7 @@ Announces a git repository and asserts maintainership. This is the anchor event 
 
 ## Event Type
 
-**Parameterized replaceable** — updates replace the previous announcement with the same `d` tag. You pay only for the current version, not accumulated history.
+**Parameterized replaceable** — updates replace the previous announcement with the same `d` tag. The relay retains one version, not an accumulating history; each update is its own paid write.
 
 ## Required Tags
 
@@ -39,12 +39,12 @@ Announces a git repository and asserts maintainership. This is the anchor event 
 
 ## TOON Write Model
 
-Approximate size: 300–500 bytes. Cost at default `basePricePerByte` (10n): ~$0.003–$0.005.
+The relay route (`g.toon.relay`) is flat-priced: **1 base unit** of 6-decimal USDC per event, whatever its size. Confirm with `await client.routePrice('g.toon.relay')` rather than assuming a figure.
 
 ### Example 1: Minimal Repository Announcement
 
 ```typescript
-import { publishEvent } from '@toon-protocol/client';
+import { ToonClient } from '@toon-protocol/client';
 
 const event = {
   kind: 30617,
@@ -56,8 +56,8 @@ const event = {
   ]
 };
 
-// Sign, calculate fee (~300 bytes ≈ $0.003), publish
-await publishEvent(signedEvent, { destination, claim });
+// Sign, then send -- the client seals it, prices the route and mints the claim
+await client.send({ body: signedEvent });
 ```
 
 ### Example 2: Full Metadata Announcement
@@ -81,8 +81,8 @@ const event = {
   ]
 };
 
-// Sign, calculate fee (~500 bytes ≈ $0.005), publish
-await publishEvent(signedEvent, { destination, claim });
+// Sign, then send -- the client seals it, prices the route and mints the claim
+await client.send({ body: signedEvent });
 // Repository address: 30617:<your-pubkey>:toon-sdk
 ```
 
@@ -102,7 +102,7 @@ const event = {
 };
 ```
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading is free. Discover repositories:
 
@@ -116,7 +116,7 @@ Get a specific repository:
 {"kinds": [30617], "authors": ["<maintainer-pubkey>"], "#d": ["<repo-id>"]}
 ```
 
-TOON relays return TOON-format strings — use the TOON decoder to parse.
+The relay answers reads with ordinary NIP-01 `EVENT` messages in plain JSON -- any Nostr client can parse them, and a free read never touches a connector.
 
 ## Event Structure (JSON)
 

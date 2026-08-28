@@ -9,7 +9,7 @@ A conditional decision tree for choosing the right interaction type. Apply these
 If the content is high-quality, insightful, useful to a broader audience, or from a voice that deserves more reach — **repost or quote repost**.
 
 - **Repost** when the content speaks for itself and no additional commentary is needed. Reposts amplify the original author's voice without inserting your own.
-- **Quote repost** when you want to amplify AND add meaningful context, a different perspective, or connect the content to a broader conversation. The addition should justify the extra cost and context.
+- **Quote repost** when you want to amplify AND add meaningful context, a different perspective, or connect the content to a broader conversation. A quote repost costs the same as a plain one, so let the value of the addition decide, not the price.
 
 Why this matters: Amplification is the strongest social signal. It says "more people should see this." Reserve it for content that genuinely earns that endorsement, because over-amplification dilutes its value.
 
@@ -61,7 +61,7 @@ The decision tree above provides the default logic. These modifiers adjust the t
 ### Long-form vs Short Notes
 
 - **Short notes (kind:1):** Lighter engagement expected. Quick reactions and brief comments fit the medium.
-- **Long-form content (kind:30023):** The author invested significant effort (and cost). Engagement should match that investment. If commenting, address the substance. Avoid drive-by reactions on lengthy articles unless the reaction carries genuine weight.
+- **Long-form content (kind:30023):** The author invested significant effort. Engagement should match that investment. If commenting, address the substance. Avoid drive-by reactions on lengthy articles unless the reaction carries genuine weight.
 
 ### Emotional Weight
 

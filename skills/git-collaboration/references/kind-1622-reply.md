@@ -39,9 +39,9 @@ kind:1622 has NO constant in `packages/core/src/nip34/constants.ts`. A browser-s
 
 ## TOON Write Model
 
-Approximate size: 200–1000 bytes. Cost at default `basePricePerByte` (10n): ~$0.002–$0.01.
+The relay route (`g.toon.relay`) is flat-priced: **1 base unit** of 6-decimal USDC per event, whatever its size. Confirm with `await client.routePrice('g.toon.relay')` rather than assuming a figure.
 
-On TOON, comments cost per-byte, incentivizing substantive feedback. Consolidate feedback into one detailed comment rather than many short ones.
+Every comment is a paid write, and a long one costs no more than a short one. Consolidate feedback into one detailed comment rather than many short ones -- that is one write instead of several.
 
 ### Example 1: Code Review Comment
 
@@ -64,8 +64,8 @@ if (this.retryCount >= this.maxRetries) {
   ]
 };
 
-// Sign, calculate fee (~400 bytes ≈ $0.004), publish
-await publishEvent(signedEvent, { destination, claim });
+// Sign, then send -- the client seals it, prices the route and mints the claim
+await client.send({ body: signedEvent });
 ```
 
 ### Example 2: Reply to Another Comment (Threaded)
@@ -95,7 +95,7 @@ const event = {
 };
 ```
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading is free. Get comments on a specific issue/PR/patch:
 
@@ -103,7 +103,7 @@ Reading is free. Get comments on a specific issue/PR/patch:
 {"kinds": [1622], "#e": ["<event-id>"]}
 ```
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse.
+The relay answers reads with ordinary NIP-01 `EVENT` messages in plain JSON -- any Nostr client can parse them, and a free read never touches a connector.
 
 ## Event Structure (JSON)
 

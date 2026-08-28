@@ -1,117 +1,87 @@
 # TOON Extensions for Drafts and Expiration
 
-> **Why this reference exists:** Draft events and expiration timestamps on TOON differ from vanilla Nostr because every write is ILP-gated. This file covers the TOON-specific considerations for kind:31234 draft events and the expiration tag -- publishing flow, fee implications, and economic dynamics that shape drafting and expiration on a paid network.
+> **Why this reference exists:** Draft events and expiration timestamps on TOON differ from vanilla Nostr because every write is ILP-gated. This file covers the TOON-specific considerations for kind:31234 draft events and the expiration tag -- publishing flow, what a save actually costs, and the economic dynamics that shape drafting and expiration on a paid network.
 
 ## Publishing Draft Events on TOON
 
-All draft event publishing on TOON goes through `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment for every event.
+All draft event publishing on TOON goes through `client.send()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment for every event.
 
 ### Publishing Flow
 
 1. **Construct the event:** Build a kind:31234 event with `d` tag (draft identifier), `k` tag (target kind), content, and optional tags
 2. **Encrypt the content (recommended):** Use NIP-44 self-encryption so only you can read the draft
 3. **Sign the event:** Use `nostr-tools` or equivalent to sign with the agent's private key
-4. **Discover pricing:** Check the destination relay's `basePricePerByte` from kind:10032 peer info or the `/health` endpoint
-5. **Calculate fee:** `basePricePerByte * serializedEventBytes`
-6. **Sign a balance proof:** `client.signBalanceProof(channelId, amount)`
-7. **Publish:** `client.publishEvent(signedEvent, { destination, claim })`
+4. **Send it:** `await client.send({ body: signedEvent })`
 
-The `publishEvent()` API handles TOON encoding and ILP packet construction internally. Agents never need to construct ILP packets manually.
+`send()` seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step, and agents never construct ILP packets. TOON format is the encoding of those sealed write bytes, and only of those: reads come back as ordinary NIP-01 JSON. A REJECT comes back as `{ fulfilled: false }`; it is never thrown.
 
 ### Error Handling
 
-- **F04 (Insufficient Payment):** The calculated amount was too low for the payload size. Recalculate with the correct `basePricePerByte` and retry.
+- **F03 (INVALID_AMOUNT):** the claim did not cover the charge -- underpayment. This is what you get for working a charge out from the event JSON you wrote: the metered quantity is the **sealed** payload, larger by the envelope and the wrap. Let `send()` price the packet.
+- **T04:** the amount is over the peering's cap. The reject message states the cap -- that is the only way a sender learns it.
 - **Relay rejection:** The event was malformed (invalid signature, wrong kind structure). Fix the event and republish.
 
-## Fee Considerations for Draft Events
+## What Drafts and Expiration Cost
 
-### kind:31234 (Draft Event)
+The relay's route (`g.toon.relay`) is flat-priced: **1 base unit of 6-decimal USDC per event**, whatever the event contains. Every operation in the draft lifecycle is one event, so each one is charged 1:
 
-Typical draft sizes and approximate costs at default pricing (`basePricePerByte` = 10n = $0.00001/byte):
+| Operation | Kind | Charge |
+|-----------|------|--------|
+| Save a draft (any length, encrypted or not) | 31234 | 1 base unit |
+| Publish the final event | target kind | 1 base unit |
+| Delete the draft | 5 | 1 base unit |
+| Add an expiration tag to any of the above | -- | no change |
 
-| Draft Type | Approximate Size | Approximate Cost |
-|------------|-----------------|-----------------|
-| Short note draft (kind:1 target) | ~200-400 bytes | ~$0.002-$0.004 |
-| Article draft, short (kind:30023 target) | ~500-1000 bytes | ~$0.005-$0.010 |
-| Article draft, medium (kind:30023 target) | ~1000-3000 bytes | ~$0.010-$0.030 |
-| Article draft, long (kind:30023 target) | ~3000-10000 bytes | ~$0.030-$0.100 |
-| Encrypted draft (NIP-44 overhead) | +~50-100 bytes | +~$0.0005-$0.001 |
+Content length, NIP-44 encryption overhead and the ~25-byte expiration tag all change the event's size and none of them change the charge. The only number that moves is the **count of writes**.
 
-### Expiration Tag Overhead
+Where a route is priced by length -- blob storage on `g.toon.store` is `1000 + 10 per KiB` -- ask the node for its terms rather than guessing:
 
-The expiration tag adds minimal cost to any event:
+```ts
+const terms = await client.routePrice('g.toon.store'); // { price, pricePerKib? }
+```
 
-| Component | Size | Cost |
-|-----------|------|------|
-| `["expiration", "<timestamp>"]` | ~25-30 bytes | ~$0.00025-$0.0003 |
-
-This is negligible compared to any event's base size. Adding expiration to a 300-byte event increases cost by less than 10%.
-
-### Draft Deletion (kind:5)
-
-After publishing the final event from a draft, the draft should be deleted:
-
-| Operation | Size | Cost |
-|-----------|------|------|
-| kind:5 deletion targeting draft `a` coordinate | ~150-250 bytes | ~$0.0015-$0.0025 |
+then `chargeFor(terms, sealedBytes)` from `@toon-protocol/client`. A node's free, unauthenticated `GET /ilp` self-description carries the same facts for every route -- a connector answers, it never announces. The metered quantity is the **sealed** payload the PREPARE carries, so a charge cannot be computed from the event JSON you wrote. In the ordinary case you need neither call: `send()` prices the packet itself.
 
 ## Economic Dynamics of Drafts on TOON
 
-### Drafting Cost vs Publishing Cost
+### The Draft Lifecycle Is Counted in Writes
 
-The full draft-to-publish workflow on TOON involves multiple paid operations:
+| Workflow | Writes | Charge |
+|----------|--------|--------|
+| Compose locally, save once, publish, delete draft | 3 | 3 base units |
+| Three checkpoints, publish, delete draft | 5 | 5 base units |
+| Autosave every keystroke through a session, publish, delete | 100+ | 100+ base units |
 
-| Workflow Step | Typical Cost | Notes |
-|--------------|-------------|-------|
-| Save draft (1-3 iterations) | $0.005-$0.030 each | Parameterized replaceable -- only latest stored |
-| Publish final event | $0.003-$0.200 | Depends on target kind and content length |
-| Delete draft | $0.001-$0.003 | kind:5 cleanup |
-| **Total (simple note)** | **~$0.008-$0.015** | 1 draft save + publish + delete |
-| **Total (article, 3 saves)** | **~$0.045-$0.250** | 3 draft saves + publish + delete |
+Even the last row is a hundredth of a cent. The bill is not the argument against autosaving.
 
 ### Compose Locally, Save Checkpoints
 
-The TOON economic model strongly favors local composition with relay saves at meaningful checkpoints:
+The reason to compose in a local editor and save at meaningful checkpoints is not the price of a write. It is that every save is a signed, published event: it lands under your pubkey on a relay other software reads and indexes, it burns a claim nonce on your channel, and it is a network round trip in the middle of your writing. Save when you want cross-device access or a backup, and publish when ready.
 
-| Pattern | Draft Saves | Cost of Drafting |
-|---------|-------------|-----------------|
-| Auto-save every keystroke (anti-pattern) | ~100+ saves | ~$0.50-$1.00+ |
-| Save every paragraph | ~10-20 saves | ~$0.05-$0.20 |
-| Save at major checkpoints | ~2-5 saves | ~$0.01-$0.05 |
-| Compose locally, save once | 1 save | ~$0.005-$0.020 |
+### Encryption Costs Nothing Extra
 
-The optimal pattern: compose in a local editor, save to the relay when you want cross-device access or backup, and publish when ready.
+NIP-44 encryption adds roughly 50-100 bytes of overhead (nonce, MAC, padding) to a draft. On the relay's flat-priced route that overhead is charged nothing at all, so there is no cost argument against encrypting a draft -- only the privacy argument for it. Encrypt drafts.
 
-### Encryption Overhead is Minimal
-
-NIP-44 encryption adds approximately 50-100 bytes of overhead (nonce, MAC, padding). On a 1000-byte draft, this is 5-10% cost increase -- well worth the privacy:
-
-| Draft | Unencrypted | Encrypted | Overhead |
-|-------|-------------|-----------|----------|
-| 200-byte note draft | $0.002 | $0.0025 | +$0.0005 |
-| 1000-byte article draft | $0.010 | $0.011 | +$0.001 |
-| 5000-byte article draft | $0.050 | $0.051 | +$0.001 |
-
-The privacy benefit of encryption far outweighs the marginal cost increase.
-
-### Parameterized Replaceable Saves Money
+### Parameterized Replaceable Keeps the Relay Small
 
 kind:31234 is parameterized replaceable, meaning each draft save with the same `d` tag replaces the previous version:
 - You pay per save, but the relay only stores the latest version
-- No growing storage cost over iterations
+- No growing storage burden over iterations
 - Each save is independent -- if a save fails, the previous version is still intact
 
-### Expiration Eliminates Cleanup Costs
+The saving here is the relay's storage, not your bill: ten checkpoint saves cost ten writes whether the relay keeps one version or ten.
 
-Using the expiration tag eliminates the need for separate deletion events:
+### Expiration Eliminates a Write
 
-| Pattern | Events Published | Total Cost |
-|---------|-----------------|------------|
-| Publish + delete later (kind:5) | 2 events | event + ~$0.002 |
-| Publish with expiration | 1 event | event + ~$0.0003 |
-| **Savings** | 1 fewer event | **~$0.0017** |
+Using the expiration tag removes the need for a separate deletion event:
 
-For agents that frequently publish temporary content, expiration saves approximately $0.002 per event compared to manual deletion.
+| Pattern | Events Published | Charge |
+|---------|-----------------|--------|
+| Publish, then delete later with kind:5 | 2 events | 2 base units |
+| Publish with expiration | 1 event | 1 base unit |
+| **Savings** | 1 fewer event | **1 base unit, and no cleanup to remember** |
+
+The tag itself is free. What it buys is one write fewer and one less thing to forget.
 
 ### Expiration Saves Relay Storage
 
@@ -121,9 +91,9 @@ On TOON, relay storage is a real cost. Expired events are automatically purged, 
 - Is considered good network citizenship
 - May factor into future relay pricing decisions (relays could offer discounts for expiring content)
 
-### Stale Drafts Waste Money
+### Stale Drafts Are Clutter
 
-Drafts left on the relay after publishing the final event waste storage. Always clean up:
+Drafts left on the relay after publishing the final event waste storage and confuse anyone reading your event stream. Always clean up:
 1. Publish the final event
 2. Delete the draft with kind:5
 3. Or set an expiration on the draft itself so it auto-cleans if you forget
@@ -134,8 +104,8 @@ Setting a generous expiration on drafts (e.g., 30 days) is a safety net against 
 ["expiration", "<timestamp-30-days-from-now>"]
 ```
 
-This costs only ~$0.0003 extra and prevents indefinite draft accumulation.
+It costs nothing extra and prevents indefinite draft accumulation.
 
 ## Integration with Protocol Core
 
-For the complete TOON write model, read model, and fee calculation details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers draft-and-expiration-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.
+For the complete TOON write model, read model, and route-pricing details, refer to `skills/nostr-protocol-core/references/toon-protocol-context.md`. This file covers draft-and-expiration-specific extensions; the protocol core covers the foundational mechanics shared by all event kinds.

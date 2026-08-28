@@ -1,18 +1,27 @@
 # Git Workflow Scenarios
 
-> **Why this reference exists:** Agents need complete end-to-end workflow recipes for git operations on TOON. Each scenario shows every step from intent to verified result, including all `publishEvent()` calls, fee calculations, git object construction, Arweave uploads, and verification. These workflows compose operations from `git-collaboration` (NIP-34 events), `git-objects` (binary format), and Arweave resolution into seamless recipes.
+> **Why this reference exists:** Agents need complete end-to-end workflow recipes for git operations on TOON. Each scenario shows every step from intent to verified result, including every `client.send()` call, what its route charges, git object construction, Arweave uploads, and verification. These workflows compose operations from `git-collaboration` (NIP-34 events), `git-objects` (binary format), and Arweave resolution into seamless recipes.
 
 ## Scenario 1: Create a Repository (End-to-End)
 
 **When:** A maintainer wants to create a new repository on TOON with initial files stored permanently on Arweave.
 
-**Why this matters:** Creating a repository is the most complex git workflow on TOON because it spans all three layers: announcing the repository (social), constructing git objects (data), uploading to Arweave (persistence), and publishing state (social). This scenario walks through every step and every `publishEvent()` call.
+**Why this matters:** Creating a repository is the most complex git workflow on TOON because it spans all three layers: announcing the repository (social), constructing git objects (data), uploading to Arweave (persistence), and publishing state (social). This scenario walks through every step and every `client.send()` call.
 
 ### Prerequisites
 
-- A TOON client connected to a relay: `const client = new ToonClient(relayUrl)`
+- A TOON client with an open channel:
+
+  ```typescript
+  const client = await ToonClient.create({
+    connector: 'https://proxy.relay.devnet.toonprotocol.dev',
+    mnemonic: process.env.TOON_MNEMONIC,
+  });
+  await client.channel.open({ deposit: 100_000n });
+  ```
+
 - A Nostr keypair for signing events
-- The relay's `basePricePerByte` (discover via `/health` endpoint or kind:10032)
+- Nothing else. `client.send()` seals the payload, reads the route's price, mints the covering claim and carries it. If you want a route's price up front, ask the node: `await client.routePrice('g.toon.relay')`, or read its free self-description at `GET /ilp`.
 
 ### Step 1: Announce the Repository (kind:30617)
 
@@ -42,16 +51,13 @@ const repoAnnouncement = finalizeEvent({
   ],
 }, sk);
 
-// Fee: ~400-500 bytes => ~$0.004-$0.005
-const fee1 = basePricePerByte * BigInt(JSON.stringify(repoAnnouncement).length);
-const claim1 = client.signBalanceProof(channelId, fee1);
-await client.publishEvent(repoAnnouncement, { destination, claim: claim1 });
+await client.send({ body: repoAnnouncement });
 
 // Record the repository address for future reference
 const repoAddress = `30617:${pk}:${repoId}`;
 ```
 
-**Cost:** ~$0.004-$0.005
+**Price:** 1 base unit. The `g.toon.relay` route is flat, so the announcement's length does not matter.
 
 ### Step 2: Construct Git Objects
 
@@ -118,9 +124,7 @@ const blobEvent = finalizeEvent({
   ],
 }, sk);
 
-const fee3a = basePricePerByte * BigInt(JSON.stringify(blobEvent).length);
-const claim3a = client.signBalanceProof(channelId, fee3a);
-await client.publishEvent(blobEvent, { destination, claim: claim3a });
+await client.send('g.toon.store', { body: blobEvent });
 
 // Step 3c: Upload the tree
 const treeEvent = finalizeEvent({
@@ -137,9 +141,7 @@ const treeEvent = finalizeEvent({
   ],
 }, sk);
 
-const fee3c = basePricePerByte * BigInt(JSON.stringify(treeEvent).length);
-const claim3c = client.signBalanceProof(channelId, fee3c);
-await client.publishEvent(treeEvent, { destination, claim: claim3c });
+await client.send('g.toon.store', { body: treeEvent });
 
 // Step 3d: Upload the commit
 const commitEvent = finalizeEvent({
@@ -156,12 +158,10 @@ const commitEvent = finalizeEvent({
   ],
 }, sk);
 
-const fee3d = basePricePerByte * BigInt(JSON.stringify(commitEvent).length);
-const claim3d = client.signBalanceProof(channelId, fee3d);
-await client.publishEvent(commitEvent, { destination, claim: claim3d });
+await client.send('g.toon.store', { body: commitEvent });
 ```
 
-**Cost per object:** ~$0.005-$0.15 depending on size. For a small README blob: ~$0.005.
+**Price per object:** the store route charges `1000 + 10 per KiB` of sealed payload, so a small README blob is around 1010 base units (~$0.00101) and a large binary costs proportionally more. The metered length is the sealed payload the PREPARE carries, not the JSON above, so let `client.send()` price it.
 
 ### Step 4: Publish Repository State (kind:30618)
 
@@ -179,24 +179,24 @@ const repoState = finalizeEvent({
   ],
 }, sk);
 
-const fee4 = basePricePerByte * BigInt(JSON.stringify(repoState).length);
-const claim4 = client.signBalanceProof(channelId, fee4);
-await client.publishEvent(repoState, { destination, claim: claim4 });
+await client.send({ body: repoState });
 ```
 
-**Cost:** ~$0.002-$0.004
+**Price:** 1 base unit, flat.
 
 ### Total Cost Summary
 
-| Step | Event Kind | Approximate Cost |
-|------|-----------|-----------------|
-| 1. Announce repo | kind:30617 | ~$0.004-$0.005 |
-| 2. Construct objects | (local) | $0.00 |
-| 3a. Upload blob | kind:5094 | ~$0.005-$0.015 |
-| 3b. Upload tree | kind:5094 | ~$0.005-$0.008 |
-| 3c. Upload commit | kind:5094 | ~$0.005-$0.008 |
-| 4. Publish state | kind:30618 | ~$0.002-$0.004 |
-| **Total** | **4 publishEvent() calls** | **~$0.021-$0.040** |
+| Step | Event Kind | Route | Price |
+|------|-----------|-------|-------|
+| 1. Announce repo | kind:30617 | relay | 1 |
+| 2. Construct objects | (local) | -- | 0 |
+| 3a. Upload blob | kind:5094 | store | ~1010 |
+| 3b. Upload tree | kind:5094 | store | ~1010 |
+| 3c. Upload commit | kind:5094 | store | ~1010 |
+| 4. Publish state | kind:30618 | relay | 1 |
+| **Total** | **5 `client.send()` calls** | | **~3032 base units (~$0.003)** |
+
+The object uploads are the whole bill; the two relay writes are a rounding error.
 
 ---
 
@@ -204,7 +204,7 @@ await client.publishEvent(repoState, { destination, claim: claim4 });
 
 **When:** A contributor wants to submit a code change to an existing repository.
 
-**Why this matters:** Patches are the primary contribution mechanism. On TOON, patches cost per-byte because the `git format-patch` output is the event content. This scenario shows the complete flow from generating a diff to publishing the paid event.
+**Why this matters:** Patches are the primary contribution mechanism. On TOON a patch is one relay write at a flat 1 base unit, however long the `git format-patch` output is. This scenario shows the complete flow from generating a diff to sending the paid event.
 
 ### Prerequisites
 
@@ -278,15 +278,14 @@ const patchEvent = finalizeEvent({
 }, sk);
 ```
 
-### Step 3: Calculate Fee and Publish
+### Step 3: Send It
 
 ```typescript
-const serializedSize = JSON.stringify(patchEvent).length;
-const fee = basePricePerByte * BigInt(serializedSize);
-const claim = client.signBalanceProof(channelId, fee);
-
-await client.publishEvent(patchEvent, { destination, claim });
+const answer = await client.send({ body: patchEvent });
+// answer.fulfilled === false on a REJECT -- a reject is returned, never thrown
 ```
+
+The client seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it. There is no separate pricing, claim-signing or publish step.
 
 ### Step 4: Verify Publication
 
@@ -297,16 +296,11 @@ client.subscribe([
 ]);
 ```
 
-### Cost Calculation
+### What It Costs
 
-| Patch Size | Serialized Event | Cost at 10n/byte |
-|-----------|-----------------|------------------|
-| Small fix (~500 bytes content) | ~800 bytes | ~$0.008 |
-| Medium feature (~3KB content) | ~3.5KB | ~$0.035 |
-| Large refactor (~20KB content) | ~20.5KB | ~$0.205 |
-| Monolithic (~50KB content) | ~50.5KB | ~$0.505 |
+**1 base unit of 6-decimal USDC**, whatever the diff's size. A 500-byte one-line fix and a 50 KB refactor are priced identically, because the `g.toon.relay` route is flat.
 
-**Optimization:** If the patch is large (>10KB), consider using a kind:1618 PR instead. A PR contains only a markdown description (~$0.004-$0.01) and points to a clone URL where reviewers fetch the actual code.
+This kills the old optimization. A kind:1618 PR is also 1 base unit, so it is no longer cheaper than a large patch -- choose between them on review workflow, not price.
 
 ### Patch Series (Multiple Patches)
 
@@ -324,7 +318,7 @@ const coverLetter = finalizeEvent({
     ['t', 'root'],
   ],
 }, sk);
-await client.publishEvent(coverLetter, { destination, claim: claim1 });
+await client.send({ body: coverLetter });
 
 // Patch 2: first change (reply to cover letter)
 const patch2 = finalizeEvent({
@@ -338,7 +332,7 @@ const patch2 = finalizeEvent({
     ['parent-commit', baseCommitHash],
   ],
 }, sk);
-await client.publishEvent(patch2, { destination, claim: claim2 });
+await client.send({ body: patch2 });
 
 // Patch 3: second change (reply to previous patch)
 const patch3 = finalizeEvent({
@@ -352,8 +346,10 @@ const patch3 = finalizeEvent({
     ['parent-commit', commit1Hash],
   ],
 }, sk);
-await client.publishEvent(patch3, { destination, claim: claim3 });
+await client.send({ body: patch3 });
 ```
+
+Each patch in the series is its own relay write at 1 base unit, so a 3-patch series costs 3. Split for reviewability -- the price barely moves.
 
 ---
 
@@ -361,7 +357,7 @@ await client.publishEvent(patch3, { destination, claim: claim3 });
 
 **When:** A maintainer wants to apply a submitted patch, update the repository state, and upload the new git objects to Arweave.
 
-**Why this matters:** Merging a patch requires coordinating across all three layers: applying the diff locally (data), uploading new objects to Arweave (persistence), publishing status and state events (social). The maintainer pays for the status event, state update, and any new Arweave uploads.
+**Why this matters:** Merging a patch requires coordinating across all three layers: applying the diff locally (data), uploading new objects to Arweave (persistence), publishing status and state events (social). The maintainer pays for the status event, the state update and every new Arweave upload -- and the uploads are almost the entire bill.
 
 ### Prerequisites
 
@@ -411,14 +407,14 @@ for (const changedFile of changedFiles) {
       ['Repo', repoId],
     ],
   }, sk);
-  await client.publishEvent(blobUploadEvent, { destination, claim: claimN });
+  await client.send('g.toon.store', { body: blobUploadEvent });
 }
 
 // Upload new tree(s) and commit (same pattern, Git-Type: 'tree' / 'commit')
 // Upload order: blobs -> trees -> commit
 ```
 
-**Cost:** Depends on number of changed files. Typically 1-5 new blobs, 1-3 new trees, 1 commit. ~$0.03-$0.10 for a small change.
+**Price:** each object is a store-route write at `1000 + 10 per KiB` of sealed payload, so it is the object *count* that dominates for text files. A small change (1-5 new blobs, 1-3 new trees, 1 commit) is roughly 3000-9000 base units, about $0.003-$0.009. Skipping duplicates is the only real saving here.
 
 ### Step 3: Publish Status Event (kind:1631 -- Applied/Merged)
 
@@ -435,12 +431,10 @@ const mergeStatus = finalizeEvent({
   ],
 }, sk);
 
-const fee3 = basePricePerByte * BigInt(JSON.stringify(mergeStatus).length);
-const claim3 = client.signBalanceProof(channelId, fee3);
-await client.publishEvent(mergeStatus, { destination, claim: claim3 });
+await client.send({ body: mergeStatus });
 ```
 
-**Cost:** ~$0.003-$0.004
+**Price:** 1 base unit. The `applied-as-commits` tags add no charge -- the relay route is flat.
 
 ### Step 4: Update Repository State (kind:30618)
 
@@ -456,22 +450,20 @@ const updatedState = finalizeEvent({
   ],
 }, sk);
 
-const fee4 = basePricePerByte * BigInt(JSON.stringify(updatedState).length);
-const claim4 = client.signBalanceProof(channelId, fee4);
-await client.publishEvent(updatedState, { destination, claim: claim4 });
+await client.send({ body: updatedState });
 ```
 
-**Cost:** ~$0.002-$0.004
+**Price:** 1 base unit, flat.
 
 ### Total Cost Summary
 
-| Step | Event Kind | Approximate Cost |
-|------|-----------|-----------------|
-| 1. Apply patch | (local) | $0.00 |
-| 2. Upload new objects | kind:5094 (N events) | ~$0.03-$0.10 |
-| 3. Publish merge status | kind:1631 | ~$0.003-$0.004 |
-| 4. Update state | kind:30618 | ~$0.002-$0.004 |
-| **Total** | **2 + N publishEvent() calls** | **~$0.035-$0.108** |
+| Step | Event Kind | Route | Price |
+|------|-----------|-------|-------|
+| 1. Apply patch | (local) | -- | 0 |
+| 2. Upload new objects | kind:5094 (N events) | store | ~1010 each |
+| 3. Publish merge status | kind:1631 | relay | 1 |
+| 4. Update state | kind:30618 | relay | 1 |
+| **Total** | **2 + N `client.send()` calls** | | **~1000N + 2 base units** |
 
 ---
 
@@ -498,7 +490,7 @@ client.subscribe([{
   limit: 1,
 }]);
 
-// Parse the TOON-format response to get branch heads
+// The relay answers with plain NIP-01 JSON -- read the branch heads straight off the event
 // Result: { 'refs/heads/main': '<commit-sha>', 'HEAD': 'ref: refs/heads/main' }
 const mainCommitSha = stateEvent.tags
   .find(t => t[0] === 'refs/heads/main')?.[1];
@@ -621,7 +613,7 @@ console.log(fileContent);
 | 3. Download commit | Arweave gateway GET | FREE |
 | 4. Resolve + download tree | Arweave GraphQL + gateway | FREE |
 | 5. Resolve + download blob | Arweave GraphQL + gateway | FREE |
-| **Total** | **0 publishEvent() calls** | **$0.00** |
+| **Total** | **0 `client.send()` calls** | **$0.00** |
 
 ### Navigating Subdirectories
 
@@ -637,7 +629,7 @@ Each level requires one Arweave GraphQL query + one gateway download. Deep direc
 
 ### Considerations
 
-- TOON relay responses use TOON-format strings, not standard JSON. Use the TOON decoder to parse kind:30618 state events.
+- Relay reads are free and speak plain NIP-01: a kind:30618 state event arrives as a standard JSON `EVENT` message, parsed like any Nostr event. TOON format is the encoding of a sealed *write* payload, not of a read response.
 - Arweave GraphQL queries return the most recent transaction matching the tags. If multiple uploads exist for the same SHA, the content is identical (content-addressed).
 - Gateway downloads may have latency for recently uploaded objects. Arweave has a confirmation period before data is permanently available.
 - For bulk resolution (entire repository), batch multiple GraphQL queries to reduce round trips.

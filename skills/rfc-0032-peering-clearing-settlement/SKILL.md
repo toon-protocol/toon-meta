@@ -1,47 +1,103 @@
 ---
 name: rfc-0032-peering-clearing-settlement
-description: How TOON Protocol implements Interledger RFC 0032 - Peering, Clearing and Settlement, via its apex/child model. Use when users ask about TOON's parent/child/peer relationships, why parent→child forwards are free, how clearing (off-chain balance accrual) works, when on-chain settlement happens, or the connector fee. Also covers generic peering, clearing, and settlement questions. Triggers on 'peering', 'clearing', 'settlement', 'parent child peer', 'free forward', or 'connector fee'.
+description: How TOON Protocol relates to Interledger RFC 0032 - Peering, Clearing and Settlement. Use when users ask how a TOON peering is created, whether a peering can be bought or announced, how clearing works, when on-chain settlement happens, how an operator gets paid, or what the connector fee is. Also covers generic peering, clearing, and settlement questions. Triggers on 'peering', 'clearing', 'settlement', 'POST /peers', 'redeem', 'connector fee', or 'how do I get paid'.
 ---
 
-# RFC 0032: Peering, Clearing and Settlement — TOON's apex/child model
+# RFC 0032: Peering, Clearing and Settlement — the model TOON replaces most completely
 
-Implements RFC 0032 semantics with TOON's specific topology: a single **apex** connector (`g.proxy`) and its **child** service nodes (town/dvm/mill). This skill describes the real peering relations, clearing, and settlement TOON uses.
+RFC 0032 is **vendored verbatim** in the connector at a pinned upstream commit,
+beneath a TOON profile naming every departure:
+[`connector/docs/rfcs/0032-peering-clearing-settlement/`](https://github.com/toon-protocol/connector/tree/main/docs/rfcs/0032-peering-clearing-settlement).
+Read the profile before the body — the profile is the part that binds
+(connector ADR 0062).
 
-## Peering: static relations (`relation: parent | peer | child`)
+## What the RFC says
 
-TOON peers are statically configured with a `relation` (`config/types.ts:71-88`) that governs how settlement claims flow:
+Two connectors agree to peer. Traffic between them accrues an obligation; the
+obligation is **netted**; when the net position crosses a **threshold** (or a
+timer fires), the debtor **settles** on some underlying ledger. Peer, clear,
+settle — three phases, with credit extended between them and a credit limit
+bounding the exposure.
 
-- **`parent`** — an upstream provider this node settles *up* to. The child issues claims up to the parent when forwarding up.
-- **`peer`** — a lateral bilateral peer; a per-packet claim flows on every value-bearing forward in either direction. **This is the default** when `relation` is omitted.
-- **`child`** — a downstream node that settles *up* to this node. **A parent never issues per-packet claims down to a child.** Value-bearing forwards to a `child` next hop therefore **skip the mandatory per-packet claim**.
+Read it to understand what a peering is *for*. Do not read it for how this
+connector keeps score.
 
-The apex model: the connector is the parent (`g.proxy`); town/dvm/mill are children. A client is a peer/customer of the apex (pays with claims); the apex forwards to its children for free.
+## How TOON diverges
 
-## The free-forward rule (the part people get wrong)
+**There is nothing to net, because nothing accumulates.**
 
-When a client pays the apex and the apex routes the packet to one of its **children**, the parent→child hop carries **no claim**. The child accrues a balance owed *up* and settles it via its own up-claims; it does not get paid per-packet by the parent. For this to work the child must be **both**:
+- **A peering is created by an operator, from a URL.** `POST /peers { id, url,
+  fee, max_packet_amount }`, an authenticated write on the operator surface. The
+  counterparty's endpoint, carriage, identity and settlement facts are read from
+  its own self-description at that URL
+  ([ADR 0058](https://github.com/toon-protocol/connector/blob/main/docs/adr/0058-a-peering-is-established-from-a-url.md)).
+  That identity is trust-on-first-use over TLS, pinned by nothing — worth knowing
+  before you peer with a stranger.
+- **A peering cannot be bought, learned, earned or announced into existence.**
+  Purchasable peering was **removed outright** by
+  [ADR 0043](https://github.com/toon-protocol/connector/blob/main/docs/adr/0043-purchasable-peering-is-removed.md),
+  which retired ADRs 0037/0038/0039 with it; `[peer_sale]` is a config key parsed
+  only to be refused by name. Terms are not negotiated. The connector neither
+  discovers nor advertises routes — it **answers**, and does nothing else about
+  being found (ADR 0022, ADR 0046).
+- **Clearing is per packet.** Every PREPARE carries the claim that pays for it,
+  and a connector covers every PREPARE it sends
+  ([ADR 0042](https://github.com/toon-protocol/connector/blob/main/docs/adr/0042-a-packet-carries-its-claim.md)).
+  Nothing is ever owed between packets, so there is no window for a counterparty
+  to walk away inside.
+- **There is no clearing balance.** Claims are the source of truth; a balance is
+  a projection replayed from the journal, which is the only money state persisted
+  ([ADR 0005](https://github.com/toon-protocol/connector/blob/main/docs/adr/0005-claims-are-truth-balances-are-a-projection.md)).
+  The word is **claim**, never "balance proof".
+- **There is no credit limit.** What remains is the **cap**, which bounds **one
+  packet** and never an accumulation; a sender learns it from a `T04` whose
+  message states it (ADR 0049). "Ceiling", "credit limit", "debt limit" and
+  "liquidity bound" are refused by name.
+- **No channel identifier is ever exchanged.** Both sides derive it from the two
+  participants — `keccak256(p1, p2, epoch)` on EVM, a PDA on Solana (ADR 0059).
 
-1. registered with `relation:'child'` on the apex, **and**
-2. tagging the apex's nodeId `g.proxy` as its parent (`TOON_PARENT_PEER_ID`).
+## Settlement: an operator write, with no threshold
 
-Get either wrong and the packet hits the "pay-the-child" path with no channel → **T00 / F06 reject** ("no reason to pay us"). This is the single most common misconfiguration in TOON deployments.
+**There is no settlement threshold, trigger, netting cycle or interval.**
+Settlement is an explicit, authenticated **operator** write against a channel,
+never a schedule. `flush_interval_ms` is parsed only to be refused by name
+([ADR 0033](https://github.com/toon-protocol/connector/blob/main/docs/adr/0033-the-exposure-machinery-is-retired-not-restated.md)),
+and `toon_settlement_total` is a permanently-zero placeholder kept for
+scrape-config stability.
 
-## Clearing: off-chain balance accrual
+**`POST /channels/:id/redeem-latest` is how you get paid.** It takes the latest
+claim on that channel to the chain and redeems it. `GET /claims` and
+`GET /channels` are the read side. On-chain settlement is rare and deliberate —
+the opposite of a claim.
 
-Clearing on TOON is the off-chain accrual of signed **payment-channel claims**. Each paid write advances a monotonic `nonce` and a cumulative `transferredAmount` on the channel (see `rfc-0023`). No on-chain transaction occurs per write — the running balance is the cleared-but-unsettled position.
+## Fee, price, charge, cost
 
-## Settlement: threshold on-chain redemption
+| Word | What it is |
+| --- | --- |
+| **Fee** | flat, per packet, attached to the **peering** — never a spread, never a percentage, never per route (ADR 0061) |
+| **Price** | a schedule on a *terminated* route: `price + pricePerKib × ceil(sealedBytes / 1024)`, flat exactly when the slope is zero (ADR 0065) |
+| **Charge** | that price evaluated for one packet, over the **sealed** payload's length |
+| **Cost** | every hop's fee plus the terminating charge — discovered from a probe's reject, sum only (ADR 0011, ADR 0044) |
+| **Cap** | the most one packet may carry to one peer (ADR 0049) |
 
-Settlement is **in-process and multi-chain** (see `rfc-0038`): when the cleared balance crosses a threshold, the connector redeems the latest claim on the underlying chain via `claimFromChannel` → `settleChannel`/`closeChannel` (EVM or Solana). This is not the RFC-0038 separate-process HTTP engine — it runs inside the connector.
+Never "per-byte" — the unit is a **kibibyte**. Never "quote" or "spread": cost is
+discovered by **probe**, from a reject carrying the accumulated sum.
 
-## The connector fee
+## Faithful
 
-On a value-bearing forward, the connector deducts its fee from the packet amount before forwarding (`calculateConnectorFee`, `core/packet-handler.ts`; ~0.1% default). The free parent→child forward carries no extra fee.
+The bilateral relation is still the unit — one relation, one fee, one watermark
+set, however many carriage paths carry it. And the payee's remedy for a watermark
+that stops advancing is this RFC's own: stop forwarding to that peer.
+
+**What the trade costs, stated plainly.** Because the claim rides *with* the
+PREPARE rather than after the fulfilment, a hop can take your claim and decline
+to carry the packet. ADR 0042 does not hide this. The bounds on it are the
+per-packet cap and the sender's own choice of packet size.
 
 ## Common Topics
-- `relation: parent | peer | child` and how claims flow per relation
-- The apex (`g.proxy`) + town/dvm/mill child topology
-- The free parent→child forward and the `relation:'child'` + parent-tag requirement
-- T00/F06 from a mis-tagged child
-- Off-chain clearing (claim accrual) vs threshold on-chain settlement
-- The ~0.1% connector fee (`calculateConnectorFee`)
+
+- `POST /peers` from a URL as the only way a peering comes into being (ADR 0058)
+- Why a peering cannot be bought (ADR 0043) or announced (ADR 0046)
+- Per-packet clearing; no balance, no threshold, no netting, no credit limit
+- `POST /channels/:id/redeem-latest` as the operator's way to get paid
+- Fee vs price vs charge vs cost vs cap

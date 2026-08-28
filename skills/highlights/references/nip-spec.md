@@ -11,11 +11,11 @@ kind:9802 is a **regular event** (not replaceable). Each highlight is a standalo
 ```
 {
   "kind": 9802,
-  "content": "The economic incentive of per-byte pricing naturally selects for quality over quantity.",
+  "content": "The economic incentive of paying to publish naturally selects for quality over quantity.",
   "tags": [
     ["a", "30023:<source-author-pubkey>:article-slug"],
     ["p", "<source-author-pubkey>"],
-    ["context", "In traditional social networks, posting is free, which encourages volume. The economic incentive of per-byte pricing naturally selects for quality over quantity. This dynamic creates a fundamentally different content landscape."]
+    ["context", "In traditional social networks, posting is free, which encourages volume. The economic incentive of paying to publish naturally selects for quality over quantity. This dynamic creates a fundamentally different content landscape."]
   ]
 }
 ```
@@ -91,11 +91,11 @@ Use the `r` tag with the source URL. The `p` tag is still recommended if the web
 ```
 {
   "kind": 9802,
-  "content": "every byte has a price",
+  "content": "every write has a price",
   "tags": [
     ["a", "30023:ab12cd34...:toon-economics"],
     ["p", "ab12cd34..."],
-    ["context", "On TOON, every byte has a price, which means content quality becomes an economic signal rather than a social convention."]
+    ["context", "On TOON, every write has a price, which means content quality becomes an economic signal rather than a social convention."]
   ]
 }
 ```

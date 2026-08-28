@@ -8,15 +8,16 @@ description: Media attachments, file metadata, and external content IDs on Nostr
   NIP-73 external content IDs ("how do I reference Arweave content in Nostr?", i tag,
   arweave:tx:, isbn:, doi:, external content ID, content discovery), and media
   economics ("how much does media cost on TOON?", alt text, accessibility).
-  Implements NIP-92, NIP-94, and NIP-73 on TOON's ILP-gated network where
-  media-rich events cost more per-byte.
+  Implements NIP-92, NIP-94, and NIP-73 on TOON's ILP-gated network, where
+  metadata events are flat-priced on the relay and the blobs they describe are
+  stored on the size-priced store route.
 ---
 
 # Media and Files (TOON)
 
 Media attachment metadata, standalone file metadata events, and external content identifiers for agents on the TOON network. This skill covers three complementary NIPs: NIP-92 (`imeta` tags for inline media metadata within any event), NIP-94 (kind:1063 standalone file metadata events), and NIP-73 (`i` tags for external content IDs including `arweave:tx:`). These NIPs form the metadata and reference layer for media content -- they describe and point to files hosted elsewhere, not the upload mechanism itself (NIP-96 covers file uploads, which is a separate concern).
 
-On TOON, adding `imeta` tags to events increases byte size and therefore per-byte cost. kind:1063 file metadata events are relatively small (they describe external files). `arweave:tx:` external content IDs connect TOON events to permanent Arweave storage, critical for TOON/Arweave integration.
+On TOON, these metadata events go to the relay, whose route is flat-priced -- adding `imeta` tags makes an event bigger without making it cost more. The bytes that do cost money are the blob itself: storing a file through the Arweave DVM (kind:5094) goes to the store route, which is priced by payload size. `arweave:tx:` external content IDs connect TOON events to that permanent storage, critical for TOON/Arweave integration.
 
 ## NIP-92: Media Attachments (`imeta` Tags)
 
@@ -90,46 +91,54 @@ The `arweave:tx:` type is particularly important for TOON. Content uploaded via 
 
 ## TOON Write Model
 
-Publish kind:1063 file metadata events and events containing `imeta` tags via `publishEvent()` from `@toon-protocol/client`. Raw WebSocket writes are rejected -- the relay requires ILP payment.
+Publish kind:1063 file metadata events, and any event carrying `imeta` or `i` tags, with `client.send()` from `@toon-protocol/client`:
 
-**Fee impact of media metadata:**
-- kind:1063 file metadata event: ~300-800 bytes ($0.003-$0.008 at default `basePricePerByte`)
-- `imeta` tag overhead per attachment: ~100-300 bytes ($0.001-$0.003)
-- `i` tag external content ID: ~50-100 bytes ($0.0005-$0.001)
-- kind:1 note with one `imeta` tag: ~400-700 bytes ($0.004-$0.007)
-- kind:30023 article with three `imeta` tags: ~2000-8000 bytes ($0.02-$0.08)
+```ts
+await client.send({ body: signedEvent });
+```
 
-Adding `imeta` tags increases the host event's byte size and therefore its per-byte cost. kind:1063 metadata events are small relative to the files they describe -- on TOON, you pay for the metadata, not the file storage. `i` tags with `arweave:tx:` IDs add minimal byte overhead but reference large off-chain data.
+`send()` seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate pricing, claim-signing or publish step. Raw WebSocket writes are rejected: the relay requires ILP payment.
 
-For the full fee formula and `publishEvent()` API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+**Metadata is flat-priced; blobs are not.** These are two different routes, and the distinction is the whole of media economics on TOON:
 
-## TOON Read Model
+| What you are writing | Route | Price (probed 2026-08-28) |
+|----------------------|-------|---------------------------|
+| A Nostr event -- kind:1063, or any event carrying `imeta`/`i` tags | `g.toon.relay` | 1 base unit of 6-decimal USDC, flat |
+| A blob, via the Arweave DVM (kind:5094 request, kind:6094 result) | `g.toon.store` / `g.toon.relay.store` | `1000`, plus `10` per KiB |
+
+So `imeta` tags, `i` tags and generous `alt` text all make the event bigger and none of them make it cost more. A kind:1 note with three image attachments costs exactly what a text-only note costs.
+
+The store route is the one place on TOON where size genuinely changes the bill -- and even there, do not do the arithmetic. Ask: `await client.routePrice('g.toon.store')` returns `{ price, pricePerKib }`, and `chargeFor(terms, sealedBytes)` from `@toon-protocol/client` turns that into a charge. The metered quantity is the **sealed** payload the PREPARE carries, which is larger than the file by the envelope and the wrap, so a charge cannot be computed from the file's own size. In the ordinary case `send()` prices the packet for you and you need neither call.
+
+For the full write model and client API, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+
+## Reading (free, plain NIP-01)
 
 Query kind:1063 file metadata events using `kinds: [1063]` filters. Filter by `#x` (hash), `#m` (MIME type), or `#i` (external content ID) tags to find specific files. Parse `imeta` tags from events of any kind by iterating the event's tag array for entries starting with `"imeta"`. Use `i` tag external content IDs as filter criteria to discover events referencing specific external content.
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse file metadata events and extract `imeta`/`i` tags. Reading is free on TOON.
+Reads are free and speak plain NIP-01. The relay returns standard JSON `EVENT` messages -- `["EVENT", "<sub-id>", {"id": "...", "pubkey": "...", "kind": 1063, ...}]` -- so any ordinary Nostr client can read it and no decoder is involved. TOON encoding belongs to the *write* payload: it is what a client and an app agree the bytes mean inside the sealed ILP packet, and the connector never opens it. **TOON on the way in, plain NIP-01 JSON on the way out.** Parse `imeta`/`i` tags straight off the parsed JSON event's tag array.
 
-For TOON format parsing details, read `skills/nostr-protocol-core/references/toon-protocol-context.md`.
+A read never touches a connector: it is a plain Nostr WebSocket to the relay app, with no channel, no claim and nothing to pay. For the read model in full, read `skills/nostr-protocol-core/references/toon-read-model.md`.
 
 ## Social Context
 
-Media-rich events cost more per-byte on TOON. Adding `imeta` tags increases event size. Share media thoughtfully -- quality over quantity. A kind:1 note with three image attachments costs roughly twice as much as a text-only note due to `imeta` tag overhead.
+Media metadata does not cost more on TOON. The relay route is flat-priced, so a kind:1 note with three image attachments costs exactly what a text-only note costs. Share media thoughtfully anyway -- quality over quantity -- but the reason is your reader's attention, not your balance.
 
-kind:1063 file metadata events describe files hosted elsewhere. The metadata event itself is small, but it references potentially large external content. On TOON, you pay for the metadata event, not the file storage. This makes kind:1063 an economical way to catalog and share files.
+kind:1063 file metadata events describe files hosted elsewhere. The metadata event itself is small, but it references potentially large external content. On TOON you pay the relay's flat price for the metadata event; the file's bytes are billed wherever they actually live -- on the size-priced store route if that is TOON's Arweave DVM. This makes kind:1063 a cheap way to catalog and share files.
 
 `arweave:tx:` references connect TOON events to permanent Arweave storage. Use this when content permanence matters -- academic papers, project archives, artwork that should outlast any single server. The Arweave DVM (kind:5094) handles the upload; NIP-73 `i` tags handle the reference. They are complementary.
 
-Include `alt` text in `imeta` tags for accessibility. It costs a few extra bytes but makes content inclusive. On a paid network where every byte is deliberate, including accessibility metadata signals care and quality.
+Include `alt` text in `imeta` tags for accessibility. It adds bytes to the event and nothing to the charge, so there is no reason to leave it out.
 
-Never embed large binary data directly in event content. Use URLs in `imeta` tags and kind:1063 metadata to reference externally hosted files. On TOON, bloated events waste money and degrade relay performance.
+Never embed large binary data directly in event content. Use URLs in `imeta` tags and kind:1063 metadata to reference externally hosted files. Even where the relay would not charge you more, a multi-megabyte event degrades relay performance and will hit the peering's cap -- a `T04` reject, whose message states the cap. Blobs belong on the store route, or on an external host.
 
 External content IDs (NIP-73) enable cross-platform content discovery. Use `isbn:`, `doi:`, and `arweave:tx:` types to connect Nostr content to the broader information ecosystem. This makes TOON events findable by anyone searching for that external content.
 
 **Anti-patterns to avoid:**
-- Attaching many `imeta` tags when fewer, higher-quality references suffice -- each tag adds ~100-300 bytes of cost
+- Attaching many `imeta` tags when fewer, higher-quality references suffice -- extra tags cost nothing and dilute the note
 - Publishing kind:1063 metadata without the required `url`, `m`, and `x` tags -- these are mandatory
-- Embedding base64 file data in event content instead of using URLs -- wastes money and breaks relay performance
-- Omitting `alt` text on image attachments -- a few bytes for accessibility is always worth it
+- Embedding base64 file data in event content instead of using URLs -- breaks relay performance and pushes the packet toward the peering's cap
+- Omitting `alt` text on image attachments -- it adds bytes and no cost, so accessibility is free here
 
 ## When to Read Each Reference
 
@@ -144,5 +153,5 @@ Read the appropriate reference file based on the situation:
 - **Reactions to media events (kind:7 on kind:1063)** -- See `social-interactions` for reaction mechanics.
 - **Labeling media content (kind:1985 on kind:1063)** -- See `lists-and-labels` for NIP-32 labeling and NIP-51 bookmark sets.
 - **Git object blob storage on Arweave (kind:5094)** -- See `git-collaboration` for NIP-34 Arweave blob storage, which complements NIP-73 `arweave:tx:` references and NIP-94 file metadata.
-- **Discovering relay pricing for fee calculation** -- See `relay-discovery` for NIP-11 relay info and TOON `/health` endpoint.
+- **Discovering a route's price** -- See `relay-discovery` for NIP-11 relay info and the connector's `GET /ilp` self-description, which carries every route's price. A connector answers; it never announces.
 - **Social judgment on media sharing norms** -- See `nostr-social-intelligence` for base social intelligence.

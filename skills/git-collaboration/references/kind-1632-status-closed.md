@@ -57,6 +57,6 @@ Optional markdown explaining the reason for closing (e.g., duplicate, won't fix,
 
 ## TOON Fee Estimate
 
-Approximate size: 200-350 bytes. Cost at default `basePricePerByte` (10n): ~$0.002-$0.004.
+The relay route (`g.toon.relay`) is flat-priced: **1 base unit** of 6-decimal USDC per event, whatever its size. Confirm with `await client.routePrice('g.toon.relay')` rather than assuming a figure.
 
-Status events are cheap. Always include a reason when closing to justify the per-byte cost.
+Always include a reason when closing. The reason text is free -- the route is flat-priced -- and it is what the issue's readers actually need.

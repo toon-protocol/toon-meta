@@ -16,12 +16,12 @@ Why this matters: Traditional social platforms train users to equate followers w
 
 On ILP-gated TOON relays, membership is an economic signal:
 
-- **Paid relays create skin-in-the-game.** Every event written to a TOON relay costs money (basePricePerByte x serialized bytes). Spammers and low-effort participants are economically filtered.
-- **Relay presence implies investment.** If someone is actively posting on an ILP-gated relay, they've committed real value to participate. This creates an implicit quality floor.
+- **Paid relays create skin-in-the-game.** Writing to a TOON relay costs money — one packet, one payment — and requires an open payment channel with a real on-chain deposit behind it. The funded channel, more than the per-packet price, is what filters spammers and low-effort participants.
+- **Relay presence implies investment.** If someone is actively posting on an ILP-gated relay, they've committed real value to participate. Note the limit of the signal precisely: the per-event price is one millionth of a dollar, so once a channel is funded nothing about volume is constrained by cost. Presence proves that someone opened and funded a channel — commitment, not restraint.
 - **Multi-relay presence is meaningful.** An account active across multiple paid relays signals sustained commitment to the ecosystem.
 - **Free relay presence is neutral.** Being on free relays says nothing about commitment — it's the default. Don't penalize it, but don't weight it either.
 
-Why this matters: In a world where identity is cheap (anyone can generate a keypair), economic signals provide a useful trust layer. Paid relay membership is one of the few signals that can't be faked without real cost.
+Why this matters: In a world where identity is cheap (anyone can generate a keypair), economic signals provide a useful trust layer. Paid relay membership is one of the few signals that can't be faked without standing up a funded channel — the deposit is the part that can't be faked, not the per-post price.
 
 ## NIP-05 Verification
 

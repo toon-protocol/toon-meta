@@ -84,17 +84,17 @@
   "output_evals": [
     {
       "id": "send-dm-flow",
-      "prompt": "I want to send a private direct message to another user on TOON. The relay's basePricePerByte is 10 micro-USDC. Walk me through the full flow and tell me the cost.",
-      "expected_output": "Construct a kind:14 inner event (rumor) with your real pubkey, real timestamp, message content, and p tag for recipient. Do not sign it. Create a kind:1060 seal by NIP-44 encrypting the rumor with your private key and recipient pubkey, sign with your real key, randomize created_at. Generate a fresh ephemeral keypair. Create a kind:1059 gift wrap by NIP-44 encrypting the seal with the ephemeral key and recipient pubkey, sign with ephemeral key, add p tag with recipient pubkey, randomize created_at. Publish via publishEvent(). Cost for a short message: ~400-600 bytes at 10n basePricePerByte = ~$0.004-$0.006.",
+      "prompt": "I want to send a private direct message to another user on TOON. Walk me through the full flow and tell me the cost.",
+      "expected_output": "Construct a kind:14 inner event (rumor) with your real pubkey, real timestamp, message content, and p tag for recipient. Do not sign it. Create a kind:1060 seal by NIP-44 encrypting the rumor with your private key and recipient pubkey, sign with your real key, randomize created_at. Generate a fresh ephemeral keypair. Create a kind:1059 gift wrap by NIP-44 encrypting the seal with the ephemeral key and recipient pubkey, sign with ephemeral key, add p tag with recipient pubkey, randomize created_at. Send it with await client.send({ body: giftWrap }) from @toon-protocol/client -- the client seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it, so there is no separate pricing, claim-signing or publish step. Cost: the relay route g.toon.relay is flat-priced at 1 base unit of 6-decimal USDC per packet, so a short DM and a long one cost the same. Do not compute a charge from the gift wrap's byte count -- the metered quantity is the sealed payload, and on this route the price does not depend on it at all.",
       "rubric": {
-        "correct": "Describes the three-layer model: unsigned kind:14 rumor, kind:1060 seal (NIP-44 encrypted, signed by real author, randomized timestamp), kind:1059 gift wrap (NIP-44 encrypted with fresh ephemeral key, p tag for recipient, randomized timestamp). Publishes via publishEvent(). Calculates approximate fee. Mentions ephemeral key must be fresh per message.",
-        "acceptable": "Uses publishEvent() and describes the three-layer model correctly, but may not calculate exact fee or may not emphasize ephemeral key freshness.",
-        "incorrect": "Uses raw WebSocket patterns, omits payment, confuses the layer order, reuses ephemeral keys, publishes kind:14 directly, or publishes the seal directly."
+        "correct": "Describes the three-layer model: unsigned kind:14 rumor, kind:1060 seal (NIP-44 encrypted, signed by real author, randomized timestamp), kind:1059 gift wrap (NIP-44 encrypted with fresh ephemeral key, p tag for recipient, randomized timestamp). Sends via client.send() and lets the client price the packet and mint the claim. States that the relay route is flat-priced per packet so message length does not change the cost. Mentions ephemeral key must be fresh per message.",
+        "acceptable": "Uses client.send() and describes the three-layer model correctly, but may not state the flat route price or may not emphasize ephemeral key freshness.",
+        "incorrect": "Uses raw WebSocket patterns, calls publishEvent() or signs a claim by hand, computes a charge from the event's own byte count or any per-byte arithmetic, omits payment entirely, confuses the layer order, reuses ephemeral keys, publishes kind:14 directly, or publishes the seal directly."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes fee calculation or cost awareness for gift-wrapped DMs",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client, not raw WebSocket, and does not call publishEvent()",
+        "toon-fee-check: Response lets the client price the packet (or cites the route's flat price) and does not compute a charge from the gift wrap's byte count",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded or that a decoder is needed",
         "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
         "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
         "Response describes three layers: kind:14 rumor (unsigned), kind:1060 seal, kind:1059 gift wrap"
@@ -103,16 +103,16 @@
     {
       "id": "reply-to-dm",
       "prompt": "I received a DM from someone on TOON. How do I reply to it within the conversation thread?",
-      "expected_output": "After decrypting the received gift wrap to get the kind:14 rumor, compute its event ID. Construct a new kind:14 reply with your pubkey, current timestamp, reply text, a p tag for the original sender, and an e tag with reply marker referencing the original kind:14 event ID. Do not include a subject tag on replies. Wrap in seal then gift wrap and publish via publishEvent(). Each reply is a separate gift wrap with its own ILP fee.",
+      "expected_output": "After decrypting the received gift wrap to get the kind:14 rumor, compute its event ID. Construct a new kind:14 reply with your pubkey, current timestamp, reply text, a p tag for the original sender, and an e tag with reply marker referencing the original kind:14 event ID. Do not include a subject tag on replies. Wrap in seal then gift wrap and send with await client.send({ body: giftWrap }). Each reply is a separate gift wrap and therefore a separate packet with its own price -- cost accumulates by message count, not by message length.",
       "rubric": {
-        "correct": "References the kind:14 event ID (not the kind:1059 gift wrap ID) in the e tag with reply marker. Constructs a new kind:14 rumor with p tag for the recipient and e tag for threading. Wraps and publishes via publishEvent(). Notes that each reply costs separately.",
+        "correct": "References the kind:14 event ID (not the kind:1059 gift wrap ID) in the e tag with reply marker. Constructs a new kind:14 rumor with p tag for the recipient and e tag for threading. Wraps and sends via client.send(). Notes that each reply is a separate packet and costs separately.",
         "acceptable": "Correctly describes reply threading with e tag but may not emphasize the distinction between kind:14 ID and kind:1059 ID.",
-        "incorrect": "References the gift wrap ID instead of the kind:14 ID, omits the e tag reply marker, or publishes the kind:14 directly."
+        "incorrect": "References the gift wrap ID instead of the kind:14 ID, omits the e tag reply marker, publishes the kind:14 directly, calls publishEvent(), or argues that a shorter reply is cheaper than a longer one."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for the reply",
-        "toon-fee-check: Response notes that each reply is a separate paid event",
-        "toon-format-check: Response mentions TOON-format strings or TOON decoder",
+        "toon-write-check: Response uses client.send() for the reply, not publishEvent() or raw WebSocket",
+        "toon-fee-check: Response notes that each reply is a separate paid packet, priced per packet rather than per byte",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded or that a decoder is needed",
         "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
         "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
         "Response uses e tag with reply marker referencing the kind:14 event ID"
@@ -121,34 +121,34 @@
     {
       "id": "group-dm-cost",
       "prompt": "I want to send a private group DM to 8 recipients on TOON. How does it work and what will it cost?",
-      "expected_output": "Construct a single kind:14 rumor with p tags for all 8 recipients plus yourself (9 p tags total). Create a separate gift wrap for each participant (9 total, including self-delivery). Each gift wrap uses a unique ephemeral key. Total cost: 9 * ~$0.004-$0.006 = ~$0.036-$0.054 for a short message. For groups larger than ~10, consider NIP-29 relay groups or NIP-28 channels as more economical alternatives.",
+      "expected_output": "Construct a single kind:14 rumor with p tags for all 8 recipients plus yourself (9 p tags total). Create a separate gift wrap for each participant (9 total, including self-delivery). Each gift wrap uses a unique ephemeral key, and each is sent as its own packet with client.send(). The relay route is flat-priced at 1 base unit per packet, so the total is 9 base units regardless of how long the message is. Cost scales with recipient count, not message length. For groups larger than ~10, consider NIP-29 relay groups or NIP-28 channels, which are one packet per message however large the audience.",
       "rubric": {
-        "correct": "Explains that all participants (including sender) need p tags. Creates separate gift wraps per recipient (including self). Each wrap uses a unique ephemeral key. Calculates linear cost scaling. Mentions self-delivery. Suggests alternatives for large groups.",
-        "acceptable": "Correctly describes per-recipient wrapping and linear cost but may not mention self-delivery or suggest alternatives.",
-        "incorrect": "Claims a single gift wrap serves multiple recipients, ignores linear cost scaling, or omits the sender's own p tag."
+        "correct": "Explains that all participants (including sender) need p tags. Creates separate gift wraps per recipient (including self). Each wrap uses a unique ephemeral key and is its own packet. States the total as N packets at the route's flat price and notes that message length does not change it. Mentions self-delivery. Suggests alternatives for large groups.",
+        "acceptable": "Correctly describes per-recipient wrapping and linear scaling in recipient count but may not mention self-delivery or suggest alternatives.",
+        "incorrect": "Claims a single gift wrap serves multiple recipients, ignores linear scaling in recipient count, omits the sender's own p tag, or prices the group DM with per-byte arithmetic."
       },
       "assertions": [
-        "toon-write-check: Response mentions publishEvent() for each gift wrap",
-        "toon-fee-check: Response calculates total cost as N * single wrap cost",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response sends each gift wrap with client.send(), not publishEvent()",
+        "toon-fee-check: Response gives the total as N packets at the route's flat price and does not scale cost by message length",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded or that a decoder is needed",
         "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
         "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
-        "Response explains linear cost scaling and suggests relay groups or channels for large groups"
+        "Response explains linear scaling in recipient count and suggests relay groups or channels for large groups"
       ]
     },
     {
       "id": "read-dm-inbox",
       "prompt": "How do I check my DM inbox on a TOON relay? Is there a cost to read messages?",
-      "expected_output": "Reading is free on TOON. Subscribe with filter { kinds: [1059], '#p': ['<your-pubkey>'] }. Use TOON decoder to parse events. Two-stage decryption: decrypt gift wrap content with your key + ephemeral pubkey to get the seal, then decrypt seal content with your key + real author pubkey to get the kind:14 rumor. Parse the kind:14 for message content, real author, real timestamp, and p tags (conversation participants). Sort by the kind:14 created_at (not the randomized gift wrap timestamp). Store decrypted messages locally, never re-publish.",
+      "expected_output": "Reading is free on TOON. Subscribe with filter { kinds: [1059], '#p': ['<your-pubkey>'] }. The relay speaks plain NIP-01 and returns standard JSON EVENT messages, so JSON.parse the frame and the event is already a NostrEvent -- there is no TOON decoding on a read and no reason to import @toon-format/toon. Two-stage decryption: decrypt gift wrap content with your key + ephemeral pubkey to get the seal, then decrypt seal content with your key + real author pubkey to get the kind:14 rumor. Parse the kind:14 for message content, real author, real timestamp, and p tags (conversation participants). Sort by the kind:14 created_at (not the randomized gift wrap timestamp). Store decrypted messages locally, never re-publish.",
       "rubric": {
-        "correct": "States reading is free. Describes two-stage decryption flow. Mentions TOON decoder. Notes that kind:14 timestamp is the real one for ordering (not gift wrap timestamp). Advises storing decrypted messages locally only.",
-        "acceptable": "Correctly describes free reading and two-stage decryption but may not mention timestamp ordering or TOON decoder.",
-        "incorrect": "Suggests payment is needed to read, describes only one decryption step, or uses gift wrap timestamps for ordering."
+        "correct": "States reading is free. Describes two-stage decryption flow. Treats relay responses as standard NIP-01 JSON with no decoder step. Notes that kind:14 timestamp is the real one for ordering (not gift wrap timestamp). Advises storing decrypted messages locally only.",
+        "acceptable": "Correctly describes free reading and two-stage decryption but may not mention timestamp ordering or explicitly state that reads are plain NIP-01 JSON.",
+        "incorrect": "Suggests payment is needed to read, claims the relay returns TOON-format strings or that a TOON decoder is needed to parse EVENT messages, describes only one decryption step, or uses gift wrap timestamps for ordering."
       },
       "assertions": [
-        "toon-write-check: Response correctly identifies inbox reading as a free operation -- no publishEvent() needed",
+        "toon-write-check: Response correctly identifies inbox reading as a free operation -- no paid write, no client.send()",
         "toon-fee-check: Response explicitly states reading and decrypting DMs is free on TOON",
-        "toon-format-check: Response mentions TOON-format strings or TOON decoder for parsing relay responses",
+        "toon-read-check: Response states the relay returns standard JSON EVENT messages over plain NIP-01, and does not reach for @toon-format/toon",
         "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
         "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
         "Response describes two-stage decryption (gift wrap layer then seal layer)",
@@ -158,35 +158,35 @@
     {
       "id": "dm-vs-plaintext-cost",
       "prompt": "Compare the cost of sending a 150-byte message on TOON as a plaintext kind:1 note versus a private DM. When is the privacy premium worth paying?",
-      "expected_output": "Plaintext kind:1 note: ~300-400 bytes total (content + event envelope) = ~$0.003-$0.004. Gift-wrapped DM: ~600-900 bytes (kind:14 rumor + seal with NIP-44 encryption + gift wrap with NIP-44 encryption + event envelopes + padding) = ~$0.006-$0.009. Privacy premium is approximately 2-3x. Worth it for genuinely private communication -- sensitive coordination, personal conversations, private business discussions. Not worth it for public content that does not need privacy. Encrypting public content wastes money and signals unnecessary secrecy.",
+      "expected_output": "They cost the same. Both are one packet to the relay route, which is flat-priced at 1 base unit of 6-decimal USDC regardless of payload length. The gift-wrapped DM is 2-5x the bytes (kind:14 rumor + NIP-44 encrypted seal + NIP-44 encrypted gift wrap + envelopes + padding), but bytes are not what the relay meters, so there is no price premium for privacy. The real trade-off is not money: choose encryption when the content genuinely needs metadata protection, and note that privacy does cost packets in one place -- a group conversation needs one gift wrap per recipient, where a public note reaches everyone for one packet. Encrypting content that does not need privacy is still an anti-pattern, but the reason is signalling unnecessary secrecy, not wasted money.",
       "rubric": {
-        "correct": "Provides cost comparison with approximate figures for both plaintext and gift-wrapped. Explains the sources of overhead. Discusses when the privacy premium is justified versus wasteful. Notes that encrypting public content is an anti-pattern.",
-        "acceptable": "Provides approximate cost comparison and mentions the privacy premium concept but may not detail overhead sources.",
-        "incorrect": "Claims DMs are free, ignores the cost difference, or recommends encrypting all content regardless."
+        "correct": "States that both cost the same because the relay route is flat-priced per packet. Notes the gift wrap is larger in bytes but that size does not affect the price. Explains that the privacy decision is made on privacy grounds, not price grounds. Identifies group DMs (one packet per recipient) as the place where privacy genuinely costs more.",
+        "acceptable": "States the costs are the same or that size does not affect the relay price, but may not explain the packet-count exception for group DMs.",
+        "incorrect": "Claims the gift-wrapped DM costs 2-5x more, computes either cost from byte counts, invents a per-byte rate, or claims DMs are free."
       },
       "assertions": [
-        "toon-write-check: Response mentions publishEvent() for publishing either event type",
-        "toon-fee-check: Response includes fee comparison between plaintext and gift-wrapped DM",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response uses client.send() if it names an API at all, and does not call publishEvent()",
+        "toon-fee-check: Response states both are one packet at the same flat route price and does not derive cost from byte counts",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded or that a decoder is needed",
         "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
         "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
-        "Response provides cost estimates for both plaintext and gift-wrapped versions",
-        "Response discusses when the privacy premium is or is not justified"
+        "Response explains that the byte overhead of gift wrapping does not translate into a price premium",
+        "Response discusses when encryption is or is not justified on grounds other than price"
       ]
     },
     {
       "id": "cold-dm-etiquette",
       "prompt": "Should I DM someone I have never interacted with on TOON to introduce myself and pitch a collaboration idea?",
-      "expected_output": "Cold-DMing on TOON carries both economic and social costs. Each DM costs ~$0.004-$0.009 with no guarantee of response. On a paid network, recipients have higher expectations for message quality. A cold DM is appropriate if you have a clear, specific reason (genuine collaboration proposal based on their work) and keep it concise and respectful. Include context about why you are reaching out and what value you offer. Do not cold-DM strangers without context, do not send follow-ups if ignored, and do not mass-DM multiple people with the same pitch. One well-crafted message is better than multiple short ones (each gift wrap has per-message overhead).",
+      "expected_output": "Cold-DMing on TOON carries a small economic cost and a large social one. Each DM is one packet at the relay's flat price -- 1 base unit -- so money will not stop you; the recipient's attention and your own reputation are the scarce resources. A cold DM is appropriate if you have a clear, specific reason (a genuine collaboration proposal based on their work) and keep it purposeful and respectful. Include context about why you are reaching out and what value you offer. Do not cold-DM strangers without context, do not send follow-ups if ignored, and do not mass-DM multiple people with the same pitch -- volume is the axis that costs, since every message is a separate packet. One well-crafted message beats several short ones, and its length costs nothing extra.",
       "rubric": {
-        "correct": "Acknowledges both economic cost and social etiquette of cold DMs. Advises keeping it purposeful and concise. Notes per-message overhead favoring fewer, better messages. Warns against mass-DMing and unsolicited follow-ups. Considers the paid network context.",
-        "acceptable": "Provides social guidance on cold DMs and mentions cost but may not discuss per-message overhead or mass-DM anti-patterns.",
-        "incorrect": "Encourages mass cold-DMing, ignores the social cost, or claims cold DMs are always inappropriate."
+        "correct": "Acknowledges that the economic cost is small and that the social cost is the real one. Advises keeping the message purposeful. Notes that cost accumulates per message sent, so fewer, better messages are cheaper as well as more welcome, and that length is not what costs. Warns against mass-DMing and unsolicited follow-ups. Considers the paid network context.",
+        "acceptable": "Provides social guidance on cold DMs and mentions cost but may not distinguish the per-packet axis from message length.",
+        "incorrect": "Encourages mass cold-DMing, ignores the social cost, claims cold DMs are always inappropriate, or argues brevity saves money by reducing bytes."
       },
       "assertions": [
-        "toon-write-check: Response mentions publishEvent() or cost awareness for sending DMs",
-        "toon-fee-check: Response notes the per-message economic cost of cold DMs",
-        "toon-format-check: Response mentions TOON-format strings in relay responses",
+        "toon-write-check: Response shows cost awareness for sending DMs and does not reference publishEvent()",
+        "toon-fee-check: Response notes the per-message (per-packet) cost of cold DMs rather than a per-byte cost",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded or that a decoder is needed",
         "social-context-check: Skill has DM-specific Social Context section covering cold-DM etiquette and boundaries",
         "trigger-coverage: Description includes both protocol triggers (kind:14, NIP-17) and social-situation triggers (how do I DM someone)",
         "Response addresses both economic and social dimensions of cold DMs on a paid network"

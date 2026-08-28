@@ -29,7 +29,7 @@
       "should_trigger": true
     },
     {
-      "query": "Show me all the publishEvent calls needed to set up a git repo",
+      "query": "Show me all the client.send calls needed to set up a git repo",
       "should_trigger": true
     },
     {
@@ -84,50 +84,50 @@
   "output_evals": [
     {
       "id": "create-repo-end-to-end",
-      "prompt": "I want to create a new repository on TOON with a README.md file. Walk me through the complete end-to-end process, including all publishEvent() calls, git object construction, Arweave uploads, and fee calculations.",
-      "expected_output": "The complete create-repo workflow has 4 steps with multiple publishEvent() calls: (1) Publish a kind:30617 repository announcement with d tag, name, description, clone URLs, and maintainers tag (~$0.004-$0.005). (2) Construct git objects locally: create a blob from the README content using 'blob <size>\\0<content>' format, compute its SHA-1; create a tree referencing the blob with mode 100644 and 20-byte raw binary SHA-1; create a commit pointing to the tree with Nostr pubkey mapped to author via <pubkey>@nostr convention. (3) Upload objects to Arweave via kind:5094 DVM requests in dependency order: blob first, then tree, then commit. Each kind:5094 event carries base64-encoded binary in the i tag, plus Git-SHA, Git-Type, and Repo tags. Check Arweave for duplicates before uploading. (4) Publish kind:30618 repository state with refs/heads/main pointing to the commit SHA. Total cost for a tiny repo: ~$0.02-$0.04.",
+      "prompt": "I want to create a new repository on TOON with a README.md file. Walk me through the complete end-to-end process, including every write call, git object construction, Arweave uploads, and what it costs.",
+      "expected_output": "The complete create-repo workflow has 4 steps, each write sent with await client.send(...): (1) Send a kind:30617 repository announcement with d tag, name, description, clone URLs, and maintainers tag. It terminates at g.toon.relay, whose route is flat-priced at 1 base unit of 6-decimal USDC. (2) Construct git objects locally: create a blob from the README content using 'blob <size>\\0<content>' format, compute its SHA-1; create a tree referencing the blob with mode 100644 and 20-byte raw binary SHA-1; create a commit pointing to the tree with Nostr pubkey mapped to author via <pubkey>@nostr convention. (3) Upload objects via kind:5094 requests sent to g.toon.store in dependency order: blob first, then tree, then commit. Each kind:5094 event carries base64-encoded binary in the i tag, plus Git-SHA, Git-Type, and Repo tags. Check Arweave for duplicates before uploading. The store route is priced 1000 + 10 per KiB of sealed payload, so a small object is about 1010 base units. (4) Send kind:30618 repository state with refs/heads/main pointing to the commit SHA -- another flat 1 base unit. Total for a tiny repo: roughly 3032 base units, about $0.003, essentially all of it the three object uploads. client.send() seals the payload, reads the route's price, mints the covering claim and carries it, so there is no separate pricing or claim-signing step.",
       "rubric": {
-        "correct": "Covers all 4 steps (announce, construct, upload, state). Uses publishEvent() for all writes. Constructs git objects with correct format. Uploads in dependency order (blob->tree->commit). Includes fee estimates. Maps Nostr pubkey to git author.",
-        "acceptable": "Covers the major steps and uses publishEvent(), but may omit some detail on git object construction or fee breakdown.",
-        "incorrect": "Omits Arweave uploads, uses raw WebSocket writes, skips git object construction, or misses the kind:30618 state publication."
+        "correct": "Covers all 4 steps (announce, construct, upload, state). Uses client.send() from @toon-protocol/client for all writes. Constructs git objects with correct format. Uploads in dependency order (blob->tree->commit). Distinguishes the flat-priced relay route from the store route priced per kibibyte of sealed payload. Maps Nostr pubkey to git author.",
+        "acceptable": "Covers the major steps and uses client.send(), but may omit some detail on git object construction or the route price breakdown.",
+        "incorrect": "Omits Arweave uploads, uses raw WebSocket writes, calls publishEvent() or signs a claim by hand, invents per-byte arithmetic, skips git object construction, or misses the kind:30618 state publication."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for all event kinds (kind:30617, kind:5094, kind:30618), not raw WebSocket",
-        "toon-fee-check: Response includes fee estimates for each step and a total workflow cost",
-        "toon-format-check: Response mentions TOON-format strings when discussing reading state events",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client for all event kinds (kind:30617, kind:5094, kind:30618), not raw WebSocket",
+        "toon-fee-check: Response prices each step against its route -- flat 1 base unit on the relay, 1000 + 10 per KiB of sealed payload on the store -- and does not compute a charge from the event JSON",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response explains upload ordering constraint (blob->tree->commit) and deduplication via SHA-1",
         "trigger-coverage: Description includes workflow triggers (end-to-end, complete workflow) and component triggers (kind:30617, kind:5094, kind:30618)"
       ]
     },
     {
       "id": "submit-patch-workflow",
-      "prompt": "I have a one-line bug fix in src/parser.ts. Walk me through submitting it as a patch on TOON, including the git format-patch output, kind:1617 event construction, and cost calculation.",
-      "expected_output": "The submit-patch workflow has 3 steps: (1) Generate the patch with 'git format-patch -1 HEAD --stdout' to produce the git format-patch output containing the diff, commit message, and metadata. (2) Construct a kind:1617 event with the patch output as content, plus tags: a tag referencing the repository address (30617:<maintainer-pubkey>:<repo-id>), r tag with the earliest unique commit, p tag for the maintainer, t tag 'root' for single patch, commit tag, and parent-commit tag. (3) Calculate the fee as basePricePerByte * serializedEventBytes. A small one-line fix produces ~500-1000 bytes of diff content, yielding an event of ~800-1500 bytes, costing ~$0.008-$0.015. Sign the event and publish via publishEvent(). For large patches (>10KB), consider using a kind:1618 PR instead, which costs only ~$0.004-$0.01 because the content is just a markdown description.",
+      "prompt": "I have a one-line bug fix in src/parser.ts. Walk me through submitting it as a patch on TOON, including the git format-patch output, kind:1617 event construction, and what it costs.",
+      "expected_output": "The submit-patch workflow has 3 steps: (1) Generate the patch with 'git format-patch -1 HEAD --stdout' to produce the git format-patch output containing the diff, commit message, and metadata. (2) Construct a kind:1617 event with the patch output as content, plus tags: a tag referencing the repository address (30617:<maintainer-pubkey>:<repo-id>), r tag with the earliest unique commit, p tag for the maintainer, t tag 'root' for single patch, commit tag, and parent-commit tag. (3) Sign the event and send it: await client.send({ body: patchEvent }). The client seals the payload, reads the route's price, mints the covering claim and carries it. The patch terminates at g.toon.relay, whose route is flat-priced: 1 base unit of 6-decimal USDC whether the diff is one line or 50 KB. A kind:1618 PR costs the same 1 base unit, so choose between patch and PR on review workflow rather than price. A REJECT comes back as { fulfilled: false } and is never thrown.",
       "rubric": {
-        "correct": "Shows git format-patch generation, constructs kind:1617 with correct tags (a, r, p, t root, commit, parent-commit), calculates fee based on event size, uses publishEvent(). Mentions PR alternative for large diffs.",
-        "acceptable": "Constructs the kind:1617 event correctly and uses publishEvent(), but may not detail the exact tag set or cost optimization advice.",
-        "incorrect": "Uses raw WebSocket, omits required tags (a tag, r tag), or embeds the diff in wrong format."
+        "correct": "Shows git format-patch generation, constructs kind:1617 with correct tags (a, r, p, t root, commit, parent-commit), uses client.send() and lets it price the packet, and states the relay route is flat-priced so diff size does not change the charge.",
+        "acceptable": "Constructs the kind:1617 event correctly and uses client.send(), but may not detail the exact tag set or say much about pricing.",
+        "incorrect": "Uses raw WebSocket, calls publishEvent(), computes a charge from the event byte count, claims a PR is cheaper than a large patch, omits required tags (a tag, r tag), or embeds the diff in wrong format."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for kind:1617, not raw WebSocket",
-        "toon-fee-check: Response calculates cost based on basePricePerByte * serialized event size with specific dollar estimates",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client for kind:1617, not raw WebSocket",
+        "toon-fee-check: Response states the relay route is flat (1 base unit regardless of diff size) or lets client.send() price the packet, and does not compute a charge from the event's byte count",
         "toon-format-check: Response shows correct kind:1617 tag structure including a, r, p, and t tags",
-        "social-context-check: Response advises keeping diffs minimal and mentions PR alternative for large contributions",
+        "social-context-check: Response advises keeping diffs minimal for reviewability rather than for price, and treats the PR alternative as a workflow choice",
         "trigger-coverage: Description includes workflow triggers (submit patch, patch workflow) and cost triggers (fee calculation, patch cost)"
       ]
     },
     {
       "id": "merge-patch-workflow",
-      "prompt": "I am a maintainer and I want to merge a submitted patch. What are all the steps and publishEvent() calls involved, including uploading new git objects to Arweave?",
-      "expected_output": "The merge-patch workflow has 4 steps: (1) Apply the patch locally using 'git am' or 'git apply' + commit. This creates new blob, tree, and commit objects. (2) Upload only the NEW git objects to Arweave via kind:5094. Unchanged files share the same SHA-1 and already exist on Arweave -- skip them via deduplication check. Upload in dependency order: new blobs, then new trees, then the new commit. (3) Publish a kind:1631 status event (Applied/Merged) with e tag referencing the patch event, p tag for the contributor, a tag for the repository, and applied-as-commits tag crediting the contributor (~$0.003-$0.004). (4) Update kind:30618 repository state with the new branch head commit SHA (~$0.002-$0.004). Total cost: ~$0.035-$0.108 depending on number of changed files. The maintainer pays for the merge, not the contributor.",
+      "prompt": "I am a maintainer and I want to merge a submitted patch. What are all the steps and write calls involved, including uploading new git objects to Arweave?",
+      "expected_output": "The merge-patch workflow has 4 steps: (1) Apply the patch locally using 'git am' or 'git apply' + commit. This creates new blob, tree, and commit objects. (2) Upload only the NEW git objects to Arweave via kind:5094. Unchanged files share the same SHA-1 and already exist on Arweave -- skip them via deduplication check. Upload in dependency order: new blobs, then new trees, then the new commit. (3) Send a kind:1631 status event (Applied/Merged) with e tag referencing the patch event, p tag for the contributor, a tag for the repository, and applied-as-commits tag crediting the contributor -- a flat 1 base unit on g.toon.relay. (4) Send the kind:30618 repository state update with the new branch head commit SHA -- another 1 base unit. The object uploads are almost the entire bill: at 1000 + 10 per KiB of sealed payload each, a small merge is roughly 3000-9000 base units (about $0.003-$0.009), and it scales with how many objects changed, not with how big the diff read. The maintainer pays for the merge, not the contributor.",
       "rubric": {
-        "correct": "Covers all 4 steps (apply, upload, status, state). Emphasizes deduplication of unchanged objects. Uses publishEvent() for all writes. Includes kind:1631 with applied-as-commits tag. Notes maintainer pays.",
+        "correct": "Covers all 4 steps (apply, upload, status, state). Emphasizes deduplication of unchanged objects. Uses client.send() for all writes. Puts the cost on the store-route uploads rather than the two flat relay writes. Includes kind:1631 with applied-as-commits tag. Notes maintainer pays.",
         "acceptable": "Covers the major steps but may not detail deduplication or exact tag format for kind:1631.",
-        "incorrect": "Omits Arweave upload step, skips kind:30618 state update, or uses raw WebSocket."
+        "incorrect": "Omits Arweave upload step, skips kind:30618 state update, uses raw WebSocket, calls publishEvent(), or prices the status and state events by their byte count."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for kind:5094, kind:1631, and kind:30618",
-        "toon-fee-check: Response provides total workflow cost estimate and notes maintainer bears the merge cost",
+        "toon-write-check: Response uses client.send() for kind:5094, kind:1631, and kind:30618",
+        "toon-fee-check: Response attributes the cost to the store-route object uploads (1000 + 10 per KiB of sealed payload) with the relay writes flat at 1 base unit, and notes the maintainer bears it",
         "toon-format-check: Response includes kind:1631 tags (e, p, a, applied-as-commits) and kind:30618 state update",
         "social-context-check: Response emphasizes deduplication to skip unchanged objects and credits contributor via applied-as-commits",
         "trigger-coverage: Description includes workflow triggers (merge patch, end-to-end merge) and role triggers (maintainer workflow)"
@@ -136,16 +136,16 @@
     {
       "id": "fetch-file-from-arweave",
       "prompt": "I want to fetch the README.md file from a TOON-hosted repository stored on Arweave. Walk me through the complete resolution chain from branch name to file content.",
-      "expected_output": "The fetch workflow is entirely free and has 5 steps: (1) Read the kind:30618 repository state event via NIP-01 subscription to get the branch head commit SHA for refs/heads/main. TOON relays return TOON-format strings -- use the TOON decoder to parse. (2) Resolve the commit SHA via Arweave GraphQL query with Git-SHA and Repo tags to get the Arweave transaction ID. (3) Download the commit binary from https://arweave.net/<tx-id>, parse the 'commit <size>\\0' header, extract the root tree SHA from the 'tree <sha>' line. (4) Resolve and download the tree object. Parse tree entries: each entry is '<mode> <name>\\0<20-byte-raw-sha1>'. Find the README.md entry and extract its blob SHA. (5) Resolve and download the blob object. Parse the 'blob <size>\\0' header. Everything after the null byte is the file content. Total cost: $0.00 -- all reads are free on TOON, and Arweave gateway downloads are free.",
+      "expected_output": "The fetch workflow is entirely free and has 5 steps: (1) Read the kind:30618 repository state event via NIP-01 subscription to get the branch head commit SHA for refs/heads/main. The relay's reads are free and speak plain NIP-01, returning a standard JSON EVENT message -- no TOON decoder is involved, and a free read never touches a connector. (2) Resolve the commit SHA via Arweave GraphQL query with Git-SHA and Repo tags to get the Arweave transaction ID. (3) Download the commit binary from https://arweave.net/<tx-id>, parse the 'commit <size>\\0' header, extract the root tree SHA from the 'tree <sha>' line. (4) Resolve and download the tree object. Parse tree entries: each entry is '<mode> <name>\\0<20-byte-raw-sha1>'. Find the README.md entry and extract its blob SHA. (5) Resolve and download the blob object. Parse the 'blob <size>\\0' header. Everything after the null byte is the file content. Total cost: $0.00 -- all reads are free on TOON, and Arweave gateway downloads are free.",
       "rubric": {
-        "correct": "Shows complete resolution chain (state->commit->tree->blob). Correctly parses git object format at each step. Notes tree entries use raw 20-byte binary SHA-1. Mentions TOON-format decoding. States total cost is $0.00.",
+        "correct": "Shows complete resolution chain (state->commit->tree->blob). Correctly parses git object format at each step. Notes tree entries use raw 20-byte binary SHA-1. Treats the relay read as plain NIP-01 JSON. States total cost is $0.00.",
         "acceptable": "Shows the resolution chain and notes it is free, but may not detail the binary parsing at each step.",
-        "incorrect": "Claims fetching costs money, omits the tree->blob resolution step, or uses wrong SHA encoding in tree entries."
+        "incorrect": "Claims fetching costs money, claims relay reads are TOON-encoded or need a TOON decoder, omits the tree->blob resolution step, or uses wrong SHA encoding in tree entries."
       },
       "assertions": [
-        "toon-write-check: Response confirms no publishEvent() calls needed -- fetching is entirely free",
+        "toon-write-check: Response confirms no client.send() calls are needed -- fetching is entirely free",
         "toon-fee-check: Response explicitly states total cost is $0.00 for the entire fetch workflow",
-        "toon-format-check: Response mentions TOON-format strings in relay responses and correct git object binary format parsing",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded, and parses the git object binary format correctly",
         "social-context-check: Response explains the complete resolution chain (state->commit SHA->tree SHA->blob SHA->content)",
         "trigger-coverage: Description includes workflow triggers (fetch file, resolve SHA) and Arweave triggers (GraphQL, gateway download)"
       ]

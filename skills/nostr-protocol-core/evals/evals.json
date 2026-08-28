@@ -9,7 +9,7 @@
       "should_trigger": true
     },
     {
-      "query": "How do I calculate fees for publishing an event on TOON?",
+      "query": "How much does it cost to publish an event on TOON?",
       "should_trigger": true
     },
     {
@@ -17,7 +17,7 @@
       "should_trigger": true
     },
     {
-      "query": "What format do TOON relays return in EVENT messages?",
+      "query": "What format does a TOON relay return in EVENT messages, and do I need a decoder?",
       "should_trigger": true
     },
     {
@@ -29,11 +29,11 @@
       "should_trigger": true
     },
     {
-      "query": "What is basePricePerByte and how does pricing work on TOON?",
+      "query": "How is a route priced on TOON, and how do I find out what a write will cost?",
       "should_trigger": true
     },
     {
-      "query": "How do I use publishEvent to send a note to a TOON relay?",
+      "query": "How do I use client.send to publish a note to a TOON relay?",
       "should_trigger": true
     },
     {
@@ -71,52 +71,62 @@
     {
       "query": "Does paying to post change how I should interact with people?",
       "should_trigger": false
+    },
+    {
+      "query": "Why did my write come back F03, and what is the difference between a fee and a price?",
+      "should_trigger": true
+    },
+    {
+      "query": "How do I discover a TOON node's price now that kind:10032 is gone?",
+      "should_trigger": true
     }
   ],
   "output_evals": [
     {
       "id": "write-model-basic",
-      "prompt": "I want to publish a short text note to a TOON relay. The relay's basePricePerByte is 10 micro-USDC. My note serializes to 250 bytes. How do I send it?",
+      "prompt": "I want to publish a short text note to the TOON relay at https://proxy.relay.devnet.toonprotocol.dev. How do I send it, and how do I work out what it costs?",
       "rubric": {
-        "correct": "Uses client.publishEvent() from @toon-protocol/client with correct fee calculation (10 * 250 = 2500 micro-USDC). Mentions signing a balance proof before publishing. Does NOT use raw WebSocket EVENT pattern. Shows the complete flow: create event, sign balance proof, call publishEvent with claim.",
-        "acceptable": "Uses publishEvent() from @toon-protocol/client and mentions fee calculation, but may omit balance proof details or exact amount. Does NOT use raw WebSocket EVENT pattern.",
-        "incorrect": "Uses raw WebSocket [\"EVENT\", ...] pattern, omits payment entirely, uses the SDK instead of the client, or calculates the fee incorrectly."
+        "correct": "Constructs and signs the Nostr event as normal, then calls `await client.send({ body: signedEvent })` on a `ToonClient` created with `ToonClient.create({ connector, mnemonic })`. Explains that `send()` seals the payload, asks the connector the route's price, mints the covering claim and carries it, so the caller does no pricing and signs no claim by hand. If it gives a cost, it gets it by asking — `client.routePrice(destination)`, or the node's `GET /ilp` self-description — and notes that `g.toon.relay` is flat, so length does not change the price. Does NOT use a raw WebSocket EVENT pattern.",
+        "acceptable": "Uses `client.send()` from `@toon-protocol/client` and treats the price as something asked of the node rather than computed locally, but may omit channel setup or the sealing detail. Does NOT use a raw WebSocket EVENT pattern.",
+        "incorrect": "Calls `publishEvent()` or a caller-facing `signBalanceProof()` — neither exists. Multiplies a per-byte rate by the event's size. Reads a price from a `kind:10032` event or a `/health` endpoint. Uses a raw WebSocket [\"EVENT\", ...] pattern, omits payment entirely, or uses the SDK instead of the client."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API, not raw WebSocket",
-        "toon-fee-check: Response includes correct fee calculation (2500 micro-USDC)",
+        "toon-write-check: Response uses client.send(), not raw WebSocket",
+        "toon-api-check: Response does NOT call publishEvent() or a caller-facing signBalanceProof()",
+        "toon-price-check: Response obtains the price by asking the node (routePrice / GET /ilp), not by multiplying bytes",
         "Response references @toon-protocol/client",
-        "Response does NOT use raw WebSocket EVENT pattern"
+        "Response does NOT cite basePricePerByte, feePerByte, kind:10032 or a /health pricing endpoint"
       ]
     },
     {
-      "id": "read-model-toon-format",
-      "prompt": "I subscribed to kind:1 events on a TOON relay and received an EVENT message. The third element is a string, not a JSON object. What's going on and how do I handle it?",
+      "id": "read-model-plain-nip01",
+      "prompt": "I subscribed to kind:1 events on a TOON relay. Do I need the TOON decoder to parse the EVENT messages, and where does TOON encoding actually apply?",
       "rubric": {
-        "correct": "Explains that TOON relays return TOON-format strings (not JSON objects) in EVENT messages. Describes using the TOON decoder (@toon-format/toon) to parse the string back to a standard NostrEvent object. Explains WHY TOON uses its own format (wire encoding, integrity, ILP pipeline compatibility).",
-        "acceptable": "Correctly identifies TOON format responses and mentions decoding, but may not explain the reasoning behind TOON format or may omit the specific decoder import.",
-        "incorrect": "Treats the response as a bug or error. Suggests the relay is broken. Recommends using JSON.parse on the TOON string. Does not mention TOON format."
+        "correct": "States plainly that the relay returns STANDARD JSON EVENT messages and speaks plain NIP-01, so no decoder is needed and any ordinary Nostr client can read it -- the relay contains no payment code and a read never touches a connector. Then places TOON encoding correctly: it is the encoding of the WRITE payload, an agreement between a client and an app about the bytes the connector carries sealed inside the ILP packet, and the connector never opens them. Summarises as 'TOON on the way in, plain NIP-01 JSON on the way out'.",
+        "acceptable": "Correctly says relay reads are plain JSON needing no decoder, but may not fully explain where TOON encoding does apply.",
+        "incorrect": "Claims the relay returns TOON-format strings, that EVENT messages must be decoded, or that `@toon-format/toon` is needed to read a subscription. Says reads cost money or touch a connector."
       },
       "assertions": [
-        "toon-format-check: Response explains TOON format strings in relay responses",
-        "Response mentions TOON decoder or @toon-format/toon",
-        "Response does NOT suggest JSON.parse on TOON format data",
-        "Response explains reasoning (WHY TOON format exists)"
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
+        "Response states no decoder is needed for relay reads",
+        "Response places TOON encoding on the write payload the connector carries sealed",
+        "Response notes reads are free and never touch a connector"
       ]
     },
     {
-      "id": "fee-calculation-multihop",
-      "prompt": "My agent is at g.toon.useast.myagent and I want to publish to g.toon.euwest.relay42. The relay charges basePricePerByte of 10n. There's an intermediary at g.toon.euwest with feePerByte of 2n. My event is 500 bytes. What's the total cost?",
+      "id": "route-charge-and-multihop-cost",
+      "prompt": "I need to store a 6 KiB blob through TOON at g.toon.relay.store, and my agent is attached to the relay box's connector. How much will that packet cost, and how do I find out before I send it?",
       "rubric": {
-        "correct": "Calculates total amount as (10 * 500) + (2 * 500) = 5000 + 1000 = 6000 micro-USDC. Explains the route-aware formula: basePricePerByte * bytes + SUM(hopFees * bytes). Mentions resolveRouteFees() and calculateRouteAmount() from @toon-protocol/core. Explains LCA-based route resolution.",
-        "acceptable": "Arrives at 6000 micro-USDC with correct arithmetic but may not mention the specific functions or LCA resolution. Shows understanding of multi-hop fee accumulation.",
-        "incorrect": "Calculates only the base fee (5000) without intermediary fees. Gets the arithmetic wrong. Does not understand multi-hop routing."
+        "correct": "Asks the node rather than computing: `await client.routePrice('g.toon.relay.store')` returns the route's terms (`{ price, pricePerKib }` — the store route is metered, base 1000 plus 10 per KiB in 6-dp USDC base units), and `chargeFor(terms, sealedBytes)` from @toon-protocol/client turns those terms into the figure that goes on the claim. Crucially, notes that the metered quantity is the **sealed** payload — the gift-wrapped bytes the PREPARE carries, not the 6 KiB blob or its event JSON — so the charge cannot be computed from the caller's own data and `send()` seals before it prices. For the full path cost across hops, uses `client.probe(destination)` and reads `accumulatedCost`; a cost is discovered from a probe's reject, not summed from a local fee table. May note that `send()` pays the full charge without being asked, so this is only needed to show a price up front.",
+        "acceptable": "Reaches for `routePrice()`/`chargeFor()` or a probe rather than local arithmetic, and recognises the store route meters by size, but may not stress that the sealed payload is the metered quantity or may omit the probe.",
+        "incorrect": "Multiplies a per-byte rate by the blob size. Cites `basePricePerByte`, `feePerByte`, `resolveRouteFees()`, `calculateRouteAmount()`, `hopFees` or LCA route resolution. Reimplements chargeFor's arithmetic and asserts an exact figure. Claims the charge can be computed from the event JSON. Reads pricing from a kind:10032 announce or a /health endpoint."
       },
       "assertions": [
-        "toon-fee-check: Response calculates correct total (6000 micro-USDC)",
-        "Response shows both base fee and intermediary fee components",
-        "Response mentions route-aware fee calculation",
-        "Response uses correct formula: basePricePerByte * bytes + SUM(hopFees * bytes)"
+        "toon-price-check: Response uses routePrice()/chargeFor() or probe(), not local per-byte arithmetic",
+        "toon-sealed-check: Response identifies the sealed payload as the metered quantity, not the caller's blob or event JSON",
+        "Response uses the kibibyte as the unit and never says per-byte",
+        "Response does NOT cite resolveRouteFees, calculateRouteAmount, hopFees or LCA route resolution",
+        "Response treats a multi-hop cost as discovered by probing, not computed from a fee table"
       ]
     },
     {
@@ -138,15 +148,16 @@
       "id": "excluded-nip-redirect",
       "prompt": "I want to implement NIP-57 zaps on my TOON agent to tip good content creators. How do I set that up?",
       "rubric": {
-        "correct": "Explains that NIP-57 (zaps) is excluded from TOON because ILP replaces Lightning-based tipping. Explains WHY: TOON uses ILP with USDC, not Lightning, so the zap protocol does not apply. Redirects to TOON's payment mechanisms (ILP payment channels, publishEvent with payment). Does not attempt to implement NIP-57.",
-        "acceptable": "Correctly identifies that NIP-57 is not used on TOON and points to ILP as the alternative, but may not fully explain the reasoning or the specific TOON mechanism for sending value.",
+        "correct": "Explains that NIP-57 (zaps) is excluded from TOON because TOON's own payment layer replaces Lightning-based tipping. Explains WHY: settlement is USDC on two chains (Base Sepolia and Solana devnet) over payment channels, not Lightning, so the zap protocol does not apply. Redirects to TOON's mechanism — paying a route the recipient terminates, with `client.send()` minting the covering claim. Does not attempt to implement NIP-57.",
+        "acceptable": "Correctly identifies that NIP-57 is not used on TOON and points to TOON's payment channels as the alternative, but may not fully explain the reasoning or the specific mechanism for sending value.",
         "incorrect": "Attempts to implement NIP-57 on TOON. Does not mention that zaps are excluded. Recommends Lightning wallet setup."
       },
       "assertions": [
         "Response identifies NIP-57 as excluded from TOON",
-        "Response explains ILP replaces Lightning zaps",
+        "Response explains TOON's payment channels replace Lightning zaps",
         "Response does NOT recommend implementing NIP-57 on TOON",
-        "Response explains reasoning (WHY excluded), not just the rule"
+        "Response explains reasoning (WHY excluded), not just the rule",
+        "Response does NOT cite publishEvent(), Lightning, or Arbitrum"
       ]
     }
   ]

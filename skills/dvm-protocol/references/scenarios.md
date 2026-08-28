@@ -1,12 +1,12 @@
 # DVM Protocol Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common DVM operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like the prepaid model, fee calculation, and the publishEvent API. These scenarios bridge the gap between knowing the tag format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common DVM operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like the prepaid model, route pricing, and the `client.send()` API. These scenarios bridge the gap between knowing the tag format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Submitting a Job Request
 
 **When:** A client wants to request a compute service from a DVM provider, such as text generation, translation, or blob storage.
 
-**Why this matters:** On TOON, the job request IS the payment. The ILP payment attached to the kind:5xxx event covers both the relay write fee and the compute fee. Getting the event structure right on the first attempt avoids wasting money on malformed requests.
+**Why this matters:** On TOON, the job request IS the payment. Sending the kind:5xxx event pays the price of the route that terminates it. Getting the event structure right on the first attempt avoids wasting money on malformed requests.
 
 ### Steps
 
@@ -27,7 +27,7 @@
 
 4. **Set job parameters.** Add `["param", "<key>", "<value>"]` tags for service-specific settings (e.g., model, max_tokens, timeout, storage backend).
 
-5. **Set the bid.** Add `["bid", "<amount-millisats>"]` with a fair price. Check the provider's kind:10035 SkillDescriptor for kindPricing to determine the expected rate. On TOON, the bid is informational -- the actual payment is the ILP payment attached to the publishEvent call.
+5. **Set the bid.** Add `["bid", "<amount-millisats>"]` with a fair price. On TOON the bid is informational -- the actual payment is the claim `send()` mints for the route that terminates the request.
 
 6. **Target a provider (optional).** Add `["p", "<provider-pubkey>"]` to direct the request to a specific provider. Omit to broadcast to all providers monitoring for this job kind.
 
@@ -37,15 +37,13 @@
 
 9. **Sign the event.** Use nostr-tools or equivalent to sign with the client's private key.
 
-10. **Calculate the fee.** The relay write fee is `basePricePerByte * serializedEventBytes`. The total cost on TOON also includes the compute fee from the provider's kindPricing.
-
-11. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+10. **Send it.** `await client.send({ body: signedJobRequest })` from `@toon-protocol/client`. The client seals the payload to the terminating connector, reads the route's price, mints the covering claim and carries it -- there is no separate fee-calculation, claim-signing or publish step. To reach a route other than the node's own published address, pass the destination as a leading string argument: `client.send('g.toon.store', { body })`.
 
 ### Considerations
 
-- Keep input data concise. Every byte costs money on TOON. For large inputs, use URL references instead of inline data.
-- The `bid` tag is the NIP-90 standard mechanism for price signaling. On TOON, the actual payment is handled by the ILP layer.
-- If targeting a specific provider, verify their kind:10035 SkillDescriptor supports the requested job kind.
+- Keep input data concise -- but not to save money on the relay, whose route is flat at 1 base unit per event whatever the request weighs. Concision buys bandwidth, relay storage and provider parse cost. It buys money only on a sloped route such as the blob store (`g.toon.store`, 1000 + 10/KiB of sealed payload), and there you should read `client.routePrice()` rather than count bytes yourself.
+- The `bid` tag is the NIP-90 standard mechanism for price signaling. On TOON, the actual payment is the claim the client mints.
+- If targeting a specific provider, check that they have published a NIP-89 kind:31990 handler advertisement for the job kind, or that you have some other reason to believe they serve it.
 - Job pipelining (input type `"job"`) chains DVM jobs -- the output of one job feeds into the next. Use this for multi-step workflows.
 
 ## Scenario 2: Receiving and Processing Job Results
@@ -66,7 +64,7 @@
    ["REQ", "job-result", { "kinds": [6000], "#e": ["<job-request-event-id>"] }]
    ```
 
-3. **Parse TOON-format responses.** TOON relays return TOON-format strings, not JSON objects. Decode each response to extract event fields.
+3. **Parse the responses.** The relay's reads speak plain NIP-01 -- `EVENT` messages carry standard JSON objects. Parse them as you would from any Nostr relay.
 
 4. **Handle feedback events.** Process kind:7000 events by status:
    - `"processing"` -- Job accepted, work in progress. No action needed.
@@ -97,7 +95,7 @@
 
 **When:** A provider is processing a job and needs to keep the client informed, or a provider needs to negotiate payment.
 
-**Why this matters:** On TOON, every feedback event costs money to publish. Providers should send meaningful updates (processing, error, success) without spamming. The cost creates natural incentive for concise, informative status messages.
+**Why this matters:** On TOON, every feedback event is a paid, signed, attributable write -- it needs an open channel and a claim. At 1 base unit the price is a gate rather than a toll, so the discipline comes from the client's attention, not their wallet: send meaningful updates (processing, error, success) and nothing else.
 
 ### Steps
 
@@ -115,7 +113,7 @@
      ]
    }
    ```
-   Publish via `publishEvent()`. Cost: ~150-250 bytes = ~$0.0015-$0.0025.
+   Send it with `client.send()`. Cost: 1 base unit of 6-decimal USDC -- the relay's route is flat, so a terse status message and a verbose one cost the same.
 
 3. **Negotiate payment (if bid is too low).** If the bid is insufficient:
    ```json
@@ -159,51 +157,39 @@
 
 ### Considerations
 
-- Each feedback event costs ~$0.0015-$0.003 on TOON. Minimize unnecessary status updates.
+- Each feedback event is a paid write: 1 base unit on the relay's flat route, regardless of length. Minimize unnecessary status updates because they cost the client attention, not because 1 base unit each will bankrupt you.
 - The `processing` + `success`/`error` pattern is sufficient for most jobs. Do not spam intermediate "still working" updates.
 - Error messages should be actionable -- tell the client what went wrong and whether retrying with different parameters would help.
 - Payment negotiation should only happen when the bid is genuinely insufficient. Do not use `payment-required` as a bargaining tactic.
 
 ## Scenario 4: Discovering DVM Service Providers
 
-**When:** A client wants to find available DVM providers and their capabilities before submitting a job request.
+**When:** A client wants to find available DVM services and what they cost before submitting a job request.
 
-**Why this matters:** On TOON, provider discovery via kind:10035 SkillDescriptor events is free (reads cost nothing). Discovery before submission avoids wasting money on job requests sent to providers that do not support the needed service.
+**Why this matters:** TOON has no service-announcement event. The old kind:10035 SkillDescriptor is retired, and nothing replaced it with another broadcast -- a connector answers rather than announces. So discovery splits in two: prices come from asking the node, and provider identity comes from the ordinary Nostr layer.
 
 ### Steps
 
-1. **Query for SkillDescriptor events.** Subscribe for kind:10035 events to discover providers:
+1. **Ask the node what it routes and what it charges.** `GET /ilp` on a node's URL returns its self-description: its addresses, its settlement facts, and every route's price. It is free and unauthenticated. From a client, `await client.routePrice(destination)` returns the same terms as `{ price, pricePerKib? }`. An unpaid request to a priced route is answered with a greeting carrying that route's terms.
+
+2. **Know what is actually deployed.** Two DVM-shaped routes are live: the blob store at `g.toon.store` (also reachable as `g.toon.relay.store`), which serves kind:5094 Arweave storage at `1000 + 10 per KiB` of sealed payload, and the gas station at `g.toon.gas` at a flat 1000. Nostr event publishing itself is `g.toon.relay` at a flat 1. Generic NIP-90 kinds have no TOON node to fulfill them.
+
+3. **Find provider software on the Nostr layer (optional).** Query for NIP-89 kind:31990 app handler events that declare a DVM kind:
    ```json
-   ["REQ", "dvm-providers", { "kinds": [10035] }]
+   ["REQ", "dvm-apps", { "kinds": [31990], "#k": ["5094"] }]
    ```
+   This finds applications that handle kind:5094 job requests. It is a free read.
 
-2. **Parse TOON-format responses.** Decode each kind:10035 event to extract provider capabilities.
-
-3. **Extract provider information.** From each SkillDescriptor:
-   - Supported job kinds and their pricing (kindPricing)
-   - Provider capabilities and constraints
-   - Input/output format support
-   - Maximum input sizes
-   - Supported parameters
-
-4. **Cross-reference with app handlers (optional).** Query for kind:31990 app handler events that reference DVM kinds:
-   ```json
-   ["REQ", "dvm-apps", { "kinds": [31990], "#k": ["5000"] }]
-   ```
-   This finds client applications that handle DVM job requests for kind:5000.
-
-5. **Check provider reputation (optional).** Query for kind:30078 application-specific data with reputation information:
+4. **Check provider reputation (optional).** Query for kind:30078 application-specific data with reputation information:
    ```json
    ["REQ", "reputation", { "kinds": [30078], "#d": ["dvm-reputation-<provider-pubkey>"] }]
    ```
 
-6. **Select a provider.** Based on capabilities, pricing, and reputation, choose a provider and note their pubkey for targeted job requests.
-
 ### Considerations
 
-- All discovery queries are free reads on TOON. Discovery is cost-free.
-- TOON's kind:10035 SkillDescriptor provides more structured discovery than vanilla NIP-90, which relies on providers simply monitoring for job requests.
-- Cross-referencing kind:10035 (provider capabilities) with kind:31990 (app handlers) gives a complete picture: what services are available AND what client apps can interact with them.
+- All Nostr discovery queries are free reads on TOON, and `GET /ilp` is free too. Discovery costs nothing.
+- Do not look for a pricing event. Nothing on TOON broadcasts its prices; the node answers when asked, and that answer is authoritative in a way a stale announcement never was.
+- The relay speaks plain NIP-01 on reads. Responses are standard JSON `EVENT` messages; no TOON decoding is involved.
 - Provider reputation data in kind:30078 is self-reported or community-aggregated. Treat it as a signal, not a guarantee.
 
 ## Scenario 5: Storing Application-specific Data
@@ -239,7 +225,7 @@
    }
    ```
 
-4. **Sign and publish via `publishEvent()`.** Cost: ~200-500 bytes = ~$0.002-$0.005.
+4. **Sign and send with `client.send()`.** Cost: 1 base unit on the relay's flat route, whatever the configuration weighs.
 
 5. **Update by republishing.** To change configuration, publish a new kind:30078 with the same `d` tag. The old event is replaced.
 
@@ -281,7 +267,7 @@
 
 ### Considerations
 
-- Each job in the pipeline costs a separate ILP payment on TOON. Design pipelines with the minimum necessary steps.
+- Each job in the pipeline is a separate payment on TOON. On the relay's flat route each step's publication is 1 base unit whatever it carries, so a pipeline's cost is driven by its step count. Design pipelines with the minimum necessary steps.
 - Pipeline reliability depends on every job succeeding. If any job fails, downstream jobs stall. Monitor feedback for error status.
-- Providers must support the `"job"` input type to participate in pipelines. Check kind:10035 SkillDescriptor for capability declarations.
+- Providers must support the `"job"` input type to participate in pipelines. There is no on-network capability declaration for this -- a NIP-89 kind:31990 handler advertisement is the closest signal, and otherwise you find out by trying.
 - Pipeline latency is cumulative. For time-sensitive work, consider whether a single more capable provider can handle the full workflow.

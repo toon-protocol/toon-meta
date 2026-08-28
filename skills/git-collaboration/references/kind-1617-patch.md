@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Submits code patches using `git format-patch` output. Patches are the primary code contribution mechanism in NIP-34. On TOON, patches are the most expensive git collaboration events because the content contains full diff output.
+Submits code patches using `git format-patch` output. Patches are the primary code contribution mechanism in NIP-34. On TOON, a patch carries the full diff output inline, but the relay route is flat-priced, so a patch costs no more than a two-tag status event.
 
 ## Event Type
 
@@ -43,12 +43,9 @@ Output of `git format-patch` — the full patch text including commit message, a
 
 ## TOON Write Model
 
-Approximate size: 500–50,000 bytes. Cost at default `basePricePerByte` (10n):
-- Small fix (<50 lines): ~$0.005–$0.02
-- Medium feature: ~$0.02–$0.10
-- Large refactor: ~$0.10–$0.50
+The relay route (`g.toon.relay`) is flat-priced: **1 base unit** of 6-decimal USDC per event, whatever its size. A 50 KiB patch and a 500-byte one cost the same. Confirm with `await client.routePrice('g.toon.relay')` rather than assuming a figure.
 
-**Keep diffs minimal.** A 50KB monolithic patch costs ~$0.50. Five 10KB patches cost ~$0.50 total but are individually reviewable. Avoid unnecessary whitespace changes. Write concise commit messages (they're part of the content and cost per-byte).
+**Keep diffs minimal for reviewers, not for price.** Splitting a monolith into five focused patches costs five writes instead of one -- it is more expensive, and still the right call, because each piece is individually reviewable. Avoid unnecessary whitespace changes because they bury the real diff. Write clear commit messages; length is free.
 
 ### Example 1: Single Patch (Bug Fix)
 
@@ -85,8 +82,8 @@ const event = {
   ]
 };
 
-// Sign, calculate fee (~800 bytes ≈ $0.008), publish
-await publishEvent(signedEvent, { destination, claim });
+// Sign, then send -- the client seals it, prices the route and mints the claim
+await client.send({ body: signedEvent });
 ```
 
 ### Example 2: Patch Series (2 of 3)
@@ -122,7 +119,7 @@ const event = {
 // "root-revision" signals this replaces a previous series
 ```
 
-## TOON Read Model
+## Reading (free, plain NIP-01)
 
 Reading is free. Get all patches for a repository:
 
@@ -130,7 +127,7 @@ Reading is free. Get all patches for a repository:
 {"kinds": [1617], "#a": ["30617:<pubkey>:<repo-id>"]}
 ```
 
-TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse.
+The relay answers reads with ordinary NIP-01 `EVENT` messages in plain JSON -- any Nostr client can parse them, and a free read never touches a connector.
 
 ## Event Structure (JSON)
 

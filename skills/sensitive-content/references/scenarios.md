@@ -1,6 +1,6 @@
 # Sensitive Content Scenarios
 
-> **Why this reference exists:** Agents need step-by-step workflows for common content warning operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like fee calculation and the publishEvent API. These scenarios bridge the gap between knowing the tag format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
+> **Why this reference exists:** Agents need step-by-step workflows for common content warning operations on TOON. Each scenario shows the complete flow from intent to published event, including TOON-specific considerations like what a write actually costs and the `client.send()` API. These scenarios bridge the gap between knowing the tag format (nip-spec.md) and knowing the TOON publishing mechanics (toon-extensions.md).
 
 ## Scenario 1: Adding a Content Warning to a Short Note
 
@@ -16,9 +16,9 @@
 
 3. **Sign the event** using the agent's Nostr private key.
 
-4. **Calculate the fee.** A typical short note is ~200 bytes. The `content-warning` tag with reason adds ~40 bytes, bringing the total to ~240 bytes. At default `basePricePerByte` of 10n, cost is approximately $0.0024 -- only $0.0004 more than the note without a warning.
+4. **Know what it costs, and do not work it out yourself.** The live relay route `g.toon.relay` is priced at 1 base unit, flat -- $0.000001 in 6-decimal USDC -- so the note and the tag together cost the same as the note alone. If you need a figure for another route, ask the node: `await client.routePrice(destination)`, then `chargeFor(terms, sealedBytes)`. The metered quantity is the sealed payload, not the event JSON, so it cannot be derived from the event you wrote.
 
-5. **Publish via `publishEvent()`** from `@toon-protocol/client`.
+5. **Send it:** `await client.send({ body: signedEvent })` from `@toon-protocol/client`. `send()` seals the payload, prices it, mints the covering claim and carries it.
 
 ### Considerations
 
@@ -40,9 +40,9 @@
 
 3. **Sign the event.**
 
-4. **Calculate the fee.** A typical article is ~3000-10000 bytes. The content-warning tag adds ~50-70 bytes depending on reason length. On a 5000-byte article, the tag adds approximately $0.0005-$0.0007 -- negligible relative to the article's base cost of ~$0.05.
+4. **Know what it costs.** On the flat `g.toon.relay` route a 5 KB article and a 200-byte note cost the same 1 base unit, and the tag adds nothing. On a route with a slope the tag costs at most one extra `pricePerKib`, and only if it crosses a kibibyte boundary. Ask with `routePrice()` rather than assuming a rate.
 
-5. **Publish via `publishEvent()`.**
+5. **Send it:** `await client.send({ body: signedEvent })`.
 
 ### Considerations
 
@@ -64,9 +64,9 @@
 
 3. **Sign the event.**
 
-4. **Calculate the fee.** The spoiler reason tends to be slightly longer than other reasons due to including the media title, but still adds only ~50-70 bytes. Cost increase: ~$0.0005-$0.0007.
+4. **Know what it costs.** The spoiler reason tends to be slightly longer than other reasons because it includes the media title, but on the flat `g.toon.relay` route that changes the charge by nothing at all.
 
-5. **Publish via `publishEvent()`.**
+5. **Send it:** `await client.send({ body: signedEvent })`.
 
 ### Considerations
 
@@ -90,7 +90,7 @@
    - Content-warned events by a specific author: `{ authors: ["<pubkey-hex>"], "#content-warning": [] }`
    - Content-warned articles: `{ kinds: [30023], "#content-warning": [] }`
 
-3. **Parse the responses.** TOON relays return TOON-format strings in EVENT messages, not standard JSON objects. Use the TOON decoder to parse the response and extract the content-warning tag and its reason value.
+3. **Read the responses.** Reads are free and speak plain NIP-01, so each EVENT is standard JSON -- read the content-warning tag and its reason value straight off it.
 
 4. **Process the results.** For each event, check whether it has a reason string. Group or categorize events by their content-warning reasons if building a moderation interface.
 

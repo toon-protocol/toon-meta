@@ -77,13 +77,13 @@
    };
    ```
 
-5. **Sign and publish via TOON.**
+5. **Sign and send via TOON.**
 
    ```typescript
    const signedEvent = await signEvent(event, privateKey);
-   // Fee = basePricePerByte * serializedEventBytes
-   // For this small blob: ~350 bytes * 10n = ~$0.004
-   await client.publishEvent(signedEvent, { destination, claim });
+   // send() seals the payload, reads the store route's price,
+   // mints the covering claim and carries it.
+   const answer = await client.send('g.toon.store', { body: signedEvent });
    ```
 
 6. **Subscribe to the DVM result.** The DVM provider returns the Arweave transaction ID in a kind:6094 event:
@@ -97,13 +97,9 @@
 
 ### Cost Breakdown
 
-| Component | Size | Cost |
-|-----------|------|------|
-| Git object (binary) | 20 bytes | -- |
-| Base64 payload | 28 bytes | -- |
-| kind:5094 event (with tags) | ~350 bytes | ~$0.004 (relay fee) |
-| Arweave storage | 20 bytes | Covered by bid amount |
-| **Total TOON relay cost** | | **~$0.004** |
+The store route is priced `1000 + 10 per KiB` of **sealed** payload -- the gift-wrapped bytes the PREPARE carries, which are larger than either the binary object or the base64 in the `i` tag. A blob this small fits inside one KiB once sealed, so the charge is ~1010 base units of 6-dp USDC, about $0.00101. The Arweave storage itself is covered by the `bid`.
+
+You cannot derive that charge from the sizes above; if you need it in advance, ask -- `await client.routePrice('g.toon.store')` for the terms, then `chargeFor(terms, sealedBytes)`.
 
 ## Scenario 2: Resolve a SHA to an Arweave Transaction ID
 
@@ -374,7 +370,7 @@ function parseGitObject(buffer: Buffer): { type: string, size: number, body: Buf
 - For a repository with depth D (commit -> tree -> subtree -> ... -> blob), expect 2*D HTTP requests.
 - Manifest transactions reduce this to one HTTP request per object (no GraphQL query needed).
 - Consider caching resolved SHA -> tx-id mappings locally to avoid repeated queries.
-- Reading from Arweave is free -- no TOON relay fees for DAG navigation.
+- Reading from Arweave is free -- no TOON payment for DAG navigation.
 
 ## Scenario 4: Bulk Upload a Repository
 
@@ -475,8 +471,8 @@ function parseGitObject(buffer: Buffer): { type: string, size: number, body: Buf
        ]
      };
      const signed = await signEvent(event, privateKey);
-     await client.publishEvent(signed, { destination, claim });
-     // Rate-limit to avoid overwhelming the relay/DVM
+     await client.send('g.toon.store', { body: signed });
+     // Rate-limit to avoid overwhelming the store/DVM
    }
    ```
 
@@ -545,17 +541,15 @@ function parseGitObject(buffer: Buffer): { type: string, size: number, body: Buf
      ]
    };
    const signedState = await signEvent(repoState, privateKey);
-   await client.publishEvent(signedState, { destination, claim });
+   // A Nostr event, so this one goes to the relay, not the store route.
+   await client.send({ body: signedState });
    ```
 
 ### Cost Estimation for Bulk Upload
 
-| Repository Profile | Files | Total Binary Size | Base64 Overhead | Approx Relay Fees | Arweave Storage |
-|-------------------|-------|------------------|-----------------|-------------------|-----------------|
-| Tiny (5 files, 10KB) | 5 blobs + 1 tree + 1 commit | ~13.7KB base64 | ~3.7KB | ~$0.05 | ~$0.001 |
-| Small (20 files, 50KB) | 20 blobs + ~5 trees + 1 commit | ~68.5KB base64 | ~18.5KB | ~$0.20 | ~$0.005 |
-| Medium (100 files, 500KB) | 100 blobs + ~20 trees + 1 commit | ~685KB base64 | ~185KB | ~$2.00 | ~$0.05 |
-| Large (500 files, 5MB) | 500 blobs + ~100 trees + 1 commit | ~6.85MB base64 | ~1.85MB | ~$20.00 | ~$0.50 |
+Every kind:5094 object costs 1000 base units plus 10 for each KiB of **sealed** payload, so a bulk upload has a per-object floor and a size term. A repository of many tiny files is dominated by the floor; a repository of a few large binaries is dominated by the KiB term. The kind:30618 repo state at the end is a Nostr event on the flat relay route: 1 base unit.
+
+The KiB count is over the sealed payload, not the binary object and not the base64 in the `i` tag, so you cannot total a repository up from the working tree. To estimate, seal and price one representative object -- `await client.routePrice('g.toon.store')` for the terms, then `chargeFor(terms, sealedBytes)` -- and scale by the object count.
 
 **Cost optimization strategies:**
 - Deduplicate before uploading -- identical files share the same SHA-1

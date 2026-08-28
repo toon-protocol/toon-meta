@@ -327,7 +327,7 @@ NIP-99 classifieds are appropriate for:
 - **NIP-17 (Private DMs):** Order negotiation uses NIP-17 encrypted direct messages (kind:14) wrapped in gift wraps (kind:1059). See the `private-dms` skill for DM construction.
 - **NIP-96 (File Storage):** Product images should be hosted on NIP-96 file storage servers and referenced by URL in the product's `images` array. See the `file-storage` skill for upload workflow.
 - **NIP-94 (File Metadata):** Product images uploaded via NIP-96 produce kind:1063 file metadata events that can be cross-referenced.
-- **NIP-50 (Search):** Relays supporting NIP-50 allow full-text search across stall names, product names, and classified content. See the `search` skill.
+- **NIP-50 (Search):** a relay that implements NIP-50 allows full-text search across stall names, product names, and classified content. The fleet relay does not: it implements NIP-01 and NIP-34 only, so search over TOON listings is client-side over events fetched by kind and tag. See the `search` skill.
 - **NIP-09 (Deletion):** Merchants can remove listings by publishing kind:5 deletion requests targeting the `a` coordinate of their parameterized replaceable events.
 
 ## Security and Trust Considerations

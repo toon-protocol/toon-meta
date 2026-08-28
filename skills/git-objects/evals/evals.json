@@ -85,16 +85,16 @@
     {
       "id": "construct-blob-and-hash",
       "prompt": "I have a file containing 'hello world\\n' (12 bytes). Walk me through constructing the git blob object, computing its SHA-1, and preparing it for kind:5094 upload on TOON.",
-      "expected_output": "Construct the blob by prepending the header 'blob 12\\0' (8 bytes) to the file content (12 bytes), producing a 20-byte object. The header format is: type string, space, decimal size string, null byte. Compute SHA-1 of the full 20 bytes: 95d09f2b10159347eece71399a7e2e907ea3df4f. Base64-encode the 20-byte binary object for the kind:5094 i tag. Before uploading, check Arweave for duplicates by querying the Git-SHA tag. Publish the kind:5094 event via publishEvent() with Git-SHA, Git-Type: blob, and Repo tags. Cost depends on the base64-encoded payload size plus event overhead.",
+      "expected_output": "Construct the blob by prepending the header 'blob 12\\0' (8 bytes) to the file content (12 bytes), producing a 20-byte object. The header format is: type string, space, decimal size string, null byte. Compute SHA-1 of the full 20 bytes: 95d09f2b10159347eece71399a7e2e907ea3df4f. Base64-encode the 20-byte binary object for the kind:5094 i tag. Before uploading, check Arweave for duplicates by querying the Git-SHA tag. Sign it and send it with await client.send('g.toon.store', { body: signedEvent }), carrying Git-SHA, Git-Type: blob, and Repo tags -- the client seals the payload, reads the route's price, mints the covering claim and carries it. The store route is priced 1000 + 10 per KiB of sealed payload, so a small blob is around 1010 base units of 6-decimal USDC; do not try to compute the charge from the event JSON, since the metered quantity is the sealed payload.",
       "rubric": {
-        "correct": "Constructs blob with correct header format (blob <size>\\0). Computes SHA-1 of header+content (not content alone). Mentions base64 encoding for kind:5094. Uses publishEvent() not raw WebSocket. Includes Git-SHA and Git-Type tags.",
+        "correct": "Constructs blob with correct header format (blob <size>\\0). Computes SHA-1 of header+content (not content alone). Mentions base64 encoding for kind:5094. Uses client.send() from @toon-protocol/client, not raw WebSocket. Lets the client price the write against the store route rather than doing byte arithmetic. Includes Git-SHA and Git-Type tags.",
         "acceptable": "Correctly constructs the blob and computes SHA-1, but may not detail the full kind:5094 upload flow or deduplication check.",
-        "incorrect": "Uses wrong header format, computes SHA-1 of content only, or omits the null byte separator."
+        "incorrect": "Uses wrong header format, computes SHA-1 of content only, omits the null byte separator, calls publishEvent(), computes a charge from the event's own byte count, or claims relay reads are TOON-encoded or need a TOON decoder."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for kind:5094, not raw WebSocket",
-        "toon-fee-check: Response mentions cost implications of base64 encoding overhead (~33% size increase)",
-        "toon-format-check: Response mentions TOON-format strings when discussing relay responses",
+        "toon-write-check: Response uses client.send() from @toon-protocol/client for kind:5094, not raw WebSocket",
+        "toon-fee-check: Response prices the upload against the store route (1000 + 10 per KiB of sealed payload) or lets client.send() price it, and notes base64's ~33% size increase without computing a charge from the event JSON",
+        "toon-read-check: Response reads over plain NIP-01 and does not claim relay responses are TOON-encoded",
         "social-context-check: Response notes deduplication via SHA-1 checking before upload to save money",
         "trigger-coverage: Description includes both protocol triggers (blob header, SHA-1) and practical triggers (prepare for kind:5094)"
       ]
@@ -109,8 +109,8 @@
         "incorrect": "Sorts entries alphabetically without the directory-suffix rule, or uses hex SHA-1 in tree entries."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for kind:5094 upload of tree objects",
-        "toon-fee-check: Response mentions tree size calculation for cost estimation",
+        "toon-write-check: Response uses client.send() for the kind:5094 upload of tree objects",
+        "toon-fee-check: Response notes the tree's size matters because the store route is priced per kibibyte of sealed payload, and reads the price from the route rather than inventing a rate",
         "toon-format-check: Response correctly distinguishes raw binary SHA-1 (tree entries) from hex SHA-1 (commit objects)",
         "social-context-check: Response notes upload ordering constraint -- referenced blobs must exist on Arweave before the tree",
         "trigger-coverage: Description includes both protocol triggers (tree entry format, sorting) and practical triggers (construct a git tree)"
@@ -126,8 +126,8 @@
         "incorrect": "Uses raw binary SHA-1 in commit, omits the blank line before message, or fails to map Nostr identity correctly."
       },
       "assertions": [
-        "toon-write-check: Response uses publishEvent() API for kind:5094 upload",
-        "toon-fee-check: Response estimates commit object size and cost",
+        "toon-write-check: Response uses client.send() for the kind:5094 upload",
+        "toon-fee-check: Response treats the commit as a store-route write priced 1000 + 10 per KiB of sealed payload, and does not compute a charge from the event JSON",
         "toon-format-check: Response correctly identifies hex SHA-1 encoding in commit objects",
         "social-context-check: Response explains Nostr pubkey to git author mapping convention (<pubkey>@nostr email)",
         "trigger-coverage: Description includes both protocol triggers (commit format, parent SHA) and identity triggers (Nostr pubkey mapping)"
@@ -136,7 +136,7 @@
     {
       "id": "sha1-verification-and-deduplication",
       "prompt": "I computed a SHA-1 for a blob but it does not match what git hash-object returns. What are the common mistakes, and how do I use SHA-1 for deduplication on Arweave before uploading?",
-      "expected_output": "Common SHA-1 mismatches: (1) Wrong size -- using total object size instead of content-only size in the header. (2) Missing null byte between header and content. (3) Wrong newline format (\\r\\n instead of \\n in commits). (4) Hex SHA-1 in tree entries instead of raw 20-byte binary. (5) Unsorted tree entries. (6) Size encoded as binary integer instead of decimal ASCII string. For deduplication: before uploading any object via kind:5094, query Arweave GraphQL with the Git-SHA tag value and Repo tag. If results exist, the object is already on Arweave -- skip the upload to save the kind:5094 event cost. This is especially valuable for blobs, where identical file contents across repos share the same SHA-1.",
+      "expected_output": "Common SHA-1 mismatches: (1) Wrong size -- using total object size instead of content-only size in the header. (2) Missing null byte between header and content. (3) Wrong newline format (\\r\\n instead of \\n in commits). (4) Hex SHA-1 in tree entries instead of raw 20-byte binary. (5) Unsorted tree entries. (6) Size encoded as binary integer instead of decimal ASCII string. For deduplication: before uploading any object via kind:5094, query Arweave GraphQL with the Git-SHA tag value and Repo tag. If results exist, the object is already on Arweave -- skip the upload and save the whole store-route charge. This is especially valuable for blobs, where identical file contents across repos share the same SHA-1.",
       "rubric": {
         "correct": "Lists multiple common SHA-1 mistakes. Explains Arweave deduplication via Git-SHA tag query. Notes that skipping duplicate uploads saves money on TOON.",
         "acceptable": "Identifies key mistakes (wrong size, missing null byte) and mentions deduplication, but may not list all common errors.",
@@ -144,7 +144,7 @@
       },
       "assertions": [
         "toon-write-check: Response identifies kind:5094 upload as the TOON write mechanism",
-        "toon-fee-check: Response notes cost savings from deduplication -- avoiding redundant kind:5094 uploads",
+        "toon-fee-check: Response notes the saving from deduplication -- a skipped kind:5094 upload avoids the store route's charge entirely",
         "toon-format-check: Response mentions Arweave GraphQL query with Git-SHA tag for deduplication",
         "social-context-check: Response explains that content addressing enables cross-repo deduplication",
         "trigger-coverage: Description includes both protocol triggers (SHA-1 computation, hash verification) and economic triggers (deduplication savings)"
