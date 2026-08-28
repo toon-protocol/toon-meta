@@ -112,9 +112,11 @@ Three things every operator must internalise:
 
 - **Peering is a capital decision, not a discovery step.** Reading a stranger's self-description is
   free; opening a funded channel is peering.
-- **A packet carries its claim.** A peer PREPARE arrives with its covering claim or it is greeted
-  ([ADR 0031](https://github.com/toon-protocol/connector/blob/main/docs/adr/0031-a-peer-prepare-arrives-with-its-covering-claim-or-it-is-greeted.md),
-  [ADR 0042](https://github.com/toon-protocol/connector/blob/main/docs/adr/0042-a-packet-carries-its-claim.md)).
+- **A packet carries its claim.** A PREPARE arrives with its covering claim or it is greeted
+  ([ADR 0042](https://github.com/toon-protocol/connector/blob/main/docs/adr/0042-a-packet-carries-its-claim.md)).
+  Nothing is owed between packets, so there is no window for a counterparty to walk away inside.
+  (ADR 0031 stated this for the peer role first and is **superseded by 0042**, which restates it
+  for every role — cite 0042.)
 - **Do not pin `:rust-release`.** It is frozen at `rust-sha-8708caf`, which predates connector#1230:
   on it a peering established by `POST /peers` can accept a claim but can never sign one, so every
   forward over a runtime peering is refused `T00`. The node serves, and quietly cannot pay.
