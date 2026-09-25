@@ -55,8 +55,8 @@ Read from [`connector/infra/linode/endpoints.json`](https://github.com/toon-prot
 | Chain | Item | Address |
 |-------|------|---------|
 | Base Sepolia (`84532`) | `TokenNetworkRegistry` | `0x0c41D9D424d6B075A3cEa1068a694f7847a8CCa5` |
-| Base Sepolia | `TokenNetwork` (USDC) | `0xe9E05dfecfe165266C88d73e61D483612651952a` — **derived**, see below |
-| Base Sepolia | mock USDC, 6 dp | `0x49beE1Bca5d15Fb0963117923403F9498119a9Ce` |
+| Base Sepolia | `TokenNetwork` (USDC) | `0x1B4606218ceE5Bf02B546e416905F4D3FC8a0249` — **derived**, see below |
+| Base Sepolia | devnet USDC (Circle FiatToken v2.2, ERC-3009), 6 dp | `0x0C996d7c934c79a6255254875607Fe69df25C0E1` |
 | Solana devnet | payment-channel program | `2aEVJ8koKD8LTZrLRSGtAtU7LBt4e7QjjCgf1kzQ7Rip` |
 | Solana devnet | mock USDC mint, 6 dp | `34eSxY7qxQ4GzyhDJ8GpUcTz1WWzruGbJbR8q6TtxfQU` |
 

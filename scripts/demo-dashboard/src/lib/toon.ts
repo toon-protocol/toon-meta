@@ -78,7 +78,7 @@ export function packetDesc(ev:NostrEvent){ let c:any={}; try{ c=JSON.parse(ev.co
 
 // ── wallets & balances ──
 export const RPC = { base:'https://base-sepolia-rpc.publicnode.com', sol:'https://api.devnet.solana.com' }
-const BASE_USDC='0x49beE1Bca5d15Fb0963117923403F9498119a9Ce'
+const BASE_USDC='0x0C996d7c934c79a6255254875607Fe69df25C0E1'
 // Mock USDC on public Solana devnet, re-minted 2026-08-27: the previous mint
 // (xyc5J8Mg…) is still on chain but its mint AUTHORITY is lost, so it can never
 // be refilled. Canonical: connector/infra/linode/endpoints.json.
