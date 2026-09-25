@@ -138,8 +138,8 @@ normalization). Canonical source:
 | Chain | What | Address |
 |-------|------|---------|
 | Base Sepolia (`evm:84532`) | **TokenNetworkRegistry** — this is what a connector is configured with | `0x0c41D9D424d6B075A3cEa1068a694f7847a8CCa5` |
-| Base Sepolia | TokenNetwork (USDC) — **derived, not independent** | `0xe9E05dfecfe165266C88d73e61D483612651952a` |
-| Base Sepolia | Mock USDC (ERC-20, 6dp, **ungated mint**) | `0x49beE1Bca5d15Fb0963117923403F9498119a9Ce` |
+| Base Sepolia | TokenNetwork (USDC) — **derived, not independent** | `0x1B4606218ceE5Bf02B546e416905F4D3FC8a0249` |
+| Base Sepolia | Devnet USDC: Circle FiatToken v2.2 (ERC-3009 + EIP-2612, 6dp, **minter-gated**; since 2026-09-25, connector#1337) | `0x0C996d7c934c79a6255254875607Fe69df25C0E1` |
 | Solana devnet | Payment-channel **program** | `2aEVJ8koKD8LTZrLRSGtAtU7LBt4e7QjjCgf1kzQ7Rip` |
 | Solana devnet | Mock USDC SPL **mint** (6dp) | `34eSxY7qxQ4GzyhDJ8GpUcTz1WWzruGbJbR8q6TtxfQU` |
 
@@ -155,7 +155,7 @@ normalization). Canonical source:
 > cast call --rpc-url https://base-sepolia-rpc.publicnode.com \
 >   0x0c41D9D424d6B075A3cEa1068a694f7847a8CCa5 \
 >   "getTokenNetwork(address)(address)" \
->   0x49beE1Bca5d15Fb0963117923403F9498119a9Ce
+>   0x0C996d7c934c79a6255254875607Fe69df25C0E1
 > ```
 
 **Retired — if you find one of these presented as live config, it is stale:**
@@ -221,7 +221,7 @@ pins that.
 
 | Method & path | Body | Drips |
 |---------------|------|-------|
-| `POST /api/base-sepolia/request` | `{address}` | 1000 USDC. The mock USDC `mint(address,uint256)` is **ungated** — anyone can coin fresh tokens to any address — so the faucet key only pays gas. **No ETH drip**; fund gas separately. Per-address 24h cooldown |
+| `POST /api/base-sepolia/request` | `{address}` | 1000 USDC. The devnet USDC is minter-gated and the faucet key is its minter (connector#1337). |
 | `POST /api/solana/usdc-request` | `{address}` | USDC only, **no airdrop** — a transfer from the faucet box's own treasury, which is also the mint authority, so the leg cannot run dry. Works with a 0-SOL recipient |
 | `GET /api/info` | — | machine-readable per-chain config (routes, `usdcMint`/`tokenAddress`, `ready`, drip amounts) — **query this to discover live addresses** |
 
