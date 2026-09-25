@@ -23,11 +23,15 @@ two-peer harness lived in the monorepo and went with it.
 
 ## Linode Devnet — LIVE (public-chain settlement)
 
-**There is no apex.** The `toon` box (`104.237.150.177`) was **destroyed on
-2026-08-14** (toon-meta#310/#313); the relay is the fleet's write ingress in its
-place. What is left is **four boxes** — relay, store (`ario`), gas, and a
-connector-less faucet. Settlement is on **two public networks**, Base Sepolia and
-Solana devnet. Verified by live probe 2026-08-28. Mina is gone: the connector deleted `packages/mina-zkapp`, `tools/mina`,
+**There is no apex, and — since 2026-09-25 — no separate boxes either**
+(`toon-protocol/infra#25`). The `toon` box (`104.237.150.177`) was **destroyed
+on 2026-08-14** (toon-meta#310/#313); the relay is the fleet's write ingress in
+its place. Relay, store, gas station and a workload-gateway node, plus a
+still hand-deployed faucet, now all run as **nodes on one host** — the
+relay's own Linode, unresized — behind one shared edge; see "Node layout"
+below. Settlement is on **two public networks**, Base Sepolia and Solana
+devnet. Verified by live probe 2026-08-28 (pre-cutover) and the infra#25
+cutover audit (2026-09-25). Mina is gone: the connector deleted `packages/mina-zkapp`, `tools/mina`,
 `infra/mina`, the faucet's Mina leg and `docs/mina-deployment.md` under
 [connector ADR 0065, *Mina leaves the repository*](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md)
 (built in connector#1205). Note the connector has **two** ADR 0065s; cite them as `0065-price` and `0065-mina` (connector#1249).
@@ -50,15 +54,32 @@ Let's Encrypt TLS.
 
 A client pays the **relay** in Base or Solana USDC (pinned with `rig chain set`);
 the relay is the write ingress, and the store terminates the Arweave route. The
-apex hop that used to sit in front of them is gone — each box now answers for
-itself.
+apex hop that used to sit in front of them is gone — and since 2026-09-25 the
+per-node boxes are too (`toon-protocol/infra#25`): every node below shares
+**one host**, `97.107.134.182` — the relay's own `g6-nanode-1` (961 MB), the
+same box it always was, **not resized** to the 2 GB the cutover plan called
+for. Cutover memory measurements showed the whole fleet fits on it as it
+stood (each connector 2–7 MB idle, the apps 28–92 MB apiece, about 600 MB of
+961 MB used), one **Edge** (`toon-protocol/infra` `edge/deploy`, Caddy)
+terminates every hostname, and each node still answers for itself: its own
+connector, keys and ILP address, none of it re-keyed by the move.
 
-| Node | Linode label | IP | Plan | ILP addresses (probed 2026-08-28) | Role |
-|------|-------------|-----|------|-----------------------------------|------|
-| Relay | `relay` | `97.107.134.182` | g6-nanode-1 (1 GB) | `g.toon.relay` | the fleet's write ingress |
-| Store | `ario` | `45.79.173.113` | g6-nanode-1 (1 GB) | `g.toon.store`, `g.toon.relay.store` | kind:5094 blob storage, kind:5095 ArNS buy |
-| Gas station | `gas` | `45.79.131.21` | g6-nanode-1 (1 GB) | `g.toon.gas`, `g.toon.relay.gas` | kind:5096 Solana fee-payer, kind:5098 EVM relayer |
-| Faucet | `faucet` | `173.255.237.8` | g6-standard-2 (4 GB) | — (no connector) | 2-chain USDC faucet |
+| Node | Repository | ILP addresses (probed 2026-08-28) | Role |
+|------|-----------|-----------------------------------|------|
+| Relay | `toon-protocol/relay` | `g.toon.relay` | the fleet's write ingress; also the devnet's one host |
+| Store | `toon-protocol/store` | `g.toon.store`, `g.toon.relay.store` | kind:5094 blob storage, kind:5095 ArNS buy |
+| Gas station | `toon-protocol/gas-station` | `g.toon.gas`, `g.toon.relay.gas` | kind:5096 Solana fee-payer, kind:5098 EVM relayer |
+| Workload gateway | `toon-protocol/gateway` | — (no `g.toon` route; a free handover route) | hands a leased workload a `*.gw.devnet…` hostname |
+| Faucet | (hand-deployed) | — (no connector) | 2-chain USDC faucet |
+
+Before the move, these were five separate `g6-nanode-1` (961 MB, ~$5/mo)
+Linodes — relay, store, gas, the workload-gateway node and the faucet — plus
+one `g6-standard-2` (4 GB) running a compute provider, for about $49/month
+total. **The faucet row above used to read `g6-standard-2` (4 GB); that was
+wrong from the start, not a later downsize — the faucet was always a
+nanode.** The devnet runs no provider any more: that Linode was stopped and
+its identity backed up, and a provider is a follow-up to be run by its own
+operator (e.g. a Hidden Provider, spec §10).
 
 > **`ario` is a box label and a hostname, not an ILP address.** There is no
 > `g.toon.ario` route. `GET https://proxy.ario.devnet.toonprotocol.dev/ilp`
@@ -75,21 +96,26 @@ itself.
 Verified against the Linode API on 2026-08-27. Two corrections to what this
 table said before: the apex (`toon`, `104.237.150.177`) was destroyed under
 toon-meta#310/#313 and is not a box any more, and the surviving boxes were
-resized to nanodes — this table had them on the 2GB plan. The faucet box is
-oversized for what it now does: dropping Mina removed the o1js circuit compile
-that forced the 4 GB plan (connector ADR 0065, *Mina leaves the repository*), so
-it is a shrink waiting to happen.
+resized to nanodes — this table had them on the 2GB plan. ~~The faucet box
+is oversized for what it now does: dropping Mina removed the o1js circuit
+compile that forced the 4 GB plan (connector ADR 0065, *Mina leaves the
+repository*), so it is a shrink waiting to happen.~~ **Amended 2026-09-25:**
+that claim was itself wrong — the infra#25 cutover audit found the faucet
+had always been a `g6-nanode-1`, same as the rest; there was never a 4 GB
+plan to shrink from.
 
 The gas box is new (2026-08-27). It carries the two gas-station kinds that used
 to run on `ario`: they were never storage, and a node that spends its own money
 on a caller's transaction wants its own funding and its own blast radius. Its
 whole deployment is [toon-protocol/gas-station](https://github.com/toon-protocol/gas-station)'s
 own `deploy/` directory — there is no `infra/linode-gas/` in the connector
-repo, because the app repo carries its own box now.
+repo. Since 2026-09-25 that `deploy/` bundle no longer means its own box: it
+runs as a node on the shared host above, joined by its repo's own
+shared-edge overlay, same as relay, store and the workload-gateway node.
 
 Settlement runs on `evm:84532` and `solana:devnet` only. The apex↔store
 connector↔connector link (`solana:devnet`, shared channel `5z6znXjH…`) went with
-the apex; each surviving box now settles with its own counterparties directly.
+the apex; each node now settles with its own counterparties directly.
 
 ### Endpoints
 
@@ -199,11 +225,14 @@ drained or abandoned first. The same lost key was the retired mint's mint
 authority — record:
 [`packages/solana-program/deployments/devnet-public.md`](https://github.com/toon-protocol/connector/blob/main/packages/solana-program/deployments/devnet-public.md).
 
-**2. Three boxes, no apex, and the boxes deploy themselves.** The apex was
-destroyed 2026-08-14. Relay and store were re-deployed on **2026-08-27** from
-their **own** repos' `deploy/` bundles — `docker compose` out of a checkout at
-`/root/relay` or `/root/store`, not `/root/connector` — and the relay now runs
-**Caddy**, not nginx. `connector/infra/linode-relay/` and
+**2. No apex, no per-node boxes, and every node still deploys itself.** The
+apex was destroyed 2026-08-14. As of 2026-09-25 (`toon-protocol/infra#25`)
+relay, store, gas station and the workload-gateway node share one host —
+the relay's own box — rather than one each, but each still deploys from its
+**own** repository's `deploy/` bundle — `docker compose` out of its own
+checkout at `/root/relay`, `/root/store`, and so on, not `/root/connector` —
+and the host's edge now runs Caddy in front of all of them (before the
+move, the relay ran its own Caddy already, not nginx). `connector/infra/linode-relay/` and
 `connector/infra/linode-store/` are **test fixtures, not what the boxes run**;
 each directory says so in its own `README.md`, and `devnet_configs_load.rs` still
 boots them, which is why they were not deleted. Editing a file there changes
