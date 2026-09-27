@@ -19,11 +19,11 @@ The one sentence to carry into everything below: **the connector terminates paym
 
 **relay · store · swap · gas-station** — the TOON **apps**: payment-oblivious HTTP origin servers, each its own repo and image, each behind its own connector. Formerly town / dvm / mill / —.
 
-**Onboarding** — the one ceremony that turns a user's USDC into an **open, funded payment channel** without the user ever holding native gas. Once per user, per chain, per counterparty; everything after it is ordinary ILP. _Avoid_: x402 payment, self-funding flow, sponsoring (an app paying *for* the user — what Onboarding replaces).
+**Onboarding** — the one ceremony that turns a user's USDC into an **open, funded payment channel** without the user ever holding native gas. Once per user, per chain, per counterparty; everything after it is ordinary ILP. *Avoid*: x402 payment, self-funding flow, sponsoring (an app paying *for* the user — what Onboarding replaces).
 
-**Funding Authorization** — the single signature a user gives for Onboarding: an EIP-3009 authorization over the USDC that funds the channel. x402 is the wire standard it rides, never its name. _Avoid_: 402, x402 payment, payment.
+**Funding Authorization** — the single signature a user gives for Onboarding: an EIP-3009 authorization over the USDC that funds the channel. x402 is the wire standard it rides, never its name. *Avoid*: 402, x402 payment, payment.
 
-**Onboarder** — the service that puts a Funding Authorization on chain and pays its gas. It never holds the user's funds. _Avoid_: facilitator (the x402 spec's word), gas station (which relays operations on a channel the user already has, paid over that channel).
+**Onboarder** — the service that puts a Funding Authorization on chain and pays its gas. It never holds the user's funds. *Avoid*: facilitator (the x402 spec's word), gas station (which relays operations on a channel the user already has, paid over that channel).
 
 **Vectors** — `connector/vectors/wire-vectors.json`, the normative cross-repo wire contract, replayed as its own suite by toon-client, rig and swap. **Vectors are normative; prose is not** (connector ADR 0021). See [contracts.md](./contracts.md).
 
