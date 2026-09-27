@@ -19,6 +19,12 @@ The one sentence to carry into everything below: **the connector terminates paym
 
 **relay · store · swap · gas-station** — the TOON **apps**: payment-oblivious HTTP origin servers, each its own repo and image, each behind its own connector. Formerly town / dvm / mill / —.
 
+**Onboarding** — the one ceremony that turns a user's USDC into an **open, funded payment channel** without the user ever holding native gas. Once per user, per chain, per counterparty; everything after it is ordinary ILP. _Avoid_: x402 payment, self-funding flow, sponsoring (an app paying *for* the user — what Onboarding replaces).
+
+**Funding Authorization** — the single signature a user gives for Onboarding: an EIP-3009 authorization over the USDC that funds the channel. x402 is the wire standard it rides, never its name. _Avoid_: 402, x402 payment, payment.
+
+**Onboarder** — the service that puts a Funding Authorization on chain and pays its gas. It never holds the user's funds. _Avoid_: facilitator (the x402 spec's word), gas station (which relays operations on a channel the user already has, paid over that channel).
+
 **Vectors** — `connector/vectors/wire-vectors.json`, the normative cross-repo wire contract, replayed as its own suite by toon-client, rig and swap. **Vectors are normative; prose is not** (connector ADR 0021). See [contracts.md](./contracts.md).
 
 **Rig** — the git-native official TOON client implementation, peer of the agent-host client (`toon-clientd` + the `toon_*`/`toon_git_*` MCP tools); both build on `@toon-protocol/client`. Two surfaces: the **`rig` CLI** (`@toon-protocol/rig`, standalone, no daemon — relays as real git origins, the full money lifecycle, strict `--json`) and the **rig-web SPA** (`@toon-protocol/rig-web`, browser-only free-read surface, <https://toon-protocol.github.io/toon-client/>). It speaks NIP-34's git vocabulary, so it resembles a read-only forge, but is not a GitHub clone: state lives as paid, permanent events on TOON. Writes enter through the paying clients, never the SPA. See [docs/rig-guide.md](../docs/rig-guide.md).
@@ -40,6 +46,6 @@ The one sentence to carry into everything below: **the connector terminates paym
 | **balance proof** | connector CONTEXT.md | **claim**. |
 | **BLS** / Business Logic Server / agent runtime / backend | connector CONTEXT.md | **app**. |
 | **admin** / **control plane** (for the node's own surface) | connector CONTEXT.md | **operator surface**. |
-| **402 / x402** (for the unpaid answer) | connector CONTEXT.md | **greeting** — that route's terms, in band. |
+| **402 / x402** (for the unpaid answer) | connector CONTEXT.md | **greeting** — that route's terms, in band. x402 survives only as the wire standard a **Funding Authorization** rides (infra#23). |
 | **SkillDescriptor (kind:10035)** | connector ADR 0046 / 0065 | a route's terms come from the node itself — its **self-description** (`GET /ilp`) and its **greeting**. No event advertises a price; grep finds kind:10035 in no repo in the fleet. |
 | **per-byte price** | connector ADR 0065 | a **price is a schedule over payload length**, `base + per_kib × ceil(len/1024)`. The unit is a kibibyte. |
