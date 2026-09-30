@@ -122,14 +122,13 @@ import { AGENT_FIX_LABEL } from "./repair-evaluator.mjs";
 // ── Config (env-overridable) ────────────────────────────────────────────────
 const ORG = process.env.AUTOMERGE_ORG ?? "toon-protocol";
 
-// The full factory fleet (11 repos) — same set as pr-housekeeping.mjs /
+// The full factory fleet (10 repos) — same set as pr-housekeeping.mjs /
 // unblock-dispatcher.mjs / ticket-hygiene.mjs.
 const DEFAULT_REPOS = [
   "relay",
   "toon-client",
   "rig",
   "store",
-  "connector",
   "toon",
   "swap",
   "toon-meta",

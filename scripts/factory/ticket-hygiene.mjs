@@ -93,13 +93,12 @@ import {
 // ── Config (env-overridable) ────────────────────────────────────────────────
 const ORG = process.env.HYGIENE_ORG ?? "toon-protocol";
 
-// The full factory fleet (11 repos) — same set as pr-housekeeping.mjs.
+// The full factory fleet (10 repos) — same set as pr-housekeeping.mjs.
 const DEFAULT_REPOS = [
   "relay",
   "toon-client",
   "rig",
   "store",
-  "connector",
   "toon",
   "swap",
   "toon-meta",
