@@ -74,15 +74,9 @@ import { checksVerdict, settleMergeable } from "./pr-signals.mjs";
 // ── Config (env-overridable) ────────────────────────────────────────────────
 const ORG = process.env.HOUSEKEEPING_ORG ?? "toon-protocol";
 
-// The full factory fleet (10 repos). A single-repo event run narrows this via
+// The full factory fleet (4 repos). A single-repo event run narrows this via
 // HOUSEKEEPING_REPOS (comma-separated `owner/name` or bare `name`).
 const DEFAULT_REPOS = [
-  "relay",
-  "toon-client",
-  "rig",
-  "store",
-  "toon",
-  "swap",
   "toon-meta",
   "Forge",
   "fractal",
