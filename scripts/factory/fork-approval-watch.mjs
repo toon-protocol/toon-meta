@@ -47,13 +47,12 @@ import { createWriteReport, runWrite, hasFailures, formatFailedSection } from ".
 // ── Config (env-overridable) ────────────────────────────────────────────────
 const ORG = process.env.FORKAPPROVAL_ORG ?? "toon-protocol";
 
-// The full factory fleet (11 repos) — same set as the other fleet passes.
+// The full factory fleet (10 repos) — same set as the other fleet passes.
 const DEFAULT_REPOS = [
   "relay",
   "toon-client",
   "rig",
   "store",
-  "connector",
   "toon",
   "swap",
   "toon-meta",
