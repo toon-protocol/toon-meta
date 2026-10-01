@@ -16,6 +16,7 @@
   // DOC-analogue of the eslint-ignore gotcha (factory-engine-notes.md §3a):
   // the `.sandcastle/*-prompt.md` runner prompts ARE markdown and WOULD be
   // linted (and fail) — exclude them, plus node_modules and vendored trees.
+  // The factory template carries the same prompts for other repos to copy.
   //
   // `.claude/**` and `scratchpad*.md` hold untracked, agent-local working
   // files (worktrees, scratch notes) that only exist on some checkouts —
@@ -25,6 +26,7 @@
     "node_modules",
     "**/node_modules/**",
     ".sandcastle/**",
+    "templates/factory/.sandcastle/**",
     ".claude/**",
     "scratchpad*.md",
     "scripts/demo-dashboard/**"
