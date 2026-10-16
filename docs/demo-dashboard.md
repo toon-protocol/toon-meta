@@ -8,12 +8,14 @@ forwarding to each box's admin dashboard.
 
 > **Stale against the live fleet.** This document still describes the apex +
 > `ario` two-box shape and the TypeScript connector's `/admin/*` telemetry. Both
-> are gone: the apex was destroyed 2026-08-14, the devnet is four boxes (relay,
-> store, gas, faucet) with the relay as write ingress, and the `/admin/*`
-> endpoints this page polled belonged to the TypeScript connector. The code in
-> `scripts/demo-dashboard/` already says so (`RETIRED_TELEMETRY`, and the
-> `STALE NODE SET` note in `src/lib/toon.ts`); this prose has not caught up. The
-> chain and address facts below were corrected 2026-08-28.
+> are gone: the apex was destroyed 2026-08-14, and since 2026-10-16 the devnet
+> runs one connector, the relay's, at `https://toonprotocol.dev`, which
+> terminates every route. The `/admin/*` endpoints this page polled belonged to
+> the TypeScript connector. The code in `scripts/demo-dashboard/` already says
+> so (`RETIRED_TELEMETRY`, and the `ONE NODE` note in `src/lib/toon.ts`: it now
+> shows a single node card, the one connector, and no inter-node link); this
+> prose has not caught up. The chain and address facts below were corrected
+> 2026-08-28.
 
 The fleet was **two boxes** when this was written: the `toon` apex (client entry,
 relay, faucet) and the `ario` store (Arweave DVM, route termination). A third box
@@ -94,7 +96,7 @@ live data from two sources, both already public:
    proxied. See the nginx snippet.
 
 2. **Relay Nostr WS** — the browser opens a WebSocket directly to
-   `wss://relay-ws.devnet.toonprotocol.dev` (already public; no CORS / nginx
+   `wss://relay.toonprotocol.dev` (already public; no CORS / nginx
    change needed) and `REQ`s recent events. This is the only real source
    of packet **kind** and payload — the connector forwards opaque packets and
    cannot decode the Nostr event. The per-node packets list attributes events

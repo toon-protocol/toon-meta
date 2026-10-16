@@ -35,7 +35,7 @@ Paying correctly and being a group member are independent.
 import { ToonClient, chargeFor } from '@toon-protocol/client';
 
 const client = await ToonClient.create({
-  connector: 'https://proxy.relay.devnet.toonprotocol.dev',
+  connector: 'https://toonprotocol.dev',
   mnemonic: process.env.TOON_MNEMONIC,
 });
 await client.channel.open({ deposit: 100_000n });

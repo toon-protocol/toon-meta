@@ -6,9 +6,10 @@ settling on **Base Sepolia** and **Solana devnet** through the two-box fleet
 permaweb site + ArNS name.
 
 > **Dated 2026-07-22, and the fleet has moved.** The `toon` apex this runbook
-> pays was **destroyed 2026-08-14**; the relay
-> (`https://proxy.relay.devnet.toonprotocol.dev/ilp`) is the write ingress now,
-> and the store answers `g.toon.store`, not `g.toon.ario`. Mina is gone from the
+> pays was **destroyed 2026-08-14**; since 2026-10-16 the devnet's one
+> connector, the relay's (`https://toonprotocol.dev/ilp`, reads at
+> `wss://relay.toonprotocol.dev`), is the write ingress, and the store answers
+> `g.toon.store`, not `g.toon.ario`. Mina is gone from the
 > connector repository entirely
 > ([connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md))
 > and every Mina faucet route answers `404`. Current facts:

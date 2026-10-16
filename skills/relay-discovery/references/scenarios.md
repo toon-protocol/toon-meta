@@ -34,7 +34,7 @@
 
 ### Steps
 
-1. **Send an HTTP GET** to the connector's `/ilp`, e.g. `https://proxy.relay.devnet.toonprotocol.dev/ilp`. No special headers. Note this is the **connector's** URL, not the relay app's -- the relay does not know its own price.
+1. **Send an HTTP GET** to the connector's `/ilp`, e.g. `https://toonprotocol.dev/ilp`. No special headers. Note this is the **connector's** URL, not the relay app's -- the relay does not know its own price.
 
 2. **Read the route table.** Every route the node terminates appears with its price: a base figure, plus a `pricePerKib` when the route meters by size. Longest matching prefix wins.
 

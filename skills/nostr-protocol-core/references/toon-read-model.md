@@ -107,7 +107,7 @@ New events matching the subscription filters arrive as additional EVENT messages
 Not a subscription. **A connector answers; it never announces** (connector ADR 0022, ADR 0046). Fetch the node's self-description over plain HTTP:
 
 ```
-GET https://proxy.relay.devnet.toonprotocol.dev/ilp
+GET https://toonprotocol.dev/ilp
 ```
 
 It returns the node's ILP addresses, its settlement facts, and every route's price -- free and unauthenticated (ADR 0050). From the client, `client.describe()` and `client.routePrice(destination)` ask the same question.

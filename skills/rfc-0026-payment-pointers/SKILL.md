@@ -46,7 +46,7 @@ need its **URL**; the destination address and the price both come out of its own
 
 ```ts
 const client = await ToonClient.create({
-  connector: 'https://proxy.relay.devnet.toonprotocol.dev',
+  connector: 'https://toonprotocol.dev',
   mnemonic: process.env.TOON_MNEMONIC,
 });
 const desc = await client.describe();               // addresses, settlement, prices

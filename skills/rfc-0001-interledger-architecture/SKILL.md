@@ -75,11 +75,11 @@ token's smallest unit; USDC is 6-decimal, so `1_000_000` = $1.
 
 | Destination | Terminates at | Price (base units of 6-dp USDC) |
 | --- | --- | --- |
-| `g.toon.relay` | relay box | **1**, flat |
-| `g.toon.store`, `g.toon.relay.store` | store box | **`base = 1000, per_kib = 10`** |
-| `g.toon.gas` | gas box | **1000** |
+| `g.toon.relay` | the one connector | **1**, flat |
+| `g.toon.store`, `g.toon.relay.store` | the one connector | **`base = 1000, per_kib = 10`** |
+| `g.toon.gas` | the one connector | **1000** |
 
-Probed live 2026-08-28. There is **no apex**: `g.proxy` and its `town` / `dvm` /
+Probed live 2026-10-16 from the devnet's one connector, `https://toonprotocol.dev/ilp`. There is **no apex**: `g.proxy` and its `town` / `dvm` /
 `mill` children are dead (the apex box was destroyed 2026-08-14), there is no
 "free parent→child forward", and **nothing answers at `g.toon`** itself. An ILP
 address is **self-asserted — a claim, not a grant**.
@@ -90,7 +90,7 @@ address is **self-asserted — a claim, not a grant**.
 import { ToonClient } from '@toon-protocol/client';
 
 const client = await ToonClient.create({
-  connector: 'https://proxy.relay.devnet.toonprotocol.dev',
+  connector: 'https://toonprotocol.dev',
   mnemonic: process.env.TOON_MNEMONIC,
 });
 await client.channel.open({ deposit: 100_000n });

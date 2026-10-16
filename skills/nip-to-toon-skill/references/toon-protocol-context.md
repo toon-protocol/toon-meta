@@ -27,7 +27,7 @@ That is the whole flow. `send()` seals the payload to the terminating connector,
 import { ToonClient } from '@toon-protocol/client';
 
 const client = await ToonClient.create({
-  connector: 'https://proxy.relay.devnet.toonprotocol.dev',
+  connector: 'https://toonprotocol.dev',
   mnemonic: process.env.TOON_MNEMONIC,
 });
 
@@ -49,7 +49,7 @@ if (!answer.fulfilled) {
 
 ## Read Model
 
-**Subscriptions:** standard NIP-01 filters over WebSocket: `["REQ", <sub_id>, <filters>]`, against the relay app directly (`wss://relay-ws.devnet.toonprotocol.dev`).
+**Subscriptions:** standard NIP-01 filters over WebSocket: `["REQ", <sub_id>, <filters>]`, against the relay app directly (`wss://relay.toonprotocol.dev`).
 
 **Reads speak plain NIP-01.** The relay returns **standard JSON** `EVENT` messages -- `["EVENT", <sub_id>, {id, pubkey, created_at, kind, tags, content, sig}]` -- and any ordinary Nostr client can read it with no decoder and no TOON awareness at all. The relay contains no payment code; a read never touches a connector.
 
@@ -101,7 +101,7 @@ const terms = await client.routePrice('g.toon.relay'); // { price, pricePerKib? 
 
 Prices are whole counts of the settlement token's smallest unit. USDC is 6-decimal, so `1_000_000` = $1.
 
-**Live devnet prices**, probed 2026-08-28 from each node's `GET /ilp`:
+**Live devnet prices**, probed 2026-10-16 from the devnet's one connector, `GET https://toonprotocol.dev/ilp`:
 
 | Destination | Price (base units of 6-dp USDC) |
 |-------------|--------------------------------|

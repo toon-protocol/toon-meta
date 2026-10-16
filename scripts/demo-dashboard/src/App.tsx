@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useDashboard, RELAY_COUNT, type Dashboard } from '@/lib/hooks'
 import {
-  NODES, LINKS, INBOUND_LINK, C, chainColor, kindColor, kindLabel, packetDesc,
+  NODES, LINKS, C, chainColor, kindColor, kindLabel, packetDesc,
   trunc, ago, walletRows, gasWarn, NATIVE, EXPL, copy, crossOrigin,
   LIVE_LABEL, LIVE_DOT, RETIRED_TELEMETRY, type NodeKey, type NostrEvent,
 } from '@/lib/toon'
@@ -84,31 +84,13 @@ function NodeCard({ dash, nk, onOpen }: { dash:Dashboard; nk:NodeKey; onOpen:()=
   )
 }
 
-// Static topology, not a live feed. The travelling spark and the packet tally
-// were both driven by the delta in metrics.json's packetsForwarded; with no
-// counter to difference, an animated rail would be pure decoration implying
-// traffic nobody is measuring. The leg itself is still a true fact about how
-// these two nodes settle, so the label stays and the motion goes.
-function LinkCol({ which }: { which:'base'|'sol' }) {
-  const L = LINKS[which]
-  return (
-    <div className="flex min-w-[120px] flex-col items-center justify-center px-1.5">
-      <div className="mb-2.5 rounded-full px-2.5 py-[3px] text-[11px] font-semibold" style={{ background:L.color, color:'#04121a' }}>{L.label}</div>
-      <div className="relative h-[3px] w-full rounded-[3px]" style={{ background:'var(--border)' }}>
-        <div className="absolute inset-0 rounded-[3px]" style={{ background:L.color, opacity:.35 }} />
-      </div>
-      <div className="mt-2 text-center text-[10.5px] leading-tight text-muted-foreground">{L.chain}<br/><span className="opacity-70">throughput not measurable</span></div>
-    </div>
-  )
-}
-
 // ── live packets panel ──
 function LivePackets({ dash, onPacket }: { dash:Dashboard; onPacket:(ev:NostrEvent)=>void }) {
   return (
     <Card className="mt-6 gap-0 p-4">
       <div className="mb-2 flex items-center gap-2.5">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Live packets</h3>
-        <span className="text-[11.5px] text-muted-foreground">Nostr events carried through the connectors — kind-labelled, click for full data</span>
+        <span className="text-[11.5px] text-muted-foreground">Nostr events carried through the connector — kind-labelled, click for full data</span>
         <span className="ml-auto flex items-center gap-1.5 text-[11.5px] text-muted-foreground"><i className={'inline-block h-2 w-2 rounded-full '+(dash.relaysUp>0?'bg-emerald-400':'bg-muted-foreground')} />{dash.relaysUp>0?`${dash.relaysUp}/${RELAY_COUNT} relay${RELAY_COUNT>1?'s':''} live`:'connecting…'}</span>
       </div>
       <ScrollArea className="h-[340px]">
@@ -206,7 +188,7 @@ export default function App() {
       <div className="mx-auto max-w-[1320px] px-5 pb-16 pt-6">
         <header className="mb-1 flex flex-wrap items-baseline gap-3.5">
           <h1 className="text-[19px] font-semibold tracking-tight">TOON devnet · node health &amp; relay stream</h1>
-          <span className="text-[13px] text-muted-foreground">cross-currency multihop · client USDC → Solana → Arweave · click any node or packet for detail</span>
+          <span className="text-[13px] text-muted-foreground">one connector · client USDC ({LINKS.base.chain} or {LINKS.sol.chain}) → relay, store, gas · click the node or any packet for detail</span>
           <span className="ml-auto flex items-center gap-2 text-[12.5px] text-muted-foreground"><span className={'h-2 w-2 rounded-full '+(dash.live?'bg-emerald-400 anim-beat':'bg-muted-foreground')} />{dash.live?`probed · ${dash.lastPoll}`:'connecting…'}</span>
         </header>
 
@@ -218,19 +200,16 @@ export default function App() {
           </div>
         </Card>
 
-        <div className="mt-5 grid items-stretch gap-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-          <NodeCard dash={dash} nk="toon" onOpen={()=>setNodeKey('toon')} />
-          <LinkCol which={INBOUND_LINK.ario} />
-          <NodeCard dash={dash} nk="ario" onOpen={()=>setNodeKey('ario')} />
+        <div className="mt-5 grid items-stretch gap-2">
+          {NODES.map(n => <NodeCard key={n.key} dash={dash} nk={n.key} onOpen={()=>setNodeKey(n.key)} />)}
         </div>
 
         <LivePackets dash={dash} onPacket={openPacket} />
 
         <Card className="mt-4 gap-0 p-4 font-mono text-[12px] leading-relaxed text-muted-foreground">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Route &amp; settlement</div>
-          <div><span className="text-amber-400">client → toon</span> · <b className="text-foreground">Base Sepolia USDC</b> by default (Solana via <code>rig chain set</code>) · pays wss://proxy.devnet.toonprotocol.dev</div>
-          <div><span className="text-amber-400">toon ↔ ario</span> · <b className="text-foreground">Solana devnet USDC</b> · solana:devnet · peered over BTP</div>
-          <div><span className="text-amber-400">termination</span> · <b className="text-foreground">g.toon.store</b> · Arweave store (kind:5094 pay-to-store) · proxy.ario.devnet.toonprotocol.dev</div>
+          <div><span className="text-amber-400">client → connector</span> · <b className="text-foreground">Base Sepolia USDC</b> by default (Solana devnet via <code>rig chain set</code>) · pays wss://toonprotocol.dev/ilp/btp</div>
+          <div><span className="text-amber-400">termination</span> · the same connector · <b className="text-foreground">g.toon.relay</b> (writes) · <b className="text-foreground">g.toon.store</b> (kind:5094 pay-to-store, Arweave) · <b className="text-foreground">g.toon.gas</b> · no inter-node hop</div>
         </Card>
 
         <footer className="mt-6 text-center text-[11.5px] text-muted-foreground">liveness via GET /ilp/identity @10s · packets via relay Nostr WS · balances via chain RPCs @45s · the connector admin API is no longer publicly readable, so no packet or settlement counters are shown</footer>

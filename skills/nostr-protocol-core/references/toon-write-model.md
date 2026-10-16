@@ -45,7 +45,7 @@ import { ToonClient } from '@toon-protocol/client';
 import { finalizeEvent } from 'nostr-tools/pure';
 
 const client = await ToonClient.create({
-  connector: 'https://proxy.relay.devnet.toonprotocol.dev',
+  connector: 'https://toonprotocol.dev',
   mnemonic: process.env.TOON_MNEMONIC,
 });
 

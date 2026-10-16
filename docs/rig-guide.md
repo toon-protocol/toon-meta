@@ -221,7 +221,7 @@ rig balance                  # wallet balances + channel holdings (free)
 rig init
 
 # 4. add your relay as an origin — a REAL git remote
-#    (the shared devnet relay: wss://relay-ws.devnet.toonprotocol.dev)
+#    (the shared devnet relay: wss://relay.toonprotocol.dev)
 rig remote add origin wss://relay.example
 
 # 5. work exactly like git — unowned commands pass through to system git
@@ -238,7 +238,7 @@ Every rig-owned command takes `--json` for machine consumers — the strict cont
 **Steering knobs** (all free — they only write local config):
 
 - `rig chain set <evm|sol>` — pin which chain (and therefore which USDC) settles paid writes; `rig chain` shows the current pick, `rig chain unset` reverts to auto. The devnet settles **two** chains: `evm:84532` and `solana:devnet`.
-- `rig entry <url>` — pick the network entry node (payment ingress + relay); clears the topology cache for you. Both built-in aliases are dead: `sandbox`'s box was decommissioned 2026-07-31 and `apex`'s was destroyed 2026-08-14. Pass an explicit URL — the relay is the fleet's write ingress (`https://proxy.relay.devnet.toonprotocol.dev/ilp`).
+- `rig entry <url>` — pick the network entry node (payment ingress + relay); clears the topology cache for you. Both built-in aliases are dead: `sandbox`'s box was decommissioned 2026-07-31 and `apex`'s was destroyed 2026-08-14. Pass an explicit URL — the devnet's one connector, the relay's, is the write ingress (`https://toonprotocol.dev/ilp`).
 - `rig channels` — shorthand for `rig channel list`.
 
 **No Mina.** rig still carries Mina zkApp plumbing (`rig channel deploy-zkapp`, the per-pair `PaymentChannel` auto-deploy), but it has no counterparty: Mina left the connector repository with [connector ADR 0065](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-mina-leaves-the-repository.md), and a connector **refuses a claim whose `blockchain` is `mina` by name** ([ADR 0002](https://github.com/toon-protocol/connector/blob/main/docs/adr/0002-drop-mina-from-the-rust-connector.md), a refusal deliberately preserved as wire behaviour owed to `toon-client`). Pinning Mina buys a reject, not a payment.

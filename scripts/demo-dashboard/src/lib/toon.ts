@@ -27,20 +27,18 @@ export type NostrEvent = { id:string; pubkey:string; kind:number; content:string
 // relay's Nostr WS stream (free reads) and on-chain balance reads.
 export const RETIRED_TELEMETRY = 'Packet counters, settlement claims and the routes/peers/channels tables came from the TypeScript connector admin API, which no longer exists. Rather than render zeros, this page now shows only what it can actually observe.'
 
-// STALE NODE SET: this page still models the fleet as apex + ario. The apex
-// (`toon`, 104.237.150.177) was DESTROYED 2026-08-14 and proxy.devnet.* does not
-// connect; the relay (proxy.relay.devnet.toonprotocol.dev) is the write ingress
-// now, and a `gas` box joined 2026-08-27. The store box's ILP addresses are
-// `g.toon.store` / `g.toon.relay.store` — `ario` is a box label, not a route.
-export type NodeKey = 'toon' | 'ario'
+// ONE NODE: since the 2026-10-16 consolidation the devnet runs a single
+// connector, https://toonprotocol.dev (the relay's, on the relay box). It
+// terminates every devnet route itself -- g.toon.relay, g.toon.store /
+// g.toon.relay.store, g.toon.gas / g.toon.relay.gas, g.toon.echo and
+// g.toon.workload-gateway -- so there is no inter-node hop left to draw. The old
+// per-box names (proxy.{relay,ario,gas,gateway,echo}.devnet.*) are aliases of it.
+// Truth: `curl -s https://toonprotocol.dev/ilp`.
+export type NodeKey = 'devnet'
 export type NodeDef = { key:NodeKey; name:string; nid:string; ip:string; role:string; base:string }
 export const ORIGIN = typeof location !== 'undefined' ? location.origin : ''
 export const NODES: NodeDef[] = [
-  { key:'toon', name:'TOON apex', nid:'g.toon', ip:'104.237.150.177', role:'client entry — accepts Base / Solana USDC; settles Solana with ario; hosts relay + faucet', base:ORIGIN },
-  // The store box's paid edge was renamed to proxy.ario.* in connector#774.
-  // The old proxy.store.* alias still resolves and the older dvm.* name no
-  // longer answers at all; proxy.ario.* is the canonical name.
-  { key:'ario', name:'Store · ario', nid:'g.toon.store', ip:'45.79.173.113', role:'terminates the route — Arweave DVM; g.toon.store + g.toon.relay.store, priced 1000 + 10/KiB', base:'https://proxy.ario.devnet.toonprotocol.dev' },
+  { key:'devnet', name:'TOON devnet connector', nid:'g.toon.relay', ip:'97.107.134.182', role:'the one devnet connector — accepts Base / Solana USDC and terminates every route: relay (1), store (1000 + 10/KiB), gas (1000), echo, workload gateway', base:'https://toonprotocol.dev' },
 ]
 // Chain vocabulary for a settlement leg. Two chains, and only two: Mina left the
 // connector repository with connector ADR 0065 (built #1205) — the zkApp, the
@@ -53,12 +51,6 @@ export const LINKS = {
   sol :{ label:'Sol USDC',  color:C.sol,  chain:'solana:devnet' },
 } as const
 export type LinkKey = keyof typeof LINKS
-// INBOUND_LINK[n] = the chain the leg *entering* n settles on. The head of the
-// chain (toon) has no upstream node card, so its inbound leg — the client entry,
-// chain-selectable via `rig chain set`, Base by default — is counted but not
-// drawn; only ario's link column appears in the flow strip.
-export const INBOUND_LINK: Record<NodeKey,Extract<LinkKey,'base'|'sol'>> = { toon:'base', ario:'sol' }
-
 export const KIND: Record<number,string> = { 1:'note',3:'contacts',4:'dm',1063:'file-meta',1111:'comment',
   10032:'route-announce',10002:'relay-list',30617:'repo-announce',30618:'repo-state',1617:'patch',1621:'issue',1630:'status',
   5094:'store-request',5095:'arns-buy',5096:'gas-station',6094:'store-result',6095:'arns-result',6096:'gas-result',7000:'dvm-status' }
@@ -89,11 +81,12 @@ export const GAS_FLOOR: Record<string,number> = { base:0.005, sol:0.1 }
 export const EXPL: Record<string,(a:string)=>string> = { base:a=>`https://sepolia.basescan.org/address/${a}`, sol:a=>`https://explorer.solana.com/address/${a}?cluster=devnet` }
 export type WalletRow = { role:string; chain:'base'|'sol'; addr:string; ario?:boolean }
 const WALLETS: Record<NodeKey,{settle:Partial<Record<'base'|'sol',string>>; extra?:WalletRow[]}> = {
-  toon:{ settle:{ base:'0xF29fD62C4848B9573C9b90adbF61b664F386d9CF', sol:'HgNmgJYrZFrx9DZgMopKa9971zGXW3hPL32Wsc6KzF6' } },
-  ario:{ settle:{ base:'0x6B6c2DACf7Ac1F1273F72beF2E6084F9Ee6D3bff', sol:'W6yK72j365eK7t4Qj5An1AaYtUEJcJK7TBPvGeDk1LV' },
-    // Both rotated 2026-07-31: the gas-station key had been committed to the
-    // public repo, and the ARNS DVM key was swept alongside it. Old addresses
-    // are drained -- monitoring them would show a permanently empty wallet.
+  // The one devnet payee (the connector's batchSettlements payTo). The old
+  // per-connector payees no longer receive.
+  devnet:{ settle:{ base:'0x3f43d923a611bcb2d0bfb5d6ee2c3ac3efeaf308', sol:'GzvGVjq3dnNM79MpWRvYCvVcAgPWzDdYisMwGxHF4u9F' },
+    // App wallets, not connector payees. Both rotated 2026-07-31: the
+    // gas-station key had been committed to the public repo, and the ARNS DVM
+    // key was swept alongside it.
     extra:[ {role:'ArNS DVM · ARIO', chain:'sol', addr:'BvX569bcuxh27uc14xcFEjYvf4RkN1dgYgrqX3YjVdYe', ario:true},
             {role:'gas station', chain:'sol', addr:'66oMXXhCFT6EhqE7LeGhbMXvV1PZyxatFZ74zvHfKCfr'} ] },
 }
@@ -138,7 +131,8 @@ export function copy(t:string){ if(navigator.clipboard) navigator.clipboard.writ
 // fixed for, so we do not.
 //
 // Instead each node is probed as hard as its origin allows, and the UI says
-// which of the two it got:
+// which of the two it got (the page is served from faucet.devnet.*, so the
+// one connector is cross-origin):
 //
 //   same-origin  -> read /ilp/identity. 200 + publicKey = `up`. Definitive.
 //   cross-origin -> `mode:'no-cors'` reachability probe. The response is
@@ -149,7 +143,7 @@ export function copy(t:string){ if(navigator.clipboard) navigator.clipboard.writ
 //                   sandbox host rejects here, because its DNS now lands on
 //                   parking IPs with no valid cert for the name.
 //
-// To upgrade the store box to a true `up`, add this page's origin to an
+// To upgrade the connector to a true `up`, add this page's origin to an
 // Access-Control-Allow-Origin header on its `location /ilp/identity` -- that
 // lives in the connector repo's nginx conf, not here.
 export type LiveState = 'probing' | 'up' | 'reachable' | 'down'
