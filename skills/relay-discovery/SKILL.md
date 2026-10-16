@@ -68,20 +68,20 @@ That is the whole document. **It carries no pricing, no ILP address, no chain co
 Ask the connector that fronts the relay:
 
 ```
-GET https://proxy.relay.devnet.toonprotocol.dev/ilp
+GET https://toonprotocol.dev/ilp
 ```
 
 The **self-description** it returns carries the node's ILP addresses, its settlement facts (chain, token, decimals) and every route's price. From the client, the same question is `client.describe()`, or `client.routePrice(destination)` for one route's terms.
 
 An unpaid request to a priced route is answered with a **greeting** carrying that route's terms -- never the work. The word is *greeting*.
 
-**Live devnet**, probed 2026-08-28:
+**Live devnet**, probed 2026-10-16 from its one connector, `GET https://toonprotocol.dev/ilp`:
 
 | Destination | Terminates at | Price (base units of 6-dp USDC) |
 |-------------|---------------|--------------------------------|
-| `g.toon.relay` | relay box | **1**, flat |
-| `g.toon.store`, `g.toon.relay.store` | store box | **base 1000, plus 10 per KiB** |
-| `g.toon.gas` | gas box | **1000** |
+| `g.toon.relay` | the one connector | **1**, flat |
+| `g.toon.store`, `g.toon.relay.store` | the one connector | **base 1000, plus 10 per KiB** |
+| `g.toon.gas` | the one connector | **1000** |
 
 Ask the node rather than trusting this table. An ILP address is **self-asserted -- a claim, not a grant** -- so reachability is the only registry there is. **Nothing answers at `g.toon` itself** (the apex was destroyed 2026-08-14), and every `g.proxy…` address is dead.
 
@@ -149,7 +149,7 @@ An agent bootstraps from a **URL a person gave it** -- the connector it is confi
 
 ```typescript
 const client = await ToonClient.create({
-  connector: 'https://proxy.relay.devnet.toonprotocol.dev',
+  connector: 'https://toonprotocol.dev',
   mnemonic: process.env.TOON_MNEMONIC,
 });
 ```

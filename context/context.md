@@ -17,24 +17,22 @@ Guiding thesis: **"sending a message and sending money are the same action."**
 - **gas-station** — kind:5096 (Solana fee-payer co-sign) / kind:5098 (EVM ERC-2771 relay): pay in what you hold to get a transaction landed on a chain you hold no gas for.
 - **swap** — multi-chain swap peer: pay asset A, receive a signed target-chain claim redeemable for asset B.
 
-Each runs its **own** connector in front of it, from its **own** repo's `deploy/` bundle. There is no apex and no parent/child: a hop between two nodes is a **peering** an operator wrote down (`POST /peers`, connector ADR 0058), and every hop takes its peering's flat per-packet fee (ADR 0061).
+Each node deploys from its **own** repo's `deploy/` bundle, and a node may run its own connector in front of it; on the live devnet one connector, the relay's, fronts every app as a direct route. There is no apex and no parent/child: a hop between two nodes is a **peering** an operator wrote down (`POST /peers`, connector ADR 0058), and every hop takes its peering's flat per-packet fee (ADR 0061).
 
-## Current state (2026-08)
+## Current state (2026-10)
 
 Polyrepo (see [`repos.md`](./repos.md)). The connector publishes **no npm package** — one static Rust binary and the image `ghcr.io/toon-protocol/connector:rust-main`; each node repo **pins** a dated release handle in exactly one guarded place in its own `deploy/` (ADR 0068). Configuration is **one typed TOML file with no environment-variable layer** (ADR 0009).
 
-Devnet is **four boxes and no apex** — the apex (`toon`, `104.237.150.177`) was destroyed 2026-08-14. Relay and store were re-deployed 2026-08-27 from their own repos' `deploy/` bundles, and the gas box was stood up the same day from `gas-station`'s; the relay box runs Caddy, not nginx. Settlement is on **public chains only**: Base Sepolia (`evm:84532`) and Solana devnet. Mina left the connector repository (ADR 0065-mina), though a claim declaring `blockchain: "mina"` is still refused by name.
+Devnet is **one host and one connector**. The apex (`toon`, `104.237.150.177`) was destroyed 2026-08-14; since 2026-09-25 every node shares the relay's Linode (`97.107.134.182`) behind one Caddy edge (`infra`'s `edge/deploy`); since 2026-10-16 the relay's connector at `https://toonprotocol.dev` is the only connector, and store, gas, workload gateway and echo are direct routes of it. Each node still deploys from its own repo's `deploy/` bundle, applied by its own `toon-auto-apply-<node>` timer. Settlement is on **public chains only**: Base Sepolia (`evm:84532`) and Solana devnet, to one payee (`0x3f43d923a611bcb2d0bfb5d6ee2c3ac3efeaf308` / `GzvGVjq3dnNM79MpWRvYCvVcAgPWzDdYisMwGxHF4u9F`). Mina left the connector repository (ADR 0065-mina), though a claim declaring `blockchain: "mina"` is still refused by name.
 
 | Endpoint | What |
 |----------|------|
-| `wss://relay-ws.devnet.toonprotocol.dev` | Nostr relay app — free reads, never touches a connector |
-| `https://proxy.relay.devnet.toonprotocol.dev/ilp` | relay box connector — self-description; terminates `g.toon.relay`, price `1` |
-| `wss://proxy.relay.devnet.toonprotocol.dev/ilp/btp` | the same node's BTP carriage |
-| `https://proxy.ario.devnet.toonprotocol.dev/ilp` | store box (`ario`) connector — terminates `g.toon.store` and `g.toon.relay.store`, price `base = 1000, per_kib = 10` |
-| `https://proxy.gas.devnet.toonprotocol.dev/ilp` | gas box connector — terminates `g.toon.gas` and `g.toon.relay.gas`, price `1000` |
-| `https://faucet.devnet.toonprotocol.dev` | faucet box — **USDC only, two chains** (`/api/base-sepolia/request`, `/api/solana/usdc-request`) |
+| `wss://relay.toonprotocol.dev` | Nostr relay app — free reads, never touches a connector |
+| `https://toonprotocol.dev/ilp` | the one connector — self-description; terminates `g.toon.relay` (`1`), `g.toon.store` and `g.toon.relay.store` (`base = 1000, per_kib = 10`), `g.toon.gas` and `g.toon.relay.gas` (`1000`), `g.toon.echo`, `g.toon.workload-gateway` |
+| `wss://toonprotocol.dev/ilp/btp` | the same connector's BTP carriage |
+| `https://faucet.devnet.toonprotocol.dev` | faucet — **USDC only, two chains** (`/api/base-sepolia/request`, `/api/solana/usdc-request`) |
 
-Dead: `proxy.devnet.toonprotocol.dev` (the apex) answers nothing, and `dvm.devnet.toonprotocol.dev` resolves to the store box but is not served — use `proxy.ario.…`. The faucet's SOL leg and both Mina legs are deleted. kind:5096/5098 moved out of `store` into the **gas-station** repo (2026-08-27).
+Transitional, being removed: `proxy.{relay,ario,gas,gateway,echo}.devnet.toonprotocol.dev` (aliases of the one connector) and `relay-ws.devnet.toonprotocol.dev`. Dead: `proxy.devnet.toonprotocol.dev` (the apex) answers nothing. The faucet's SOL leg and both Mina legs are deleted. kind:5096/5098 moved out of `store` into the **gas-station** repo (2026-08-27). Mainnet, for reference: one connector at `https://toonprotocol.xyz/ilp`, reads at `wss://relay.toonprotocol.xyz`.
 
 Chain endpoints, tokens and program ids are hand-maintained in [`connector/infra/linode/endpoints.json`](https://github.com/toon-protocol/connector/blob/main/infra/linode/endpoints.json) — the canonical answer to "what does a TOON node point at on devnet". A node's own live figures are on its **self-description**; ask the node, don't guess.
 

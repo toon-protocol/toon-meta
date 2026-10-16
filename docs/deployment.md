@@ -52,8 +52,11 @@ Let's Encrypt TLS.
 
 ### Node layout
 
-A client pays the **relay** in Base or Solana USDC (pinned with `rig chain set`);
-the relay is the write ingress, and the store terminates the Arweave route. The
+A client pays the devnet's **one connector**, the relay's, at
+`https://toonprotocol.dev` (BTP `wss://toonprotocol.dev/ilp/btp`), in Base or
+Solana USDC (pinned with `rig chain set`). Since 2026-10-16 that connector
+terminates every devnet route itself; store, gas station, workload gateway and
+echo are direct routes of it and run no connector of their own on the devnet. The
 apex hop that used to sit in front of them is gone — and since 2026-09-25 the
 per-node boxes are too (`toon-protocol/infra#25`): every node below shares
 **one host**, `97.107.134.182` — the relay's own `g6-nanode-1` (961 MB), the
@@ -61,12 +64,13 @@ same box it always was, **not resized** to the 2 GB the cutover plan called
 for. Cutover memory measurements showed the whole fleet fits on it as it
 stood (each connector 2–7 MB idle, the apps 28–92 MB apiece, about 600 MB of
 961 MB used), one **Edge** (`toon-protocol/infra` `edge/deploy`, Caddy)
-terminates every hostname, and each node still answers for itself: its own
-connector, keys and ILP address, none of it re-keyed by the move.
+terminates every hostname. Each node still deploys from its own repository's
+`deploy/` bundle, applied by its own `toon-auto-apply-<node>` timer. The current
+topology is [`infra`'s `docs/devnet.md`](https://github.com/toon-protocol/infra/blob/main/docs/devnet.md).
 
-| Node | Repository | ILP addresses (probed 2026-08-28) | Role |
+| Node | Repository | ILP addresses (all on the one connector) | Role |
 |------|-----------|-----------------------------------|------|
-| Relay | `toon-protocol/relay` | `g.toon.relay` | the fleet's write ingress; also the devnet's one host |
+| Relay | `toon-protocol/relay` | `g.toon.relay`, `g.toon.relay.ephemeral` | runs the one connector; also the devnet's one host |
 | Store | `toon-protocol/store` | `g.toon.store`, `g.toon.relay.store` | kind:5094 blob storage, kind:5095 ArNS buy |
 | Gas station | `toon-protocol/gas-station` | `g.toon.gas`, `g.toon.relay.gas` | kind:5096 Solana fee-payer, kind:5098 EVM relayer |
 | Workload gateway | `toon-protocol/gateway` | — (no `g.toon` route; a free handover route) | hands a leased workload a `*.gw.devnet…` hostname |
@@ -82,16 +86,16 @@ its identity backed up, and a provider is a follow-up to be run by its own
 operator (e.g. a Hidden Provider, spec §10).
 
 > **`ario` is a box label and a hostname, not an ILP address.** There is no
-> `g.toon.ario` route. `GET https://proxy.ario.devnet.toonprotocol.dev/ilp`
-> answers `g.toon.store` / `g.toon.relay.store`, each priced as a **schedule** —
-> base 1000 plus 10 per **KiB** of payload
+> `g.toon.ario` route. The store's routes are `g.toon.store` /
+> `g.toon.relay.store`, each priced as a **schedule** — base 1000 plus 10 per
+> **KiB** of payload
 > ([connector ADR 0065, *a price is a schedule over payload length*](https://github.com/toon-protocol/connector/blob/main/docs/adr/0065-a-price-is-a-schedule-over-payload-length.md))
 > — not the flat 1000 that `connector/docs/devnet-pricing.md` still records.
-> That file is stale (connector#1250). For a per-box price or address, read the
-> owning node repo's own `deploy/` bundle, which ADR 0068 made the authority, or
-> probe `GET <node>/ilp`. The relay's own answer, probed 2026-08-28:
-> `g.toon.relay` 1, `g.toon.relay.ephemeral` 0, `g.toon.relay.gas` 1001,
-> `g.toon.relay.store` 1001 + 10/KiB.
+> That file is stale (connector#1250). For a price, probe
+> `GET https://toonprotocol.dev/ilp`. Its answer on 2026-10-16:
+> `g.toon.relay` 1, `g.toon.relay.ephemeral` 0, `g.toon.relay.gas` 1000,
+> `g.toon.relay.store` 1000 + 10/KiB, `g.toon.store` 1000 + 10/KiB,
+> `g.toon.gas` 1000, `g.toon.echo` 1 + 1/KiB.
 
 Verified against the Linode API on 2026-08-27. Two corrections to what this
 table said before: the apex (`toon`, `104.237.150.177`) was destroyed under
@@ -113,9 +117,11 @@ repo. Since 2026-09-25 that `deploy/` bundle no longer means its own box: it
 runs as a node on the shared host above, joined by its repo's own
 shared-edge overlay, same as relay, store and the workload-gateway node.
 
-Settlement runs on `evm:84532` and `solana:devnet` only. The apex↔store
-connector↔connector link (`solana:devnet`, shared channel `5z6znXjH…`) went with
-the apex; each node now settles with its own counterparties directly.
+Settlement runs on `evm:84532` and `solana:devnet` only, to **one payee**, the
+one connector's: Base Sepolia `0x3f43d923a611bcb2d0bfb5d6ee2c3ac3efeaf308`,
+Solana `GzvGVjq3dnNM79MpWRvYCvVcAgPWzDdYisMwGxHF4u9F`. The old per-connector
+payees no longer receive. The apex↔store connector↔connector link
+(`solana:devnet`, shared channel `5z6znXjH…`) went with the apex.
 
 ### Endpoints
 
@@ -123,18 +129,19 @@ the apex; each node now settles with its own counterparties directly.
 
 | Service | Endpoint | Node | Notes |
 |---------|----------|------|-------|
-| Relay reads | `wss://relay-ws.<box>` | relay | Nostr WebSocket (payment-oblivious, free read) |
-| Relay ILP edge | `https://proxy.relay.<box>/ilp` · `wss://proxy.relay.<box>/ilp/btp` | relay | the fleet's write entry now that the apex is gone |
+| The one connector | `https://toonprotocol.dev/ilp` · `wss://toonprotocol.dev/ilp/btp` | relay | every paid devnet route: relay, store, gas, echo, workload-gateway handover |
+| Relay reads | `wss://relay.toonprotocol.dev` | relay | Nostr WebSocket (payment-oblivious, free read); NIP-11 names the connector |
 | Faucet (+ frontend) | `https://faucet.<box>` | faucet | USDC faucet, **two-chain** web UI at `/` |
-| Store ILP edge | `https://proxy.ario.<box>/ilp` | store | routes `g.toon.store`, `g.toon.relay.store` (the `proxy.store.<box>` alias still resolves) |
-| Gas-station ILP edge | `https://proxy.gas.<box>/ilp` | gas | routes `g.toon.gas`, `g.toon.relay.gas` |
+| Onboarder | `https://onboard.<box>` | — | pays the gas for a gasless Base Sepolia channel deposit |
 
-Dead endpoints, probed 2026-08-28: `proxy.<box>` **does not connect at all** (the
-destroyed apex), and `dvm.<box>` resolves to the store box but returns **404**.
+Transitional, being removed ([infra#58](https://github.com/toon-protocol/infra/pull/58)):
+`proxy.relay.<box>`, `proxy.ario.<box>`, `proxy.gas.<box>`, `proxy.gateway.<box>`,
+`proxy.echo.<box>` all reach the one connector now, and `relay-ws.<box>` the
+relay's WebSocket. Do not use them. Dead: `proxy.<box>` (the destroyed apex).
 Also retired, DNS records pending removal: `relay-ws.sandbox.*`,
 `proxy.sandbox.*` (the decommissioned sandbox entry box), `evm-rpc.*`,
 `solana-rpc.*`, `solana-ws.*`, `mina.*`, `mina-accounts.*`. `store.<box>` was
-never wired (parked at the registrar) — use `proxy.ario.<box>`.
+never wired (parked at the registrar).
 
 Public chain RPCs (no self-hosted chain infra):
 
@@ -228,8 +235,8 @@ authority — record:
 **2. No apex, no per-node boxes, and every node still deploys itself.** The
 apex was destroyed 2026-08-14. As of 2026-09-25 (`toon-protocol/infra#25`)
 relay, store, gas station and the workload-gateway node share one host —
-the relay's own box — rather than one each, but each still deploys from its
-**own** repository's `deploy/` bundle — `docker compose` out of its own
+the relay's own box — rather than one each, and as of 2026-10-16 one connector,
+the relay's; but each still deploys from its **own** repository's `deploy/` bundle — `docker compose` out of its own
 checkout at `/root/relay`, `/root/store`, and so on, not `/root/connector` —
 and the host's edge now runs Caddy in front of all of them (before the
 move, the relay ran its own Caddy already, not nginx). `connector/infra/linode-relay/` and
@@ -322,7 +329,9 @@ handle, in exactly one guarded place in its own `deploy/` bundle:
 | store | `deploy/docker-compose.yml` → `image: …/connector:rust-sha-…` |
 | gas-station | `deploy/docker-compose.yml` → `image: …/connector:rust-sha-…` |
 
-Each pin is guarded by that repo's own bundle test. The connector repo **builds
+On the devnet only the relay's pin runs a connector: since 2026-10-16 the
+relay's connector is the devnet's one connector. Each pin is guarded by that
+repo's own bundle test. The connector repo **builds
 and cuts a release** — one human `workflow_dispatch` of `release-connector.yml`,
 producing a dated handle like `2026.08.21.1`, deliberately **never semver**
 because no crate under `crates/` has a release process and the image will not

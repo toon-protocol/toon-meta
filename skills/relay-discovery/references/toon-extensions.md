@@ -17,7 +17,7 @@ Nothing in the first row involves a connector at all. Reads are free Nostr WebSo
 **A connector answers; it never announces** (connector ADR 0022, ADR 0046). Its self-description is a free, unauthenticated HTTP GET on its own URL (ADR 0050), and it is the *only* place a node's payment facts come from:
 
 ```
-GET https://proxy.relay.devnet.toonprotocol.dev/ilp
+GET https://toonprotocol.dev/ilp
 ```
 
 It carries the node's ILP addresses, its settlement facts (chain, token, decimals), the key a payload must be **sealed** to, and **every route's price**.
@@ -38,13 +38,13 @@ An unpaid request to a priced route is answered with a **greeting** carrying tha
 
 ### Live Devnet Routes
 
-Probed 2026-08-28 from each node's `GET /ilp`:
+Probed 2026-10-16 from the devnet's one connector, `GET https://toonprotocol.dev/ilp`, which terminates every route:
 
 | Destination | Terminates at | Price (base units of 6-dp USDC) |
 |-------------|---------------|--------------------------------|
-| `g.toon.relay` | relay box, `https://proxy.relay.devnet.toonprotocol.dev/ilp` | **1**, flat |
-| `g.toon.store`, `g.toon.relay.store` | store box, `https://proxy.ario.devnet.toonprotocol.dev/ilp` | **base 1000, plus 10 per KiB** |
-| `g.toon.gas` | gas box, `https://proxy.gas.devnet.toonprotocol.dev/ilp` | **1000** |
+| `g.toon.relay` | the one connector | **1**, flat |
+| `g.toon.store`, `g.toon.relay.store` | the one connector | **base 1000, plus 10 per KiB** |
+| `g.toon.gas` | the one connector | **1000** |
 
 Ask the node rather than trusting this table -- a node's own self-description is the authority.
 
@@ -79,7 +79,7 @@ import { ToonClient } from '@toon-protocol/client';
 import { finalizeEvent } from 'nostr-tools/pure';
 
 const client = await ToonClient.create({
-  connector: 'https://proxy.relay.devnet.toonprotocol.dev',
+  connector: 'https://toonprotocol.dev',
   mnemonic: process.env.TOON_MNEMONIC,
 });
 

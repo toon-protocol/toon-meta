@@ -64,13 +64,13 @@ All arithmetic is `bigint`. A price past 2^53 is a real amount and a JSON number
 
 ## Live Devnet Prices
 
-Probed 2026-08-28 from each node's `GET /ilp`:
+Probed 2026-10-16 from the devnet's one connector, `GET https://toonprotocol.dev/ilp`, which terminates every route:
 
 | Destination | Terminates at | Price (base units of 6-dp USDC) |
 |-------------|---------------|--------------------------------|
-| `g.toon.relay` | relay box | **1**, flat — $0.000001 per write, any length |
-| `g.toon.store`, `g.toon.relay.store` | store box | **base 1000, plus 10 per KiB** |
-| `g.toon.gas` | gas box | **1000** |
+| `g.toon.relay` | the one connector | **1**, flat — $0.000001 per write, any length |
+| `g.toon.store`, `g.toon.relay.store` | the one connector | **base 1000, plus 10 per KiB** |
+| `g.toon.gas` | the one connector | **1000** |
 
 Ask the node rather than trusting this table. A node's own self-description is the authority, and a node repository's `deploy/` bundle is the authority for what its box serves.
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NODES, walletRows, readBal, probeLiveness, gasWarn,
   type NodeKey, type Liveness, type NostrEvent, type Bal } from './toon'
 
-const RELAYS = [ { url:'wss://relay-ws.devnet.toonprotocol.dev', tag:'toon' } ]
+const RELAYS = [ { url:'wss://relay.toonprotocol.dev', tag:'toon' } ]
 export const RELAY_COUNT = RELAYS.length
 const NODE_KEYS = NODES.map(n => n.key)
 

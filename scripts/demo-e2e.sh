@@ -38,7 +38,7 @@ ARNS_NAME=${2:-}
 CHAIN=${CHAIN:-}            # pin a settlement chain, e.g. evm:84532
 FUND=${FUND:-}              # non-empty: run `rig fund` before the demo
 DVM_URL=${DVM_URL:-}        # optional --via override (rig defaults it on devnet)
-RELAY=${RELAY:-wss://relay-ws.devnet.toonprotocol.dev}
+RELAY=${RELAY:-wss://relay.toonprotocol.dev}
 
 step() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 

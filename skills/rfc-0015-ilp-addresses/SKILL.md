@@ -57,11 +57,11 @@ and an empty address permitted only as a REJECT's `triggeredBy`.
 
 | Destination | Terminates at | Price (base units of 6-dp USDC) |
 | --- | --- | --- |
-| `g.toon.relay` | relay box | **1**, flat |
-| `g.toon.store`, `g.toon.relay.store` | store box | **`base = 1000, per_kib = 10`** — a schedule |
-| `g.toon.gas` | gas box | **1000** |
+| `g.toon.relay` | the one connector | **1**, flat |
+| `g.toon.store`, `g.toon.relay.store` | the one connector | **`base = 1000, per_kib = 10`** — a schedule |
+| `g.toon.gas` | the one connector | **1000** |
 
-Probed live 2026-08-28. **`g.proxy…` is dead** — the apex was destroyed
+Probed live 2026-10-16 from the devnet's one connector, `https://toonprotocol.dev/ilp`. **`g.proxy…` is dead** — the apex was destroyed
 2026-08-14 (connector#872, toon-meta#313), and there is no `g.proxy.town`,
 `g.proxy.dvm` or `g.proxy.mill`. **Nothing answers at `g.toon` itself**: it is
 the namespace root in the wire protocol and no node claims it.
